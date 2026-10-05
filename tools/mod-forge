@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# mod-forge : pilote l'agent kcd2-mod-architect avec point de validation humain.
+# Usage:
+#   MOD_DIR=/chemin/du/mod tools/mod-forge create "<demande>"   # écrit la SPEC seulement, puis s'arrête
+#   MOD_DIR=... tools/mod-forge build docs/spec/<fichier>.md    # construit, UNIQUEMENT après ta validation de la spec
+#   MOD_DIR=... tools/mod-forge fix   "<problème>"              # diagnostic + plan, puis correction minimale
+#   MOD_DIR=... tools/mod-forge audit                           # cohérence demandes/mod + écarts avec le natif
+set -euo pipefail
+: "${MOD_DIR:?Définis MOD_DIR (dossier du mod)}"
+cmd="${1:?create|build|fix|audit}"; shift || true
+run() { claude -p --agent kcd2-mod-architect --add-dir "$MOD_DIR" "$1"; }
+ctx="Le mod est dans $MOD_DIR (hors de ce dépôt). Lis docs/vision.md et docs/requests.md d'abord. Respecte-les strictement."
+case "$cmd" in
+  create) run "$ctx MODE: SPEC SEULEMENT. Demande: $*. Fais recherche + catalogue natif, écris docs/spec/. N'écris AUCUN fichier dans le mod. Termine par la liste des choix qui demandent ma validation." ;;
+  build)  run "$ctx MODE: BUILD. Spec validée: $1. Construis dans une branche/copie du mod, par petites étapes, lance les validateurs, journalise dans docs/audit/build-log.md." ;;
+  fix)    run "$ctx MODE: FIX. Problème: $*. Diagnostique avec preuves, propose le plan, puis applique la correction minimale sur une branche/copie." ;;
+  audit)  run "$ctx MODE: AUDIT. Cohérence demandes/mod puis écarts avec le natif. Écris docs/audit/coherence.md. Lecture seule sur le mod." ;;
+  *) echo "commande inconnue"; exit 1 ;;
+esac
