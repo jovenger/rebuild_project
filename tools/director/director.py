@@ -10,6 +10,7 @@ Il réfléchit, fait ses propres recherches (fichiers du mod, fichiers du jeu, w
 Usage:
   python director.py                       # mode interactif: tu tapes tes demandes (reprend une demande interrompue)
   python director.py "ta demande"          # une demande
+  python director.py creer                 # ENTRETIEN: le directeur te pose toutes les questions pour définir ce que tu veux créer, puis dirige Claude
   python director.py adopt                 # Claude inventorie le mod existant -> docs/state/STATE.md
 
 Env (voir README): MOD_DIR, GAME_DIR, OLLAMA_MODEL, VISION_MODEL, CLAUDE_SESSION, MAX_ROUNDS, OLLAMA_URL
@@ -183,6 +184,45 @@ def adopt():
         "Écris le tout dans " + str(STATE) + " (crée le dossier). Marque les doutes [À VÉRIFIER]. Réponds par un résumé court.")
     log("ADOPTION", r); print(r); print("État écrit dans", STATE)
 
+SYS_INTERVIEW = """Tu es le DIRECTEUR en phase d'ENTRETIEN. Tu poses UNE question à la fois à Yann pour définir complètement ce qu'il veut créer dans Kingdom Come: Deliverance 2 (mod Scriptorium), jusqu'à ce qu'il ne reste AUCUNE ambiguïté.
+Couvre au minimum, dans l'ordre utile: nature de la chose (lieu, PNJ, objet, arme/armure, métier, quête, système, interface, son...) ; emplacement dans le jeu ; fonction/gameplay ; acteurs (PNJ, métiers, horaires) ; apparence ; animations ; sons ; effets (feu, étincelles, fumée...) ; points d'interaction/accroches ; déclencheurs et économie ; liens avec l'existant de Scriptorium (quel dossier de métier, quel mécanisme réutiliser) ; interdits ; comment Yann vérifiera que c'est réussi.
+Principes: pose seulement des questions dont la réponse n'est pas déjà connue (demande, état du mod, notes de recherche, réponses précédentes). Propose 2 à 4 options concrètes tirées du jeu natif ou du mod quand tu en as (avec leur source). Question courte, en français simple. Si Yann répond '?', tu donnes ta recommandation et pourquoi ; s'il répond 'passe', tu décideras toi-même d'après le natif.
+Réponds en JSON: {"done": true|false, "question": "...", "options": ["..."], "why": "pourquoi tu poses cette question", "summary": "si done: brief complet et structuré de ce que Yann veut (toutes les décisions prises, celles laissées au directeur, les interdits, les critères de réussite)"}"""
+
+def interview():
+    idea = input("Qu'est-ce que tu veux créer ? (une phrase) > ").strip()
+    if not idea: return
+    print("[recherche rapide pour te proposer des options natives...]")
+    notes = research("Options natives et existant de Scriptorium pour: " + idea)
+    log("ENTRETIEN — notes", notes)
+    qa = []
+    for n in range(1, 41):
+        ctx = (f"Idée de Yann: {idea}\n\nNOTES DE RECHERCHE:\n{notes}\n\nÉTAT DU MOD:\n{state_text()}\n\n"
+               "Questions/réponses jusqu'ici:\n" + ("\n".join(f"Q: {q}\nR: {a}" for q, a in qa) or "(aucune)"))
+        r = json.loads(chat(BRAIN, SYS_INTERVIEW, ctx, as_json=True))
+        if r.get("done"):
+            brief = r.get("summary", "")
+            break
+        print(f"\n[{n}] {r['question']}")
+        for i, o in enumerate(r.get("options") or [], 1): print(f"   {i}. {o}")
+        if r.get("why"): print(f"   (pourquoi: {r['why']})")
+        a = input("   > ").strip()
+        if a.lower() in ("stop", "fini", "assez"):
+            qa.append((r["question"], "STOP: arrête de poser des questions, décide du reste d'après le natif"))
+            continue
+        if a.isdigit() and r.get("options") and 1 <= int(a) <= len(r["options"]): a = r["options"][int(a) - 1]
+        qa.append((r["question"], a or "passe"))
+        if qa[-1][1].lower().startswith("stop:"): pass
+    else:
+        brief = chat(BRAIN, SYS_INTERVIEW, ctx + "\n\nLimite atteinte: done=true, fournis le brief.", as_json=True)
+        brief = json.loads(brief).get("summary", "")
+    out = ROOT / "docs" / "briefs" / (time.strftime("%Y%m%d-%H%M%S") + ".md")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(f"# Brief — {idea}\n\n{brief}\n\n## Questions/réponses\n" + "\n".join(f"- **{q}** -> {a}" for q, a in qa), encoding="utf-8")
+    print("\n=== BRIEF ===\n" + brief + f"\n\n(enregistré: {out})")
+    if input("\nLancer la réalisation avec Claude maintenant ? (o/n) > ").strip().lower().startswith("o"):
+        handle(idea + "\n\nBRIEF VALIDÉ PAR YANN (source de vérité):\n" + brief)
+
 def handle(request, resume=None):
     start = 1
     if resume:
@@ -213,6 +253,7 @@ def main():
     global session
     a = sys.argv[1:]
     if a == ["adopt"]: return adopt()
+    if a == ["creer"]: return interview()
     if a: return handle(" ".join(a))
     if RUN.exists():
         run = json.loads(RUN.read_text(encoding="utf-8"))
@@ -223,6 +264,7 @@ def main():
         try: req = input("\nYann > ").strip()
         except (EOFError, KeyboardInterrupt): return
         if req in ("", "quit", "exit"): return
+        if req == "creer": interview(); continue
         handle(req)
 
 if __name__ == "__main__":
