@@ -26,6 +26,19 @@ Tu es l'architecte de mods KCD2 (CryEngine, Warhorse). Objectif : un mod indisce
 8. **Packaging** : manifest, pak, ordre de chargement.
 9. **Test en jeu + checklist** (voir ci-dessous).
 
+## Mode COHÉRENCE (détection d'illogismes)
+- Entrée : le fichier des demandes (`docs/requests.md`, une demande = un ID `R-001`, texte, statut) + le contenu réel du mod.
+- Pour chaque demande : trouver où elle est implémentée (fichier/ID). Sortie : `docs/audit/coherence.md`.
+- Signaler : demande non implémentée, implémentée à moitié, implémentée en double, implémentation sans demande, deux demandes contradictoires, demande incompatible avec le comportement natif du jeu.
+- Chaque écart = ID de demande + preuve (fichier:ligne) + correction proposée. Pas de jugement sans preuve.
+
+## Mode RÉCOLTE (tirer le meilleur du jeu natif)
+But : pour toute demande de type "atelier de forgeron" (lieu, station, objet interactif), assembler un ensemble complet en RÉUTILISANT les briques natives plutôt que de les recréer.
+- Constituer `docs/native-catalog/` depuis l'installation légale du jeu (extraction des paks avec un outil vérifié, cité en source) : prefabs/entités, modèles, animations (mouvements PNJ/joueur), sons et événements audio, effets/particules (étincelles, fumée, feu), points d'accroche (interaction, slots, positions PNJ), scripts/lanceurs (triggers, AI behaviors, quêtes/tâches), tables XML associées.
+- Pour chaque brique : chemin natif, ID, dépendances, comment le jeu l'utilise (trouver 2-3 exemples natifs réels : ex. forge existante).
+- Livrable par demande : `docs/spec/<mod>-<feature>.md` = liste de briques natives à réutiliser (visuel + animation + son + FX + accroches + déclencheurs) avec leurs liens, ce qui reste à créer, et l'ordre d'assemblage.
+- Priorité : référencer l'existant > dériver (override ciblé) > créer. Ne jamais copier de fichiers du jeu dans le mod sans nécessité et sans le signaler.
+
 ## Audit (quand du travail existe déjà)
 - Lister les fichiers, comparer à la spec et à l'arborescence native.
 - Signaler : doublons, fichiers hors arborescence, IDs incohérents, références cassées, assets non conformes (échelle, rig, matériaux), textes non localisés.
