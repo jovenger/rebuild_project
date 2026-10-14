@@ -60,6 +60,37 @@ function poste.essai_coffre()
   return sorts, bilan
 end
 
+-- Camp : fonde le camp là où se tient Henry ; s'il existe déjà, le redresse.
+function poste.essai_camp()
+  local camp = Scriptorium.camp
+  if camp.est_fonde() then
+    local reposes, manquants = camp.redresser()
+    jeu().journal("Poste : camp déjà fondé (niveau " .. camp.niveau() .. "), redressé : " .. reposes
+                  .. " reposé(s), " .. manquants .. " manquant(s)")
+    return "redresse", reposes, manquants
+  end
+  local ok, raison = camp.fonder(jeu().position_du_joueur(), jeu().cap_du_joueur())
+  local capacite = camp.capacite()
+  jeu().journal("Poste : camp fondé = " .. tostring(ok) .. (raison and (" (" .. raison .. ")") or "")
+                .. ", lits = " .. capacite.lits .. ", sièges = " .. capacite.sieges)
+  return ok and "fonde" or "refuse", capacite.lits, capacite.sieges
+end
+
+-- Camp : agrandit d'un niveau.
+function poste.essai_camp_agrandir()
+  local ok, raison = Scriptorium.camp.agrandir()
+  jeu().journal("Poste : camp agrandi = " .. tostring(ok) .. (raison and (" (" .. raison .. ")") or "")
+                .. ", niveau = " .. Scriptorium.camp.niveau())
+  return ok
+end
+
+-- Camp : lève le camp.
+function poste.essai_camp_lever()
+  local ok, raison = Scriptorium.camp.lever()
+  jeu().journal("Poste : camp levé = " .. tostring(ok) .. (raison and (" (" .. raison .. ")") or ""))
+  return ok
+end
+
 -- Résumé du socle dans le journal.
 function poste.bilan()
   for _, morceau in ipairs(Scriptorium.morceaux) do
@@ -74,5 +105,8 @@ Scriptorium.declarer_morceau("poste", function()
   jeu().commande("scriptorium_essai_bandeau", "Scriptorium.poste.essai_bandeau()", "Essai du bandeau des messages")
   jeu().commande("scriptorium_essai_registre", "Scriptorium.poste.essai_registre()", "Essai du registre")
   jeu().commande("scriptorium_essai_coffre", "Scriptorium.poste.essai_coffre()", "Essai du coffre")
+  jeu().commande("scriptorium_essai_camp", "Scriptorium.poste.essai_camp()", "Fonde le camp où se tient Henry, ou le redresse")
+  jeu().commande("scriptorium_essai_camp_agrandir", "Scriptorium.poste.essai_camp_agrandir()", "Agrandit le camp d'un niveau")
+  jeu().commande("scriptorium_essai_camp_lever", "Scriptorium.poste.essai_camp_lever()", "Lève le camp")
   jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
 end)

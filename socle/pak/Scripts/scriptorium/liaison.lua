@@ -104,5 +104,56 @@ function liaison.donner_groschen_a_henry(montant)
   return ok
 end
 
+-- Pose un objet du jeu de base (modèle par son chemin) et rend son identifiant, ou nil.
+-- À vérifier en jeu : System.SpawnEntity avec la classe BasicEntity et object_Model,
+-- et la forme de l'orientation attendue (angles en degrés ou en radians ?).
+function liaison.poser_objet(sorte, modele, position, cap, nom)
+  local ok, entite = pcall(function()
+    return System.SpawnEntity({
+      class = "BasicEntity",
+      name = "scriptorium_" .. nom,
+      position = { x = position.x, y = position.y, z = position.z },
+      orientation = { x = 0, y = 0, z = math.rad(cap) },
+      properties = { object_Model = modele },
+    })
+  end)
+  if ok and entite and entite.id then
+    return entite.id
+  end
+  liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ") : " .. tostring(entite))
+  return nil
+end
+
+-- Retire un objet posé par le socle.
+-- À vérifier en jeu : System.RemoveEntity(identifiant).
+function liaison.retirer_objet(identifiant)
+  pcall(function() System.RemoveEntity(identifiant) end)
+end
+
+-- Vrai si l'objet existe encore dans le monde.
+-- À vérifier en jeu : System.GetEntity(identifiant).
+function liaison.objet_existe(identifiant)
+  local ok, entite = pcall(function() return System.GetEntity(identifiant) end)
+  return ok and entite ~= nil
+end
+
+-- Position et cap d'Henry, pour fonder le camp là où il se tient.
+-- À vérifier en jeu : player:GetWorldPos() et player:GetWorldAngles() (z en radians ?).
+function liaison.position_du_joueur()
+  local ok, p = pcall(function() return player:GetWorldPos() end)
+  if ok and type(p) == "table" then
+    return { x = p.x, y = p.y, z = p.z }
+  end
+  return { x = 0, y = 0, z = 0 }
+end
+
+function liaison.cap_du_joueur()
+  local ok, angles = pcall(function() return player:GetWorldAngles() end)
+  if ok and type(angles) == "table" and type(angles.z) == "number" then
+    return math.deg(angles.z)
+  end
+  return 0
+end
+
 Scriptorium.liaison_reelle = liaison
 Scriptorium.jeu = Scriptorium.jeu or liaison

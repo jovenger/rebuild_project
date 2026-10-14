@@ -19,12 +19,15 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir
-1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `poste`, puis `Socle 0.1.0 : 4 morceau(x) prêt(s), 0 en panne`.
+1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `poste`, puis `Socle 0.1.0 : 5 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : le message « Le socle de Scriptorium est prêt. » à l'écran.
 3. Dans la console du jeu (à vérifier : comment l'ouvrir) :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
    - `scriptorium_essai_registre` → « Essai : le registre a été écrit puis relu. » et, au journal, `appels = 1` ; relancer la commande : `appels = 2` ;
    - `scriptorium_essai_coffre` → au journal, `sorts = true, true, true, true, false ; solde = 70, vivres = 6, lignes = 4` et la bourse d'Henry diminuée de 100 (il faut au moins 100 groschen sur lui) ; à l'écran, « Le coffre du camp ne peut pas payer : il manque des groschen. » puis « Essai : le coffre a encaissé, payé et refusé comme il faut. » ;
+   - `scriptorium_essai_camp`, Henry debout sur un terrain plat et dégagé → un camp se dresse autour de lui (feu, 4 sièges, 3 tentes, 5 paillasses, coffre) ; à l'écran, « Le camp est dressé. » ; au journal, `camp fondé = true, lits = 5, sièges = 4`. Relancer : `redressé : 0 reposé(s)` ;
+   - `scriptorium_essai_camp_agrandir` → deux tentes de plus et « Le camp s'est agrandi. » ; une troisième fois : `niveau_maximal` ;
+   - `scriptorium_essai_camp_lever` → tout disparaît, « Le camp est levé. » ;
    - `scriptorium_bilan` → résumé au journal.
 4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement).
 
@@ -41,5 +44,9 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V8 | Reste-t-il un texte jaune à l'écran avec le socle seul ? | — |
 | V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100, puis rien de plus) ? Sinon, les appels `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
 | V10 | Les lignes du livre ont-elles un `moment` autre que 0 (heure du jeu) ? | `liaison.heure_du_jeu` |
+| V11 | Les objets du camp apparaissent-ils (`System.SpawnEntity`, classe `BasicEntity`, `object_Model`) ? Sinon, le journal dit « Pose impossible pour … » avec la raison | `liaison.poser_objet` |
+| V12 | Les chemins des modèles (`camp.modeles`) existent-ils dans les paks du jeu ? Relever les vrais chemins de la tente, de la paillasse, du feu, du banc et du coffre | `camp.modeles` |
+| V13 | Le camp est-il orienté comme Henry (tente du Directeur devant lui, à 7 m) ? Sinon, l'angle ou son unité (`player:GetWorldAngles`) est à corriger | `liaison.cap_du_joueur`, `camp.dans_le_monde` |
+| V14 | Après sauvegarde, fermeture et rechargement, les objets sont-ils encore là ? Sinon, `scriptorium_essai_camp` doit les reposer (`redressé : N reposé(s)`) | `camp.redresser`, `liaison.objet_existe` |
 
 Pour me répondre : le contenu de `kcd.log` autour de `[Scriptorium]`, et une ligne par question.

@@ -27,10 +27,10 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   depart()
   local prets, pannes = Scriptorium.demarrer()
   egal(pannes, 0, "aucune panne")
-  egal(prets, 4, "bandeau, registre, coffre, poste")
+  egal(prets, 5, "bandeau, registre, coffre, camp, poste")
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé")
-  egal(#FauxJeu.commandes, 4, "quatre commandes de console")
+  egal(#FauxJeu.commandes, 7, "sept commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 
@@ -50,6 +50,22 @@ essai("poste : l'essai du coffre dépose, paie, et refuse la dépense trop gross
   egal(bilan.groschen, 70, "solde")
   egal(bilan.reserves.vivres, 6, "vivres")
   egal(FauxJeu.bourse_henry, 50, "bourse d'Henry")
+end)
+
+essai("poste : l'essai du camp fonde là où se tient Henry, puis redresse", function()
+  depart()
+  FauxJeu.position_joueur = { x = 50, y = 60, z = 70 }
+  FauxJeu.cap_joueur = 180
+  local sort, lits, sieges = Scriptorium.poste.essai_camp()
+  egal(sort, "fonde", "fondé")
+  egal(lits, 5, "cinq lits")
+  egal(sieges, 4, "quatre sièges")
+  local p = Scriptorium.camp.position_de("feu_central")
+  verifier(math.abs(p.x - 50) < 0.001 and math.abs(p.y - 60) < 0.001, "le feu est sous Henry")
+  sort = Scriptorium.poste.essai_camp()
+  egal(sort, "redresse", "la seconde fois, redressé")
+  verifier(Scriptorium.poste.essai_camp_agrandir(), "agrandi")
+  verifier(Scriptorium.poste.essai_camp_lever(), "levé")
 end)
 
 essai("poste : l'essai du registre compte les appels à travers écriture et relecture", function()

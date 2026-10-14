@@ -14,6 +14,13 @@ local faux = {
   heure = 0,            -- heure du jeu, en heures
   appels_retirer = 0,   -- fois où le socle a demandé à retirer des groschen à Henry
   donner_en_panne = false,
+  objets_poses = {},      -- { identifiant, sorte, modele, position, cap, nom }
+  objets_retires = {},    -- identifiants
+  objets_existants = {},  -- identifiant -> true
+  prochain_objet = 1,
+  refuser_pose = {},      -- nom -> true : le jeu refuse de poser cet objet
+  position_joueur = { x = 0, y = 0, z = 0 },
+  cap_joueur = 0,
 }
 
 function faux.remettre_a_zero()
@@ -29,6 +36,13 @@ function faux.remettre_a_zero()
   faux.heure = 0
   faux.appels_retirer = 0
   faux.donner_en_panne = false
+  faux.objets_poses = {}
+  faux.objets_retires = {}
+  faux.objets_existants = {}
+  faux.prochain_objet = 1
+  faux.refuser_pose = {}
+  faux.position_joueur = { x = 0, y = 0, z = 0 }
+  faux.cap_joueur = 0
 end
 
 function faux.maintenant() return faux.temps end
@@ -60,6 +74,23 @@ function faux.donner_groschen_a_henry(n)
   faux.bourse_henry = faux.bourse_henry + n
   return true
 end
+
+function faux.poser_objet(sorte, modele, position, cap, nom)
+  if faux.refuser_pose[nom] then return nil end
+  local identifiant = "objet_" .. faux.prochain_objet
+  faux.prochain_objet = faux.prochain_objet + 1
+  table.insert(faux.objets_poses, { identifiant = identifiant, sorte = sorte, modele = modele,
+                                    position = position, cap = cap, nom = nom })
+  faux.objets_existants[identifiant] = true
+  return identifiant
+end
+function faux.retirer_objet(identifiant)
+  table.insert(faux.objets_retires, identifiant)
+  faux.objets_existants[identifiant] = nil
+end
+function faux.objet_existe(identifiant) return faux.objets_existants[identifiant] == true end
+function faux.position_du_joueur() return faux.position_joueur end
+function faux.cap_du_joueur() return faux.cap_joueur end
 
 -- Exécute la prochaine minuterie en attente (une seule), comme le ferait le moteur.
 function faux.tic_minuterie()

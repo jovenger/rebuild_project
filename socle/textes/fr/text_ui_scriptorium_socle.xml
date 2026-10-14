@@ -18,6 +18,9 @@
   <Row><Cell>ui_scriptorium_coffre_epuise_herbes</Cell><Cell>Les herbes du camp sont épuisées.</Cell><Cell>Les herbes du camp sont épuisées.</Cell></Row>
   <Row><Cell>ui_scriptorium_coffre_epuise_fer</Cell><Cell>Le fer du camp est épuisé.</Cell><Cell>Le fer du camp est épuisé.</Cell></Row>
   <Row><Cell>ui_scriptorium_coffre_epuise_cuir</Cell><Cell>Le cuir du camp est épuisé.</Cell><Cell>Le cuir du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_camp_dresse</Cell><Cell>Le camp est dressé.</Cell><Cell>Le camp est dressé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_camp_agrandi</Cell><Cell>Le camp s'est agrandi.</Cell><Cell>Le camp s'est agrandi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_camp_leve</Cell><Cell>Le camp est levé.</Cell><Cell>Le camp est levé.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>
