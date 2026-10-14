@@ -112,10 +112,14 @@ end
 -- les deux chemins sont sondés dans l'ordre.
 liaison.chemins_des_ordres = { "Mods/scriptorium_socle/ordres.lua", "../../Mods/scriptorium_socle/ordres.lua" }
 
--- Rend la table du fichier d'ordres et son chemin ; nil s'il n'y a pas de fichier ;
+-- Fichier de réglages, écrit sur le PC par outils/regler.py (et, à la bascule, par le programme Scriptorium) :
+-- même transport que les ordres (fiche 10).
+liaison.chemins_des_reglages = { "Mods/scriptorium_socle/reglages.lua", "../../Mods/scriptorium_socle/reglages.lua" }
+
+-- Rend la table d'un fichier de données du PC et son chemin ; nil s'il n'y a pas de fichier ;
 -- nil, chemin, raison s'il est illisible. Le fichier ne voit rien du jeu (environnement vide).
-function liaison.lire_ordres()
-  for _, chemin in ipairs(liaison.chemins_des_ordres) do
+local function lire_fichier_de_donnees(chemins)
+  for _, chemin in ipairs(chemins) do
     local morceau, erreur = loadfile(chemin)
     if morceau then
       setfenv(morceau, {})
@@ -129,6 +133,14 @@ function liaison.lire_ordres()
     end
   end
   return nil
+end
+
+function liaison.lire_ordres()
+  return lire_fichier_de_donnees(liaison.chemins_des_ordres)
+end
+
+function liaison.lire_reglages()
+  return lire_fichier_de_donnees(liaison.chemins_des_reglages)
 end
 
 -- Heure du jeu, en heures, pour dater le livre de comptes.

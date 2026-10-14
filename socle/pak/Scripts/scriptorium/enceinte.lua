@@ -30,9 +30,9 @@ enceinte.niveau_maximal = 2
 -- vingt-deux pans (5,7 m de l'un à l'autre) le ferment, les pans voisins chevauchant le portail de 0,4 m.
 enceinte.modeles = {
   palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_b_v4.cgf",
-                centre = { x = -3.85, y = 0.12 } },
+                centre = { x = -3.85, y = 0.12 }, longueur = 8.3 },
   porte     = { chemin = "Objects/manmade/structures/logistical/fences/fence_4rod_gate_02.cgf", decalage = 90,
-                centre = { x = 0, y = 1.48 } },
+                centre = { x = 0, y = 1.48 }, longueur = 4 },
   tour      = { chemin = "Objects/manmade/structures/defensive/watchtowers/watchtower_a.cgf" },
 }
 
@@ -59,6 +59,74 @@ enceinte.plan = faire_le_plan()
 local function jeu() return Scriptorium.jeu end
 local function camp() return Scriptorium.camp end
 local function coffre() return Scriptorium.coffre end
+
+-- Refait le plan d'après les réglages (rayon et pans réglables par fichier, fiche 10). Vrai s'il a changé.
+function enceinte.refaire_le_plan()
+  local avant = enceinte.plan
+  enceinte.plan = faire_le_plan()
+  if #avant ~= #enceinte.plan then
+    return true
+  end
+  for i, e in ipairs(enceinte.plan) do
+    if e.nom ~= avant[i].nom or math.abs(e.x - avant[i].x) > 1e-6 or math.abs(e.y - avant[i].y) > 1e-6 then
+      return true
+    end
+  end
+  return false
+end
+
+-- Ce qu'occupe le camp, du feu au plus loin : emplacements du camp à tous les niveaux, postes de garde,
+-- points d'exercice et de corvée.
+local function emprise_du_camp()
+  local plus_loin = 0
+  local function mesurer(liste)
+    for _, point in pairs(liste or {}) do
+      if type(point) == "table" and type(point.x) == "number" and type(point.y) == "number" then
+        plus_loin = math.max(plus_loin, math.sqrt(point.x * point.x + point.y * point.y))
+      end
+    end
+  end
+  if Scriptorium.camp then mesurer(Scriptorium.camp.plan) end
+  if Scriptorium.hommes then
+    mesurer(Scriptorium.hommes.postes_de_garde)
+    mesurer(Scriptorium.hommes.points)
+  end
+  return plus_loin
+end
+
+-- La forme réglée tient-elle ? Au moins trois pans ; le cercle fermé (d'un pan à l'autre moins que la longueur
+-- d'un pan, et les pans voisins atteignent la porte) ; le rayon au-delà de l'emprise du camp, plus la marge.
+-- Rend vrai, ou faux et la raison.
+enceinte.marge_autour_du_camp = 2
+function enceinte.verifier_reglages()
+  local r = enceinte.reglages
+  if type(r.pans) ~= "number" or r.pans < 3 or math.floor(r.pans) ~= r.pans then
+    return false, "pans_invalides"
+  end
+  if type(r.rayon) ~= "number" or r.rayon <= 0 then
+    return false, "rayon_invalide"
+  end
+  local ecart = 2 * r.rayon * math.sin(math.pi / r.pans)
+  local pan, porte = enceinte.modeles.palissade.longueur, enceinte.modeles.porte.longueur
+  if ecart >= pan or ecart - pan / 2 > porte / 2 then
+    return false, "cercle_ouvert"
+  end
+  if r.rayon < emprise_du_camp() + enceinte.marge_autour_du_camp then
+    return false, "rayon_dans_le_camp"
+  end
+  return true
+end
+
+-- Après une application des réglages (morceau « reglages ») : le plan est refait ; pendant une partie, une
+-- enceinte bâtie dont le plan a changé est retirée et reposée aussitôt. Au lancement et à l'entrée en partie,
+-- la relance de l'enceinte s'en charge.
+function enceinte.apres_reglages(moment)
+  local change = enceinte.refaire_le_plan()
+  if change and moment == "en_cours" and enceinte.est_batie() then
+    enceinte.relancer()
+  end
+  return change
+end
 
 local function annoncer(cle, options)
   if Scriptorium.bandeau then
@@ -195,6 +263,7 @@ end
 -- sauvegarde reviennent blancs, vu en jeu le 14/10). La porte reposée repart ouverte : son état est redit au jeu.
 function enceinte.relancer()
   local d = donnees()
+  enceinte.refaire_le_plan()
   if not d.batie then
     return 0, 0
   end

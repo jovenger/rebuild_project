@@ -27,6 +27,7 @@ ESSAIS_LUA = os.path.join(RACINE, "essais", "lua")
 EMPREINTES = os.path.join(RACINE, "docs", "socle", "empreintes_alex.json")
 
 sys.path.insert(0, os.path.join(RACINE, "outils"))
+sys.path.insert(0, os.path.join(RACINE, "noyau"))
 import empreintes as outil_empreintes  # noqa: E402
 
 MOTIFS_INTERDITS = [
@@ -94,7 +95,7 @@ def verifier_syntaxe(lua):
 
 # ------------------------------------------------------------------ 2. banc Lua
 
-ORDRE_SOCLE = ["noyau.lua", "bandeau.lua", "registre.lua", "coffre.lua", "camp.lua", "hommes.lua", "bataille.lua", "directeur.lua", "enceinte.lua", "atelier.lua", "patrouilles.lua", "discipline.lua", "poste.lua"]
+ORDRE_SOCLE = ["noyau.lua", "bandeau.lua", "registre.lua", "coffre.lua", "camp.lua", "hommes.lua", "bataille.lua", "directeur.lua", "enceinte.lua", "atelier.lua", "patrouilles.lua", "discipline.lua", "reglages.lua", "poste.lua"]
 
 
 def executer_banc(lua):
@@ -154,6 +155,64 @@ def verifier_ordres():
         if donnees is not None or not raison:
             erreur("ordres : un fichier qui appelle le jeu devrait être refusé (environnement vide)")
     return len(connues)
+
+
+def verifier_reglages_par_fichier():
+    """Fiche 10 : un fichier écrit par outils/regler.py est relu tel quel par la vraie liaison ; l'outil fait
+    éprouver chaque valeur par le socle avant d'écrire ; l'installateur garde le fichier d'une installation à l'autre.
+    Rend le nombre de valeurs réglables."""
+    import tempfile
+    import regler
+    import installer
+    lua = runtime_lua()
+    if lua is None:
+        return 0
+    socle = regler.charger_le_socle()
+    nombre = len(socle.globals().Scriptorium.reglages.liste_des_valeurs())
+    if nombre < 100:
+        erreur("réglages : %d valeurs réglables seulement" % nombre)
+    if regler.eprouver(socle, {"hommes": {"ration": 3}, "issues": {"victoire": {"blesses": 0.1}}}):
+        erreur("réglages : des valeurs justes refusées par l'outil")
+    refus = regler.eprouver(socle, {"hommes": {"ration": 2.5}, "magie": {"mana": 1}})
+    if sorted(r[2] for r in refus) != ["pas_entier", "section_inconnue"]:
+        erreur("réglages : refus de l'outil inattendus : %s" % refus)
+    donnees = {}
+    regler.poser(donnees, "hommes.ration", regler.lire_la_valeur("3"))
+    regler.poser(donnees, "issues.victoire.blesses", regler.lire_la_valeur("0,1"))
+    if not regler.retirer(donnees, "hommes.ration") or "hommes" in donnees:
+        erreur("réglages : retirer une valeur devrait vider sa section")
+    regler.poser(donnees, "hommes.ration", 3)
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
+    liaison = lua.globals().Scriptorium.liaison_reelle
+    with tempfile.TemporaryDirectory() as dossier:
+        chemin = regler.ecrire(dossier, donnees)
+        liaison.chemins_des_reglages = lua.table_from([os.path.join(dossier, "absent.lua"), chemin])
+        lu, lu_a = liaison.lire_reglages()
+        if lu is None or lu_a != chemin or lu.hommes.ration != 3 or abs(lu.issues.victoire.blesses - 0.1) > 1e-12:
+            erreur("réglages : le fichier écrit par l'outil n'est pas relu tel quel par la liaison")
+        if regler.lire_le_fichier(chemin) != donnees:
+            erreur("réglages : l'outil ne relit pas ce qu'il a écrit")
+        with open(chemin, "w", encoding="ascii") as fichier:
+            fichier.write("return { hommes = { ration = tostring(os) } }\n")
+        lu, _, raison = liaison.lire_reglages()
+        if lu is not None or not raison:
+            erreur("réglages : un fichier qui appelle le jeu devrait être refusé (environnement vide)")
+        cible = os.path.join(dossier, "Mods", installer.NOM_DU_MOD)
+        os.makedirs(cible)
+        with open(os.path.join(cible, installer.NOM_DES_REGLAGES), "w", encoding="ascii") as fichier:
+            fichier.write("return { hommes = { ration = 4 } }\n")
+        sortie = sys.stdout
+        try:
+            sys.stdout = open(os.devnull, "w", encoding="utf-8")
+            installer.installer(cible)
+        finally:
+            sys.stdout.close()
+            sys.stdout = sortie
+        if not os.path.isfile(os.path.join(cible, "mod.manifest")):
+            erreur("réglages : l'installation d'essai n'a pas posé le socle")
+        if regler.lire_le_fichier(os.path.join(cible, installer.NOM_DES_REGLAGES)) != {"hommes": {"ration": 4}}:
+            erreur("réglages : l'installateur n'a pas gardé le fichier de réglages")
+    return nombre
 
 
 def verifier_identifiants():
@@ -439,6 +498,8 @@ def principal(arguments):
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
             verifier_identifiants()
             print("2 ter. liaison : entités désignées par leur nom, caps de boussole, pose au sol, registre par jeton, vérifié")
+            print("2 quater. réglages par fichier : %d valeurs réglables, outil, liaison et installateur vérifiés"
+                  % verifier_reglages_par_fichier())
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 

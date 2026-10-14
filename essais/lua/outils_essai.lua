@@ -33,6 +33,9 @@ function depart()
   Scriptorium.bandeau.remettre_a_zero()
   Scriptorium.registre.remettre_a_zero()
   Scriptorium.remettre_a_zero()
+  if Scriptorium.reglages then
+    Scriptorium.reglages.remettre_a_zero()
+  end
   if Scriptorium.poste then
     Scriptorium.poste.remettre_a_zero()
   end

@@ -40,6 +40,9 @@ local faux = {
   fichier_ordres = nil,        -- table rendue par le fichier d'ordres, ou nil s'il n'y en a pas
   fichier_ordres_raison = nil, -- raison quand le fichier est illisible
   lectures_ordres = 0,
+  fichier_reglages = nil,        -- table rendue par le fichier de réglages, ou nil s'il n'y en a pas
+  fichier_reglages_raison = nil, -- raison quand le fichier est illisible
+  lectures_reglages = 0,
   ecoute_partie = nil,         -- { entree, sortie } : ce que le socle veut qu'on appelle
   feux_allumes = {},           -- identifiant -> true
 }
@@ -83,6 +86,9 @@ function faux.remettre_a_zero()
   faux.fichier_ordres = nil
   faux.fichier_ordres_raison = nil
   faux.lectures_ordres = 0
+  faux.fichier_reglages = nil
+  faux.fichier_reglages_raison = nil
+  faux.lectures_reglages = 0
   faux.ecoute_partie = nil
   faux.feux_allumes = {}
 end
@@ -110,6 +116,16 @@ function faux.lire_ordres()
   end
   if faux.fichier_ordres then
     return faux.fichier_ordres, "faux/ordres.lua"
+  end
+  return nil
+end
+function faux.lire_reglages()
+  faux.lectures_reglages = faux.lectures_reglages + 1
+  if faux.fichier_reglages_raison then
+    return nil, "faux/reglages.lua", faux.fichier_reglages_raison
+  end
+  if faux.fichier_reglages then
+    return faux.fichier_reglages, "faux/reglages.lua"
   end
   return nil
 end

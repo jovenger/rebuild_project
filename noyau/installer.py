@@ -10,6 +10,7 @@ Garanties :
 - refuse en dur les dossiers du Scriptorium actuel, de sa copie de sécurité et des trois mods
   scriptorium, scriptorium_regles, scriptorium_lumiere, ainsi que Data\\ du jeu ;
 - met de côté l'ancien mod d'essai dans securite/<date>/ avant de le remplacer ;
+- garde le fichier de réglages du PC (reglages.lua, fiche 10) d'une installation à l'autre ;
 - ne lance pas l'installation si la vérification complète échoue.
 """
 
@@ -27,6 +28,7 @@ TEXTES = os.path.join(SOCLE, "textes")
 SECURITE = os.path.join(RACINE, "securite")
 
 NOM_DU_MOD = "scriptorium_socle"
+NOM_DES_REGLAGES = "reglages.lua"
 LANGUES = {"fr": "French"}
 
 DOSSIERS_INTERDITS = ["scriptorium", "scriptorium_regles", "scriptorium_lumiere"]
@@ -90,9 +92,19 @@ def faire_pak(dossier_source, chemin_pak):
 
 
 def installer(cible):
+    # Le fichier de réglages appartient au PC (outils/regler.py, plus tard le programme Scriptorium) : il est gardé.
+    chemin_reglages = os.path.join(cible, NOM_DES_REGLAGES)
+    reglages = None
+    if os.path.isfile(chemin_reglages):
+        with open(chemin_reglages, "rb") as fichier:
+            reglages = fichier.read()
     if os.path.exists(cible):
         shutil.rmtree(cible)
     os.makedirs(cible)
+    if reglages is not None:
+        with open(chemin_reglages, "wb") as fichier:
+            fichier.write(reglages)
+        print("  %s : gardé (réglages du PC)" % NOM_DES_REGLAGES)
     shutil.copy2(os.path.join(SOCLE, "mod.manifest"), os.path.join(cible, "mod.manifest"))
     cfg = os.path.join(SOCLE, "mod.cfg")
     if os.path.exists(cfg):

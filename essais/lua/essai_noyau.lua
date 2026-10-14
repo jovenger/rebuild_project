@@ -30,7 +30,7 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   depart()
   local prets, pannes = Scriptorium.demarrer()
   egal(pannes, 0, "aucune panne")
-  egal(prets, 12, "bandeau, registre, coffre, camp, hommes, bataille, directeur, enceinte, atelier, patrouilles, discipline, poste")
+  egal(prets, 13, "bandeau, registre, coffre, camp, hommes, bataille, directeur, enceinte, atelier, patrouilles, discipline, reglages, poste")
   FauxJeu.entrer_en_partie()
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé à l'entrée en partie")
@@ -190,25 +190,25 @@ essai("socle : l'entrée en partie repose les minuteries, éteint les anciennes,
   depart()
   Scriptorium.registre.declarer_case("essai_partie", 1, function() return { n = 1 } end)
   Scriptorium.demarrer()
-  egal(#FauxJeu.minuteries, 3, "bandeau, poste et battement posés au démarrage")
+  egal(#FauxJeu.minuteries, 4, "bandeau, réglages, poste et battement posés au démarrage")
   Scriptorium.registre.lire("essai_partie")
   Scriptorium.registre.enregistrer()
   Scriptorium.registre.lire("essai_partie").n = 5
   FauxJeu.entrer_en_partie()
-  egal(#FauxJeu.minuteries, 6, "trois minuteries reposées")
+  egal(#FauxJeu.minuteries, 8, "quatre minuteries reposées")
   egal(Scriptorium.registre.lire("essai_partie").n, 1, "registre relu depuis la sauvegarde (V5) : la modification non enregistrée a disparu")
-  for _ = 1, 6 do
+  for _ = 1, 8 do
     FauxJeu.tic_minuterie()
   end
-  egal(#FauxJeu.minuteries, 3, "les trois anciennes se sont éteintes, les trois neuves tournent")
+  egal(#FauxJeu.minuteries, 4, "les quatre anciennes se sont éteintes, les quatre neuves tournent")
   egal(lignes_avec("entrée en partie, minuteries reposées"), 1, "noté au journal")
   FauxJeu.sortir_de_partie()
-  for _ = 1, 3 do
+  for _ = 1, 4 do
     FauxJeu.tic_minuterie()
   end
   egal(#FauxJeu.minuteries, 0, "hors partie, plus rien ne tourne")
   FauxJeu.entrer_en_partie()
-  egal(#FauxJeu.minuteries, 3, "une nouvelle entrée repose les trois")
+  egal(#FauxJeu.minuteries, 4, "une nouvelle entrée repose les quatre")
   Scriptorium.arreter_le_battement()
 end)
 
