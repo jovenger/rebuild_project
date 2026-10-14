@@ -155,37 +155,74 @@ function liaison.donner_groschen_a_henry(montant)
   return ok
 end
 
--- Pose un objet du jeu de base (modèle par son chemin) et rend son identifiant, ou nil.
--- À vérifier en jeu : System.SpawnEntity avec la classe BasicEntity et object_Model,
--- et la forme de l'orientation attendue (angles en degrés ou en radians ?).
-function liaison.poser_objet(sorte, modele, position, cap, nom)
-  local ok, entite = pcall(function()
-    return System.SpawnEntity({
-      class = "BasicEntity",
-      name = "scriptorium_" .. nom,
-      position = { x = position.x, y = position.y, z = position.z },
-      orientation = { x = 0, y = 0, z = math.rad(cap) },
-      properties = { object_Model = modele },
-    })
-  end)
-  if ok and entite and entite.id then
-    return entite.id
+-- Identifiant d'une entité posée par le socle : son nom, unique (« scriptorium_… », ou « Scriptorium_Directeur »).
+-- entite.id est une donnée du moteur (userdata) que le registre ne sait pas garder (vu en jeu le 14/10) ;
+-- un nom se garde, et tient après sauvegarde et rechargement. À vérifier en jeu : System.GetEntityByName.
+local function nom_libre(nom)
+  local essai = nom
+  for n = 2, 1000 do
+    local ok, deja = pcall(System.GetEntityByName, essai)
+    if not ok or deja == nil then
+      return essai
+    end
+    essai = nom .. "_" .. n
   end
-  liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ") : " .. tostring(entite))
+  return essai
+end
+
+local function entite_nommee(identifiant)
+  if type(identifiant) ~= "string" then
+    return nil
+  end
+  local ok, entite = pcall(System.GetEntityByName, identifiant)
+  if ok then
+    return entite
+  end
   return nil
 end
 
+-- Fait naître une entité et rend son nom, ou nil et la raison.
+-- À vérifier en jeu : la forme de l'orientation attendue (angles en radians ?).
+local function faire_naitre(classe, nom, position, cap, proprietes)
+  local nom_unique = nom_libre(nom)
+  local ok, entite = pcall(function()
+    return System.SpawnEntity({
+      class = classe,
+      name = nom_unique,
+      position = { x = position.x, y = position.y, z = position.z },
+      orientation = { x = 0, y = 0, z = math.rad(cap or 0) },
+      properties = proprietes,
+    })
+  end)
+  if ok and entite and entite.id then
+    return nom_unique
+  end
+  return nil, tostring(entite)
+end
+
+-- Pose un objet du jeu de base (modèle par son chemin) et rend son identifiant, ou nil.
+-- Vu en jeu le 14/10 : System.SpawnEntity avec la classe BasicEntity pose bien l'objet ;
+-- un modèle introuvable donne une forme blanche.
+function liaison.poser_objet(sorte, modele, position, cap, nom)
+  local identifiant, raison = faire_naitre("BasicEntity", "scriptorium_" .. nom, position, cap, { object_Model = modele })
+  if not identifiant then
+    liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ") : " .. tostring(raison))
+  end
+  return identifiant
+end
+
 -- Retire un objet posé par le socle.
--- À vérifier en jeu : System.RemoveEntity(identifiant).
+-- À vérifier en jeu : System.RemoveEntity.
 function liaison.retirer_objet(identifiant)
-  pcall(function() System.RemoveEntity(identifiant) end)
+  local entite = entite_nommee(identifiant)
+  if entite then
+    pcall(System.RemoveEntity, entite.id)
+  end
 end
 
 -- Vrai si l'objet existe encore dans le monde.
--- À vérifier en jeu : System.GetEntity(identifiant).
 function liaison.objet_existe(identifiant)
-  local ok, entite = pcall(function() return System.GetEntity(identifiant) end)
-  return ok and entite ~= nil
+  return entite_nommee(identifiant) ~= nil
 end
 
 -- Position et cap d'Henry, pour fonder le camp là où il se tient.
@@ -218,20 +255,11 @@ function liaison.faire_venir_homme(role, nom, position)
     liaison.journal("Venue impossible pour « " .. nom .. " » : pas d'âme pour le rôle " .. tostring(role))
     return nil
   end
-  local ok, entite = pcall(function()
-    return System.SpawnEntity({
-      class = "NPC",
-      name = "scriptorium_" .. nom,
-      position = { x = position.x, y = position.y, z = position.z },
-      orientation = { x = 0, y = 0, z = 0 },
-      properties = { sharedSoulGuid = ame },
-    })
-  end)
-  if ok and entite and entite.id then
-    return entite.id
+  local identifiant, raison = faire_naitre("NPC", "scriptorium_" .. nom, position, 0, { sharedSoulGuid = ame })
+  if not identifiant then
+    liaison.journal("Venue impossible pour « " .. nom .. " » : " .. tostring(raison))
   end
-  liaison.journal("Venue impossible pour « " .. nom .. " » : " .. tostring(entite))
-  return nil
+  return identifiant
 end
 
 -- Vrai si le personnage existe encore.
@@ -264,17 +292,10 @@ function liaison.faire_venir_ennemis(sorte, effectif, position, cap)
   end
   local liste = {}
   for i = 1, effectif do
-    local ok, entite = pcall(function()
-      return System.SpawnEntity({
-        class = "NPC",
-        name = "scriptorium_ennemi_" .. sorte .. "_" .. i,
-        position = { x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z },
-        orientation = { x = 0, y = 0, z = math.rad(cap) },
-        properties = { sharedSoulGuid = ame },
-      })
-    end)
-    if ok and entite and entite.id then
-      table.insert(liste, entite.id)
+    local place = { x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z }
+    local identifiant = faire_naitre("NPC", "scriptorium_ennemi_" .. sorte .. "_" .. i, place, cap, { sharedSoulGuid = ame })
+    if identifiant then
+      table.insert(liste, identifiant)
     end
   end
   if #liste == 0 then
@@ -305,7 +326,7 @@ end
 -- À vérifier en jeu : entite.actor:IsDead(), ou entite.soul:GetHealth() == 0.
 function liaison.personnage_mort(identifiant)
   local ok, mort = pcall(function()
-    local entite = System.GetEntity(identifiant)
+    local entite = entite_nommee(identifiant)
     if entite == nil then return true end
     if entite.actor and entite.actor.IsDead then return entite.actor:IsDead() end
     if entite.soul and entite.soul.GetHealth then return entite.soul:GetHealth() <= 0 end
@@ -324,20 +345,11 @@ function liaison.faire_venir_directeur(position)
     liaison.journal("Venue impossible pour le Directeur : pas d'âme renseignée")
     return nil
   end
-  local ok, entite = pcall(function()
-    return System.SpawnEntity({
-      class = "NPC",
-      name = "Scriptorium_Directeur",
-      position = { x = position.x, y = position.y, z = position.z },
-      orientation = { x = 0, y = 0, z = 0 },
-      properties = { sharedSoulGuid = liaison.ame_du_directeur },
-    })
-  end)
-  if ok and entite and entite.id then
-    return entite.id
+  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { sharedSoulGuid = liaison.ame_du_directeur })
+  if not identifiant then
+    liaison.journal("Venue impossible pour le Directeur : " .. tostring(raison))
   end
-  liaison.journal("Venue impossible pour le Directeur : " .. tostring(entite))
-  return nil
+  return identifiant
 end
 
 -- Ouvre, ferme ou barre la porte posée.

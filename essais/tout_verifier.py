@@ -156,6 +156,43 @@ def verifier_ordres():
     return len(connues)
 
 
+def verifier_identifiants():
+    """Les entités posées par la vraie liaison sont désignées par leur nom (une chaîne que le registre
+    sait garder), pas par entite.id, donnée du moteur refusée au registre (vu en jeu le 14/10)."""
+    lua = runtime_lua()
+    if lua is None:
+        return
+    lua.execute("""
+        System = { entites = {} }
+        function System.GetEntityByName(nom) return System.entites[nom] end
+        function System.SpawnEntity(p)
+          local e = { id = newproxy(), name = p.name }
+          System.entites[p.name] = e
+          return e
+        end
+        function System.RemoveEntity(id)
+          for nom, e in pairs(System.entites) do if e.id == id then System.entites[nom] = nil end end
+        end
+        function System.LogAlways() end
+    """)
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
+    resultat = lua.eval("""(function()
+        local l = Scriptorium.liaison_reelle
+        local p = { x = 1, y = 2, z = 3 }
+        local a = l.poser_objet("feu", "modele", p, 90, "feu_central")
+        local b = l.poser_objet("feu", "modele", p, 90, "feu_central")
+        if a ~= "scriptorium_feu_central" then return "premier nom : " .. tostring(a) end
+        if b ~= "scriptorium_feu_central_2" then return "second nom : " .. tostring(b) end
+        if not l.objet_existe(a) then return "objet posé introuvable" end
+        l.retirer_objet(a)
+        if l.objet_existe(a) then return "objet retiré encore là" end
+        if not l.objet_existe(b) then return "l'autre objet a disparu" end
+        return "ok"
+    end)()""")
+    if resultat != "ok":
+        erreur("liaison : identifiants d'entités : " + str(resultat))
+
+
 # ------------------------------------------------------------------ 3. noms interdits
 
 def verifier_noms():
@@ -305,6 +342,8 @@ def principal(arguments):
             reussis, echecs, nb_fichiers = executer_banc(lua)
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
+            verifier_identifiants()
+            print("2 ter. liaison : entités désignées par leur nom, vérifié")
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 
