@@ -445,10 +445,17 @@ end
 
 -- Pour le poste d'essai : cherche autour d'Henry un terrain d'essai vierge et l'y pose. Sonde des anneaux de 30 à
 -- 240 m, tous les 30°, et garde le premier point sec (AI.IsPointInWaterRegion), à peu près plat (moins de 1,5 m
--- d'écart sur 8 m autour), à ciel dégagé (pas sous les arbres), sans aucune entité du jeu à moins de 25 m
--- (System.GetEntitiesInSphere). Parmi ces points, garde celui dont l'altitude est la plus proche de celle d'Henry :
+-- d'écart sur 8 m autour), à ciel dégagé (pas sous les arbres), sans signe d'habitation à moins de 40 m
+-- (System.GetEntitiesInSphere ; vu le 14/10 : plantes à cueillir et repères invisibles sont partout, on ne les compte pas). Parmi ces points, garde celui dont l'altitude est la plus proche de celle d'Henry :
 -- la vallée est dégagée, les collines sont boisées (vu le 14/10 : le premier point trouvé était dans la forêt). Le camp du socle
 -- est levé avant. Rend vrai et un compte rendu, ou faux et la raison.
+-- Les classes d'entités qui disent qu'un lieu est habité (campement, ferme) : on ne dresse pas le camp à côté.
+liaison.classes_d_habitation = {
+  NPC = true, Horse = true, Dog = true, Bed = true, BedTrigger = true, Chair = true, Stash = true, AnimDoor = true,
+  Light = true, RuntimePrefab = true, CutsceneHolder = true, SmartObjectHolder = true, FireplaceSmartObject = true,
+  GeomEntity = true, BasicEntity = true,
+}
+
 -- Classes des entités vues par la dernière recherche (pour régler le filtre d'après le jeu).
 local classes_vues = {}
 
@@ -491,13 +498,13 @@ function liaison.chercher_un_terrain_vierge()
           if mouille then refus.eau = refus.eau + 1 end
           if plat and not mouille and not degage then refus.couvert = refus.couvert + 1 end
           if degage then
-            local voisins = System.GetEntitiesInSphere(point, 25)
+            local voisins = System.GetEntitiesInSphere(point, 40)
             local n = 0
             for _, e in pairs(voisins or {}) do
+              local classe = tostring(e.class)
               if e ~= player then
-                n = n + 1
-                local classe = tostring(e.class)
                 classes_vues[classe] = (classes_vues[classe] or 0) + 1
+                if liaison.classes_d_habitation[classe] then n = n + 1 end
               end
             end
             if n > 0 then refus.occupe = refus.occupe + 1 end
