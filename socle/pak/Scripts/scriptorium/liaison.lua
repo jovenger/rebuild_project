@@ -294,5 +294,11 @@ function liaison.faire_venir_directeur(position)
   return nil
 end
 
+-- Ouvre, ferme ou barre la porte posée.
+-- À vérifier en jeu : comment animer ou remplacer une porte posée. En attendant, journal.
+function liaison.changer_porte(identifiant, etat)
+  liaison.journal("Porte " .. tostring(identifiant) .. " : " .. tostring(etat))
+end
+
 Scriptorium.liaison_reelle = liaison
 Scriptorium.jeu = Scriptorium.jeu or liaison

@@ -27,10 +27,10 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   depart()
   local prets, pannes = Scriptorium.demarrer()
   egal(pannes, 0, "aucune panne")
-  egal(prets, 8, "bandeau, registre, coffre, camp, hommes, bataille, directeur, poste")
+  egal(prets, 10, "bandeau, registre, coffre, camp, hommes, bataille, directeur, enceinte, atelier, poste")
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé")
-  egal(#FauxJeu.commandes, 11, "onze commandes de console")
+  egal(#FauxJeu.commandes, 12, "douze commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 

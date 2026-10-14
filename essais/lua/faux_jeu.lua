@@ -35,6 +35,7 @@ local faux = {
   personnages_morts = {},      -- identifiant -> true
   directeurs = {},             -- { identifiant, position }
   refuser_directeur = false,
+  ordres_porte = {},           -- { identifiant, etat }
 }
 
 function faux.remettre_a_zero()
@@ -71,6 +72,7 @@ function faux.remettre_a_zero()
   faux.personnages_morts = {}
   faux.directeurs = {}
   faux.refuser_directeur = false
+  faux.ordres_porte = {}
 end
 
 function faux.maintenant() return faux.temps end
@@ -159,6 +161,9 @@ function faux.renvoyer_ennemis(liste)
   end
 end
 function faux.personnage_mort(identifiant) return faux.personnages_morts[identifiant] == true end
+function faux.changer_porte(identifiant, etat)
+  table.insert(faux.ordres_porte, { identifiant = identifiant, etat = etat })
+end
 function faux.faire_venir_directeur(position)
   if faux.refuser_directeur then return nil end
   local identifiant = "directeur_" .. (#faux.directeurs + 1) .. "_" .. faux.prochain_personnage

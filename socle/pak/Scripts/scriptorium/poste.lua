@@ -116,7 +116,7 @@ function poste.battre_les_hommes()
     if not poste.battement_hommes_actif then
       return
     end
-    for _, morceau in ipairs({ "bataille", "hommes", "directeur" }) do
+    for _, morceau in ipairs({ "bataille", "hommes", "directeur", "enceinte", "atelier" }) do
       local ok, erreur = pcall(Scriptorium[morceau].battre)
       if not ok then
         jeu().journal("Battement de « " .. morceau .. " » en erreur : " .. tostring(erreur))
@@ -166,6 +166,21 @@ function poste.gestion(action, parametres)
   return ok, resultat
 end
 
+-- Enceinte : achète le bois qu'il faut, bâtit la palissade puis les tours.
+function poste.essai_enceinte()
+  local enceinte = Scriptorium.enceinte
+  local coffre = Scriptorium.coffre
+  local manque = enceinte.reglages.bois_palissade + enceinte.reglages.bois_tours - coffre.reserve("bois")
+  if manque > 0 then
+    coffre.ajouter_reserve("bois", manque, "essai")
+  end
+  local sorts = { tostring(enceinte.batir()), tostring(enceinte.batir()) }
+  jeu().journal("Poste : enceinte, sorts = " .. table.concat(sorts, ", ") .. " ; niveau = " .. enceinte.niveau()
+                .. ", porte = " .. enceinte.porte())
+  poste.battre_les_hommes()
+  return sorts
+end
+
 -- Résumé du socle dans le journal.
 function poste.bilan()
   for _, morceau in ipairs(Scriptorium.morceaux) do
@@ -193,5 +208,6 @@ Scriptorium.declarer_morceau("poste", function()
   jeu().commande("scriptorium_essai_bataille", "Scriptorium.poste.essai_bataille()", "Lève une bande de cinq brigands venant du nord")
   jeu().commande("scriptorium_essai_directeur", "Scriptorium.poste.essai_directeur()", "Installe le Directeur et écrit le menu de la Gestion du camp")
   jeu().commande("scriptorium_gestion_rapport", "Scriptorium.poste.gestion('rapport')", "Le rapport du Directeur")
+  jeu().commande("scriptorium_essai_enceinte", "Scriptorium.poste.essai_enceinte()", "Bâtit la palissade et les tours")
   jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
 end)

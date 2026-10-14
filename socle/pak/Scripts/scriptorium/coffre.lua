@@ -23,6 +23,8 @@ coffre.sortes = {
   herbes   = { cle_epuise = "ui_scriptorium_coffre_epuise_herbes" },
   fer      = { cle_epuise = "ui_scriptorium_coffre_epuise_fer" },
   cuir     = { cle_epuise = "ui_scriptorium_coffre_epuise_cuir" },
+  remedes  = { cle_epuise = "ui_scriptorium_coffre_epuise_remedes" },
+  onguents = { cle_epuise = "ui_scriptorium_coffre_epuise_onguents" },
 }
 
 local function jeu()

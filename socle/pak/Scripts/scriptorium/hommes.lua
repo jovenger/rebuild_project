@@ -484,6 +484,20 @@ function hommes.blesser(id, jours)
   return true
 end
 
+-- Ôte des jours de soins (un remède, un barbier).
+function hommes.guerir(id, jours)
+  local f = donnees().liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if type(jours) ~= "number" or jours < 1 or math.floor(jours) ~= jours then
+    return refuser("jours_invalides", tostring(jours))
+  end
+  f.blessure = math.max(0, f.blessure - jours)
+  enregistrer()
+  return true
+end
+
 local function barbier_valide(d)
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]

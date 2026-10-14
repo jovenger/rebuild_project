@@ -187,7 +187,11 @@ function bataille.force_des_notres()
   for _, liste in ipairs({ avant, arriere }) do
     for _, id in ipairs(liste) do
       local f = hommes().fiche(id)
-      force = force + bataille.roles[f.role].poids
+      local facteur = 1
+      if Scriptorium.atelier and Scriptorium.atelier.facteur_de then
+        facteur = Scriptorium.atelier.facteur_de(id)
+      end
+      force = force + bataille.roles[f.role].poids * facteur
       moral = moral + f.moral
       nombre = nombre + 1
     end
@@ -340,6 +344,10 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
     local id = table.remove(candidats, k)
     local jours = 2 + math.floor(tirage(d) * 4)
     table.insert(resultat.blesses, { id = id, jours = jours })
+  end
+  -- L'équipement des combattants s'use.
+  if Scriptorium.atelier and Scriptorium.atelier.user_apres_bataille then
+    Scriptorium.atelier.user_apres_bataille(vivants)
   end
   -- Libérer les affectations avant de toucher aux fiches.
   liberer_les_hommes(b)
