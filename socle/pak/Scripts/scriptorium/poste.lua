@@ -103,6 +103,9 @@ function poste.essai_terrain_vierge()
   end
   local ok, compte_rendu = jeu().chercher_un_terrain_vierge()
   jeu().journal("Poste : terrain vierge = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  if jeu().classes_vues_autour then
+    jeu().journal("Poste : entités vues autour : " .. jeu().classes_vues_autour())
+  end
   return ok
 end
 

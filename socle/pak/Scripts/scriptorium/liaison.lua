@@ -422,10 +422,27 @@ end
 -- 240 m, tous les 30°, et garde le premier point sec (AI.IsPointInWaterRegion), à peu près plat (moins de 1,5 m
 -- d'écart sur 8 m autour), sans aucune entité du jeu à moins de 25 m (System.GetEntitiesInSphere). Le camp du socle
 -- est levé avant. Rend vrai et un compte rendu, ou faux et la raison.
+-- Classes des entités vues par la dernière recherche (pour régler le filtre d'après le jeu).
+local classes_vues = {}
+
+function liaison.classes_vues_autour()
+  local liste = {}
+  for classe, n in pairs(classes_vues) do
+    table.insert(liste, { classe = classe, n = n })
+  end
+  table.sort(liste, function(a, b) return a.n > b.n end)
+  local morceaux = {}
+  for i = 1, math.min(#liste, 25) do
+    table.insert(morceaux, liste[i].classe .. " " .. liste[i].n)
+  end
+  return table.concat(morceaux, ", ")
+end
+
 function liaison.chercher_un_terrain_vierge()
   local ok, resultat = pcall(function()
     local ici = player:GetWorldPos()
     local sondes = 0
+    classes_vues = {}
     for rayon = 30, 240, 30 do
       for angle = 0, 330, 30 do
         sondes = sondes + 1
@@ -444,7 +461,11 @@ function liaison.chercher_un_terrain_vierge()
             local voisins = System.GetEntitiesInSphere(point, 25)
             local n = 0
             for _, e in pairs(voisins or {}) do
-              if e ~= player then n = n + 1 end
+              if e ~= player then
+                n = n + 1
+                local classe = tostring(e.class)
+                classes_vues[classe] = (classes_vues[classe] or 0) + 1
+              end
             end
             if n == 0 then
               player:SetWorldPos(point)
