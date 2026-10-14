@@ -266,6 +266,29 @@ function liaison.allumer(identifiant)
   return true
 end
 
+-- Ce que le moteur dit d'un objet posé (pour le poste d'essai) : position, nombre d'emplacements, géométrie,
+-- émetteur de particules, et la distance à Henry.
+function liaison.decrire_objet(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return "introuvable"
+  end
+  local ok, description = pcall(function()
+    local p = entite:GetWorldPos()
+    local h = player:GetWorldPos()
+    local morceaux = { string.format("position %.1f, %.1f, %.1f ; Henry à %.1f m", p.x, p.y, p.z,
+                                     math.sqrt((p.x - h.x) ^ 2 + (p.y - h.y) ^ 2)) }
+    local n = entite:GetSlotCount() or 0
+    table.insert(morceaux, n .. " emplacement(s)")
+    for slot = 0, n - 1 do
+      table.insert(morceaux, "n° " .. slot .. " : géométrie " .. tostring(entite:IsSlotGeometry(slot))
+                   .. ", particules " .. tostring(entite:IsSlotParticleEmitter(slot)))
+    end
+    return table.concat(morceaux, " ; ")
+  end)
+  return ok and description or ("illisible : " .. tostring(description))
+end
+
 -- Retire un objet posé par le socle.
 -- À vérifier en jeu : System.RemoveEntity.
 function liaison.retirer_objet(identifiant)

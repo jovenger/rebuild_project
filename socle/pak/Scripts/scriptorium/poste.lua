@@ -77,6 +77,16 @@ function poste.essai_camp()
   return ok and "fonde" or "refuse", capacite.lits, capacite.sieges
 end
 
+-- Camp : ce que le moteur dit du feu central, d'un banc et d'une tente (V23).
+function poste.essai_feu()
+  local camp = Scriptorium.camp
+  for _, nom in ipairs({ "feu_central", "siege_1", "tente_1" }) do
+    local identifiant = camp.objet_de(nom)
+    local description = identifiant and jeu().decrire_objet and jeu().decrire_objet(identifiant) or "pas posé"
+    jeu().journal("Poste : objet « " .. nom .. " » : " .. tostring(description))
+  end
+end
+
 -- Camp : agrandit d'un niveau.
 function poste.essai_camp_agrandir()
   local ok, raison = Scriptorium.camp.agrandir()
@@ -209,6 +219,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_coffre", fonction = function() return poste.essai_coffre() end, aide = "Essai du coffre" },
   { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
   { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },
+  { nom = "scriptorium_essai_feu", fonction = function() return poste.essai_feu() end, aide = "Ce que le jeu dit du feu, d'un banc et d'une tente" },
   { nom = "scriptorium_essai_camp_lever", fonction = function() return poste.essai_camp_lever() end, aide = "Lève le camp" },
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },
