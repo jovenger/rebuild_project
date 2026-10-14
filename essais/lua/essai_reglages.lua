@@ -177,7 +177,7 @@ essai("réglages : l'enceinte, rayon et pans acceptés, cercle ouvert et rayon d
   egal(r.changes, 3, "forme et coût")
 end)
 
-essai("réglages : une enceinte bâtie est reposée en cours de partie, pas à l'entrée", function()
+essai("réglages : une enceinte bâtie est reposée quand son plan change, en partie et à l'entrée", function()
   depart()
   FauxJeu.heure = 10
   camp.fonder({ x = 0, y = 0, z = 0 }, 0)
@@ -187,10 +187,17 @@ essai("réglages : une enceinte bâtie est reposée en cours de partie, pas à l
   poser({ enceinte = { rayon = 25, pans = 28 } }, "en_cours")
   egal(#FauxJeu.objets_poses - poses, 28, "reposée aussitôt sur le nouveau cercle")
   poses = #FauxJeu.objets_poses
-  poser({ enceinte = { rayon = 22, pans = 26 } }, "entree")
-  egal(#FauxJeu.objets_poses - poses, 0, "à l'entrée, la relance de l'enceinte s'en charge")
+  poser({ enceinte = { rayon = 25, pans = 28, bois_tours = 60 } }, "en_cours")
+  egal(#FauxJeu.objets_poses - poses, 0, "un coût changé ne repose rien")
+  -- Fichier changé pendant que le jeu était au menu : à l'entrée, l'enceinte se relance d'abord (ancien cercle),
+  -- puis les réglages la reposent sur le nouveau.
+  poses = #FauxJeu.objets_poses
   enceinte.relancer()
-  egal(#FauxJeu.objets_poses - poses, 26, "la relance pose le plan refait")
+  poser({ enceinte = { rayon = 22, pans = 26 } }, "entree")
+  egal(#FauxJeu.objets_poses - poses, 28 + 26, "reposée sur le nouveau cercle dès l'entrée")
+  poses = #FauxJeu.objets_poses
+  poser({ enceinte = { rayon = 20, pans = 22 } }, "lancement")
+  egal(#FauxJeu.objets_poses - poses, 0, "au lancement, rien à reposer")
 end)
 
 essai("réglages : relu au lancement, à l'entrée en partie, puis toutes les deux secondes", function()

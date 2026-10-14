@@ -31,12 +31,16 @@
   Chaque section dit lesquelles de ses valeurs sont des parts et des taux (en données, dans le catalogue).
 - **Les valeurs validées sont gardées.** Au chargement du socle, toutes les valeurs du catalogue sont relevées. Appliquer le fichier, c'est remettre ces valeurs, puis poser celles du fichier : une valeur retirée du fichier revient à la valeur validée ; un fichier effacé remet tout.
 - **Relu dès qu'il change.** Au lancement du jeu, à chaque entrée en partie, puis toutes les deux secondes en partie. Le contenu lu est mis sous une forme fixe (noms triés) et comparé au précédent : rien ne se passe s'il n'a pas changé. Un fichier illisible ne change rien : les valeurs en place restent.
-- **La forme : l'enceinte.** Le rayon et le nombre de pans de l'enceinte se règlent. Avant de les accepter, l'enceinte vérifie (`enceinte.verifier_reglages`) : au moins trois pans ; le cercle fermé (d'un pan à l'autre moins que la longueur d'un pan, et les pans voisins atteignent la porte) ; le rayon au-delà de l'emprise du camp (tentes, feux, postes de garde, points d'exercice et de corvée), plus une marge de deux mètres. Sinon, le rayon et les pans du fichier sont refusés. Le plan de l'enceinte est refait après chaque application ; si l'enceinte est bâtie et que son plan a changé pendant une partie, elle est retirée et reposée aussitôt.
+- **La forme : l'enceinte.** Le rayon et le nombre de pans de l'enceinte se règlent. Avant de les accepter, l'enceinte vérifie (`enceinte.verifier_reglages`) : au moins trois pans ; le cercle fermé (d'un pan à l'autre moins que la longueur d'un pan, et les pans voisins atteignent la porte) ; le rayon au-delà de l'emprise du camp (tentes, feux, postes de garde, points d'exercice et de corvée), plus une marge de deux mètres. Sinon, le rayon et les pans du fichier sont refusés. Le plan de l'enceinte est refait après chaque application ; si l'enceinte est bâtie et que son plan a changé, elle est retirée et reposée aussitôt, en cours de partie comme à l'entrée en partie (un fichier changé pendant que le jeu était au menu).
 - **Toutes les parties.** Rien n'est écrit dans le registre : le fichier vaut pour toute partie chargée.
 
 ## Limites (validées par JoVenGer le 14/10)
 - Une valeur validée entière reste entière : par exemple, l'avance de guet des tours (1 heure) ne peut pas passer à 1,5 heure dans cette version.
 - La forme réglable est celle de l'enceinte seulement : le plan du camp (tentes, lits, bancs), les postes de garde et les points des chemins de patrouille ne se règlent pas dans cette version.
+
+## Bon à savoir
+- Zéro est accepté là où la valeur validée est positive : c'est le choix de celui qui écrit le fichier (par exemple `hommes.semaines_max = 0` empêche toute embauche).
+- Le bandeau ne redit pas un même message dans les trente secondes : deux changements du fichier coup sur coup ne donnent qu'un message ; le détail reste au journal.
 
 ## Sorts rendus
 `relever_le_fichier(moment)` rend un compte rendu : `{ etat, changes, refuses }`, `etat` parmi `absent`, `inchange`, `illisible`, `applique`. `moment` : `lancement`, `entree` ou `en_cours`.

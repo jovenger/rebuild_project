@@ -41,7 +41,8 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
    - `scriptorium_essai_frapper` → le premier ennemi vivant blessé à mort ; au journal, `mort = true` et le nombre de vivants ; au cinquième, la bataille finit par le jeu (« victoire », bande retirée) ;
    - `scriptorium_essai_discipline` → au journal, la réputation (50 au départ) et les fautes à juger, s'il y en a eu à l'aube ;
    - `scriptorium_essai_camp_lever` → tout disparaît, « Le camp est levé. » ;
-   - `scriptorium_bilan` → résumé au journal.
+   - `scriptorium_bilan` → résumé au journal ;
+   - réglages par fichier (fiche 10), en partie : `py -3.13 outils\regler.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2" hommes.ration=3` → en bas de l'écran « Réglages du camp mis à jour : 1 changé(s), 0 refusé(s) », au journal `Réglages : « hommes.ration » = 3 (avant 2)` ; puis `--retirer hommes.ration` → retour à 2 ; `enceinte.rayon=25 enceinte.pans=28` avec l'enceinte bâtie → elle est reposée sur le nouveau cercle ; `--liste` donne les valeurs réglables.
 4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement, V4).
 
 ## 5. À vérifier en jeu, et à me rapporter

@@ -117,12 +117,13 @@ function enceinte.verifier_reglages()
   return true
 end
 
--- Après une application des réglages (morceau « reglages ») : le plan est refait ; pendant une partie, une
--- enceinte bâtie dont le plan a changé est retirée et reposée aussitôt. Au lancement et à l'entrée en partie,
--- la relance de l'enceinte s'en charge.
+-- Après une application des réglages (morceau « reglages ») : le plan est refait ; une enceinte bâtie dont le plan a
+-- changé est retirée et reposée aussitôt, en cours de partie comme à l'entrée (l'enceinte se relance avant les
+-- réglages : un fichier changé pendant que le jeu était au menu la laisserait sur l'ancien cercle). Au lancement,
+-- aucune partie n'est chargée : rien à reposer.
 function enceinte.apres_reglages(moment)
   local change = enceinte.refaire_le_plan()
-  if change and moment == "en_cours" and enceinte.est_batie() then
+  if change and moment ~= "lancement" and enceinte.est_batie() then
     enceinte.relancer()
   end
   return change
