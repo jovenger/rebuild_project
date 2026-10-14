@@ -221,9 +221,46 @@ end
 -- vu le 14/10, en lui passant { 0, 0, angle }, tout objet de cap non nul naissait couché, l'avant vers le ciel
 -- (tour de guet allongée, pans de palissade à plat, tentes renversées). L'avant est donné à l'horizontale, puis
 -- les angles sont fixés par SetWorldAngles.
+-- Vu le 14/10 : un personnage né par System.SpawnEntity reste inerte (ni marche, ni combat, ni réaction à Henry
+-- à douze mètres ; l'un flottait en l'air). Les scripts de débogage du jeu (Scripts/Debug/CombatDebug.lua,
+-- PathfindDebugUtils.lua) font naître les leurs par XGenAIModule.SpawnEntity{ Name, ClassName, SharedSoulGuid, Pos },
+-- qui rend l'identifiant de l'entité. Absente du relevé Lua du jeu : peut-être réservée au mode développeur.
+-- Le personnage naît par elle quand elle existe, sinon comme un objet ; la façon employée est notée une fois.
+liaison.naissance_des_personnages = nil
+
+local function faire_naitre_personnage(nom_unique, position, angle, ame)
+  if type(XGenAIModule) ~= "table" or type(XGenAIModule.SpawnEntity) ~= "function" then
+    return nil
+  end
+  local ok, identifiant = pcall(XGenAIModule.SpawnEntity, { Name = nom_unique, ClassName = "NPC", SharedSoulGuid = ame,
+                                                            Pos = { x = position.x, y = position.y, z = position.z } })
+  if not ok or identifiant == nil then
+    liaison.journal("Naissance par XGenAIModule refusée pour « " .. nom_unique .. " » : " .. tostring(identifiant))
+    return nil
+  end
+  local entite = System.GetEntity(identifiant)
+  if not entite then
+    return nil
+  end
+  pcall(function() entite:SetWorldAngles({ x = 0, y = 0, z = angle }) end)
+  local lu, nom = pcall(function() return entite:GetName() end)
+  return (lu and type(nom) == "string") and nom or nom_unique
+end
+
 local function faire_naitre(classe, nom, position, cap, proprietes)
   local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
   local angle = cap_vers_moteur(cap)
+  if classe == "NPC" and proprietes and proprietes.guidSharedSoulId then
+    local nom_du_personnage = faire_naitre_personnage(nom_unique, position, angle, proprietes.guidSharedSoulId)
+    local facon = nom_du_personnage and "XGenAIModule.SpawnEntity" or "System.SpawnEntity"
+    if liaison.naissance_des_personnages ~= facon then
+      liaison.naissance_des_personnages = facon
+      liaison.journal("Personnages : naissance par " .. facon)
+    end
+    if nom_du_personnage then
+      return nom_du_personnage
+    end
+  end
   local ok, entite = pcall(function()
     return System.SpawnEntity({
       class = classe,

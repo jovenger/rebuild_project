@@ -129,8 +129,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 30:
-        erreur("ordres : %d commandes lues dans poste.lua, 30 attendues" % len(connues))
+    if len(connues) != 31:
+        erreur("ordres : %d commandes lues dans poste.lua, 31 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -253,6 +253,31 @@ def verifier_identifiants():
         if not l.suivre(e1[1], n1) or AI.suivi ~= System.entites[n1].id then return "suivi mal donné" end
         if l.blesser("personne", 1) or l.suivre("personne", n1) then return "un absent blessé ou mis en marche" end
         AI = nil
+        -- Personnages : nés par XGenAIModule.SpawnEntity quand elle existe (vu le 14/10 : nés par System.SpawnEntity,
+        -- ils restent inertes) ; les objets, jamais.
+        if l.naissance_des_personnages ~= "System.SpawnEntity" then return "sans XGenAIModule, façon de naître mal notée" end
+        XGenAIModule = { appels = {} }
+        System.par_id = {}
+        function XGenAIModule.SpawnEntity(params)
+          table.insert(XGenAIModule.appels, params)
+          local e = { id = newproxy(), name = params.Name }
+          function e:SetWorldAngles(a) end
+          function e:GetName() return self.name end
+          System.entites[params.Name] = e
+          System.par_id[e.id] = e
+          return e.id
+        end
+        function System.GetEntity(id) return System.par_id[id] end
+        local h2 = l.faire_venir_homme("archer", "homme_2", p)
+        local naissance = XGenAIModule.appels[1]
+        if h2 ~= "scriptorium_homme_2" or not naissance or naissance.SharedSoulGuid ~= l.ames.archer or naissance.ClassName ~= "NPC" then
+          return "personnage non né par XGenAIModule : " .. tostring(h2)
+        end
+        if naissance.Pos.z ~= 3 then return "personnage né hors de sa place" end
+        if l.naissance_des_personnages ~= "XGenAIModule.SpawnEntity" then return "façon de naître non notée" end
+        l.poser_objet("feu", "modele", p, 0, "feu_x")
+        if #XGenAIModule.appels ~= 1 then return "un objet est né par XGenAIModule" end
+        XGenAIModule = nil
         return "ok"
     end)()""")
     if resultat != "ok":

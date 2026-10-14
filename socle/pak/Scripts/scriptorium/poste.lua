@@ -225,6 +225,23 @@ function poste.essai_cibler()
   return a, b
 end
 
+-- Âmes de combat de débogage du jeu (Libs/Tables/rpg/soul__test.xml, celles de Scripts/Debug/CombatDebug.lua) :
+-- combatFriend_1 à 3 (faction test_combat_blue) pour nos hommes, combatEnemy_1 et combatEnemyCuman_1 (faction
+-- test_combat_player_enemy) pour les bandes. Deux factions faites pour s'affronter (V18).
+poste.ames_de_combat = {
+  hommes = { homme_d_armes = "61cbb0a5-922d-4eb0-b0d9-6cfdf00807ee", arbaletrier = "5977088c-fca3-4a3a-9eb8-be8006d17381",
+             archer = "c60c97b7-f46b-4fc4-b304-ed26bbdb6127" },
+  ennemies = { brigands = "584f681c-2f90-4ef2-b1de-470282a7993d", coumans = "20eb21a4-21ba-4530-bcac-3af448cb1810" },
+}
+
+-- Âmes : les personnages qui viendront ensuite prennent les âmes de combat du jeu ; ceux déjà venus gardent la leur.
+function poste.essai_ames_de_combat()
+  for role, ame in pairs(poste.ames_de_combat.hommes) do jeu().ames[role] = ame end
+  for sorte, ame in pairs(poste.ames_de_combat.ennemies) do jeu().ames_ennemies[sorte] = ame end
+  jeu().journal("Poste : âmes de combat du jeu en place (hommes : combatFriend, bandes : combatEnemy)")
+  return true
+end
+
 -- Bataille : pose la bande au contact à dix-huit mètres devant le camp, en ligne (V18 : à soixante mètres,
 -- personne ne voit personne ; vu le 14/10).
 function poste.essai_rapprocher()
@@ -436,6 +453,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_hostiles", fonction = function() return poste.essai_hostiles() end, aide = "Rend la bande au contact et nos hommes hostiles" },
   { nom = "scriptorium_essai_cibler", fonction = function() return poste.essai_cibler() end, aide = "Donne à chaque ennemi un de nos hommes pour cible, et l'inverse" },
+  { nom = "scriptorium_essai_ames_de_combat", fonction = function() return poste.essai_ames_de_combat() end, aide = "Les prochains personnages prennent les âmes de combat du jeu" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
   { nom = "scriptorium_essai_suivre", fonction = function() return poste.essai_suivre() end, aide = "Chaque ennemi suit un de nos hommes" },
   { nom = "scriptorium_essai_voir_bande", fonction = function() return poste.essai_voir_bande() end, aide = "Pose Henry à 12 m de la bande, côté camp" },
