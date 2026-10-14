@@ -1,7 +1,7 @@
 # Fiche 06 — Le Directeur
 
 - Morceau : 6. Table : `Scriptorium.directeur`. Fichier : `socle/pak/Scripts/scriptorium/directeur.lua`.
-- État : écrit et passé au banc. En attente de l'essai en jeu (venue du personnage, menu en jeu) et de la validation de la fiche par JoVenGer.
+- État : écrit et passé au banc ; vu en jeu (le Directeur vient à sa tente, âme provisoire ; menu et rapport au journal par le poste d'essai). Validée par JoVenGer le 14/10/2026 : journée, prix, coût de l'agrandissement et menu tels quels. Son âme, son apparence et le dialogue qui ouvre le menu attendent la section 6 (V20, V21).
 
 ## Ce que le joueur voit
 - Un personnage neuf, `Scriptorium_Directeur`, qui vit au camp : le jour à son coffre, le soir au feu, la nuit dans sa tente. Il tient le livre de comptes, paie la solde, signe les contrats et ouvre la Gestion du camp.
