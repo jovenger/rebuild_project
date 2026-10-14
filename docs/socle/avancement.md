@@ -25,7 +25,7 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - `essais/tout_verifier.py` : 6 étapes ; 1 322 vérifications au banc.
 - `outils/empreintes.py` : relevé des empreintes d'Alex (à lancer sur le PC, en lecture seule).
 - `noyau/installer.py` : installation dans `Mods\scriptorium_socle` seulement.
-- `socle/textes/fr/text_ui_scriptorium_socle.xml` : 77 textes, tous employés.
+- `socle/textes/fr/text_ui__scriptorium_socle.xml` : 77 textes, tous employés.
 
 ## Ce que le socle fait, en une page
 - **Bandeau :** tout message au joueur passe par une seule porte, un à la fois, alertes devant, sans répétition, regroupés, avec un complément (nom, montant).
@@ -55,3 +55,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 14/10/2026 : morceaux 5 (bataille), 6 (Directeur), 7 (enceinte, atelier), 8 (patrouilles, battement commun) au banc ; scénario complet d'une semaine.
 - 14/10/2026 : morceau 9 (discipline, décision D7) au banc ; note « Idées pour plus tard ».
 - 14/10/2026 : préparation du premier essai, d'après `kcd.log` (jeu 1.5.6) et le wiki officiel de Warhorse : manifeste sans bloc `<supports>` (V7) ; démarrage déplacé dans `Scripts/Mods/scriptorium_socle.lua`, seul script de mod que le jeu exécute ; paks faits sans compression par l'installateur ; liste des mods (D10) et console (`-devmode`, touche ²) établies.
+- 14/10/2026 : premier lancement avec le socle seul : manifeste accepté (V7), script de démarrage exécuté, 12 morceaux prêts, 0 en panne. Textes non chargés (V2) : fichier renommé `text_ui__scriptorium_socle.xml`, nom vérifié par `tout_verifier.py`.

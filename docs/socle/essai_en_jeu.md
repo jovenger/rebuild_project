@@ -20,7 +20,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir, dans l'ordre
-1. Au lancement, dans le journal du jeu (`kcd.log`, à la racine du jeu, réécrit à chaque lancement) : `[Mod] 1 mods enabled`, `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`, `Loading lua init script for mod scriptorium_socle`, `Loading localization patch 'Localization\text_ui_scriptorium_socle.xml'` sans erreur « hash clash » ; puis `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `discipline`, `poste`, puis `Socle 0.1.0 : 12 morceau(x) prêt(s), 0 en panne`.
+1. Au lancement, dans le journal du jeu (`kcd.log`, à la racine du jeu, réécrit à chaque lancement) : `[Mod] 1 mods enabled`, `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`, `Loading lua init script for mod scriptorium_socle`, `Loading localization patch 'Localization\text_ui__scriptorium_socle.xml'` sans erreur « hash clash » ; puis `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `discipline`, `poste`, puis `Socle 0.1.0 : 12 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : « Le socle de Scriptorium est prêt. » à l'écran.
 3. Dans la console du jeu (touche ², sous Échap, sur un clavier français ; jeu lancé avec `-devmode`), avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
@@ -42,7 +42,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | N° | Question | Où ça se décide |
 |---|---|---|
 | V1 | Le texte s'affiche-t-il ? Où, et de quel aspect (bande noire en bas ou non) ? | `liaison.afficher` |
-| V2 | Le texte est-il traduit (clé `@ui_scriptorium_…` remplacée par le français) ? Sinon, le nom du fichier de langue ou du pak est à changer | `socle/textes/fr`, installateur |
+| V2 | Le texte est-il traduit (clé `@ui_scriptorium_…` remplacée par le français) ? Premier lancement (14/10) : `text_ui_scriptorium_socle.xml` n'est pas chargé ; le jeu ne prend comme textes de mod que `<nom>__<modid>.xml` (deux traits bas), d'où `text_ui__scriptorium_socle.xml`, gardé par `tout_verifier.py` | `socle/textes/fr`, installateur |
 | V3 | Les commandes de console existent-elles (`System.AddCCommand`) ? Comment ouvrir la console ? | `liaison.commande` |
 | V4 | Quel appel garde une chaîne dans la sauvegarde et la rend au chargement ? | `liaison.lire_registre` / `ecrire_registre` |
 | V5 | Quel appel prévient qu'une partie vient d'être chargée ? | `registre.invalider` |

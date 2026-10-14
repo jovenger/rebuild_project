@@ -39,7 +39,7 @@ Dix morceaux de code Lua, dans `socle\pak\Scripts\scriptorium\` :
 - **`poste.lua`** : quatorze commandes de console d'essai (`scriptorium_essai_bandeau`, `_registre`, `_coffre`, `_camp`, `_camp_agrandir`, `_camp_lever`, `_hommes`, `_bataille`, `_directeur`, `_enceinte`, `_patrouille`, `_discipline`, `scriptorium_gestion_rapport`, `scriptorium_bilan`).
 
 Autour du code :
-- `socle\textes\fr\text_ui_scriptorium_socle.xml` : 77 textes français, tous employés. `socle\mod.manifest` : le manifeste du mod.
+- `socle\textes\fr\text_ui__scriptorium_socle.xml` : 77 textes français, tous employés. `socle\mod.manifest` : le manifeste du mod.
 - `essais\tout_verifier.py` : la vérification complète en six étapes (syntaxe Lua 5.1, banc de 1 322 vérifications sur un faux jeu dont un scénario complet d'une semaine, noms interdits, textes, manifeste, contrôle d'absence contre les empreintes d'Alex). Tout passe.
 - `outils\empreintes.py` : relève les empreintes du mod d'Alex (sha256 seulement, rien en clair), pour prouver qu'il n'en reste rien.
 - `noyau\installer.py` : installe dans `Mods\scriptorium_socle` seulement, refuse les chemins interdits, met de côté l'ancien mod d'essai avant de le remplacer, relance la vérification avant.

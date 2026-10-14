@@ -140,6 +140,9 @@ def verifier_noms():
 def verifier_textes():
     definies = {}
     for chemin in fichiers(TEXTES, {".xml"}):
+        # Le jeu ne charge comme textes de mod que les fichiers <nom>__<modid>.xml (constaté au journal le 14/10).
+        if not os.path.basename(chemin).endswith("__scriptorium_socle.xml"):
+            erreur("texte : %s : le nom doit finir par « __scriptorium_socle.xml », sinon le jeu ne le charge pas" % relatif(chemin))
         try:
             arbre = ET.parse(chemin)
         except ET.ParseError as exception:
