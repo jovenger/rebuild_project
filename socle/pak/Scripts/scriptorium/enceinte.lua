@@ -7,8 +7,8 @@ local enceinte = {}
 Scriptorium.enceinte = enceinte
 
 enceinte.reglages = {
-  rayon = 15,
-  pans = 16,
+  rayon = 20,             -- plus grande, à la validation de la fiche par JoVenGer (14/10 ; d'abord 15 m)
+  pans = 22,
   bois_palissade = 80,
   bois_tours = 40,
   bonus_palissade = 1.3,
@@ -25,8 +25,9 @@ enceinte.niveau_maximal = 2
 -- - « decalage » : quart de tour propre au modèle ; le portail est long sur son axe y, il faut le tourner ;
 -- - « centre » : le centre du modèle par rapport à son point de pose, en mètres (x à droite, y devant) ;
 --   le pan pose à une extrémité, le portail à son gond.
--- Le pan fait 8,3 m : seize pans ferment un cercle de 15 m (5,9 m par pan ; le premier modèle, 2,4 m, laissait
--- des trous). Le portail fait 4 m.
+-- Le pan fait 8,3 m, le portail 4 m (le premier modèle de pan, 2,4 m, laissait des trous). Vu en jeu : seize pans
+-- fermaient un cercle de 15 m. Sur 20 m, seize pans laisseraient près de 1,7 m ouvert de chaque côté du portail ;
+-- vingt-deux pans (5,7 m de l'un à l'autre) le ferment, les pans voisins chevauchant le portail de 0,4 m.
 enceinte.modeles = {
   palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_b_v4.cgf",
                 centre = { x = -3.85, y = 0.12 } },

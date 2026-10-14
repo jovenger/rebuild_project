@@ -12,13 +12,21 @@ atelier.reglages = {
   malus_usure = 0.7,
   reparation = 25,           -- points rendus par entretien
   hommes_par_jour = 5,       -- combien l'armurier répare par jour
-  jours_par_remede = 2,
 }
 
 -- Recettes d'alchimie : ingrédients pris au coffre, produit mis au coffre.
 atelier.recettes = {
   remede  = { ingredients = { herbes = 3, biere = 1 }, produit = "remedes", cle = "ui_scriptorium_gestion_remede" },
   onguent = { ingredients = { herbes = 2, cuir = 1 }, produit = "onguents", cle = "ui_scriptorium_gestion_onguent" },
+}
+
+-- Soins : ce que chacun prend au coffre et les jours de soins qu'il ôte à un blessé. L'onguent, soin léger,
+-- à la validation de la fiche par JoVenGer (14/10).
+atelier.soins = {
+  remede  = { reserve = "remedes",  jours = 2, manque = "pas_de_remede",  action = "soigner",
+              cle = "ui_scriptorium_gestion_soigner" },
+  onguent = { reserve = "onguents", jours = 1, manque = "pas_d_onguent", action = "soigner_onguent",
+              cle = "ui_scriptorium_gestion_soigner_onguent" },
 }
 
 local function jeu() return Scriptorium.jeu end
@@ -75,8 +83,12 @@ function atelier.preparer(nom, nombre)
   return true, coffre().reserve(recette.produit)
 end
 
--- Un remède ôte deux jours de soins à un blessé.
-function atelier.soigner(id)
+-- Soigne un blessé avec un remède (par défaut) ou un onguent.
+function atelier.soigner(id, nom_du_soin)
+  local soin = atelier.soins[nom_du_soin or "remede"]
+  if not soin then
+    return refuser("soin_inconnu", tostring(nom_du_soin))
+  end
   local f = hommes().fiche(id)
   if not f then
     return refuser("homme_inconnu", tostring(id))
@@ -84,11 +96,11 @@ function atelier.soigner(id)
   if f.blessure == 0 then
     return refuser("pas_blesse", id)
   end
-  if coffre().reserve("remedes") < 1 then
-    return refuser("pas_de_remede")
+  if coffre().reserve(soin.reserve) < 1 then
+    return refuser(soin.manque)
   end
-  coffre().prelever_reserve("remedes", 1, "soin")
-  hommes().guerir(id, atelier.reglages.jours_par_remede)
+  coffre().prelever_reserve(soin.reserve, 1, "soin")
+  hommes().guerir(id, soin.jours)
   return true, hommes().fiche(id).blessure
 end
 
@@ -214,19 +226,22 @@ local function entrees()
       agir = function(p) return atelier.preparer(nom, p.nombre) end,
     })
   end
-  Scriptorium.directeur.ajouter_entree({
-    action = "soigner", cle = "ui_scriptorium_gestion_soigner", parametres = { "id" },
-    disponible = function()
-      if coffre().reserve("remedes") < 1 then return false, "pas_de_remede" end
-      local blesses = {}
-      for _, id in ipairs(hommes().liste()) do
-        if hommes().fiche(id).blessure > 0 then table.insert(blesses, id) end
-      end
-      if #blesses == 0 then return false, "personne_de_blesse" end
-      return true, { blesses = blesses, remedes = coffre().reserve("remedes") }
-    end,
-    agir = function(p) return atelier.soigner(p.id) end,
-  })
+  for _, nom_du_soin in ipairs({ "remede", "onguent" }) do
+    local soin = atelier.soins[nom_du_soin]
+    Scriptorium.directeur.ajouter_entree({
+      action = soin.action, cle = soin.cle, parametres = { "id" },
+      disponible = function()
+        if coffre().reserve(soin.reserve) < 1 then return false, soin.manque end
+        local blesses = {}
+        for _, id in ipairs(hommes().liste()) do
+          if hommes().fiche(id).blessure > 0 then table.insert(blesses, id) end
+        end
+        if #blesses == 0 then return false, "personne_de_blesse" end
+        return true, { blesses = blesses, en_reserve = coffre().reserve(soin.reserve) }
+      end,
+      agir = function(p) return atelier.soigner(p.id, nom_du_soin) end,
+    })
+  end
 end
 atelier.installer_les_entrees = entrees
 

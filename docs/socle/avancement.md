@@ -34,7 +34,7 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - **Camp :** plan en données sur trois niveaux, fondé là où se tient Henry, agrandi, redressé après chargement, levé ; paillasses et sièges réservables.
 - **Hommes :** contrats, prime, solde hebdomadaire par rang, rations et faim, moral, journée sur les heures, garde bornée au nombre d'hommes, dizainiers et capitaine, départs, soins, ordres au changement.
 - **Bataille :** « lever une bande », avertissement, ordre de bataille d'époque, fin par le jeu ou par la règle, pertes, moral, pillage, butin partagé selon la coutume, escarmouches.
-- **Directeur :** personnage à sa tente, sa journée, le rapport, la Gestion du camp en données (dix-huit entrées avec les morceaux 7 et 8).
+- **Directeur :** personnage à sa tente, sa journée, le rapport, la Gestion du camp en données (dix-neuf entrées avec les morceaux 7 et 8).
 - **Enceinte et atelier :** palissade, porte (jour, nuit, barrée), tours de guet, bonus de défense ; alchimie (remèdes, onguents, soins) ; armurerie (usure, entretien).
 - **Patrouilles :** chemins en données, marche par points, rencontres (rien, rôdeurs, embuscade), risque qui bouge, avance de guet.
 - **Discipline :** fautes à l'aube selon le moral (rixe, vol, ivresse, exaction), jugements par la Gestion du camp (pardon, amende retenue sur la solde, corvée, pilori, renvoi), prescription et laxisme, réputation auprès des villages qui module le prix des réserves.

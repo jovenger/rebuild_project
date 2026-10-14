@@ -61,7 +61,8 @@
   <Row><Cell>ui_scriptorium_gestion_tours</Cell><Cell>Bâtir les tours de guet</Cell><Cell>Bâtir les tours de guet</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_remede</Cell><Cell>Préparer un remède</Cell><Cell>Préparer un remède</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_onguent</Cell><Cell>Préparer un onguent</Cell><Cell>Préparer un onguent</Cell></Row>
-  <Row><Cell>ui_scriptorium_gestion_soigner</Cell><Cell>Soigner un blessé</Cell><Cell>Soigner un blessé</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_soigner</Cell><Cell>Soigner un blessé avec un remède</Cell><Cell>Soigner un blessé avec un remède</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_soigner_onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_partie</Cell><Cell>La patrouille est partie.</Cell><Cell>La patrouille est partie.</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_rien</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_rodeurs</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell></Row>

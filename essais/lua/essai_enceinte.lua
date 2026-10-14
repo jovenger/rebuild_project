@@ -76,9 +76,14 @@ essai("enceinte : le plan est cohérent", function()
     if e.sorte == "porte" then portes = portes + 1 end
     if e.sorte == "tour" then tours = tours + 1 end
     local distance = math.sqrt(e.x * e.x + e.y * e.y)
-    verifier(distance > 10 and distance < 16, "autour du camp : " .. e.nom)
+    local r = enceinte.reglages.rayon
+    verifier(distance > r - 1 and distance < r * 1.1, "autour du camp : " .. e.nom)
   end
-  egal(pans, 15, "quinze pans")
+  egal(pans, enceinte.reglages.pans - 1, "les pans, la porte prenant une place")
+  -- Fermée : d'un pan à l'autre moins que la longueur d'un pan (8,3 m), et les pans voisins atteignent le portail (4 m).
+  local ecart = 2 * enceinte.reglages.rayon * math.sin(math.pi / enceinte.reglages.pans)
+  verifier(ecart < 8.3, "pans jointifs : " .. ecart)
+  verifier(ecart - 8.3 / 2 < 4 / 2, "rien d'ouvert à côté du portail : " .. ecart)
   egal(portes, 1, "une porte")
   egal(tours, 2, "deux tours")
 end)
@@ -94,9 +99,9 @@ essai("enceinte : bâtir prend le bois, pose les objets, puis les tours", functi
   for _, o in ipairs(FauxJeu.objets_poses) do
     if string.find(o.nom, "^enceinte_") then poses = poses + 1 end
   end
-  egal(poses, 16, "seize objets posés")
+  egal(poses, enceinte.reglages.pans, "un objet par place du cercle")
   verifier(enceinte.point_d_entree() ~= nil, "la porte a une position")
-  verifier(math.abs(enceinte.point_d_entree().y - 15) < 0.01, "au nord, à quinze mètres")
+  verifier(math.abs(enceinte.point_d_entree().y - enceinte.reglages.rayon) < 0.01, "au nord, sur le cercle")
   verifier(math.abs(enceinte.bonus() - 1.3) < 0.001, "bonus de la palissade")
   egal(enceinte.avance_de_guet(), 0, "pas de tours : pas d'avance")
   Scriptorium.bandeau.battre()
@@ -230,6 +235,21 @@ essai("atelier : soigner avec un remède", function()
   egal(raison, "pas_blesse", "plus blessé")
 end)
 
+essai("atelier : soigner avec un onguent, soin léger (choix de JoVenGer, 14/10)", function()
+  preparer(0, 10)
+  local id = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  hommes.blesser(id, 3)
+  local ok, raison = atelier.soigner(id, "onguent")
+  egal(raison, "pas_d_onguent", "sans onguent")
+  coffre.ajouter_reserve("onguents", 1, "achat")
+  local ok2, reste = atelier.soigner(id, "onguent")
+  verifier(ok2, "soigné")
+  egal(reste, 2, "un jour de moins")
+  egal(coffre.reserve("onguents"), 0, "l'onguent pris")
+  ok, raison = atelier.soigner(id, "elixir")
+  egal(raison, "soin_inconnu", "soin inconnu")
+end)
+
 essai("atelier : usure par bataille, poids au combat, entretien par l'armurier", function()
   preparer(0, 6)
   atelier.battre()
@@ -283,6 +303,11 @@ essai("atelier et enceinte : entrées de la Gestion du camp", function()
   egal(entree("soigner").disponible, true, "soigner possible")
   verifier(directeur.agir("soigner", { id = id }), "soigné par le Directeur")
   egal(hommes.fiche(id).blessure, 2, "deux jours de moins")
+  egal(entree("soigner_onguent").raison, "pas_d_onguent", "pas d'onguent")
+  coffre.ajouter_reserve("onguents", 1, "achat")
+  egal(entree("soigner_onguent").disponible, true, "soigner à l'onguent possible")
+  verifier(directeur.agir("soigner_onguent", { id = id }), "soigné à l'onguent par le Directeur")
+  egal(hommes.fiche(id).blessure, 1, "un jour de moins")
 end)
 
 essai("enceinte et atelier : tout est relu", function()
