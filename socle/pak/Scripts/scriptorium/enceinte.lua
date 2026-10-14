@@ -169,6 +169,26 @@ function enceinte.redresser()
   return reposes, manquants
 end
 
+-- Entrée en partie : retire et repose pans, porte et tours, comme le camp (les objets gardés par la
+-- sauvegarde reviennent blancs, vu en jeu le 14/10). La porte reposée repart ouverte : son état est redit au jeu.
+function enceinte.relancer()
+  local d = donnees()
+  if not d.batie then
+    return 0, 0
+  end
+  for _, objet in pairs(d.objets) do
+    if objet.identifiant then
+      jeu().retirer_objet(objet.identifiant)
+    end
+  end
+  d.objets = {}
+  local reposes, manquants = dresser(d)
+  d.porte.etat = nil
+  enregistrer()
+  jeu().journal("Enceinte : reposée à l'entrée en partie, " .. reposes .. " objet(s), " .. manquants .. " manquant(s)")
+  return reposes, manquants
+end
+
 function enceinte.demolir()
   local d = donnees()
   if not d.batie then

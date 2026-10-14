@@ -252,6 +252,26 @@ function camp.redresser()
   return reposes, manquants
 end
 
+-- Entrée en partie (nouvelle ou chargée) : retire et repose tous les objets du camp. Vu en jeu le 14/10 :
+-- les objets gardés par la sauvegarde reviennent blancs, sans texture ; posés à neuf, ils s'affichent bien.
+-- Rend (reposés, manquants).
+function camp.relancer()
+  local d = donnees()
+  if not d.fonde then
+    return 0, 0
+  end
+  for _, objet in pairs(d.objets) do
+    if objet.identifiant then
+      jeu().retirer_objet(objet.identifiant)
+    end
+  end
+  d.objets = {}
+  local reposes, manquants = dresser(d)
+  enregistrer()
+  jeu().journal("Camp : reposé à l'entrée en partie, " .. reposes .. " objet(s), " .. manquants .. " manquant(s)")
+  return reposes, manquants
+end
+
 function camp.lever()
   local d = donnees()
   if not d.fonde then

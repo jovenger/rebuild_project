@@ -192,10 +192,11 @@ essai("socle : l'entrée en partie repose les minuteries, éteint les anciennes,
   Scriptorium.demarrer()
   egal(#FauxJeu.minuteries, 3, "bandeau, poste et battement posés au démarrage")
   Scriptorium.registre.lire("essai_partie")
-  egal(Scriptorium.registre.etat_de("essai_partie"), "neuve", "case lue")
+  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.lire("essai_partie").n = 5
   FauxJeu.entrer_en_partie()
   egal(#FauxJeu.minuteries, 6, "trois minuteries reposées")
-  egal(Scriptorium.registre.etat_de("essai_partie"), "non_chargee", "registre à relire (V5)")
+  egal(Scriptorium.registre.lire("essai_partie").n, 1, "registre relu depuis la sauvegarde (V5) : la modification non enregistrée a disparu")
   for _ = 1, 6 do
     FauxJeu.tic_minuterie()
   end

@@ -30,6 +30,17 @@ local function entree(action)
   return nil
 end
 
+essai("enceinte : à l'entrée en partie, pans, porte et tours sont reposés à neuf", function()
+  preparer(enceinte.reglages.bois_palissade + enceinte.reglages.bois_tours)
+  verifier(enceinte.batir(), "palissade")
+  verifier(enceinte.batir(), "tours")
+  local retires_avant = #FauxJeu.objets_retires
+  local reposes, manquants = enceinte.relancer()
+  verifier(reposes > 0, "des objets reposés")
+  egal(manquants, 0, "rien ne manque")
+  egal(#FauxJeu.objets_retires - retires_avant, reposes, "autant de retirés que de reposés")
+end)
+
 essai("enceinte : le plan est cohérent", function()
   local pans, portes, tours = 0, 0, 0
   local noms = {}

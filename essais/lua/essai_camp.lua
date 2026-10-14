@@ -50,6 +50,29 @@ essai("camp : le décalage propre au modèle s'ajoute au cap posé (banc de rond
   egal(caps.tente_directeur, 180, "tente sans décalage")
 end)
 
+essai("camp : à l'entrée en partie, tous les objets sont retirés et reposés à neuf", function()
+  depart()
+  verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
+  local avant = #FauxJeu.objets_poses
+  local ancien_feu = camp.objet_de("feu_central")
+  local reposes, manquants = camp.relancer()
+  egal(reposes, avant, "autant d'objets reposés que posés")
+  egal(manquants, 0, "rien ne manque")
+  egal(#FauxJeu.objets_retires, avant, "les anciens retirés")
+  local presents = 0
+  for _ in pairs(FauxJeu.objets_existants) do presents = presents + 1 end
+  egal(presents, avant, "pas de doublon dans le monde")
+  verifier(camp.objet_de("feu_central") ~= nil and camp.objet_de("feu_central") ~= ancien_feu, "le feu a un nouvel identifiant")
+end)
+
+essai("camp : sans camp, la relance ne pose rien", function()
+  depart()
+  local reposes, manquants = camp.relancer()
+  egal(reposes, 0, "rien reposé")
+  egal(manquants, 0, "rien manquant")
+  egal(#FauxJeu.objets_poses, 0, "rien posé")
+end)
+
 essai("camp : fonder dresse le niveau 1 aux bonnes positions", function()
   depart()
   egal(camp.est_fonde(), false, "pas fondé au départ")
