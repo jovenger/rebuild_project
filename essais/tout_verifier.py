@@ -253,31 +253,24 @@ def verifier_identifiants():
         if not l.suivre(e1[1], n1) or AI.suivi ~= System.entites[n1].id then return "suivi mal donné" end
         if l.blesser("personne", 1) or l.suivre("personne", n1) then return "un absent blessé ou mis en marche" end
         AI = nil
-        -- Personnages : nés par XGenAIModule.SpawnEntity quand elle existe (vu le 14/10 : nés par System.SpawnEntity,
-        -- ils restent inertes) ; les objets, jamais.
-        if l.naissance_des_personnages ~= "System.SpawnEntity" then return "sans XGenAIModule, façon de naître mal notée" end
-        XGenAIModule = { appels = {} }
-        System.par_id = {}
-        function XGenAIModule.SpawnEntity(params)
-          table.insert(XGenAIModule.appels, params)
-          local e = { id = newproxy(), name = params.Name }
-          function e:SetWorldAngles(a) end
-          function e:GetName() return self.name end
-          System.entites[params.Name] = e
-          System.par_id[e.id] = e
-          return e.id
-        end
-        function System.GetEntity(id) return System.par_id[id] end
+        -- Personnages : les propriétés données remplacent celles de la classe (vu le 14/10 : avec la seule âme, ils
+        -- restaient inertes) ; un personnage reçoit une copie des propriétés de sa classe, plus son âme. Les objets,
+        -- non (une copie de leurs propriétés physiques n'a pas été essayée en jeu).
+        NPC = { Properties = { bWH_PerceptorObject = true, esNavigationType = "MediumSizedCharacters", CharacterSounds = { foleyEffect = "foleys_npc" } } }
+        local recu = nil
+        local naissance_d_origine = System.SpawnEntity
+        function System.SpawnEntity(params) recu = params.properties ; return naissance_d_origine(params) end
         local h2 = l.faire_venir_homme("archer", "homme_2", p)
-        local naissance = XGenAIModule.appels[1]
-        if h2 ~= "scriptorium_homme_2" or not naissance or naissance.SharedSoulGuid ~= l.ames.archer or naissance.ClassName ~= "NPC" then
-          return "personnage non né par XGenAIModule : " .. tostring(h2)
-        end
-        if naissance.Pos.z ~= 3 then return "personnage né hors de sa place" end
-        if l.naissance_des_personnages ~= "XGenAIModule.SpawnEntity" then return "façon de naître non notée" end
+        if not h2 or not recu then return "personnage non venu" end
+        if recu.guidSharedSoulId ~= l.ames.archer then return "âme perdue dans les propriétés complètes" end
+        if recu.bWH_PerceptorObject ~= true or recu.esNavigationType ~= "MediumSizedCharacters" then return "propriétés de la classe NPC perdues" end
+        recu.CharacterSounds.foleyEffect = "change"
+        if NPC.Properties.CharacterSounds.foleyEffect ~= "foleys_npc" then return "propriétés de la classe partagées au lieu d'être copiées" end
+        if NPC.Properties.guidSharedSoulId ~= nil then return "l'âme écrite dans la classe du jeu" end
         l.poser_objet("feu", "modele", p, 0, "feu_x")
-        if #XGenAIModule.appels ~= 1 then return "un objet est né par XGenAIModule" end
-        XGenAIModule = nil
+        if recu.bWH_PerceptorObject ~= nil or recu.object_Model ~= "modele" then return "un objet a reçu les propriétés d'un personnage" end
+        System.SpawnEntity = naissance_d_origine
+        NPC = nil
         return "ok"
     end)()""")
     if resultat != "ok":

@@ -221,56 +221,39 @@ end
 -- vu le 14/10, en lui passant { 0, 0, angle }, tout objet de cap non nul naissait couché, l'avant vers le ciel
 -- (tour de guet allongée, pans de palissade à plat, tentes renversées). L'avant est donné à l'horizontale, puis
 -- les angles sont fixés par SetWorldAngles.
--- Vu le 14/10 : un personnage né par System.SpawnEntity reste inerte (ni marche, ni combat, ni réaction à Henry
--- à douze mètres ; l'un flottait en l'air). Les scripts de débogage du jeu (Scripts/Debug/CombatDebug.lua,
--- PathfindDebugUtils.lua) font naître les leurs par XGenAIModule.SpawnEntity{ Name, ClassName, SharedSoulGuid, Pos },
--- qui rend l'identifiant de l'entité. Absente du relevé Lua du jeu : peut-être réservée au mode développeur.
--- Le personnage naît par elle quand elle existe, sinon comme un objet ; la façon employée est notée une fois.
-liaison.naissance_des_personnages = nil
+-- Vu le 14/10 : un personnage né avec { guidSharedSoulId = âme } pour seules propriétés restait inerte (ni marche,
+-- ni combat, ni réaction à Henry à douze mètres ; l'un flottait en l'air), quelle que soit sa faction. Les
+-- propriétés données à System.SpawnEntity remplacent celles de la classe : il perdait celles qui le font voir,
+-- être vu, écouter et marcher (NPC.lua : bWH_PerceptorObject, bWH_PerceptibleObject, bWH_ListenerObject,
+-- bWH_CreateSituationSubsystem, bWH_RequiresHome, esNavigationType…). Le jeu fait naître ses entités avec leur table
+-- complète (EntityCommon.lua, Event_Spawn). Un personnage reçoit donc une copie des propriétés de sa classe, plus
+-- les nôtres. (XGenAIModule.SpawnEntity, employée par les scripts de débogage du jeu, n'existe pas hors des outils
+-- de Warhorse, même avec -devmode : vu le 14/10.)
+local function copie_profonde(source)
+  if type(source) ~= "table" then
+    return source
+  end
+  local resultat = {}
+  for cle, valeur in pairs(source) do
+    resultat[cle] = copie_profonde(valeur)
+  end
+  return resultat
+end
 
-local function faire_naitre_personnage(nom_unique, position, angle, ame)
-  if type(XGenAIModule) ~= "table" or type(XGenAIModule.SpawnEntity) ~= "function" then
-    return nil
+local function proprietes_completes(classe, proprietes)
+  local modele = rawget(_G, classe)
+  local resultat = (type(modele) == "table" and type(modele.Properties) == "table") and copie_profonde(modele.Properties) or {}
+  for cle, valeur in pairs(proprietes or {}) do
+    resultat[cle] = valeur
   end
-  local ok, identifiant = pcall(XGenAIModule.SpawnEntity, { Name = nom_unique, ClassName = "NPC", SharedSoulGuid = ame,
-                                                            Pos = { x = position.x, y = position.y, z = position.z } })
-  if not ok or identifiant == nil then
-    liaison.journal("Naissance par XGenAIModule refusée pour « " .. nom_unique .. " » : " .. tostring(identifiant))
-    return nil
-  end
-  local entite = System.GetEntity(identifiant)
-  if not entite then
-    return nil
-  end
-  -- Les scripts du jeu passent Pos tantôt nommée, tantôt { x, y, z } : si le personnage naît ailleurs, il est reposé.
-  local function reposer_si_ailleurs()
-    local ici = entite:GetWorldPos()
-    if ((ici.x - position.x) ^ 2 + (ici.y - position.y) ^ 2) > 4 then
-      liaison.journal(string.format("Personnage « %s » né à %.1f, %.1f au lieu de %.1f, %.1f : reposé", nom_unique, ici.x, ici.y, position.x, position.y))
-      entite:SetWorldPos({ x = position.x, y = position.y, z = position.z })
-    end
-  end
-  pcall(reposer_si_ailleurs)
-  pcall(function() entite:SetWorldAngles({ x = 0, y = 0, z = angle }) end)
-  local lu, nom = pcall(function() return entite:GetName() end)
-  return (lu and type(nom) == "string") and nom or nom_unique
+  return resultat
 end
 
 local function faire_naitre(classe, nom, position, cap, proprietes)
   local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
   local angle = cap_vers_moteur(cap)
-  if classe == "NPC" and proprietes and proprietes.guidSharedSoulId then
-    local nom_du_personnage = faire_naitre_personnage(nom_unique, position, angle, proprietes.guidSharedSoulId)
-    local facon = nom_du_personnage and "XGenAIModule.SpawnEntity" or "System.SpawnEntity"
-    if liaison.naissance_des_personnages ~= facon then
-      liaison.naissance_des_personnages = facon
-      liaison.journal("Personnages : naissance par " .. facon .. " (XGenAIModule.SpawnEntity : "
-                      .. type(type(XGenAIModule) == "table" and XGenAIModule.SpawnEntity or nil) .. ", CombatDebug.SpawnFighters : "
-                      .. type(type(CombatDebug) == "table" and CombatDebug.SpawnFighters or nil) .. ")")
-    end
-    if nom_du_personnage then
-      return nom_du_personnage
-    end
+  if classe == "NPC" then
+    proprietes = proprietes_completes(classe, proprietes)
   end
   local ok, entite = pcall(function()
     return System.SpawnEntity({
@@ -767,6 +750,9 @@ function liaison.decrire_personnage(identifiant, autre, avec_fonctions)
   end)
   ajouter(lu and ici or ("position illisible : " .. tostring(ici)))
   ajouter("mort selon le socle = " .. tostring(liaison.personnage_mort(identifiant)))
+  local p = type(entite.Properties) == "table" and entite.Properties or {}
+  ajouter("propriétés : voit = " .. tostring(p.bWH_PerceptorObject) .. " ; vu = " .. tostring(p.bWH_PerceptibleObject)
+          .. " ; navigation = " .. tostring(p.esNavigationType) .. " ; maison = " .. tostring(p.bWH_RequiresHome))
   local id_d_henry = type(player) == "table" and player.id or nil
   ajouter("agent IA actif = " .. appel(AI, "IsEnabled", entite.id) .. " ; faction = " .. appel(AI, "GetFactionOf", entite.id)
           .. " ; vigilance = " .. appel(AI, "GetAlertness", entite.id)
