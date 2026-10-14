@@ -41,6 +41,7 @@ local faux = {
   fichier_ordres_raison = nil, -- raison quand le fichier est illisible
   lectures_ordres = 0,
   ecoute_partie = nil,         -- { entree, sortie } : ce que le socle veut qu'on appelle
+  feux_allumes = {},           -- identifiant -> true
 }
 
 function faux.remettre_a_zero()
@@ -83,6 +84,7 @@ function faux.remettre_a_zero()
   faux.fichier_ordres_raison = nil
   faux.lectures_ordres = 0
   faux.ecoute_partie = nil
+  faux.feux_allumes = {}
 end
 
 function faux.maintenant() return faux.temps end
@@ -135,14 +137,18 @@ function faux.donner_groschen_a_henry(n)
   return true
 end
 
-function faux.poser_objet(sorte, modele, position, cap, nom)
+function faux.poser_objet(sorte, modele, position, cap, nom, classe)
   if faux.refuser_pose[nom] then return nil end
   local identifiant = "objet_" .. faux.prochain_objet
   faux.prochain_objet = faux.prochain_objet + 1
   table.insert(faux.objets_poses, { identifiant = identifiant, sorte = sorte, modele = modele,
-                                    position = position, cap = cap, nom = nom })
+                                    position = position, cap = cap, nom = nom, classe = classe })
   faux.objets_existants[identifiant] = true
   return identifiant
+end
+function faux.allumer(identifiant)
+  faux.feux_allumes[identifiant] = true
+  return true
 end
 function faux.retirer_objet(identifiant)
   table.insert(faux.objets_retires, identifiant)

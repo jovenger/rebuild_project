@@ -15,11 +15,13 @@ camp.proprietaire = "JoVenGer"
 -- Le jeu n'a pas de modèle de feu de camp : un tas de branches en tient lieu, un vrai feu qui brûle
 -- est une entité à part (V23). « decalage » : quart de tour propre au modèle, en degrés de boussole ;
 -- le banc de rondin a son long côté dans son sens « devant » (vu en jeu le 14/10 : il pointait vers le feu).
+-- « classe » : classe d'entité du jeu (Chair : Henry peut s'y asseoir ; Bed : y dormir), sinon un simple décor.
+-- « allume » : un feu brûle dessus (effet de particules, liaison.allumer).
 camp.modeles = {
-  feu    = { chemin = "Objects/manmade/task_specific_props/household/firewood/branches/firewood_branches_a.cgf" },
-  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf", decalage = 90 },
+  feu    = { chemin = "Objects/manmade/task_specific_props/household/firewood/branches/firewood_branches_a.cgf", allume = true },
+  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf", decalage = 90, classe = "Chair" },
   tente  = { chemin = "Objects/manmade/structures/living/tents/tent_small_a.cgf" },
-  lit    = { chemin = "Objects/manmade/common_furniture/beds/low/bed_makeshift_a.cgf" },
+  lit    = { chemin = "Objects/manmade/common_furniture/beds/low/bed_makeshift_a.cgf", classe = "Bed" },
   coffre = { chemin = "Objects/manmade/common_furniture/chests/chest-small-a.cgf" },
 }
 
@@ -162,10 +164,13 @@ local function poser(d, e)
   local modele = camp.modeles[e.sorte]
   local position, cap = camp.dans_le_monde(d.ancre, e.x, e.y, e.cap)
   cap = (cap + (modele.decalage or 0)) % 360
-  local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, e.nom)
+  local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, e.nom, modele.classe)
   if identifiant == nil then
     jeu().journal("Camp : le jeu n'a pas posé « " .. e.nom .. " » (" .. e.sorte .. ")")
     return false
+  end
+  if modele.allume then
+    jeu().allumer(identifiant)
   end
   d.objets[e.nom] = { identifiant = identifiant }
   return true

@@ -60,9 +60,34 @@ function liaison.effacer()
   end
 end
 
--- Vrai quand un dialogue ou une cinématique est en cours.
--- À vérifier en jeu : l'appel du moteur qui le dit. En attendant : jamais.
+-- Vrai quand Henry est en dialogue (le bandeau attend : la ligne des sous-titres sert aussi aux dialogues).
+-- DialogModule.IsSoulInDialog existe dans le Lua du jeu, mais aucun script du jeu ne l'appelle : la forme
+-- de son argument est à vérifier en jeu (V6). On essaie l'âme d'Henry, son identifiant d'entité, puis son
+-- WUID ; la première forme qui rend un booléen est gardée et dite au journal. Hors partie, rien n'est décidé.
+local forme_du_dialogue = nil
+local formes_du_dialogue = {
+  { nom = "l'âme", argument = function() return player.soul end },
+  { nom = "l'identifiant d'entité", argument = function() return player.id end },
+  { nom = "le WUID", argument = function() return XGenAIModule.GetMyWUID(player) end },
+}
+
 function liaison.dialogue_en_cours()
+  if forme_du_dialogue == false or not liaison.partie_en_cours() then
+    return false
+  end
+  local formes = forme_du_dialogue and { forme_du_dialogue } or formes_du_dialogue
+  for _, forme in ipairs(formes) do
+    local ok, resultat = pcall(function() return DialogModule.IsSoulInDialog(forme.argument()) end)
+    if ok and type(resultat) == "boolean" then
+      if not forme_du_dialogue then
+        forme_du_dialogue = forme
+        liaison.journal("Dialogue : IsSoulInDialog répond avec " .. forme.nom)
+      end
+      return resultat
+    end
+  end
+  forme_du_dialogue = false
+  liaison.journal("Dialogue : IsSoulInDialog ne répond à aucune forme ; le bandeau n'attendra pas les dialogues")
   return false
 end
 
@@ -180,9 +205,11 @@ local function cap_depuis_moteur(radians)
   return (-math.deg(radians)) % 360
 end
 
--- Fait naître une entité et rend son nom, ou nil et la raison.
+-- Fait naître une entité et rend son nom, ou nil et la raison. Le nom ne garde que des lettres ASCII, chiffres et
+-- « _ » : un nom d'affichage (« Mikuláš Kladivo ») ne sert pas tel quel de nom d'entité. La classe est écrite
+-- en clair (« %w » dépend de la langue du système et peut garder un octet accentué).
 local function faire_naitre(classe, nom, position, cap, proprietes)
-  local nom_unique = nom_libre(nom)
+  local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
   local ok, entite = pcall(function()
     return System.SpawnEntity({
       class = classe,
@@ -200,13 +227,30 @@ end
 
 -- Pose un objet du jeu de base (modèle par son chemin) et rend son identifiant, ou nil.
 -- Vu en jeu le 14/10 : System.SpawnEntity avec la classe BasicEntity pose bien l'objet ;
--- un modèle introuvable donne une forme blanche.
-function liaison.poser_objet(sorte, modele, position, cap, nom)
-  local identifiant, raison = faire_naitre("BasicEntity", "scriptorium_" .. nom, position, cap, { object_Model = modele })
+-- un modèle introuvable donne une forme blanche. « classe » : une classe d'entité du jeu qui prend un modèle
+-- (Chair, Bed : Henry peut s'y asseoir, y dormir) ; BasicEntity par défaut (un décor).
+function liaison.poser_objet(sorte, modele, position, cap, nom, classe)
+  local identifiant, raison = faire_naitre(classe or "BasicEntity", "scriptorium_" .. nom, position, cap, { object_Model = modele })
   if not identifiant then
-    liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ") : " .. tostring(raison))
+    liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ", " .. (classe or "BasicEntity") .. ") : " .. tostring(raison))
   end
   return identifiant
+end
+
+-- Un feu qui brûle sur un objet posé : l'effet de particules « fires.fire_firewood » de la bibliothèque WH_Particels
+-- du jeu (Libs/Particles/WH_Particels.xml), chargé par entity:LoadParticleEffect. À vérifier en jeu (V23).
+liaison.effet_du_feu = "WH_Particels.fires.fire_firewood"
+
+function liaison.allumer(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return false
+  end
+  local ok, erreur = pcall(function() entite:LoadParticleEffect(-1, liaison.effet_du_feu, {}) end)
+  if not ok then
+    liaison.journal("Feu impossible à allumer sur « " .. tostring(identifiant) .. " » : " .. tostring(erreur))
+  end
+  return ok
 end
 
 -- Retire un objet posé par le socle.
@@ -311,11 +355,13 @@ function liaison.cap_du_joueur()
 end
 
 -- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
--- Premier essai (V16, 14/10) : une seule âme du jeu de base, un garde « en réserve » de Trosky, générique et
--- non hostile (extraGuards_dummy_1, table Libs/Tables/rpg/soul__extraGuards.xml), pour l'homme d'armes seul.
--- Les âmes à nous viendront avec les tables du socle.
+-- Provisoire, en attendant les tables à nous : des gardes « en réserve » de Trosky, génériques et non hostiles
+-- (extraGuards_dummy_*, table Libs/Tables/rpg/soul__extraGuards.xml). Vu en jeu le 14/10 : l'homme d'armes vient
+-- (V16). Une âme par rôle seulement : deux hommes du même rôle partagent la même âme (à vérifier en jeu).
 liaison.ames = {
-  homme_d_armes = "63daa80b-d1f4-46f5-8222-c22a541cae07",
+  homme_d_armes = "63daa80b-d1f4-46f5-8222-c22a541cae07",   -- extraGuards_dummy_1
+  arbaletrier   = "6e04789b-f704-4da7-98b6-4558fac75748",   -- extraGuards_dummy_3
+  archer        = "2e96ee86-7c95-4b57-91f6-6d3abce75d22",   -- extraGuards_dummy_5
 }
 
 -- Fait venir un personnage de la Compagnie et rend son identifiant, ou nil.
@@ -346,8 +392,22 @@ end
 
 -- Donne un ordre simple à un personnage : dormir ici, s'asseoir là, se tenir là.
 -- À vérifier en jeu : l'appel du moteur. En attendant, l'ordre est noté au journal.
+-- Vu le 14/10 (V17) : le jeu de base n'a pas d'ordre générique « marcher, s'asseoir, dormir » ; ses personnages
+-- obéissent à des cerveaux propres à chaque quête. Ces ordres attendent un cerveau à nous (tables du jeu).
+-- En attendant, « se tenir là » : le personnage est posé au lieu s'il en est à plus de deux mètres.
 function liaison.ordonner(identifiant, activite, position, lieu)
   liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ")")
+  local entite = entite_nommee(identifiant)
+  if not entite or not position then
+    return
+  end
+  local ok, ici = pcall(function() return entite:GetWorldPos() end)
+  if ok and type(ici) == "table" and ((ici.x - position.x) ^ 2 + (ici.y - position.y) ^ 2) > 4 then
+    local pose, erreur = pcall(function() entite:SetWorldPos({ x = position.x, y = position.y, z = position.z }) end)
+    if not pose then
+      liaison.journal("Ordre à " .. tostring(identifiant) .. " : déplacement impossible : " .. tostring(erreur))
+    end
+  end
 end
 
 -- Âmes des ennemis par sorte de bande, prises dans le jeu de base.
@@ -409,7 +469,9 @@ end
 
 -- L'âme du Directeur (personnage à nous, apparence neuve).
 -- À vérifier en jeu : à renseigner depuis les tables du socle.
-liaison.ame_du_directeur = nil
+-- Provisoire, en attendant une âme et une apparence à nous (V20) : un garde « en réserve » de Trosky
+-- (extraGuards_dummy_6), générique et non hostile.
+liaison.ame_du_directeur = "5f05b3d3-3c0f-4a55-95d7-d2eef1af4bbb"
 
 -- Fait venir le Directeur dans sa tente. Rend son identifiant, ou nil.
 function liaison.faire_venir_directeur(position)

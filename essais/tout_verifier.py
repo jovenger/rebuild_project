@@ -188,6 +188,8 @@ def verifier_identifiants():
         l.retirer_objet(a)
         if l.objet_existe(a) then return "objet retiré encore là" end
         if not l.objet_existe(b) then return "l'autre objet a disparu" end
+        local h = l.poser_objet("lit", "modele", p, 0, "Mikuláš Kladivo")
+        if h ~= "scriptorium_Mikul_____Kladivo" then return "nom d'entité hors ASCII ou mal formé" end
         -- Henry face à l'ouest : +90° pour le moteur, 270° en cap de boussole ; et retour (vu en jeu le 14/10).
         player = { GetWorldAngles = function() return { x = 0, y = 0, z = math.rad(90) } end }
         local cap = l.cap_du_joueur()

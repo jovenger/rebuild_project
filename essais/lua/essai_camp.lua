@@ -50,6 +50,21 @@ essai("camp : le décalage propre au modèle s'ajoute au cap posé (banc de rond
   egal(caps.tente_directeur, 180, "tente sans décalage")
 end)
 
+essai("camp : bancs et lits posés comme objets du jeu, le feu allumé", function()
+  depart()
+  verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
+  local classes = {}
+  for _, o in ipairs(FauxJeu.objets_poses) do
+    classes[o.nom] = o.classe or "decor"
+  end
+  egal(classes.siege_1, "Chair", "banc : Chair")
+  egal(classes.lit_1a, "Bed", "lit : Bed")
+  egal(classes.tente_1, "decor", "tente : décor")
+  verifier(FauxJeu.feux_allumes[camp.objet_de("feu_central")], "le feu central brûle")
+  camp.relancer()
+  verifier(FauxJeu.feux_allumes[camp.objet_de("feu_central")], "et brûle encore après la relance")
+end)
+
 essai("camp : à l'entrée en partie, tous les objets sont retirés et reposés à neuf", function()
   depart()
   verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
