@@ -13,10 +13,11 @@ camp.proprietaire = "JoVenGer"
 -- Les sortes d'objets et leur modèle du jeu de base, appelé par son chemin.
 -- Chemins relevés le 14/10 dans les paks du jeu (IPL_Objects-part*.pak) ; les anciens donnaient une forme blanche.
 -- Le jeu n'a pas de modèle de feu de camp : un tas de branches en tient lieu, un vrai feu qui brûle
--- est une entité à part (V23).
+-- est une entité à part (V23). « decalage » : quart de tour propre au modèle, en degrés de boussole ;
+-- le banc de rondin a son long côté dans son sens « devant » (vu en jeu le 14/10 : il pointait vers le feu).
 camp.modeles = {
   feu    = { chemin = "Objects/manmade/task_specific_props/household/firewood/branches/firewood_branches_a.cgf" },
-  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf" },
+  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf", decalage = 90 },
   tente  = { chemin = "Objects/manmade/structures/living/tents/tent_small_a.cgf" },
   lit    = { chemin = "Objects/manmade/common_furniture/beds/low/bed_makeshift_a.cgf" },
   coffre = { chemin = "Objects/manmade/common_furniture/chests/chest-small-a.cgf" },
@@ -158,8 +159,10 @@ local function poser(d, e)
   if objet and objet.identifiant and jeu().objet_existe(objet.identifiant) then
     return true
   end
+  local modele = camp.modeles[e.sorte]
   local position, cap = camp.dans_le_monde(d.ancre, e.x, e.y, e.cap)
-  local identifiant = jeu().poser_objet(e.sorte, camp.modeles[e.sorte].chemin, position, cap, e.nom)
+  cap = (cap + (modele.decalage or 0)) % 360
+  local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, e.nom)
   if identifiant == nil then
     jeu().journal("Camp : le jeu n'a pas posé « " .. e.nom .. " » (" .. e.sorte .. ")")
     return false
