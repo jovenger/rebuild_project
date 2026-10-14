@@ -206,6 +206,41 @@ function poste.essai_enceinte()
   return sorts
 end
 
+-- Modèles : pose huit modèles en cercle à 8 m d'Henry, un tous les 45° (cap de boussole), pour voir lesquels
+-- le jeu dessine (14/10 : pans et tours de l'enceinte restaient invisibles, le portail et les tentes non).
+-- Un second appel retire les huit précédents.
+poste.modeles_a_essayer = {
+  "Objects/manmade/structures/living/tents/tent_small_a.cgf",
+  "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_b_v4.cgf",
+  "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_b_v4_trosky.cgf",
+  "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_a_v2.cgf",
+  "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_makeshift_a_v2.cgf",
+  "Objects/manmade/structures/defensive/watchtowers/watchtower_a.cgf",
+  "Objects/manmade/structures/logistical/fences/fence_4rod_gate_02.cgf",
+  "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_b_v2.cgf",
+}
+
+function poste.essai_modeles()
+  for i = 1, #poste.modeles_a_essayer do
+    jeu().retirer_objet("scriptorium_essai_modele_" .. i)
+  end
+  if poste.modeles_poses then
+    poste.modeles_poses = nil
+    jeu().journal("Poste : modèles d'essai retirés")
+    return true
+  end
+  local ici = jeu().position_du_joueur()
+  for i, chemin in ipairs(poste.modeles_a_essayer) do
+    local cap = (i - 1) * 45
+    local a = math.rad(cap)
+    local p = { x = ici.x + 8 * math.sin(a), y = ici.y + 8 * math.cos(a), z = ici.z }
+    local identifiant = jeu().poser_objet("essai", chemin, p, (cap + 90) % 360, "essai_modele_" .. i)
+    jeu().journal("Poste : modèle d'essai au cap " .. cap .. " : " .. chemin .. " = " .. tostring(identifiant))
+  end
+  poste.modeles_poses = true
+  return true
+end
+
 -- Enceinte : pose Henry à 4 m de la porte, côté camp, pour la regarder de près.
 function poste.essai_voir_porte()
   local centre = Scriptorium.camp.point(0, 0, 0)
@@ -282,6 +317,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_enceinte", fonction = function() return poste.essai_enceinte() end, aide = "Bâtit la palissade et les tours" },
   { nom = "scriptorium_essai_porte", fonction = function() return poste.essai_porte() end, aide = "Ouvre la porte fermée, ou ferme la porte ouverte" },
   { nom = "scriptorium_essai_voir_porte", fonction = function() return poste.essai_voir_porte() end, aide = "Pose Henry à 4 m de la porte, côté camp" },
+  { nom = "scriptorium_essai_modeles", fonction = function() return poste.essai_modeles() end, aide = "Pose huit modèles autour d'Henry, ou les retire" },
   { nom = "scriptorium_essai_patrouille", fonction = function() return poste.essai_patrouille() end, aide = "Envoie deux hommes faire la ronde proche" },
   { nom = "scriptorium_essai_discipline", fonction = function() return poste.essai_discipline() end, aide = "Les fautes à juger et la réputation" },
   { nom = "scriptorium_bilan", fonction = function() return poste.bilan() end, aide = "Bilan du socle dans le journal" },
