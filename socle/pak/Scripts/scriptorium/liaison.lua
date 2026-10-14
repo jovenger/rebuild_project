@@ -246,12 +246,13 @@ function liaison.poser_objet(sorte, modele, position, cap, nom, classe)
   return identifiant
 end
 
--- Un feu qui brûle sur le foyer posé, avec l'effet du feu de camp du jeu (Prefabs/Procedural/Fireplace/
--- fireplace_on_camp.xml) : « fires.fireplace_nosmoke_low » de la bibliothèque WH_Particels. Chargé dans un
+-- Un feu qui brûle sur le foyer posé, avec l'effet des feux de cuisson des campements du jeu (Prefabs/
+-- exteriorDecoration/camp_supplies/cooking_station_v1.xml) : « fires.exterior_fireplace » de la bibliothèque
+-- WH_Particels (vu le 14/10 : « fireplace_nosmoke_low » ne donnait qu'une flammèche). Chargé dans un
 -- emplacement du foyer comme le font les scripts du jeu (DestroyableObject.lua : LoadParticleEffect puis
 -- SetSlotPos et SetSlotAngles) : 7 cm plus haut, un quart de tour autour de x pour flamber vers le haut.
 -- Vu le 14/10 : une entité ParticleEffect à part est refusée par System.SpawnEntity. À vérifier en jeu (V23).
-liaison.effet_du_feu = "WH_Particels.fires.fireplace_nosmoke_low"
+liaison.effet_du_feu = "WH_Particels.fires.exterior_fireplace"
 liaison.reglages_du_feu = { SpawnPeriod = 0, Scale = 1, CountScale = 1, bCountPerUnit = false, bSizePerUnit = 0,
                             AttachType = "none", AttachForm = "none", bPrime = true }
 
