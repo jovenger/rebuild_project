@@ -402,14 +402,18 @@ end
 -- Vrai si le ciel est dégagé au-dessus du point : un rayon tiré de 3 m à 30 m au-dessus du sol ne touche rien
 -- de fixe (feuillage, toit). Physics.RayWorldIntersection, appelé comme dans les scripts du jeu
 -- (PressurizedObject.lua). Si l'appel échoue, on ne décide rien (vrai).
+liaison.etat_du_rayon = "pas essayé"
+
 function liaison.ciel_degage(point)
   local ok, touches = pcall(function()
     return Physics.RayWorldIntersection({ x = point.x, y = point.y, z = point.z + 3 }, { x = 0, y = 0, z = 27 },
                                         1, ent_static, nil, nil, {})
   end)
   if not ok or type(touches) ~= "number" then
+    liaison.etat_du_rayon = "sans réponse (" .. tostring(touches) .. ")"
     return true
   end
+  liaison.etat_du_rayon = "répond"
   return touches == 0
 end
 -- Pour le poste d'essai : pose Henry à « distance » mètres de lui, dans la direction « cap » (cap de boussole ;
@@ -442,7 +446,8 @@ end
 -- Pour le poste d'essai : cherche autour d'Henry un terrain d'essai vierge et l'y pose. Sonde des anneaux de 30 à
 -- 240 m, tous les 30°, et garde le premier point sec (AI.IsPointInWaterRegion), à peu près plat (moins de 1,5 m
 -- d'écart sur 8 m autour), à ciel dégagé (pas sous les arbres), sans aucune entité du jeu à moins de 25 m
--- (System.GetEntitiesInSphere). Le camp du socle
+-- (System.GetEntitiesInSphere). Parmi ces points, garde celui dont l'altitude est la plus proche de celle d'Henry :
+-- la vallée est dégagée, les collines sont boisées (vu le 14/10 : le premier point trouvé était dans la forêt). Le camp du socle
 -- est levé avant. Rend vrai et un compte rendu, ou faux et la raison.
 -- Classes des entités vues par la dernière recherche (pour régler le filtre d'après le jeu).
 local classes_vues = {}
@@ -466,6 +471,7 @@ function liaison.chercher_un_terrain_vierge()
     local sondes = 0
     classes_vues = {}
     local refus = { pente = 0, eau = 0, couvert = 0, occupe = 0 }
+    local meilleur = nil
     for rayon = 30, 240, 30 do
       for angle = 0, 330, 30 do
         sondes = sondes + 1
@@ -496,13 +502,20 @@ function liaison.chercher_un_terrain_vierge()
             end
             if n > 0 then refus.occupe = refus.occupe + 1 end
             if n == 0 then
-              player:SetWorldPos(point)
-              return { true, string.format("terrain vierge à %d m, cap %d (%.0f, %.0f, %.1f), après %d sonde(s)",
-                                           rayon, angle, point.x, point.y, point.z, sondes) }
+              local ecart = math.abs(point.z - ici.z)
+              if not meilleur or ecart < meilleur.ecart then
+                meilleur = { point = point, rayon = rayon, angle = angle, ecart = ecart }
+              end
             end
           end
         end
       end
+    end
+    if meilleur then
+      player:SetWorldPos(meilleur.point)
+      return { true, string.format("terrain vierge à %d m, cap %d (%.0f, %.0f, %.1f, %.1f m d'écart d'altitude), %d sondes ; rayon vers le ciel : %s",
+                                   meilleur.rayon, meilleur.angle, meilleur.point.x, meilleur.point.y, meilleur.point.z,
+                                   meilleur.ecart, sondes, liaison.etat_du_rayon) }
     end
     return { false, string.format("aucun terrain vierge à moins de 240 m (%d sondes ; refus : pente %d, eau %d, sous les arbres %d, occupé %d)", sondes, refus.pente, refus.eau, refus.couvert, refus.occupe) }
   end)
