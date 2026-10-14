@@ -33,6 +33,9 @@ function depart()
   Scriptorium.bandeau.remettre_a_zero()
   Scriptorium.registre.remettre_a_zero()
   Scriptorium.remettre_a_zero()
+  if Scriptorium.poste then
+    Scriptorium.poste.remettre_a_zero()
+  end
   if Scriptorium.patrouilles and not Scriptorium.patrouilles.battre_original then
     Scriptorium.patrouilles.battre_original = Scriptorium.patrouilles.battre
   end

@@ -37,6 +37,9 @@ local faux = {
   refuser_directeur = false,
   ordres_porte = {},           -- { identifiant, etat }
   partie = true,               -- une partie est en cours
+  fichier_ordres = nil,        -- table rendue par le fichier d'ordres, ou nil s'il n'y en a pas
+  fichier_ordres_raison = nil, -- raison quand le fichier est illisible
+  lectures_ordres = 0,
 }
 
 function faux.remettre_a_zero()
@@ -75,6 +78,9 @@ function faux.remettre_a_zero()
   faux.refuser_directeur = false
   faux.ordres_porte = {}
   faux.partie = true
+  faux.fichier_ordres = nil
+  faux.fichier_ordres_raison = nil
+  faux.lectures_ordres = 0
 end
 
 function faux.maintenant() return faux.temps end
@@ -93,6 +99,16 @@ end
 function faux.lire_registre() return faux.registre_stocke end
 function faux.ecrire_registre(chaine) faux.registre_stocke = chaine end
 function faux.commande(nom, code, aide) table.insert(faux.commandes, { nom = nom, code = code, aide = aide }) end
+function faux.lire_ordres()
+  faux.lectures_ordres = faux.lectures_ordres + 1
+  if faux.fichier_ordres_raison then
+    return nil, "faux/ordres.lua", faux.fichier_ordres_raison
+  end
+  if faux.fichier_ordres then
+    return faux.fichier_ordres, "faux/ordres.lua"
+  end
+  return nil
+end
 function faux.heure_du_jeu() return faux.heure end
 function faux.groschen_d_henry() return faux.bourse_henry end
 function faux.retirer_groschen_a_henry(n)

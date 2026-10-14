@@ -72,6 +72,31 @@ function liaison.commande(nom, code_lua, aide)
   end
 end
 
+-- Fichier d'ordres du poste d'essai, écrit sur le PC par outils/ordonner.py
+-- (la console du jeu ne s'ouvre pas sur le PC de JoVenGer, 14/10).
+-- À vérifier en jeu : que loadfile lit un fichier hors des paks, et depuis quel répertoire courant ;
+-- les deux chemins sont sondés dans l'ordre.
+liaison.chemins_des_ordres = { "Mods/scriptorium_socle/ordres.lua", "../../Mods/scriptorium_socle/ordres.lua" }
+
+-- Rend la table du fichier d'ordres et son chemin ; nil s'il n'y a pas de fichier ;
+-- nil, chemin, raison s'il est illisible. Le fichier ne voit rien du jeu (environnement vide).
+function liaison.lire_ordres()
+  for _, chemin in ipairs(liaison.chemins_des_ordres) do
+    local morceau, erreur = loadfile(chemin)
+    if morceau then
+      setfenv(morceau, {})
+      local ok, donnees = pcall(morceau)
+      if ok and type(donnees) == "table" then
+        return donnees, chemin
+      end
+      return nil, chemin, ok and "le fichier ne rend pas de table" or tostring(donnees)
+    elseif erreur and not string.find(erreur, "cannot open", 1, true) then
+      return nil, chemin, tostring(erreur)
+    end
+  end
+  return nil
+end
+
 -- Heure du jeu, en heures, pour dater le livre de comptes.
 -- À vérifier en jeu : Calendar.GetWorldTime() (secondes de jeu ?). En attendant, 0 si absent.
 function liaison.heure_du_jeu()

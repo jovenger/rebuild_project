@@ -121,6 +121,41 @@ def executer_banc(lua):
     return int(resultats.reussis), int(resultats.echecs), len(essais)
 
 
+# ------------------------------------------------------------------ 2 bis. ordres par fichier
+
+def verifier_ordres():
+    """Un ordre écrit par outils/ordonner.py est relu tel quel par la vraie liaison ; un fichier qui
+    voudrait toucher au jeu ne voit rien (environnement vide)."""
+    import tempfile
+    import ordonner
+    connues = ordonner.commandes_du_poste()
+    if len(connues) != 14:
+        erreur("ordres : %d commandes lues dans poste.lua, 14 attendues" % len(connues))
+    lua = runtime_lua()
+    if lua is None:
+        return len(connues)
+    chemin_liaison = os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")
+    lua.execute(lire(chemin_liaison))
+    liaison = lua.globals().Scriptorium.liaison_reelle
+    with tempfile.TemporaryDirectory() as dossier:
+        chemin = os.path.join(dossier, ordonner.NOM_DU_FICHIER)
+        liaison.chemins_des_ordres = lua.table_from([os.path.join(dossier, "absent.lua"), chemin])
+        if liaison.lire_ordres() is not None:
+            erreur("ordres : sans fichier, la liaison devrait ne rien rendre")
+        for attendu in (1, 2):
+            numero, _ = ordonner.ecrire(dossier, "scriptorium_bilan")
+            donnees, lu_a = liaison.lire_ordres()
+            if numero != attendu or donnees is None or donnees.numero != attendu \
+                    or donnees.commande != "scriptorium_bilan" or lu_a != chemin:
+                erreur("ordres : l'ordre n° %d écrit n'est pas relu tel quel par la liaison" % attendu)
+        with open(chemin, "w", encoding="ascii") as fichier:
+            fichier.write('return { numero = 3, commande = tostring(os) }\n')
+        donnees, _, raison = liaison.lire_ordres()
+        if donnees is not None or not raison:
+            erreur("ordres : un fichier qui appelle le jeu devrait être refusé (environnement vide)")
+    return len(connues)
+
+
 # ------------------------------------------------------------------ 3. noms interdits
 
 def verifier_noms():
@@ -265,6 +300,7 @@ def principal(arguments):
         if not erreurs:
             reussis, echecs, nb_fichiers = executer_banc(lua)
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
+            print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 

@@ -26,3 +26,4 @@
 - Pour ajouter un morceau : fiche, fichier Lua déclaré par `Scriptorium.declarer_morceau`, ligne dans `Scripts/Mods/scriptorium_socle.lua` et dans `ORDRE_SOCLE` de `essais/tout_verifier.py`, textes en clés `ui_scriptorium_…` tous employés, essais.
 - `essais/lua/essai_*.lua` : banc d'essai, lancé par `essais/tout_verifier.py` (Lua 5.1 via lupa).
 - `outils/empreintes.py` : relevé des empreintes d'Alex, pour le contrôle d'absence.
+- `outils/ordonner.py` : ordres au poste d'essai sans console (fichier `Mods\scriptorium_socle\ordres.lua`, relu par `liaison.lire_ordres`).

@@ -17,12 +17,13 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 ## 3. Avant de lancer le jeu
 - Liste des mods (décision D10, vérifié le 14/10 dans le wiki de Warhorse et dans `kcd.log`) : `Mods\mod_order.txt` choisit les mods chargés ; un mod absent de la liste n'est pas chargé. Pendant l'essai, la liste ne contient que `scriptorium_socle` ; l'original est copié dans `securite\` avant, et remis à la fin de l'essai. Ne jamais renommer ni déplacer les dossiers des trois mods.
 - Lancer le jeu avec l'option `-devmode`, sans laquelle la console ne s'ouvre pas : `steam.exe -applaunch 1771300 -devmode`.
+- Le « veilleur du jeu » du Scriptorium actuel (tableau ouvert au lancement du jeu) est arrêté pendant l'essai, à la demande de JoVenGer, et relancé à la fin ; son raccourci de démarrage n'est pas touché.
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir, dans l'ordre
 1. Au lancement, dans le journal du jeu (`kcd.log`, à la racine du jeu, réécrit à chaque lancement) : `[Mod] 1 mods enabled`, `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`, `Loading lua init script for mod scriptorium_socle`, `Loading localization patch 'Localization\text_ui__scriptorium_socle.xml'` sans erreur « hash clash » ; puis `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `discipline`, `poste`, puis `Socle 0.1.0 : 12 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : « Le socle de Scriptorium est prêt. » à l'écran.
-3. Dans la console du jeu (touche ², sous Échap, sur un clavier français ; jeu lancé avec `-devmode`), avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
+3. Les essais se lancent par ordres, sans console : `py -3.13 outils\ordonner.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2" <commande>` écrit `Mods\scriptorium_socle\ordres.lua`, que le poste relit toutes les deux secondes en partie (la console ne s'ouvre pas sur le PC de JoVenGer : ², ù et * essayés le 14/10, avec `-devmode`). Avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
    - `scriptorium_essai_registre` → « Essai : le registre a été écrit puis relu. » et, au journal, `appels = 1` ; relancer : `appels = 2` ;
    - `scriptorium_essai_camp` → un camp se dresse autour d'Henry (feu, 4 sièges, 3 tentes, 5 paillasses, coffre) ; « Le camp est dressé. » ; au journal, `camp fondé = true, lits = 5, sièges = 4` ;
@@ -43,7 +44,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 |---|---|---|
 | V1 | Le texte s'affiche-t-il ? Où, et de quel aspect (bande noire en bas ou non) ? | `liaison.afficher` |
 | V2 | Le texte est-il traduit (clé `@ui_scriptorium_…` remplacée par le français) ? Premier lancement (14/10) : `text_ui_scriptorium_socle.xml` n'est pas chargé ; le jeu ne prend comme textes de mod que `<nom>__<modid>.xml` (deux traits bas), d'où `text_ui__scriptorium_socle.xml`, gardé par `tout_verifier.py` | `socle/textes/fr`, installateur |
-| V3 | Les commandes de console existent-elles (`System.AddCCommand`) ? Comment ouvrir la console ? | `liaison.commande` |
+| V3 | Les commandes de console existent-elles (`System.AddCCommand`) ? Comment ouvrir la console ? 14/10 : elle ne s'ouvre pas (², ù, * ; `-devmode` actif). Voie de remplacement : ordres par fichier ; au journal, `Poste : fichier d'ordres trouvé à …` dit quel chemin `loadfile` atteint, et `Poste : veille …` toutes les 30 s dit si les minuteries survivent au chargement de la partie | `liaison.commande`, `liaison.lire_ordres` |
 | V4 | Quel appel garde une chaîne dans la sauvegarde et la rend au chargement ? | `liaison.lire_registre` / `ecrire_registre` |
 | V5 | Quel appel prévient qu'une partie vient d'être chargée ? | `registre.invalider` |
 | V6 | Quel appel dit qu'un dialogue est en cours ? | `liaison.dialogue_en_cours` |

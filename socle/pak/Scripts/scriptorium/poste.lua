@@ -200,19 +200,171 @@ function poste.bilan()
                 .. ", répétés = " .. comptes.repetes .. ", refusés = " .. comptes.refuses)
 end
 
+-- Les commandes du poste, dans l'ordre : la console et le fichier d'ordres en lisent la même liste
+-- (outils/ordonner.py aussi, pour refuser un nom inconnu avant de l'écrire).
+poste.commandes = {
+  { nom = "scriptorium_essai_bandeau", fonction = function() return poste.essai_bandeau() end, aide = "Essai du bandeau des messages" },
+  { nom = "scriptorium_essai_registre", fonction = function() return poste.essai_registre() end, aide = "Essai du registre" },
+  { nom = "scriptorium_essai_coffre", fonction = function() return poste.essai_coffre() end, aide = "Essai du coffre" },
+  { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
+  { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },
+  { nom = "scriptorium_essai_camp_lever", fonction = function() return poste.essai_camp_lever() end, aide = "Lève le camp" },
+  { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
+  { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },
+  { nom = "scriptorium_essai_directeur", fonction = function() return poste.essai_directeur() end, aide = "Installe le Directeur et écrit le menu de la Gestion du camp" },
+  { nom = "scriptorium_gestion_rapport", fonction = function() return poste.gestion("rapport") end, aide = "Le rapport du Directeur" },
+  { nom = "scriptorium_essai_enceinte", fonction = function() return poste.essai_enceinte() end, aide = "Bâtit la palissade et les tours" },
+  { nom = "scriptorium_essai_patrouille", fonction = function() return poste.essai_patrouille() end, aide = "Envoie deux hommes faire la ronde proche" },
+  { nom = "scriptorium_essai_discipline", fonction = function() return poste.essai_discipline() end, aide = "Les fautes à juger et la réputation" },
+  { nom = "scriptorium_bilan", fonction = function() return poste.bilan() end, aide = "Bilan du socle dans le journal" },
+}
+
+local function trouver_commande(nom)
+  for _, commande in ipairs(poste.commandes) do
+    if commande.nom == nom then
+      return commande
+    end
+  end
+  return nil
+end
+
+-- Exécute une commande du poste par son nom. Une commande qui casse est notée au journal.
+function poste.executer(nom)
+  local commande = trouver_commande(nom)
+  if not commande then
+    jeu().journal("Poste : commande inconnue « " .. tostring(nom) .. " »")
+    return false
+  end
+  local ok, erreur = pcall(commande.fonction)
+  if not ok then
+    jeu().journal("Poste : « " .. nom .. " » en erreur : " .. tostring(erreur))
+  end
+  return ok
+end
+
+-- Ordres par fichier. Le PC écrit Mods/scriptorium_socle/ordres.lua (outils/ordonner.py) :
+--   return { numero = N, commande = "scriptorium_…" }
+-- Le poste le relit à chaque battement ; un ordre au numéro plus grand que le dernier vu est exécuté
+-- une seule fois, et seulement quand une partie est en cours (sinon il attend). L'ordre déjà présent
+-- au lancement du jeu est ancien : il n'est pas rejoué.
+poste.reglages = {
+  cadence_ms = 2000,       -- intervalle entre deux relevés du fichier d'ordres
+  tours_par_veille = 15,   -- une ligne de veille au journal tous les 15 relevés (30 secondes)
+}
+
+local ordres
+
+function poste.remettre_a_zero()
+  ordres = { premier_releve = true, dernier = 0, chemin = nil, raison = nil, attente = nil, tours = 0, partie = nil, actif = false }
+end
+poste.remettre_a_zero()
+
+local function noter_raison(raison)
+  if raison ~= ordres.raison then
+    ordres.raison = raison
+    if raison then
+      jeu().journal("Poste : fichier d'ordres illisible : " .. raison)
+    end
+  end
+end
+
+-- Un relevé du fichier d'ordres. Rend « absent », « illisible », « ancien », « deja_fait »,
+-- « en_attente », « refuse » ou « execute ».
+function poste.relever_ordres()
+  local donnees, chemin, raison = jeu().lire_ordres()
+  if chemin and chemin ~= ordres.chemin then
+    ordres.chemin = chemin
+    jeu().journal("Poste : fichier d'ordres trouvé à « " .. chemin .. " »")
+  end
+  if donnees == nil then
+    noter_raison(raison)
+    if ordres.premier_releve then
+      ordres.premier_releve = false
+      if not raison then
+        jeu().journal("Poste : pas de fichier d'ordres au lancement")
+      end
+    end
+    return raison and "illisible" or "absent"
+  end
+  if type(donnees.numero) ~= "number" or type(donnees.commande) ~= "string" then
+    noter_raison("numéro ou commande manquant")
+    ordres.premier_releve = false
+    return "illisible"
+  end
+  noter_raison(nil)
+  local numero, nom = donnees.numero, donnees.commande
+  if ordres.premier_releve then
+    ordres.premier_releve = false
+    ordres.dernier = numero
+    jeu().journal("Poste : ordre n° " .. numero .. " (" .. nom .. ") trouvé au lancement, non rejoué")
+    return "ancien"
+  end
+  if numero <= ordres.dernier then
+    return "deja_fait"
+  end
+  if not trouver_commande(nom) then
+    ordres.dernier = numero
+    jeu().journal("Poste : ordre n° " .. numero .. " refusé : commande inconnue « " .. nom .. " »")
+    return "refuse"
+  end
+  if not jeu().partie_en_cours() then
+    if ordres.attente ~= numero then
+      ordres.attente = numero
+      jeu().journal("Poste : ordre n° " .. numero .. " (" .. nom .. ") en attente d'une partie")
+    end
+    return "en_attente"
+  end
+  ordres.dernier = numero
+  ordres.attente = nil
+  jeu().journal("Poste : ordre n° " .. numero .. " : " .. nom)
+  poste.executer(nom)
+  return "execute"
+end
+
+-- Ligne de veille : dit au journal si les minuteries tournent encore, et où en sont le bandeau et les ordres.
+function poste.veiller()
+  local partie = jeu().partie_en_cours()
+  ordres.tours = ordres.tours + 1
+  if partie ~= ordres.partie or ordres.tours >= poste.reglages.tours_par_veille then
+    ordres.partie = partie
+    ordres.tours = 0
+    local comptes = Scriptorium.bandeau.comptes()
+    jeu().journal("Poste : veille, partie en cours = " .. tostring(partie)
+                  .. ", bandeau en attente = " .. Scriptorium.bandeau.en_attente()
+                  .. ", affichés = " .. comptes.affiches .. ", dernier ordre = " .. ordres.dernier)
+  end
+end
+
+-- Fait battre le poste tout seul : relevé des ordres, puis veille.
+function poste.demarrer()
+  if ordres.actif then
+    return
+  end
+  ordres.actif = true
+  local function battement()
+    if not ordres.actif then
+      return
+    end
+    local ok, erreur = pcall(poste.relever_ordres)
+    if not ok then
+      jeu().journal("Poste : erreur au relevé des ordres : " .. tostring(erreur))
+    end
+    ok, erreur = pcall(poste.veiller)
+    if not ok then
+      jeu().journal("Poste : erreur à la veille : " .. tostring(erreur))
+    end
+    jeu().minuterie(poste.reglages.cadence_ms, battement)
+  end
+  jeu().minuterie(poste.reglages.cadence_ms, battement)
+end
+
+function poste.arreter()
+  ordres.actif = false
+end
+
 Scriptorium.declarer_morceau("poste", function()
-  jeu().commande("scriptorium_essai_bandeau", "Scriptorium.poste.essai_bandeau()", "Essai du bandeau des messages")
-  jeu().commande("scriptorium_essai_registre", "Scriptorium.poste.essai_registre()", "Essai du registre")
-  jeu().commande("scriptorium_essai_coffre", "Scriptorium.poste.essai_coffre()", "Essai du coffre")
-  jeu().commande("scriptorium_essai_camp", "Scriptorium.poste.essai_camp()", "Fonde le camp où se tient Henry, ou le redresse")
-  jeu().commande("scriptorium_essai_camp_agrandir", "Scriptorium.poste.essai_camp_agrandir()", "Agrandit le camp d'un niveau")
-  jeu().commande("scriptorium_essai_camp_lever", "Scriptorium.poste.essai_camp_lever()", "Lève le camp")
-  jeu().commande("scriptorium_essai_hommes", "Scriptorium.poste.essai_hommes()", "Engage trois hommes et lance leur journée")
-  jeu().commande("scriptorium_essai_bataille", "Scriptorium.poste.essai_bataille()", "Lève une bande de cinq brigands venant du nord")
-  jeu().commande("scriptorium_essai_directeur", "Scriptorium.poste.essai_directeur()", "Installe le Directeur et écrit le menu de la Gestion du camp")
-  jeu().commande("scriptorium_gestion_rapport", "Scriptorium.poste.gestion('rapport')", "Le rapport du Directeur")
-  jeu().commande("scriptorium_essai_enceinte", "Scriptorium.poste.essai_enceinte()", "Bâtit la palissade et les tours")
-  jeu().commande("scriptorium_essai_patrouille", "Scriptorium.poste.essai_patrouille()", "Envoie deux hommes faire la ronde proche")
-  jeu().commande("scriptorium_essai_discipline", "Scriptorium.poste.essai_discipline()", "Les fautes à juger et la réputation")
-  jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
+  for _, commande in ipairs(poste.commandes) do
+    jeu().commande(commande.nom, "Scriptorium.poste.executer('" .. commande.nom .. "')", commande.aide)
+  end
+  poste.demarrer()
 end)
