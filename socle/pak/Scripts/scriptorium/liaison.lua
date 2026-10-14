@@ -311,18 +311,23 @@ function liaison.cap_du_joueur()
 end
 
 -- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
--- À vérifier en jeu : à remplir avec les identifiants d'âmes des tables du socle (morceau 2.9).
-liaison.ames = {}
+-- Premier essai (V16, 14/10) : une seule âme du jeu de base, un garde « en réserve » de Trosky, générique et
+-- non hostile (extraGuards_dummy_1, table Libs/Tables/rpg/soul__extraGuards.xml), pour l'homme d'armes seul.
+-- Les âmes à nous viendront avec les tables du socle.
+liaison.ames = {
+  homme_d_armes = "63daa80b-d1f4-46f5-8222-c22a541cae07",
+}
 
 -- Fait venir un personnage de la Compagnie et rend son identifiant, ou nil.
--- À vérifier en jeu : System.SpawnEntity avec la classe NPC et sharedSoulGuid.
+-- La propriété d'âme d'un personnage s'appelle guidSharedSoulId (relevé Lua du jeu, table NPC.Properties).
+-- À vérifier en jeu : System.SpawnEntity avec la classe NPC et cette propriété.
 function liaison.faire_venir_homme(role, nom, position)
   local ame = liaison.ames[role]
   if ame == nil or position == nil then
     liaison.journal("Venue impossible pour « " .. nom .. " » : pas d'âme pour le rôle " .. tostring(role))
     return nil
   end
-  local identifiant, raison = faire_naitre("NPC", "scriptorium_" .. nom, position, 0, { sharedSoulGuid = ame })
+  local identifiant, raison = faire_naitre("NPC", "scriptorium_" .. nom, position, 0, { guidSharedSoulId = ame })
   if not identifiant then
     liaison.journal("Venue impossible pour « " .. nom .. " » : " .. tostring(raison))
   end
@@ -360,7 +365,7 @@ function liaison.faire_venir_ennemis(sorte, effectif, position, cap)
   local liste = {}
   for i = 1, effectif do
     local place = { x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z }
-    local identifiant = faire_naitre("NPC", "scriptorium_ennemi_" .. sorte .. "_" .. i, place, cap, { sharedSoulGuid = ame })
+    local identifiant = faire_naitre("NPC", "scriptorium_ennemi_" .. sorte .. "_" .. i, place, cap, { guidSharedSoulId = ame })
     if identifiant then
       table.insert(liste, identifiant)
     end
@@ -412,7 +417,7 @@ function liaison.faire_venir_directeur(position)
     liaison.journal("Venue impossible pour le Directeur : pas d'âme renseignée")
     return nil
   end
-  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { sharedSoulGuid = liaison.ame_du_directeur })
+  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { guidSharedSoulId = liaison.ame_du_directeur })
   if not identifiant then
     liaison.journal("Venue impossible pour le Directeur : " .. tostring(raison))
   end
