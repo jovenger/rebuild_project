@@ -242,6 +242,15 @@ local function faire_naitre_personnage(nom_unique, position, angle, ame)
   if not entite then
     return nil
   end
+  -- Les scripts du jeu passent Pos tantôt nommée, tantôt { x, y, z } : si le personnage naît ailleurs, il est reposé.
+  local function reposer_si_ailleurs()
+    local ici = entite:GetWorldPos()
+    if ((ici.x - position.x) ^ 2 + (ici.y - position.y) ^ 2) > 4 then
+      liaison.journal(string.format("Personnage « %s » né à %.1f, %.1f au lieu de %.1f, %.1f : reposé", nom_unique, ici.x, ici.y, position.x, position.y))
+      entite:SetWorldPos({ x = position.x, y = position.y, z = position.z })
+    end
+  end
+  pcall(reposer_si_ailleurs)
   pcall(function() entite:SetWorldAngles({ x = 0, y = 0, z = angle }) end)
   local lu, nom = pcall(function() return entite:GetName() end)
   return (lu and type(nom) == "string") and nom or nom_unique
@@ -255,7 +264,9 @@ local function faire_naitre(classe, nom, position, cap, proprietes)
     local facon = nom_du_personnage and "XGenAIModule.SpawnEntity" or "System.SpawnEntity"
     if liaison.naissance_des_personnages ~= facon then
       liaison.naissance_des_personnages = facon
-      liaison.journal("Personnages : naissance par " .. facon)
+      liaison.journal("Personnages : naissance par " .. facon .. " (XGenAIModule.SpawnEntity : "
+                      .. type(type(XGenAIModule) == "table" and XGenAIModule.SpawnEntity or nil) .. ", CombatDebug.SpawnFighters : "
+                      .. type(type(CombatDebug) == "table" and CombatDebug.SpawnFighters or nil) .. ")")
     end
     if nom_du_personnage then
       return nom_du_personnage
@@ -628,7 +639,8 @@ function liaison.faire_venir_ennemis(sorte, effectif, position, cap)
   end
   local liste = {}
   for i = 1, effectif do
-    local place = { x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z }
+    -- Au sol (vu le 14/10 : posé à la hauteur du camp, un brigand flottait au-dessus d'un chemin plus bas).
+    local place = liaison.au_sol({ x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z })
     local identifiant = faire_naitre("NPC", "scriptorium_ennemi_" .. sorte .. "_" .. i, place, cap, { guidSharedSoulId = ame })
     if identifiant then
       table.insert(liste, identifiant)
@@ -756,7 +768,8 @@ function liaison.decrire_personnage(identifiant, autre, avec_fonctions)
   ajouter(lu and ici or ("position illisible : " .. tostring(ici)))
   ajouter("mort selon le socle = " .. tostring(liaison.personnage_mort(identifiant)))
   local id_d_henry = type(player) == "table" and player.id or nil
-  ajouter("faction = " .. appel(AI, "GetFactionOf", entite.id) .. " ; vigilance = " .. appel(AI, "GetAlertness", entite.id)
+  ajouter("agent IA actif = " .. appel(AI, "IsEnabled", entite.id) .. " ; faction = " .. appel(AI, "GetFactionOf", entite.id)
+          .. " ; vigilance = " .. appel(AI, "GetAlertness", entite.id)
           .. " ; cible = " .. appel(AI, "GetAttentionTargetEntity", entite.id))
   ajouter("hostile à Henry = " .. appel(AI, "Hostile", entite.id, id_d_henry) .. " ; personnellement = "
           .. appel(AI, "IsPersonallyHostile", entite.id, id_d_henry))
