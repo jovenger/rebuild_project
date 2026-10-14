@@ -1,7 +1,7 @@
 # Fiche 04 — Les hommes au camp
 
 - Morceau : 4. Table : `Scriptorium.hommes`. Fichier : `socle/pak/Scripts/scriptorium/hommes.lua`.
-- État : écrit et passé au banc. En attente de l'essai en jeu (venue des personnages, ordres) et de la validation de la fiche par JoVenGer.
+- État : écrit et passé au banc ; vu en jeu (trois hommes venus au camp, solde et prime au coffre). Validée par JoVenGer le 14/10/2026 : soldes, prime de deux semaines, départ après deux semaines impayées, **deux rations par homme et par jour**, rangs, journée, garde et départs tels quels. Leurs gestes (marcher, s'asseoir, dormir, se battre) attendent un cerveau à nous (V17, V18).
 
 ## Ce que le joueur voit
 - Des hommes engagés par contrat, qui vivent au camp : le jour ils mangent, s'exercent et font les corvées ; le soir ils veillent au feu ; la nuit ils dorment sous les tentes ou montent la garde, par tours de veille.
@@ -14,7 +14,7 @@
 - **Rangs :** soudoyer (solde × 1), dizainier (× 1,5), capitaine (× 2). Un dizainier pour dix hommes, promu d'office parmi les plus anciens ; rétrogradé si la compagnie rétrécit. Le capitaine (hejtman) est nommé par le joueur ; à dix hommes sans capitaine, le dizainier le plus ancien le devient.
 - **Embauche par contrat :** `embaucher{ role, semaines, solde?, prime? }`. Durée de 1 à 52 semaines. Prime par défaut : deux semaines de solde, payée au coffre ; refus si le coffre ne peut pas. Il faut une paillasse libre (le lit du Directeur ne compte pas) : sinon « Pas de paillasse libre : agrandissez le camp. » L'homme existe d'abord sur le registre ; le jeu est ensuite prié de faire venir le personnage ; s'il ne peut pas, l'homme reste sur le registre et `redresser()` réessaiera.
 - **Solde hebdomadaire :** payée au coffre, chaque semaine à 8 h, en commençant par les plus anciens. Payé : moral + 5. Impayé : moral − 20 ; deux semaines impayées de suite : l'homme s'en va.
-- **Vivres :** une ration par homme et par jour, au repas de 7 h, prise sur la réserve `vivres` du coffre. Nourri : moral + 2. Affamé : moral − 10, et le joueur est prévenu une fois par jour.
+- **Vivres :** deux rations par homme et par jour (choix de JoVenGer), prises au repas de 7 h sur la réserve `vivres` du coffre. Nourri : moral + 2. Affamé : moral − 10, et le joueur est prévenu une fois par jour.
 - **Moral :** quatre niveaux, abattu (< 25), morose (< 50), content (< 75), ardent. À l'aube (5 h), un homme au moral sous 10 déserte. Les batailles (morceau 5) feront varier le moral par `moral_pour_tous`.
 - **Journée réglée sur les heures :** lever 5 h, repas 7 h, exercice 8 h à 12 h, repas 12 h, corvée 13 h à 18 h, repas 18 h, veillée 19 h à 22 h, sommeil 22 h à 5 h. Les places : sommeil sur sa paillasse, repas et veillée sur un siège (ou debout au feu s'il n'y en a plus), exercice et corvée à des points du camp.
 - **Garde :** un poste pour quatre hommes valides le jour (un au plus), un poste pour deux hommes valides la nuit (deux au plus) : **jamais plus de postes que d'hommes** (règle de JoVenGer), et un homme seul dort au lieu de veiller. Tours de veille de trois heures, en rotation ; les blessés ne gardent pas. Quatre postes autour du camp, à douze mètres.
@@ -27,7 +27,7 @@
 `embaucher` rend l'identifiant, ou `false` et une raison : `camp_absent`, `role_inconnu`, `duree_invalide`, `pas_de_lit`, `coffre_insuffisant`. Les autres : `homme_inconnu`, `rang_invalide`, `jours_invalides`.
 
 ## Réglages (`hommes.reglages`)
-`moral_depart` 60, `ration` 1, `heure_lever` 5, `heure_repas` 7, `heure_paie` 8, `semaines_impayees_max` 2, `moral_desertion` 10, `postes_garde_jour` 1, `postes_garde_nuit` 2, `hommes_par_poste_jour` 4, `hommes_par_poste_nuit` 2, `duree_tour_de_garde` 3, `anciens_gardes` 50.
+`moral_depart` 60, `ration` 2, `heure_lever` 5, `heure_repas` 7, `heure_paie` 8, `semaines_impayees_max` 2, `moral_desertion` 10, `postes_garde_jour` 1, `postes_garde_nuit` 2, `hommes_par_poste_jour` 4, `hommes_par_poste_nuit` 2, `duree_tour_de_garde` 3, `anciens_gardes` 50.
 
 ## Ce qui est sauvegardé (case `hommes`, version 1)
 `{ prochain = 1, prochain_nom = 1, liste = { [id] = fiche }, ordre = {…}, anciens = {…}, prochaine_paie, dernier_jour_repas, derniere_aube, derniere_heure, capitaine }`.

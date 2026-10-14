@@ -8,7 +8,7 @@ Scriptorium.hommes = hommes
 
 hommes.reglages = {
   moral_depart = 60,
-  ration = 1,                 -- vivres par homme et par jour
+  ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
   heure_paie = 8,             -- heure de la solde, le jour de paie

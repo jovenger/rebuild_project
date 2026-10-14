@@ -152,7 +152,7 @@ essai("hommes : la paie tombe chaque semaine à l'heure de paie, par le battemen
 end)
 
 essai("hommes : rations quotidiennes, faim et moral", function()
-  preparer(100, 3, 6)
+  preparer(100, 6, 6)
   hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
   hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
   vider_bandeau()
@@ -160,7 +160,7 @@ essai("hommes : rations quotidiennes, faim et moral", function()
   local rapport = hommes.battre()
   egal(rapport.repas, 1, "un repas")
   egal(rapport.affames, 0, "tous nourris")
-  egal(coffre.reserve("vivres"), 1, "deux rations prises")
+  egal(coffre.reserve("vivres"), 2, "deux rations par homme prises (choix de JoVenGer, 14/10)")
   egal(hommes.fiche("homme_1").moral, 62, "moral + 2")
   FauxJeu.heure = 24 + 7.5
   rapport = hommes.battre()
