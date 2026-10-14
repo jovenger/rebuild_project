@@ -163,13 +163,13 @@ essai("bataille : victoire, blessés et moral, butin partagé au livre", functio
   egal(r.issue, "victoire", "victoire")
   egal(r.morts, 0, "aucun mort")
   egal(r.blesses, 1, "15 % de six : un blessé")
-  egal(r.butin, 24, "deux Coumans à douze")
-  egal(r.part_coffre, 24 - 12 - 4, "le coffre garde le reste")
+  egal(r.butin, 48, "deux Coumans à vingt-quatre")
+  egal(r.part_coffre, 48 - 24 - 8, "le coffre garde le reste")
   local livre = coffre.livre(3)
   egal(livre[1].motif, "butin", "entrée du butin")
   egal(livre[2].motif, "part_hommes", "part des hommes")
   egal(livre[3].motif, "part_capitaine", "part du capitaine")
-  egal(coffre.solde(), 1000 + 8, "solde du coffre")
+  egal(coffre.solde(), 1000 + 16, "solde du coffre")
   egal(hommes.fiche(ids[2]).moral, 70, "moral + 10")
   local blesses = hommes.effectif().blesses
   egal(blesses, 1, "un blessé sur les fiches")
@@ -216,8 +216,32 @@ essai("bataille : fin par le jeu, les ennemis tombent, nos morts sont ceux que l
   egal(r.issue, "victoire_couteuse", "un mort sur quatre : chèrement payée")
   egal(r.morts, 1, "le mort du jeu")
   egal(hommes.fiche(ids[1]), nil, "retiré")
-  egal(#FauxJeu.ennemis_renvoyes, 3, "ennemis renvoyés")
-  egal(r.butin, math.floor(3 * 8 * 0.6), "butin à 60 %")
+  egal(r.butin, math.floor(3 * 16 * 0.6), "butin à 60 %")
+  -- Les corps restent à fouiller vingt-quatre heures de jeu, puis sont retirés.
+  egal(#FauxJeu.ennemis_renvoyes, 0, "les corps restent à fouiller")
+  FauxJeu.heure = 11 + 23.9
+  bataille.battre()
+  egal(#FauxJeu.ennemis_renvoyes, 0, "encore là le lendemain avant l'heure")
+  FauxJeu.heure = 11 + 24
+  egal(bataille.battre().changements, 1, "corps retirés au battement")
+  egal(#FauxJeu.ennemis_renvoyes, 3, "les trois corps retirés")
+  FauxJeu.heure = 11 + 30
+  bataille.battre()
+  egal(#FauxJeu.ennemis_renvoyes, 3, "retirés une seule fois")
+end)
+
+essai("bataille : à la fin, les ennemis debout s'en vont, les corps restent", function()
+  preparer(1000, 10, { "homme_d_armes", "homme_d_armes", "pavoisier", "arbaletrier" })
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+  bataille.battre()
+  FauxJeu.ennemis_vivants_par_id[FauxJeu.ennemis[1].identifiant] = false
+  FauxJeu.heure = 13
+  egal(bataille.battre().finies, 1, "tranchée par la règle")
+  egal(#FauxJeu.ennemis_renvoyes, 2, "les deux debout s'en vont aussitôt")
+  FauxJeu.heure = 13 + 24
+  bataille.battre()
+  egal(#FauxJeu.ennemis_renvoyes, 3, "le corps retiré le lendemain")
+  egal(bataille.bande(id).etat, "finie", "bande finie")
 end)
 
 essai("bataille : fin par le jeu, tous nos combattants tombés, défaite", function()

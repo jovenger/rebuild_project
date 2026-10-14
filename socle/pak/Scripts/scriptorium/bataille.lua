@@ -16,13 +16,15 @@ bataille.reglages = {
   distance_rang_arriere = 7,
   effectif_max = 60,
   journal_gardes = 30,
+  duree_des_corps = 24,        -- heures de jeu où les corps ennemis restent à fouiller (choix de JoVenGer, 14/10)
 }
 
+-- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
 bataille.sortes = {
-  brigands   = { poids = 1.0, butin_par_tete = 8 },
-  deserteurs = { poids = 0.8, butin_par_tete = 5 },
-  soudards   = { poids = 1.2, butin_par_tete = 10 },
-  coumans    = { poids = 1.4, butin_par_tete = 12 },
+  brigands   = { poids = 1.0, butin_par_tete = 16 },
+  deserteurs = { poids = 0.8, butin_par_tete = 10 },
+  soudards   = { poids = 1.2, butin_par_tete = 20 },
+  coumans    = { poids = 1.4, butin_par_tete = 24 },
 }
 
 -- Poids au combat et rang de chaque rôle ; les rôles absents restent au feu.
@@ -403,9 +405,25 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
   return resultat
 end
 
+-- À la fin, les ennemis encore debout s'en vont ; les corps restent à fouiller un temps, puis le battement
+-- les retire (choix de JoVenGer, 14/10).
 local function finir(d, b, resultat)
   if b.personnages then
-    jeu().renvoyer_ennemis(b.personnages)
+    local debout, corps = {}, {}
+    for _, identifiant in ipairs(b.personnages) do
+      if jeu().ennemis_vivants({ identifiant }) > 0 then
+        table.insert(debout, identifiant)
+      else
+        table.insert(corps, identifiant)
+      end
+    end
+    if #debout > 0 then
+      jeu().renvoyer_ennemis(debout)
+    end
+    if #corps > 0 then
+      b.corps = corps
+      b.corps_retires_a = jeu().heure_du_jeu() + bataille.reglages.duree_des_corps
+    end
     b.personnages = nil
   end
   b.etat = "finie"
@@ -543,6 +561,11 @@ function bataille.battre()
         rapport.finies = rapport.finies + 1
         rapport.changements = rapport.changements + 1
       end
+    elseif b.etat == "finie" and b.corps and heure >= b.corps_retires_a then
+      jeu().renvoyer_ennemis(b.corps)
+      b.corps = nil
+      b.corps_retires_a = nil
+      rapport.changements = rapport.changements + 1
     end
   end
   if rapport.changements > 0 then
