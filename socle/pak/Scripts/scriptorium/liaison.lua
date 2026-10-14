@@ -225,12 +225,21 @@ local function faire_naitre(classe, nom, position, cap, proprietes)
   return nil, tostring(entite)
 end
 
+-- La position posée sur le sol : le camp se fonde à l'altitude d'Henry, mais le terrain n'est pas plat
+-- (vu le 14/10). Chaque objet prend la hauteur du terrain sous lui (System.GetTerrainElevation).
+function liaison.au_sol(position)
+  local ok, sol = pcall(System.GetTerrainElevation, { x = position.x, y = position.y, z = 0 })
+  if ok and type(sol) == "number" then
+    return { x = position.x, y = position.y, z = sol }
+  end
+  return position
+end
 -- Pose un objet du jeu de base (modèle par son chemin) et rend son identifiant, ou nil.
 -- Vu en jeu le 14/10 : System.SpawnEntity avec la classe BasicEntity pose bien l'objet ;
 -- un modèle introuvable donne une forme blanche. « classe » : une classe d'entité du jeu qui prend un modèle
 -- (Chair, Bed : Henry peut s'y asseoir, y dormir) ; BasicEntity par défaut (un décor).
 function liaison.poser_objet(sorte, modele, position, cap, nom, classe)
-  local identifiant, raison = faire_naitre(classe or "BasicEntity", "scriptorium_" .. nom, position, cap, { object_Model = modele })
+  local identifiant, raison = faire_naitre(classe or "BasicEntity", "scriptorium_" .. nom, liaison.au_sol(position), cap, { object_Model = modele })
   if not identifiant then
     liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ", " .. (classe or "BasicEntity") .. ") : " .. tostring(raison))
   end
@@ -399,23 +408,7 @@ function liaison.dans_l_eau(point)
   end
   return valeur == true or (type(valeur) == "number" and valeur > 0)
 end
--- Vrai si le ciel est dégagé au-dessus du point : un rayon tiré de 3 m à 30 m au-dessus du sol ne touche rien
--- de fixe (feuillage, toit). Physics.RayWorldIntersection, appelé comme dans les scripts du jeu
--- (PressurizedObject.lua). Si l'appel échoue, on ne décide rien (vrai).
-liaison.etat_du_rayon = "pas essayé"
 
-function liaison.ciel_degage(point)
-  local ok, touches = pcall(function()
-    return Physics.RayWorldIntersection({ x = point.x, y = point.y, z = point.z + 3 }, { x = 0, y = 0, z = 27 },
-                                        1, ent_static, nil, nil, {})
-  end)
-  if not ok or type(touches) ~= "number" then
-    liaison.etat_du_rayon = "sans réponse (" .. tostring(touches) .. ")"
-    return true
-  end
-  liaison.etat_du_rayon = "répond"
-  return touches == 0
-end
 -- Pour le poste d'essai : pose Henry à « distance » mètres de lui, dans la direction « cap » (cap de boussole ;
 -- par défaut celle où regarde le corps d'Henry, qui n'est pas forcément celle de la caméra), à la hauteur du
 -- terrain (System.GetTerrainElevation). Refusé si la destination est dans l'eau (AI.IsPointInWaterRegion, essayé ;
@@ -443,95 +436,28 @@ function liaison.deplacer_le_joueur(distance, cap)
   return resultat[1], resultat[2]
 end
 
--- Pour le poste d'essai : cherche autour d'Henry un terrain d'essai vierge et l'y pose. Sonde des anneaux de 30 à
--- 240 m, tous les 30°, et garde le premier point sec (AI.IsPointInWaterRegion), à peu près plat (moins de 1,5 m
--- d'écart sur 8 m autour), à ciel dégagé (pas sous les arbres), sans signe d'habitation à moins de 40 m
--- (System.GetEntitiesInSphere ; vu le 14/10 : plantes à cueillir et repères invisibles sont partout, on ne les compte pas). Parmi ces points, garde celui dont l'altitude est la plus proche de celle d'Henry :
--- la vallée est dégagée, les collines sont boisées (vu le 14/10 : le premier point trouvé était dans la forêt). Le camp du socle
--- est levé avant. Rend vrai et un compte rendu, ou faux et la raison.
--- Les classes d'entités qui disent qu'un lieu est habité (campement, ferme) : on ne dresse pas le camp à côté.
-liaison.classes_d_habitation = {
-  NPC = true, Horse = true, Dog = true, Bed = true, BedTrigger = true, Chair = true, Stash = true, AnimDoor = true,
-  Light = true, RuntimePrefab = true, CutsceneHolder = true, SmartObjectHolder = true, FireplaceSmartObject = true,
-  GeomEntity = true, BasicEntity = true,
-}
+-- Le terrain d'essai (demande de JoVenGer du 14/10 : pas dans un campement du jeu). Choisi à vue le 14/10 :
+-- un pré dégagé, en pente douce, à 80 m à l'ouest du campement du début du jeu (Trosecko), sans tente,
+-- avec la rivière au sud. Une recherche automatique a été essayée et retirée : les arbres et les buissons
+-- ne se voient pas par le calcul (elle posait Henry en forêt ou dans les fourrés).
+liaison.terrain_d_essai = { x = 839, y = 2000 }
 
--- Classes des entités vues par la dernière recherche (pour régler le filtre d'après le jeu).
-local classes_vues = {}
-
-function liaison.classes_vues_autour()
-  local liste = {}
-  for classe, n in pairs(classes_vues) do
-    table.insert(liste, { classe = classe, n = n })
-  end
-  table.sort(liste, function(a, b) return a.n > b.n end)
-  local morceaux = {}
-  for i = 1, math.min(#liste, 25) do
-    table.insert(morceaux, liste[i].classe .. " " .. liste[i].n)
-  end
-  return table.concat(morceaux, ", ")
-end
-
-function liaison.chercher_un_terrain_vierge()
+function liaison.aller_au_terrain_d_essai()
   local ok, resultat = pcall(function()
-    local ici = player:GetWorldPos()
-    local sondes = 0
-    classes_vues = {}
-    local refus = { pente = 0, eau = 0, couvert = 0, occupe = 0 }
-    local meilleur = nil
-    for rayon = 30, 240, 30 do
-      for angle = 0, 330, 30 do
-        sondes = sondes + 1
-        local a = math.rad(angle)
-        local point = { x = ici.x + rayon * math.sin(a), y = ici.y + rayon * math.cos(a), z = 0 }
-        local sol = System.GetTerrainElevation(point)
-        if type(sol) == "number" then
-          point.z = sol + 0.1
-          local mouille = liaison.dans_l_eau(point)
-          local plat = true
-          for _, d in ipairs({ { 8, 0 }, { -8, 0 }, { 0, 8 }, { 0, -8 } }) do
-            local h = System.GetTerrainElevation({ x = point.x + d[1], y = point.y + d[2], z = 0 })
-            if type(h) ~= "number" or math.abs(h - sol) > 1.5 then plat = false end
-          end
-          local degage = plat and not mouille and liaison.ciel_degage(point)
-          if not plat then refus.pente = refus.pente + 1 end
-          if mouille then refus.eau = refus.eau + 1 end
-          if plat and not mouille and not degage then refus.couvert = refus.couvert + 1 end
-          if degage then
-            local voisins = System.GetEntitiesInSphere(point, 40)
-            local n = 0
-            for _, e in pairs(voisins or {}) do
-              local classe = tostring(e.class)
-              if e ~= player then
-                classes_vues[classe] = (classes_vues[classe] or 0) + 1
-                if liaison.classes_d_habitation[classe] then n = n + 1 end
-              end
-            end
-            if n > 0 then refus.occupe = refus.occupe + 1 end
-            if n == 0 then
-              local ecart = math.abs(point.z - ici.z)
-              if not meilleur or ecart < meilleur.ecart then
-                meilleur = { point = point, rayon = rayon, angle = angle, ecart = ecart }
-              end
-            end
-          end
-        end
-      end
+    local cible = { x = liaison.terrain_d_essai.x, y = liaison.terrain_d_essai.y, z = 0 }
+    local sol = System.GetTerrainElevation(cible)
+    if type(sol) ~= "number" then
+      return { false, "hauteur du terrain illisible" }
     end
-    if meilleur then
-      player:SetWorldPos(meilleur.point)
-      return { true, string.format("terrain vierge à %d m, cap %d (%.0f, %.0f, %.1f, %.1f m d'écart d'altitude), %d sondes ; rayon vers le ciel : %s",
-                                   meilleur.rayon, meilleur.angle, meilleur.point.x, meilleur.point.y, meilleur.point.z,
-                                   meilleur.ecart, sondes, liaison.etat_du_rayon) }
-    end
-    return { false, string.format("aucun terrain vierge à moins de 240 m (%d sondes ; refus : pente %d, eau %d, sous les arbres %d, occupé %d)", sondes, refus.pente, refus.eau, refus.couvert, refus.occupe) }
+    cible.z = sol + 0.1
+    player:SetWorldPos(cible)
+    return { true, string.format("terrain d'essai %.0f, %.0f, %.1f", cible.x, cible.y, cible.z) }
   end)
   if not ok then
     return false, tostring(resultat)
   end
   return resultat[1], resultat[2]
 end
-
 -- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
 -- Provisoire, en attendant les tables à nous : des gardes « en réserve » de Trosky, génériques et non hostiles
 -- (extraGuards_dummy_*, table Libs/Tables/rpg/soul__extraGuards.xml). Vu en jeu le 14/10 : l'homme d'armes vient

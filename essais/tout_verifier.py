@@ -165,8 +165,10 @@ def verifier_identifiants():
     lua.execute("""
         System = { entites = {} }
         function System.GetEntityByName(nom) return System.entites[nom] end
+        function System.GetTerrainElevation(p) return 7 end
         function System.SpawnEntity(p)
           System.derniere_orientation = p.orientation
+          System.derniere_position = p.position
           local e = { id = newproxy(), name = p.name }
           System.entites[p.name] = e
           return e
@@ -185,6 +187,7 @@ def verifier_identifiants():
         if a ~= "scriptorium_feu_central" then return "premier nom : " .. tostring(a) end
         if b ~= "scriptorium_feu_central_2" then return "second nom : " .. tostring(b) end
         if not l.objet_existe(a) then return "objet posé introuvable" end
+        if System.derniere_position.z ~= 7 then return "objet non posé au sol : z = " .. tostring(System.derniere_position.z) end
         l.retirer_objet(a)
         if l.objet_existe(a) then return "objet retiré encore là" end
         if not l.objet_existe(b) then return "l'autre objet a disparu" end
@@ -395,7 +398,7 @@ def principal(arguments):
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
             verifier_identifiants()
-            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, registre par jeton, vérifié")
+            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, pose au sol, registre par jeton, vérifié")
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 
