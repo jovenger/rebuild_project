@@ -13,8 +13,9 @@
 - **Où vit le socle.** Le socle vit dans un seul dossier de Scriptorium. Ses fonctions sont rangées sous la table Lua `Scriptorium`, avec des noms français, sans accents dans les identifiants.
 - **Ressources.** On prend celles du jeu de base, appelées par leur chemin et jamais copiées, ou on en crée de neuves.
 - **Contrôle.** Un « contrôle d'absence » est ajouté à `essais/tout_verifier.py`. Il compte ce qui reste d'Alex et doit finir à zéro partout.
-- **Ordre.** 8 morceaux, dans l'ordre fixé par JoVenGer. Chacun est testé en jeu et scellé avant le suivant. On finit sur une partie neuve.
-- **Décisions.** 7 décisions restent à prendre par JoVenGer (partie 10).
+- **Messages à l'écran.** Plus aucun texte jaune par-dessus l'image : chaque message passe par une bande noire en bas de l'écran, écrite proprement, au moment où la chose arrive (morceau 0, partie 2.0 bis).
+- **Ordre.** D'abord le bandeau des messages (morceau 0), puis 8 morceaux, dans l'ordre fixé par JoVenGer. Chacun est testé en jeu et scellé avant le suivant. On finit sur une partie neuve.
+- **Décisions.** 8 décisions restent à prendre par JoVenGer (partie 10).
 
 ---
 
@@ -63,6 +64,7 @@ Les grandes fonctions ci-dessous viennent de ta description. Le détail des 2 10
 
 | N° | Morceau | Table Lua de Scriptorium |
 |---|---|---|
+| 0 | Bandeau des messages | `Scriptorium.bandeau` |
 | 1 | Sauvegarde des données du camp | `Scriptorium.registre` |
 | 2 | Coffre et logistique | `Scriptorium.coffre` |
 | 3 | Camp : tentes, lits, feux, sièges | `Scriptorium.camp` |
@@ -81,13 +83,47 @@ Les grandes fonctions ci-dessous viennent de ta description. Le détail des 2 10
   - textes, voix et `mod.cfg` recopiés.
 
 **Dans Scriptorium**
-- Le script de démarrage de Scriptorium charge le socle directement, dans cet ordre : registre, coffre, camp, hommes, bataille, directeur, enceinte, patrouilles.
+- Le script de démarrage de Scriptorium charge le socle directement, dans cet ordre : bandeau, registre, coffre, camp, hommes, bataille, directeur, enceinte, patrouilles.
 - Chaque morceau signale qu'il est prêt. Un morceau qui échoue au chargement est annoncé en clair (journal et panneau) au lieu de bloquer les suivants.
 - `noyau/mercenaires.py` rétrécit à chaque morceau, puis disparaît. Le noyau installe ensuite le socle comme le reste de Scriptorium.
 
 **Vérification**
 - Plus de `Scripts/mods/mercenaries.lua` dans le pak.
 - `noyau/mercenaires.py` est absent, et plus rien dans `noyau/` ne l'appelle.
+
+### 2.0 bis Le bandeau des messages (morceau 0, demandé le 14/10/2026)
+
+**Aujourd'hui**
+- Des textes jaunes s'écrivent par-dessus l'image du jeu. Ils viennent du mod d'Alex, et peut-être aussi de dossiers de Scriptorium.
+- Leur origine exacte sera trouvée à l'inventaire : des appels d'affichage de débogage dans le code, ou un réglage de `mod.cfg` qui les allume (à vérifier).
+
+**Dans Scriptorium**
+- **Une seule porte de sortie.** Plus aucun texte jaune. Tout message destiné au joueur passe par une seule fonction : `Scriptorium.bandeau.annoncer(texte, importance)`.
+- **Aspect.** Une bande noire, légèrement transparente, en bas de l'écran et sur toute sa largeur. Texte blanc cassé, centré, dans la police du jeu, sur 2 lignes au plus.
+- **Moment.** Le message s'affiche quand la chose arrive dans le jeu, ni avant ni après.
+- **Durée.** Elle dépend de la longueur : 3 secondes au moins, 8 au plus (environ 3 mots lus par seconde).
+- **File d'attente.** Un seul message à la fois. Les alertes (raid, attaque du camp) passent devant les autres.
+- **Pas de répétition.** Un même message n'est pas redit avant 30 secondes. Les messages semblables sont regroupés, par exemple « Trois hommes ont rejoint le camp ».
+- **Dialogues, cinématiques, menus.** Le message attend qu'ils soient finis : il ne cache jamais les sous-titres du jeu.
+- **Écriture.** Français propre, phrases courtes, mots d'époque. Jamais de nom de fonction, de valeur technique, d'anglais ni de message d'erreur brut.
+- **Messages techniques.** Ils ne vont plus à l'écran, seulement dans le journal du jeu. Le veilleur et le panneau peuvent continuer à les lire (à vérifier : ce que lit le veilleur aujourd'hui).
+- **Historique.** Les derniers messages se relisent dans la Gestion du camp et dans le panneau.
+- **Textes.** Tous les textes du bandeau sont des textes de langue (`scriptorium_bandeau_*`), jamais écrits en dur dans le code.
+
+**Moyen technique (à choisir après un essai en jeu)**
+1. Les sous-titres du jeu, s'ils peuvent recevoir un texte libre depuis Lua : même place, même police, fond noir du jeu.
+2. Sinon, un élément d'interface neuf (une bande noire et une zone de texte), commandé depuis Lua.
+
+**Vérification**
+- **Contrôle automatique** (partie 8, examen 10) :
+  - 0 appel d'affichage direct à l'écran ailleurs que dans le bandeau (socle et `choses/`) ;
+  - 0 réglage de `mod.cfg` qui allume du texte de débogage.
+- **Banc d'essai :** file d'attente, priorité, non-répétition, durée.
+- **En jeu :** raid, paie, embauche et patrouille donnent chacun un message propre en bas de l'écran, sans aucun texte jaune. Pendant un dialogue, le message attend.
+
+**Pourquoi en premier**
+- Le morceau est petit et se voit tout de suite. Tous les morceaux suivants s'en servent pour parler au joueur.
+- Il peut être fait sur le Scriptorium actuel dès que le code est accessible. Pendant le chantier, les messages d'Alex sont envoyés vers le bandeau (retouche notée dans `MODIFICATIONS.md`). Ensuite, le socle neuf l'utilise directement.
 
 ### 2.1 Sauvegarde des données du camp (morceau 1)
 
@@ -317,9 +353,11 @@ Les grandes fonctions ci-dessous viennent de ta description. Le détail des 2 10
 
 **Chez Alex**
 - Son interface, avec sa classe d'entité « interface ».
+- Ses textes jaunes écrits par-dessus l'image.
 
 **Dans Scriptorium**
-- La Gestion du camp, les menus de dialogue du Directeur, les messages du jeu et le panneau du PC.
+- La Gestion du camp, les menus de dialogue du Directeur et le panneau du PC.
+- Le bandeau des messages en bas de l'écran (partie 2.0 bis).
 
 **Vérification**
 - 0 fichier d'écran d'Alex.
@@ -460,6 +498,7 @@ Il remplace `mercenaires.comparer()`.
    - Le seuil de ressemblance sera réglé avant le chantier.
 8. **Sons, modèles, images.** Empreintes, noms, et références dans le code et les données.
 9. **Arbres d'intelligence artificielle, quêtes, dialogues.** Comparaison de la suite des nœuds.
+10. **Affichage.** 0 appel qui écrit directement à l'écran ailleurs que dans le bandeau, et 0 réglage de `mod.cfg` qui allume du texte de débogage. Cet examen bloque dès que le morceau 0 est scellé.
 
 ### Fonctionnement
 
@@ -467,7 +506,7 @@ Il remplace `mercenaires.comparer()`.
   - Il affiche les compteurs, et `tout_verifier.py` passe.
   - Il échoue seulement si un compteur augmente, ou si un morceau déclaré remplacé n'est pas à zéro.
 - **À la fin : mode « strict ».** Tout compteur au-dessus de zéro fait échouer la vérification complète, donc bloque le commit.
-- **Compte rendu en français**, par exemple : `Contrôle d'absence — fichiers 0 · chemins 0 · noms 0 · lignes 0 · forme 0 · tables 0 · textes 0 · sons/modèles/images 0 · structures 0`.
+- **Compte rendu en français**, par exemple : `Contrôle d'absence — fichiers 0 · chemins 0 · noms 0 · lignes 0 · forme 0 · tables 0 · textes 0 · sons/modèles/images 0 · structures 0 · affichage 0`.
 - **Empreintes.**
   - Le contrôle peut travailler à partir d'un fichier qui ne contient que des empreintes, sans aucun contenu d'Alex.
   - La copie `mercenaires/` peut donc quitter le projet sans affaiblir le contrôle (décision D6).
@@ -502,6 +541,7 @@ Toutes ces suppressions se font avec l'accord de JoVenGer, donné juste avant.
 | D5 | Salle blanche stricte (la session qui écrit le code ne lit jamais `mercenaires/`) ou simple ? | Stricte |
 | D6 | À la fin, la copie `mercenaires/` quitte le projet et le contrôle garde seulement les empreintes ? | Oui |
 | D7 | Quelles nouveautés de la partie 7 garder ? | Toutes, dans l'ordre des morceaux |
+| D8 | Bandeau des messages : aspect proposé (bande noire transparente à 80 %, texte blanc cassé, 2 lignes, de 3 à 8 secondes) et place en tête du chantier (morceau 0) ? | Oui, à ajuster après le premier essai en jeu |
 
 ---
 
@@ -515,3 +555,6 @@ Toutes ces suppressions se font avec l'accord de JoVenGer, donné juste avant.
 - Si un dialogue peut se passer de voix.
 - Ce que voit un joueur d'une autre langue quand un texte manque.
 - Si le calendrier du jeu distingue le vendredi et le carême.
+- D'où viennent exactement les textes jaunes : appels dans le code, ou réglage de `mod.cfg`.
+- Comment le jeu permet d'afficher un texte libre en bas de l'écran : sous-titres du jeu, ou élément d'interface neuf.
+- Ce que le veilleur lit aujourd'hui dans le journal du jeu.
