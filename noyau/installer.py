@@ -75,10 +75,11 @@ def mettre_de_cote(cible):
     return destination
 
 
+# Le wiki de Warhorse : un pak de mod est un zip sans compression.
 def faire_pak(dossier_source, chemin_pak):
     os.makedirs(os.path.dirname(chemin_pak), exist_ok=True)
     compte = 0
-    with zipfile.ZipFile(chemin_pak, "w", zipfile.ZIP_DEFLATED) as pak:
+    with zipfile.ZipFile(chemin_pak, "w", zipfile.ZIP_STORED) as pak:
         for racine, _, noms in os.walk(dossier_source):
             for nom in sorted(noms):
                 chemin = os.path.join(racine, nom)
