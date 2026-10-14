@@ -19,7 +19,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir
-1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `poste`, puis `Socle 0.1.0 : 3 morceau(x) prêt(s), 0 en panne`.
+1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `poste`, puis `Socle 0.1.0 : 4 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : le message « Le socle de Scriptorium est prêt. » à l'écran.
 3. Dans la console du jeu (à vérifier : comment l'ouvrir) :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
