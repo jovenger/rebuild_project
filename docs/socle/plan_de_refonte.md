@@ -1,6 +1,6 @@
 # Refonte du socle de Scriptorium : ce qui doit changer par rapport au mod d'Alex
 
-- Statut : proposition à valider par JoVenGer, datée du 14/10/2026. Aucune ligne de code n'est écrite.
+- Statut : proposition acceptée dans ses grandes lignes par JoVenGer le 14/10/2026, avec une règle ajoutée le même jour : **le chantier ne touche ni au Scriptorium actuel, ni à son git.** Aucune ligne de code n'est écrite.
 - Source : la description de JoVenGer du 14/10/2026. Le code (`mercenaires/`, `choses/`, `noyau/`) n'est pas lisible depuis cette session. La liste fonction par fonction sera complétée à l'étape 0, l'inventaire (partie 1).
 - Les mentions « à vérifier » désignent des points du jeu ou du projet qui ne sont pas encore confirmés.
 
@@ -10,12 +10,14 @@
 
 - Tout ce qui vient d'Alex est remplacé : code, noms, voix, modèles, icônes, écrans, quêtes, dialogues, textes et réglages.
 - **Méthode.** Pour chaque morceau, on écrit d'abord une fiche de comportement en français, qui dit *ce que* le camp doit faire. Le code neuf est ensuite écrit d'après la fiche seule ; c'est lui qui dit *comment*.
-- **Où vit le socle.** Le socle vit dans un seul dossier de Scriptorium. Ses fonctions sont rangées sous la table Lua `Scriptorium`, avec des noms français, sans accents dans les identifiants.
+- **Règle de JoVenGer (14/10).** Le Scriptorium actuel (`C:\Users\maste\Desktop\Scriptorium`), son git local et ses trois mods installés ne sont pas touchés pendant tout le chantier. On y lit, pour l'inventaire ; on n'y écrit jamais.
+- **Où vit le socle.** Le socle est un projet à part : ce dépôt (`rebuild_project`), cloné sur le PC dans son propre dossier, avec son propre git. Dans le jeu, pendant le chantier, c'est un mod d'essai à part (`scriptorium_socle`). Ses fonctions sont rangées sous la table Lua `Scriptorium`, avec des noms français, sans accents dans les identifiants.
 - **Ressources.** On prend celles du jeu de base, appelées par leur chemin et jamais copiées, ou on en crée de neuves.
-- **Contrôle.** Un « contrôle d'absence » est ajouté à `essais/tout_verifier.py`. Il compte ce qui reste d'Alex et doit finir à zéro partout.
+- **Contrôle.** Un « contrôle d'absence » fait partie de la vérification complète de ce projet (`essais/tout_verifier.py`, le sien, pas celui de Scriptorium). Il compte ce qui reste d'Alex et doit finir à zéro partout.
 - **Messages à l'écran.** Plus aucun texte jaune par-dessus l'image : chaque message passe par une bande noire en bas de l'écran, écrite proprement, au moment où la chose arrive (morceau 0, partie 2.0 bis).
-- **Ordre.** D'abord le bandeau des messages (morceau 0), puis 8 morceaux, dans l'ordre fixé par JoVenGer. Chacun est testé en jeu et scellé avant le suivant. On finit sur une partie neuve.
-- **Décisions.** 8 décisions restent à prendre par JoVenGer (partie 10).
+- **Ordre.** D'abord le bandeau des messages (morceau 0), puis 8 morceaux, dans l'ordre fixé par JoVenGer. Chacun est testé en jeu et scellé avant le suivant.
+- **Bascule.** Quand le socle est complet, et seulement sur l'ordre de JoVenGer, une copie de Scriptorium reçoit le socle et ses dossiers sont adaptés. Le Scriptorium actuel reste intact jusqu'à ce que JoVenGer décide de l'abandonner. On finit sur une partie neuve.
+- **Décisions.** 10 décisions restent à prendre par JoVenGer (partie 10) ; les recommandations ont reçu un accord de principe le 14/10.
 
 ---
 
@@ -23,12 +25,13 @@
 
 ### Étape 0 : l'inventaire (une seule fois, avant le premier morceau)
 
+- Le Scriptorium actuel est lu, jamais modifié. Tout ce qui sort de l'inventaire est écrit dans ce projet.
 - Lister les 88 scripts Lua et les 2 100 fonctions environ d'Alex, rangés par morceau.
 - Lister chaque appel des 211 dossiers de `choses/` vers `mercenaries` : dossier, fonction appelée, morceau concerné.
 - Lister aussi ce que lisent les programmes du PC (panneau, téléphone, veilleur) : clés de sauvegarde, noms, fichiers.
 - Lister les clés de sauvegarde, les identifiants uniques des tables, les personnages, les clés de textes, les voix, les modèles, les icônes, les quêtes et les arbres d'intelligence artificielle.
 - Résultat : le **registre de remplacement** (`docs/socle/registre.md`). Pour chaque élément d'Alex, il indique le morceau, le remplaçant et l'état (à faire, remplacé ou vérifié). C'est la version complète de la présente liste.
-- Première mesure du contrôle d'absence (partie 8), qui sert de point de départ.
+- Relever une fois les empreintes de tous les fichiers, lignes, textes et noms d'Alex, et les ranger dans ce projet (`docs/socle/empreintes_alex.json`). Le contrôle d'absence travaille ensuite sur ces empreintes seules : il n'a plus besoin de relire Scriptorium.
 
 ### Pour chaque morceau
 
@@ -38,10 +41,10 @@
    - interdits : le code d'Alex, ses noms internes et la façon dont il découpe ses fonctions.
 2. Validation de la fiche par JoVenGer.
 3. Écriture du code d'après la fiche seule, sans ouvrir `mercenaires/`.
-4. Adaptation des dossiers de `choses/` et des programmes du PC concernés, un par un.
-5. `noyau/mercenaires.py` cesse d'installer les fichiers d'Alex de ce morceau.
-6. Banc d'essai, vérification complète, puis contrôle d'absence : le morceau doit être à zéro.
-7. Mise de côté, installation, essai en jeu, et sauvegarde de la partie avant de fermer le jeu.
+4. **Poste d'essai** : des commandes en français (console du jeu ou objet d'essai) qui permettent d'éprouver le morceau sans les dossiers de `choses/`, par exemple « lever une bande de six hommes à l'est ».
+5. **Contrat avec `choses/`** : le registre note quelles fonctions les dossiers de `choses/` attendent de ce morceau, et vérifie que le socle les offre. L'adaptation des dossiers eux-mêmes attend la bascule.
+6. Banc d'essai, vérification complète de ce projet, puis contrôle d'absence : le morceau doit être à zéro.
+7. Mise de côté (outil de ce projet), installation dans le mod d'essai `scriptorium_socle` seulement, essai en jeu sur la partie d'essai, et sauvegarde de cette partie avant de fermer le jeu.
 8. Scellé, puis morceau suivant.
 
 ### Salle blanche
@@ -49,12 +52,21 @@
 - La garantie la plus sûre : la session qui écrit le code n'est pas celle qui a lu le code d'Alex. La première rédige la fiche, la seconde n'a que la fiche (décision D5).
 - Les fiches et leur historique sont gardés : ils montrent que le code vient du comportement voulu et non du texte d'Alex.
 
-### Pendant le chantier, les deux socles cohabitent
+### Pendant le chantier, le Scriptorium actuel n'est pas touché
 
-- **Passerelles.** Un morceau d'Alex encore en place peut appeler un morceau déjà remplacé. Une passerelle temporaire renvoie alors ces appels vers le nouveau code. Elle est notée dans le registre et disparaît avec le dernier morceau d'Alex qui s'en sert.
-- **Données de la partie en cours.** Deux possibilités (décision D4) :
-  - reprise unique des anciennes clés vers les nouvelles, supprimée à la fin ;
-  - partie d'essai neuve.
+- **Sur le PC.** Deux dossiers, deux git : `Scriptorium` (l'actuel, intact) et le dossier de ce projet (décision D9). Les outils de ce projet refusent d'écrire dans `Scriptorium`, dans `D:\Scriptorium V2\Scriptorium` et dans les dossiers `Mods\scriptorium`, `Mods\scriptorium_regles` et `Mods\scriptorium_lumiere` du jeu : chemins interdits en dur, vérifiés avant chaque écriture.
+- **Dans le jeu.** Le socle neuf s'installe dans un mod d'essai à part, `Mods\scriptorium_socle`. Il ne se charge jamais en même temps que les trois mods actuels : pendant un essai, ceux-ci sont désactivés sans toucher à leurs dossiers (décision D10, moyen à vérifier), puis remis.
+- **La partie.** Les essais se font sur une partie d'essai neuve, sur son propre emplacement de sauvegarde (décision D4). La partie actuelle de JoVenGer n'est jamais chargée avec le socle neuf.
+- **Pas de passerelle.** Comme les deux socles ne tournent jamais ensemble, il n'y a aucune passerelle à écrire. Le socle neuf doit seulement offrir, à la fin, tout ce que les dossiers de `choses/` attendent (le contrat, étape 5).
+
+### La bascule (à la fin, sur l'ordre de JoVenGer)
+
+1. JoVenGer donne son accord, juste avant.
+2. Une copie de Scriptorium est faite (par exemple `Scriptorium V3`), à l'endroit qu'il choisit.
+3. Dans cette copie seulement : le socle neuf remplace `mercenaires/` et `noyau/mercenaires.py` ; les 211 dossiers de `choses/` et les programmes du PC (panneau, téléphone, veilleur) sont adaptés un par un, chacun testé et scellé.
+4. Le contrôle d'absence, en mode strict, passe sur la copie et sur les paks installés.
+5. Partie neuve.
+6. Le Scriptorium actuel reste tel quel jusqu'à ce que JoVenGer décide, lui-même, de l'abandonner.
 
 ---
 
@@ -83,13 +95,14 @@ Les grandes fonctions ci-dessous viennent de ta description. Le détail des 2 10
   - textes, voix et `mod.cfg` recopiés.
 
 **Dans Scriptorium**
-- Le script de démarrage de Scriptorium charge le socle directement, dans cet ordre : bandeau, registre, coffre, camp, hommes, bataille, directeur, enceinte, patrouilles.
+- **Pendant le chantier.** Le socle est le mod d'essai `scriptorium_socle`, avec son propre script de démarrage `Scripts/mods/scriptorium_socle.lua`, qui charge les morceaux dans cet ordre : bandeau, registre, coffre, camp, hommes, bataille, directeur, enceinte, patrouilles.
 - Chaque morceau signale qu'il est prêt. Un morceau qui échoue au chargement est annoncé en clair (journal et panneau) au lieu de bloquer les suivants.
-- `noyau/mercenaires.py` rétrécit à chaque morceau, puis disparaît. Le noyau installe ensuite le socle comme le reste de Scriptorium.
+- Ce projet a son propre installateur (`noyau/installer.py`), qui n'écrit que dans `Mods\scriptorium_socle`.
+- **À la bascule.** Le socle entre dans le pak de Scriptorium, son démarrage est lancé par celui de Scriptorium, et `noyau/mercenaires.py` disparaît de la copie.
 
 **Vérification**
-- Plus de `Scripts/mods/mercenaries.lua` dans le pak.
-- `noyau/mercenaires.py` est absent, et plus rien dans `noyau/` ne l'appelle.
+- Plus de `Scripts/mods/mercenaries.lua` dans le pak du socle.
+- À la bascule : `noyau/mercenaires.py` est absent de la copie, et plus rien dans `noyau/` ne l'appelle.
 
 ### 2.0 bis Le bandeau des messages (morceau 0, demandé le 14/10/2026)
 
@@ -123,7 +136,7 @@ Les grandes fonctions ci-dessous viennent de ta description. Le détail des 2 10
 
 **Pourquoi en premier**
 - Le morceau est petit et se voit tout de suite. Tous les morceaux suivants s'en servent pour parler au joueur.
-- Il peut être fait sur le Scriptorium actuel dès que le code est accessible. Pendant le chantier, les messages d'Alex sont envoyés vers le bandeau (retouche notée dans `MODIFICATIONS.md`). Ensuite, le socle neuf l'utilise directement.
+- Il se construit dans le socle neuf, comme tout le reste. Les textes jaunes du Scriptorium actuel restent tels quels jusqu'à la bascule : ce chantier n'y touche pas. Si JoVenGer veut en être débarrassé plus tôt dans sa partie actuelle, c'est une demande à part, à faire sur Scriptorium.
 
 ### 2.1 Sauvegarde des données du camp (morceau 1)
 
@@ -469,9 +482,9 @@ Il remplace `mercenaires.comparer()`.
 
 ### Ce qu'il examine
 
-- **Le mod installé :** les paks de `scriptorium`, `scriptorium_regles` et `scriptorium_lumiere`, les paks de langue, `mod.cfg` et les manifestes.
-- **Les sources du projet :** le dossier du socle, `choses/`, `noyau/` et les programmes du PC (panneau, téléphone, veilleur).
-- **La référence :** la copie d'Alex (`mercenaires/`), ou son fichier d'empreintes (voir plus bas).
+- **Le mod installé :** pendant le chantier, le pak de `scriptorium_socle` et ses paks de langue ; à la bascule, les paks de `scriptorium`, `scriptorium_regles` et `scriptorium_lumiere`, `mod.cfg` et les manifestes de la copie.
+- **Les sources :** pendant le chantier, ce projet ; à la bascule, la copie de Scriptorium (`choses/`, `noyau/`, panneau, téléphone, veilleur).
+- **La référence :** le fichier d'empreintes relevé une fois à l'inventaire (`docs/socle/empreintes_alex.json`). Le contrôle ne lit jamais le Scriptorium actuel.
 
 ### Ce qu'il écarte avant de comparer
 
@@ -518,15 +531,15 @@ Il remplace `mercenaires.comparer()`.
 
 ---
 
-## 9. Ce qui quitte le projet à la fin
+## 9. Ce qui quitte Scriptorium, à la bascule
 
-Toutes ces suppressions se font avec l'accord de JoVenGer, donné juste avant.
+Tout ceci se fait sur la copie de Scriptorium faite à la bascule, jamais sur le Scriptorium actuel, et avec l'accord de JoVenGer donné juste avant.
 
-- `mercenaires/` : la copie, avec `LISEZMOI.md` et `MODIFICATIONS.md`. Les 27 retouches vivent désormais comme règles dans les fiches.
+- `mercenaires/` : la copie d'Alex, avec `LISEZMOI.md` et `MODIFICATIONS.md`. Les 27 retouches vivent désormais comme règles dans les fiches.
 - `noyau/mercenaires.py` et `mercenaires.comparer()`.
-- Les passerelles et la reprise unique.
+- Le mod d'essai `Mods\scriptorium_socle` et la partie d'essai, devenus inutiles.
 - La partie actuelle : on recommence sur une partie neuve. Garder ou non les anciennes sauvegardes, c'est à toi de décider.
-- Rien n'est fait sur la copie de sécurité Scriptorium V2 (`D:\Scriptorium V2\Scriptorium`), sauf si tu le demandes.
+- Rien n'est fait sur le Scriptorium actuel ni sur la copie de sécurité Scriptorium V2 (`D:\Scriptorium V2\Scriptorium`), sauf si tu le demandes.
 
 ---
 
@@ -537,11 +550,13 @@ Toutes ces suppressions se font avec l'accord de JoVenGer, donné juste avant.
 | D1 | Le mot français « mercenaire » est-il permis dans les textes du jeu ? | L'éviter : « la Compagnie », « soudoyers », « hommes d'armes » |
 | D2 | Voix : celles du jeu de base, pas de voix, ou des voix neuves ? | Répliques courtes du jeu de base, et menus du Directeur sans voix |
 | D3 | Langues : le français seul au début ? | Oui ; les autres langues ensuite |
-| D4 | Pendant le chantier : reprise unique des données de la partie actuelle, ou partie d'essai neuve ? | Reprise unique (les essais gardent le camp actuel), supprimée à la fin |
+| D4 | Pendant le chantier : partie d'essai neuve, sur son propre emplacement de sauvegarde ? | Oui ; la partie actuelle n'est jamais chargée avec le socle neuf (changé le 14/10 : la reprise des données de la partie actuelle est abandonnée, pour ne rien toucher) |
 | D5 | Salle blanche stricte (la session qui écrit le code ne lit jamais `mercenaires/`) ou simple ? | Stricte |
 | D6 | À la fin, la copie `mercenaires/` quitte le projet et le contrôle garde seulement les empreintes ? | Oui |
 | D7 | Quelles nouveautés de la partie 7 garder ? | Toutes, dans l'ordre des morceaux |
 | D8 | Bandeau des messages : aspect proposé (bande noire transparente à 80 %, texte blanc cassé, 2 lignes, de 3 à 8 secondes) et place en tête du chantier (morceau 0) ? | Oui, à ajuster après le premier essai en jeu |
+| D9 | Où vit ce projet sur le PC, et sous quel nom le mod d'essai ? | `C:\Users\maste\Desktop\rebuild_project` (clone de ce dépôt) et `Mods\scriptorium_socle` |
+| D10 | Pendant un essai du socle neuf, comment désactiver les trois mods Scriptorium sans toucher à leurs dossiers ? | Par la liste des mods chargés du jeu (`mod_order.txt`, à vérifier), remise après l'essai ; jamais en renommant ou déplaçant un dossier |
 
 ---
 
@@ -558,3 +573,5 @@ Toutes ces suppressions se font avec l'accord de JoVenGer, donné juste avant.
 - D'où viennent exactement les textes jaunes : appels dans le code, ou réglage de `mod.cfg`.
 - Comment le jeu permet d'afficher un texte libre en bas de l'écran : sous-titres du jeu, ou élément d'interface neuf.
 - Ce que le veilleur lit aujourd'hui dans le journal du jeu.
+- Comment le jeu choisit les mods chargés (`mod_order.txt` ?), pour désactiver les trois mods Scriptorium pendant un essai sans toucher à leurs dossiers.
+- Où le jeu range les sauvegardes, pour que la partie d'essai ait son propre emplacement.
