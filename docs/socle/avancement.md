@@ -40,6 +40,7 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - **Discipline :** fautes à l'aube selon le moral (rixe, vol, ivresse, exaction), jugements par la Gestion du camp (pardon, amende retenue sur la solde, corvée, pilori, renvoi), prescription et laxisme, réputation auprès des villages qui module le prix des réserves.
 
 ## Pour plus tard
+- À l'adaptation à Scriptorium : le socle vit dans `Scripts/scriptorium/` et dans la table globale `Scriptorium`, comme le mod `scriptorium` actuel. Sans effet pendant l'essai (les trois mods sont hors de `mod_order.txt`), mais c'est le premier conflit à régler.
 - `docs/socle/idees_pour_plus_tard.md` : vingt-six idées notées le 14/10, à reprendre seulement quand le socle de base sera essayé en jeu et scellé.
 
 ## Prochaine étape
@@ -53,4 +54,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 14/10/2026 : morceau 4 (hommes) au banc ; bandeau : complément ; camp : places réservées, points.
 - 14/10/2026 : morceaux 5 (bataille), 6 (Directeur), 7 (enceinte, atelier), 8 (patrouilles, battement commun) au banc ; scénario complet d'une semaine.
 - 14/10/2026 : morceau 9 (discipline, décision D7) au banc ; note « Idées pour plus tard ».
-- 14/10/2026 : préparation du premier essai, d'après `kcd.log` (jeu 1.5.6) et le wiki officiel de Warhorse : manifeste sans bloc `<supports>` (V7) ; démarrage déplacé dans `Scripts/Mods/scriptorium_socle.lua`, seul script de mod que le jeu exécute ; paks faits sans compression par l'installateur.
+- 14/10/2026 : préparation du premier essai, d'après `kcd.log` (jeu 1.5.6) et le wiki officiel de Warhorse : manifeste sans bloc `<supports>` (V7) ; démarrage déplacé dans `Scripts/Mods/scriptorium_socle.lua`, seul script de mod que le jeu exécute ; paks faits sans compression par l'installateur ; liste des mods (D10) et console (`-devmode`, touche ²) établies.

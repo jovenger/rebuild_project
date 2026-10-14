@@ -15,13 +15,14 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Il refuse tout autre chemin.
 
 ## 3. Avant de lancer le jeu
-- Désactiver les trois mods `scriptorium`, `scriptorium_regles`, `scriptorium_lumiere` par la liste des mods chargés du jeu (décision D10, à vérifier : `Mods\mod_order.txt`). Ne jamais renommer ni déplacer leurs dossiers.
+- Liste des mods (décision D10, vérifié le 14/10 dans le wiki de Warhorse et dans `kcd.log`) : `Mods\mod_order.txt` choisit les mods chargés ; un mod absent de la liste n'est pas chargé. Pendant l'essai, la liste ne contient que `scriptorium_socle` ; l'original est copié dans `securite\` avant, et remis à la fin de l'essai. Ne jamais renommer ni déplacer les dossiers des trois mods.
+- Lancer le jeu avec l'option `-devmode`, sans laquelle la console ne s'ouvre pas : `steam.exe -applaunch 1771300 -devmode`.
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir, dans l'ordre
-1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `discipline`, `poste`, puis `Socle 0.1.0 : 12 morceau(x) prêt(s), 0 en panne`.
+1. Au lancement, dans le journal du jeu (`kcd.log`, à la racine du jeu, réécrit à chaque lancement) : `[Mod] 1 mods enabled`, `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`, `Loading lua init script for mod scriptorium_socle`, `Loading localization patch 'Localization\text_ui_scriptorium_socle.xml'` sans erreur « hash clash » ; puis `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `discipline`, `poste`, puis `Socle 0.1.0 : 12 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : « Le socle de Scriptorium est prêt. » à l'écran.
-3. Dans la console du jeu (à vérifier : comment l'ouvrir), avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
+3. Dans la console du jeu (touche ², sous Échap, sur un clavier français ; jeu lancé avec `-devmode`), avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
    - `scriptorium_essai_registre` → « Essai : le registre a été écrit puis relu. » et, au journal, `appels = 1` ; relancer : `appels = 2` ;
    - `scriptorium_essai_camp` → un camp se dresse autour d'Henry (feu, 4 sièges, 3 tentes, 5 paillasses, coffre) ; « Le camp est dressé. » ; au journal, `camp fondé = true, lits = 5, sièges = 4` ;
