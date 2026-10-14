@@ -219,6 +219,10 @@ def verifier_manifeste():
     if not os.path.exists(chemin):
         erreur("manifeste absent : socle/mod.manifest")
         return
+    # Le jeu lit le manifeste en ASCII : un « — » est devenu « Scriptorium     socle » dans la sauvegarde (14/10).
+    with open(chemin, "rb") as fichier:
+        if any(octet > 127 for octet in fichier.read()):
+            erreur("manifeste : caractère hors ASCII ; le jeu l'écrit mal dans la sauvegarde")
     try:
         racine = ET.parse(chemin).getroot()
     except ET.ParseError as exception:

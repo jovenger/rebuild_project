@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <kcd_mod>
   <info>
-    <name>Scriptorium — socle (essai)</name>
+    <name>Scriptorium - socle (essai)</name>
     <modid>scriptorium_socle</modid>
-    <description>Socle neuf de Scriptorium : camp, hommes, coffre, batailles. Mod d'essai, à part du Scriptorium actuel.</description>
+    <description>Socle neuf de Scriptorium : camp, hommes, coffre, batailles. Mod d'essai, distinct du Scriptorium actuel.</description>
     <author>JoVenGer</author>
     <version>0.1.0</version>
     <created_on>2026-10-14</created_on>
