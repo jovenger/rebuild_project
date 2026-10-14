@@ -3,7 +3,7 @@
 - Morceau : 10. Table : `Scriptorium.reglages`. Fichier : `socle/pak/Scripts/scriptorium/reglages.lua`.
 - Vient de la règle de JoVenGer du 14/10 : les règles, les agissements et le comportement des hommes et du camp doivent pouvoir être modifiés par le programme Scriptorium. Pendant le chantier, le programme est mis à part : le socle a son propre transport, un fichier écrit sur le PC et relu en jeu, comme les ordres du poste.
 - Choix de JoVenGer du 14/10 (questions à cocher) : le fichier change les chiffres **et la forme** (taille de l'enceinte) ; il est relu **dès qu'il change** ; il vaut pour **toutes les parties** ; une valeur fausse est **refusée seule**.
-- État : écrit et passé au banc (essais `essai_reglages.lua`, et l'étape « 2 quater » de `tout_verifier.py` : outil, liaison, installateur). Limites validées par JoVenGer le 14/10 (voir « Limites »). À voir en jeu : un réglage changé en cours de partie.
+- État : écrit et passé au banc (essais `essai_reglages.lua`, et l'étape « 2 quater » de `tout_verifier.py` : outil, liaison, installateur). Limites validées par JoVenGer le 14/10 (voir « Limites »). Vu en jeu le 15/10 : lu au lancement, gardé par l'installateur, réglage changé en pleine partie avec son message, enceinte reposée à 25 m.
 
 ## Ce que le joueur voit
 - Rien tant que le fichier ne change pas. Sans fichier, les valeurs validées par JoVenGer dans les fiches 02 à 09 s'appliquent.

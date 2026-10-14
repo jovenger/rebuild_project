@@ -6,7 +6,7 @@
 ## Ce que le joueur voit
 - « Une bande approche du camp : » suivi du nombre, une heure avant qu'elle arrive (deux heures avec les tours de guet du morceau 7).
 - Les hommes prennent leur ordre de bataille face à la menace : pavois et hommes d'armes devant, arbalétriers et archers derrière, chacun avec sa ligne de tir. Les blessés et les gens de métier restent au feu.
-- La bande arrive ; le combat est celui du jeu. À la fin : « Victoire : la bande est repoussée. », « Victoire chèrement payée : … », « La bande a été repoussée, mais elle a mordu. » ou « Défaite : la bande a enfoncé le camp. », puis « Butin partagé, au coffre : » et le montant. Les ennemis encore debout s'en vont ; les corps restent sur place, à fouiller, une journée de jeu.
+- La bande arrive ; le combat est celui du jeu. À la fin : « Victoire : la bande est repoussée. », « Victoire chèrement payée : … », « La bande a été repoussée, mais elle a mordu. » ou « Défaite : la bande a enfoncé le camp. », puis « Butin partagé, au coffre : » et le montant. Les ennemis encore debout s'en vont ; les corps tombent et restent sur place, à fouiller, une journée de jeu (vu en jeu le 15/10 : « Piller », « Saisir le corps »).
 
 ## Règles
 - **Une seule entrée, « lever une bande » :** `lever_une_bande{ sorte, effectif, direction, delai }`. Sorte parmi `brigands`, `coumans`, `soudards`, `deserteurs` ; effectif de 1 à 60 ; direction en degrés (d'où elle vient, par rapport au camp) ; délai en heures de jeu avant l'arrivée (2 par défaut). Tous les raids passent par là. Refus sans camp fondé.
