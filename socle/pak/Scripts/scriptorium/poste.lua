@@ -206,6 +206,18 @@ function poste.essai_enceinte()
   return sorts
 end
 
+-- Enceinte : pose Henry à 4 m de la porte, côté camp, pour la regarder de près.
+function poste.essai_voir_porte()
+  local centre = Scriptorium.camp.point(0, 0, 0)
+  if not centre then
+    jeu().journal("Poste : pas de camp")
+    return false
+  end
+  local ok, compte_rendu = jeu().aller_pres_de("scriptorium_enceinte_porte", centre, 4)
+  jeu().journal("Poste : voir la porte = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
 -- Porte : la fait passer d'ouverte à fermée, ou de fermée à ouverte (V22).
 function poste.essai_porte()
   local enceinte = Scriptorium.enceinte
@@ -269,6 +281,7 @@ poste.commandes = {
   { nom = "scriptorium_gestion_rapport", fonction = function() return poste.gestion("rapport") end, aide = "Le rapport du Directeur" },
   { nom = "scriptorium_essai_enceinte", fonction = function() return poste.essai_enceinte() end, aide = "Bâtit la palissade et les tours" },
   { nom = "scriptorium_essai_porte", fonction = function() return poste.essai_porte() end, aide = "Ouvre la porte fermée, ou ferme la porte ouverte" },
+  { nom = "scriptorium_essai_voir_porte", fonction = function() return poste.essai_voir_porte() end, aide = "Pose Henry à 4 m de la porte, côté camp" },
   { nom = "scriptorium_essai_patrouille", fonction = function() return poste.essai_patrouille() end, aide = "Envoie deux hommes faire la ronde proche" },
   { nom = "scriptorium_essai_discipline", fonction = function() return poste.essai_discipline() end, aide = "Les fautes à juger et la réputation" },
   { nom = "scriptorium_bilan", fonction = function() return poste.bilan() end, aide = "Bilan du socle dans le journal" },

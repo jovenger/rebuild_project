@@ -456,6 +456,31 @@ function liaison.deplacer_le_joueur(distance, cap)
   return resultat[1], resultat[2]
 end
 
+-- Pour le poste d'essai : pose Henry à « distance » mètres d'un objet posé, du côté d'un point (le centre du camp).
+function liaison.aller_pres_de(identifiant, vers, distance)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return false, "objet introuvable"
+  end
+  local ok, resultat = pcall(function()
+    local p = entite:GetWorldPos()
+    local dx, dy = vers.x - p.x, vers.y - p.y
+    local longueur = math.sqrt(dx * dx + dy * dy)
+    if longueur < 0.1 then
+      return { false, "objet au centre" }
+    end
+    local cible = { x = p.x + dx / longueur * distance, y = p.y + dy / longueur * distance, z = 0 }
+    cible = liaison.au_sol(cible)
+    cible.z = cible.z + 0.1
+    player:SetWorldPos(cible)
+    return { true, string.format("Henry à %.0f m de %s (%.0f, %.0f)", distance, identifiant, cible.x, cible.y) }
+  end)
+  if not ok then
+    return false, tostring(resultat)
+  end
+  return resultat[1], resultat[2]
+end
+
 -- Le terrain d'essai (demande de JoVenGer du 14/10 : pas dans un campement du jeu). Choisi à vue le 14/10 :
 -- un pré dégagé, en pente douce, à 80 m à l'ouest du campement du début du jeu (Trosecko), sans tente,
 -- avec la rivière au sud. Une recherche automatique a été essayée et retirée : les arbres et les buissons
