@@ -390,6 +390,15 @@ function liaison.cap_du_joueur()
   return 0
 end
 
+-- Vrai si le point est dans l'eau. AI.IsPointInWaterRegion peut rendre un nombre : en Lua, 0 compte comme vrai
+-- (vu le 14/10 : tout passait pour de l'eau). Seuls true ou un nombre positif disent « dans l'eau ».
+function liaison.dans_l_eau(point)
+  local ok, valeur = pcall(function() return AI.IsPointInWaterRegion(point) end)
+  if not ok then
+    return false
+  end
+  return valeur == true or (type(valeur) == "number" and valeur > 0)
+end
 -- Pour le poste d'essai : pose Henry à « distance » mètres de lui, dans la direction « cap » (cap de boussole ;
 -- par défaut celle où regarde le corps d'Henry, qui n'est pas forcément celle de la caméra), à la hauteur du
 -- terrain (System.GetTerrainElevation). Refusé si la destination est dans l'eau (AI.IsPointInWaterRegion, essayé ;
@@ -405,8 +414,7 @@ function liaison.deplacer_le_joueur(distance, cap)
       return { false, "hauteur du terrain illisible" }
     end
     cible.z = sol + 0.1
-    local verifie, dans_l_eau = pcall(function() return AI.IsPointInWaterRegion(cible) end)
-    if verifie and dans_l_eau then
+    if liaison.dans_l_eau(cible) then
       return { false, "destination dans l'eau" }
     end
     player:SetWorldPos(cible)
@@ -443,6 +451,7 @@ function liaison.chercher_un_terrain_vierge()
     local ici = player:GetWorldPos()
     local sondes = 0
     classes_vues = {}
+    local refus = { pente = 0, eau = 0, occupe = 0 }
     for rayon = 30, 240, 30 do
       for angle = 0, 330, 30 do
         sondes = sondes + 1
@@ -451,13 +460,15 @@ function liaison.chercher_un_terrain_vierge()
         local sol = System.GetTerrainElevation(point)
         if type(sol) == "number" then
           point.z = sol + 0.1
-          local mouille_ok, mouille = pcall(function() return AI.IsPointInWaterRegion(point) end)
+          local mouille = liaison.dans_l_eau(point)
           local plat = true
           for _, d in ipairs({ { 8, 0 }, { -8, 0 }, { 0, 8 }, { 0, -8 } }) do
             local h = System.GetTerrainElevation({ x = point.x + d[1], y = point.y + d[2], z = 0 })
             if type(h) ~= "number" or math.abs(h - sol) > 1.5 then plat = false end
           end
-          if plat and not (mouille_ok and mouille) then
+          if not plat then refus.pente = refus.pente + 1 end
+          if mouille then refus.eau = refus.eau + 1 end
+          if plat and not mouille then
             local voisins = System.GetEntitiesInSphere(point, 25)
             local n = 0
             for _, e in pairs(voisins or {}) do
@@ -467,6 +478,7 @@ function liaison.chercher_un_terrain_vierge()
                 classes_vues[classe] = (classes_vues[classe] or 0) + 1
               end
             end
+            if n > 0 then refus.occupe = refus.occupe + 1 end
             if n == 0 then
               player:SetWorldPos(point)
               return { true, string.format("terrain vierge à %d m, cap %d (%.0f, %.0f, %.1f), après %d sonde(s)",
@@ -476,7 +488,7 @@ function liaison.chercher_un_terrain_vierge()
         end
       end
     end
-    return { false, "aucun terrain vierge à moins de 240 m (" .. sondes .. " sondes)" }
+    return { false, string.format("aucun terrain vierge à moins de 240 m (%d sondes ; refus : pente %d, eau %d, occupé %d)", sondes, refus.pente, refus.eau, refus.occupe) }
   end)
   if not ok then
     return false, tostring(resultat)
