@@ -23,20 +23,41 @@ function liaison.journal(texte)
   System.LogAlways("[Scriptorium] " .. tostring(texte))
 end
 
--- Affiche un texte au joueur pendant « duree » secondes.
--- À vérifier en jeu : Game.SendInfoText est l'appel connu pour afficher un texte
--- au joueur ; sa place et son aspect (bande noire en bas) restent à confirmer.
--- Avec un complément (un nom, un montant), il est ajouté après le texte traduit.
--- À vérifier en jeu : que la traduction de « @clé » tient quand on lui colle un complément.
+-- Affiche un texte au joueur, en bas de l'écran, en blanc sur une bande sombre à la taille du texte
+-- (décision D8, demande de JoVenGer du 14/10) : la ligne des sous-titres de l'élément d'interface « hud »
+-- (fonctions SetSubtitles et SetSubtitleBgEnable, lues dans Libs/UI/UIElements/HUD.xml du jeu).
+-- Game.SendInfoText est écarté : il écrit au milieu de l'écran (vu en jeu le 14/10).
+-- La bande sombre est mise le temps du message ; effacer() rend au joueur son réglage (wh_ui_EnableSubtitleBg).
+-- Le bandeau efface lui-même à la fin de la durée. Avec un complément (un nom, un montant), il est ajouté
+-- après le texte. À vérifier en jeu : que « @clé » est traduit dans cette ligne, avec ou sans complément.
 function liaison.afficher(texte, duree, complement)
   if complement then
     texte = texte .. " " .. complement
   end
-  Game.SendInfoText(texte, true, nil, duree)
+  local ok, erreur = pcall(function()
+    UIAction.CallFunction("hud", 0, "SetSubtitleBgEnable", true)
+    UIAction.CallFunction("hud", 0, "SetSubtitles", texte, "", false)
+  end)
+  if not ok then
+    liaison.journal("Affichage impossible : " .. tostring(erreur))
+  end
 end
 
--- Efface le texte affiché. Avec Game.SendInfoText, le texte disparaît de lui-même.
+-- Le fond des sous-titres tel que le joueur l'a réglé dans ses options.
+local function fond_des_sous_titres_du_joueur()
+  local ok, valeur = pcall(System.GetCVar, "wh_ui_EnableSubtitleBg")
+  return ok and (valeur == true or valeur == 1 or valeur == "1" or valeur == "true")
+end
+
+-- Efface le texte affiché et rend au joueur son réglage du fond des sous-titres.
 function liaison.effacer()
+  local ok, erreur = pcall(function()
+    UIAction.CallFunction("hud", 0, "ClearSubtitles")
+    UIAction.CallFunction("hud", 0, "SetSubtitleBgEnable", fond_des_sous_titres_du_joueur())
+  end)
+  if not ok then
+    liaison.journal("Effacement impossible : " .. tostring(erreur))
+  end
 end
 
 -- Vrai quand un dialogue ou une cinématique est en cours.
