@@ -225,6 +225,63 @@ function poste.essai_cibler()
   return a, b
 end
 
+-- Bataille : pose la bande au contact à dix-huit mètres devant le camp, en ligne (V18 : à soixante mètres,
+-- personne ne voit personne ; vu le 14/10).
+function poste.essai_rapprocher()
+  local ennemis, bande = ennemis_au_contact()
+  local camp = Scriptorium.camp
+  for i, identifiant in ipairs(ennemis) do
+    jeu().ordonner(identifiant, "approche", jeu().au_sol(camp.point((i - (#ennemis + 1) / 2) * 1.5, 18, 180)), "devant_le_camp")
+  end
+  jeu().journal("Poste : bande « " .. tostring(bande) .. " » rapprochée, " .. #ennemis .. " ennemi(s) à 18 m")
+  return #ennemis
+end
+
+-- Bataille : chaque ennemi de la bande au contact suit un de nos hommes, à tour de rôle (V18 : faire marcher
+-- la bande sur le camp).
+function poste.essai_suivre()
+  local ennemis, bande = ennemis_au_contact()
+  local notres = nos_personnages()
+  local faits, erreur = 0, nil
+  for i, identifiant in ipairs(ennemis) do
+    if #notres > 0 then
+      local ok, raison = jeu().suivre(identifiant, notres[((i - 1) % #notres) + 1])
+      if ok then faits = faits + 1 elseif erreur == nil then erreur = raison end
+    end
+  end
+  jeu().journal("Poste : suivre, bande = " .. tostring(bande) .. ", ennemis en marche = " .. faits .. (erreur and (" ; erreur : " .. erreur) or ""))
+  return faits
+end
+
+-- Henry : posé à douze mètres du premier ennemi de la bande au contact, côté camp (V18 : la bande se bat-elle ?).
+function poste.essai_voir_bande()
+  local ennemis = ennemis_au_contact()
+  if not ennemis[1] then
+    jeu().journal("Poste : pas de bande au contact")
+    return false
+  end
+  local ok, compte_rendu = jeu().aller_pres_de(ennemis[1], Scriptorium.camp.point(0, 0, 0), 12)
+  jeu().journal("Poste : voir la bande = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
+-- Bataille : blesse à mort le premier ennemi encore vivant de la bande au contact (V19 : la mort se voit-elle ?
+-- la bataille finit-elle par le jeu quand le dernier tombe ?).
+function poste.essai_frapper()
+  local ennemis, bande = ennemis_au_contact()
+  for _, identifiant in ipairs(ennemis) do
+    if not jeu().personnage_mort(identifiant) then
+      local ok, erreur = jeu().blesser(identifiant, 1000)
+      jeu().journal("Poste : frappé « " .. identifiant .. " » = " .. tostring(ok) .. (erreur and (" (" .. erreur .. ")") or "")
+                    .. ", mort = " .. tostring(jeu().personnage_mort(identifiant)) .. ", vivants = " .. jeu().ennemis_vivants(ennemis))
+      poste.battre_les_hommes()
+      return ok
+    end
+  end
+  jeu().journal("Poste : aucun ennemi vivant dans la bande " .. tostring(bande))
+  return false
+end
+
 -- Directeur : l'installe, puis écrit le menu de la Gestion du camp au journal.
 function poste.essai_directeur()
   local directeur = Scriptorium.directeur
@@ -379,6 +436,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_hostiles", fonction = function() return poste.essai_hostiles() end, aide = "Rend la bande au contact et nos hommes hostiles" },
   { nom = "scriptorium_essai_cibler", fonction = function() return poste.essai_cibler() end, aide = "Donne à chaque ennemi un de nos hommes pour cible, et l'inverse" },
+  { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
+  { nom = "scriptorium_essai_suivre", fonction = function() return poste.essai_suivre() end, aide = "Chaque ennemi suit un de nos hommes" },
+  { nom = "scriptorium_essai_voir_bande", fonction = function() return poste.essai_voir_bande() end, aide = "Pose Henry à 12 m de la bande, côté camp" },
+  { nom = "scriptorium_essai_frapper", fonction = function() return poste.essai_frapper() end, aide = "Blesse à mort le premier ennemi vivant de la bande" },
   { nom = "scriptorium_essai_directeur", fonction = function() return poste.essai_directeur() end, aide = "Installe le Directeur et écrit le menu de la Gestion du camp" },
   { nom = "scriptorium_gestion_rapport", fonction = function() return poste.gestion("rapport") end, aide = "Le rapport du Directeur" },
   { nom = "scriptorium_essai_enceinte", fonction = function() return poste.essai_enceinte() end, aide = "Bâtit la palissade et les tours" },

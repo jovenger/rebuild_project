@@ -739,8 +739,32 @@ function liaison.decrire_personnage(identifiant, autre, avec_fonctions)
       ajouter(partie .. ", fonctions : " .. table.concat(fonctions_de(objet), " "))
     end
   end
-  ajouter("soul:GetState(health) = " .. sonder(entite.soul, "GetState", "health"))
+  ajouter("soul : GetState(health) = " .. sonder(entite.soul, "GetState", "health") .. " ; IsInCombatMode = "
+          .. sonder(entite.soul, "IsInCombatMode") .. " ; IsInCombatDanger = " .. sonder(entite.soul, "IsInCombatDanger")
+          .. " ; GetFactionID = " .. sonder(entite.soul, "GetFactionID"))
   return lignes
+end
+
+-- Fait suivre « cible » à un personnage (actor:StartFollow, vu dans les scripts du jeu : le joueur suit un
+-- personnage par là). Rend vrai, ou faux et l'erreur. À vérifier en jeu (V18) : un personnage non joueur suit-il ?
+function liaison.suivre(identifiant, cible)
+  local entite, cible_entite = entite_nommee(identifiant), entite_nommee(cible)
+  if not entite or not cible_entite or type(entite.actor) ~= "table" then
+    return false, "personnage introuvable"
+  end
+  local ok, erreur = pcall(function() entite.actor:StartFollow(cible_entite.id) end)
+  return ok, (not ok) and tostring(erreur) or nil
+end
+
+-- Blesse un personnage (soul:DealDamage, comme l'aide de débogage du jeu Scripts/Debug/Quick.lua :
+-- vie, endurance, puis rien et vrai). Rend vrai, ou faux et l'erreur.
+function liaison.blesser(identifiant, points)
+  local entite = entite_nommee(identifiant)
+  if not entite or type(entite.soul) ~= "table" then
+    return false, "personnage introuvable"
+  end
+  local ok, erreur = pcall(function() entite.soul:DealDamage(points, points, __null, true) end)
+  return ok, (not ok) and tostring(erreur) or nil
 end
 
 -- Rend chaque personnage de « liste » personnellement hostile à chacun de « autres », et l'inverse

@@ -129,8 +129,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 26:
-        erreur("ordres : %d commandes lues dans poste.lua, 26 attendues" % len(connues))
+    if len(connues) != 30:
+        erreur("ordres : %d commandes lues dans poste.lua, 30 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -245,6 +245,13 @@ def verifier_identifiants():
         if not string.find(texte, "faction = brigands", 1, true) then return "description sans faction : " .. texte end
         if not string.find(texte, "personnellement = absente", 1, true) then return "fonction absente mal dite : " .. texte end
         if l.decrire_personnage("personne")[1] ~= "introuvable" then return "personnage absent mal dit" end
+        -- Blesser (soul:DealDamage : vie, endurance, rien, vrai) et suivre (actor:StartFollow : l'identifiant suivi).
+        local brigand = System.entites[e1[1]]
+        brigand.soul = { DealDamage = function(self, vie, endurance, rien, drapeau) AI.coup = { vie, endurance, drapeau } end }
+        brigand.actor = { StartFollow = function(self, id) AI.suivi = id end }
+        if not l.blesser(e1[1], 1000) or AI.coup[1] ~= 1000 or AI.coup[2] ~= 1000 or AI.coup[3] ~= true then return "blessure mal donnée" end
+        if not l.suivre(e1[1], n1) or AI.suivi ~= System.entites[n1].id then return "suivi mal donné" end
+        if l.blesser("personne", 1) or l.suivre("personne", n1) then return "un absent blessé ou mis en marche" end
         AI = nil
         return "ok"
     end)()""")
