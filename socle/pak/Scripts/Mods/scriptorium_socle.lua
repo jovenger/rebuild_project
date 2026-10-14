@@ -15,6 +15,7 @@ Script.ReloadScript("Scripts/scriptorium/enceinte.lua")
 Script.ReloadScript("Scripts/scriptorium/atelier.lua")
 Script.ReloadScript("Scripts/scriptorium/patrouilles.lua")
 Script.ReloadScript("Scripts/scriptorium/discipline.lua")
+Script.ReloadScript("Scripts/scriptorium/caractere.lua")
 Script.ReloadScript("Scripts/scriptorium/reglages.lua")
 Script.ReloadScript("Scripts/scriptorium/poste.lua")
 

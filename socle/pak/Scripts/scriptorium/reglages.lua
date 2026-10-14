@@ -38,6 +38,7 @@ reglages.catalogue = {
   { section = "discipline", morceau = "discipline", table = "reglages",
     parts = { chance_de_base = true, chance_morose = true, chance_abattu = true } },
   { section = "fautes", morceau = "discipline", table = "fautes", taux = { poids = true } },
+  { section = "caractere", morceau = "caractere", table = "reglages", parts = { malus_fatigue = true, malus_epuise = true } },
 }
 
 local function jeu() return Scriptorium.jeu end

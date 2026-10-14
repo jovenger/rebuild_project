@@ -39,7 +39,7 @@ de débogage du jeu) n'existe pas dans le jeu publié. `AI.AddPersonallyHostile`
    personnage depuis une entité modèle posée.
 - **Fait quand :** un de nos hommes marche jusqu'à un point, s'assoit, dort ; une bande marche sur le camp ; nos hommes
   et la bande se battent ; la mort et la fin de bataille par le jeu suivent (déjà prêtes).
-- **Fiche à écrire :** 11 — les gestes des personnages (se tenir, marcher, s'asseoir, dormir, garder, combattre).
+- **Fiche à écrire :** 12 — les gestes des personnages (se tenir, marcher, s'asseoir, dormir, garder, combattre). Le cerveau suivra le caractère de chaque homme (fiche 11, faite le 15/10) : ses besoins (fatigue, faim) et ses goûts (le feu, l'entraînement, les dés, le lit) disent déjà ce qu'il choisit de faire de son temps libre ; le Directeur et les ennemis recevront leur caractère à cette étape, et l'entraînement fera monter les compétences du jeu (`soul:AddSkillXP`).
 
 ## Étape 2 — Nos propres personnages (tables du jeu)
 - Âmes à nous pour les sept rôles, les bandes (brigands, déserteurs, soudards, Coumans) et le Directeur (V20) ;
@@ -51,7 +51,7 @@ de débogage du jeu) n'existe pas dans le jeu publié. `AI.AddPersonallyHostile`
 - **Fait quand :** nos personnages viennent avec nos âmes, et la faction est respectée en combat (après l'étape 1).
 
 ## Étape 3 — Le dialogue du Directeur et la Gestion du camp à l'écran (V21)
-- Le menu existe en données (`directeur.menu()`, dix-neuf entrées, chacune possible ou non avec sa raison) ; il ne se
+- Le menu existe en données (`directeur.menu()`, vingt entrées, chacune possible ou non avec sa raison) ; il ne se
   joue aujourd'hui que par les ordres d'essai.
 - Recherche : le système de dialogues du jeu (fichiers de dialogue et de quête dans `Scripts.pak`), un dialogue en texte
   seul (décision D2 : pas de voix pour les menus).

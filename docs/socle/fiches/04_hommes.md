@@ -2,6 +2,7 @@
 
 - Morceau : 4. Table : `Scriptorium.hommes`. Fichier : `socle/pak/Scripts/scriptorium/hommes.lua`.
 - État : écrit et passé au banc ; vu en jeu (trois hommes venus au camp, solde et prime au coffre). Validée par JoVenGer le 14/10/2026 : soldes, prime de deux semaines, départ après deux semaines impayées, **deux rations par homme et par jour**, rangs, journée, garde et départs tels quels. Leurs gestes (marcher, s'asseoir, dormir, se battre) attendent un cerveau à nous (V17, V18).
+- Avec la fiche 11 (caractère, 15/10) : la ration de chacun suit son appétit, les soins sa forme ; la veillée est son temps libre (le feu, l'entraînement, les dés ou le lit, selon sa fatigue et ses envies) ; une perte de moral commune pèse selon le sang-froid de chacun.
 
 ## Ce que le joueur voit
 - Des hommes engagés par contrat, qui vivent au camp : le jour ils mangent, s'exercent et font les corvées ; le soir ils veillent au feu ; la nuit ils dorment sous les tentes ou montent la garde, par tours de veille.

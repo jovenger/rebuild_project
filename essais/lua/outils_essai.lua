@@ -36,10 +36,22 @@ function depart()
   if Scriptorium.reglages then
     Scriptorium.reglages.remettre_a_zero()
   end
+  -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
+  -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().
+  if Scriptorium.caractere then
+    local r = Scriptorium.caractere.reglages
+    r.trait_min, r.trait_max, r.aguerri_min, r.aguerri_max = 50, 50, 50, 50
+  end
   if Scriptorium.poste then
     Scriptorium.poste.remettre_a_zero()
   end
   if Scriptorium.patrouilles and not Scriptorium.patrouilles.battre_original then
     Scriptorium.patrouilles.battre_original = Scriptorium.patrouilles.battre
   end
+end
+
+-- Départ avec les vraies fourchettes du caractère (fiche 11), validées par JoVenGer.
+function depart_avec_caractere()
+  depart()
+  Scriptorium.reglages.remettre_a_zero()
 end

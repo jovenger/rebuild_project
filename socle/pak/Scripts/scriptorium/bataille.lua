@@ -204,6 +204,10 @@ function bataille.force_des_notres()
       if Scriptorium.atelier and Scriptorium.atelier.facteur_de then
         facteur = Scriptorium.atelier.facteur_de(id)
       end
+      -- Aguerrissement, courage et fatigue de l'homme (fiche 11).
+      if Scriptorium.caractere then
+        facteur = facteur * Scriptorium.caractere.facteur_de_combat(id)
+      end
       force = force + bataille.roles[f.role].poids * facteur
       moral = moral + f.moral
       nombre = nombre + 1
@@ -329,6 +333,10 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
   for _, id in ipairs(b.combattants) do
     if hommes().fiche(id) then table.insert(vivants, id) end
   end
+  -- Dans un même rang, l'homme de moindre jugement tombe le premier (fiche 11).
+  if Scriptorium.caractere then
+    vivants = Scriptorium.caractere.ordre_de_chute(vivants)
+  end
   if morts_par_le_jeu then
     for _, id in ipairs(morts_par_le_jeu) do
       table.insert(resultat.morts, id)
@@ -369,6 +377,13 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
   end
   for _, blesse in ipairs(resultat.blesses) do
     hommes().blesser(blesse.id, blesse.jours)
+  end
+  -- Le retour de bataille : fatigue, aguerrissement, découverte ; une blessure affaiblit la forme (fiche 11).
+  if Scriptorium.caractere then
+    Scriptorium.caractere.apres_bataille(survivants)
+    for _, blesse in ipairs(resultat.blesses) do
+      Scriptorium.caractere.blessure_recue(blesse.id)
+    end
   end
   hommes().moral_pour_tous(issue.moral)
   -- Pillage en cas de défaite.
@@ -467,6 +482,9 @@ function bataille.escarmouche(ids, sorte, effectif)
     if f and bataille.roles[f.role] and f.blessure == 0 then
       table.insert(b.combattants, homme)
       local facteur = (Scriptorium.atelier and Scriptorium.atelier.facteur_de) and Scriptorium.atelier.facteur_de(homme) or 1
+      if Scriptorium.caractere then
+        facteur = facteur * Scriptorium.caractere.facteur_de_combat(homme)
+      end
       force = force + bataille.roles[f.role].poids * facteur
       moral = moral + f.moral
       nombre = nombre + 1

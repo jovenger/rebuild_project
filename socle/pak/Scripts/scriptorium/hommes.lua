@@ -63,6 +63,7 @@ hommes.points = {
   exercice = { x = 5, y = -1, cap = 90 },
   corvee = { x = -4, y = 6, cap = 0 },
   feu = { x = 0, y = 2.2, cap = 180 },
+  des = { x = -2.5, y = -1.5, cap = 45 },   -- un coin près du feu, pour les dés de la veillée (fiche 11)
 }
 
 -- Postes de garde, autour du camp.
@@ -332,6 +333,9 @@ local function faire_partir(d, f, cause, cle)
     f.personnage = nil
   end
   liberer_place(f)
+  if Scriptorium.caractere then
+    Scriptorium.caractere.oublier(f.id)
+  end
   d.liste[f.id] = nil
   for i, id in ipairs(d.ordre) do
     if id == f.id then
@@ -407,6 +411,9 @@ function hommes.embaucher(contrat)
   d.liste[id] = f
   table.insert(d.ordre, id)
   camp().reserver(f.lit, id)
+  if Scriptorium.caractere then
+    Scriptorium.caractere.naitre(id)
+  end
   if d.prochaine_paie == nil then
     d.prochaine_paie = (jour_de(heure) + 7) * 24 + hommes.reglages.heure_paie
     d.derniere_heure = heure
@@ -476,11 +483,13 @@ function hommes.changer_moral(id, delta)
   return true
 end
 
+-- Le même événement pour tous ; une perte de moral pèse selon le sang-froid de chacun (fiche 11).
 function hommes.moral_pour_tous(delta)
   local d = donnees()
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
-    f.moral = borner(f.moral + delta, 0, 100)
+    local sa_part = Scriptorium.caractere and Scriptorium.caractere.moral_ajuste(id, delta) or delta
+    f.moral = borner(f.moral + sa_part, 0, 100)
   end
   enregistrer()
   return #d.ordre
@@ -644,11 +653,24 @@ function hommes.activite_de(id, heure)
     end
   end
   local tranche = tranche_de(heure_dans_le_jour(heure))
-  resultat.activite = tranche.activite
-  if tranche.activite == "sommeil" then
+  local activite = tranche.activite
+  -- La veillée est le temps libre : chacun y fait ce que lui dictent sa fatigue et ses envies (fiche 11) ; « le feu »
+  -- garde la veillée ordinaire.
+  if activite == "veillee" and Scriptorium.caractere then
+    local choix = Scriptorium.caractere.choix_du_soir(id, heure)
+    if choix == "sommeil" or choix == "entrainement" or choix == "des" then
+      activite = choix
+    end
+  end
+  resultat.activite = activite
+  if activite == "sommeil" then
     resultat.lieu = f.lit
     resultat.position = f.lit and camp().position_de(f.lit) or nil
-  elseif tranche.activite == "repas" or tranche.activite == "veillee" then
+  elseif activite == "entrainement" or activite == "des" then
+    local p = hommes.points[(activite == "des") and "des" or "exercice"]
+    resultat.lieu = (activite == "des") and "des" or "exercice"
+    resultat.position = camp().point(p.x, p.y, p.cap)
+  elseif activite == "repas" or activite == "veillee" then
     local sieges = sieges_libres_pour(d)
     local rang = 0
     for i, autre in ipairs(d.ordre) do
@@ -661,9 +683,9 @@ function hommes.activite_de(id, heure)
       resultat.lieu = "feu_central"
       resultat.position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
     end
-  elseif tranche.activite == "exercice" or tranche.activite == "corvee" then
-    local p = hommes.points[tranche.activite]
-    resultat.lieu = tranche.activite
+  elseif activite == "exercice" or activite == "corvee" then
+    local p = hommes.points[activite]
+    resultat.lieu = activite
     resultat.position = camp().point(p.x, p.y, p.cap)
   else
     resultat.lieu = "feu_central"
@@ -716,29 +738,44 @@ function hommes.payer_la_solde()
   return rapport
 end
 
-local function repas_du_jour(d, rapport)
-  local affames = 0
+-- Le repas du matin d'un jour (« moment » : son heure) : rations selon l'appétit de chacun, soins selon sa forme,
+-- puis le compte de la journée passée (fatigue, aguerrissement, fiche 11).
+local function repas_du_jour(d, rapport, moment)
+  local caractere = Scriptorium.caractere
+  local affames, affame = 0, {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
-    if coffre().prelever_reserve("vivres", hommes.reglages.ration, "repas") then
+    local ration = caractere and caractere.ration_de(id, hommes.reglages.ration) or hommes.reglages.ration
+    if coffre().prelever_reserve("vivres", ration, "repas") then
       f.moral = borner(f.moral + 2, 0, 100)
     else
       f.moral = borner(f.moral - 10, 0, 100)
       affames = affames + 1
+      affame[id] = true
     end
   end
   if affames > 0 then
     annoncer("ui_scriptorium_hommes_faim")
   end
   rapport.affames = affames
-  -- Soins : un jour de moins, deux avec un barbier valide.
+  -- Soins : un jour de moins, deux avec un barbier valide, selon la forme de chacun.
   local soin = barbier_valide(d) and 2 or 1
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     if f.blessure > 0 then
-      f.blessure = math.max(0, f.blessure - soin)
+      local jours = caractere and caractere.jours_de_soin(id, soin) or soin
+      f.blessure = math.max(0, f.blessure - jours)
       if f.blessure == 0 then
         rapport.gueris = (rapport.gueris or 0) + 1
+      end
+    end
+  end
+  if caractere then
+    for _, id in ipairs(d.ordre) do
+      local f = d.liste[id]
+      local variation = caractere.passer_la_journee(id, moment, affame[id] == true)
+      if variation ~= 0 then
+        f.moral = borner(f.moral + variation, 0, 100)
       end
     end
   end
@@ -794,7 +831,7 @@ function hommes.battre()
   if d.dernier_jour_repas == nil then d.dernier_jour_repas = repas end
   while d.dernier_jour_repas < repas do
     d.dernier_jour_repas = d.dernier_jour_repas + 1
-    repas_du_jour(d, rapport)
+    repas_du_jour(d, rapport, d.dernier_jour_repas * 24 + hommes.reglages.heure_repas)
     rapport.repas = rapport.repas + 1
     rapport.changements = rapport.changements + 1
   end

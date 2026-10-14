@@ -35,7 +35,7 @@ local function poser(fichier, moment)
 end
 
 essai("réglages : sans fichier, les valeurs validées s'appliquent", function()
-  depart()
+  depart_avec_caractere()
   local r = poser(nil)
   egal(r.etat, "absent", "pas de fichier")
   egal(r.changes, 0, "rien ne change")
@@ -45,7 +45,7 @@ essai("réglages : sans fichier, les valeurs validées s'appliquent", function()
 end)
 
 essai("réglages : une valeur posée, puis retirée du fichier, puis le fichier effacé", function()
-  depart()
+  depart_avec_caractere()
   local r = poser({ hommes = { ration = 3 }, bandes = { brigands = { butin_par_tete = 20 } } })
   egal(r.etat, "applique", "appliqué")
   egal(r.changes, 2, "deux valeurs changées")
@@ -62,7 +62,7 @@ essai("réglages : une valeur posée, puis retirée du fichier, puis le fichier 
 end)
 
 essai("réglages : listes à nom, désignées par le nom", function()
-  depart()
+  depart_avec_caractere()
   local r = poser({ issues = { victoire = { blesses = 0.1 } }, fautes = { rixe = { poids = 5.5 } } })
   egal(r.changes, 2, "deux valeurs")
   egal(bataille.issues[1].nom, "victoire", "la victoire est la première")
@@ -74,7 +74,7 @@ essai("réglages : listes à nom, désignées par le nom", function()
 end)
 
 essai("réglages : sections, noms et textes inconnus refusés, le reste s'applique", function()
-  depart()
+  depart_avec_caractere()
   local r = poser({
     hommes = { ration = 3, rations = 9 },
     magie = { mana = 3 },
@@ -94,7 +94,7 @@ essai("réglages : sections, noms et textes inconnus refusés, le reste s'appliq
 end)
 
 essai("réglages : signe, parts, heures, entiers, taux", function()
-  depart()
+  depart_avec_caractere()
   local r = poser({
     coffre = { lignes_gardees = -3 },
     discipline = { chance_de_base = 1.5, reputation_exaction = 2 },
@@ -117,7 +117,7 @@ essai("réglages : signe, parts, heures, entiers, taux", function()
 end)
 
 essai("réglages : une paire min et max incohérente est refusée", function()
-  depart()
+  depart_avec_caractere()
   local r = poser({ discipline = { vol_min = 30 } })
   egal(r.refuses, 1, "minimum au-dessus du maximum validé")
   egal(Scriptorium.discipline.reglages.vol_min, 5, "minimum validé")
@@ -129,7 +129,7 @@ essai("réglages : une paire min et max incohérente est refusée", function()
 end)
 
 essai("réglages : un fichier inchangé ne fait rien, un fichier illisible ne change rien", function()
-  depart()
+  depart_avec_caractere()
   poser({ hommes = { ration = 3 } })
   local lignes = #FauxJeu.journal_lignes
   local r = poser({ hommes = { ration = 3 } })
@@ -148,7 +148,7 @@ essai("réglages : un fichier inchangé ne fait rien, un fichier illisible ne ch
 end)
 
 essai("réglages : le joueur n'est prévenu qu'en cours de partie", function()
-  depart()
+  depart_avec_caractere()
   poser({ hommes = { ration = 3 } }, "lancement")
   egal(#annonces("ui_scriptorium_reglages_mis_a_jour"), 0, "au lancement, en silence")
   poser({ hommes = { ration = 4 } }, "entree")
@@ -160,7 +160,7 @@ essai("réglages : le joueur n'est prévenu qu'en cours de partie", function()
 end)
 
 essai("réglages : l'enceinte, rayon et pans acceptés, cercle ouvert et rayon dans le camp refusés", function()
-  depart()
+  depart_avec_caractere()
   local r = poser({ enceinte = { rayon = 25, pans = 28 } })
   egal(r.refuses, 0, "25 m et 28 pans : cercle fermé")
   egal(#enceinte.plan, 28 + 2, "plan refait : 28 places et deux tours")
@@ -178,7 +178,7 @@ essai("réglages : l'enceinte, rayon et pans acceptés, cercle ouvert et rayon d
 end)
 
 essai("réglages : une enceinte bâtie est reposée quand son plan change, en partie et à l'entrée", function()
-  depart()
+  depart_avec_caractere()
   FauxJeu.heure = 10
   camp.fonder({ x = 0, y = 0, z = 0 }, 0)
   coffre.ajouter_reserve("bois", 200, "achat")
@@ -201,7 +201,7 @@ essai("réglages : une enceinte bâtie est reposée quand son plan change, en pa
 end)
 
 essai("réglages : relu au lancement, à l'entrée en partie, puis toutes les deux secondes", function()
-  depart()
+  depart_avec_caractere()
   FauxJeu.fichier_reglages = { hommes = { ration = 3 } }
   Scriptorium.demarrer()
   egal(hommes.reglages.ration, 3, "appliqué au lancement")
@@ -220,14 +220,14 @@ essai("réglages : relu au lancement, à l'entrée en partie, puis toutes les de
 end)
 
 essai("réglages : chaque valeur du catalogue est un nombre relevé, et chaque section existe", function()
-  depart()
+  depart_avec_caractere()
   local sections = 0
   for _, entree in ipairs(reglages.catalogue) do
     local morceau = Scriptorium[entree.morceau]
     verifier(type(morceau) == "table" and type(morceau[entree.table]) == "table", "table de " .. entree.section)
     sections = sections + 1
   end
-  egal(sections, 19, "dix-neuf sections")
+  egal(sections, 20, "vingt sections")
   verifier(reglages.relever_les_valeurs_validees() > 100, "plus de cent valeurs réglables")
   egal(reglages.valeur_en_place("prix.vivres"), 2, "prix des vivres")
   egal(reglages.valeur_validee("issues.victoire.cle"), nil, "un texte n'est pas relevé")

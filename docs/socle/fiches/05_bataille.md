@@ -2,6 +2,7 @@
 
 - Morceau : 5. Table : `Scriptorium.bataille`. Fichier : `socle/pak/Scripts/scriptorium/bataille.lua`.
 - État : écrit et passé au banc ; vu en jeu (la bande vient ; mort constatée par le jeu ; fin par le jeu et fin par la règle). Les personnages nés par script ne se battent pas encore : leur combat attend un cerveau à nous (V18). Validée par JoVenGer le 14/10/2026 : alerte, ordre de bataille, délai de deux heures, pertes, quatre sortes de bandes et partage tels quels ; **butin doublé** ; **corps ennemis laissés à fouiller**.
+- Avec la fiche 11 (caractère, 15/10) : la force de chaque homme est multipliée par son aguerrissement, son courage et sa fatigue ; dans un rang, le moindre jugement tombe le premier ; les survivants se fatiguent, s'aguerrissent et se font connaître ; un blessé perd un point de forme.
 
 ## Ce que le joueur voit
 - « Une bande approche du camp : » suivi du nombre, une heure avant qu'elle arrive (deux heures avec les tours de guet du morceau 7).

@@ -62,6 +62,35 @@
   <Row><Cell>ui_scriptorium_gestion_remede</Cell><Cell>Préparer un remède</Cell><Cell>Préparer un remède</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_onguent</Cell><Cell>Préparer un onguent</Cell><Cell>Préparer un onguent</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_soigner</Cell><Cell>Soigner un blessé avec un remède</Cell><Cell>Soigner un blessé avec un remède</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_connaitre</Cell><Cell>Connaître ses hommes</Cell><Cell>Connaître ses hommes</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_faible</Cell><Cell>petit mangeur</Cell><Cell>petit mangeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_fort</Cell><Cell>gros mangeur</Cell><Cell>gros mangeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_faible</Cell><Cell>vite las</Cell><Cell>vite las</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_fort</Cell><Cell>endurant</Cell><Cell>endurant</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_faible</Cell><Cell>lent à se remettre</Cell><Cell>lent à se remettre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_fort</Cell><Cell>se remet vite</Cell><Cell>se remet vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_faible</Cell><Cell>lent à apprendre</Cell><Cell>lent à apprendre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_fort</Cell><Cell>apprend vite</Cell><Cell>apprend vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_faible</Cell><Cell>écervelé</Cell><Cell>écervelé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_fort</Cell><Cell>avisé</Cell><Cell>avisé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_faible</Cell><Cell>craintif</Cell><Cell>craintif</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_fort</Cell><Cell>hardi</Cell><Cell>hardi</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_faible</Cell><Cell>s'emporte vite</Cell><Cell>s'emporte vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_fort</Cell><Cell>garde son sang-froid</Cell><Cell>garde son sang-froid</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_faible</Cell><Cell>sobre</Cell><Cell>sobre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_fort</Cell><Cell>porté sur la boisson</Cell><Cell>porté sur la boisson</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_faible</Cell><Cell>paisible</Cell><Cell>paisible</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_fort</Cell><Cell>querelleur</Cell><Cell>querelleur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_faible</Cell><Cell>honnête</Cell><Cell>honnête</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_fort</Cell><Cell>chapardeur</Cell><Cell>chapardeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_feu</Cell><Cell>aime la veillée au feu</Cell><Cell>aime la veillée au feu</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_entrainement</Cell><Cell>aime s'exercer</Cell><Cell>aime s'exercer</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_des</Cell><Cell>aime les dés</Cell><Cell>aime les dés</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_sommeil</Cell><Cell>aime dormir</Cell><Cell>aime dormir</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_fatigue</Cell><Cell>fatigué</Cell><Cell>fatigué</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_epuise</Cell><Cell>épuisé</Cell><Cell>épuisé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bleu</Cell><Cell>bleu</Cell><Cell>bleu</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_veteran</Cell><Cell>vétéran</Cell><Cell>vétéran</Cell></Row>
   <Row><Cell>ui_scriptorium_reglages_mis_a_jour</Cell><Cell>Réglages du camp mis à jour :</Cell><Cell>Réglages du camp mis à jour :</Cell></Row>
   <Row><Cell>ui_scriptorium_reglages_illisible</Cell><Cell>Le fichier de réglages est illisible : rien n'a changé.</Cell><Cell>Le fichier de réglages est illisible : rien n'a changé.</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_soigner_onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell></Row>

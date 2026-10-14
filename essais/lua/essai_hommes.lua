@@ -191,7 +191,7 @@ essai("hommes : journée réglée sur les heures, places et points", function()
   end
   local cas = {
     { 5.5, "lever" }, { 7.5, "repas" }, { 10, "exercice" }, { 12.5, "repas" },
-    { 15, "corvee" }, { 18.5, "repas" }, { 20, "veillee" }, { 23, "sommeil" }, { 3, "sommeil" },
+    { 15, "corvee" }, { 18.5, "repas" }, { 23, "sommeil" }, { 3, "sommeil" },
   }
   for _, cas_heure in ipairs(cas) do
     local heure = 48 + cas_heure[1]
@@ -202,8 +202,29 @@ essai("hommes : journée réglée sur les heures, places et points", function()
     verifier(activite.position ~= nil, "une position à " .. cas_heure[1] .. " h")
     if cas_heure[2] == "sommeil" then
       egal(activite.lieu, hommes.fiche(id).lit, "dort sur sa paillasse")
-    elseif cas_heure[2] == "repas" or cas_heure[2] == "veillee" then
+    elseif cas_heure[2] == "repas" then
       verifier(string.find(activite.lieu, "^siege_") ~= nil, "assis sur un siège")
+    end
+  end
+  -- La veillée est le temps libre (fiche 11) : le feu (un siège), l'entraînement, les dés ou le lit, selon ses envies,
+  -- et le même choix toute la soirée.
+  local id = libre(48 + 20)
+  local soir = hommes.activite_de(id, 48 + 20)
+  local lieux = { veillee = "^siege_", entrainement = "^exercice$", des = "^des$" }
+  if soir.activite == "sommeil" then
+    egal(soir.lieu, hommes.fiche(id).lit, "dort tôt sur sa paillasse")
+  else
+    verifier(lieux[soir.activite] ~= nil and string.find(soir.lieu, lieux[soir.activite]) ~= nil,
+             "à 20 h, une envie à sa place : " .. tostring(soir.activite) .. " / " .. tostring(soir.lieu))
+  end
+  verifier(soir.position ~= nil, "une position à 20 h")
+  for _, h in ipairs({ 19.5, 21.5 }) do
+    local de_garde = false
+    for _, g in ipairs(hommes.gardes(48 + h)) do
+      if g.id == id then de_garde = true end
+    end
+    if not de_garde then
+      egal(hommes.activite_de(id, 48 + h).activite, soir.activite, "même choix à " .. h .. " h")
     end
   end
 end)

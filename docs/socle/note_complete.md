@@ -30,8 +30,9 @@
   changer plus tard.
 
 ## Où on en est
-- Fait, validé par JoVenGer et vérifié (1 559 vérifications) : bandeau, registre, coffre, camp, hommes, batailles,
-  Directeur (menu en données), enceinte et atelier, patrouilles, discipline, réglages par fichier ; fiches 00 à 10.
+- Fait, validé par JoVenGer et vérifié (1 683 vérifications) : bandeau, registre, coffre, camp, hommes, batailles,
+  Directeur (menu en données), enceinte et atelier, patrouilles, discipline, réglages par fichier, caractère de chaque homme ;
+  fiches 00 à 11.
 - Vu en jeu : camp et enceinte de 20 m debout, feu, bancs et paillasses, coffre et bourse d'Henry, sauvegarde du camp,
   bande qui vient, morts, fins de bataille, butin, corps à piller, réglages changés en pleine partie.
 - **Manque** : nos personnages ne bougent pas et ne se battent pas (un personnage né par script n'a pas de

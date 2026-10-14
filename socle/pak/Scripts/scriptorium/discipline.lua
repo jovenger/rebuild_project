@@ -88,12 +88,21 @@ end
 
 -- ---------------------------------------------------------------- fautes
 
-local function tirer_la_sorte()
+-- La sorte de faute, selon les poids et les penchants du coupable (fiche 11). Rend nil s'il n'a aucun penchant.
+local function tirer_la_sorte(coupable)
+  local caractere = Scriptorium.caractere
+  local poids = {}
   local total = 0
-  for _, f in ipairs(discipline.fautes) do total = total + f.poids end
+  for i, f in ipairs(discipline.fautes) do
+    poids[i] = f.poids * (caractere and caractere.poids_de_faute(coupable, f.nom) or 1)
+    total = total + poids[i]
+  end
+  if total <= 0 then
+    return nil
+  end
   local t = bataille().tirage() * total
-  for _, f in ipairs(discipline.fautes) do
-    t = t - f.poids
+  for i, f in ipairs(discipline.fautes) do
+    t = t - poids[i]
     if t < 0 then return f end
   end
   return discipline.fautes[#discipline.fautes]
@@ -118,6 +127,9 @@ local function commettre(d, coupable, faute, heure)
     hommes().changer_moral(coupable, -5)
     hommes().changer_moral(autre, -5)
     hommes().blesser(autre, 1)
+    if Scriptorium.caractere then
+      Scriptorium.caractere.blessure_recue(autre)
+    end
   elseif faute.nom == "vol" then
     local montant = discipline.reglages.vol_min
       + math.floor(bataille().tirage() * (discipline.reglages.vol_max - discipline.reglages.vol_min + 1))
@@ -139,16 +151,27 @@ local function commettre(d, coupable, faute, heure)
   while #d.a_juger > discipline.reglages.fautes_gardees do
     table.remove(d.a_juger, 1)
   end
+  if Scriptorium.caractere then
+    Scriptorium.caractere.faute_commise(coupable, faute.nom)
+  end
   jeu().journal("Discipline : " .. faute.nom .. " par « " .. f.nom .. " » (" .. incident.id .. ")")
   annoncer(faute.cle, { importance = (faute.nom == "exaction") and "alerte" or "nouvelle", complement = f.nom })
   return incident
 end
 
+-- La chance de faute selon le moral, multipliée selon le jugement de l'homme (fiche 11).
 local function chance_de(f)
   local niveau = hommes().niveau_de_moral(f.moral)
-  if niveau == "abattu" then return discipline.reglages.chance_abattu end
-  if niveau == "morose" then return discipline.reglages.chance_morose end
-  return discipline.reglages.chance_de_base
+  local chance = discipline.reglages.chance_de_base
+  if niveau == "abattu" then
+    chance = discipline.reglages.chance_abattu
+  elseif niveau == "morose" then
+    chance = discipline.reglages.chance_morose
+  end
+  if Scriptorium.caractere then
+    chance = chance * Scriptorium.caractere.facteur_de_faute(f.id)
+  end
+  return chance
 end
 
 -- Les fautes d'une aube. Rend le nombre de fautes commises.
@@ -157,8 +180,8 @@ local function aube(d, heure)
   for _, id in ipairs(hommes().liste()) do
     local f = hommes().fiche(id)
     if f and f.blessure == 0 and bataille().tirage() < chance_de(f) then
-      local faute = tirer_la_sorte()
-      if commettre(d, id, faute, heure) then
+      local faute = tirer_la_sorte(id)
+      if faute and commettre(d, id, faute, heure) then
         fautes = fautes + 1
       end
     end
