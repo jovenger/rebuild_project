@@ -159,6 +159,8 @@ function bataille.bande(id)
   end
   copie.combattants = {}
   for i, c in ipairs(b.combattants or {}) do copie.combattants[i] = c end
+  copie.personnages = {}
+  for i, p in ipairs(b.personnages or {}) do copie.personnages[i] = p end
   copie.ennemis = b.personnages and #b.personnages or 0
   return copie
 end

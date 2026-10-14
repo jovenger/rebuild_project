@@ -162,6 +162,69 @@ function poste.essai_bataille()
   return id
 end
 
+-- Les ennemis dans le jeu de la première bande au contact, et son nom.
+local function ennemis_au_contact()
+  for _, id in ipairs(Scriptorium.bataille.bandes()) do
+    local b = Scriptorium.bataille.bande(id)
+    if #b.personnages > 0 then
+      return b.personnages, id
+    end
+  end
+  return {}, nil
+end
+
+-- Nos hommes présents dans le jeu.
+local function nos_personnages()
+  local liste = {}
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    local f = Scriptorium.hommes.fiche(id)
+    if f and f.personnage then
+      table.insert(liste, f.personnage)
+    end
+  end
+  return liste
+end
+
+-- Bataille : ce que le jeu dit d'un ennemi de la bande au contact et d'un de nos hommes (faction, hostilité, cible,
+-- fonctions de leur personnage), puis de chaque ennemi en une ligne (V18, V19).
+function poste.essai_sonder()
+  local ennemis, bande = ennemis_au_contact()
+  local notres = nos_personnages()
+  jeu().journal("Poste : sonde, bande = " .. tostring(bande) .. ", ennemis = " .. #ennemis .. ", nôtres = " .. #notres)
+  local paires = {}
+  if ennemis[1] then table.insert(paires, { ennemis[1], notres[1] }) end
+  if notres[1] then table.insert(paires, { notres[1], ennemis[1] }) end
+  for _, paire in ipairs(paires) do
+    for _, ligne in ipairs(jeu().decrire_personnage(paire[1], paire[2], true)) do
+      jeu().journal("Poste : sonde « " .. paire[1] .. " » : " .. ligne)
+    end
+  end
+  for _, identifiant in ipairs(ennemis) do
+    local lignes = jeu().decrire_personnage(identifiant, notres[1], false)
+    jeu().journal("Poste : ennemi « " .. identifiant .. " » : " .. table.concat(lignes, " | "))
+  end
+  return #ennemis, #notres
+end
+
+-- Bataille : rend la bande au contact et nos hommes hostiles les uns aux autres (V18).
+function poste.essai_hostiles()
+  local ennemis, bande = ennemis_au_contact()
+  local faites, erreur = jeu().rendre_hostiles(ennemis, nos_personnages())
+  jeu().journal("Poste : hostiles, bande = " .. tostring(bande) .. ", paires = " .. faites .. (erreur and (" ; erreur : " .. erreur) or ""))
+  return faites
+end
+
+-- Bataille : donne à chaque ennemi de la bande au contact un de nos hommes pour cible, et l'inverse (V18).
+function poste.essai_cibler()
+  local ennemis, bande = ennemis_au_contact()
+  local notres = nos_personnages()
+  local a, erreur_a = jeu().cibler(ennemis, notres)
+  local b, erreur_b = jeu().cibler(notres, ennemis)
+  jeu().journal("Poste : cibles, bande = " .. tostring(bande) .. ", ennemis ciblant = " .. a .. ", nôtres ciblant = " .. b
+                .. ((erreur_a or erreur_b) and (" ; erreur : " .. tostring(erreur_a or erreur_b)) or ""))
+  return a, b
+end
+
 -- Directeur : l'installe, puis écrit le menu de la Gestion du camp au journal.
 function poste.essai_directeur()
   local directeur = Scriptorium.directeur
@@ -313,6 +376,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_camp_lever", fonction = function() return poste.essai_camp_lever() end, aide = "Lève le camp" },
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },
+  { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
+  { nom = "scriptorium_essai_hostiles", fonction = function() return poste.essai_hostiles() end, aide = "Rend la bande au contact et nos hommes hostiles" },
+  { nom = "scriptorium_essai_cibler", fonction = function() return poste.essai_cibler() end, aide = "Donne à chaque ennemi un de nos hommes pour cible, et l'inverse" },
   { nom = "scriptorium_essai_directeur", fonction = function() return poste.essai_directeur() end, aide = "Installe le Directeur et écrit le menu de la Gestion du camp" },
   { nom = "scriptorium_gestion_rapport", fonction = function() return poste.gestion("rapport") end, aide = "Le rapport du Directeur" },
   { nom = "scriptorium_essai_enceinte", fonction = function() return poste.essai_enceinte() end, aide = "Bâtit la palissade et les tours" },

@@ -634,6 +634,160 @@ function liaison.personnage_mort(identifiant)
   return ok and mort == true
 end
 
+-- Le texte des valeurs rendues par un appel protégé (pcall) : « erreur … », « rien », ou les valeurs, une entité
+-- rendue étant donnée par son nom.
+local function en_texte(ok, ...)
+  if not ok then
+    return "erreur " .. tostring((...))
+  end
+  local n = select("#", ...)
+  if n == 0 then
+    return "rien"
+  end
+  local morceaux = {}
+  for i = 1, n do
+    local valeur = select(i, ...)
+    if type(valeur) == "table" and type(valeur.GetName) == "function" then
+      local lu, nom = pcall(valeur.GetName, valeur)
+      morceaux[i] = lu and ("entité " .. tostring(nom)) or tostring(valeur)
+    else
+      morceaux[i] = tostring(valeur)
+    end
+  end
+  return table.concat(morceaux, ", ")
+end
+
+-- Appel d'une fonction d'une table du jeu (AI.GetFactionOf…), sans « self ».
+local function appel(table_du_jeu, nom, ...)
+  if type(table_du_jeu) ~= "table" or type(table_du_jeu[nom]) ~= "function" then
+    return "absente"
+  end
+  return en_texte(pcall(table_du_jeu[nom], ...))
+end
+
+-- Appel d'une fonction d'une partie d'un personnage (actor, soul, human), avec « self ».
+local function sonder(objet, nom, ...)
+  if type(objet) ~= "table" then
+    return "pas de partie"
+  end
+  local lu, fonction = pcall(function() return objet[nom] end)
+  if not lu or type(fonction) ~= "function" then
+    return "absente"
+  end
+  return en_texte(pcall(fonction, objet, ...))
+end
+
+-- Les noms des fonctions d'une partie d'un personnage : celles de la table, puis celles de sa métatable
+-- (les parties du moteur portent leurs fonctions dans la métatable).
+local function fonctions_de(objet)
+  local noms, vus = {}, {}
+  local function relever(source)
+    if type(source) == "table" then
+      for cle, valeur in pairs(source) do
+        if type(cle) == "string" and type(valeur) == "function" and not vus[cle] then
+          vus[cle] = true
+          table.insert(noms, cle)
+        end
+      end
+    end
+  end
+  relever(objet)
+  local ok, meta = pcall(getmetatable, objet)
+  if ok and type(meta) == "table" then
+    relever(meta)
+    relever(meta.__index)
+  end
+  table.sort(noms)
+  return noms
+end
+
+-- Ce que le jeu dit d'un personnage, en lignes (poste d'essai, V18 et V19) : position, faction, hostilité envers
+-- Henry et envers « autre », vigilance, cible, et les réponses des fonctions qui pourraient dire la mort.
+-- « avec_fonctions » : ajoute la liste des fonctions de ses parties actor, soul et human.
+function liaison.decrire_personnage(identifiant, autre, avec_fonctions)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return { "introuvable" }
+  end
+  local lignes = {}
+  local function ajouter(texte) table.insert(lignes, texte) end
+  local lu, ici = pcall(function()
+    local p = entite:GetWorldPos()
+    local h = player:GetWorldPos()
+    return string.format("position %.1f, %.1f ; Henry à %.1f m", p.x, p.y, math.sqrt((p.x - h.x) ^ 2 + (p.y - h.y) ^ 2))
+  end)
+  ajouter(lu and ici or ("position illisible : " .. tostring(ici)))
+  ajouter("mort selon le socle = " .. tostring(liaison.personnage_mort(identifiant)))
+  local id_d_henry = type(player) == "table" and player.id or nil
+  ajouter("faction = " .. appel(AI, "GetFactionOf", entite.id) .. " ; vigilance = " .. appel(AI, "GetAlertness", entite.id)
+          .. " ; cible = " .. appel(AI, "GetAttentionTargetEntity", entite.id))
+  ajouter("hostile à Henry = " .. appel(AI, "Hostile", entite.id, id_d_henry) .. " ; personnellement = "
+          .. appel(AI, "IsPersonallyHostile", entite.id, id_d_henry))
+  local autre_entite = entite_nommee(autre)
+  if autre_entite then
+    ajouter("hostile à « " .. autre .. " » = " .. appel(AI, "Hostile", entite.id, autre_entite.id) .. " ; personnellement = "
+            .. appel(AI, "IsPersonallyHostile", entite.id, autre_entite.id))
+  end
+  for _, partie in ipairs({ "actor", "soul", "human" }) do
+    local objet = entite[partie]
+    local reponses = {}
+    for _, nom in ipairs({ "IsDead", "IsUnconscious", "GetHealth", "GetMaxHealth" }) do
+      table.insert(reponses, nom .. " = " .. sonder(objet, nom))
+    end
+    ajouter(partie .. " : " .. table.concat(reponses, " ; "))
+    if avec_fonctions and type(objet) == "table" then
+      ajouter(partie .. ", fonctions : " .. table.concat(fonctions_de(objet), " "))
+    end
+  end
+  ajouter("soul:GetState(health) = " .. sonder(entite.soul, "GetState", "health"))
+  return lignes
+end
+
+-- Rend chaque personnage de « liste » personnellement hostile à chacun de « autres », et l'inverse
+-- (AI.AddPersonallyHostile, relevé Lua du jeu). Rend le nombre de paires faites et la première erreur.
+-- À vérifier en jeu (V18) : l'ordre des arguments, et si les deux camps se battent alors.
+function liaison.rendre_hostiles(liste, autres)
+  local faites, erreur = 0, nil
+  for _, identifiant in ipairs(liste) do
+    local entite = entite_nommee(identifiant)
+    for _, autre in ipairs(autres) do
+      local autre_entite = entite_nommee(autre)
+      if entite and autre_entite then
+        local ok1, e1 = pcall(AI.AddPersonallyHostile, entite.id, autre_entite.id)
+        local ok2, e2 = pcall(AI.AddPersonallyHostile, autre_entite.id, entite.id)
+        if ok1 and ok2 then
+          faites = faites + 1
+        elseif erreur == nil then
+          erreur = tostring(ok1 and e2 or e1)
+        end
+      end
+    end
+  end
+  return faites, erreur
+end
+
+-- Donne à chaque personnage de « liste » une cible prise dans « autres », à tour de rôle (AI.AddAggressiveTarget,
+-- relevé Lua du jeu). Rend le nombre de cibles données et la première erreur. À vérifier en jeu (V18).
+function liaison.cibler(liste, autres)
+  local faites, erreur = 0, nil
+  if #autres == 0 then
+    return 0, "personne à cibler"
+  end
+  for i, identifiant in ipairs(liste) do
+    local entite = entite_nommee(identifiant)
+    local cible = entite_nommee(autres[((i - 1) % #autres) + 1])
+    if entite and cible then
+      local ok, e = pcall(AI.AddAggressiveTarget, entite.id, cible.id)
+      if ok then
+        faites = faites + 1
+      elseif erreur == nil then
+        erreur = tostring(e)
+      end
+    end
+  end
+  return faites, erreur
+end
+
 -- L'âme du Directeur (personnage à nous, apparence neuve).
 -- À vérifier en jeu : à renseigner depuis les tables du socle.
 -- Provisoire, en attendant une âme et une apparence à nous (V20) : un garde « en réserve » de Trosky
