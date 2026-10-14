@@ -129,8 +129,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 32:
-        erreur("ordres : %d commandes lues dans poste.lua, 32 attendues" % len(connues))
+    if len(connues) != 27:
+        erreur("ordres : %d commandes lues dans poste.lua, 27 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -227,31 +227,22 @@ def verifier_identifiants():
         GameToken = nil
         l.memoire.registre = "{b=2}"
         if l.lire_registre() ~= "{b=2}" then return "sans jeton, la mémoire de secours n'est pas lue" end
-        -- Bataille (V18) : hostilité dans les deux sens, cibles à tour de rôle, et une description qui ne casse pas
-        -- quand le moteur n'a pas la fonction demandée.
-        AI = { paires = {}, cibles = {} }
-        function AI.AddPersonallyHostile(a, b) table.insert(AI.paires, { a, b }) end
-        function AI.AddAggressiveTarget(a, b) table.insert(AI.cibles, { a, b }) end
+        -- Bataille (V18, V19) : une description qui ne casse pas quand le moteur n'a pas la fonction demandée.
+        AI = {}
         function AI.GetFactionOf(id) return "brigands" end
         local e1 = l.faire_venir_ennemis("brigands", 2, p, 0)
         local n1 = l.faire_venir_homme("archer", "homme_1", p)
         if type(e1) ~= "table" or #e1 ~= 2 or not n1 then return "ennemis ou homme non venus" end
-        local faites = l.rendre_hostiles(e1, { n1 })
-        if faites ~= 2 or #AI.paires ~= 4 then return "hostilité : " .. tostring(faites) .. " paire(s), " .. #AI.paires .. " appel(s), 2 et 4 attendus" end
-        if AI.paires[1][1] ~= System.entites[e1[1]].id or AI.paires[2][1] ~= System.entites[n1].id then return "hostilité : pas dans les deux sens" end
-        if l.cibler(e1, { n1 }) ~= 2 or AI.cibles[2][2] ~= System.entites[n1].id then return "cibles mal données" end
         local lignes = l.decrire_personnage(e1[1], n1, true)
         local texte = table.concat(lignes, " | ")
         if not string.find(texte, "faction = brigands", 1, true) then return "description sans faction : " .. texte end
         if not string.find(texte, "personnellement = absente", 1, true) then return "fonction absente mal dite : " .. texte end
         if l.decrire_personnage("personne")[1] ~= "introuvable" then return "personnage absent mal dit" end
-        -- Blesser (soul:DealDamage : vie, endurance, rien, vrai) et suivre (actor:StartFollow : l'identifiant suivi).
+        -- Blesser (soul:DealDamage : vie, endurance, rien, vrai ; vu en jeu le 14/10, V19).
         local brigand = System.entites[e1[1]]
         brigand.soul = { DealDamage = function(self, vie, endurance, rien, drapeau) AI.coup = { vie, endurance, drapeau } end }
-        brigand.actor = { StartFollow = function(self, id) AI.suivi = id end }
         if not l.blesser(e1[1], 1000) or AI.coup[1] ~= 1000 or AI.coup[2] ~= 1000 or AI.coup[3] ~= true then return "blessure mal donnée" end
-        if not l.suivre(e1[1], n1) or AI.suivi ~= System.entites[n1].id then return "suivi mal donné" end
-        if l.blesser("personne", 1) or l.suivre("personne", n1) then return "un absent blessé ou mis en marche" end
+        if l.blesser("personne", 1) then return "un absent blessé" end
         AI = nil
         -- Personnages : les propriétés données remplacent celles de la classe (vu le 14/10 : avec la seule âme, ils
         -- restaient inertes) ; un personnage reçoit une copie des propriétés de sa classe, plus son âme. Les objets,

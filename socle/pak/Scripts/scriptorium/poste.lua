@@ -206,60 +206,6 @@ function poste.essai_sonder()
   return #ennemis, #notres
 end
 
--- Bataille : rend la bande au contact et nos hommes hostiles les uns aux autres (V18).
-function poste.essai_hostiles()
-  local ennemis, bande = ennemis_au_contact()
-  local faites, erreur = jeu().rendre_hostiles(ennemis, nos_personnages())
-  jeu().journal("Poste : hostiles, bande = " .. tostring(bande) .. ", paires = " .. faites .. (erreur and (" ; erreur : " .. erreur) or ""))
-  return faites
-end
-
--- Bataille : donne à chaque ennemi de la bande au contact un de nos hommes pour cible, et l'inverse (V18).
-function poste.essai_cibler()
-  local ennemis, bande = ennemis_au_contact()
-  local notres = nos_personnages()
-  local a, erreur_a = jeu().cibler(ennemis, notres)
-  local b, erreur_b = jeu().cibler(notres, ennemis)
-  jeu().journal("Poste : cibles, bande = " .. tostring(bande) .. ", ennemis ciblant = " .. a .. ", nôtres ciblant = " .. b
-                .. ((erreur_a or erreur_b) and (" ; erreur : " .. tostring(erreur_a or erreur_b)) or ""))
-  return a, b
-end
-
--- Âmes de combat de débogage du jeu (Libs/Tables/rpg/soul__test.xml, celles de Scripts/Debug/CombatDebug.lua) :
--- combatFriend_1 à 3 (faction test_combat_blue) pour nos hommes, combatEnemy_1 et combatEnemyCuman_1 (faction
--- test_combat_player_enemy) pour les bandes. Deux factions faites pour s'affronter (V18).
-poste.ames_de_combat = {
-  hommes = { homme_d_armes = "61cbb0a5-922d-4eb0-b0d9-6cfdf00807ee", arbaletrier = "5977088c-fca3-4a3a-9eb8-be8006d17381",
-             archer = "c60c97b7-f46b-4fc4-b304-ed26bbdb6127" },
-  ennemies = { brigands = "584f681c-2f90-4ef2-b1de-470282a7993d", coumans = "20eb21a4-21ba-4530-bcac-3af448cb1810" },
-}
-
--- Âmes de la carte de Kuttenberg (Libs/Tables/rpg/soul__kopa.xml, soul__extraGuards.xml) : un brigand du camp
--- d'Opatovice (faction kutnohorsko_enemies_bandits_campOpatovicko, sous kutnohorsko_enemies, « ennemi public ») ;
--- trois gardes génériques de Kutná Hora. Vu le 14/10 : les factions de combat d'essai (FactionTree__autotests.xml)
--- et celles de la carte de Trosky ne faisaient réagir personne sur la carte de Kuttenberg (V18).
-poste.ames_de_kuttenberg = {
-  hommes = { homme_d_armes = "55f42965-e4d1-4998-9a8b-fb9df46771f3", arbaletrier = "0e1aba06-82de-4270-b0ec-46a8b4744abc",
-             archer = "4af1dfea-2f42-415b-9b7f-a9de8a34a788" },
-  ennemies = { brigands = "08994591-c246-401d-bcd9-ca5d0fe1ddd7" },
-}
-
-local function prendre_les_ames(jeu_d_ames, nom)
-  for role, ame in pairs(jeu_d_ames.hommes) do jeu().ames[role] = ame end
-  for sorte, ame in pairs(jeu_d_ames.ennemies) do jeu().ames_ennemies[sorte] = ame end
-  jeu().journal("Poste : " .. nom .. " en place pour les prochains personnages")
-  return true
-end
-
--- Âmes : les personnages qui viendront ensuite prennent ces âmes ; ceux déjà venus gardent la leur.
-function poste.essai_ames_de_combat()
-  return prendre_les_ames(poste.ames_de_combat, "âmes de combat du jeu (hommes : combatFriend, bandes : combatEnemy)")
-end
-
-function poste.essai_ames_de_kuttenberg()
-  return prendre_les_ames(poste.ames_de_kuttenberg, "âmes de Kuttenberg (hommes : gardes de Kutná Hora, bandes : brigands d'Opatovice)")
-end
-
 -- Bataille : pose la bande au contact à dix-huit mètres devant le camp, en ligne (V18 : à soixante mètres,
 -- personne ne voit personne ; vu le 14/10).
 function poste.essai_rapprocher()
@@ -270,22 +216,6 @@ function poste.essai_rapprocher()
   end
   jeu().journal("Poste : bande « " .. tostring(bande) .. " » rapprochée, " .. #ennemis .. " ennemi(s) à 18 m")
   return #ennemis
-end
-
--- Bataille : chaque ennemi de la bande au contact suit un de nos hommes, à tour de rôle (V18 : faire marcher
--- la bande sur le camp).
-function poste.essai_suivre()
-  local ennemis, bande = ennemis_au_contact()
-  local notres = nos_personnages()
-  local faits, erreur = 0, nil
-  for i, identifiant in ipairs(ennemis) do
-    if #notres > 0 then
-      local ok, raison = jeu().suivre(identifiant, notres[((i - 1) % #notres) + 1])
-      if ok then faits = faits + 1 elseif erreur == nil then erreur = raison end
-    end
-  end
-  jeu().journal("Poste : suivre, bande = " .. tostring(bande) .. ", ennemis en marche = " .. faits .. (erreur and (" ; erreur : " .. erreur) or ""))
-  return faits
 end
 
 -- Henry : posé à douze mètres du premier ennemi de la bande au contact, côté camp (V18 : la bande se bat-elle ?).
@@ -469,12 +399,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
-  { nom = "scriptorium_essai_hostiles", fonction = function() return poste.essai_hostiles() end, aide = "Rend la bande au contact et nos hommes hostiles" },
-  { nom = "scriptorium_essai_cibler", fonction = function() return poste.essai_cibler() end, aide = "Donne à chaque ennemi un de nos hommes pour cible, et l'inverse" },
-  { nom = "scriptorium_essai_ames_de_combat", fonction = function() return poste.essai_ames_de_combat() end, aide = "Les prochains personnages prennent les âmes de combat du jeu" },
-  { nom = "scriptorium_essai_ames_de_kuttenberg", fonction = function() return poste.essai_ames_de_kuttenberg() end, aide = "Les prochains personnages prennent des âmes de la carte de Kuttenberg" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
-  { nom = "scriptorium_essai_suivre", fonction = function() return poste.essai_suivre() end, aide = "Chaque ennemi suit un de nos hommes" },
   { nom = "scriptorium_essai_voir_bande", fonction = function() return poste.essai_voir_bande() end, aide = "Pose Henry à 12 m de la bande, côté camp" },
   { nom = "scriptorium_essai_frapper", fonction = function() return poste.essai_frapper() end, aide = "Blesse à mort le premier ennemi vivant de la bande" },
   { nom = "scriptorium_essai_directeur", fonction = function() return poste.essai_directeur() end, aide = "Installe le Directeur et écrit le menu de la Gestion du camp" },

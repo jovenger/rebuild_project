@@ -781,17 +781,6 @@ function liaison.decrire_personnage(identifiant, autre, avec_fonctions)
   return lignes
 end
 
--- Fait suivre « cible » à un personnage (actor:StartFollow, vu dans les scripts du jeu : le joueur suit un
--- personnage par là). Rend vrai, ou faux et l'erreur. À vérifier en jeu (V18) : un personnage non joueur suit-il ?
-function liaison.suivre(identifiant, cible)
-  local entite, cible_entite = entite_nommee(identifiant), entite_nommee(cible)
-  if not entite or not cible_entite or type(entite.actor) ~= "table" then
-    return false, "personnage introuvable"
-  end
-  local ok, erreur = pcall(function() entite.actor:StartFollow(cible_entite.id) end)
-  return ok, (not ok) and tostring(erreur) or nil
-end
-
 -- Blesse un personnage (soul:DealDamage, comme l'aide de débogage du jeu Scripts/Debug/Quick.lua :
 -- vie, endurance, puis rien et vrai). Rend vrai, ou faux et l'erreur.
 function liaison.blesser(identifiant, points)
@@ -801,51 +790,6 @@ function liaison.blesser(identifiant, points)
   end
   local ok, erreur = pcall(function() entite.soul:DealDamage(points, points, __null, true) end)
   return ok, (not ok) and tostring(erreur) or nil
-end
-
--- Rend chaque personnage de « liste » personnellement hostile à chacun de « autres », et l'inverse
--- (AI.AddPersonallyHostile, relevé Lua du jeu). Rend le nombre de paires faites et la première erreur.
--- À vérifier en jeu (V18) : l'ordre des arguments, et si les deux camps se battent alors.
-function liaison.rendre_hostiles(liste, autres)
-  local faites, erreur = 0, nil
-  for _, identifiant in ipairs(liste) do
-    local entite = entite_nommee(identifiant)
-    for _, autre in ipairs(autres) do
-      local autre_entite = entite_nommee(autre)
-      if entite and autre_entite then
-        local ok1, e1 = pcall(AI.AddPersonallyHostile, entite.id, autre_entite.id)
-        local ok2, e2 = pcall(AI.AddPersonallyHostile, autre_entite.id, entite.id)
-        if ok1 and ok2 then
-          faites = faites + 1
-        elseif erreur == nil then
-          erreur = tostring(ok1 and e2 or e1)
-        end
-      end
-    end
-  end
-  return faites, erreur
-end
-
--- Donne à chaque personnage de « liste » une cible prise dans « autres », à tour de rôle (AI.AddAggressiveTarget,
--- relevé Lua du jeu). Rend le nombre de cibles données et la première erreur. À vérifier en jeu (V18).
-function liaison.cibler(liste, autres)
-  local faites, erreur = 0, nil
-  if #autres == 0 then
-    return 0, "personne à cibler"
-  end
-  for i, identifiant in ipairs(liste) do
-    local entite = entite_nommee(identifiant)
-    local cible = entite_nommee(autres[((i - 1) % #autres) + 1])
-    if entite and cible then
-      local ok, e = pcall(AI.AddAggressiveTarget, entite.id, cible.id)
-      if ok then
-        faites = faites + 1
-      elseif erreur == nil then
-        erreur = tostring(e)
-      end
-    end
-  end
-  return faites, erreur
 end
 
 -- L'âme du Directeur (personnage à nous, apparence neuve).
