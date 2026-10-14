@@ -390,6 +390,31 @@ function liaison.cap_du_joueur()
   return 0
 end
 
+-- Pour le poste d'essai : pose Henry « distance » mètres devant lui, à la hauteur du terrain
+-- (System.GetTerrainElevation). Refusé si la destination est plus de deux mètres sous Henry (de l'eau, sans doute).
+-- Rend vrai et un compte rendu, ou faux et la raison.
+function liaison.deplacer_le_joueur(distance)
+  local ok, resultat = pcall(function()
+    local ici = player:GetWorldPos()
+    local cap = math.rad(liaison.cap_du_joueur())
+    local cible = { x = ici.x + distance * math.sin(cap), y = ici.y + distance * math.cos(cap), z = ici.z }
+    local sol = System.GetTerrainElevation(cible)
+    if type(sol) ~= "number" then
+      return { false, "hauteur du terrain illisible" }
+    end
+    if sol < ici.z - 2 then
+      return { false, string.format("destination %.1f m plus bas : de l'eau, sans doute", ici.z - sol) }
+    end
+    cible.z = sol + 0.1
+    player:SetWorldPos(cible)
+    return { true, string.format("de %.0f, %.0f, %.1f à %.0f, %.0f, %.1f", ici.x, ici.y, ici.z, cible.x, cible.y, cible.z) }
+  end)
+  if not ok then
+    return false, tostring(resultat)
+  end
+  return resultat[1], resultat[2]
+end
+
 -- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
 -- Provisoire, en attendant les tables à nous : des gardes « en réserve » de Trosky, génériques et non hostiles
 -- (extraGuards_dummy_*, table Libs/Tables/rpg/soul__extraGuards.xml). Vu en jeu le 14/10 : l'homme d'armes vient
