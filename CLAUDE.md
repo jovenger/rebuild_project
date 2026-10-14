@@ -2,7 +2,7 @@
 
 - Tout en français, sans exception. Réponses concises, techniques, en listes.
 - Périmètre (14/10/2026) : refaire entièrement, à notre façon, le mod « Mercenaries » d'Alex, comme mod à part (`scriptorium_socle`). Son adaptation à Scriptorium viendra après, hors de ce chantier.
-- Plan : `docs/socle/plan_de_refonte.md`. Avancement : `docs/socle/avancement.md`. Fiches : `docs/socle/fiches/`. Essai en jeu : `docs/socle/essai_en_jeu.md`. Idées pour plus tard (pas maintenant) : `docs/socle/idees_pour_plus_tard.md`.
+- Plan : `docs/socle/plan_de_refonte.md`. Suite : `docs/socle/plan_d_action.md`. Reprise : `docs/socle/reprise.md` (et la note à coller `docs/socle/note_complete.md`). Avancement : `docs/socle/avancement.md`. Fiches : `docs/socle/fiches/`. Essai en jeu : `docs/socle/essai_en_jeu.md`. Idées pour plus tard (pas maintenant) : `docs/socle/idees_pour_plus_tard.md`.
 
 ## Interdits (règle de JoVenGer du 14/10/2026)
 - Ne jamais écrire dans le Scriptorium actuel (`C:\Users\maste\Desktop\Scriptorium`), ni dans son git local. Lecture seule, si JoVenGer la donne.
@@ -29,4 +29,5 @@
 - `outils/empreintes.py` : relevé des empreintes d'Alex, pour le contrôle d'absence.
 - `outils/verifier_modeles.py` : vérifie que les modèles appelés par le camp et l'enceinte existent dans les paks du jeu (lecture seule).
 - `outils/ordonner.py` : ordres au poste d'essai sans console (fichier `Mods\scriptorium_socle\ordres.lua`, relu par `liaison.lire_ordres`).
+- `outils/pilotage/` : séance d'essai en jeu sans que JoVenGer touche à rien (`debut_essai.ps1`, `vers_partie1.ps1`, `confirmer_partie1.ps1`, `touches.ps1`, `tour.ps1`, `fin_essai.ps1` ; captures dans `securite\captures`, hors de git).
 - `outils/regler.py` : réglages par fichier (`Mods\scriptorium_socle\reglages.lua`, relu par `liaison.lire_reglages`, appliqué par le morceau `reglages`, fiche 10) ; chaque valeur est éprouvée par le socle avant d'être écrite ; `--liste` donne les valeurs réglables. L'installateur garde ce fichier.

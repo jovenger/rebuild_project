@@ -1,75 +1,92 @@
-# Fiche de reprise — socle de Scriptorium (état au 14/10/2026, soir)
+# Fiche de reprise — socle de Scriptorium (état au 15/10/2026)
 
-À coller au début d'une nouvelle conversation Claude Code, lancée sur l'ordinateur de JoVenGer.
+Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer. La note courte à coller est
+`docs/socle/note_complete.md` ; ce fichier-ci donne le détail.
 
 ## 1. Le projet
-- JoVenGer construit « Scriptorium », un grand mod pour Kingdom Come: Deliverance II (camp de mercenaires, Directeur, hommes, raids, coffre, Gestion du camp). Il vit dans `C:\Users\maste\Desktop\Scriptorium`, git local seulement.
-- Scriptorium repose aujourd'hui sur le mod « Mercenaries » d'Alex (Steam Workshop n° 3689921142, version 3.0), copié dans `Scriptorium\mercenaires\`.
-- **Mission :** refaire entièrement ce mod, à notre façon, comme un mod à part, sans jamais copier, traduire ni renommer le code d'Alex. Son adaptation à Scriptorium viendra après, hors de ce chantier.
-- Dépôt du chantier : `https://github.com/jovenger/rebuild_project`, branche `ccr-c18b8b50-tespti`, PR brouillon n° 2.
+- JoVenGer construit « Scriptorium », un grand mod pour Kingdom Come: Deliverance II (KCD2 1.5.6). Il vit dans
+  `C:\Users\maste\Desktop\Scriptorium` (git local seulement). Il repose aujourd'hui sur le mod « Mercenaries » d'Alex.
+- **Mission du chantier :** refaire entièrement ce mod, à notre façon, comme un mod à part, `scriptorium_socle`, sans
+  jamais copier, traduire ni renommer le code d'Alex. L'adaptation à Scriptorium (la « bascule ») viendra après, sur
+  l'ordre de JoVenGer.
+- Dépôt : `https://github.com/jovenger/rebuild_project`, branche `ccr-c18b8b50-tespti`, sur le PC dans
+  `C:\Users\maste\Desktop\rebuild_project`.
 
-## 2. Règles de JoVenGer (obligatoires)
-- Tout en français, sans exception. Réponses concises, techniques, en listes.
-- **Ne jamais toucher au Scriptorium actuel**, ni à son git, ni à la copie `D:\Scriptorium V2\Scriptorium`, ni aux trois mods installés (`Mods\scriptorium`, `scriptorium_regles`, `scriptorium_lumiere`), ni à `Data\` du jeu. Lecture seule si besoin.
-- Le socle neuf s'installe dans `Mods\scriptorium_socle` seulement, et se joue sur une partie d'essai neuve, jamais sur la partie actuelle.
-- Jamais le code d'Alex : fiche de comportement d'abord, code neuf d'après la fiche seule.
-- Une chose à la fois, menée jusqu'au bout ; rien laissé en essai ; pas de `TODO`.
-- Pas de commit si `essais\tout_verifier.py` ne passe pas entièrement.
-- Aucune action destructive sans l'accord de JoVenGer juste avant.
-- Un message de JoVenGer pendant le travail se prend en compte tout de suite.
-- Plus aucun texte jaune par-dessus l'image du jeu : tout message passe par le bandeau en bas de l'écran.
-- Le camp paie au coffre, jamais avec la bourse d'Henry. Les tentes sont à JoVenGer. Les dépenses restent justes.
+## 2. Comment travailler avec JoVenGer
+- **Tout en français**, réflexion comprise ; réponses courtes, en listes. Il ne lit pas l'anglais.
+- **Il ne tape aucune commande** : Claude lance tout lui-même (PowerShell), JoVenGer clique « Autoriser » et répond.
+- Il valide par **questions à cocher** (outil de questions), une série de quatre au plus à la fois.
+- Il est souvent loin de l'écran : lui dire régulièrement en deux lignes où on en est.
+- Une chose à la fois, menée jusqu'au bout ; rien laissé en essai ; pas de `TODO`. Un message de lui pendant le travail
+  se prend en compte tout de suite.
 
-## 3. Ce qui est fait (tout est dans le dépôt)
-- `CLAUDE.md` : règles et plan des dossiers. `docs/socle/plan_de_refonte.md` : le plan et les décisions D1 à D10. `docs/socle/avancement.md` : tableau des morceaux et résumé en une page. `docs/socle/fiches/00` à `09` : fiches de comportement (02 à 09 attendent la validation de JoVenGer). `docs/socle/essai_en_jeu.md` : marche à suivre et 24 points V1 à V24 à vérifier.
-- `socle/pak/Scripts/scriptorium/` : `noyau.lua` (table `Scriptorium`, morceaux, démarrage, battement commun toutes les 30 s en partie), `liaison.lua` (**seul fichier qui parle au moteur**, 24 appels « à vérifier en jeu »), `bandeau.lua`, `registre.lua`, `coffre.lua`, `camp.lua`, `hommes.lua`, `bataille.lua`, `directeur.lua`, `enceinte.lua`, `atelier.lua`, `patrouilles.lua`, `discipline.lua` (décision D7 : fautes, jugements, réputation), `poste.lua` (quatorze commandes de console `scriptorium_*`).
-- `socle/pak/Scripts/Mods/scriptorium_socle.lua` : démarrage (le jeu l'exécute juste après `Scripts/main.lua`). `socle/textes/fr/text_ui__scriptorium_socle.xml` : 77 textes. `socle/mod.manifest`.
-- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 1 322 vérifications dont un scénario complet d'une semaine, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
-- `outils/empreintes.py` : relevé des empreintes d'Alex (sha256 seulement, rien en clair).
-- `noyau/installer.py` : installe dans `Mods\scriptorium_socle` seulement, refuse les chemins interdits, met de côté dans `securite\` avant de remplacer, relance la vérification avant.
+## 3. Interdits (règles de JoVenGer)
+- Ne jamais écrire dans `C:\Users\maste\Desktop\Scriptorium` ni dans son git ; ne jamais ouvrir ni lire
+  `Scriptorium\mercenaires\` (salle blanche : seul `outils\empreintes.py` le parcourt, et n'en garde que des sha256).
+- Ne jamais toucher à `D:\Scriptorium V2\Scriptorium`.
+- Dans le jeu (`G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2`) : ne jamais écrire dans `Mods\scriptorium`,
+  `Mods\scriptorium_regles`, `Mods\scriptorium_lumiere`, ni dans `Data\` (lecture des paks permise, en mémoire). Le
+  socle s'installe dans `Mods\scriptorium_socle` seulement, par `noyau\installer.py`.
+- Ne jamais charger la **Partie 2** (`playline1`, partie actuelle) avec le socle. La **Partie 1** (`playline0`, finie)
+  sert aux essais, chargée sur la sauvegarde 473, **jamais sauvegardée**.
+- Aucune action destructive (suppression, écrasement, modification de la liste des mods) sans l'accord de JoVenGer
+  juste avant. Ne jamais renommer ni déplacer les dossiers des mods.
+- Pas de commit si `py -3.13 essais\tout_verifier.py` ne finit pas par « tout passe ». Commits signés
+  `-c user.name="Claude" -c user.email="noreply@anthropic.com"`, message terminé par
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Plus aucun texte jaune par-dessus l'image du jeu : tout message passe par le bandeau en bas, bande noire, texte blanc.
+- Le camp paie au coffre, jamais avec la bourse d'Henry.
+- Règles, agissements et comportements des hommes et du camp : **toujours en données et réglables** (fichier de
+  réglages, fiche 10), pour que le programme Scriptorium puisse les changer plus tard.
+- `docs\socle\idees_pour_plus_tard.md` : n'y pas toucher avant la fin du reste.
 
-## 4. Ce qui n'est pas fait
-- **Aucun essai en jeu.** Vingt-quatre appels du moteur restent à confirmer dans `liaison.lua` (affichage, dialogue, sauvegarde, chargement, console, manifeste, bourse d'Henry, heure, pose d'objets, position d'Henry, modèles, complément, venue des personnages et des ennemis, ordres, morts, Directeur, dialogue de gestion, porte, partie en cours). Tant que la sauvegarde n'est pas confirmée, le registre ne survit pas à la fermeture du jeu.
-- **Les âmes** (`liaison.ames`, `liaison.ames_ennemies`, `liaison.ame_du_directeur`) et **les chemins des modèles** (`camp.modeles`, `enceinte.modeles`) sont vides ou provisoires : à relever dans le jeu.
-- **Les tables du jeu** (âmes, personnages, apparence du Directeur), **la quête de fond**, **les dialogues** et **les voix** ne sont pas faits : le menu de la Gestion du camp existe en données, sans écran de jeu.
-- **Empreintes d'Alex non relevées** : le contrôle d'absence ne tourne pas encore.
-- Aucun morceau n'est scellé.
+## 4. Ce qui est fait
+- **Treize morceaux** dans `socle\pak\Scripts\scriptorium\` : `noyau`, `liaison` (seul fichier qui parle au moteur),
+  `bandeau`, `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte` et `atelier`, `patrouilles`,
+  `discipline`, `reglages`, et le `poste` d'essai (27 ordres). Démarrage : `socle\pak\Scripts\Mods\scriptorium_socle.lua`.
+- **Fiches 00 à 10** dans `docs\socle\fiches\` ; **02 à 10 validées par JoVenGer** (14 et 15/10, questions à cocher).
+  Changements qu'il a demandés : livre de comptes à 50 lignes, deux rations par homme et par jour, butin doublé, corps
+  ennemis laissés à fouiller une journée, enceinte de 20 m (22 pans), l'onguent soin léger, réglages par fichier.
+- **Banc** : `essais\tout_verifier.py` — syntaxe Lua 5.1, 1 559 vérifications sur un faux jeu, ordres par fichier,
+  liaison sur un faux moteur, réglages par fichier (outil, liaison, installateur), noms interdits, 80 textes, manifeste,
+  contrôle d'absence contre les empreintes d'Alex (0 partout). Tout passe.
+- **Outils** : `noyau\installer.py` (garde le fichier de réglages), `outils\ordonner.py` (ordres au poste),
+  `outils\regler.py` (réglages : `chemin=valeur`, `--retirer`, `--voir`, `--liste` des 135 valeurs),
+  `outils\verifier_modeles.py`, `outils\empreintes.py`, et `outils\pilotage\` (voir partie 6).
 
-## 5. Décisions prises (accord de principe de JoVenGer le 14/10)
-- D1 : éviter le mot « mercenaire » dans les textes (« la Compagnie », « soudoyers », « hommes d'armes », « soudards » pour les ennemis).
-- D2 : voix du jeu de base pour les répliques courtes ; menus du Directeur sans voix.
-- D3 : français seul au début.
-- D4 : partie d'essai neuve pendant le chantier.
-- D5 : salle blanche stricte (ne jamais ouvrir `mercenaires/` pour écrire le code).
-- D6 : à la fin, seules les empreintes d'Alex sont gardées.
-- D7 : toutes les nouveautés d'époque (contrat, solde, moral, vivres, rangs, pavois, guet, butin, barbier, usure, discipline, noms d'époque) — toutes faites au banc.
-- D8 : bandeau en bas de l'écran, premier morceau.
-- D9 : projet dans `C:\Users\maste\Desktop\rebuild_project`, mod d'essai `Mods\scriptorium_socle`.
-- D10 : pendant un essai, désactiver les trois mods Scriptorium par la liste des mods chargés (`mod_order.txt`, à vérifier), jamais en renommant un dossier.
+## 5. Ce qui est vu en jeu (points V1 à V24 dans `essai_en_jeu.md`)
+- Chargement du mod, textes français, bandeau en bas, ordres par fichier, minuteries posées à l'entrée en partie,
+  registre gardé par la sauvegarde et lié à sa partie, coffre et bourse d'Henry, heure du jeu.
+- Camp debout et orienté comme Henry, feu qui brûle, bancs `Chair`, paillasses `Bed`, coffre ; enceinte de 20 m fermée,
+  tours, porte qui s'ouvre et se ferme (et se ferme seule la nuit, barrée si une bande vient : au banc).
+- Hommes et Directeur présents (âmes provisoires) ; bande de cinq qui vient ; mort vue (`actor:IsDead`) ; fins de
+  bataille par le jeu et par la règle ; butin doublé ; morts couchés en corps (`actor:RagDollize`) que le jeu propose de
+  piller, retirés après la durée réglée.
+- Fichier de réglages lu au lancement, appliqué en pleine partie avec son message, enceinte reposée à la nouvelle taille.
+- **Pas encore** : nos personnages ne bougent pas et ne se battent pas (V17, V18) ; pas de dialogue du Directeur (V21) ;
+  âmes et apparences à nous (V20) ; une aube, une semaine, une patrouille, la porte la nuit, V6.
 
-## 6. Pour démarrer sur l'ordinateur
-```
-git clone https://github.com/jovenger/rebuild_project "C:\Users\maste\Desktop\rebuild_project"
-cd "C:\Users\maste\Desktop\rebuild_project"
-git checkout ccr-c18b8b50-tespti
-py -3.13 -m pip install lupa
-py -3.13 essais\tout_verifier.py
-```
-Puis, pour l'essai en jeu (voir `docs\socle\essai_en_jeu.md`) :
-```
-py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
-```
-Et pour les empreintes (lecture seule sur la copie d'Alex) :
-```
-py -3.13 outils\empreintes.py "C:\Users\maste\Desktop\Scriptorium\mercenaires" docs\socle\empreintes_alex.json
-```
+## 6. Mener un essai en jeu (seul, sans que JoVenGer touche à rien)
+1. Accord de JoVenGer pour changer la liste des mods.
+2. `outils\pilotage\debut_essai.ps1` : vérifie la liste d'origine, arrête le veilleur du Scriptorium, ne laisse que
+   `scriptorium_socle`.
+3. `outils\pilotage\vers_partie1.ps1` : ferme le jeu sans sauvegarder, contrôle la Partie 1, installe, lance avec
+   `-devmode`, va jusqu'à la sauvegarde 473 ; regarder `securite\captures\choix_473.png`, puis
+   `outils\pilotage\confirmer_partie1.ps1`.
+4. Ordres : `py -3.13 outils\ordonner.py --jeu "<jeu>" scriptorium_essai_aller_nord` (deux fois : le pré fauché),
+   puis `_camp`, `_coffre` (trois fois), `_hommes`, `_directeur`, `_enceinte`, `_bataille`, `_voir_bande`, `_frapper`…
+   (`--liste` pour tous). Cinq secondes entre deux ordres. Le journal `kcd.log` (racine du jeu) dit le résultat, lignes
+   `[Scriptorium]`, écrites par moments.
+5. Voir : `. outils\pilotage\touches.ps1` puis `Capture "nom"`, `Tourner pas`, `Marcher secondes` ;
+   `outils\pilotage\tour.ps1 -Nom x` fait une planche de huit vues. Les images vont dans `securite\captures\`.
+6. **Toujours finir** par `outils\pilotage\fin_essai.ps1` : jeu fermé sans sauvegarde, Partie 1 contrôlée, liste des
+   mods d'origine remise (empreinte `75A3A33C…`), veilleur relancé. Le noter dans `avancement.md`.
+- Pièges connus : la console du jeu ne s'ouvre pas (d'où les ordres par fichier) ; au menu principal, fermer demande
+  « Voulez-vous quitter le jeu ? » (les scripts répondent) ; une minuterie posée au lancement du mod ne tire jamais ;
+  dans le prologue d'une partie neuve l'heure est arrêtée (d'où la Partie 1) ; le dossier `securite\` (copies de la
+  liste des mods et de la Partie 1, captures) n'est pas dans git.
 
-## 6 bis. Pour plus tard, pas maintenant
-- `docs/socle/idees_pour_plus_tard.md` : vingt-six idées (contrats, chronique, discipline, histoires des hommes, calendrier, pavois et traits…). Consigne de JoVenGer : on termine d'abord ce qui est commencé.
-
-## 7. Prochaines étapes, dans l'ordre
-1. Essai en jeu, réponses aux points V1 à V24 ; corriger `liaison.lua`, renseigner les âmes et les modèles d'après ce que le jeu dit.
-2. Relever les empreintes d'Alex, commettre `docs/socle/empreintes_alex.json`, vérifier que le contrôle d'absence donne 0 partout.
-3. Faire valider les fiches 02 à 09 par JoVenGer ; sceller les morceaux un par un dans `avancement.md`, chacun après son essai en jeu.
-4. Puis : les tables du jeu (âmes et personnages à nous, apparence neuve du Directeur), le dialogue de la Gestion du camp, la quête de fond, le contrôle d'absence en mode strict.
-5. Seulement après tout cela : `docs/socle/idees_pour_plus_tard.md`.
+## 7. Ce qui reste à faire
+Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
+3. dialogue du Directeur et Gestion du camp à l'écran ; 4. quête de fond ; 5. voix et icônes ; 6. essais en jeu restants ;
+7. fin du chantier (contrôle strict, scellés, langues, bascule sur ordre).
