@@ -170,6 +170,7 @@ def verifier_identifiants():
           System.derniere_orientation = p.orientation
           System.derniere_position = p.position
           local e = { id = newproxy(), name = p.name }
+          function e:SetWorldAngles(a) System.derniers_angles = a end
           System.entites[p.name] = e
           return e
         end
@@ -198,9 +199,13 @@ def verifier_identifiants():
         local cap = l.cap_du_joueur()
         if math.abs(cap - 270) > 1e-6 then return "cap d'Henry face à l'ouest : " .. tostring(cap) .. ", 270 attendu" end
         l.poser_objet("tente", "modele", p, cap, "tente")
-        local z = System.derniere_orientation.z
-        if math.abs(math.sin(z) - 1) > 1e-6 or math.abs(math.cos(z)) > 1e-6 then
-          return "objet posé à 270 : angle moteur " .. tostring(z) .. ", l'ouest (+90°) attendu"
+        -- « orientation » est un vecteur de direction (l'avant), à l'horizontale ; les angles sont posés à part.
+        local o = System.derniere_orientation
+        if math.abs(o.x + 1) > 1e-6 or math.abs(o.y) > 1e-6 or o.z ~= 0 then
+          return "objet posé à 270 : avant (" .. o.x .. ", " .. o.y .. ", " .. o.z .. "), l'ouest (-1, 0, 0) attendu"
+        end
+        if math.abs(System.derniers_angles.z - math.pi / 2) > 1e-6 then
+          return "objet posé à 270 : angle moteur " .. tostring(System.derniers_angles.z) .. ", +90° attendu"
         end
         -- Registre : par le jeton du jeu, relu même sans la mémoire ; mémoire de secours sans jeton.
         GameToken = { valeurs = {} }

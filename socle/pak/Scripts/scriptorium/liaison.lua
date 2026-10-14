@@ -198,7 +198,7 @@ end
 -- Le moteur compte l'angle autour de la verticale dans l'autre sens (vers l'ouest = +90°) : vu en jeu le 14/10,
 -- un camp fondé face à l'ouest sortait en miroir, la tente du Directeur à l'est. La liaison retourne le sens.
 local function cap_vers_moteur(cap)
-  return math.rad(-(cap or 0))
+  return math.rad((-(cap or 0) + 180) % 360 - 180)
 end
 
 local function cap_depuis_moteur(radians)
@@ -208,18 +208,24 @@ end
 -- Fait naître une entité et rend son nom, ou nil et la raison. Le nom ne garde que des lettres ASCII, chiffres et
 -- « _ » : un nom d'affichage (« Mikuláš Kladivo ») ne sert pas tel quel de nom d'entité. La classe est écrite
 -- en clair (« %w » dépend de la langue du système et peut garder un octet accentué).
+-- « orientation » de System.SpawnEntity est un vecteur de direction (l'avant de l'entité), pas des angles :
+-- vu le 14/10, en lui passant { 0, 0, angle }, tout objet de cap non nul naissait couché, l'avant vers le ciel
+-- (tour de guet allongée, pans de palissade à plat, tentes renversées). L'avant est donné à l'horizontale, puis
+-- les angles sont fixés par SetWorldAngles.
 local function faire_naitre(classe, nom, position, cap, proprietes)
   local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
+  local angle = cap_vers_moteur(cap)
   local ok, entite = pcall(function()
     return System.SpawnEntity({
       class = classe,
       name = nom_unique,
       position = { x = position.x, y = position.y, z = position.z },
-      orientation = { x = 0, y = 0, z = cap_vers_moteur(cap) },
+      orientation = { x = -math.sin(angle), y = math.cos(angle), z = 0 },
       properties = proprietes,
     })
   end)
   if ok and entite and entite.id then
+    pcall(function() entite:SetWorldAngles({ x = 0, y = 0, z = angle }) end)
     return nom_unique
   end
   return nil, tostring(entite)
