@@ -71,38 +71,6 @@ function liaison.minuterie(millisecondes, fonction)
   return Script.SetTimer(millisecondes, fonction)
 end
 
--- Le registre dans la sauvegarde : un jeton du jeu (GameToken.SetToken / GetToken, présents dans le Lua du
--- jeu), que CryEngine enregistre avec la partie. À vérifier en jeu : que le jeton est créé à la première
--- écriture, qu'il garde la chaîne entière, et qu'il revient après sauvegarde, fermeture et rechargement (V4).
--- La mémoire de secours reste : elle couvre la partie en cours si le jeton est refusé.
-liaison.nom_du_jeton = "scriptorium_socle.registre"
-local jeton_essaye = false
-
--- Lit la chaîne du registre enregistrée dans la partie, ou nil.
-function liaison.lire_registre()
-  local ok, valeur = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
-  if ok and type(valeur) == "string" and string.sub(valeur, 1, 1) == "{" then
-    return valeur
-  end
-  return liaison.memoire.registre
-end
-
--- Enregistre la chaîne du registre dans la partie. La première fois, relit le jeton et dit au journal s'il tient.
-function liaison.ecrire_registre(chaine)
-  liaison.memoire.registre = chaine
-  local ok, erreur = pcall(function() GameToken.SetToken(liaison.nom_du_jeton, chaine) end)
-  if not jeton_essaye then
-    jeton_essaye = true
-    local relu_ok, relu = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
-    if ok and relu_ok and relu == chaine then
-      liaison.journal("Registre : jeton du jeu en service (" .. #chaine .. " caractères)")
-    else
-      liaison.journal("Registre : jeton du jeu refusé (" .. tostring(ok and (relu_ok and "relu différent" or relu) or erreur)
-                      .. ") ; mémoire de secours seule")
-    end
-  end
-end
-
 -- Ajoute une commande de console pour le poste d'essai.
 -- À vérifier en jeu : System.AddCCommand(nom, code_lua, aide).
 function liaison.commande(nom, code_lua, aide)
@@ -255,6 +223,75 @@ function liaison.objet_existe(identifiant)
   return entite_nommee(identifiant) ~= nil
 end
 
+-- Le registre dans la sauvegarde. Vu en jeu le 14/10 : un jeton du jeu (GameToken.SetToken / GetToken) est
+-- gardé par « Sauvegarder et quitter » et revient au rechargement (V4) ; mais il n'est pas remis à zéro quand
+-- on charge une autre sauvegarde : une sauvegarde plus ancienne héritait du camp de la précédente.
+-- Le jeton porte donc « identité|données », et une marque invisible « scriptorium_registre_<identité> » est
+-- posée dans le monde : elle est enregistrée avec la sauvegarde. À la lecture, sans la marque de son identité,
+-- le jeton vient d'une autre partie et il est ignoré. La mémoire de secours couvre un jeton refusé.
+liaison.nom_du_jeton = "scriptorium_socle.registre"
+liaison.prefixe_de_la_marque = "scriptorium_registre_"
+local identite_de_la_partie = nil
+local jeton_essaye = false
+
+local function lire_le_jeton()
+  local ok, valeur = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
+  if not ok or type(valeur) ~= "string" then
+    return nil, nil
+  end
+  local identite, donnees = string.match(valeur, "^([%w_]+)|(.*)$")
+  return identite, donnees
+end
+
+-- Lit la chaîne du registre enregistrée dans cette partie, ou nil.
+function liaison.lire_registre()
+  local identite, donnees = lire_le_jeton()
+  if identite and entite_nommee(liaison.prefixe_de_la_marque .. identite) then
+    identite_de_la_partie = identite
+    return donnees
+  end
+  if identite and identite ~= liaison.identite_ignoree then
+    liaison.identite_ignoree = identite
+    liaison.journal("Registre : jeton d'une autre partie (" .. identite .. "), ignoré")
+  end
+  identite_de_la_partie = nil
+  return liaison.memoire.registre
+end
+
+-- Donne une identité à la partie et pose sa marque dans le monde.
+local function marquer_la_partie()
+  local identite = string.format("p%d_%d", os.time(), math.random(100000, 999999))
+  local pose = faire_naitre("BasicEntity", liaison.prefixe_de_la_marque .. identite, { x = 0, y = 0, z = 0 }, 0, {})
+  if pose then
+    identite_de_la_partie = identite
+    liaison.journal("Registre : partie marquée (" .. identite .. ")")
+    return true
+  end
+  liaison.journal("Registre : marque de la partie impossible à poser ; mémoire de secours seule")
+  return false
+end
+
+-- Enregistre la chaîne du registre dans cette partie. La première fois, relit le jeton et dit au journal s'il tient.
+function liaison.ecrire_registre(chaine)
+  liaison.memoire.registre = chaine
+  if not (identite_de_la_partie and entite_nommee(liaison.prefixe_de_la_marque .. identite_de_la_partie)) then
+    if not marquer_la_partie() then
+      return
+    end
+  end
+  local valeur = identite_de_la_partie .. "|" .. chaine
+  local ok, erreur = pcall(function() GameToken.SetToken(liaison.nom_du_jeton, valeur) end)
+  if not jeton_essaye then
+    jeton_essaye = true
+    local relu_ok, relu = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
+    if ok and relu_ok and relu == valeur then
+      liaison.journal("Registre : jeton du jeu en service (" .. #chaine .. " caractères)")
+    else
+      liaison.journal("Registre : jeton du jeu refusé (" .. tostring(ok and (relu_ok and "relu différent" or relu) or erreur)
+                      .. ") ; mémoire de secours seule")
+    end
+  end
+end
 -- Position et cap d'Henry (cap de boussole), pour fonder le camp là où il se tient.
 -- Vu en jeu le 14/10 : player:GetWorldPos() et player:GetWorldAngles() répondent ; z est en radians.
 function liaison.position_du_joueur()

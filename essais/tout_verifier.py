@@ -204,6 +204,16 @@ def verifier_identifiants():
         l.ecrire_registre("{a=1}")
         l.memoire.registre = nil
         if l.lire_registre() ~= "{a=1}" then return "registre non relu depuis le jeton" end
+        local marque = nil
+        for nom in pairs(System.entites) do
+          if string.find(nom, "^scriptorium_registre_") then marque = nom end
+        end
+        if not marque then return "pas de marque de la partie posée dans le monde" end
+        -- Une autre partie (sauvegarde sans la marque) : le jeton est ignoré (vu en jeu le 14/10).
+        System.entites[marque] = nil
+        if l.lire_registre() ~= nil then return "le jeton d'une autre partie n'est pas ignoré" end
+        l.ecrire_registre("{c=3}")
+        if l.lire_registre() ~= "{c=3}" then return "nouvelle partie : registre non relu après marquage" end
         GameToken = nil
         l.memoire.registre = "{b=2}"
         if l.lire_registre() ~= "{b=2}" then return "sans jeton, la mémoire de secours n'est pas lue" end
