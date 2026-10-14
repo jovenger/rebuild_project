@@ -18,19 +18,23 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Désactiver les trois mods `scriptorium`, `scriptorium_regles`, `scriptorium_lumiere` par la liste des mods chargés du jeu (décision D10, à vérifier : `Mods\mod_order.txt`). Ne jamais renommer ni déplacer leurs dossiers.
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
-## 4. Ce qu'il faut voir
-1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `poste`, puis `Socle 0.1.0 : 6 morceau(x) prêt(s), 0 en panne`.
-2. En entrant dans la partie : le message « Le socle de Scriptorium est prêt. » à l'écran.
-3. Dans la console du jeu (à vérifier : comment l'ouvrir) :
+## 4. Ce qu'il faut voir, dans l'ordre
+1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `poste`, puis `Socle 0.1.0 : 11 morceau(x) prêt(s), 0 en panne`.
+2. En entrant dans la partie : « Le socle de Scriptorium est prêt. » à l'écran.
+3. Dans la console du jeu (à vérifier : comment l'ouvrir), avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
-   - `scriptorium_essai_registre` → « Essai : le registre a été écrit puis relu. » et, au journal, `appels = 1` ; relancer la commande : `appels = 2` ;
-   - `scriptorium_essai_coffre` → au journal, `sorts = true, true, true, true, false ; solde = 70, vivres = 6, lignes = 4` et la bourse d'Henry diminuée de 100 (il faut au moins 100 groschen sur lui) ; à l'écran, « Le coffre du camp ne peut pas payer : il manque des groschen. » puis « Essai : le coffre a encaissé, payé et refusé comme il faut. » ;
-   - `scriptorium_essai_camp`, Henry debout sur un terrain plat et dégagé → un camp se dresse autour de lui (feu, 4 sièges, 3 tentes, 5 paillasses, coffre) ; à l'écran, « Le camp est dressé. » ; au journal, `camp fondé = true, lits = 5, sièges = 4`. Relancer : `redressé : 0 reposé(s)` ;
-   - `scriptorium_essai_camp_agrandir` → deux tentes de plus et « Le camp s'est agrandi. » ; une troisième fois : `niveau_maximal` ;
+   - `scriptorium_essai_registre` → « Essai : le registre a été écrit puis relu. » et, au journal, `appels = 1` ; relancer : `appels = 2` ;
+   - `scriptorium_essai_camp` → un camp se dresse autour d'Henry (feu, 4 sièges, 3 tentes, 5 paillasses, coffre) ; « Le camp est dressé. » ; au journal, `camp fondé = true, lits = 5, sièges = 4` ;
+   - `scriptorium_essai_coffre` → au journal, `sorts = true, true, true, true, false ; solde = 70, vivres = 6, lignes = 4` ; la bourse d'Henry a baissé de 100 ; à l'écran, « Le coffre du camp ne peut pas payer : il manque des groschen. » puis « Essai : le coffre a encaissé, payé et refusé comme il faut. » ;
+   - `scriptorium_essai_directeur` → « Le Directeur a pris ses fonctions. » et, au journal, les entrées de la Gestion du camp avec « possible » ou « impossible (raison) » ; `scriptorium_gestion_rapport` → le rapport au journal ;
+   - `scriptorium_essai_hommes` → au journal, `engagés = homme_1, homme_2, homme_3 ; total = 3, présents = N` ; à l'écran, « Un homme a rejoint la Compagnie : Jan Kladivo » puis les deux suivants. Attendu à ce stade : `présents = 0` et « Venue impossible … pas d'âme pour le rôle » tant que les âmes ne sont pas renseignées (V16) ;
+   - `scriptorium_essai_enceinte` → au journal, `sorts = true, true ; niveau = 2, porte = ouverte` ; à l'écran, « La palissade est dressée autour du camp. » puis « Les tours de guet sont bâties. » ; seize pans, une porte, deux tours posés autour du camp ;
+   - `scriptorium_essai_camp_agrandir` → deux tentes de plus, « Le camp s'est agrandi. » ;
+   - `scriptorium_essai_patrouille` → « La patrouille est partie. » ; deux heures de jeu plus tard, un compte rendu ;
+   - `scriptorium_essai_bataille` → un quart d'heure de jeu plus tard, « Une bande approche du camp : 5 hommes » puis, attendu à ce stade, la règle tranche faute d'âmes ennemies (V18) : une issue à l'écran et, s'il y a butin, « Butin partagé, au coffre : … » ;
    - `scriptorium_essai_camp_lever` → tout disparaît, « Le camp est levé. » ;
-   - `scriptorium_essai_hommes` (camp fondé, coffre garni d'au moins 76 groschen par `scriptorium_essai_coffre`) → au journal, `engagés = homme_1, homme_2, homme_3 ; total = 3, présents = N` ; à l'écran, « Un homme a rejoint la Compagnie : Jan Kladivo » puis les deux suivants. Attendu à ce stade : `présents = 0` et « Venue impossible … pas d'âme pour le rôle » au journal, tant que les âmes ne sont pas renseignées (V16). Puis, toutes les trente secondes, des lignes `Ordre à … : repas (siege_1)` quand l'heure change ;
    - `scriptorium_bilan` → résumé au journal.
-4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement).
+4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement, V4).
 
 ## 5. À vérifier en jeu, et à me rapporter
 | N° | Question | Où ça se décide |
@@ -43,14 +47,21 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V6 | Quel appel dit qu'un dialogue est en cours ? | `liaison.dialogue_en_cours` |
 | V7 | Le manifeste est-il accepté (version du jeu dans `<kcd_version>`) ? | `socle/mod.manifest` |
 | V8 | Reste-t-il un texte jaune à l'écran avec le socle seul ? | — |
-| V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100, puis rien de plus) ? Sinon, les appels `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
+| V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100) ? Sinon, `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
 | V10 | Les lignes du livre ont-elles un `moment` autre que 0 (heure du jeu) ? | `liaison.heure_du_jeu` |
-| V11 | Les objets du camp apparaissent-ils (`System.SpawnEntity`, classe `BasicEntity`, `object_Model`) ? Sinon, le journal dit « Pose impossible pour … » avec la raison | `liaison.poser_objet` |
-| V12 | Les chemins des modèles (`camp.modeles`) existent-ils dans les paks du jeu ? Relever les vrais chemins de la tente, de la paillasse, du feu, du banc et du coffre | `camp.modeles` |
-| V13 | Le camp est-il orienté comme Henry (tente du Directeur devant lui, à 7 m) ? Sinon, l'angle ou son unité (`player:GetWorldAngles`) est à corriger | `liaison.cap_du_joueur`, `camp.dans_le_monde` |
-| V14 | Après sauvegarde, fermeture et rechargement, les objets sont-ils encore là ? Sinon, `scriptorium_essai_camp` doit les reposer (`redressé : N reposé(s)`) | `camp.redresser`, `liaison.objet_existe` |
-| V15 | Le message avec complément s'affiche-t-il traduit et suivi du nom (« Un homme a rejoint la Compagnie : Jan Kladivo ») ? Sinon, la composition `@clé` + complément est à revoir | `liaison.afficher` |
+| V11 | Les objets du camp apparaissent-ils (`System.SpawnEntity`, `BasicEntity`, `object_Model`) ? Sinon, le journal dit « Pose impossible pour … » | `liaison.poser_objet` |
+| V12 | Les chemins des modèles existent-ils dans les paks du jeu ? Relever les vrais chemins de la tente, de la paillasse, du feu, du banc, du coffre, de la palissade, de la porte et de la tour | `camp.modeles`, `enceinte.modeles` |
+| V13 | Le camp est-il orienté comme Henry (tente du Directeur devant lui, à 7 m) ? | `liaison.cap_du_joueur`, `camp.dans_le_monde` |
+| V14 | Après sauvegarde, fermeture et rechargement, les objets sont-ils encore là ? Sinon, `scriptorium_essai_camp` doit les reposer | `camp.redresser`, `liaison.objet_existe` |
+| V15 | Le message avec complément s'affiche-t-il traduit et suivi du nom ? | `liaison.afficher` |
 | V16 | Comment faire venir un personnage à nous : quelle âme (`sharedSoulGuid`) et quelle classe (`NPC`) ? Un essai avec une âme de garde du jeu de base suffit pour commencer | `liaison.faire_venir_homme`, `liaison.ames` |
-| V17 | Comment ordonner à un personnage de dormir ici, de s'asseoir là, de se tenir là ? | `liaison.ordonner` |
+| V17 | Comment ordonner à un personnage de dormir ici, de s'asseoir là, de se tenir là, de marcher jusqu'à un point ? | `liaison.ordonner` |
+| V18 | Comment faire venir une bande ennemie hostile (âmes de brigands, de Coumans) ? | `liaison.faire_venir_ennemis`, `liaison.ames_ennemies` |
+| V19 | Comment savoir qu'un personnage est mort (`actor:IsDead`, `soul:GetHealth`) ? | `liaison.personnage_mort` |
+| V20 | Quelle âme et quelle apparence pour le Directeur (neuves, à nous) ? | `liaison.ame_du_directeur` |
+| V21 | Comment ouvrir un dialogue avec le Directeur qui présente le menu de la Gestion du camp ? | `directeur.menu`, système de dialogues du jeu |
+| V22 | Comment ouvrir, fermer et barrer une porte posée ? | `liaison.changer_porte` |
+| V23 | Le feu posé brûle-t-il ? Les hommes reconnaissent-ils une paillasse et un banc posés ? | `camp.modeles` |
+| V24 | `partie_en_cours` : le battement s'arrête-t-il bien au menu principal, et repart-il en partie ? | `liaison.partie_en_cours` |
 
 Pour me répondre : le contenu de `kcd.log` autour de `[Scriptorium]`, et une ligne par question.
