@@ -46,7 +46,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V4 | Quel appel garde une chaîne dans la sauvegarde et la rend au chargement ? | `liaison.lire_registre` / `ecrire_registre` |
 | V5 | Quel appel prévient qu'une partie vient d'être chargée ? | `registre.invalider` |
 | V6 | Quel appel dit qu'un dialogue est en cours ? | `liaison.dialogue_en_cours` |
-| V7 | Le manifeste est-il accepté (version du jeu dans `<kcd_version>`) ? | `socle/mod.manifest` |
+| V7 | Le manifeste est-il accepté ? Au journal : `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`. Pas de bloc `<supports>` : le jeu le compare à sa version et désactive le mod hors liste ; le socle ne remplace aucun fichier du jeu | `socle/mod.manifest` |
 | V8 | Reste-t-il un texte jaune à l'écran avec le socle seul ? | — |
 | V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100) ? Sinon, `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
 | V10 | Les lignes du livre ont-elles un `moment` autre que 0 (heure du jeu) ? | `liaison.heure_du_jeu` |

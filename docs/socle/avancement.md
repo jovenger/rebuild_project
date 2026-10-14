@@ -53,3 +53,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 14/10/2026 : morceau 4 (hommes) au banc ; bandeau : complément ; camp : places réservées, points.
 - 14/10/2026 : morceaux 5 (bataille), 6 (Directeur), 7 (enceinte, atelier), 8 (patrouilles, battement commun) au banc ; scénario complet d'une semaine.
 - 14/10/2026 : morceau 9 (discipline, décision D7) au banc ; note « Idées pour plus tard ».
+- 14/10/2026 : préparation du premier essai, d'après `kcd.log` (jeu 1.5.6) et le wiki officiel de Warhorse : manifeste sans bloc `<supports>` (V7).
