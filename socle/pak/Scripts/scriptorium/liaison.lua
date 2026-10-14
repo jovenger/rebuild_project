@@ -240,6 +240,15 @@ end
 -- (Chair, Bed : Henry peut s'y asseoir, y dormir) ; BasicEntity par défaut (un décor).
 function liaison.poser_objet(sorte, modele, position, cap, nom, classe)
   local identifiant, raison = faire_naitre(classe or "BasicEntity", "scriptorium_" .. nom, liaison.au_sol(position), cap, { object_Model = modele })
+  if identifiant then
+    -- Vu le 14/10 : posé par script, un objet n'était plus dessiné au-delà d'une dizaine de mètres (la palissade,
+    -- à 15 m, restait invisible). Sa distance d'affichage est mise au plus loin.
+    local entite = entite_nommee(identifiant)
+    if entite then
+      pcall(function() entite:SetViewDistRatio(255) end)
+      pcall(function() entite:SetLodRatio(255) end)
+    end
+  end
   if not identifiant then
     liaison.journal("Pose impossible pour « " .. nom .. " » (" .. sorte .. ", " .. (classe or "BasicEntity") .. ") : " .. tostring(raison))
   end
@@ -289,6 +298,7 @@ function liaison.decrire_objet(identifiant)
     local h = player:GetWorldPos()
     local morceaux = { string.format("position %.1f, %.1f, %.1f ; Henry à %.1f m", p.x, p.y, p.z,
                                      math.sqrt((p.x - h.x) ^ 2 + (p.y - h.y) ^ 2)) }
+    table.insert(morceaux, "distance d'affichage " .. tostring((entite:GetViewDistRatio())))
     local mini, maxi = entite:GetLocalBBox()
     if mini and maxi then
       table.insert(morceaux, string.format("taille %.1f × %.1f × %.1f m (x, y, z)", maxi.x - mini.x, maxi.y - mini.y, maxi.z - mini.z))
