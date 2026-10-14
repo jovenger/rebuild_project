@@ -19,7 +19,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir
-1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `poste`, puis `Socle 0.1.0 : 5 morceau(x) prêt(s), 0 en panne`.
+1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `poste`, puis `Socle 0.1.0 : 6 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : le message « Le socle de Scriptorium est prêt. » à l'écran.
 3. Dans la console du jeu (à vérifier : comment l'ouvrir) :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
@@ -28,6 +28,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
    - `scriptorium_essai_camp`, Henry debout sur un terrain plat et dégagé → un camp se dresse autour de lui (feu, 4 sièges, 3 tentes, 5 paillasses, coffre) ; à l'écran, « Le camp est dressé. » ; au journal, `camp fondé = true, lits = 5, sièges = 4`. Relancer : `redressé : 0 reposé(s)` ;
    - `scriptorium_essai_camp_agrandir` → deux tentes de plus et « Le camp s'est agrandi. » ; une troisième fois : `niveau_maximal` ;
    - `scriptorium_essai_camp_lever` → tout disparaît, « Le camp est levé. » ;
+   - `scriptorium_essai_hommes` (camp fondé, coffre garni d'au moins 76 groschen par `scriptorium_essai_coffre`) → au journal, `engagés = homme_1, homme_2, homme_3 ; total = 3, présents = N` ; à l'écran, « Un homme a rejoint la Compagnie : Jan Kladivo » puis les deux suivants. Attendu à ce stade : `présents = 0` et « Venue impossible … pas d'âme pour le rôle » au journal, tant que les âmes ne sont pas renseignées (V16). Puis, toutes les trente secondes, des lignes `Ordre à … : repas (siege_1)` quand l'heure change ;
    - `scriptorium_bilan` → résumé au journal.
 4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement).
 
@@ -48,5 +49,8 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V12 | Les chemins des modèles (`camp.modeles`) existent-ils dans les paks du jeu ? Relever les vrais chemins de la tente, de la paillasse, du feu, du banc et du coffre | `camp.modeles` |
 | V13 | Le camp est-il orienté comme Henry (tente du Directeur devant lui, à 7 m) ? Sinon, l'angle ou son unité (`player:GetWorldAngles`) est à corriger | `liaison.cap_du_joueur`, `camp.dans_le_monde` |
 | V14 | Après sauvegarde, fermeture et rechargement, les objets sont-ils encore là ? Sinon, `scriptorium_essai_camp` doit les reposer (`redressé : N reposé(s)`) | `camp.redresser`, `liaison.objet_existe` |
+| V15 | Le message avec complément s'affiche-t-il traduit et suivi du nom (« Un homme a rejoint la Compagnie : Jan Kladivo ») ? Sinon, la composition `@clé` + complément est à revoir | `liaison.afficher` |
+| V16 | Comment faire venir un personnage à nous : quelle âme (`sharedSoulGuid`) et quelle classe (`NPC`) ? Un essai avec une âme de garde du jeu de base suffit pour commencer | `liaison.faire_venir_homme`, `liaison.ames` |
+| V17 | Comment ordonner à un personnage de dormir ici, de s'asseoir là, de se tenir là ? | `liaison.ordonner` |
 
 Pour me répondre : le contenu de `kcd.log` autour de `[Scriptorium]`, et une ligne par question.

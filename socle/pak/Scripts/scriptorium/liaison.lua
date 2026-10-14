@@ -26,7 +26,12 @@ end
 -- Affiche un texte au joueur pendant « duree » secondes.
 -- À vérifier en jeu : Game.SendInfoText est l'appel connu pour afficher un texte
 -- au joueur ; sa place et son aspect (bande noire en bas) restent à confirmer.
-function liaison.afficher(texte, duree)
+-- Avec un complément (un nom, un montant), il est ajouté après le texte traduit.
+-- À vérifier en jeu : que la traduction de « @clé » tient quand on lui colle un complément.
+function liaison.afficher(texte, duree, complement)
+  if complement then
+    texte = texte .. " " .. complement
+  end
   Game.SendInfoText(texte, true, nil, duree)
 end
 
@@ -153,6 +158,50 @@ function liaison.cap_du_joueur()
     return math.deg(angles.z)
   end
   return 0
+end
+
+-- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
+-- À vérifier en jeu : à remplir avec les identifiants d'âmes des tables du socle (morceau 2.9).
+liaison.ames = {}
+
+-- Fait venir un personnage de la Compagnie et rend son identifiant, ou nil.
+-- À vérifier en jeu : System.SpawnEntity avec la classe NPC et sharedSoulGuid.
+function liaison.faire_venir_homme(role, nom, position)
+  local ame = liaison.ames[role]
+  if ame == nil or position == nil then
+    liaison.journal("Venue impossible pour « " .. nom .. " » : pas d'âme pour le rôle " .. tostring(role))
+    return nil
+  end
+  local ok, entite = pcall(function()
+    return System.SpawnEntity({
+      class = "NPC",
+      name = "scriptorium_" .. nom,
+      position = { x = position.x, y = position.y, z = position.z },
+      orientation = { x = 0, y = 0, z = 0 },
+      properties = { sharedSoulGuid = ame },
+    })
+  end)
+  if ok and entite and entite.id then
+    return entite.id
+  end
+  liaison.journal("Venue impossible pour « " .. nom .. " » : " .. tostring(entite))
+  return nil
+end
+
+-- Vrai si le personnage existe encore.
+function liaison.personnage_existe(identifiant)
+  return liaison.objet_existe(identifiant)
+end
+
+-- Renvoie un personnage (départ de la Compagnie).
+function liaison.renvoyer_homme(identifiant)
+  liaison.retirer_objet(identifiant)
+end
+
+-- Donne un ordre simple à un personnage : dormir ici, s'asseoir là, se tenir là.
+-- À vérifier en jeu : l'appel du moteur. En attendant, l'ordre est noté au journal.
+function liaison.ordonner(identifiant, activite, position, place)
+  liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(place) .. ")")
 end
 
 Scriptorium.liaison_reelle = liaison

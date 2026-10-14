@@ -16,8 +16,8 @@
 - **Dresser.** Pour chaque emplacement du niveau courant qui n'est pas posé, le camp demande au jeu de poser l'objet et garde l'identifiant rendu. Un objet que le jeu refuse de poser est noté au journal ; le camp continue avec les autres.
 - **Redresser.** Après un chargement, `redresser()` demande au jeu, pour chaque objet gardé, s'il existe encore ; les manquants sont reposés. Rien d'autre n'est touché. Cela marche sans aucun homme.
 - **Lever.** `lever()` retire tous les objets du jeu et oublie l'ancre. Les tentes appartiennent à JoVenGer : le camp garde le propriétaire dans le registre.
-- **Places.** Les lits et les sièges sont des places : `reserver(nom, qui)` et `liberer(nom)` ; `places_libres(sorte)` les rend. Les hommes (morceau 4) s'en serviront. Une place déjà prise est refusée.
-- **Positions.** `position_de(nom)` rend la position et le cap dans le monde, calculés depuis l'ancre.
+- **Places.** Les lits et les sièges sont des places : `reserver(nom, qui)` et `liberer(nom)` ; `places_libres(sorte, pour)` les rend, en écartant celles réservées à quelqu'un d'autre (le lit du Directeur est réservé au Directeur). Les hommes (morceau 4) s'en servent. Une place déjà prise est refusée.
+- **Positions.** `position_de(nom)` rend la position et le cap dans le monde d'un emplacement ; `point(x, y, cap)` fait de même pour un point quelconque du plan (postes de garde, lieux d'exercice).
 - **Enregistrement.** Après fondation, agrandissement, redressement et levée.
 
 ## Sorts rendus

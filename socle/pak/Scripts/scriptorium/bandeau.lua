@@ -4,7 +4,8 @@
 -- Scriptorium.bandeau.annoncer(cle, options) met un message en file.
 --   cle      : clé de texte, de la forme ui_scriptorium_<morceau>_<sujet> (sans « @ »).
 --   options  : { importance = "alerte" | "nouvelle" | "journal",
---                duree = secondes, groupe = "nom", cle_plusieurs = "clé du message groupé" }
+--                duree = secondes, groupe = "nom", cle_plusieurs = "clé du message groupé",
+--                complement = "texte ajouté après le message (un nom, un montant)" }
 -- Scriptorium.bandeau.battre() fait avancer le bandeau ; demarrer() le fait battre tout seul.
 
 Scriptorium = Scriptorium or {}
@@ -62,6 +63,7 @@ local function inscrire_historique(message, sort)
   table.insert(etat.historique, {
     cle = message.cle,
     importance = message.importance,
+    complement = message.complement,
     nombre = message.nombre,
     temps = jeu().maintenant(),
     sort = sort,
@@ -99,6 +101,8 @@ function bandeau.annoncer(cle, options)
     duree = options.duree,
     groupe = options.groupe,
     cle_plusieurs = options.cle_plusieurs,
+    complement = (type(options.complement) == "string" or type(options.complement) == "number")
+                 and tostring(options.complement) or nil,
     nombre = 1,
     cree = maintenant,
   }
@@ -168,7 +172,12 @@ function bandeau.battre()
   local message = table.remove(etat.file, 1)
   local duree = borner(message.duree or bandeau.reglages.duree_par_defaut,
                        bandeau.reglages.duree_min, bandeau.reglages.duree_max)
-  jeu().afficher(texte_du_message(message), duree)
+  -- Un message regroupé perd son complément : il parle de plusieurs.
+  local complement = message.complement
+  if message.nombre > 1 and message.cle_plusieurs then
+    complement = nil
+  end
+  jeu().afficher(texte_du_message(message), duree, complement)
   etat.en_cours = { message = message, debut = maintenant, fin = maintenant + duree }
   etat.comptes.affiches = etat.comptes.affiches + 1
   inscrire_historique(message, "affiche")
@@ -215,7 +224,7 @@ function bandeau.historique()
   for i, entree in ipairs(etat.historique) do
     copie[i] = {
       cle = entree.cle, importance = entree.importance, nombre = entree.nombre,
-      temps = entree.temps, sort = entree.sort,
+      complement = entree.complement, temps = entree.temps, sort = entree.sort,
     }
   end
   return copie

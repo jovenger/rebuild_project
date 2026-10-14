@@ -25,8 +25,8 @@ camp.sortes_places = { lit = true, siege = true }
 
 -- Le plan du camp : positions en mètres par rapport à l'ancre (x à droite, y devant),
 -- cap en degrés (0 = devant, sens des aiguilles d'une montre vu de dessus), niveau 1 à 3.
-local function emplacement(nom, sorte, x, y, cap, niveau)
-  return { nom = nom, sorte = sorte, x = x, y = y, cap = cap, niveau = niveau }
+local function emplacement(nom, sorte, x, y, cap, niveau, reserve)
+  return { nom = nom, sorte = sorte, x = x, y = y, cap = cap, niveau = niveau, reserve = reserve }
 end
 
 camp.plan = {
@@ -37,7 +37,7 @@ camp.plan = {
   emplacement("siege_3", "siege", 0, 1.6, 180, 1),
   emplacement("siege_4", "siege", 0, -1.6, 0, 1),
   emplacement("tente_directeur", "tente", 0, 7, 180, 1),
-  emplacement("lit_directeur", "lit", 0, 8, 180, 1),
+  emplacement("lit_directeur", "lit", 0, 8, 180, 1, "directeur"),
   emplacement("coffre_camp", "coffre", 1.4, 7.5, 180, 1),
   emplacement("tente_1", "tente", -6, 4, 135, 1),
   emplacement("lit_1a", "lit", -6.6, 4.6, 135, 1),
@@ -122,6 +122,16 @@ function camp.dans_le_monde(ancre, x, y, cap)
   local monde_x = ancre.x + x * cosinus + y * sinus
   local monde_y = ancre.y - x * sinus + y * cosinus
   return { x = monde_x, y = monde_y, z = ancre.z }, normaliser_cap(ancre.cap + (cap or 0))
+end
+
+-- Un point du camp (x, y, cap par rapport à l'ancre) dans le monde, ou nil sans camp.
+function camp.point(x, y, cap)
+  local d = donnees()
+  if not d.fonde then
+    return nil
+  end
+  local position = camp.dans_le_monde(d.ancre, x, y, cap)
+  return position
 end
 
 local function emplacement_par_nom(nom)
@@ -277,14 +287,16 @@ function camp.objet_de(nom)
 end
 
 -- Les places libres d'une sorte (« lit » ou « siege »), dans l'ordre du plan.
-function camp.places_libres(sorte)
+-- Avec « pour », les places réservées à quelqu'un d'autre sont écartées.
+function camp.places_libres(sorte, pour)
   local d = donnees()
   local libres = {}
   if not d.fonde then
     return libres
   end
   for _, e in ipairs(camp.plan) do
-    if e.sorte == sorte and camp.sortes_places[sorte] and e.niveau <= d.niveau and d.places[e.nom] == nil then
+    if e.sorte == sorte and camp.sortes_places[sorte] and e.niveau <= d.niveau and d.places[e.nom] == nil
+       and (pour == nil or e.reserve == nil or e.reserve == pour) then
       table.insert(libres, e.nom)
     end
   end

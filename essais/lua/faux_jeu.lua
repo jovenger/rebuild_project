@@ -21,6 +21,12 @@ local faux = {
   refuser_pose = {},      -- nom -> true : le jeu refuse de poser cet objet
   position_joueur = { x = 0, y = 0, z = 0 },
   cap_joueur = 0,
+  personnages = {},            -- { identifiant, role, nom, position }
+  personnages_existants = {},  -- identifiant -> true
+  personnages_renvoyes = {},
+  prochain_personnage = 1,
+  refuser_personnage = false,
+  ordres = {},                 -- { identifiant, activite, position, place }
 }
 
 function faux.remettre_a_zero()
@@ -43,13 +49,19 @@ function faux.remettre_a_zero()
   faux.refuser_pose = {}
   faux.position_joueur = { x = 0, y = 0, z = 0 }
   faux.cap_joueur = 0
+  faux.personnages = {}
+  faux.personnages_existants = {}
+  faux.personnages_renvoyes = {}
+  faux.prochain_personnage = 1
+  faux.refuser_personnage = false
+  faux.ordres = {}
 end
 
 function faux.maintenant() return faux.temps end
 function faux.avancer(secondes) faux.temps = faux.temps + secondes end
 function faux.journal(texte) table.insert(faux.journal_lignes, tostring(texte)) end
-function faux.afficher(texte, duree)
-  table.insert(faux.affichages, { texte = texte, duree = duree, temps = faux.temps })
+function faux.afficher(texte, duree, complement)
+  table.insert(faux.affichages, { texte = texte, duree = duree, temps = faux.temps, complement = complement })
   faux.en_ecran = texte
 end
 function faux.effacer() faux.en_ecran = nil end
@@ -89,6 +101,22 @@ function faux.retirer_objet(identifiant)
   faux.objets_existants[identifiant] = nil
 end
 function faux.objet_existe(identifiant) return faux.objets_existants[identifiant] == true end
+function faux.faire_venir_homme(role, nom, position)
+  if faux.refuser_personnage then return nil end
+  local identifiant = "personnage_" .. faux.prochain_personnage
+  faux.prochain_personnage = faux.prochain_personnage + 1
+  table.insert(faux.personnages, { identifiant = identifiant, role = role, nom = nom, position = position })
+  faux.personnages_existants[identifiant] = true
+  return identifiant
+end
+function faux.personnage_existe(identifiant) return faux.personnages_existants[identifiant] == true end
+function faux.renvoyer_homme(identifiant)
+  table.insert(faux.personnages_renvoyes, identifiant)
+  faux.personnages_existants[identifiant] = nil
+end
+function faux.ordonner(identifiant, activite, position, place)
+  table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, place = place })
+end
 function faux.position_du_joueur() return faux.position_joueur end
 function faux.cap_du_joueur() return faux.cap_joueur end
 

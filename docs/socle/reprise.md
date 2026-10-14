@@ -23,8 +23,8 @@
 - `CLAUDE.md` : règles et plan des dossiers.
 - `docs/socle/plan_de_refonte.md` : tout ce qui change par rapport au mod d'Alex, partie par partie, et les décisions D1 à D10.
 - `docs/socle/avancement.md` : tableau des morceaux.
-- `docs/socle/fiches/00_bandeau.md`, `01_registre.md`, `02_coffre.md`, `03_camp.md` : fiches de comportement (02 et 03 attendent la validation de JoVenGer).
-- `docs/socle/essai_en_jeu.md` : marche à suivre pour l'essai en jeu, 14 points V1 à V14 à vérifier.
+- `docs/socle/fiches/00_bandeau.md` à `04_hommes.md` : fiches de comportement (02 à 04 attendent la validation de JoVenGer).
+- `docs/socle/essai_en_jeu.md` : marche à suivre pour l'essai en jeu, 17 points V1 à V17 à vérifier.
 - `socle/pak/Scripts/scriptorium/` :
   - `noyau.lua` : table `Scriptorium`, morceaux, démarrage tolérant aux pannes ;
   - `liaison.lua` : **seul fichier qui parle au moteur** ; six appels marqués « à vérifier en jeu » ;
@@ -32,16 +32,17 @@
   - `registre.lua` (morceau 1) : sauvegarde versionnée, une case par morceau, montées de version, remise à neuf, bac à sable ;
   - `coffre.lua` (morceau 2) : groschen du camp, livre de comptes, réserves par sorte (vivres, bière, fourrage, traits, bois, herbes, fer, cuir), dépôt et versement avec Henry ; le camp ne paie jamais avec la bourse d'Henry ;
   - `camp.lua` (morceau 3) : plan du camp en données sur 3 niveaux (feu, sièges, tentes, paillasses, coffre), fondation là où se tient Henry, agrandissement, redressement après chargement avec ou sans homme, levée, places (lits, sièges) réservables ;
-  - `poste.lua` : commandes de console `scriptorium_essai_bandeau`, `scriptorium_essai_registre`, `scriptorium_essai_coffre`, `scriptorium_essai_camp`, `scriptorium_essai_camp_agrandir`, `scriptorium_essai_camp_lever`, `scriptorium_bilan`.
-- `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 23 textes. `socle/mod.manifest`.
-- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 398 vérifications, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
+  - `hommes.lua` (morceau 4) : fiche par homme (nom d'époque, rôle, rang, contrat, moral, blessure), embauche par contrat avec prime au coffre et paillasse, solde hebdomadaire selon le rang, rations et faim, journée réglée sur les heures, garde bornée au nombre d'hommes par tours de veille, dizainiers et capitaine, fin de contrat, désertion, renvoi, mort, soins avec barbier, ordres au jeu seulement au changement, redressement des personnages ;
+  - `poste.lua` : commandes de console `scriptorium_essai_bandeau`, `scriptorium_essai_registre`, `scriptorium_essai_coffre`, `scriptorium_essai_camp`, `scriptorium_essai_camp_agrandir`, `scriptorium_essai_camp_lever`, `scriptorium_essai_hommes`, `scriptorium_bilan`.
+- `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 35 textes. `socle/mod.manifest`.
+- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 591 vérifications, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
 - `outils/empreintes.py` : relevé des empreintes d'Alex (sha256 seulement, rien en clair).
 - `noyau/installer.py` : installe dans `Mods\scriptorium_socle` seulement, refuse les chemins interdits, met de côté dans `securite\` avant de remplacer, relance la vérification avant.
 
 ## 4. Ce qui n'est pas fait
-- **Aucun essai en jeu.** Quatorze appels du moteur restent à confirmer dans `liaison.lua` : affichage (`Game.SendInfoText`, aspect bande noire), dialogue en cours, lecture et écriture du registre dans la sauvegarde (en attendant : mémoire de session, perdue à la fermeture), chargement d'une partie (`registre.invalider`), commandes de console (`System.AddCCommand`), version du jeu dans le manifeste (`1.4`), bourse d'Henry (`player.inventory:GetMoney` / `RemoveMoney` / `AddMoney`), heure du jeu (`Calendar.GetWorldTime`), pose et retrait d'objets (`System.SpawnEntity` BasicEntity + `object_Model`, `System.RemoveEntity`, `System.GetEntity`), position et cap d'Henry (`player:GetWorldPos`, `player:GetWorldAngles`), chemins des modèles du jeu de base (`camp.modeles`).
+- **Aucun essai en jeu.** Dix-sept appels du moteur restent à confirmer dans `liaison.lua` : affichage (`Game.SendInfoText`, aspect bande noire), dialogue en cours, lecture et écriture du registre dans la sauvegarde (en attendant : mémoire de session, perdue à la fermeture), chargement d'une partie (`registre.invalider`), commandes de console (`System.AddCCommand`), version du jeu dans le manifeste (`1.4`), bourse d'Henry (`player.inventory:GetMoney` / `RemoveMoney` / `AddMoney`), heure du jeu (`Calendar.GetWorldTime`), pose et retrait d'objets (`System.SpawnEntity` BasicEntity + `object_Model`, `System.RemoveEntity`, `System.GetEntity`), position et cap d'Henry (`player:GetWorldPos`, `player:GetWorldAngles`), chemins des modèles du jeu de base (`camp.modeles`), message avec complément, venue d'un personnage (`System.SpawnEntity` classe `NPC`, `sharedSoulGuid`, âmes à renseigner dans `liaison.ames`), ordres aux personnages (`liaison.ordonner`, journal seulement pour l'instant).
 - **Empreintes d'Alex non relevées** : le contrôle d'absence ne tourne pas encore.
-- Morceaux 4 à 8 : rien.
+- Morceaux 5 à 8 : rien.
 
 ## 5. Décisions prises (accord de principe de JoVenGer le 14/10)
 - D1 : éviter le mot « mercenaire » dans les textes (« la Compagnie », « soudoyers », « hommes d'armes »).
@@ -73,8 +74,8 @@ py -3.13 outils\empreintes.py "C:\Users\maste\Desktop\Scriptorium\mercenaires" d
 ```
 
 ## 7. Prochaines étapes, dans l'ordre
-1. Essai en jeu des morceaux 0 à 3 ; réponses aux points V1 à V14 ; corriger `liaison.lua` et `camp.modeles` d'après ce que le jeu dit.
+1. Essai en jeu des morceaux 0 à 4 ; réponses aux points V1 à V17 ; corriger `liaison.lua`, `camp.modeles` et `liaison.ames` d'après ce que le jeu dit.
 2. Relever les empreintes d'Alex, commettre `docs/socle/empreintes_alex.json`, vérifier que le contrôle d'absence donne 0 partout.
-3. Faire valider les fiches 02 et 03 par JoVenGer ; sceller les morceaux 0 à 3 dans `avancement.md`.
-4. Morceau 4, les hommes au camp : fiche `04_hommes.md` d'abord (fiche par homme : nom d'époque, rôle, rang, contrat, solde, moral, blessures ; embauche par contrat ; journée réglée sur les heures du jour avec les comportements du jeu ; garde limitée au nombre d'hommes ; lits et sièges pris au camp), validation, puis code et banc.
-5. Puis, dans l'ordre : combat et batailles (5), Directeur (6), murs, porte, alchimie (7), patrouilles et le reste (8).
+3. Faire valider les fiches 02 à 04 par JoVenGer ; sceller les morceaux 0 à 4 dans `avancement.md`.
+4. Morceau 5, le combat et les batailles : fiche `05_bataille.md` d'abord (une seule entrée « lever une bande » : qui, combien, d'où, vers où, quand ; ordre de bataille d'époque, pavois et hommes d'armes devant, arbalétriers et archers derrière avec ligne de tir ; fin de bataille : morts, blessés, butin au registre et au livre, moral par `hommes.moral_pour_tous`), validation, puis code et banc.
+5. Puis, dans l'ordre : Directeur (6), murs, porte, alchimie (7), patrouilles et le reste (8).

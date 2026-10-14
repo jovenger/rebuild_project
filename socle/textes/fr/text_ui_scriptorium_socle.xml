@@ -21,6 +21,18 @@
   <Row><Cell>ui_scriptorium_camp_dresse</Cell><Cell>Le camp est dressé.</Cell><Cell>Le camp est dressé.</Cell></Row>
   <Row><Cell>ui_scriptorium_camp_agrandi</Cell><Cell>Le camp s'est agrandi.</Cell><Cell>Le camp s'est agrandi.</Cell></Row>
   <Row><Cell>ui_scriptorium_camp_leve</Cell><Cell>Le camp est levé.</Cell><Cell>Le camp est levé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_rejoint</Cell><Cell>Un homme a rejoint la Compagnie :</Cell><Cell>Un homme a rejoint la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_pas_de_lit</Cell><Cell>Pas de paillasse libre : agrandissez le camp.</Cell><Cell>Pas de paillasse libre : agrandissez le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_solde_payee</Cell><Cell>La solde a été payée :</Cell><Cell>La solde a été payée :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_solde_impayee</Cell><Cell>La solde n'a pas pu être payée : le coffre manque de groschen.</Cell><Cell>La solde n'a pas pu être payée : le coffre manque de groschen.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_faim</Cell><Cell>Les hommes ont eu faim : les vivres manquent.</Cell><Cell>Les hommes ont eu faim : les vivres manquent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_fin_contrat</Cell><Cell>A quitté la Compagnie, son contrat fini :</Cell><Cell>A quitté la Compagnie, son contrat fini :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_solde</Cell><Cell>Est parti, sa solde impayée :</Cell><Cell>Est parti, sa solde impayée :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_moral</Cell><Cell>A déserté :</Cell><Cell>A déserté :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_renvoye</Cell><Cell>A été renvoyé de la Compagnie :</Cell><Cell>A été renvoyé de la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_mort</Cell><Cell>Est tombé au service de la Compagnie :</Cell><Cell>Est tombé au service de la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_promu_dizainier</Cell><Cell>A été fait dizainier :</Cell><Cell>A été fait dizainier :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_capitaine</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>

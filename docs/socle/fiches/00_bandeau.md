@@ -1,7 +1,7 @@
 # Fiche 00 — Le bandeau des messages
 
 - Morceau : 0. Table : `Scriptorium.bandeau`. Fichier : `socle/pak/Scripts/scriptorium/bandeau.lua`.
-- État : écrit et passé au banc (12 essais). En attente de l'essai en jeu.
+- État : écrit et passé au banc (13 essais). En attente de l'essai en jeu.
 - Demande de JoVenGer (14/10) : plus aucun texte jaune par-dessus l'image ; une bande noire en bas de l'écran, écrite proprement, au moment où la chose arrive.
 
 ## Ce que le joueur voit
@@ -16,6 +16,7 @@
 - **Durée.** `options.duree`, sinon 5 s ; bornée entre 3 et 8 s.
 - **Répétition.** Une même clé n'est pas redite avant 30 s : le message est repoussé (`repete`).
 - **Regroupement.** `options.groupe` : si un message du même groupe attend déjà, on le grossit au lieu d'en ajouter un ; à l'affichage, s'il compte plus d'un et que `options.cle_plusieurs` est donnée, c'est cette clé qui s'affiche (« Plusieurs hommes sont arrivés au camp »).
+- **Complément.** `options.complement` (un nom, un montant) est passé au jeu avec le texte, pour l'ajouter après le message traduit (« Un homme a rejoint la Compagnie : Jan Kladivo »). Un message regroupé perd son complément. Un complément qui n'est ni un texte ni un nombre est ignoré.
 - **Historique.** Les 20 derniers messages (clé, importance, nombre, moment, sort) se relisent avec `historique()`.
 - **Battement.** `battre()` fait avancer le bandeau ; `demarrer()` le fait battre tout seul toutes les 500 ms par la minuterie du jeu ; `arreter()` l'arrête.
 - **Comptes.** `comptes()` rend affichés, répétés, regroupés, refusés, journal.
@@ -30,7 +31,7 @@
 Rien : le bandeau vit le temps de la session.
 
 ## Ce que le bandeau demande au jeu (liaison)
-`maintenant()`, `afficher(texte, duree)`, `effacer()`, `dialogue_en_cours()`, `minuterie(ms, fonction)`, `journal(texte)`.
+`maintenant()`, `afficher(texte, duree, complement)`, `effacer()`, `dialogue_en_cours()`, `minuterie(ms, fonction)`, `journal(texte)`.
 
 ## À vérifier en jeu
 - L'appel d'affichage (`Game.SendInfoText`) : sa place, son aspect, s'il peut donner la bande noire en bas. Sinon, chercher les sous-titres ou un élément d'écran.

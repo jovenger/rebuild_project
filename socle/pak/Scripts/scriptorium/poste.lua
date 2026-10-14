@@ -91,11 +91,48 @@ function poste.essai_camp_lever()
   return ok
 end
 
+-- Hommes : engage trois hommes (le coffre doit avoir de quoi payer les primes), puis lance le battement.
+function poste.essai_hommes()
+  local hommes = Scriptorium.hommes
+  local ids = {}
+  for _, role in ipairs({ "homme_d_armes", "arbaletrier", "archer" }) do
+    local id, raison = hommes.embaucher({ role = role, semaines = 4 })
+    table.insert(ids, id and tostring(id) or ("refus:" .. tostring(raison)))
+  end
+  local effectif = hommes.effectif()
+  jeu().journal("Poste : hommes, engagés = " .. table.concat(ids, ", ") .. " ; total = " .. effectif.total
+                .. ", présents = " .. effectif.presents .. ", coffre = " .. Scriptorium.coffre.solde())
+  poste.battre_les_hommes()
+  return ids, effectif
+end
+
+-- Lance le battement des hommes toutes les trente secondes.
+function poste.battre_les_hommes()
+  if poste.battement_hommes_actif then
+    return
+  end
+  poste.battement_hommes_actif = true
+  local function battement()
+    if not poste.battement_hommes_actif then
+      return
+    end
+    local ok, erreur = pcall(Scriptorium.hommes.battre)
+    if not ok then
+      jeu().journal("Hommes : erreur au battement : " .. tostring(erreur))
+    end
+    jeu().minuterie(30000, battement)
+  end
+  jeu().minuterie(30000, battement)
+end
+
 -- Résumé du socle dans le journal.
 function poste.bilan()
   for _, morceau in ipairs(Scriptorium.morceaux) do
     jeu().journal("Poste : morceau « " .. morceau.nom .. " » : " .. (morceau.pret and "prêt" or ("en panne : " .. tostring(morceau.erreur))))
   end
+  local effectif = Scriptorium.hommes.effectif()
+  jeu().journal("Poste : hommes, total = " .. effectif.total .. ", valides = " .. effectif.valides
+                .. ", blessés = " .. effectif.blesses .. ", présents = " .. effectif.presents)
   local comptes = Scriptorium.bandeau.comptes()
   jeu().journal("Poste : bandeau, affichés = " .. comptes.affiches .. ", regroupés = " .. comptes.regroupes
                 .. ", répétés = " .. comptes.repetes .. ", refusés = " .. comptes.refuses)
@@ -108,5 +145,6 @@ Scriptorium.declarer_morceau("poste", function()
   jeu().commande("scriptorium_essai_camp", "Scriptorium.poste.essai_camp()", "Fonde le camp où se tient Henry, ou le redresse")
   jeu().commande("scriptorium_essai_camp_agrandir", "Scriptorium.poste.essai_camp_agrandir()", "Agrandit le camp d'un niveau")
   jeu().commande("scriptorium_essai_camp_lever", "Scriptorium.poste.essai_camp_lever()", "Lève le camp")
+  jeu().commande("scriptorium_essai_hommes", "Scriptorium.poste.essai_hommes()", "Engage trois hommes et lance leur journée")
   jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
 end)
