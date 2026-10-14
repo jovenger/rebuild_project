@@ -85,9 +85,10 @@ function poste.essai_feu()
     local description = identifiant and jeu().decrire_objet and jeu().decrire_objet(identifiant) or "pas posé"
     jeu().journal("Poste : objet « " .. nom .. " » : " .. tostring(description))
   end
-  for _, identifiant in ipairs({ "scriptorium_enceinte_porte", "scriptorium_enceinte_pan_1", "scriptorium_enceinte_tour_est" }) do
-    local description = jeu().decrire_objet and jeu().decrire_objet(identifiant) or "?"
-    jeu().journal("Poste : objet « " .. identifiant .. " » : " .. tostring(description))
+  for _, nom in ipairs({ "porte", "pan_1", "tour_est" }) do
+    local identifiant = Scriptorium.enceinte.objet_de(nom)
+    local description = identifiant and jeu().decrire_objet and jeu().decrire_objet(identifiant) or "pas posé"
+    jeu().journal("Poste : objet « enceinte " .. nom .. " » : " .. tostring(description))
   end
 end
 
@@ -334,7 +335,12 @@ function poste.essai_voir_porte()
     jeu().journal("Poste : pas de camp")
     return false
   end
-  local ok, compte_rendu = jeu().aller_pres_de("scriptorium_enceinte_porte", centre, 4)
+  local porte = Scriptorium.enceinte.objet_de("porte")
+  if not porte then
+    jeu().journal("Poste : pas de porte posée")
+    return false
+  end
+  local ok, compte_rendu = jeu().aller_pres_de(porte, centre, 4)
   jeu().journal("Poste : voir la porte = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
   return ok
 end

@@ -277,8 +277,15 @@ function enceinte.relancer()
   local reposes, manquants = dresser(d)
   d.porte.etat = nil
   enregistrer()
-  jeu().journal("Enceinte : reposée à l'entrée en partie, " .. reposes .. " objet(s), " .. manquants .. " manquant(s)")
+  jeu().journal("Enceinte : reposée, " .. reposes .. " objet(s), " .. manquants .. " manquant(s)")
   return reposes, manquants
+end
+
+-- L'identifiant de l'objet posé pour un emplacement (« porte », « pan_1 », « tour_est »), ou nil. Une pièce reposée
+-- peut changer de nom (vu le 15/10 : l'ancienne porte n'était pas encore effacée, la neuve a pris un « _2 »).
+function enceinte.objet_de(nom)
+  local objet = donnees().objets[nom]
+  return objet and objet.identifiant or nil
 end
 
 function enceinte.demolir()

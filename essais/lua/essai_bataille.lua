@@ -219,6 +219,7 @@ essai("bataille : fin par le jeu, les ennemis tombent, nos morts sont ceux que l
   egal(r.butin, math.floor(3 * 16 * 0.6), "butin à 60 %")
   -- Les corps restent à fouiller vingt-quatre heures de jeu, puis sont retirés.
   egal(#FauxJeu.ennemis_renvoyes, 0, "les corps restent à fouiller")
+  egal(#FauxJeu.corps_couches, 3, "les trois morts couchés en corps (vu le 15/10 : sinon ils restaient debout)")
   FauxJeu.heure = 11 + 23.9
   bataille.battre()
   egal(#FauxJeu.ennemis_renvoyes, 0, "encore là le lendemain avant l'heure")
@@ -238,6 +239,7 @@ essai("bataille : à la fin, les ennemis debout s'en vont, les corps restent", f
   FauxJeu.heure = 13
   egal(bataille.battre().finies, 1, "tranchée par la règle")
   egal(#FauxJeu.ennemis_renvoyes, 2, "les deux debout s'en vont aussitôt")
+  egal(#FauxJeu.corps_couches, 1, "seul le mort est couché")
   FauxJeu.heure = 13 + 24
   bataille.battre()
   egal(#FauxJeu.ennemis_renvoyes, 3, "le corps retiré le lendemain")

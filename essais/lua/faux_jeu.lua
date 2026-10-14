@@ -30,6 +30,7 @@ local faux = {
   ennemis = {},                -- { identifiant, sorte, position, cap }
   ennemis_vivants_par_id = {}, -- identifiant -> true/false
   ennemis_renvoyes = {},
+  corps_couches = {},          -- identifiants des morts couchés en corps inertes
   prochain_ennemi = 1,
   refuser_ennemis = false,
   personnages_morts = {},      -- identifiant -> true
@@ -76,6 +77,7 @@ function faux.remettre_a_zero()
   faux.ennemis = {}
   faux.ennemis_vivants_par_id = {}
   faux.ennemis_renvoyes = {}
+  faux.corps_couches = {}
   faux.prochain_ennemi = 1
   faux.refuser_ennemis = false
   faux.personnages_morts = {}
@@ -205,6 +207,12 @@ function faux.ennemis_vivants(liste)
     if faux.ennemis_vivants_par_id[identifiant] then n = n + 1 end
   end
   return n
+end
+function faux.coucher_les_corps(liste)
+  for _, identifiant in ipairs(liste) do
+    table.insert(faux.corps_couches, identifiant)
+  end
+  return #liste
 end
 function faux.renvoyer_ennemis(liste)
   for _, identifiant in ipairs(liste) do

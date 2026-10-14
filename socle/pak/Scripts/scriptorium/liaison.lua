@@ -659,6 +659,22 @@ function liaison.ennemis_vivants(liste)
   return n
 end
 
+-- Fait tomber les morts en corps inertes (actor:RagDollize, relevé des fonctions du personnage le 14/10).
+-- Vu le 15/10 : un brigand tué par soul:DealDamage restait debout, figé penché en avant, et le jeu ne proposait
+-- pas de le fouiller (nos personnages n'ont pas de comportement actif, leur mort ne joue pas la chute).
+-- Rend le nombre de corps couchés.
+function liaison.coucher_les_corps(liste)
+  local couches = 0
+  for _, identifiant in ipairs(liste) do
+    local entite = entite_nommee(identifiant)
+    if entite and type(entite.actor) == "table" then
+      local ok = pcall(function() entite.actor:RagDollize() end)
+      if ok then couches = couches + 1 end
+    end
+  end
+  return couches
+end
+
 function liaison.renvoyer_ennemis(liste)
   for _, identifiant in ipairs(liste) do
     liaison.retirer_objet(identifiant)

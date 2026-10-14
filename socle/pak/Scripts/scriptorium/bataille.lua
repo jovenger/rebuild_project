@@ -423,6 +423,7 @@ local function finir(d, b, resultat)
     if #corps > 0 then
       b.corps = corps
       b.corps_retires_a = jeu().heure_du_jeu() + bataille.reglages.duree_des_corps
+      jeu().coucher_les_corps(corps)
     end
     b.personnages = nil
   end
@@ -562,6 +563,7 @@ function bataille.battre()
         rapport.changements = rapport.changements + 1
       end
     elseif b.etat == "finie" and b.corps and heure >= b.corps_retires_a then
+      jeu().journal("Bataille : corps de « " .. b.id .. " » retirés (" .. #b.corps .. ")")
       jeu().renvoyer_ennemis(b.corps)
       b.corps = nil
       b.corps_retires_a = nil
