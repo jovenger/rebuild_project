@@ -600,10 +600,9 @@ function liaison.faire_venir_directeur(position)
   return identifiant
 end
 
--- Ouvre, ferme ou barre la porte posée. Le modèle de la porte n'a pas d'animation : « ouverte », elle pivote
--- d'un quart de tour autour de son gond, le bord de sa boîte englobante (entity:GetLocalBBox, comme dans
--- BreakableObject.lua du jeu) ; « fermée » et « barrée », elle revient à sa pose d'origine, gardée au premier
--- mouvement. À vérifier en jeu (V22).
+-- Ouvre, ferme ou barre la porte posée. Le modèle du portail n'a pas d'animation, et son point de pose est
+-- son gond (mesuré dans les paks le 14/10) : « ouverte », il tourne d'un quart de tour sur lui-même ;
+-- « fermée » et « barrée », il revient à sa pose d'origine, gardée au premier mouvement. À vérifier en jeu (V22).
 function liaison.changer_porte(identifiant, etat)
   liaison.journal("Porte " .. tostring(identifiant) .. " : " .. tostring(etat))
   local entite = entite_nommee(identifiant)
@@ -613,22 +612,14 @@ function liaison.changer_porte(identifiant, etat)
   local ok, erreur = pcall(function()
     local fermee = poses_fermees[identifiant]
     if not fermee then
-      local mini = entite:GetLocalBBox()
-      local ici = entite:GetWorldPos()
-      local angles = entite:GetWorldAngles()
-      fermee = { x = ici.x, y = ici.y, z = ici.z, angle = angles.z, gond = mini.x }
+      fermee = { angle = entite:GetWorldAngles().z }
       poses_fermees[identifiant] = fermee
     end
-    local angle, x, y = fermee.angle, fermee.x, fermee.y
+    local angle = fermee.angle
     if etat == "ouverte" then
-      local gond_x = fermee.x + fermee.gond * math.cos(fermee.angle)
-      local gond_y = fermee.y + fermee.gond * math.sin(fermee.angle)
-      angle = fermee.angle + math.pi / 2
-      x = gond_x - fermee.gond * math.cos(angle)
-      y = gond_y - fermee.gond * math.sin(angle)
+      angle = angle + math.pi / 2
     end
     entite:SetWorldAngles({ x = 0, y = 0, z = angle })
-    entite:SetWorldPos({ x = x, y = y, z = fermee.z })
   end)
   if not ok then
     liaison.journal("Porte " .. tostring(identifiant) .. " : mouvement impossible : " .. tostring(erreur))

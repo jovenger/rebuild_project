@@ -13,13 +13,15 @@ camp.proprietaire = "JoVenGer"
 -- Les sortes d'objets et leur modèle du jeu de base, appelé par son chemin.
 -- Chemins relevés le 14/10 dans les paks du jeu (IPL_Objects-part*.pak) ; les anciens donnaient une forme blanche.
 -- Le feu : le foyer de bois du feu de camp du jeu (Prefabs/Procedural/Fireplace/fireplace_on_camp.xml) ;
--- le tas de branches essayé d'abord ne se voyait pas en jeu (14/10). La flamme est une entité à part (V23). « decalage » : quart de tour propre au modèle, en degrés de boussole ;
--- le banc de rondin a son long côté dans son sens « devant » (vu en jeu le 14/10 : il pointait vers le feu).
+-- le tas de branches essayé d'abord ne se voyait pas en jeu (14/10). La flamme est chargée sur le foyer (V23).
+-- « decalage » : quart de tour propre au modèle, en degrés de boussole, quand son long côté est sur son axe y.
+-- Le banc de rondin est long sur x (3,7 m, mesuré dans les paks) : sans décalage, il est en travers du feu
+-- (14/10 : un quart de tour essayé le faisait pointer vers le feu).
 -- « classe » : classe d'entité du jeu (Chair : Henry peut s'y asseoir ; Bed : y dormir), sinon un simple décor.
 -- « allume » : un feu brûle dessus (effet de particules, liaison.allumer).
 camp.modeles = {
   feu    = { chemin = "Objects/manmade/task_specific_props/food_processing/cooking/fireplace_wood_c.cgf", allume = true },
-  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf", decalage = 90, classe = "Chair" },
+  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf", classe = "Chair" },
   tente  = { chemin = "Objects/manmade/structures/living/tents/tent_small_a.cgf" },
   lit    = { chemin = "Objects/manmade/common_furniture/beds/low/bed_makeshift_a.cgf", classe = "Bed" },
   coffre = { chemin = "Objects/manmade/common_furniture/chests/chest-small-a.cgf" },

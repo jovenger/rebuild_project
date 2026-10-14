@@ -38,14 +38,17 @@ essai("camp : géométrie, rotation et décalage depuis l'ancre", function()
   egal(cap, 90, "cap normalisé (180 + 270 = 450 -> 90)")
 end)
 
-essai("camp : le décalage propre au modèle s'ajoute au cap posé (banc de rondin en travers)", function()
+essai("camp : le décalage propre au modèle s'ajoute au cap posé", function()
   depart()
+  local garde = camp.modeles.siege.decalage
+  camp.modeles.siege.decalage = 90
   verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
+  camp.modeles.siege.decalage = garde
   local caps = {}
   for _, o in ipairs(FauxJeu.objets_poses) do
     caps[o.nom] = o.cap
   end
-  egal(caps.siege_3, (180 + camp.modeles.siege.decalage) % 360, "siège devant le feu : son cap plus le décalage")
+  egal(caps.siege_3, (180 + 90) % 360, "siège devant le feu : son cap plus le décalage")
   egal(caps.feu_central, 0, "feu sans décalage")
   egal(caps.tente_directeur, 180, "tente sans décalage")
 end)

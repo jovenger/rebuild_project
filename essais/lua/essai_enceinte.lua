@@ -39,9 +39,19 @@ essai("enceinte : chaque pièce prend le cap du camp et le quart de tour de son 
   for _, o in ipairs(FauxJeu.objets_poses) do
     caps[o.nom] = o.cap
   end
-  egal(caps.enceinte_porte, (90 + 0 + enceinte.modeles.porte.decalage) % 360, "porte : cap du camp, plus son quart de tour")
-  egal(caps.enceinte_pan_4, (90 + 4 * 360 / enceinte.reglages.pans + enceinte.modeles.palissade.decalage) % 360,
+  egal(caps.enceinte_porte, (90 + 0 + (enceinte.modeles.porte.decalage or 0)) % 360, "porte : cap du camp, plus son quart de tour")
+  egal(caps.enceinte_pan_4, (90 + 4 * 360 / enceinte.reglages.pans + (enceinte.modeles.palissade.decalage or 0)) % 360,
        "pan : cap du camp, plus sa place, plus son quart de tour")
+  -- Le centre de chaque modèle tombe sur le cercle de l'enceinte, quel que soit son point de pose.
+  for _, o in ipairs(FauxJeu.objets_poses) do
+    local modele = enceinte.modeles[o.sorte]
+    if modele and modele.centre and (o.sorte == "palissade" or o.sorte == "porte") then
+      local a = math.rad(o.cap)
+      local cx = o.position.x + modele.centre.x * math.cos(a) + modele.centre.y * math.sin(a)
+      local cy = o.position.y - modele.centre.x * math.sin(a) + modele.centre.y * math.cos(a)
+      verifier(math.abs(math.sqrt(cx * cx + cy * cy) - enceinte.reglages.rayon) < 0.01, "centre de " .. o.nom .. " sur le cercle")
+    end
+  end
 end)
 
 essai("enceinte : à l'entrée en partie, pans, porte et tours sont reposés à neuf", function()

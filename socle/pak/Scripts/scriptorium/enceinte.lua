@@ -21,11 +21,17 @@ enceinte.reglages = {
 enceinte.niveau_maximal = 2
 
 -- Modèles du jeu de base, appelés par leur chemin, relevés le 14/10 dans les paks du jeu.
--- « decalage » : quart de tour propre au modèle (comme le banc du camp) ; vu le 14/10 : pans et porte se
--- présentaient par la tranche vers le centre du camp.
+-- Mesures lues dans les paks (boîtes englobantes) et vues en jeu le 14/10 :
+-- - « decalage » : quart de tour propre au modèle ; le portail est long sur son axe y, il faut le tourner ;
+-- - « centre » : le centre du modèle par rapport à son point de pose, en mètres (x à droite, y devant) ;
+--   le pan pose à une extrémité, le portail à son gond.
+-- Le pan fait 8,3 m : seize pans ferment un cercle de 15 m (5,9 m par pan ; le premier modèle, 2,4 m, laissait
+-- des trous). Le portail fait 4 m.
 enceinte.modeles = {
-  palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_makeshift_a_v1.cgf", decalage = 90 },
-  porte     = { chemin = "Objects/manmade/structures/logistical/fences/fence_planks_a_gate.cgf", decalage = 90 },
+  palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_b_v4.cgf",
+                centre = { x = -3.85, y = 0.12 } },
+  porte     = { chemin = "Objects/manmade/structures/logistical/fences/fence_4rod_gate_02.cgf", decalage = 90,
+                centre = { x = 0, y = 1.48 } },
   tour      = { chemin = "Objects/manmade/structures/defensive/watchtowers/watchtower_a.cgf" },
 }
 
@@ -93,6 +99,15 @@ local function poser(d, e)
   local modele = enceinte.modeles[e.sorte]
   local position, cap = camp().point(e.x, e.y, e.cap)
   cap = (cap + (modele.decalage or 0)) % 360
+  if modele.centre then
+    -- Le point de pose est placé pour que le centre du modèle tombe sur l'emplacement.
+    local a = math.rad(cap)
+    local droite = { x = math.cos(a), y = -math.sin(a) }
+    local devant = { x = math.sin(a), y = math.cos(a) }
+    position = { x = position.x - modele.centre.x * droite.x - modele.centre.y * devant.x,
+                 y = position.y - modele.centre.x * droite.y - modele.centre.y * devant.y,
+                 z = position.z }
+  end
   local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, "enceinte_" .. e.nom)
   if identifiant == nil then
     jeu().journal("Enceinte : le jeu n'a pas posé « " .. e.nom .. " »")
