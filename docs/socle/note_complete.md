@@ -30,7 +30,7 @@
   changer plus tard.
 
 ## Où on en est
-- Fait, validé par JoVenGer et vérifié (1 683 vérifications) : bandeau, registre, coffre, camp, hommes, batailles,
+- Fait, validé par JoVenGer et vérifié (1 699 vérifications) : bandeau, registre, coffre, camp, hommes, batailles,
   Directeur (menu en données), enceinte et atelier, patrouilles, discipline, réglages par fichier, caractère de chaque homme ;
   fiches 00 à 11.
 - Vu en jeu : camp et enceinte de 20 m debout, feu, bancs et paillasses, coffre et bourse d'Henry, sauvegarde du camp,

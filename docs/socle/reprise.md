@@ -48,7 +48,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **Fiches 00 à 11** dans `docs\socle\fiches\` ; **02 à 11 validées par JoVenGer** (14 et 15/10, questions à cocher).
   Changements qu'il a demandés : livre de comptes à 50 lignes, deux rations par homme et par jour, butin doublé, corps
   ennemis laissés à fouiller une journée, enceinte de 20 m (22 pans), l'onguent soin léger, réglages par fichier.
-- **Banc** : `essais\tout_verifier.py` — syntaxe Lua 5.1, 1 683 vérifications sur un faux jeu, ordres par fichier,
+- **Banc** : `essais\tout_verifier.py` — syntaxe Lua 5.1, 1 699 vérifications sur un faux jeu, ordres par fichier,
   liaison sur un faux moteur, réglages par fichier (outil, liaison, installateur), noms interdits, 80 textes, manifeste,
   contrôle d'absence contre les empreintes d'Alex (0 partout). Tout passe.
 - **Outils** : `noyau\installer.py` (garde le fichier de réglages), `outils\ordonner.py` (ordres au poste),

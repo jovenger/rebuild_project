@@ -103,10 +103,17 @@ essai("caractère : le vite las s'épuise, perd du moral et va au lit le soir", 
   local moral_ordinaire = hommes.fiche(ids[4]).moral
   jours(1)
   egal(hommes.fiche(las).moral - moral, (hommes.fiche(ids[4]).moral - moral_ordinaire) - 2, "épuisé : moral − 2 de plus par jour")
-  local soir = hommes.activite_de(las, FauxJeu.heure - FauxJeu.heure % 24 + 24 + 20)
-  if soir.activite ~= "garde" then
-    egal(soir.activite, "sommeil", "l'épuisé va au lit à la veillée")
+  -- Le soir suivant, à chaque heure où il n'est pas de garde, il est au lit.
+  local veilles = 0
+  for _, h in ipairs({ 19.5, 20.5, 21.5 }) do
+    local heure = FauxJeu.heure - FauxJeu.heure % 24 + 24 + h
+    local soir = hommes.activite_de(las, heure)
+    if soir.activite ~= "garde" then
+      egal(soir.activite, "sommeil", "l'épuisé va au lit à " .. h .. " h")
+      veilles = veilles + 1
+    end
   end
+  verifier(veilles > 0, "au moins une heure de veillée sans garde")
   verifier(caractere.facteur_de_combat(las) < caractere.facteur_de_combat(ids[4]), "il se bat moins bien")
   egal(caractere.connaitre(las).fatigue, "ui_scriptorium_caractere_epuise", "dit épuisé au rapport")
 end)
@@ -285,6 +292,21 @@ essai("caractère : découvert avec le temps, dit en mots au rapport", function(
   verifier(ok, "Connaître ses hommes, par le Directeur")
   egal(#liste, 2, "un compte rendu par homme")
   egal(liste[1].nom, hommes.fiche(id).nom, "avec son nom")
+end)
+
+essai("caractère : un homme d'une sauvegarde d'avant le caractère en reçoit un, gardé ensuite", function()
+  local ids = preparer(1, true)
+  Scriptorium.registre.lire("caractere").hommes[ids[1]] = nil
+  verifier(caractere.ration_de(ids[1], 2) >= 1, "un premier usage")
+  local c = caractere.de(ids[1])
+  verifier(c ~= nil and c.traits.appetit >= 0 and c.traits.appetit <= 100, "caractère tiré au premier usage")
+  verifier(c.aguerri >= 10 and c.aguerri <= 40, "aguerrissement de départ")
+  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.invalider()
+  local relu = caractere.de(ids[1])
+  for _, trait in ipairs(caractere.traits) do
+    egal(relu.traits[trait.nom], c.traits[trait.nom], "même trait relu : " .. trait.nom)
+  end
 end)
 
 essai("caractère : un homme parti est oublié ; tout est relu", function()

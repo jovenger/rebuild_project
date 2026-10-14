@@ -208,7 +208,18 @@ essai("hommes : journée réglée sur les heures, places et points", function()
   end
   -- La veillée est le temps libre (fiche 11) : le feu (un siège), l'entraînement, les dés ou le lit, selon ses envies,
   -- et le même choix toute la soirée.
-  local id = libre(48 + 20)
+  -- Un homme libre (pas de garde) toute la soirée.
+  local id = nil
+  for _, candidat in ipairs(hommes.liste()) do
+    local libre_toute_la_soiree = true
+    for _, h in ipairs({ 19.5, 20, 21.5 }) do
+      for _, g in ipairs(hommes.gardes(48 + h)) do
+        if g.id == candidat then libre_toute_la_soiree = false end
+      end
+    end
+    if libre_toute_la_soiree and id == nil then id = candidat end
+  end
+  verifier(id ~= nil, "quelqu'un est libre toute la soirée")
   local soir = hommes.activite_de(id, 48 + 20)
   local lieux = { veillee = "^siege_", entrainement = "^exercice$", des = "^des$" }
   if soir.activite == "sommeil" then
@@ -218,15 +229,8 @@ essai("hommes : journée réglée sur les heures, places et points", function()
              "à 20 h, une envie à sa place : " .. tostring(soir.activite) .. " / " .. tostring(soir.lieu))
   end
   verifier(soir.position ~= nil, "une position à 20 h")
-  for _, h in ipairs({ 19.5, 21.5 }) do
-    local de_garde = false
-    for _, g in ipairs(hommes.gardes(48 + h)) do
-      if g.id == id then de_garde = true end
-    end
-    if not de_garde then
-      egal(hommes.activite_de(id, 48 + h).activite, soir.activite, "même choix à " .. h .. " h")
-    end
-  end
+  egal(hommes.activite_de(id, 48 + 19.5).activite, soir.activite, "même choix à 19 h 30")
+  egal(hommes.activite_de(id, 48 + 21.5).activite, soir.activite, "même choix à 21 h 30")
 end)
 
 essai("hommes : jamais plus de postes de garde que d'hommes valides, rotation, blessés exclus", function()
