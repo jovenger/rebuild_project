@@ -16,6 +16,7 @@
 - Pas de commit si `py -3.13 essais/tout_verifier.py` ne passe pas entièrement (ici : `python3`, avec `lupa` installé).
 - Aucune action destructive sans l'accord de JoVenGer juste avant.
 - Un message de JoVenGer pendant le travail se prend en compte tout de suite.
+- Règle de JoVenGer (14/10/2026) : les règles, les agissements et le comportement des hommes et du camp doivent pouvoir être modifiés par le programme Scriptorium. Pendant le chantier, le programme est mis à part et le socle a son propre transport (fichier d'ordres) ; donc toute valeur de règle reste en données (`*.reglages`, `camp.plan`, `bataille.sortes`, `atelier.soins`…), jamais écrite en dur dans le code.
 
 ## Où sont les choses
 - `socle/pak/` : contenu du pak du mod (Lua sous `Scripts/scriptorium/`, démarrage dans `Scripts/Mods/scriptorium_socle.lua`, que le jeu exécute juste après `Scripts/main.lua`).

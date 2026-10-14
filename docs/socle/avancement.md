@@ -40,6 +40,7 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - **Discipline :** fautes à l'aube selon le moral (rixe, vol, ivresse, exaction), jugements par la Gestion du camp (pardon, amende retenue sur la solde, corvée, pilori, renvoi), prescription et laxisme, réputation auprès des villages qui module le prix des réserves.
 
 ## Pour plus tard
+- Règle de JoVenGer (14/10) : les règles, les agissements et le comportement des hommes et du camp doivent pouvoir être modifiés par le programme Scriptorium. Pendant le chantier, le programme est mis à part ; le socle a son propre transport (le fichier d'ordres du poste, écrit sur le PC, relu en jeu). Les valeurs validées par JoVenGer sont toutes en données (`*.reglages`, `camp.plan`, `bataille.sortes`, `atelier.soins`, prix du Directeur…). Après la validation des fiches : un fichier de réglages relu par le socle, par ce même transport, que le programme Scriptorium pourra écrire à la bascule.
 - À l'adaptation à Scriptorium : le socle vit dans `Scripts/scriptorium/` et dans la table globale `Scriptorium`, comme le mod `scriptorium` actuel. Sans effet pendant l'essai (les trois mods sont hors de `mod_order.txt`), mais c'est le premier conflit à régler.
 - `docs/socle/idees_pour_plus_tard.md` : vingt-six idées notées le 14/10, à reprendre seulement quand le socle de base sera essayé en jeu et scellé.
 
