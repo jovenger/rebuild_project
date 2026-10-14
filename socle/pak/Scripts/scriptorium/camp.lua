@@ -22,9 +22,10 @@ camp.proprietaire = "JoVenGer"
 camp.modeles = {
   feu    = { chemin = "Objects/manmade/task_specific_props/food_processing/cooking/fireplace_wood_c.cgf", allume = true },
   siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf", classe = "Chair" },
-  tente  = { chemin = "Objects/manmade/structures/living/tents/tent_small_a.cgf" },
+  tente  = { chemin = "Objects/manmade/structures/living/tents/tent_small_b.cgf" },
   lit    = { chemin = "Objects/manmade/common_furniture/beds/low/bed_makeshift_a.cgf", classe = "Bed" },
-  coffre = { chemin = "Objects/manmade/common_furniture/chests/chest-small-a.cgf" },
+  -- Le premier coffre mesurait 30 cm (mesuré dans les paks le 14/10) : un coffre de 1,6 m.
+  coffre = { chemin = "Objects/manmade/common_furniture/chests/chest_fancy_d_big.cgf" },
 }
 
 -- Les sortes qui sont des places (un homme peut les prendre).
