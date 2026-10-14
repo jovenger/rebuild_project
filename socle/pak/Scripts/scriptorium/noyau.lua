@@ -9,6 +9,8 @@ Scriptorium.nom_du_mod = "scriptorium_socle"
 Scriptorium.morceaux = Scriptorium.morceaux or {}
 Scriptorium.demarre = Scriptorium.demarre or false
 Scriptorium.cadence_du_battement_ms = 30000
+Scriptorium.generation = Scriptorium.generation or 0   -- change à chaque entrée et sortie de partie
+Scriptorium.en_partie = Scriptorium.en_partie or false
 -- L'ordre dans lequel les morceaux battent (ceux qui ont une fonction battre).
 Scriptorium.ordre_du_battement = { "bataille", "hommes", "discipline", "directeur", "enceinte", "atelier", "patrouilles" }
 
@@ -58,7 +60,36 @@ function Scriptorium.demarrer()
   end
   Scriptorium.demarre = true
   Scriptorium.lancer_le_battement()
+  if jeu().ecouter_la_partie then
+    jeu().ecouter_la_partie(Scriptorium.entrer_en_partie, Scriptorium.sortir_de_partie)
+  end
   local prets, pannes = Scriptorium.bilan()
+  journal("Socle " .. Scriptorium.version .. " : " .. prets .. " morceau(x) prêt(s), " .. pannes .. " en panne")
+  return prets, pannes
+end
+
+-- Entrée en partie (nouvelle ou chargée), signalée par le jeu. Les minuteries posées au démarrage du mod
+-- ne tirent jamais en jeu (constaté le 14/10) : on les repose ici. Une ancienne boucle encore vivante
+-- s'éteint d'elle-même (génération). Le registre est relu (V5) et le joueur apprend que le socle est prêt.
+function Scriptorium.entrer_en_partie()
+  Scriptorium.generation = Scriptorium.generation + 1
+  Scriptorium.en_partie = true
+  journal("Socle : entrée en partie, minuteries reposées")
+  if Scriptorium.registre then
+    Scriptorium.registre.invalider()
+  end
+  Scriptorium.battement_lance = false
+  Scriptorium.lancer_le_battement()
+  for _, morceau in ipairs(Scriptorium.morceaux) do
+    local table_du_morceau = Scriptorium[morceau.nom]
+    if morceau.pret and type(table_du_morceau) == "table" and type(table_du_morceau.relancer) == "function" then
+      local ok, erreur = pcall(table_du_morceau.relancer)
+      if not ok then
+        journal("Socle : relance de « " .. morceau.nom .. " » en erreur : " .. tostring(erreur))
+      end
+    end
+  end
+  local _, pannes = Scriptorium.bilan()
   if Scriptorium.bandeau then
     if pannes > 0 then
       Scriptorium.bandeau.annoncer("ui_scriptorium_socle_morceau_en_panne", { importance = "alerte" })
@@ -66,8 +97,21 @@ function Scriptorium.demarrer()
       Scriptorium.bandeau.annoncer("ui_scriptorium_socle_pret")
     end
   end
-  journal("Socle " .. Scriptorium.version .. " : " .. prets .. " morceau(x) prêt(s), " .. pannes .. " en panne")
-  return prets, pannes
+end
+
+-- Sortie de partie (retour au menu) : les boucles s'arrêtent jusqu'à la prochaine entrée.
+function Scriptorium.sortir_de_partie()
+  Scriptorium.generation = Scriptorium.generation + 1
+  Scriptorium.en_partie = false
+  Scriptorium.battement_lance = false
+  for _, morceau in ipairs(Scriptorium.morceaux) do
+    local table_du_morceau = Scriptorium[morceau.nom]
+    if type(table_du_morceau) == "table" and type(table_du_morceau.relancer) == "function"
+       and type(table_du_morceau.arreter) == "function" then
+      pcall(table_du_morceau.arreter)
+    end
+  end
+  journal("Socle : sortie de partie")
 end
 
 function Scriptorium.bilan()
@@ -106,8 +150,9 @@ function Scriptorium.lancer_le_battement()
     return
   end
   Scriptorium.battement_lance = true
+  local generation = Scriptorium.generation
   local function battement()
-    if not Scriptorium.battement_lance then
+    if not Scriptorium.battement_lance or generation ~= Scriptorium.generation then
       return
     end
     Scriptorium.battre()
@@ -124,6 +169,7 @@ end
 function Scriptorium.remettre_a_zero()
   Scriptorium.demarre = false
   Scriptorium.battement_lance = false
+  Scriptorium.en_partie = false
   for _, morceau in ipairs(Scriptorium.morceaux) do
     morceau.pret = false
     morceau.erreur = nil

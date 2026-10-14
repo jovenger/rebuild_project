@@ -18,9 +18,3 @@ Script.ReloadScript("Scripts/scriptorium/discipline.lua")
 Script.ReloadScript("Scripts/scriptorium/poste.lua")
 
 Scriptorium.demarrer()
-
--- Sondes des minuteries (essai du 14/10, voir liaison.lua).
-local ok, erreur = pcall(Scriptorium.liaison_reelle.poser_les_sondes)
-if not ok then
-  Scriptorium.liaison_reelle.journal("Sondes non posées : " .. tostring(erreur))
-end

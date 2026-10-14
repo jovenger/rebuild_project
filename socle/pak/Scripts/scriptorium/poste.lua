@@ -255,7 +255,8 @@ poste.reglages = {
 local ordres
 
 function poste.remettre_a_zero()
-  ordres = { premier_releve = true, dernier = 0, chemin = nil, raison = nil, attente = nil, tours = 0, partie = nil, actif = false }
+  ordres = { premier_releve = true, dernier = 0, chemin = nil, raison = nil, attente = nil, tours = 0, partie = nil,
+             actif = false, generation = 0 }
 end
 poste.remettre_a_zero()
 
@@ -341,8 +342,10 @@ function poste.demarrer()
     return
   end
   ordres.actif = true
+  ordres.generation = ordres.generation + 1
+  local generation = ordres.generation
   local function battement()
-    if not ordres.actif then
+    if not ordres.actif or ordres.generation ~= generation then
       return
     end
     local ok, erreur = pcall(poste.relever_ordres)
@@ -360,6 +363,12 @@ end
 
 function poste.arreter()
   ordres.actif = false
+end
+
+-- Entrée en partie : repose la minuterie (celle du démarrage du mod ne tire jamais en jeu).
+function poste.relancer()
+  ordres.actif = false
+  poste.demarrer()
 end
 
 Scriptorium.declarer_morceau("poste", function()

@@ -40,6 +40,7 @@ local faux = {
   fichier_ordres = nil,        -- table rendue par le fichier d'ordres, ou nil s'il n'y en a pas
   fichier_ordres_raison = nil, -- raison quand le fichier est illisible
   lectures_ordres = 0,
+  ecoute_partie = nil,         -- { entree, sortie } : ce que le socle veut qu'on appelle
 }
 
 function faux.remettre_a_zero()
@@ -81,6 +82,7 @@ function faux.remettre_a_zero()
   faux.fichier_ordres = nil
   faux.fichier_ordres_raison = nil
   faux.lectures_ordres = 0
+  faux.ecoute_partie = nil
 end
 
 function faux.maintenant() return faux.temps end
@@ -108,6 +110,16 @@ function faux.lire_ordres()
     return faux.fichier_ordres, "faux/ordres.lua"
   end
   return nil
+end
+function faux.ecouter_la_partie(entree, sortie) faux.ecoute_partie = { entree = entree, sortie = sortie } end
+-- Ce que ferait le jeu : l'événement d'entrée en partie, puis celui de sortie.
+function faux.entrer_en_partie()
+  faux.partie = true
+  faux.ecoute_partie.entree()
+end
+function faux.sortir_de_partie()
+  faux.partie = false
+  faux.ecoute_partie.sortie()
 end
 function faux.heure_du_jeu() return faux.heure end
 function faux.groschen_d_henry() return faux.bourse_henry end

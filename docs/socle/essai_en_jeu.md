@@ -46,7 +46,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V2 | Le texte est-il traduit (clé `@ui_scriptorium_…` remplacée par le français) ? Premier lancement (14/10) : `text_ui_scriptorium_socle.xml` n'est pas chargé ; le jeu ne prend comme textes de mod que `<nom>__<modid>.xml` (deux traits bas), d'où `text_ui__scriptorium_socle.xml`, gardé par `tout_verifier.py` | `socle/textes/fr`, installateur |
 | V3 | Les commandes de console existent-elles (`System.AddCCommand`) ? Comment ouvrir la console ? 14/10 : elle ne s'ouvre pas (², ù, * ; `-devmode` actif). Voie de remplacement : ordres par fichier ; au journal, `Poste : fichier d'ordres trouvé à …` dit quel chemin `loadfile` atteint, et `Poste : veille …` toutes les 30 s dit si les minuteries survivent au chargement de la partie | `liaison.commande`, `liaison.lire_ordres` |
 | V4 | Quel appel garde une chaîne dans la sauvegarde et la rend au chargement ? | `liaison.lire_registre` / `ecrire_registre` |
-| V5 | Quel appel prévient qu'une partie vient d'être chargée ? | `registre.invalider` |
+| V5 | Quel appel prévient qu'une partie vient d'être chargée ? 14/10 (sondes) : l'événement System `OnGameplayStarted`, par `UIAction.RegisterEventSystemListener` ; il arrive après le chargement d'une sauvegarde, partie en cours. Le socle y relit le registre | `liaison.ecouter_la_partie`, `Scriptorium.entrer_en_partie`, `registre.invalider` |
 | V6 | Quel appel dit qu'un dialogue est en cours ? | `liaison.dialogue_en_cours` |
 | V7 | Le manifeste est-il accepté ? Au journal : `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`. Pas de bloc `<supports>` : le jeu le compare à sa version et désactive le mod hors liste ; le socle ne remplace aucun fichier du jeu | `socle/mod.manifest` |
 | V8 | Reste-t-il un texte jaune à l'écran avec le socle seul ? | — |
@@ -65,6 +65,6 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V21 | Comment ouvrir un dialogue avec le Directeur qui présente le menu de la Gestion du camp ? | `directeur.menu`, système de dialogues du jeu |
 | V22 | Comment ouvrir, fermer et barrer une porte posée ? | `liaison.changer_porte` |
 | V23 | Le feu posé brûle-t-il ? Les hommes reconnaissent-ils une paillasse et un banc posés ? | `camp.modeles` |
-| V24 | `partie_en_cours` : le battement s'arrête-t-il bien au menu principal, et repart-il en partie ? | `liaison.partie_en_cours` |
+| V24 | `partie_en_cours` : le battement s'arrête-t-il bien au menu principal, et repart-il en partie ? 14/10 (sondes) : une minuterie posée au démarrage du mod ne tire jamais (ni simple, ni « aussi en pause », ni par nom de fonction) ; une minuterie posée à `OnGameplayStarted` tire toutes les 5 s en partie. Le socle repose donc bandeau, poste et battement à chaque entrée en partie ; `partie_en_cours` valait faux au chargement et vrai en partie. Reste à voir : `OnGameplayEnded` au retour au menu | `liaison.partie_en_cours`, `Scriptorium.entrer_en_partie`, `Scriptorium.sortir_de_partie` |
 
 Pour me répondre : le contenu de `kcd.log` autour de `[Scriptorium]`, et une ligne par question.

@@ -190,8 +190,10 @@ function bandeau.demarrer()
     return
   end
   etat.actif = true
+  etat.generation = (etat.generation or 0) + 1
+  local generation = etat.generation
   local function battement()
-    if not etat.actif then
+    if not etat.actif or etat.generation ~= generation then
       return
     end
     local ok, erreur = pcall(bandeau.battre)
@@ -205,6 +207,13 @@ end
 
 function bandeau.arreter()
   etat.actif = false
+end
+
+-- Entrée en partie : repose la minuterie (celle du démarrage du mod ne tire jamais en jeu).
+-- Une ancienne boucle encore vivante s'éteint d'elle-même à son prochain tour.
+function bandeau.relancer()
+  etat.actif = false
+  bandeau.demarrer()
 end
 
 function bandeau.est_actif()

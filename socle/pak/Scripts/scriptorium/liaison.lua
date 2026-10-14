@@ -332,84 +332,26 @@ function liaison.partie_en_cours()
   return ok and present == true
 end
 
--- Sondes des minuteries (essai du 14/10) : au premier essai en jeu, aucune minuterie posée au démarrage
--- du mod n'a tiré, ni au menu ni en partie, et le journal n'est écrit qu'en quittant. Chaque sonde note
--- quand elle tire (temps moteur, partie en cours ou non) : celle qui tire en partie désigne le moyen
--- à garder pour le bandeau, le poste et le battement. À l'entrée en partie, la première sonde qui la voit
--- envoie un texte d'essai à l'écran (V1).
-liaison.sondes = {}
-liaison.evenements_sondes = { "OnGameplayStarted", "OnGameplayEnded", "OnLoadingStart", "OnLoadingComplete" }
+-- Entrée en partie et sortie. Constaté le 14/10 (sondes) : une minuterie posée au démarrage du mod ne tire
+-- jamais, ni au menu ni en partie ; une minuterie posée à l'événement System « OnGameplayStarted » tire en
+-- partie. Le jeu accepte aussi l'abonnement à « OnGameplayEnded » (à vérifier en jeu : qu'il arrive au
+-- retour au menu). Les fonctions rendues sont appelées sans argument.
 liaison.ecouteur = {}
-local affichage_d_essai_fait = false
 
-local function noter_sonde(nom, quoi)
-  liaison.journal("Sonde « " .. nom .. " » : " .. quoi .. ", temps moteur = " .. string.format("%.1f", liaison.maintenant())
-                  .. ", partie en cours = " .. tostring(liaison.partie_en_cours()))
-end
-
--- Un tir de sonde : note le premier, chaque changement de partie et un tir sur douze.
-local function tirer(nom)
-  local sonde = liaison.sondes[nom]
-  sonde.tirs = sonde.tirs + 1
-  local partie = liaison.partie_en_cours()
-  if sonde.tirs == 1 or partie ~= sonde.partie or sonde.tirs % 12 == 0 then
-    noter_sonde(nom, "tir n° " .. sonde.tirs)
-  end
-  if partie and not sonde.partie and not affichage_d_essai_fait then
-    affichage_d_essai_fait = true
-    liaison.afficher("@ui_scriptorium_socle_pret", 8)
-    noter_sonde(nom, "texte d'essai envoyé à l'écran")
-  end
-  sonde.partie = partie
-end
-
-local function sonde_minuterie(nom, aussi_en_pause)
-  if liaison.sondes[nom] then
-    return
-  end
-  liaison.sondes[nom] = { tirs = 0, partie = nil }
-  local function tic()
-    tirer(nom)
-    if aussi_en_pause then
-      Script.SetTimer(5000, tic, nil, true)
-    else
-      Script.SetTimer(5000, tic)
-    end
-  end
-  local ok, erreur = pcall(function()
-    if aussi_en_pause then
-      Script.SetTimer(5000, tic, nil, true)
-    else
-      Script.SetTimer(5000, tic)
-    end
-  end)
-  noter_sonde(nom, ok and "posée" or ("refusée : " .. tostring(erreur)))
-end
-
--- Sonde par nom de fonction globale (Script.SetTimerForFunction).
-function Scriptorium_sonde_par_nom()
-  tirer("par_nom")
-  Script.SetTimerForFunction(5000, "Scriptorium_sonde_par_nom")
-end
-
-function liaison.poser_les_sondes()
-  sonde_minuterie("minuterie", false)
-  sonde_minuterie("minuterie_aussi_en_pause", true)
-  liaison.sondes.par_nom = { tirs = 0, partie = nil }
-  local ok, erreur = pcall(function() Script.SetTimerForFunction(5000, "Scriptorium_sonde_par_nom") end)
-  noter_sonde("par_nom", ok and "posée" or ("refusée : " .. tostring(erreur)))
-  for _, evenement in ipairs(liaison.evenements_sondes) do
-    local methode = "Sur" .. evenement
-    liaison.ecouteur[methode] = function()
-      noter_sonde("événement", evenement .. " reçu")
-      -- Une minuterie posée depuis l'événement tient-elle en partie ?
-      sonde_minuterie("posee_par_" .. evenement, false)
-    end
-    local accepte, resultat = pcall(function()
-      return UIAction.RegisterEventSystemListener(liaison.ecouteur, "System", evenement, methode)
+function liaison.ecouter_la_partie(a_l_entree, a_la_sortie)
+  liaison.ecouteur.SurEntreeEnPartie = function() a_l_entree() end
+  liaison.ecouteur.SurSortieDePartie = function() a_la_sortie() end
+  local abonnements = {
+    { evenement = "OnGameplayStarted", methode = "SurEntreeEnPartie" },
+    { evenement = "OnGameplayEnded", methode = "SurSortieDePartie" },
+  }
+  for _, abonnement in ipairs(abonnements) do
+    local ok, resultat = pcall(function()
+      return UIAction.RegisterEventSystemListener(liaison.ecouteur, "System", abonnement.evenement, abonnement.methode)
     end)
-    noter_sonde("événement", "abonnement à " .. evenement .. " : "
-                .. (accepte and ("accepté (" .. tostring(resultat) .. ")") or ("refusé : " .. tostring(resultat))))
+    if not ok then
+      liaison.journal("Abonnement à « " .. abonnement.evenement .. " » refusé : " .. tostring(resultat))
+    end
   end
 end
 
