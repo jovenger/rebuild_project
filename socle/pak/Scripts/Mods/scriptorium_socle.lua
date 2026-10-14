@@ -1,5 +1,5 @@
 -- Démarrage du socle Scriptorium (mod d'essai « scriptorium_socle »).
--- Le jeu exécute de lui-même les scripts de Scripts/Startup/ au lancement.
+-- Le jeu exécute de lui-même Scripts/Mods/<modid>.lua juste après Scripts/main.lua (wiki de Warhorse).
 -- Ordre de chargement : noyau, liaison, puis les morceaux, puis le poste d'essai.
 
 Script.ReloadScript("Scripts/scriptorium/noyau.lua")
