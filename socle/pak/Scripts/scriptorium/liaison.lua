@@ -402,7 +402,11 @@ end
 liaison.ecouteur = {}
 
 function liaison.ecouter_la_partie(a_l_entree, a_la_sortie)
-  liaison.ecouteur.SurEntreeEnPartie = function() a_l_entree() end
+  -- La mémoire de secours ne passe jamais d'une partie à l'autre : vidée à chaque entrée, avant la relecture.
+  liaison.ecouteur.SurEntreeEnPartie = function()
+    liaison.memoire.registre = nil
+    a_l_entree()
+  end
   liaison.ecouteur.SurSortieDePartie = function() a_la_sortie() end
   local abonnements = {
     { evenement = "OnGameplayStarted", methode = "SurEntreeEnPartie" },
