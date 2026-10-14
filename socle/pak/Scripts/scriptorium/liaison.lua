@@ -278,11 +278,11 @@ function liaison.decrire_objet(identifiant)
     local h = player:GetWorldPos()
     local morceaux = { string.format("position %.1f, %.1f, %.1f ; Henry à %.1f m", p.x, p.y, p.z,
                                      math.sqrt((p.x - h.x) ^ 2 + (p.y - h.y) ^ 2)) }
-    local n = entite:GetSlotCount() or 0
+    local n = (entite:GetSlotCount()) or 0
     table.insert(morceaux, n .. " emplacement(s)")
     for slot = 0, n - 1 do
-      table.insert(morceaux, "n° " .. slot .. " : géométrie " .. tostring(entite:IsSlotGeometry(slot))
-                   .. ", particules " .. tostring(entite:IsSlotParticleEmitter(slot)))
+      table.insert(morceaux, "n° " .. slot .. " : géométrie " .. tostring((entite:IsSlotGeometry(slot)))
+                   .. ", particules " .. tostring((entite:IsSlotParticleEmitter(slot))))
     end
     return table.concat(morceaux, " ; ")
   end)
