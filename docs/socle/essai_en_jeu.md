@@ -19,7 +19,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 - Jouer sur une **partie d'essai neuve**, jamais sur la partie actuelle.
 
 ## 4. Ce qu'il faut voir, dans l'ordre
-1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `poste`, puis `Socle 0.1.0 : 11 morceau(x) prêt(s), 0 en panne`.
+1. Au lancement, dans le journal du jeu (`kcd.log`) : `[Scriptorium] Socle : morceau « bandeau » prêt`, puis `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `discipline`, `poste`, puis `Socle 0.1.0 : 12 morceau(x) prêt(s), 0 en panne`.
 2. En entrant dans la partie : « Le socle de Scriptorium est prêt. » à l'écran.
 3. Dans la console du jeu (à vérifier : comment l'ouvrir), avec Henry debout sur un terrain plat et dégagé, au moins 300 groschen sur lui :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
@@ -32,6 +32,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
    - `scriptorium_essai_camp_agrandir` → deux tentes de plus, « Le camp s'est agrandi. » ;
    - `scriptorium_essai_patrouille` → « La patrouille est partie. » ; deux heures de jeu plus tard, un compte rendu ;
    - `scriptorium_essai_bataille` → un quart d'heure de jeu plus tard, « Une bande approche du camp : 5 hommes » puis, attendu à ce stade, la règle tranche faute d'âmes ennemies (V18) : une issue à l'écran et, s'il y a butin, « Butin partagé, au coffre : … » ;
+   - `scriptorium_essai_discipline` → au journal, la réputation (50 au départ) et les fautes à juger, s'il y en a eu à l'aube ;
    - `scriptorium_essai_camp_lever` → tout disparaît, « Le camp est levé. » ;
    - `scriptorium_bilan` → résumé au journal.
 4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement, V4).

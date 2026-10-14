@@ -22,9 +22,9 @@
 
 ## 3. Ce qui est fait (tout est dans le dépôt)
 - `CLAUDE.md` : règles et plan des dossiers. `docs/socle/plan_de_refonte.md` : le plan et les décisions D1 à D10. `docs/socle/avancement.md` : tableau des morceaux et résumé en une page. `docs/socle/fiches/00` à `08` : fiches de comportement (02 à 08 attendent la validation de JoVenGer). `docs/socle/essai_en_jeu.md` : marche à suivre et 24 points V1 à V24 à vérifier.
-- `socle/pak/Scripts/scriptorium/` : `noyau.lua` (table `Scriptorium`, morceaux, démarrage, battement commun toutes les 30 s en partie), `liaison.lua` (**seul fichier qui parle au moteur**, 24 appels « à vérifier en jeu »), `bandeau.lua`, `registre.lua`, `coffre.lua`, `camp.lua`, `hommes.lua`, `bataille.lua`, `directeur.lua`, `enceinte.lua`, `atelier.lua`, `patrouilles.lua`, `poste.lua` (treize commandes de console `scriptorium_*`).
-- `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 70 textes. `socle/mod.manifest`.
-- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 1 261 vérifications dont un scénario complet d'une semaine, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
+- `socle/pak/Scripts/scriptorium/` : `noyau.lua` (table `Scriptorium`, morceaux, démarrage, battement commun toutes les 30 s en partie), `liaison.lua` (**seul fichier qui parle au moteur**, 24 appels « à vérifier en jeu »), `bandeau.lua`, `registre.lua`, `coffre.lua`, `camp.lua`, `hommes.lua`, `bataille.lua`, `directeur.lua`, `enceinte.lua`, `atelier.lua`, `patrouilles.lua`, `discipline.lua` (décision D7 : fautes, jugements, réputation), `poste.lua` (quatorze commandes de console `scriptorium_*`).
+- `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 77 textes. `socle/mod.manifest`.
+- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 1 322 vérifications dont un scénario complet d'une semaine, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
 - `outils/empreintes.py` : relevé des empreintes d'Alex (sha256 seulement, rien en clair).
 - `noyau/installer.py` : installe dans `Mods\scriptorium_socle` seulement, refuse les chemins interdits, met de côté dans `securite\` avant de remplacer, relance la vérification avant.
 
@@ -42,7 +42,7 @@
 - D4 : partie d'essai neuve pendant le chantier.
 - D5 : salle blanche stricte (ne jamais ouvrir `mercenaires/` pour écrire le code).
 - D6 : à la fin, seules les empreintes d'Alex sont gardées.
-- D7 : toutes les nouveautés d'époque (contrat, solde, moral, vivres, rangs, pavois, guet, butin, barbier, usure, discipline, noms d'époque) — faites, sauf la discipline envers les paysans.
+- D7 : toutes les nouveautés d'époque (contrat, solde, moral, vivres, rangs, pavois, guet, butin, barbier, usure, discipline, noms d'époque) — toutes faites au banc.
 - D8 : bandeau en bas de l'écran, premier morceau.
 - D9 : projet dans `C:\Users\maste\Desktop\rebuild_project`, mod d'essai `Mods\scriptorium_socle`.
 - D10 : pendant un essai, désactiver les trois mods Scriptorium par la liste des mods chargés (`mod_order.txt`, à vérifier), jamais en renommant un dossier.

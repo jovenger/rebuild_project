@@ -10,7 +10,7 @@ Scriptorium.morceaux = Scriptorium.morceaux or {}
 Scriptorium.demarre = Scriptorium.demarre or false
 Scriptorium.cadence_du_battement_ms = 30000
 -- L'ordre dans lequel les morceaux battent (ceux qui ont une fonction battre).
-Scriptorium.ordre_du_battement = { "bataille", "hommes", "directeur", "enceinte", "atelier", "patrouilles" }
+Scriptorium.ordre_du_battement = { "bataille", "hommes", "discipline", "directeur", "enceinte", "atelier", "patrouilles" }
 
 local function jeu()
   return Scriptorium.jeu

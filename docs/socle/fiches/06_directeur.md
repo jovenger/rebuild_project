@@ -21,7 +21,7 @@
   - `renvoyer` : identifiant ;
   - `nommer_capitaine` : identifiant ;
   - `renouveler` : identifiant, semaines ;
-  - `acheter` : sorte, quantité, au prix du marché de la Compagnie (vivres 2, bière 1, fourrage 1, traits 1, bois 1, herbes 3, fer 5, cuir 3 groschen l'unité), payé au coffre ;
+  - `acheter` : sorte, quantité, au prix de base (vivres 2, bière 1, fourrage 1, traits 1, bois 1, herbes 3, fer 5, cuir 3 groschen l'unité), modulé par la réputation auprès des villages (morceau 9), payé au coffre ;
   - `deposer` : montant, de la bourse d'Henry au coffre ;
   - `verser` : montant, du coffre à Henry ;
   - `agrandir_le_camp` : coûte du bois (30 par niveau) et des groschen (100 par niveau), au coffre ;

@@ -68,6 +68,13 @@
   <Row><Cell>ui_scriptorium_patrouille_rodeurs</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_embuscade</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_patrouille</Cell><Cell>Envoyer une patrouille</Cell><Cell>Envoyer une patrouille</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_rixe</Cell><Cell>Rixe au camp :</Cell><Cell>Rixe au camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_vol</Cell><Cell>Un vol au coffre :</Cell><Cell>Un vol au coffre :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_ivresse</Cell><Cell>Ivresse au camp :</Cell><Cell>Ivresse au camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_exaction</Cell><Cell>Exaction chez les paysans :</Cell><Cell>Exaction chez les paysans :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_jugement</Cell><Cell>Jugement rendu au camp :</Cell><Cell>Jugement rendu au camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_laxisme</Cell><Cell>Une faute est restée impunie : les hommes murmurent.</Cell><Cell>Une faute est restée impunie : les hommes murmurent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_juger</Cell><Cell>Rendre justice au camp</Cell><Cell>Rendre justice au camp</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>

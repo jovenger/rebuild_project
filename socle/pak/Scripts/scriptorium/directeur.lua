@@ -206,6 +206,32 @@ local function nombre_valide(n)
   return type(n) == "number" and n > 0 and math.floor(n) == n
 end
 
+-- Le prix d'une réserve chez les villages, selon la réputation de la Compagnie (morceau 9).
+function directeur.prix_de(sorte)
+  local prix = directeur.prix[sorte]
+  if not prix then
+    return nil
+  end
+  local facteur = 1
+  if Scriptorium.discipline and Scriptorium.discipline.facteur_de_prix then
+    facteur = Scriptorium.discipline.facteur_de_prix()
+  end
+  return math.max(1, math.floor(prix * facteur + 0.5))
+end
+
+-- Le coût d'un achat, calculé sur le total : la réputation compte même sur les denrées à un groschen.
+function directeur.cout_de(sorte, quantite)
+  local prix = directeur.prix[sorte]
+  if not prix then
+    return nil
+  end
+  local facteur = 1
+  if Scriptorium.discipline and Scriptorium.discipline.facteur_de_prix then
+    facteur = Scriptorium.discipline.facteur_de_prix()
+  end
+  return math.max(1, math.floor(prix * quantite * facteur + 0.5))
+end
+
 local function roles_disponibles()
   local liste = {}
   for role in pairs(hommes().roles) do table.insert(liste, role) end
@@ -264,13 +290,14 @@ local entrees_de_base = {
   { action = "acheter", cle = "ui_scriptorium_gestion_acheter", parametres = { "sorte", "quantite" },
     disponible = function()
       if coffre().solde() <= 0 then return false, "coffre_vide" end
-      return true, { sortes = sortes_disponibles(), prix = directeur.prix }
+      local prix = {}
+      for sorte in pairs(directeur.prix) do prix[sorte] = directeur.prix_de(sorte) end
+      return true, { sortes = sortes_disponibles(), prix = prix }
     end,
     agir = function(p)
-      local prix = directeur.prix[p.sorte]
-      if not prix then return false, "sorte_inconnue" end
+      if not directeur.prix[p.sorte] then return false, "sorte_inconnue" end
       if not nombre_valide(p.quantite) then return false, "quantite_invalide" end
-      local cout = prix * p.quantite
+      local cout = directeur.cout_de(p.sorte, p.quantite)
       if coffre().solde() < cout then return false, "coffre_insuffisant" end
       local ok, raison = coffre().payer(cout, "achat_" .. p.sorte)
       if not ok then return false, raison end

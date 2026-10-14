@@ -15,6 +15,7 @@ essai("scénario : une semaine de la Compagnie, par le battement commun", functi
   enceinte.installer_les_entrees()
   Scriptorium.atelier.installer_les_entrees()
   patrouilles.installer_les_entrees()
+  Scriptorium.discipline.installer_les_entrees()
   FauxJeu.partie = true
   FauxJeu.heure = 9
   FauxJeu.bourse_henry = 2000

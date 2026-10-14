@@ -382,6 +382,7 @@ function hommes.embaucher(contrat)
     lit = lits[1],
     derniere_activite = nil,
     engage = heure,
+    retenue = 0,
   }
   if prime > 0 then
     local ok = coffre().payer(prime, "prime")
@@ -559,13 +560,28 @@ local function sieges_libres_pour(d)
   return camp().places_libres("siege")
 end
 
--- Affecte un homme à une tâche qui passe devant sa journée (bataille, patrouille).
-function hommes.affecter(id, activite, place, position, cap)
+-- Affecte un homme à une tâche qui passe devant sa journée (bataille, patrouille, corvée de punition).
+-- « fin » (heure du jeu) : l'affectation tombe d'elle-même à cette heure.
+function hommes.affecter(id, activite, place, position, cap, fin)
   local f = donnees().liste[id]
   if not f then
     return refuser("homme_inconnu", tostring(id))
   end
-  f.affectation = { activite = activite, place = place, position = position, cap = cap }
+  f.affectation = { activite = activite, place = place, position = position, cap = cap, fin = fin }
+  return true
+end
+
+-- Retient une somme sur les prochaines soldes (amende).
+function hommes.retenir(id, montant)
+  local f = donnees().liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if type(montant) ~= "number" or montant < 0 then
+    return refuser("montant_invalide", tostring(montant))
+  end
+  f.retenue = (f.retenue or 0) + math.floor(montant)
+  enregistrer()
   return true
 end
 
@@ -651,7 +667,13 @@ function hommes.payer_la_solde()
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     local montant = solde_hebdomadaire(f)
-    if coffre().payer(montant, "solde") then
+    -- Une amende retient sur la solde ; ce qui dépasse reste dû.
+    if f.retenue and f.retenue > 0 then
+      local retenu = math.min(f.retenue, montant)
+      montant = montant - retenu
+      f.retenue = f.retenue - retenu
+    end
+    if montant == 0 or coffre().payer(montant, "solde") then
       f.impayes = 0
       f.moral = borner(f.moral + 5, 0, 100)
       rapport.payes = rapport.payes + 1
@@ -771,6 +793,14 @@ function hommes.battre()
   end
   if rapport.changements > 0 then
     verifier_rangs(d, rapport)
+  end
+  -- Les affectations à durée tombent d'elles-mêmes.
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if f.affectation and f.affectation.fin and heure >= f.affectation.fin then
+      f.affectation = nil
+      rapport.changements = rapport.changements + 1
+    end
   end
   -- Ordres, seulement quand l'activité change.
   for _, id in ipairs(d.ordre) do

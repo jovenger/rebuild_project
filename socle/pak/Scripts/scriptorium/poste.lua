@@ -173,6 +173,17 @@ function poste.essai_enceinte()
   return sorts
 end
 
+-- Discipline : écrit les fautes à juger et la réputation au journal.
+function poste.essai_discipline()
+  local discipline = Scriptorium.discipline
+  local fautes = discipline.a_juger()
+  jeu().journal("Poste : discipline, réputation = " .. discipline.reputation() .. ", fautes à juger = " .. #fautes)
+  for _, f in ipairs(fautes) do
+    jeu().journal("  " .. f.id .. " : " .. f.sorte .. " par " .. f.nom)
+  end
+  return fautes
+end
+
 -- Résumé du socle dans le journal.
 function poste.bilan()
   for _, morceau in ipairs(Scriptorium.morceaux) do
@@ -202,5 +213,6 @@ Scriptorium.declarer_morceau("poste", function()
   jeu().commande("scriptorium_gestion_rapport", "Scriptorium.poste.gestion('rapport')", "Le rapport du Directeur")
   jeu().commande("scriptorium_essai_enceinte", "Scriptorium.poste.essai_enceinte()", "Bâtit la palissade et les tours")
   jeu().commande("scriptorium_essai_patrouille", "Scriptorium.poste.essai_patrouille()", "Envoie deux hommes faire la ronde proche")
+  jeu().commande("scriptorium_essai_discipline", "Scriptorium.poste.essai_discipline()", "Les fautes à juger et la réputation")
   jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
 end)
