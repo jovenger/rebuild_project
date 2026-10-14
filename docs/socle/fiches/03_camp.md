@@ -1,7 +1,7 @@
 # Fiche 03 — Le camp : tentes, lits, feux, sièges
 
 - Morceau : 3. Table : `Scriptorium.camp`. Fichier : `socle/pak/Scripts/scriptorium/camp.lua`.
-- État : écrit et passé au banc. En attente de l'essai en jeu (pose d'objets, modèles du jeu de base) et de la validation de la fiche par JoVenGer.
+- État : écrit et passé au banc ; vu en jeu (camp debout et orienté comme Henry, feu qui brûle, bancs `Chair`, paillasses `Bed`, reposé à chaque chargement). Validée par JoVenGer le 14/10/2026 : fondé là où se tient Henry ; 4, puis 8, puis 12 hommes ; agrandi sur ordre au Directeur ; bancs et paillasses pour Henry et les hommes, le lit du Directeur à lui seul.
 
 ## Ce que le joueur voit
 - Un camp dressé autour d'un feu : des sièges, des tentes avec leurs paillasses, la tente du Directeur avec son lit et le coffre du camp.
@@ -12,7 +12,7 @@
 - **Le plan est en données, pas dans le code.** `camp.plan` liste les emplacements : nom, sorte (`feu`, `siege`, `tente`, `lit`, `coffre`), position par rapport à l'ancre du camp (mètres : x à droite, y devant), cap (degrés, 0 = devant), niveau (1 à 3).
 - **L'ancre.** `fonder(position, cap)` fixe l'ancre du camp (là où se tient Henry, dans le poste d'essai). Chaque emplacement est tourné du cap de l'ancre puis décalé de sa position. Fonder deux fois est refusé : il faut lever le camp d'abord.
 - **Niveaux.** Le camp commence au niveau 1 (un feu, quatre sièges, la tente du Directeur, deux tentes, cinq lits, le coffre). `agrandir()` passe au niveau suivant et dresse les emplacements du nouveau niveau : plus de tentes, de lits et de sièges, pour une compagnie qui grossit. Le niveau 3 est le dernier.
-- **Objets du jeu de base.** Chaque sorte renvoie à un modèle du jeu (`camp.modeles`), appelé par son chemin, jamais copié. Les chemins restent à confirmer en jeu.
+- **Objets du jeu de base.** Chaque sorte renvoie à un modèle du jeu (`camp.modeles`), appelé par son chemin, jamais copié. Chemins relevés dans les paks et vérifiés par `outils/verifier_modeles.py`.
 - **Dresser.** Pour chaque emplacement du niveau courant qui n'est pas posé, le camp demande au jeu de poser l'objet et garde l'identifiant rendu. Un objet que le jeu refuse de poser est noté au journal ; le camp continue avec les autres.
 - **Redresser.** Après un chargement, `redresser()` demande au jeu, pour chaque objet gardé, s'il existe encore ; les manquants sont reposés. Rien d'autre n'est touché. Cela marche sans aucun homme.
 - **Lever.** `lever()` retire tous les objets du jeu et oublie l'ancre. Les tentes appartiennent à JoVenGer : le camp garde le propriétaire dans le registre.
