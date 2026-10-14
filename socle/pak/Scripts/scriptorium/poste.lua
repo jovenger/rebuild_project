@@ -234,12 +234,30 @@ poste.ames_de_combat = {
   ennemies = { brigands = "584f681c-2f90-4ef2-b1de-470282a7993d", coumans = "20eb21a4-21ba-4530-bcac-3af448cb1810" },
 }
 
--- Âmes : les personnages qui viendront ensuite prennent les âmes de combat du jeu ; ceux déjà venus gardent la leur.
-function poste.essai_ames_de_combat()
-  for role, ame in pairs(poste.ames_de_combat.hommes) do jeu().ames[role] = ame end
-  for sorte, ame in pairs(poste.ames_de_combat.ennemies) do jeu().ames_ennemies[sorte] = ame end
-  jeu().journal("Poste : âmes de combat du jeu en place (hommes : combatFriend, bandes : combatEnemy)")
+-- Âmes de la carte de Kuttenberg (Libs/Tables/rpg/soul__kopa.xml, soul__extraGuards.xml) : un brigand du camp
+-- d'Opatovice (faction kutnohorsko_enemies_bandits_campOpatovicko, sous kutnohorsko_enemies, « ennemi public ») ;
+-- trois gardes génériques de Kutná Hora. Vu le 14/10 : les factions de combat d'essai (FactionTree__autotests.xml)
+-- et celles de la carte de Trosky ne faisaient réagir personne sur la carte de Kuttenberg (V18).
+poste.ames_de_kuttenberg = {
+  hommes = { homme_d_armes = "55f42965-e4d1-4998-9a8b-fb9df46771f3", arbaletrier = "0e1aba06-82de-4270-b0ec-46a8b4744abc",
+             archer = "4af1dfea-2f42-415b-9b7f-a9de8a34a788" },
+  ennemies = { brigands = "08994591-c246-401d-bcd9-ca5d0fe1ddd7" },
+}
+
+local function prendre_les_ames(jeu_d_ames, nom)
+  for role, ame in pairs(jeu_d_ames.hommes) do jeu().ames[role] = ame end
+  for sorte, ame in pairs(jeu_d_ames.ennemies) do jeu().ames_ennemies[sorte] = ame end
+  jeu().journal("Poste : " .. nom .. " en place pour les prochains personnages")
   return true
+end
+
+-- Âmes : les personnages qui viendront ensuite prennent ces âmes ; ceux déjà venus gardent la leur.
+function poste.essai_ames_de_combat()
+  return prendre_les_ames(poste.ames_de_combat, "âmes de combat du jeu (hommes : combatFriend, bandes : combatEnemy)")
+end
+
+function poste.essai_ames_de_kuttenberg()
+  return prendre_les_ames(poste.ames_de_kuttenberg, "âmes de Kuttenberg (hommes : gardes de Kutná Hora, bandes : brigands d'Opatovice)")
 end
 
 -- Bataille : pose la bande au contact à dix-huit mètres devant le camp, en ligne (V18 : à soixante mètres,
@@ -454,6 +472,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_hostiles", fonction = function() return poste.essai_hostiles() end, aide = "Rend la bande au contact et nos hommes hostiles" },
   { nom = "scriptorium_essai_cibler", fonction = function() return poste.essai_cibler() end, aide = "Donne à chaque ennemi un de nos hommes pour cible, et l'inverse" },
   { nom = "scriptorium_essai_ames_de_combat", fonction = function() return poste.essai_ames_de_combat() end, aide = "Les prochains personnages prennent les âmes de combat du jeu" },
+  { nom = "scriptorium_essai_ames_de_kuttenberg", fonction = function() return poste.essai_ames_de_kuttenberg() end, aide = "Les prochains personnages prennent des âmes de la carte de Kuttenberg" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
   { nom = "scriptorium_essai_suivre", fonction = function() return poste.essai_suivre() end, aide = "Chaque ennemi suit un de nos hommes" },
   { nom = "scriptorium_essai_voir_bande", fonction = function() return poste.essai_voir_bande() end, aide = "Pose Henry à 12 m de la bande, côté camp" },
