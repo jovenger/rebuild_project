@@ -300,9 +300,13 @@ function liaison.decrire_objet(identifiant)
   return ok and description or ("illisible : " .. tostring(description))
 end
 
+-- Pose « fermée » de chaque porte posée, gardée à son premier mouvement (voir liaison.changer_porte).
+local poses_fermees = {}
+
 -- Retire un objet posé par le socle.
 -- À vérifier en jeu : System.RemoveEntity.
 function liaison.retirer_objet(identifiant)
+  poses_fermees[identifiant] = nil
   local entite = entite_nommee(identifiant)
   if entite then
     pcall(System.RemoveEntity, entite.id)
@@ -592,10 +596,39 @@ function liaison.faire_venir_directeur(position)
   return identifiant
 end
 
--- Ouvre, ferme ou barre la porte posée.
--- À vérifier en jeu : comment animer ou remplacer une porte posée. En attendant, journal.
+-- Ouvre, ferme ou barre la porte posée. Le modèle de la porte n'a pas d'animation : « ouverte », elle pivote
+-- d'un quart de tour autour de son gond, le bord de sa boîte englobante (entity:GetLocalBBox, comme dans
+-- BreakableObject.lua du jeu) ; « fermée » et « barrée », elle revient à sa pose d'origine, gardée au premier
+-- mouvement. À vérifier en jeu (V22).
 function liaison.changer_porte(identifiant, etat)
   liaison.journal("Porte " .. tostring(identifiant) .. " : " .. tostring(etat))
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return
+  end
+  local ok, erreur = pcall(function()
+    local fermee = poses_fermees[identifiant]
+    if not fermee then
+      local mini = entite:GetLocalBBox()
+      local ici = entite:GetWorldPos()
+      local angles = entite:GetWorldAngles()
+      fermee = { x = ici.x, y = ici.y, z = ici.z, angle = angles.z, gond = mini.x }
+      poses_fermees[identifiant] = fermee
+    end
+    local angle, x, y = fermee.angle, fermee.x, fermee.y
+    if etat == "ouverte" then
+      local gond_x = fermee.x + fermee.gond * math.cos(fermee.angle)
+      local gond_y = fermee.y + fermee.gond * math.sin(fermee.angle)
+      angle = fermee.angle + math.pi / 2
+      x = gond_x - fermee.gond * math.cos(angle)
+      y = gond_y - fermee.gond * math.sin(angle)
+    end
+    entite:SetWorldAngles({ x = 0, y = 0, z = angle })
+    entite:SetWorldPos({ x = x, y = y, z = fermee.z })
+  end)
+  if not ok then
+    liaison.journal("Porte " .. tostring(identifiant) .. " : mouvement impossible : " .. tostring(erreur))
+  end
 end
 
 -- Vrai quand une partie est chargée (le camp ne bat pas au menu principal).

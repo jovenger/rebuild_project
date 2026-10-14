@@ -202,6 +202,21 @@ function poste.essai_enceinte()
   return sorts
 end
 
+-- Porte : la fait passer d'ouverte à fermée, ou de fermée à ouverte (V22).
+function poste.essai_porte()
+  local enceinte = Scriptorium.enceinte
+  local avant = enceinte.porte()
+  local ok, raison
+  if avant == "ouverte" then
+    ok, raison = enceinte.fermer()
+  else
+    ok, raison = enceinte.ouvrir()
+  end
+  jeu().journal("Poste : porte, avant = " .. tostring(avant) .. ", après = " .. tostring(enceinte.porte())
+                .. (ok and "" or (" (" .. tostring(raison) .. ")")))
+  return ok
+end
+
 -- Discipline : écrit les fautes à juger et la réputation au journal.
 function poste.essai_discipline()
   local discipline = Scriptorium.discipline
@@ -249,6 +264,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_directeur", fonction = function() return poste.essai_directeur() end, aide = "Installe le Directeur et écrit le menu de la Gestion du camp" },
   { nom = "scriptorium_gestion_rapport", fonction = function() return poste.gestion("rapport") end, aide = "Le rapport du Directeur" },
   { nom = "scriptorium_essai_enceinte", fonction = function() return poste.essai_enceinte() end, aide = "Bâtit la palissade et les tours" },
+  { nom = "scriptorium_essai_porte", fonction = function() return poste.essai_porte() end, aide = "Ouvre la porte fermée, ou ferme la porte ouverte" },
   { nom = "scriptorium_essai_patrouille", fonction = function() return poste.essai_patrouille() end, aide = "Envoie deux hommes faire la ronde proche" },
   { nom = "scriptorium_essai_discipline", fonction = function() return poste.essai_discipline() end, aide = "Les fautes à juger et la réputation" },
   { nom = "scriptorium_bilan", fonction = function() return poste.bilan() end, aide = "Bilan du socle dans le journal" },

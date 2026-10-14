@@ -117,6 +117,9 @@ essai("enceinte : la porte suit l'heure et les bandes, un ordre au changement", 
   enceinte.batir()
   Scriptorium.bandeau.remettre_a_zero()
   FauxJeu.ordres_porte = {}
+  egal(enceinte.battre().porte, 1, "posée fermée, ouverte au premier battement du jour")
+  egal(FauxJeu.ordres_porte[1].etat, "ouverte", "ordre d'ouvrir au jeu")
+  FauxJeu.ordres_porte = {}
   egal(enceinte.battre().porte, 0, "ouverte le jour : rien à changer")
   egal(enceinte.porte(), "ouverte", "ouverte")
   FauxJeu.heure = 22

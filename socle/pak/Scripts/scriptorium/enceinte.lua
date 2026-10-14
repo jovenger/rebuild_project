@@ -141,6 +141,8 @@ function enceinte.batir()
   d.niveau = d.niveau + 1
   d.batie = true
   local poses, manquants = dresser(d)
+  -- La porte est posée fermée : son état est redit au jeu au prochain battement.
+  d.porte.etat = nil
   enregistrer()
   jeu().journal("Enceinte : niveau " .. d.niveau .. ", " .. poses .. " posé(s), " .. manquants .. " manquant(s)")
   annoncer((d.niveau == 1) and "ui_scriptorium_enceinte_batie" or "ui_scriptorium_enceinte_tours")
