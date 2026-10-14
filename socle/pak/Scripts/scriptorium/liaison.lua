@@ -392,8 +392,9 @@ end
 
 -- Pour le poste d'essai : pose Henry à « distance » mètres de lui, dans la direction « cap » (cap de boussole ;
 -- par défaut celle où regarde le corps d'Henry, qui n'est pas forcément celle de la caméra), à la hauteur du
--- terrain (System.GetTerrainElevation). Refusé si la destination est plus de deux mètres sous Henry (de l'eau,
--- sans doute). Rend vrai et un compte rendu, ou faux et la raison.
+-- terrain (System.GetTerrainElevation). Refusé si la destination est dans l'eau (AI.IsPointInWaterRegion, essayé ;
+-- vu le 14/10 : une règle « pas plus de deux mètres plus bas » refusait les simples descentes de colline).
+-- Rend vrai et un compte rendu, ou faux et la raison.
 function liaison.deplacer_le_joueur(distance, cap)
   local ok, resultat = pcall(function()
     local ici = player:GetWorldPos()
@@ -403,10 +404,11 @@ function liaison.deplacer_le_joueur(distance, cap)
     if type(sol) ~= "number" then
       return { false, "hauteur du terrain illisible" }
     end
-    if sol < ici.z - 2 then
-      return { false, string.format("destination %.1f m plus bas : de l'eau, sans doute", ici.z - sol) }
-    end
     cible.z = sol + 0.1
+    local verifie, dans_l_eau = pcall(function() return AI.IsPointInWaterRegion(cible) end)
+    if verifie and dans_l_eau then
+      return { false, "destination dans l'eau" }
+    end
     player:SetWorldPos(cible)
     return { true, string.format("de %.0f, %.0f, %.1f à %.0f, %.0f, %.1f", ici.x, ici.y, ici.z, cible.x, cible.y, cible.z) }
   end)
