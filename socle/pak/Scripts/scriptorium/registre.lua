@@ -1,0 +1,296 @@
+-- Registre : la sauvegarde des données du camp dans la partie.
+-- Fiche de comportement : docs/socle/fiches/01_registre.md
+--
+-- Chaque morceau déclare sa case : Scriptorium.registre.declarer_case(nom, version, par_defaut, migrations)
+--   nom        : nom de la case ("coffre", "camp", …)
+--   version    : numéro de version de la forme des données (entier ≥ 1)
+--   par_defaut : fonction qui rend les données d'une case neuve
+--   migrations : { [1] = fonction(donnees) -> donnees de version 2, [2] = …, … }
+-- Scriptorium.registre.lire(nom) rend la table vivante de la case (chargée au besoin).
+-- Scriptorium.registre.enregistrer() écrit tout dans la partie ; charger() relit tout.
+
+Scriptorium = Scriptorium or {}
+
+local registre = {}
+Scriptorium.registre = registre
+
+registre.format = 1   -- version de l'enveloppe { format, cases }
+
+local cases, ordre, charge, contenu_stocke, dernier_rapport
+
+local function jeu()
+  return Scriptorium.jeu
+end
+
+local function annoncer(cle, options)
+  if Scriptorium.bandeau then
+    Scriptorium.bandeau.annoncer(cle, options)
+  end
+end
+
+function registre.remettre_a_zero()
+  cases = {}
+  ordre = {}
+  charge = false
+  contenu_stocke = nil
+  dernier_rapport = nil
+end
+registre.remettre_a_zero()
+
+-- ---------------------------------------------------------------- écriture / lecture
+
+local function trier_cles(table_)
+  local nombres, chaines = {}, {}
+  for cle in pairs(table_) do
+    if type(cle) == "number" then
+      table.insert(nombres, cle)
+    elseif type(cle) == "string" then
+      table.insert(chaines, cle)
+    else
+      error("registre : clé de type " .. type(cle) .. " impossible à enregistrer")
+    end
+  end
+  table.sort(nombres)
+  table.sort(chaines)
+  return nombres, chaines
+end
+
+local function ecrire_nombre(nombre)
+  if nombre ~= nombre or nombre == math.huge or nombre == -math.huge then
+    error("registre : nombre impossible à enregistrer")
+  end
+  return string.format("%.17g", nombre)
+end
+
+local function serialiser_valeur(valeur, morceaux, profondeur)
+  local genre = type(valeur)
+  if genre == "number" then
+    table.insert(morceaux, ecrire_nombre(valeur))
+  elseif genre == "string" then
+    table.insert(morceaux, string.format("%q", valeur))
+  elseif genre == "boolean" then
+    table.insert(morceaux, tostring(valeur))
+  elseif genre == "table" then
+    if profondeur > 32 then
+      error("registre : table trop profonde (boucle ?)")
+    end
+    table.insert(morceaux, "{")
+    local nombres, chaines = trier_cles(valeur)
+    for _, cle in ipairs(nombres) do
+      table.insert(morceaux, "[" .. ecrire_nombre(cle) .. "]=")
+      serialiser_valeur(valeur[cle], morceaux, profondeur + 1)
+      table.insert(morceaux, ",")
+    end
+    for _, cle in ipairs(chaines) do
+      table.insert(morceaux, "[" .. string.format("%q", cle) .. "]=")
+      serialiser_valeur(valeur[cle], morceaux, profondeur + 1)
+      table.insert(morceaux, ",")
+    end
+    table.insert(morceaux, "}")
+  else
+    error("registre : valeur de type " .. genre .. " impossible à enregistrer")
+  end
+end
+
+-- Table -> chaîne, toujours la même pour les mêmes données (clés triées).
+function registre.serialiser(valeur)
+  local morceaux = {}
+  serialiser_valeur(valeur, morceaux, 0)
+  return table.concat(morceaux)
+end
+
+-- Chaîne -> table, ou nil et un message. La chaîne est lue dans un bac à sable sans accès au jeu.
+function registre.deserialiser(chaine)
+  if type(chaine) ~= "string" or string.sub(chaine, 1, 1) ~= "{" then
+    return nil, "chaîne vide ou mal formée"
+  end
+  local fonction, erreur = loadstring("return " .. chaine, "registre")
+  if not fonction then
+    return nil, tostring(erreur)
+  end
+  setfenv(fonction, {})
+  local ok, valeur = pcall(fonction)
+  if not ok then
+    return nil, tostring(valeur)
+  end
+  if type(valeur) ~= "table" then
+    return nil, "le contenu n'est pas une table"
+  end
+  return valeur
+end
+
+-- ---------------------------------------------------------------- cases
+
+local function charger_case(case, stocke, rapport)
+  if stocke == nil then
+    case.donnees = case.par_defaut()
+    case.etat = "neuve"
+    rapport.neuves = rapport.neuves + 1
+    return
+  end
+  local function abimee(raison)
+    jeu().journal("Registre : case « " .. case.nom .. " » remise à neuf : " .. raison)
+    case.donnees = case.par_defaut()
+    case.etat = "abimee"
+    rapport.abimees = rapport.abimees + 1
+  end
+  if type(stocke) ~= "table" or type(stocke.version) ~= "number" or type(stocke.donnees) ~= "table" then
+    return abimee("contenu mal formé")
+  end
+  if stocke.version > case.version then
+    return abimee("version " .. stocke.version .. " plus récente que le socle (" .. case.version .. ")")
+  end
+  local donnees, version = stocke.donnees, stocke.version
+  while version < case.version do
+    local migration = case.migrations[version]
+    if type(migration) ~= "function" then
+      return abimee("pas de montée de version " .. version .. " -> " .. (version + 1))
+    end
+    local ok, resultat = pcall(migration, donnees)
+    if not ok or type(resultat) ~= "table" then
+      return abimee("montée de version " .. version .. " -> " .. (version + 1) .. " en échec : " .. tostring(resultat))
+    end
+    donnees = resultat
+    version = version + 1
+  end
+  case.donnees = donnees
+  if version ~= stocke.version then
+    case.etat = "migree"
+    rapport.migrees = rapport.migrees + 1
+  else
+    case.etat = "chargee"
+    rapport.chargees = rapport.chargees + 1
+  end
+end
+
+function registre.declarer_case(nom, version, par_defaut, migrations)
+  assert(type(nom) == "string" and nom ~= "", "registre : nom de case manquant")
+  assert(type(version) == "number" and version >= 1 and math.floor(version) == version,
+         "registre : version de case invalide pour " .. tostring(nom))
+  assert(type(par_defaut) == "function", "registre : la valeur par défaut de « " .. nom .. " » doit être une fonction")
+  if cases[nom] then
+    error("registre : case déjà déclarée : " .. nom)
+  end
+  local case = { nom = nom, version = version, par_defaut = par_defaut,
+                 migrations = migrations or {}, donnees = nil, etat = "non_chargee" }
+  cases[nom] = case
+  table.insert(ordre, nom)
+  if charge then
+    -- Déclarée après le chargement : on la sert tout de suite depuis le contenu lu.
+    local rapport = { chargees = 0, neuves = 0, migrees = 0, abimees = 0 }
+    charger_case(case, contenu_stocke and contenu_stocke[nom] or nil, rapport)
+  end
+  return case
+end
+
+-- Relit tout depuis la partie (ou depuis « chaine » si elle est donnée). Rend un rapport.
+function registre.charger(chaine)
+  local rapport = { chargees = 0, neuves = 0, migrees = 0, abimees = 0, source = "vide" }
+  if chaine == nil then
+    chaine = jeu().lire_registre()
+  end
+  contenu_stocke = nil
+  if chaine ~= nil then
+    local valeur, erreur = registre.deserialiser(chaine)
+    if valeur and valeur.format == registre.format and type(valeur.cases) == "table" then
+      contenu_stocke = valeur.cases
+      rapport.source = "lu"
+    else
+      rapport.source = "illisible"
+      jeu().journal("Registre : contenu illisible, tout est remis à neuf (" .. tostring(erreur or "enveloppe inconnue") .. ")")
+    end
+  end
+  for _, nom in ipairs(ordre) do
+    charger_case(cases[nom], contenu_stocke and contenu_stocke[nom] or nil, rapport)
+  end
+  charge = true
+  dernier_rapport = rapport
+  if rapport.source == "illisible" or rapport.abimees > 0 then
+    annoncer("ui_scriptorium_registre_remis_a_neuf")
+  elseif rapport.migrees > 0 then
+    annoncer("ui_scriptorium_registre_mis_a_jour", { importance = "journal" })
+  end
+  return rapport
+end
+
+-- Oublie ce qui est chargé (à appeler quand le joueur charge une autre partie).
+function registre.invalider()
+  charge = false
+  contenu_stocke = nil
+  for _, nom in ipairs(ordre) do
+    cases[nom].donnees = nil
+    cases[nom].etat = "non_chargee"
+  end
+end
+
+-- Rend la table vivante de la case. Les morceaux la modifient directement, puis appellent enregistrer().
+function registre.lire(nom)
+  local case = cases[nom]
+  if not case then
+    error("registre : case inconnue : " .. tostring(nom))
+  end
+  if not charge then
+    registre.charger()
+  end
+  if case.donnees == nil then
+    case.donnees = case.par_defaut()
+    case.etat = "neuve"
+  end
+  return case.donnees
+end
+
+function registre.etat_de(nom)
+  local case = cases[nom]
+  return case and case.etat or nil
+end
+
+-- Remet une case à neuf (données par défaut). N'enregistre pas.
+function registre.remettre_a_neuf(nom)
+  local case = cases[nom]
+  if not case then
+    error("registre : case inconnue : " .. tostring(nom))
+  end
+  case.donnees = case.par_defaut()
+  case.etat = "neuve"
+  return case.donnees
+end
+
+-- Écrit toutes les cases dans la partie. Les cases inconnues du contenu lu sont conservées.
+function registre.enregistrer()
+  if not charge then
+    registre.charger()
+  end
+  local contenu = { format = registre.format, cases = {} }
+  if contenu_stocke then
+    for nom, stocke in pairs(contenu_stocke) do
+      if not cases[nom] then
+        contenu.cases[nom] = stocke
+      end
+    end
+  end
+  for _, nom in ipairs(ordre) do
+    local case = cases[nom]
+    if case.donnees ~= nil then
+      contenu.cases[nom] = { version = case.version, donnees = case.donnees }
+    end
+  end
+  local chaine = registre.serialiser(contenu)
+  jeu().ecrire_registre(chaine)
+  return chaine
+end
+
+function registre.dernier_rapport()
+  return dernier_rapport
+end
+
+function registre.cases_declarees()
+  local copie = {}
+  for i, nom in ipairs(ordre) do
+    copie[i] = nom
+  end
+  return copie
+end
+
+Scriptorium.declarer_morceau("registre", function()
+  -- Rien à lancer : le registre se charge au premier lire().
+end)

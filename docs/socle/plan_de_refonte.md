@@ -1,6 +1,7 @@
 # Refonte du socle de Scriptorium : ce qui doit changer par rapport au mod d'Alex
 
-- Statut : proposition acceptée dans ses grandes lignes par JoVenGer le 14/10/2026, avec une règle ajoutée le même jour : **le chantier ne touche ni au Scriptorium actuel, ni à son git.** Aucune ligne de code n'est écrite.
+- Statut : proposition acceptée dans ses grandes lignes par JoVenGer le 14/10/2026, avec deux règles ajoutées le même jour : **le chantier ne touche ni au Scriptorium actuel, ni à son git**, et **le périmètre est le mod seul** : refaire entièrement le mod d'Alex, à notre façon, comme mod à part. Son adaptation à Scriptorium viendra après, hors de ce chantier.
+- Avancement : voir `docs/socle/avancement.md`.
 - Source : la description de JoVenGer du 14/10/2026. Le code (`mercenaires/`, `choses/`, `noyau/`) n'est pas lisible depuis cette session. La liste fonction par fonction sera complétée à l'étape 0, l'inventaire (partie 1).
 - Les mentions « à vérifier » désignent des points du jeu ou du projet qui ne sont pas encore confirmés.
 
@@ -25,7 +26,7 @@
 
 ### Étape 0 : l'inventaire (une seule fois, avant le premier morceau)
 
-- Le Scriptorium actuel est lu, jamais modifié. Tout ce qui sort de l'inventaire est écrit dans ce projet.
+- L'inventaire demande de lire la copie d'Alex (`mercenaires/`), en lecture seule. Tant que JoVenGer ne donne pas cette lecture, la liste de la partie 2 fait foi et le socle se construit d'après elle et d'après les fiches.
 - Lister les 88 scripts Lua et les 2 100 fonctions environ d'Alex, rangés par morceau.
 - Lister chaque appel des 211 dossiers de `choses/` vers `mercenaries` : dossier, fonction appelée, morceau concerné.
 - Lister aussi ce que lisent les programmes du PC (panneau, téléphone, veilleur) : clés de sauvegarde, noms, fichiers.
@@ -42,7 +43,7 @@
 2. Validation de la fiche par JoVenGer.
 3. Écriture du code d'après la fiche seule, sans ouvrir `mercenaires/`.
 4. **Poste d'essai** : des commandes en français (console du jeu ou objet d'essai) qui permettent d'éprouver le morceau sans les dossiers de `choses/`, par exemple « lever une bande de six hommes à l'est ».
-5. **Contrat avec `choses/`** : le registre note quelles fonctions les dossiers de `choses/` attendent de ce morceau, et vérifie que le socle les offre. L'adaptation des dossiers eux-mêmes attend la bascule.
+5. **Contrat avec `choses/`** (seulement si JoVenGer donne un jour la lecture de Scriptorium) : noter quelles fonctions les dossiers de `choses/` attendent de ce morceau. Hors périmètre sinon.
 6. Banc d'essai, vérification complète de ce projet, puis contrôle d'absence : le morceau doit être à zéro.
 7. Mise de côté (outil de ce projet), installation dans le mod d'essai `scriptorium_socle` seulement, essai en jeu sur la partie d'essai, et sauvegarde de cette partie avant de fermer le jeu.
 8. Scellé, puis morceau suivant.
@@ -59,7 +60,9 @@
 - **La partie.** Les essais se font sur une partie d'essai neuve, sur son propre emplacement de sauvegarde (décision D4). La partie actuelle de JoVenGer n'est jamais chargée avec le socle neuf.
 - **Pas de passerelle.** Comme les deux socles ne tournent jamais ensemble, il n'y a aucune passerelle à écrire. Le socle neuf doit seulement offrir, à la fin, tout ce que les dossiers de `choses/` attendent (le contrat, étape 5).
 
-### La bascule (à la fin, sur l'ordre de JoVenGer)
+### La bascule (hors périmètre : viendra après, sur l'ordre de JoVenGer)
+
+Rappel du 14/10 : ce chantier refait le mod seul. Les étapes ci-dessous sont notées pour mémoire ; elles ne font pas partie du travail en cours.
 
 1. JoVenGer donne son accord, juste avant.
 2. Une copie de Scriptorium est faite (par exemple `Scriptorium V3`), à l'endroit qu'il choisit.

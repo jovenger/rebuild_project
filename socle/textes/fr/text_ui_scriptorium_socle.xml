@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Table>
+  <Row><Cell>ui_scriptorium_socle_pret</Cell><Cell>Le socle de Scriptorium est prêt.</Cell><Cell>Le socle de Scriptorium est prêt.</Cell></Row>
+  <Row><Cell>ui_scriptorium_socle_morceau_en_panne</Cell><Cell>Un morceau du socle n'a pas démarré. Voir le journal.</Cell><Cell>Un morceau du socle n'a pas démarré. Voir le journal.</Cell></Row>
+  <Row><Cell>ui_scriptorium_registre_remis_a_neuf</Cell><Cell>Le registre du camp a été remis à neuf.</Cell><Cell>Le registre du camp a été remis à neuf.</Cell></Row>
+  <Row><Cell>ui_scriptorium_registre_mis_a_jour</Cell><Cell>Le registre du camp a été mis à jour.</Cell><Cell>Le registre du camp a été mis à jour.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_nouvelle</Cell><Cell>Essai : une nouvelle ordinaire.</Cell><Cell>Essai : une nouvelle ordinaire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_alerte</Cell><Cell>Essai : une alerte, qui passe devant.</Cell><Cell>Essai : une alerte, qui passe devant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_arrivee</Cell><Cell>Essai : un homme est arrivé au camp.</Cell><Cell>Essai : un homme est arrivé au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_arrivee_plusieurs</Cell><Cell>Essai : plusieurs hommes sont arrivés au camp.</Cell><Cell>Essai : plusieurs hommes sont arrivés au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
+</Table>
