@@ -87,11 +87,11 @@ function poste.essai_feu()
   end
 end
 
--- Henry : posé quarante mètres devant lui, pour chercher un terrain d'essai vierge (demande de JoVenGer du 14/10 :
--- ne pas dresser le camp dans un campement du jeu).
-function poste.essai_aller()
-  local ok, compte_rendu = jeu().deplacer_le_joueur(40)
-  jeu().journal("Poste : Henry déplacé = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+-- Henry : posé quarante mètres plus loin, pour chercher un terrain d'essai vierge (demande de JoVenGer du 14/10 :
+-- ne pas dresser le camp dans un campement du jeu). Une commande par direction de boussole.
+function poste.essai_aller(cap)
+  local ok, compte_rendu = jeu().deplacer_le_joueur(40, cap)
+  jeu().journal("Poste : Henry déplacé vers " .. tostring(cap) .. " = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
   return ok
 end
 
@@ -228,7 +228,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
   { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },
   { nom = "scriptorium_essai_feu", fonction = function() return poste.essai_feu() end, aide = "Ce que le jeu dit du feu, d'un banc et d'une tente" },
-  { nom = "scriptorium_essai_aller", fonction = function() return poste.essai_aller() end, aide = "Pose Henry quarante mètres devant lui" },
+  { nom = "scriptorium_essai_aller_nord", fonction = function() return poste.essai_aller(0) end, aide = "Pose Henry quarante mètres au nord" },
+  { nom = "scriptorium_essai_aller_est", fonction = function() return poste.essai_aller(90) end, aide = "Pose Henry quarante mètres à l'est" },
+  { nom = "scriptorium_essai_aller_sud", fonction = function() return poste.essai_aller(180) end, aide = "Pose Henry quarante mètres au sud" },
+  { nom = "scriptorium_essai_aller_ouest", fonction = function() return poste.essai_aller(270) end, aide = "Pose Henry quarante mètres à l'ouest" },
   { nom = "scriptorium_essai_camp_lever", fonction = function() return poste.essai_camp_lever() end, aide = "Lève le camp" },
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },

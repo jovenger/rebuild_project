@@ -390,14 +390,15 @@ function liaison.cap_du_joueur()
   return 0
 end
 
--- Pour le poste d'essai : pose Henry « distance » mètres devant lui, à la hauteur du terrain
--- (System.GetTerrainElevation). Refusé si la destination est plus de deux mètres sous Henry (de l'eau, sans doute).
--- Rend vrai et un compte rendu, ou faux et la raison.
-function liaison.deplacer_le_joueur(distance)
+-- Pour le poste d'essai : pose Henry à « distance » mètres de lui, dans la direction « cap » (cap de boussole ;
+-- par défaut celle où regarde le corps d'Henry, qui n'est pas forcément celle de la caméra), à la hauteur du
+-- terrain (System.GetTerrainElevation). Refusé si la destination est plus de deux mètres sous Henry (de l'eau,
+-- sans doute). Rend vrai et un compte rendu, ou faux et la raison.
+function liaison.deplacer_le_joueur(distance, cap)
   local ok, resultat = pcall(function()
     local ici = player:GetWorldPos()
-    local cap = math.rad(liaison.cap_du_joueur())
-    local cible = { x = ici.x + distance * math.sin(cap), y = ici.y + distance * math.cos(cap), z = ici.z }
+    local direction = math.rad(cap or liaison.cap_du_joueur())
+    local cible = { x = ici.x + distance * math.sin(direction), y = ici.y + distance * math.cos(direction), z = ici.z }
     local sol = System.GetTerrainElevation(cible)
     if type(sol) ~= "number" then
       return { false, "hauteur du terrain illisible" }
