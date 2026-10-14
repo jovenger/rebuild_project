@@ -197,6 +197,16 @@ def verifier_identifiants():
         if math.abs(math.sin(z) - 1) > 1e-6 or math.abs(math.cos(z)) > 1e-6 then
           return "objet posé à 270 : angle moteur " .. tostring(z) .. ", l'ouest (+90°) attendu"
         end
+        -- Registre : par le jeton du jeu, relu même sans la mémoire ; mémoire de secours sans jeton.
+        GameToken = { valeurs = {} }
+        function GameToken.SetToken(nom, valeur) GameToken.valeurs[nom] = valeur end
+        function GameToken.GetToken(nom) return GameToken.valeurs[nom] end
+        l.ecrire_registre("{a=1}")
+        l.memoire.registre = nil
+        if l.lire_registre() ~= "{a=1}" then return "registre non relu depuis le jeton" end
+        GameToken = nil
+        l.memoire.registre = "{b=2}"
+        if l.lire_registre() ~= "{b=2}" then return "sans jeton, la mémoire de secours n'est pas lue" end
         return "ok"
     end)()""")
     if resultat != "ok":
@@ -353,7 +363,7 @@ def principal(arguments):
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
             verifier_identifiants()
-            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, vérifié")
+            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, registre par jeton, vérifié")
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 

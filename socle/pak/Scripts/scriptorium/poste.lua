@@ -45,6 +45,7 @@ end
 -- Coffre : Henry dépose, le camp paie, une réserve entre et sort, une dépense trop grosse est refusée.
 function poste.essai_coffre()
   local coffre = Scriptorium.coffre
+  local bourse_avant = jeu().groschen_d_henry()
   local sorts = {
     tostring(coffre.deposer_par_henry(100, "depot")),
     tostring(coffre.payer(30, "solde")),
@@ -55,7 +56,7 @@ function poste.essai_coffre()
   local bilan = coffre.bilan()
   jeu().journal("Poste : coffre, sorts = " .. table.concat(sorts, ", ") .. " ; solde = " .. bilan.groschen
                 .. ", vivres = " .. bilan.reserves.vivres .. ", lignes = " .. bilan.lignes
-                .. ", bourse d'Henry = " .. jeu().groschen_d_henry())
+                .. ", bourse d'Henry = " .. bourse_avant .. " -> " .. jeu().groschen_d_henry())
   Scriptorium.bandeau.annoncer("ui_scriptorium_essai_coffre", { duree = 4 })
   return sorts, bilan
 end

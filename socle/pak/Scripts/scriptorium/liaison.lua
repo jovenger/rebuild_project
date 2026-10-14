@@ -71,16 +71,36 @@ function liaison.minuterie(millisecondes, fonction)
   return Script.SetTimer(millisecondes, fonction)
 end
 
+-- Le registre dans la sauvegarde : un jeton du jeu (GameToken.SetToken / GetToken, présents dans le Lua du
+-- jeu), que CryEngine enregistre avec la partie. À vérifier en jeu : que le jeton est créé à la première
+-- écriture, qu'il garde la chaîne entière, et qu'il revient après sauvegarde, fermeture et rechargement (V4).
+-- La mémoire de secours reste : elle couvre la partie en cours si le jeton est refusé.
+liaison.nom_du_jeton = "scriptorium_socle.registre"
+local jeton_essaye = false
+
 -- Lit la chaîne du registre enregistrée dans la partie, ou nil.
--- À vérifier en jeu : le mécanisme de sauvegarde à employer. En attendant, mémoire de secours.
 function liaison.lire_registre()
+  local ok, valeur = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
+  if ok and type(valeur) == "string" and string.sub(valeur, 1, 1) == "{" then
+    return valeur
+  end
   return liaison.memoire.registre
 end
 
--- Enregistre la chaîne du registre dans la partie.
--- À vérifier en jeu : même remarque.
+-- Enregistre la chaîne du registre dans la partie. La première fois, relit le jeton et dit au journal s'il tient.
 function liaison.ecrire_registre(chaine)
   liaison.memoire.registre = chaine
+  local ok, erreur = pcall(function() GameToken.SetToken(liaison.nom_du_jeton, chaine) end)
+  if not jeton_essaye then
+    jeton_essaye = true
+    local relu_ok, relu = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
+    if ok and relu_ok and relu == chaine then
+      liaison.journal("Registre : jeton du jeu en service (" .. #chaine .. " caractères)")
+    else
+      liaison.journal("Registre : jeton du jeu refusé (" .. tostring(ok and (relu_ok and "relu différent" or relu) or erreur)
+                      .. ") ; mémoire de secours seule")
+    end
+  end
 end
 
 -- Ajoute une commande de console pour le poste d'essai.
