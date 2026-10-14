@@ -566,8 +566,11 @@ function liaison.ordonner(identifiant, activite, position, lieu)
 end
 
 -- Âmes des ennemis par sorte de bande, prises dans le jeu de base.
--- À vérifier en jeu : à remplir avec les identifiants d'âmes des brigands, Coumans, etc.
-liaison.ames_ennemies = {}
+-- Premier essai (V18, 14/10) : une seule âme, un brigand générique d'une quête de Trosecko
+-- (bohutovaVlozka_bandit_3, faction trosecko_enemies_bandits_bohutovaVlozka, table soul__bohutovaVlozka.xml).
+liaison.ames_ennemies = {
+  brigands = "11c514e3-1c7c-40de-8011-318192937d41",
+}
 
 -- Fait venir une bande ennemie et rend la liste de ses identifiants, ou nil.
 -- À vérifier en jeu : System.SpawnEntity classe NPC, et comment les rendre hostiles au camp.
