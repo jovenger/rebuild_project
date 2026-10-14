@@ -399,6 +399,19 @@ function liaison.dans_l_eau(point)
   end
   return valeur == true or (type(valeur) == "number" and valeur > 0)
 end
+-- Vrai si le ciel est dégagé au-dessus du point : un rayon tiré de 3 m à 30 m au-dessus du sol ne touche rien
+-- de fixe (feuillage, toit). Physics.RayWorldIntersection, appelé comme dans les scripts du jeu
+-- (PressurizedObject.lua). Si l'appel échoue, on ne décide rien (vrai).
+function liaison.ciel_degage(point)
+  local ok, touches = pcall(function()
+    return Physics.RayWorldIntersection({ x = point.x, y = point.y, z = point.z + 3 }, { x = 0, y = 0, z = 27 },
+                                        1, ent_static, nil, nil, {})
+  end)
+  if not ok or type(touches) ~= "number" then
+    return true
+  end
+  return touches == 0
+end
 -- Pour le poste d'essai : pose Henry à « distance » mètres de lui, dans la direction « cap » (cap de boussole ;
 -- par défaut celle où regarde le corps d'Henry, qui n'est pas forcément celle de la caméra), à la hauteur du
 -- terrain (System.GetTerrainElevation). Refusé si la destination est dans l'eau (AI.IsPointInWaterRegion, essayé ;
@@ -428,7 +441,8 @@ end
 
 -- Pour le poste d'essai : cherche autour d'Henry un terrain d'essai vierge et l'y pose. Sonde des anneaux de 30 à
 -- 240 m, tous les 30°, et garde le premier point sec (AI.IsPointInWaterRegion), à peu près plat (moins de 1,5 m
--- d'écart sur 8 m autour), sans aucune entité du jeu à moins de 25 m (System.GetEntitiesInSphere). Le camp du socle
+-- d'écart sur 8 m autour), à ciel dégagé (pas sous les arbres), sans aucune entité du jeu à moins de 25 m
+-- (System.GetEntitiesInSphere). Le camp du socle
 -- est levé avant. Rend vrai et un compte rendu, ou faux et la raison.
 -- Classes des entités vues par la dernière recherche (pour régler le filtre d'après le jeu).
 local classes_vues = {}
@@ -451,7 +465,7 @@ function liaison.chercher_un_terrain_vierge()
     local ici = player:GetWorldPos()
     local sondes = 0
     classes_vues = {}
-    local refus = { pente = 0, eau = 0, occupe = 0 }
+    local refus = { pente = 0, eau = 0, couvert = 0, occupe = 0 }
     for rayon = 30, 240, 30 do
       for angle = 0, 330, 30 do
         sondes = sondes + 1
@@ -466,9 +480,11 @@ function liaison.chercher_un_terrain_vierge()
             local h = System.GetTerrainElevation({ x = point.x + d[1], y = point.y + d[2], z = 0 })
             if type(h) ~= "number" or math.abs(h - sol) > 1.5 then plat = false end
           end
+          local degage = plat and not mouille and liaison.ciel_degage(point)
           if not plat then refus.pente = refus.pente + 1 end
           if mouille then refus.eau = refus.eau + 1 end
-          if plat and not mouille then
+          if plat and not mouille and not degage then refus.couvert = refus.couvert + 1 end
+          if degage then
             local voisins = System.GetEntitiesInSphere(point, 25)
             local n = 0
             for _, e in pairs(voisins or {}) do
@@ -488,7 +504,7 @@ function liaison.chercher_un_terrain_vierge()
         end
       end
     end
-    return { false, string.format("aucun terrain vierge à moins de 240 m (%d sondes ; refus : pente %d, eau %d, occupé %d)", sondes, refus.pente, refus.eau, refus.occupe) }
+    return { false, string.format("aucun terrain vierge à moins de 240 m (%d sondes ; refus : pente %d, eau %d, sous les arbres %d, occupé %d)", sondes, refus.pente, refus.eau, refus.couvert, refus.occupe) }
   end)
   if not ok then
     return false, tostring(resultat)
