@@ -10,6 +10,10 @@ local faux = {
   registre_stocke = nil,
   minuteries = {},      -- { ms, fonction }
   commandes = {},       -- { nom, code, aide }
+  bourse_henry = 0,     -- groschen dans la bourse d'Henry
+  heure = 0,            -- heure du jeu, en heures
+  appels_retirer = 0,   -- fois où le socle a demandé à retirer des groschen à Henry
+  donner_en_panne = false,
 }
 
 function faux.remettre_a_zero()
@@ -21,6 +25,10 @@ function faux.remettre_a_zero()
   faux.registre_stocke = nil
   faux.minuteries = {}
   faux.commandes = {}
+  faux.bourse_henry = 0
+  faux.heure = 0
+  faux.appels_retirer = 0
+  faux.donner_en_panne = false
 end
 
 function faux.maintenant() return faux.temps end
@@ -39,6 +47,19 @@ end
 function faux.lire_registre() return faux.registre_stocke end
 function faux.ecrire_registre(chaine) faux.registre_stocke = chaine end
 function faux.commande(nom, code, aide) table.insert(faux.commandes, { nom = nom, code = code, aide = aide }) end
+function faux.heure_du_jeu() return faux.heure end
+function faux.groschen_d_henry() return faux.bourse_henry end
+function faux.retirer_groschen_a_henry(n)
+  faux.appels_retirer = faux.appels_retirer + 1
+  if faux.bourse_henry < n then return false end
+  faux.bourse_henry = faux.bourse_henry - n
+  return true
+end
+function faux.donner_groschen_a_henry(n)
+  if faux.donner_en_panne then return false end
+  faux.bourse_henry = faux.bourse_henry + n
+  return true
+end
 
 -- Exécute la prochaine minuterie en attente (une seule), comme le ferait le moteur.
 function faux.tic_minuterie()

@@ -23,23 +23,24 @@
 - `CLAUDE.md` : règles et plan des dossiers.
 - `docs/socle/plan_de_refonte.md` : tout ce qui change par rapport au mod d'Alex, partie par partie, et les décisions D1 à D10.
 - `docs/socle/avancement.md` : tableau des morceaux.
-- `docs/socle/fiches/00_bandeau.md`, `01_registre.md` : fiches de comportement.
-- `docs/socle/essai_en_jeu.md` : marche à suivre pour l'essai en jeu, 8 points V1 à V8 à vérifier.
+- `docs/socle/fiches/00_bandeau.md`, `01_registre.md`, `02_coffre.md` : fiches de comportement (la 02 attend la validation de JoVenGer).
+- `docs/socle/essai_en_jeu.md` : marche à suivre pour l'essai en jeu, 10 points V1 à V10 à vérifier.
 - `socle/pak/Scripts/scriptorium/` :
   - `noyau.lua` : table `Scriptorium`, morceaux, démarrage tolérant aux pannes ;
   - `liaison.lua` : **seul fichier qui parle au moteur** ; six appels marqués « à vérifier en jeu » ;
   - `bandeau.lua` (morceau 0) : messages au joueur, un à la fois, 3 à 8 s, alertes devant, pas de répétition avant 30 s, regroupement, attente pendant un dialogue, historique ;
   - `registre.lua` (morceau 1) : sauvegarde versionnée, une case par morceau, montées de version, remise à neuf, bac à sable ;
-  - `poste.lua` : commandes de console `scriptorium_essai_bandeau`, `scriptorium_essai_registre`, `scriptorium_bilan`.
-- `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 9 textes. `socle/mod.manifest`.
-- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 112 vérifications, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
+  - `coffre.lua` (morceau 2) : groschen du camp, livre de comptes, réserves par sorte (vivres, bière, fourrage, traits, bois, herbes, fer, cuir), dépôt et versement avec Henry ; le camp ne paie jamais avec la bourse d'Henry ;
+  - `poste.lua` : commandes de console `scriptorium_essai_bandeau`, `scriptorium_essai_registre`, `scriptorium_essai_coffre`, `scriptorium_bilan`.
+- `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 20 textes. `socle/mod.manifest`.
+- `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 221 vérifications, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
 - `outils/empreintes.py` : relevé des empreintes d'Alex (sha256 seulement, rien en clair).
 - `noyau/installer.py` : installe dans `Mods\scriptorium_socle` seulement, refuse les chemins interdits, met de côté dans `securite\` avant de remplacer, relance la vérification avant.
 
 ## 4. Ce qui n'est pas fait
-- **Aucun essai en jeu.** Six appels du moteur restent à confirmer dans `liaison.lua` : affichage (`Game.SendInfoText`, aspect bande noire), dialogue en cours, lecture et écriture du registre dans la sauvegarde (en attendant : mémoire de session, perdue à la fermeture), chargement d'une partie (`registre.invalider`), commandes de console (`System.AddCCommand`), version du jeu dans le manifeste (`1.4`).
+- **Aucun essai en jeu.** Dix appels du moteur restent à confirmer dans `liaison.lua` : affichage (`Game.SendInfoText`, aspect bande noire), dialogue en cours, lecture et écriture du registre dans la sauvegarde (en attendant : mémoire de session, perdue à la fermeture), chargement d'une partie (`registre.invalider`), commandes de console (`System.AddCCommand`), version du jeu dans le manifeste (`1.4`), bourse d'Henry (`player.inventory:GetMoney` / `RemoveMoney` / `AddMoney`), heure du jeu (`Calendar.GetWorldTime`).
 - **Empreintes d'Alex non relevées** : le contrôle d'absence ne tourne pas encore.
-- Morceaux 2 à 8 : rien.
+- Morceaux 3 à 8 : rien.
 
 ## 5. Décisions prises (accord de principe de JoVenGer le 14/10)
 - D1 : éviter le mot « mercenaire » dans les textes (« la Compagnie », « soudoyers », « hommes d'armes »).
@@ -71,8 +72,8 @@ py -3.13 outils\empreintes.py "C:\Users\maste\Desktop\Scriptorium\mercenaires" d
 ```
 
 ## 7. Prochaines étapes, dans l'ordre
-1. Essai en jeu des morceaux 0 et 1 ; réponses aux points V1 à V8 ; corriger `liaison.lua` d'après ce que le jeu dit.
+1. Essai en jeu des morceaux 0, 1 et 2 ; réponses aux points V1 à V10 ; corriger `liaison.lua` d'après ce que le jeu dit.
 2. Relever les empreintes d'Alex, commettre `docs/socle/empreintes_alex.json`, vérifier que le contrôle d'absence donne 0 partout.
-3. Sceller les morceaux 0 et 1 dans `avancement.md`.
-4. Morceau 2, le coffre et la logistique : fiche `02_coffre.md` d'abord (livre de comptes, paiement au coffre et jamais à la bourse d'Henry, réserves par sorte, versement à Henry tracé), validation par JoVenGer, puis code et banc.
-5. Puis, dans l'ordre : camp (3), hommes (4), combat et batailles (5), Directeur (6), murs, porte, alchimie (7), patrouilles et le reste (8).
+3. Faire valider la fiche 02 par JoVenGer ; sceller les morceaux 0, 1 et 2 dans `avancement.md`.
+4. Morceau 3, le camp : fiche `03_camp.md` d'abord (plan du camp en données, objets du jeu de base appelés par leur chemin, reconstruction après chargement avec ou sans homme, tentes à JoVenGer), validation, puis code et banc.
+5. Puis, dans l'ordre : hommes (4), combat et batailles (5), Directeur (6), murs, porte, alchimie (7), patrouilles et le reste (8).

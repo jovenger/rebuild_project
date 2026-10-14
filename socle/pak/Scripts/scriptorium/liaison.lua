@@ -67,5 +67,42 @@ function liaison.commande(nom, code_lua, aide)
   end
 end
 
+-- Heure du jeu, en heures, pour dater le livre de comptes.
+-- À vérifier en jeu : Calendar.GetWorldTime() (secondes de jeu ?). En attendant, 0 si absent.
+function liaison.heure_du_jeu()
+  local ok, valeur = pcall(function() return Calendar.GetWorldTime() end)
+  if ok and type(valeur) == "number" then
+    return valeur / 3600
+  end
+  return 0
+end
+
+-- Groschen dans la bourse d'Henry.
+-- À vérifier en jeu : player.inventory:GetMoney(). En attendant, 0 si absent.
+function liaison.groschen_d_henry()
+  local ok, valeur = pcall(function() return player.inventory:GetMoney() end)
+  if ok and type(valeur) == "number" then
+    return valeur
+  end
+  return 0
+end
+
+-- Retire des groschen à Henry (dépôt au coffre, voulu par le joueur). Vrai si fait.
+-- À vérifier en jeu : player.inventory:RemoveMoney(n). Si l'appel manque, rien n'est fait.
+function liaison.retirer_groschen_a_henry(montant)
+  if liaison.groschen_d_henry() < montant then
+    return false
+  end
+  local ok = pcall(function() player.inventory:RemoveMoney(montant) end)
+  return ok
+end
+
+-- Donne des groschen à Henry (versement du coffre). Vrai si fait.
+-- À vérifier en jeu : player.inventory:AddMoney(n).
+function liaison.donner_groschen_a_henry(montant)
+  local ok = pcall(function() player.inventory:AddMoney(montant) end)
+  return ok
+end
+
 Scriptorium.liaison_reelle = liaison
 Scriptorium.jeu = Scriptorium.jeu or liaison

@@ -8,5 +8,16 @@
   <Row><Cell>ui_scriptorium_essai_alerte</Cell><Cell>Essai : une alerte, qui passe devant.</Cell><Cell>Essai : une alerte, qui passe devant.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_arrivee</Cell><Cell>Essai : un homme est arrivé au camp.</Cell><Cell>Essai : un homme est arrivé au camp.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_arrivee_plusieurs</Cell><Cell>Essai : plusieurs hommes sont arrivés au camp.</Cell><Cell>Essai : plusieurs hommes sont arrivés au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_manque</Cell><Cell>Le coffre du camp ne peut pas payer : il manque des groschen.</Cell><Cell>Le coffre du camp ne peut pas payer : il manque des groschen.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_henry_manque</Cell><Cell>Henry n'a pas assez de groschen pour ce dépôt.</Cell><Cell>Henry n'a pas assez de groschen pour ce dépôt.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_vivres</Cell><Cell>Les vivres du camp sont épuisés.</Cell><Cell>Les vivres du camp sont épuisés.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_biere</Cell><Cell>La bière du camp est épuisée.</Cell><Cell>La bière du camp est épuisée.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_fourrage</Cell><Cell>Le fourrage du camp est épuisé.</Cell><Cell>Le fourrage du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_traits</Cell><Cell>Les flèches et les carreaux du camp sont épuisés.</Cell><Cell>Les flèches et les carreaux du camp sont épuisés.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_bois</Cell><Cell>Le bois du camp est épuisé.</Cell><Cell>Le bois du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_herbes</Cell><Cell>Les herbes du camp sont épuisées.</Cell><Cell>Les herbes du camp sont épuisées.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_fer</Cell><Cell>Le fer du camp est épuisé.</Cell><Cell>Le fer du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_cuir</Cell><Cell>Le cuir du camp est épuisé.</Cell><Cell>Le cuir du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>

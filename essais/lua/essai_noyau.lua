@@ -27,10 +27,10 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   depart()
   local prets, pannes = Scriptorium.demarrer()
   egal(pannes, 0, "aucune panne")
-  egal(prets, 3, "bandeau, registre, poste")
+  egal(prets, 4, "bandeau, registre, coffre, poste")
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé")
-  egal(#FauxJeu.commandes, 3, "trois commandes de console")
+  egal(#FauxJeu.commandes, 4, "quatre commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 
@@ -40,6 +40,16 @@ essai("poste : l'essai du bandeau donne nouvelle, arrivée ×3 regroupées, aler
   egal(table.concat(sorts, ","), "en_file,en_file,regroupe,regroupe,en_file", "sorts")
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_essai_alerte", "l'alerte d'abord")
+end)
+
+essai("poste : l'essai du coffre dépose, paie, et refuse la dépense trop grosse", function()
+  depart()
+  FauxJeu.bourse_henry = 150
+  local sorts, bilan = Scriptorium.poste.essai_coffre()
+  egal(table.concat(sorts, ","), "true,true,true,true,false", "sorts")
+  egal(bilan.groschen, 70, "solde")
+  egal(bilan.reserves.vivres, 6, "vivres")
+  egal(FauxJeu.bourse_henry, 50, "bourse d'Henry")
 end)
 
 essai("poste : l'essai du registre compte les appels à travers écriture et relecture", function()

@@ -24,6 +24,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 3. Dans la console du jeu (à vérifier : comment l'ouvrir) :
    - `scriptorium_essai_bandeau` → cinq annonces ; à l'écran, dans l'ordre : « Essai : une alerte, qui passe devant. », « Essai : une nouvelle ordinaire. », « Essai : plusieurs hommes sont arrivés au camp. » ;
    - `scriptorium_essai_registre` → « Essai : le registre a été écrit puis relu. » et, au journal, `appels = 1` ; relancer la commande : `appels = 2` ;
+   - `scriptorium_essai_coffre` → au journal, `sorts = true, true, true, true, false ; solde = 70, vivres = 6, lignes = 4` et la bourse d'Henry diminuée de 100 (il faut au moins 100 groschen sur lui) ; à l'écran, « Le coffre du camp ne peut pas payer : il manque des groschen. » puis « Essai : le coffre a encaissé, payé et refusé comme il faut. » ;
    - `scriptorium_bilan` → résumé au journal.
 4. Sauvegarder la partie d'essai, fermer le jeu, relancer, recharger, puis `scriptorium_essai_registre` : si `appels` repart à 1, le mécanisme de sauvegarde n'est pas encore le bon (attendu à ce stade : la liaison garde en mémoire seulement).
 
@@ -38,5 +39,7 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V6 | Quel appel dit qu'un dialogue est en cours ? | `liaison.dialogue_en_cours` |
 | V7 | Le manifeste est-il accepté (version du jeu dans `<kcd_version>`) ? | `socle/mod.manifest` |
 | V8 | Reste-t-il un texte jaune à l'écran avec le socle seul ? | — |
+| V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100, puis rien de plus) ? Sinon, les appels `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
+| V10 | Les lignes du livre ont-elles un `moment` autre que 0 (heure du jeu) ? | `liaison.heure_du_jeu` |
 
 Pour me répondre : le contenu de `kcd.log` autour de `[Scriptorium]`, et une ligne par question.
