@@ -237,20 +237,41 @@ function liaison.poser_objet(sorte, modele, position, cap, nom, classe)
   return identifiant
 end
 
--- Un feu qui brûle sur un objet posé : l'effet de particules « fires.fire_firewood » de la bibliothèque WH_Particels
--- du jeu (Libs/Particles/WH_Particels.xml), chargé par entity:LoadParticleEffect. À vérifier en jeu (V23).
-liaison.effet_du_feu = "WH_Particels.fires.fire_firewood"
+-- Un feu qui brûle sur un objet posé, comme le feu de camp du jeu (Prefabs/Procedural/Fireplace/fireplace_on_camp.xml) :
+-- une entité ParticleEffect à part, l'effet « fires.fireplace_nosmoke_low » de la bibliothèque WH_Particels,
+-- 7 cm au-dessus du foyer, tournée d'un quart de tour autour de x pour flamber vers le haut. Vu le 14/10 :
+-- LoadParticleEffect sur l'objet ne montrait rien. Son nom est celui de l'objet suivi de « _flamme » ;
+-- retirer l'objet retire aussi la flamme. À vérifier en jeu (V23).
+liaison.effet_du_feu = "WH_Particels.fires.fireplace_nosmoke_low"
+
+local function nom_de_la_flamme(identifiant)
+  return identifiant .. "_flamme"
+end
 
 function liaison.allumer(identifiant)
   local entite = entite_nommee(identifiant)
   if not entite then
     return false
   end
-  local ok, erreur = pcall(function() entite:LoadParticleEffect(-1, liaison.effet_du_feu, {}) end)
-  if not ok then
-    liaison.journal("Feu impossible à allumer sur « " .. tostring(identifiant) .. " » : " .. tostring(erreur))
+  local ok, ici = pcall(function() return entite:GetWorldPos() end)
+  if not ok or type(ici) ~= "table" then
+    liaison.journal("Feu impossible à allumer sur « " .. tostring(identifiant) .. " » : position illisible")
+    return false
   end
-  return ok
+  local pose, erreur = pcall(function()
+    return System.SpawnEntity({
+      class = "ParticleEffect",
+      name = nom_de_la_flamme(identifiant),
+      position = { x = ici.x, y = ici.y, z = ici.z + 0.07 },
+      orientation = { x = math.rad(90), y = 0, z = 0 },
+      properties = { ParticleEffect = liaison.effet_du_feu },
+    })
+  end)
+  if not pose or not erreur then
+    liaison.journal("Feu impossible à allumer sur « " .. tostring(identifiant) .. " » : " .. tostring(erreur))
+    return false
+  end
+  return true
 end
 
 -- Retire un objet posé par le socle.
@@ -259,6 +280,10 @@ function liaison.retirer_objet(identifiant)
   local entite = entite_nommee(identifiant)
   if entite then
     pcall(System.RemoveEntity, entite.id)
+  end
+  local flamme = type(identifiant) == "string" and entite_nommee(identifiant .. "_flamme")
+  if flamme then
+    pcall(System.RemoveEntity, flamme.id)
   end
 end
 
