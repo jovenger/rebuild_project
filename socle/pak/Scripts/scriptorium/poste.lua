@@ -95,6 +95,17 @@ function poste.essai_aller(cap)
   return ok
 end
 
+-- Henry : posé sur le terrain vierge le plus proche (sec, plat, aucune entité du jeu à moins de 25 m).
+-- Le camp du socle est levé avant, pour ne pas le laisser derrière soi.
+function poste.essai_terrain_vierge()
+  if Scriptorium.camp.est_fonde() then
+    Scriptorium.camp.lever()
+  end
+  local ok, compte_rendu = jeu().chercher_un_terrain_vierge()
+  jeu().journal("Poste : terrain vierge = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
 -- Camp : agrandit d'un niveau.
 function poste.essai_camp_agrandir()
   local ok, raison = Scriptorium.camp.agrandir()
@@ -232,6 +243,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_aller_est", fonction = function() return poste.essai_aller(90) end, aide = "Pose Henry quarante mètres à l'est" },
   { nom = "scriptorium_essai_aller_sud", fonction = function() return poste.essai_aller(180) end, aide = "Pose Henry quarante mètres au sud" },
   { nom = "scriptorium_essai_aller_ouest", fonction = function() return poste.essai_aller(270) end, aide = "Pose Henry quarante mètres à l'ouest" },
+  { nom = "scriptorium_essai_terrain_vierge", fonction = function() return poste.essai_terrain_vierge() end, aide = "Lève le camp et pose Henry sur le terrain vierge le plus proche" },
   { nom = "scriptorium_essai_camp_lever", fonction = function() return poste.essai_camp_lever() end, aide = "Lève le camp" },
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },

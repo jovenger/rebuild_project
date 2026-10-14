@@ -418,6 +418,51 @@ function liaison.deplacer_le_joueur(distance, cap)
   return resultat[1], resultat[2]
 end
 
+-- Pour le poste d'essai : cherche autour d'Henry un terrain d'essai vierge et l'y pose. Sonde des anneaux de 30 à
+-- 240 m, tous les 30°, et garde le premier point sec (AI.IsPointInWaterRegion), à peu près plat (moins de 1,5 m
+-- d'écart sur 8 m autour), sans aucune entité du jeu à moins de 25 m (System.GetEntitiesInSphere). Le camp du socle
+-- est levé avant. Rend vrai et un compte rendu, ou faux et la raison.
+function liaison.chercher_un_terrain_vierge()
+  local ok, resultat = pcall(function()
+    local ici = player:GetWorldPos()
+    local sondes = 0
+    for rayon = 30, 240, 30 do
+      for angle = 0, 330, 30 do
+        sondes = sondes + 1
+        local a = math.rad(angle)
+        local point = { x = ici.x + rayon * math.sin(a), y = ici.y + rayon * math.cos(a), z = 0 }
+        local sol = System.GetTerrainElevation(point)
+        if type(sol) == "number" then
+          point.z = sol + 0.1
+          local mouille_ok, mouille = pcall(function() return AI.IsPointInWaterRegion(point) end)
+          local plat = true
+          for _, d in ipairs({ { 8, 0 }, { -8, 0 }, { 0, 8 }, { 0, -8 } }) do
+            local h = System.GetTerrainElevation({ x = point.x + d[1], y = point.y + d[2], z = 0 })
+            if type(h) ~= "number" or math.abs(h - sol) > 1.5 then plat = false end
+          end
+          if plat and not (mouille_ok and mouille) then
+            local voisins = System.GetEntitiesInSphere(point, 25)
+            local n = 0
+            for _, e in pairs(voisins or {}) do
+              if e ~= player then n = n + 1 end
+            end
+            if n == 0 then
+              player:SetWorldPos(point)
+              return { true, string.format("terrain vierge à %d m, cap %d (%.0f, %.0f, %.1f), après %d sonde(s)",
+                                           rayon, angle, point.x, point.y, point.z, sondes) }
+            end
+          end
+        end
+      end
+    end
+    return { false, "aucun terrain vierge à moins de 240 m (" .. sondes .. " sondes)" }
+  end)
+  if not ok then
+    return false, tostring(resultat)
+  end
+  return resultat[1], resultat[2]
+end
+
 -- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
 -- Provisoire, en attendant les tables à nous : des gardes « en réserve » de Trosky, génériques et non hostiles
 -- (extraGuards_dummy_*, table Libs/Tables/rpg/soul__extraGuards.xml). Vu en jeu le 14/10 : l'homme d'armes vient
