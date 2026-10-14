@@ -341,8 +341,8 @@ end
 
 -- Donne un ordre simple à un personnage : dormir ici, s'asseoir là, se tenir là.
 -- À vérifier en jeu : l'appel du moteur. En attendant, l'ordre est noté au journal.
-function liaison.ordonner(identifiant, activite, position, place)
-  liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(place) .. ")")
+function liaison.ordonner(identifiant, activite, position, lieu)
+  liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ")")
 end
 
 -- Âmes des ennemis par sorte de bande, prises dans le jeu de base.

@@ -25,13 +25,18 @@ from datetime import date
 
 EXTENSIONS_TEXTE = {".lua", ".xml", ".cfg", ".txt", ".json", ".ent", ".mtl", ".cdf", ".ini"}
 EXTENSIONS_IGNOREES = {".md"}  # notices écrites par JoVenGer, pas par Alex
+# Noms de fichiers imposés par le jeu à tout mod (wiki de Warhorse) : leur nom n'est le choix de personne,
+# il n'entre pas dans les noms comparés (leur contenu, leurs lignes et leur chemin restent relevés).
+FICHIERS_IMPOSES = {"mod.manifest", "mod.cfg"}
 
 LIGNE_MIN = 16
 TEXTE_MIN = 12
 
 MOTIF_IDENTIFIANT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 MOTIF_FONCTION = re.compile(r"\bfunction\s+([A-Za-z_][A-Za-z0-9_.:]*)")
-MOTIF_CHAMP = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*=")
+# Une vraie affectation « x.champ = … » : pas une comparaison « x.champ == … » (14/10 : les comparaisons étaient
+# relevées comme des définitions). « ~= », « <= », « >= » ne passent pas : le signe précède le « = ».
+MOTIF_CHAMP = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)")
 MOTIF_CELLULE = re.compile(r"<Cell>(.*?)</Cell>", re.S)
 MOTIF_PONCTUATION = re.compile(r"[^\w]+", re.U)
 
@@ -116,7 +121,8 @@ def relever(dossier):
             with open(chemin, "rb") as fichier:
                 releve["fichiers"].add(empreinte_octets(fichier.read()))
             releve["chemins"].add(empreinte(relatif))
-            releve["noms"].add(empreinte(os.path.splitext(nom)[0].lower()))
+            if nom.lower() not in FICHIERS_IMPOSES:
+                releve["noms"].add(empreinte(os.path.splitext(nom)[0].lower()))
             if extension not in EXTENSIONS_TEXTE:
                 continue
             texte = lire_texte(chemin)

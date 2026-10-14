@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Table>
   <Row><Cell>ui_scriptorium_socle_pret</Cell><Cell>Le socle de Scriptorium est prêt.</Cell><Cell>Le socle de Scriptorium est prêt.</Cell></Row>
   <Row><Cell>ui_scriptorium_socle_morceau_en_panne</Cell><Cell>Un morceau du socle n'a pas démarré. Voir le journal.</Cell><Cell>Un morceau du socle n'a pas démarré. Voir le journal.</Cell></Row>

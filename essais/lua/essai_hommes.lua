@@ -109,7 +109,7 @@ essai("hommes : la solde hebdomadaire est payée au coffre, selon le rang", func
   vider_bandeau()
   local rapport = hommes.payer_la_solde()
   egal(rapport.payes, 2, "deux payés")
-  egal(rapport.total, 40, "total")
+  egal(rapport.somme, 40, "somme")
   egal(coffre.solde(), 960, "coffre débité")
   egal(hommes.fiche(a).moral, 65, "moral + 5")
   Scriptorium.bandeau.battre()
@@ -201,9 +201,9 @@ essai("hommes : journée réglée sur les heures, places et points", function()
     egal(activite.activite, cas_heure[2], "à " .. cas_heure[1] .. " h")
     verifier(activite.position ~= nil, "une position à " .. cas_heure[1] .. " h")
     if cas_heure[2] == "sommeil" then
-      egal(activite.place, hommes.fiche(id).lit, "dort sur sa paillasse")
+      egal(activite.lieu, hommes.fiche(id).lit, "dort sur sa paillasse")
     elseif cas_heure[2] == "repas" or cas_heure[2] == "veillee" then
-      verifier(string.find(activite.place, "^siege_") ~= nil, "assis sur un siège")
+      verifier(string.find(activite.lieu, "^siege_") ~= nil, "assis sur un siège")
     end
   end
 end)
@@ -232,7 +232,7 @@ essai("hommes : jamais plus de postes de garde que d'hommes valides, rotation, b
   hommes.blesser(d4, 1)
   egal(#hommes.gardes(23), 0, "tous blessés : personne")
   egal(hommes.activite_de(a, 23).activite, "repos", "le blessé se repose")
-  egal(hommes.activite_de(a, 23).place, "lit_1a", "sur sa paillasse")
+  egal(hommes.activite_de(a, 23).lieu, "lit_1a", "sur sa paillasse")
   verifier(#hommes.gardes(23) <= hommes.effectif().valides, "jamais plus de postes que d'hommes valides")
 end)
 
@@ -264,7 +264,7 @@ essai("hommes : un dizainier pour dix hommes, un capitaine d'office, rétrograda
   vider_bandeau()
   hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
   local effectif = hommes.effectif()
-  egal(effectif.total, 10, "dix hommes")
+  egal(effectif.nombre, 10, "dix hommes")
   egal(effectif.par_rang.capitaine, 1, "un capitaine d'office")
   egal(hommes.fiche("homme_1").rang, "capitaine", "le plus ancien")
   verifier(messages_contenant("ui_scriptorium_hommes_capitaine") >= 1, "annoncé")
@@ -401,4 +401,16 @@ essai("hommes : quand le jeu ne peut pas faire venir le personnage, l'homme exis
   FauxJeu.refuser_personnage = false
   local revenus = hommes.redresser()
   egal(revenus, 1, "revenu")
+end)
+
+essai("hommes : montée de version 1 -> 2 du registre, les affectations passagères sont oubliées", function()
+  depart()
+  local ancien = { prochain = 2, prochain_nom = 2, ordre = { "homme_1" }, anciens = {},
+                   liste = { homme_1 = { id = "homme_1", nom = "Essai", affectation = { activite = "garde", fin = 99 } } } }
+  FauxJeu.registre_stocke = Scriptorium.registre.serialiser({ format = Scriptorium.registre.format,
+                                                              cases = { hommes = { version = 1, donnees = ancien } } })
+  local f = hommes.fiche("homme_1")
+  verifier(f ~= nil, "fiche relue")
+  egal(f and f.affectation, nil, "affectation de l'ancien format oubliée")
+  egal(Scriptorium.registre.etat_de("hommes"), "migree", "case montée de version")
 end)

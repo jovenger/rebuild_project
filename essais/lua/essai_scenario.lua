@@ -38,7 +38,7 @@ essai("scénario : une semaine de la Compagnie, par le battement commun", functi
   for _, role in ipairs({ "homme_d_armes", "pavoisier", "arbaletrier", "armurier" }) do
     verifier(directeur.agir("engager", { role = role, semaines = 4 }), "engagé : " .. role)
   end
-  egal(hommes.effectif().total, 4, "quatre hommes")
+  egal(hommes.effectif().nombre, 4, "quatre hommes")
   verifier(directeur.agir("batir_enceinte"), "palissade")
   verifier(directeur.agir("batir_tours"), "tours")
   egal(coffre.reserve("bois"), 30, "bois restant")
@@ -75,8 +75,8 @@ essai("scénario : une semaine de la Compagnie, par le battement commun", functi
     if l.motif == "solde" then lignes_solde = lignes_solde + 1 end
     if l.motif == "repas" then lignes_repas = lignes_repas + 1 end
   end
-  verifier(lignes_solde >= hommes.effectif().total, "la solde a été payée à chacun")
-  verifier(lignes_repas >= 7 * hommes.effectif().total, "des rations chaque jour")
+  verifier(lignes_solde >= hommes.effectif().nombre, "la solde a été payée à chacun")
+  verifier(lignes_repas >= 7 * hommes.effectif().nombre, "des rations chaque jour")
   verifier(coffre.reserve("vivres") < 100, "les vivres ont baissé")
   egal(FauxJeu.bourse_henry, 500, "la bourse d'Henry n'a jamais bougé pour le camp")
 

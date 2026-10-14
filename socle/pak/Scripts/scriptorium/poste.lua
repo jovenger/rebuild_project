@@ -101,7 +101,7 @@ function poste.essai_hommes()
     table.insert(ids, id and tostring(id) or ("refus:" .. tostring(raison)))
   end
   local effectif = hommes.effectif()
-  jeu().journal("Poste : hommes, engagés = " .. table.concat(ids, ", ") .. " ; total = " .. effectif.total
+  jeu().journal("Poste : hommes, engagés = " .. table.concat(ids, ", ") .. " ; total = " .. effectif.nombre
                 .. ", présents = " .. effectif.presents .. ", coffre = " .. Scriptorium.coffre.solde())
   poste.battre_les_hommes()
   return ids, effectif
@@ -191,7 +191,7 @@ function poste.bilan()
     jeu().journal("Poste : morceau « " .. morceau.nom .. " » : " .. (morceau.pret and "prêt" or ("en panne : " .. tostring(morceau.erreur))))
   end
   local effectif = Scriptorium.hommes.effectif()
-  jeu().journal("Poste : hommes, total = " .. effectif.total .. ", valides = " .. effectif.valides
+  jeu().journal("Poste : hommes, total = " .. effectif.nombre .. ", valides = " .. effectif.valides
                 .. ", blessés = " .. effectif.blesses .. ", présents = " .. effectif.presents)
   local resultats = Scriptorium.bataille.resultats()
   jeu().journal("Poste : batailles, en cours = " .. #Scriptorium.bataille.bandes() .. ", jouées = " .. #resultats

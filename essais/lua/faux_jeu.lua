@@ -26,7 +26,7 @@ local faux = {
   personnages_renvoyes = {},
   prochain_personnage = 1,
   refuser_personnage = false,
-  ordres = {},                 -- { identifiant, activite, position, place }
+  ordres = {},                 -- { identifiant, activite, position, lieu }
   ennemis = {},                -- { identifiant, sorte, position, cap }
   ennemis_vivants_par_id = {}, -- identifiant -> true/false
   ennemis_renvoyes = {},
@@ -162,8 +162,8 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
-function faux.ordonner(identifiant, activite, position, place)
-  table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, place = place })
+function faux.ordonner(identifiant, activite, position, lieu)
+  table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu })
 end
 function faux.faire_venir_ennemis(sorte, effectif, position, cap)
   if faux.refuser_ennemis then return nil end

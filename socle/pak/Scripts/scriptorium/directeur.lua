@@ -18,9 +18,9 @@ directeur.agrandissement = { bois = 30, groschen = 100 }
 
 -- Sa journée : de (inclus) à (exclu), lieu du camp.
 directeur.journee = {
-  { de = 6, a = 20, activite = "comptes", place = "coffre_camp" },
-  { de = 20, a = 22, activite = "veillee", place = "feu_central" },
-  { de = 22, a = 6, activite = "sommeil", place = "lit_directeur" },
+  { de = 6, a = 20, activite = "comptes", lieu = "coffre_camp" },
+  { de = 20, a = 22, activite = "veillee", lieu = "feu_central" },
+  { de = 22, a = 6, activite = "sommeil", lieu = "lit_directeur" },
 }
 
 local function jeu()
@@ -133,7 +133,7 @@ function directeur.activite(heure)
   local h = heure - math.floor(heure / 24) * 24
   for _, t in ipairs(directeur.journee) do
     if (t.de < t.a and h >= t.de and h < t.a) or (t.de > t.a and (h >= t.de or h < t.a)) then
-      return { activite = t.activite, place = t.place, position = camp().position_de(t.place) }
+      return { activite = t.activite, lieu = t.lieu, position = camp().position_de(t.lieu) }
     end
   end
   return nil
@@ -147,7 +147,7 @@ function directeur.battre()
   end
   local a = directeur.activite(jeu().heure_du_jeu())
   if a and d.derniere_activite ~= a.activite then
-    jeu().ordonner(d.personnage, a.activite, a.position, a.place)
+    jeu().ordonner(d.personnage, a.activite, a.position, a.lieu)
     d.derniere_activite = a.activite
     rapport.ordres = 1
   end
@@ -168,7 +168,7 @@ function directeur.rapport()
   return {
     groschen = bilan.groschen,
     reserves = bilan.reserves,
-    hommes = effectif.total,
+    hommes = effectif.nombre,
     valides = effectif.valides,
     blesses = effectif.blesses,
     presents = effectif.presents,
@@ -255,7 +255,7 @@ local entrees_de_base = {
     agir = function() return true, coffre().livre(20) end },
   { action = "payer_la_solde", cle = "ui_scriptorium_gestion_payer", parametres = {},
     disponible = function()
-      if hommes().effectif().total == 0 then return false, "personne" end
+      if hommes().effectif().nombre == 0 then return false, "personne" end
       return true
     end,
     agir = function() return true, hommes().payer_la_solde() end },
@@ -271,19 +271,19 @@ local entrees_de_base = {
     end },
   { action = "renvoyer", cle = "ui_scriptorium_gestion_renvoyer", parametres = { "id" },
     disponible = function()
-      if hommes().effectif().total == 0 then return false, "personne" end
+      if hommes().effectif().nombre == 0 then return false, "personne" end
       return true, { hommes = hommes().liste() }
     end,
     agir = function(p) return hommes().renvoyer(p.id) end },
   { action = "nommer_capitaine", cle = "ui_scriptorium_gestion_capitaine", parametres = { "id" },
     disponible = function()
-      if hommes().effectif().total == 0 then return false, "personne" end
+      if hommes().effectif().nombre == 0 then return false, "personne" end
       return true, { hommes = hommes().liste() }
     end,
     agir = function(p) return hommes().nommer_capitaine(p.id) end },
   { action = "renouveler", cle = "ui_scriptorium_gestion_renouveler", parametres = { "id", "semaines" },
     disponible = function()
-      if hommes().effectif().total == 0 then return false, "personne" end
+      if hommes().effectif().nombre == 0 then return false, "personne" end
       return true, { hommes = hommes().liste() }
     end,
     agir = function(p) return hommes().renouveler(p.id, p.semaines) end },

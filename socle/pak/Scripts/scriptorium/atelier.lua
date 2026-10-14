@@ -109,11 +109,11 @@ function atelier.user(id, points)
 end
 
 -- Use l'équipement de chaque combattant d'une bataille.
-function atelier.user_apres_bataille(ids)
+function atelier.user_apres_bataille(combattants)
   local d = donnees()
-  for _, id in ipairs(ids) do
-    if hommes().fiche(id) then
-      d.usure[id] = math.min(100, (d.usure[id] or 0) + atelier.reglages.usure_par_bataille)
+  for _, combattant in ipairs(combattants) do
+    if hommes().fiche(combattant) then
+      d.usure[combattant] = math.min(100, (d.usure[combattant] or 0) + atelier.reglages.usure_par_bataille)
     end
   end
   enregistrer()

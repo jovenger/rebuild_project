@@ -119,10 +119,24 @@ local function donnees_neuves()
   }
 end
 
+-- Montées de version de la case « hommes ».
+-- 1 -> 2 (14/10) : le lieu d'une affectation change de nom de champ. Les affectations sont passagères
+-- (elles ont une fin) : on les oublie, et chacun reprend sa journée.
+local migrations = {
+  [1] = function(d)
+    for _, f in pairs(d.liste or {}) do
+      if type(f) == "table" then
+        f.affectation = nil
+      end
+    end
+    return d
+  end,
+}
+
 local function donnees()
   local registre = Scriptorium.registre
   if not registre.etat_de("hommes") then
-    registre.declarer_case("hommes", 1, donnees_neuves)
+    registre.declarer_case("hommes", 2, donnees_neuves, migrations)
   end
   return registre.lire("hommes")
 end
@@ -199,10 +213,10 @@ end
 
 function hommes.effectif()
   local d = donnees()
-  local bilan = { total = 0, valides = 0, blesses = 0, presents = 0, par_role = {}, par_rang = {} }
+  local bilan = { nombre = 0, valides = 0, blesses = 0, presents = 0, par_role = {}, par_rang = {} }
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
-    bilan.total = bilan.total + 1
+    bilan.nombre = bilan.nombre + 1
     if f.blessure > 0 then bilan.blesses = bilan.blesses + 1 else bilan.valides = bilan.valides + 1 end
     if f.personnage then bilan.presents = bilan.presents + 1 end
     bilan.par_role[f.role] = (bilan.par_role[f.role] or 0) + 1
@@ -562,12 +576,12 @@ end
 
 -- Affecte un homme à une tâche qui passe devant sa journée (bataille, patrouille, corvée de punition).
 -- « fin » (heure du jeu) : l'affectation tombe d'elle-même à cette heure.
-function hommes.affecter(id, activite, place, position, cap, fin)
+function hommes.affecter(id, activite, lieu, position, cap, fin)
   local f = donnees().liste[id]
   if not f then
     return refuser("homme_inconnu", tostring(id))
   end
-  f.affectation = { activite = activite, place = place, position = position, cap = cap, fin = fin }
+  f.affectation = { activite = activite, lieu = lieu, position = position, cap = cap, fin = fin }
   return true
 end
 
@@ -599,24 +613,24 @@ function hommes.affectation_de(id)
   return f and f.affectation or nil
 end
 
--- L'activité d'un homme à une heure : { activite, place, position }.
+-- L'activité d'un homme à une heure : { activite, lieu, position }.
 function hommes.activite_de(id, heure)
   local d = donnees()
   local f = d.liste[id]
   if not f then
     return nil
   end
-  local resultat = { activite = nil, place = nil, position = nil }
+  local resultat = { activite = nil, lieu = nil, position = nil }
   if f.affectation then
     resultat.activite = f.affectation.activite
-    resultat.place = f.affectation.place
+    resultat.lieu = f.affectation.lieu
     resultat.position = f.affectation.position
     resultat.cap = f.affectation.cap
     return resultat
   end
   if f.blessure > 0 then
     resultat.activite = "repos"
-    resultat.place = f.lit
+    resultat.lieu = f.lit
     resultat.position = f.lit and camp().position_de(f.lit) or nil
     return resultat
   end
@@ -624,7 +638,7 @@ function hommes.activite_de(id, heure)
     if g.id == id then
       local poste = hommes.postes_de_garde[g.poste]
       resultat.activite = "garde"
-      resultat.place = "poste_" .. g.poste
+      resultat.lieu = "poste_" .. g.poste
       resultat.position = camp().point(poste.x, poste.y, poste.cap)
       return resultat
     end
@@ -632,7 +646,7 @@ function hommes.activite_de(id, heure)
   local tranche = tranche_de(heure_dans_le_jour(heure))
   resultat.activite = tranche.activite
   if tranche.activite == "sommeil" then
-    resultat.place = f.lit
+    resultat.lieu = f.lit
     resultat.position = f.lit and camp().position_de(f.lit) or nil
   elseif tranche.activite == "repas" or tranche.activite == "veillee" then
     local sieges = sieges_libres_pour(d)
@@ -641,18 +655,18 @@ function hommes.activite_de(id, heure)
       if autre == id then rang = i end
     end
     if rang >= 1 and rang <= #sieges then
-      resultat.place = sieges[rang]
+      resultat.lieu = sieges[rang]
       resultat.position = camp().position_de(sieges[rang])
     else
-      resultat.place = "feu_central"
+      resultat.lieu = "feu_central"
       resultat.position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
     end
   elseif tranche.activite == "exercice" or tranche.activite == "corvee" then
     local p = hommes.points[tranche.activite]
-    resultat.place = tranche.activite
+    resultat.lieu = tranche.activite
     resultat.position = camp().point(p.x, p.y, p.cap)
   else
-    resultat.place = "feu_central"
+    resultat.lieu = "feu_central"
     resultat.position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
   end
   return resultat
@@ -662,7 +676,7 @@ end
 
 function hommes.payer_la_solde()
   local d = donnees()
-  local rapport = { payes = 0, impayes = 0, total = 0, partis = 0 }
+  local rapport = { payes = 0, impayes = 0, somme = 0, partis = 0 }
   local partants = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
@@ -677,7 +691,7 @@ function hommes.payer_la_solde()
       f.impayes = 0
       f.moral = borner(f.moral + 5, 0, 100)
       rapport.payes = rapport.payes + 1
-      rapport.total = rapport.total + montant
+      rapport.somme = rapport.somme + montant
     else
       f.impayes = f.impayes + 1
       f.moral = borner(f.moral - 20, 0, 100)
@@ -692,7 +706,7 @@ function hommes.payer_la_solde()
     rapport.partis = rapport.partis + 1
   end
   if rapport.payes > 0 then
-    annoncer("ui_scriptorium_hommes_solde_payee", { complement = rapport.total .. " groschen" })
+    annoncer("ui_scriptorium_hommes_solde_payee", { complement = rapport.somme .. " groschen" })
   end
   if rapport.impayes > 0 then
     annoncer("ui_scriptorium_hommes_solde_impayee", { importance = "alerte" })
@@ -807,9 +821,9 @@ function hommes.battre()
     local f = d.liste[id]
     if f.personnage then
       local a = hommes.activite_de(id, heure)
-      local resume = a.activite .. "@" .. tostring(a.place)
+      local resume = a.activite .. "@" .. tostring(a.lieu)
       if f.derniere_activite ~= resume then
-        jeu().ordonner(f.personnage, a.activite, a.position, a.place)
+        jeu().ordonner(f.personnage, a.activite, a.position, a.lieu)
         f.derniere_activite = resume
         rapport.ordres = rapport.ordres + 1
       end

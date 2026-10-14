@@ -305,7 +305,27 @@ def verifier_manifeste():
 
 # ------------------------------------------------------------------ 6. contrôle d'absence
 
+def verifier_releve_des_noms():
+    """Le relevé des noms ne prend que les définitions (affectations, fonctions), jamais les comparaisons."""
+    noms = set(outil_empreintes.noms_du_lua("if a.role == 1 then end\nif b.total ~= 2 then end\nif c.lieu <= 3 then end"))
+    if noms:
+        erreur("contrôle d'absence : des comparaisons sont relevées comme des noms : " + ", ".join(sorted(noms)))
+    noms = set(outil_empreintes.noms_du_lua("a.metier = 1\nfunction b.chercher() end"))
+    if not {"metier", "chercher"} <= noms:
+        erreur("contrôle d'absence : une affectation ou une fonction n'est pas relevée : " + ", ".join(sorted(noms)))
+    # Le nom d'un fichier imposé par le jeu (mod.manifest) n'est pas un nom choisi ; un autre nom de fichier l'est.
+    import tempfile
+    with tempfile.TemporaryDirectory() as dossier:
+        for nom in ("mod.manifest", "camp.lua"):
+            with open(os.path.join(dossier, nom), "w", encoding="utf-8") as fichier:
+                fichier.write("-- essai\n")
+        releve, _ = outil_empreintes.relever(dossier)
+        if outil_empreintes.empreinte("mod") in releve["noms"] or outil_empreintes.empreinte("camp") not in releve["noms"]:
+            erreur("contrôle d'absence : noms de fichiers mal relevés (imposés par le jeu ou choisis)")
+
+
 def controle_absence(strict):
+    verifier_releve_des_noms()
     if not os.path.exists(EMPREINTES):
         message = ("contrôle d'absence : empreintes d'Alex absentes (docs/socle/empreintes_alex.json) ; "
                    "examens fichiers, chemins, lignes, noms, clés et textes non faits. "
