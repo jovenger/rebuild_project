@@ -33,6 +33,7 @@ caractere.reglages = {
   faim_forme = -1,              -- un jour affamé
   faim_endurance = -0.5,
   blessure_forme = -1,          -- une blessure reçue
+  forme_par_jour_sain = 0.1,    -- un jour bien nourri et sans blessure : la forme remonte, jusqu'à celle de l'embauche
   jours_pour_connaitre = 7,
   jours_pour_les_penchants = 30,
   seuil_faible = 35,            -- en dessous, le trait se dit « faible » ; au-dessus du seuil fort, « fort »
@@ -152,6 +153,7 @@ local function fiche_de(d, id)
     c.envies[envie.nom] = tirer_entre(d, r.trait_min, r.trait_max)
   end
   c.aguerri = tirer_entre(d, r.aguerri_min, r.aguerri_max)
+  c.forme_d_embauche = c.traits.forme
   d.hommes[id] = c
   return c
 end
@@ -425,6 +427,12 @@ function caractere.passer_la_journee(id, fin, affame)
   if affame then
     c.traits.forme = borner(c.traits.forme + r.faim_forme, 0, 100)
     c.traits.endurance = borner(c.traits.endurance + r.faim_endurance, 0, 100)
+  elseif f.blessure == 0 then
+    -- Bien nourri et sans blessure : la forme remonte doucement, jusqu'à celle de l'embauche (choix de JoVenGer, 15/10).
+    local plafond = c.forme_d_embauche or c.traits.forme
+    if c.traits.forme < plafond then
+      c.traits.forme = math.min(plafond, c.traits.forme + r.forme_par_jour_sain)
+    end
   end
   c.jours = c.jours + 1
   if heures_d_exercice > 0 then

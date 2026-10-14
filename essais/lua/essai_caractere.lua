@@ -260,6 +260,13 @@ essai("caractère : la faim affaiblit", function()
   jours(1)
   egal(caractere.de(ids[1]).traits.forme, 49, "affamé : forme − 1")
   verifier(caractere.de(ids[1]).traits.endurance < 50 + 9 * 0.1, "affamé : l'endurance perd 0,5 malgré l'exercice")
+  -- Bien nourri et sans blessure, la forme remonte doucement, sans dépasser celle de l'embauche (choix de JoVenGer).
+  Scriptorium.registre.lire("caractere").hommes[ids[1]].forme_d_embauche = 50
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  jours(1)
+  verifier(math.abs(caractere.de(ids[1]).traits.forme - 49.1) < 1e-9, "un jour sain : + 0,1")
+  jours(20)
+  egal(caractere.de(ids[1]).traits.forme, 50, "remontée jusqu'à la forme de l'embauche, pas au-delà")
 end)
 
 essai("caractère : découvert avec le temps, dit en mots au rapport", function()

@@ -60,6 +60,7 @@
 ## L'évolution (lente)
 - L'entraînement renforce : + 0,1 d'endurance par heure d'exercice ou d'entraînement (près de trois points par semaine).
 - La faim affaiblit : un jour affamé, − 1 de forme et − 0,5 d'endurance. Une blessure reçue (bataille, rixe) : − 1 de forme.
+- La forme se refait doucement (choix de JoVenGer du 15/10) : + 0,1 par jour bien nourri et sans blessure, sans dépasser la forme de l'embauche.
 - Les traits restent entre 0 et 100.
 
 ## La découverte
@@ -81,7 +82,7 @@
 `malus_fatigue` 0,85, `malus_epuise` 0,7, `moral_epuise` − 2, `gain_par_heure` 0,25, `gain_bataille` 4,
 `aguerri_facteur_min` 0,8, `aguerri_facteur_max` 1,2, `courage_facteur_min` 0,85, `courage_facteur_max` 1,15,
 `endurance_par_heure` 0,1, `faim_forme` − 1, `faim_endurance` − 0,5, `blessure_forme` − 1, `jours_pour_connaitre` 7,
-`jours_pour_les_penchants` 30, `seuil_faible` 35, `seuil_fort` 65, `seuil_bleu` 30, `seuil_veteran` 70.
+`forme_par_jour_sain` 0,1, `jours_pour_les_penchants` 30, `seuil_faible` 35, `seuil_fort` 65, `seuil_bleu` 30, `seuil_veteran` 70.
 
 ## Ce qui est sauvegardé (case `caractere`, version 1)
 `{ graine, hommes = { [id] = { traits, envies, connus, fatigue, aguerri, soin_reste, jours, jours_exercice, soir } } }`.
