@@ -135,8 +135,7 @@ function camp.point(x, y, cap)
   if not d.fonde then
     return nil
   end
-  local position = camp.dans_le_monde(d.ancre, x, y, cap)
-  return position
+  return camp.dans_le_monde(d.ancre, x, y, cap)
 end
 
 local function emplacement_par_nom(nom)

@@ -30,6 +30,20 @@ local function entree(action)
   return nil
 end
 
+essai("enceinte : chaque pièce prend le cap du camp et le quart de tour de son modèle", function()
+  depart()
+  verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 90), "camp fondé face à l'est")
+  coffre.ajouter_reserve("bois", enceinte.reglages.bois_palissade, "achat")
+  verifier(enceinte.batir(), "palissade")
+  local caps = {}
+  for _, o in ipairs(FauxJeu.objets_poses) do
+    caps[o.nom] = o.cap
+  end
+  egal(caps.enceinte_porte, (90 + 0 + enceinte.modeles.porte.decalage) % 360, "porte : cap du camp, plus son quart de tour")
+  egal(caps.enceinte_pan_4, (90 + 4 * 360 / enceinte.reglages.pans + enceinte.modeles.palissade.decalage) % 360,
+       "pan : cap du camp, plus sa place, plus son quart de tour")
+end)
+
 essai("enceinte : à l'entrée en partie, pans, porte et tours sont reposés à neuf", function()
   preparer(enceinte.reglages.bois_palissade + enceinte.reglages.bois_tours)
   verifier(enceinte.batir(), "palissade")

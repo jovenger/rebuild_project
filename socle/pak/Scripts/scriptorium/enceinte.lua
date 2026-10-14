@@ -21,9 +21,11 @@ enceinte.reglages = {
 enceinte.niveau_maximal = 2
 
 -- Modèles du jeu de base, appelés par leur chemin, relevés le 14/10 dans les paks du jeu.
+-- « decalage » : quart de tour propre au modèle (comme le banc du camp) ; vu le 14/10 : pans et porte se
+-- présentaient par la tranche vers le centre du camp.
 enceinte.modeles = {
-  palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_makeshift_a_v1.cgf" },
-  porte     = { chemin = "Objects/manmade/structures/logistical/fences/fence_planks_a_gate.cgf" },
+  palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_makeshift_a_v1.cgf", decalage = 90 },
+  porte     = { chemin = "Objects/manmade/structures/logistical/fences/fence_planks_a_gate.cgf", decalage = 90 },
   tour      = { chemin = "Objects/manmade/structures/defensive/watchtowers/watchtower_a.cgf" },
 }
 
@@ -87,9 +89,11 @@ local function poser(d, e)
   if objet and objet.identifiant and jeu().objet_existe(objet.identifiant) then
     return true
   end
-  local position = camp().point(e.x, e.y, e.cap)
-  local _, cap = camp().dans_le_monde({ x = 0, y = 0, z = 0, cap = 0 }, 0, 0, e.cap)
-  local identifiant = jeu().poser_objet(e.sorte, enceinte.modeles[e.sorte].chemin, position, cap, "enceinte_" .. e.nom)
+  -- Le cap tient compte de l'orientation du camp (vu le 14/10 : il l'ignorait), plus le quart de tour du modèle.
+  local modele = enceinte.modeles[e.sorte]
+  local position, cap = camp().point(e.x, e.y, e.cap)
+  cap = (cap + (modele.decalage or 0)) % 360
+  local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, "enceinte_" .. e.nom)
   if identifiant == nil then
     jeu().journal("Enceinte : le jeu n'a pas posé « " .. e.nom .. " »")
     return false

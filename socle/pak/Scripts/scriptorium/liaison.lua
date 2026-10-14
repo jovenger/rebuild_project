@@ -289,6 +289,10 @@ function liaison.decrire_objet(identifiant)
     local h = player:GetWorldPos()
     local morceaux = { string.format("position %.1f, %.1f, %.1f ; Henry à %.1f m", p.x, p.y, p.z,
                                      math.sqrt((p.x - h.x) ^ 2 + (p.y - h.y) ^ 2)) }
+    local mini, maxi = entite:GetLocalBBox()
+    if mini and maxi then
+      table.insert(morceaux, string.format("taille %.1f × %.1f × %.1f m (x, y, z)", maxi.x - mini.x, maxi.y - mini.y, maxi.z - mini.z))
+    end
     local n = (entite:GetSlotCount()) or 0
     table.insert(morceaux, n .. " emplacement(s)")
     for slot = 0, n - 1 do
