@@ -85,6 +85,10 @@ function poste.essai_feu()
     local description = identifiant and jeu().decrire_objet and jeu().decrire_objet(identifiant) or "pas posé"
     jeu().journal("Poste : objet « " .. nom .. " » : " .. tostring(description))
   end
+  for _, identifiant in ipairs({ "scriptorium_enceinte_porte", "scriptorium_enceinte_pan_1", "scriptorium_enceinte_tour_est" }) do
+    local description = jeu().decrire_objet and jeu().decrire_objet(identifiant) or "?"
+    jeu().journal("Poste : objet « " .. identifiant .. " » : " .. tostring(description))
+  end
 end
 
 -- Henry : posé quarante mètres plus loin, pour chercher un terrain d'essai vierge (demande de JoVenGer du 14/10 :
