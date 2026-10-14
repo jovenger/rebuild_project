@@ -166,6 +166,7 @@ def verifier_identifiants():
         System = { entites = {} }
         function System.GetEntityByName(nom) return System.entites[nom] end
         function System.SpawnEntity(p)
+          System.derniere_orientation = p.orientation
           local e = { id = newproxy(), name = p.name }
           System.entites[p.name] = e
           return e
@@ -187,6 +188,15 @@ def verifier_identifiants():
         l.retirer_objet(a)
         if l.objet_existe(a) then return "objet retiré encore là" end
         if not l.objet_existe(b) then return "l'autre objet a disparu" end
+        -- Henry face à l'ouest : +90° pour le moteur, 270° en cap de boussole ; et retour (vu en jeu le 14/10).
+        player = { GetWorldAngles = function() return { x = 0, y = 0, z = math.rad(90) } end }
+        local cap = l.cap_du_joueur()
+        if math.abs(cap - 270) > 1e-6 then return "cap d'Henry face à l'ouest : " .. tostring(cap) .. ", 270 attendu" end
+        l.poser_objet("tente", "modele", p, cap, "tente")
+        local z = System.derniere_orientation.z
+        if math.abs(math.sin(z) - 1) > 1e-6 or math.abs(math.cos(z)) > 1e-6 then
+          return "objet posé à 270 : angle moteur " .. tostring(z) .. ", l'ouest (+90°) attendu"
+        end
         return "ok"
     end)()""")
     if resultat != "ok":
@@ -343,7 +353,7 @@ def principal(arguments):
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
             verifier_identifiants()
-            print("2 ter. liaison : entités désignées par leur nom, vérifié")
+            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, vérifié")
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 

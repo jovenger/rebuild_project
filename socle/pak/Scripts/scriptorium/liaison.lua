@@ -181,8 +181,18 @@ local function entite_nommee(identifiant)
   return nil
 end
 
+-- Les caps du socle sont ceux d'une boussole : en degrés, dans le sens des aiguilles d'une montre vu de dessus.
+-- Le moteur compte l'angle autour de la verticale dans l'autre sens (vers l'ouest = +90°) : vu en jeu le 14/10,
+-- un camp fondé face à l'ouest sortait en miroir, la tente du Directeur à l'est. La liaison retourne le sens.
+local function cap_vers_moteur(cap)
+  return math.rad(-(cap or 0))
+end
+
+local function cap_depuis_moteur(radians)
+  return (-math.deg(radians)) % 360
+end
+
 -- Fait naître une entité et rend son nom, ou nil et la raison.
--- À vérifier en jeu : la forme de l'orientation attendue (angles en radians ?).
 local function faire_naitre(classe, nom, position, cap, proprietes)
   local nom_unique = nom_libre(nom)
   local ok, entite = pcall(function()
@@ -190,7 +200,7 @@ local function faire_naitre(classe, nom, position, cap, proprietes)
       class = classe,
       name = nom_unique,
       position = { x = position.x, y = position.y, z = position.z },
-      orientation = { x = 0, y = 0, z = math.rad(cap or 0) },
+      orientation = { x = 0, y = 0, z = cap_vers_moteur(cap) },
       properties = proprietes,
     })
   end)
@@ -225,8 +235,8 @@ function liaison.objet_existe(identifiant)
   return entite_nommee(identifiant) ~= nil
 end
 
--- Position et cap d'Henry, pour fonder le camp là où il se tient.
--- À vérifier en jeu : player:GetWorldPos() et player:GetWorldAngles() (z en radians ?).
+-- Position et cap d'Henry (cap de boussole), pour fonder le camp là où il se tient.
+-- Vu en jeu le 14/10 : player:GetWorldPos() et player:GetWorldAngles() répondent ; z est en radians.
 function liaison.position_du_joueur()
   local ok, p = pcall(function() return player:GetWorldPos() end)
   if ok and type(p) == "table" then
@@ -238,7 +248,7 @@ end
 function liaison.cap_du_joueur()
   local ok, angles = pcall(function() return player:GetWorldAngles() end)
   if ok and type(angles) == "table" and type(angles.z) == "number" then
-    return math.deg(angles.z)
+    return cap_depuis_moteur(angles.z)
   end
   return 0
 end
