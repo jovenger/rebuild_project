@@ -1,7 +1,7 @@
 # Fiche 08 — Les patrouilles et le reste
 
 - Morceau : 8. Table : `Scriptorium.patrouilles`. Fichier : `socle/pak/Scripts/scriptorium/patrouilles.lua`. Avec lui, le battement commun du socle (`Scriptorium.battre`) dans `noyau.lua`.
-- État : écrit et passé au banc. En attente de l'essai en jeu et de la validation de la fiche par JoVenGer.
+- État : écrit et passé au banc ; battement commun vu en jeu. Validée par JoVenGer le 14/10/2026 : trois chemins, 2 à 6 hommes et une patrouille à la fois, rencontres et demi-heure de guet tels quels. Tant que les hommes ne marchent pas (V17), ils sont posés de point en point.
 
 ## Ce que le joueur voit
 - Des patrouilles envoyées par la Gestion du camp : une ronde proche, la route du village, les bois. Les hommes partent, suivent leur chemin, reviennent et rendent compte au Directeur : « La patrouille est rentrée : rien à signaler. », « … a chassé des rôdeurs et rapporté du butin. », « … est tombée dans une embuscade. »
