@@ -22,5 +22,7 @@
 - `socle/textes/fr/` : textes de langue (clés `ui_scriptorium_<morceau>_<sujet>`).
 - `socle/mod.manifest` : manifeste du mod.
 - `liaison.lua` est le seul fichier qui parle au moteur ; tout le reste passe par `Scriptorium.jeu`. Les essais utilisent `essais/lua/faux_jeu.lua`.
+- Morceaux, dans l'ordre de chargement : `noyau`, `liaison`, `bandeau`, `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte`, `atelier`, `patrouilles`, `poste`. Chaque morceau a sa fiche dans `docs/socle/fiches/` et son essai dans `essais/lua/`. Le battement commun (`Scriptorium.battre`) fait avancer bataille, hommes, directeur, enceinte, atelier, patrouilles.
+- Pour ajouter un morceau : fiche, fichier Lua déclaré par `Scriptorium.declarer_morceau`, ligne dans `Scripts/Startup/scriptorium_socle.lua` et dans `ORDRE_SOCLE` de `essais/tout_verifier.py`, textes en clés `ui_scriptorium_…` tous employés, essais.
 - `essais/lua/essai_*.lua` : banc d'essai, lancé par `essais/tout_verifier.py` (Lua 5.1 via lupa).
 - `outils/empreintes.py` : relevé des empreintes d'Alex, pour le contrôle d'absence.

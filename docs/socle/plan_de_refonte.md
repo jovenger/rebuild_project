@@ -1,7 +1,7 @@
 # Refonte du socle de Scriptorium : ce qui doit changer par rapport au mod d'Alex
 
 - Statut : proposition acceptée dans ses grandes lignes par JoVenGer le 14/10/2026, avec deux règles ajoutées le même jour : **le chantier ne touche ni au Scriptorium actuel, ni à son git**, et **le périmètre est le mod seul** : refaire entièrement le mod d'Alex, à notre façon, comme mod à part. Son adaptation à Scriptorium viendra après, hors de ce chantier.
-- Avancement : voir `docs/socle/avancement.md`.
+- Avancement : voir `docs/socle/avancement.md`. Au soir du 14/10, les neuf morceaux (0 à 8) sont écrits et passent au banc (1 261 vérifications) ; aucun n'est encore essayé en jeu ni scellé.
 - Source : la description de JoVenGer du 14/10/2026. Le code (`mercenaires/`, `choses/`, `noyau/`) n'est pas lisible depuis cette session. La liste fonction par fonction sera complétée à l'étape 0, l'inventaire (partie 1).
 - Les mentions « à vérifier » désignent des points du jeu ou du projet qui ne sont pas encore confirmés.
 
