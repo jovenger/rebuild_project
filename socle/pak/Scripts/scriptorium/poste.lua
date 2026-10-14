@@ -152,9 +152,10 @@ function poste.essai_patrouille()
   return id
 end
 
--- Bataille : lève une bande de cinq brigands venant du nord, qui arrive dans un quart d'heure de jeu.
+-- Bataille : lève une bande de cinq brigands venant du nord, qui arrive au prochain battement (délai nul :
+-- vu le 14/10, une bande à un quart d'heure n'arrivait jamais, l'heure du jeu ne tournant pas dans le prologue).
 function poste.essai_bataille()
-  local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 5, direction = 0, delai = 0.25 })
+  local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 5, direction = 0, delai = 0 })
   jeu().journal("Poste : bande levée = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or "")
                 .. ", force des nôtres = " .. Scriptorium.bataille.force_des_notres())
   poste.battre_les_hommes()
@@ -436,7 +437,9 @@ function poste.veiller()
     local comptes = Scriptorium.bandeau.comptes()
     jeu().journal("Poste : veille, partie en cours = " .. tostring(partie)
                   .. ", bandeau en attente = " .. Scriptorium.bandeau.en_attente()
-                  .. ", affichés = " .. comptes.affiches .. ", dernier ordre = " .. ordres.dernier)
+                  .. ", affichés = " .. comptes.affiches .. ", dernier ordre = " .. ordres.dernier
+                  .. string.format(", heure du jeu = %.2f", jeu().heure_du_jeu())
+                  .. (jeu().temps_arrete and (", temps arrêté = " .. tostring(jeu().temps_arrete())) or ""))
   end
 end
 

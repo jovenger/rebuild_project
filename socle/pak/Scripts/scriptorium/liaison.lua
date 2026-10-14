@@ -141,6 +141,15 @@ function liaison.heure_du_jeu()
   return 0
 end
 
+-- Vrai si l'heure du jeu est arrêtée (Calendar.IsWorldTimePaused) ; nil si l'appel ne répond pas.
+function liaison.temps_arrete()
+  local ok, valeur = pcall(function() return Calendar.IsWorldTimePaused() end)
+  if ok then
+    return valeur
+  end
+  return nil
+end
+
 -- Groschen dans la bourse d'Henry.
 -- À vérifier en jeu : player.inventory:GetMoney(). En attendant, 0 si absent.
 function liaison.groschen_d_henry()
