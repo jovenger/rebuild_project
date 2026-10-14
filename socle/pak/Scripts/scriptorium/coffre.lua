@@ -10,7 +10,7 @@ local coffre = {}
 Scriptorium.coffre = coffre
 
 coffre.reglages = {
-  lignes_gardees = 200,   -- lignes du livre conservées dans la partie
+  lignes_gardees = 50,    -- lignes du livre conservées dans la partie (choix de JoVenGer, 14/10)
 }
 
 -- Les réserves du camp, par sorte, avec le message d'épuisement de chacune.
