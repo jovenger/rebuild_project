@@ -50,13 +50,13 @@ py -3.13 noyau\installer.py --jeu "G:\SteamLibrary\steamapps\common\KingdomComeD
 | V6 | Quel appel dit qu'un dialogue est en cours ? | `liaison.dialogue_en_cours` |
 | V7 | Le manifeste est-il accepté ? Au journal : `'mods/scriptorium_socle' is not limited to any game version, it will be enabled`. Pas de bloc `<supports>` : le jeu le compare à sa version et désactive le mod hors liste ; le socle ne remplace aucun fichier du jeu | `socle/mod.manifest` |
 | V8 | Reste-t-il un texte jaune à l'écran avec le socle seul ? | — |
-| V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100) ? Sinon, `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
-| V10 | Les lignes du livre ont-elles un `moment` autre que 0 (heure du jeu) ? | `liaison.heure_du_jeu` |
-| V11 | Les objets du camp apparaissent-ils (`System.SpawnEntity`, `BasicEntity`, `object_Model`) ? Sinon, le journal dit « Pose impossible pour … » | `liaison.poser_objet` |
-| V12 | Les chemins des modèles existent-ils dans les paks du jeu ? Relever les vrais chemins de la tente, de la paillasse, du feu, du banc, du coffre, de la palissade, de la porte et de la tour | `camp.modeles`, `enceinte.modeles` |
+| V9 | La bourse d'Henry bouge-t-elle avec `scriptorium_essai_coffre` (moins 100) ? Sinon, `GetMoney`, `RemoveMoney`, `AddMoney` sont à corriger. 14/10 : `GetMoney` lit la bourse (1 303) et `RemoveMoney` passe sans erreur ; la baisse de 100 reste à voir à l'écran | `liaison.groschen_d_henry`, `retirer_groschen_a_henry`, `donner_groschen_a_henry` |
+| V10 | Les lignes du livre ont-elles un `moment` autre que 0 (heure du jeu) ? 14/10 : oui, `Calendar.GetWorldTime` donne l'heure (bande attendue à 66,75 h) | `liaison.heure_du_jeu` |
+| V11 | Les objets du camp apparaissent-ils (`System.SpawnEntity`, `BasicEntity`, `object_Model`) ? Sinon, le journal dit « Pose impossible pour … ». 14/10 : oui, 14 objets pour le camp, 16 puis 18 pour l'enceinte, chacun désigné par son nom | `liaison.poser_objet` |
+| V12 | Les chemins des modèles existent-ils dans les paks du jeu ? Relever les vrais chemins de la tente, de la paillasse, du feu, du banc, du coffre, de la palissade, de la porte et de la tour. 14/10 : les anciens n'existaient pas (formes blanches) ; nouveaux chemins relevés dans `IPL_Objects-part*.pak`, vérifiés par `outils/verifier_modeles.py` ; pas de modèle de feu de camp (tas de branches en attendant, V23) | `camp.modeles`, `enceinte.modeles` |
 | V13 | Le camp est-il orienté comme Henry (tente du Directeur devant lui, à 7 m) ? | `liaison.cap_du_joueur`, `camp.dans_le_monde` |
 | V14 | Après sauvegarde, fermeture et rechargement, les objets sont-ils encore là ? Sinon, `scriptorium_essai_camp` doit les reposer | `camp.redresser`, `liaison.objet_existe` |
-| V15 | Le message avec complément s'affiche-t-il traduit et suivi du nom ? | `liaison.afficher` |
+| V15 | Le message avec complément s'affiche-t-il traduit et suivi du nom ? 14/10 : oui, « Un homme a rejoint la Compagnie : Jan Kladivo », « Une bande approche du camp : 5 hommes » | `liaison.afficher` |
 | V16 | Comment faire venir un personnage à nous : quelle âme (`sharedSoulGuid`) et quelle classe (`NPC`) ? Un essai avec une âme de garde du jeu de base suffit pour commencer | `liaison.faire_venir_homme`, `liaison.ames` |
 | V17 | Comment ordonner à un personnage de dormir ici, de s'asseoir là, de se tenir là, de marcher jusqu'à un point ? | `liaison.ordonner` |
 | V18 | Comment faire venir une bande ennemie hostile (âmes de brigands, de Coumans) ? | `liaison.faire_venir_ennemis`, `liaison.ames_ennemies` |

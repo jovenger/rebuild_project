@@ -20,11 +20,11 @@ enceinte.reglages = {
 
 enceinte.niveau_maximal = 2
 
--- Modèles du jeu de base, appelés par leur chemin. À vérifier en jeu.
+-- Modèles du jeu de base, appelés par leur chemin, relevés le 14/10 dans les paks du jeu.
 enceinte.modeles = {
-  palissade = { chemin = "objects/props/fence/palisade_section.cgf" },
-  porte     = { chemin = "objects/props/fence/palisade_gate.cgf" },
-  tour      = { chemin = "objects/props/camp/watchtower_wood.cgf" },
+  palissade = { chemin = "Objects/manmade/structures/defensive/walls/palisade/palisade_wall_makeshift_a_v1.cgf" },
+  porte     = { chemin = "Objects/manmade/structures/logistical/fences/fence_planks_a_gate.cgf" },
+  tour      = { chemin = "Objects/manmade/structures/defensive/watchtowers/watchtower_a.cgf" },
 }
 
 -- Le plan : pans sur un cercle, la porte au nord, deux tours au niveau 2.

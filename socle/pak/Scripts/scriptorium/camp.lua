@@ -11,13 +11,15 @@ camp.niveau_maximal = 3
 camp.proprietaire = "JoVenGer"
 
 -- Les sortes d'objets et leur modèle du jeu de base, appelé par son chemin.
--- À vérifier en jeu : ces chemins sont à relever dans les paks du jeu.
+-- Chemins relevés le 14/10 dans les paks du jeu (IPL_Objects-part*.pak) ; les anciens donnaient une forme blanche.
+-- Le jeu n'a pas de modèle de feu de camp : un tas de branches en tient lieu, un vrai feu qui brûle
+-- est une entité à part (V23).
 camp.modeles = {
-  feu    = { chemin = "objects/props/fire/campfire.cgf" },
-  siege  = { chemin = "objects/props/furniture/bench_small.cgf" },
-  tente  = { chemin = "objects/props/camp/tent_military.cgf" },
-  lit    = { chemin = "objects/props/furniture/bedroll.cgf" },
-  coffre = { chemin = "objects/props/furniture/chest_wooden.cgf" },
+  feu    = { chemin = "Objects/manmade/task_specific_props/household/firewood/branches/firewood_branches_a.cgf" },
+  siege  = { chemin = "Objects/manmade/common_furniture/benches/low/bench_log_a.cgf" },
+  tente  = { chemin = "Objects/manmade/structures/living/tents/tent_small_a.cgf" },
+  lit    = { chemin = "Objects/manmade/common_furniture/beds/low/bed_makeshift_a.cgf" },
+  coffre = { chemin = "Objects/manmade/common_furniture/chests/chest-small-a.cgf" },
 }
 
 -- Les sortes qui sont des places (un homme peut les prendre).
