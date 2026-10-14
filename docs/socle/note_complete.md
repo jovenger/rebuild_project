@@ -8,6 +8,8 @@
   choix par **questions à cocher**.
 - Mets à jour le dépôt `https://github.com/jovenger/rebuild_project`, branche `ccr-c18b8b50-tespti`, dans
   `C:\Users\maste\Desktop\rebuild_project` (ne le reclone pas s'il y est déjà).
+- **D'abord**, la note de JoVenGer `C:\Users\maste\Desktop\Scriptorium\docs\socle\NOTE_POUR_LE_SOCLE.md` (lecture seule) : elle passe
+  avant le plan d'action ; la suivre dans l'ordre, une étape à la fois (où on en est : `avancement.md`).
 - Lis dans cet ordre : `CLAUDE.md`, `docs\socle\reprise.md` (l'état exact, les interdits, comment mener un essai en jeu),
   `docs\socle\plan_d_action.md` (la suite), puis `docs\socle\avancement.md` et `docs\socle\essai_en_jeu.md`.
 - Lance `py -3.13 essais\tout_verifier.py` : il doit finir par « tout passe ».

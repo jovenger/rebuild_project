@@ -321,6 +321,28 @@ def verifier_identifiants():
         if recu.bWH_PerceptorObject ~= nil or recu.object_Model ~= "modele" then return "un objet a reçu les propriétés d'un personnage" end
         System.SpawnEntity = naissance_d_origine
         NPC = nil
+        -- Argent d'Henry (règle de JoVenGer) : jamais un retrait de zéro, négatif, non entier, au-dessus de la bourse,
+        -- ni avec une bourse illisible ; le 10/10, RemoveMoney(0) a vidé toute la bourse. Le moteur n'est jamais appelé
+        -- pour un montant refusé.
+        local bourse, appels = 100, {}
+        player = { inventory = {
+          GetMoney = function(self) return bourse end,
+          RemoveMoney = function(self, n) table.insert(appels, "retirer " .. tostring(n)); bourse = bourse - n end,
+          AddMoney = function(self, n) table.insert(appels, "donner " .. tostring(n)); bourse = bourse + n end,
+        } }
+        for _, montant in ipairs({ 0, -5, 2.5, 101, "10", 0 / 0, math.huge }) do
+          if l.retirer_groschen_a_henry(montant) then return "retrait accepté : " .. tostring(montant) end
+        end
+        for _, montant in ipairs({ 0, -3, 1.5, "5" }) do
+          if l.donner_groschen_a_henry(montant) then return "versement accepté : " .. tostring(montant) end
+        end
+        if #appels > 0 then return "le moteur a été appelé pour un montant refusé : " .. appels[1] end
+        if not l.retirer_groschen_a_henry(100) or bourse ~= 0 then return "retrait juste refusé" end
+        if not l.donner_groschen_a_henry(30) or bourse ~= 30 then return "versement juste refusé" end
+        player.inventory.GetMoney = function(self) error("bourse illisible") end
+        if l.retirer_groschen_a_henry(10) then return "retrait accepté avec une bourse illisible" end
+        if #appels ~= 2 then return "appels au moteur inattendus : " .. #appels end
+        player = nil
         return "ok"
     end)()""")
     if resultat != "ok":
@@ -497,7 +519,7 @@ def principal(arguments):
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
             verifier_identifiants()
-            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, pose au sol, registre par jeton, vérifié")
+            print("2 ter. liaison : entités désignées par leur nom, caps de boussole, pose au sol, registre par jeton, argent d'Henry sûr, vérifié")
             print("2 quater. réglages par fichier : %d valeurs réglables, outil, liaison et installateur vérifiés"
                   % verifier_reglages_par_fichier())
         else:

@@ -172,19 +172,40 @@ function liaison.groschen_d_henry()
   return 0
 end
 
+-- Un montant d'argent acceptable : un nombre entier, fini, strictement positif.
+local function montant_juste(montant)
+  return type(montant) == "number" and montant == montant and montant > 0 and montant < math.huge
+         and math.floor(montant) == montant
+end
+
 -- Retire des groschen à Henry (dépôt au coffre, voulu par le joueur). Vrai si fait.
--- À vérifier en jeu : player.inventory:RemoveMoney(n). Si l'appel manque, rien n'est fait.
+-- Règle de JoVenGer : jamais un retrait de zéro, ni négatif, ni non entier, ni au-dessus de la bourse. Le 10/10,
+-- RemoveMoney(0) a vidé toute la bourse d'Henry. Une bourse qui ne se lit pas : rien n'est retiré. Vu en jeu le 14/10 :
+-- GetMoney lit la bourse, RemoveMoney retire le montant.
 function liaison.retirer_groschen_a_henry(montant)
-  if liaison.groschen_d_henry() < montant then
+  if not montant_juste(montant) then
+    liaison.journal("Argent d'Henry : retrait refusé, montant « " .. tostring(montant) .. " »")
+    return false
+  end
+  local lu, bourse = pcall(function() return player.inventory:GetMoney() end)
+  if not lu or type(bourse) ~= "number" then
+    liaison.journal("Argent d'Henry : retrait refusé, bourse illisible")
+    return false
+  end
+  if montant > bourse then
     return false
   end
   local ok = pcall(function() player.inventory:RemoveMoney(montant) end)
   return ok
 end
 
--- Donne des groschen à Henry (versement du coffre). Vrai si fait.
--- À vérifier en jeu : player.inventory:AddMoney(n).
+-- Donne des groschen à Henry (versement du coffre). Vrai si fait. Même garde : un montant entier, strictement positif.
+-- Vu en jeu le 14/10 : AddMoney.
 function liaison.donner_groschen_a_henry(montant)
+  if not montant_juste(montant) then
+    liaison.journal("Argent d'Henry : versement refusé, montant « " .. tostring(montant) .. " »")
+    return false
+  end
   local ok = pcall(function() player.inventory:AddMoney(montant) end)
   return ok
 end

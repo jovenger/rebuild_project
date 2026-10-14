@@ -145,6 +145,7 @@ function faux.heure_du_jeu() return faux.heure end
 function faux.groschen_d_henry() return faux.bourse_henry end
 function faux.retirer_groschen_a_henry(n)
   faux.appels_retirer = faux.appels_retirer + 1
+  if type(n) ~= "number" or n <= 0 or math.floor(n) ~= n then return false end
   if faux.bourse_henry < n then return false end
   faux.bourse_henry = faux.bourse_henry - n
   return true

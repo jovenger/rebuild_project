@@ -3,6 +3,9 @@
 Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer. La note courte à coller est
 `docs/socle/note_complete.md` ; ce fichier-ci donne le détail.
 
+- **D'abord**, la note de JoVenGer `C:\Users\maste\Desktop\Scriptorium\docs\socle\NOTE_POUR_LE_SOCLE.md` (lecture seule) : elle passe
+  avant le plan d'action ; la suivre dans l'ordre, une étape à la fois (où on en est : `avancement.md`).
+
 ## 1. Le projet
 - JoVenGer construit « Scriptorium », un grand mod pour Kingdom Come: Deliverance II (KCD2 1.5.6). Il vit dans
   `C:\Users\maste\Desktop\Scriptorium` (git local seulement). Il repose aujourd'hui sur le mod « Mercenaries » d'Alex.
