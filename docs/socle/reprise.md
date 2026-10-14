@@ -21,7 +21,7 @@
 - Le camp paie au coffre, jamais avec la bourse d'Henry. Les tentes sont à JoVenGer. Les dépenses restent justes.
 
 ## 3. Ce qui est fait (tout est dans le dépôt)
-- `CLAUDE.md` : règles et plan des dossiers. `docs/socle/plan_de_refonte.md` : le plan et les décisions D1 à D10. `docs/socle/avancement.md` : tableau des morceaux et résumé en une page. `docs/socle/fiches/00` à `08` : fiches de comportement (02 à 08 attendent la validation de JoVenGer). `docs/socle/essai_en_jeu.md` : marche à suivre et 24 points V1 à V24 à vérifier.
+- `CLAUDE.md` : règles et plan des dossiers. `docs/socle/plan_de_refonte.md` : le plan et les décisions D1 à D10. `docs/socle/avancement.md` : tableau des morceaux et résumé en une page. `docs/socle/fiches/00` à `09` : fiches de comportement (02 à 09 attendent la validation de JoVenGer). `docs/socle/essai_en_jeu.md` : marche à suivre et 24 points V1 à V24 à vérifier.
 - `socle/pak/Scripts/scriptorium/` : `noyau.lua` (table `Scriptorium`, morceaux, démarrage, battement commun toutes les 30 s en partie), `liaison.lua` (**seul fichier qui parle au moteur**, 24 appels « à vérifier en jeu »), `bandeau.lua`, `registre.lua`, `coffre.lua`, `camp.lua`, `hommes.lua`, `bataille.lua`, `directeur.lua`, `enceinte.lua`, `atelier.lua`, `patrouilles.lua`, `discipline.lua` (décision D7 : fautes, jugements, réputation), `poste.lua` (quatorze commandes de console `scriptorium_*`).
 - `socle/pak/Scripts/Startup/scriptorium_socle.lua` : démarrage. `socle/textes/fr/text_ui_scriptorium_socle.xml` : 77 textes. `socle/mod.manifest`.
 - `essais/tout_verifier.py` : syntaxe Lua 5.1, banc (`essais/lua/essai_*.lua`, 1 322 vérifications dont un scénario complet d'une semaine, toutes passent), noms interdits, textes, manifeste, contrôle d'absence.
@@ -70,5 +70,6 @@ py -3.13 outils\empreintes.py "C:\Users\maste\Desktop\Scriptorium\mercenaires" d
 ## 7. Prochaines étapes, dans l'ordre
 1. Essai en jeu, réponses aux points V1 à V24 ; corriger `liaison.lua`, renseigner les âmes et les modèles d'après ce que le jeu dit.
 2. Relever les empreintes d'Alex, commettre `docs/socle/empreintes_alex.json`, vérifier que le contrôle d'absence donne 0 partout.
-3. Faire valider les fiches 02 à 08 par JoVenGer ; sceller les morceaux un par un dans `avancement.md`, chacun après son essai en jeu.
-4. Puis : les tables du jeu (âmes et personnages à nous, apparence neuve du Directeur), le dialogue de la Gestion du camp, la quête de fond, la discipline envers les paysans (D7), le contrôle d'absence en mode strict.
+3. Faire valider les fiches 02 à 09 par JoVenGer ; sceller les morceaux un par un dans `avancement.md`, chacun après son essai en jeu.
+4. Puis : les tables du jeu (âmes et personnages à nous, apparence neuve du Directeur), le dialogue de la Gestion du camp, la quête de fond, le contrôle d'absence en mode strict.
+5. Seulement après tout cela : `docs/socle/idees_pour_plus_tard.md`.
