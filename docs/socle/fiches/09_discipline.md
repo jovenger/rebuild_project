@@ -2,7 +2,7 @@
 
 - Morceau : 9. Table : `Scriptorium.discipline`. Fichier : `socle/pak/Scripts/scriptorium/discipline.lua`.
 - Vient de la décision D7 (nouveautés d'époque) : « vol ou violence chez les paysans : amende retenue sur la solde, puis renvoi ; la réputation de la Compagnie auprès des villages s'en ressent ».
-- État : écrit et passé au banc. En attente de l'essai en jeu et de la validation de la fiche par JoVenGer.
+- État : écrit et passé au banc. Validée par JoVenGer le 14/10/2026 : chances de faute, quatre fautes, cinq peines, laxisme et réputation tels quels. À voir en jeu à l'aube, dans la Partie 1 (le temps y tourne).
 
 ## Ce que le joueur voit
 - Des fautes au camp, de temps en temps, surtout quand le moral est bas : « Rixe au camp : Jan Kladivo », « Un vol au coffre : … », « Ivresse au camp : … », « Exaction chez les paysans : … ».
