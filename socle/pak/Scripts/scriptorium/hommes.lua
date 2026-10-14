@@ -516,7 +516,7 @@ function hommes.gardes(heure)
   local d = donnees()
   local valides = {}
   for _, id in ipairs(d.ordre) do
-    if d.liste[id].blessure == 0 then
+    if d.liste[id].blessure == 0 and d.liste[id].affectation == nil then
       table.insert(valides, id)
     end
   end
@@ -545,6 +545,30 @@ local function sieges_libres_pour(d)
   return camp().places_libres("siege")
 end
 
+-- Affecte un homme à une tâche qui passe devant sa journée (bataille, patrouille).
+function hommes.affecter(id, activite, place, position, cap)
+  local f = donnees().liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  f.affectation = { activite = activite, place = place, position = position, cap = cap }
+  return true
+end
+
+function hommes.liberer_affectation(id)
+  local f = donnees().liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  f.affectation = nil
+  return true
+end
+
+function hommes.affectation_de(id)
+  local f = donnees().liste[id]
+  return f and f.affectation or nil
+end
+
 -- L'activité d'un homme à une heure : { activite, place, position }.
 function hommes.activite_de(id, heure)
   local d = donnees()
@@ -553,6 +577,13 @@ function hommes.activite_de(id, heure)
     return nil
   end
   local resultat = { activite = nil, place = nil, position = nil }
+  if f.affectation then
+    resultat.activite = f.affectation.activite
+    resultat.place = f.affectation.place
+    resultat.position = f.affectation.position
+    resultat.cap = f.affectation.cap
+    return resultat
+  end
   if f.blessure > 0 then
     resultat.activite = "repos"
     resultat.place = f.lit

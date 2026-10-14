@@ -204,5 +204,69 @@ function liaison.ordonner(identifiant, activite, position, place)
   liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(place) .. ")")
 end
 
+-- Âmes des ennemis par sorte de bande, prises dans le jeu de base.
+-- À vérifier en jeu : à remplir avec les identifiants d'âmes des brigands, Coumans, etc.
+liaison.ames_ennemies = {}
+
+-- Fait venir une bande ennemie et rend la liste de ses identifiants, ou nil.
+-- À vérifier en jeu : System.SpawnEntity classe NPC, et comment les rendre hostiles au camp.
+function liaison.faire_venir_ennemis(sorte, effectif, position, cap)
+  local ame = liaison.ames_ennemies[sorte]
+  if ame == nil or position == nil then
+    liaison.journal("Bande impossible (" .. tostring(sorte) .. ") : pas d'âme pour cette sorte")
+    return nil
+  end
+  local liste = {}
+  for i = 1, effectif do
+    local ok, entite = pcall(function()
+      return System.SpawnEntity({
+        class = "NPC",
+        name = "scriptorium_ennemi_" .. sorte .. "_" .. i,
+        position = { x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z },
+        orientation = { x = 0, y = 0, z = math.rad(cap) },
+        properties = { sharedSoulGuid = ame },
+      })
+    end)
+    if ok and entite and entite.id then
+      table.insert(liste, entite.id)
+    end
+  end
+  if #liste == 0 then
+    return nil
+  end
+  return liste
+end
+
+-- Nombre d'ennemis encore vivants.
+-- À vérifier en jeu : l'appel qui dit qu'un personnage est mort (entite.actor:IsDead() ?).
+function liaison.ennemis_vivants(liste)
+  local n = 0
+  for _, identifiant in ipairs(liste) do
+    if liaison.objet_existe(identifiant) and not liaison.personnage_mort(identifiant) then
+      n = n + 1
+    end
+  end
+  return n
+end
+
+function liaison.renvoyer_ennemis(liste)
+  for _, identifiant in ipairs(liste) do
+    liaison.retirer_objet(identifiant)
+  end
+end
+
+-- Vrai si le personnage est mort.
+-- À vérifier en jeu : entite.actor:IsDead(), ou entite.soul:GetHealth() == 0.
+function liaison.personnage_mort(identifiant)
+  local ok, mort = pcall(function()
+    local entite = System.GetEntity(identifiant)
+    if entite == nil then return true end
+    if entite.actor and entite.actor.IsDead then return entite.actor:IsDead() end
+    if entite.soul and entite.soul.GetHealth then return entite.soul:GetHealth() <= 0 end
+    return false
+  end)
+  return ok and mort == true
+end
+
 Scriptorium.liaison_reelle = liaison
 Scriptorium.jeu = Scriptorium.jeu or liaison

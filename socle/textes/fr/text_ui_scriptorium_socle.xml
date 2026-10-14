@@ -33,6 +33,12 @@
   <Row><Cell>ui_scriptorium_hommes_mort</Cell><Cell>Est tombé au service de la Compagnie :</Cell><Cell>Est tombé au service de la Compagnie :</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_promu_dizainier</Cell><Cell>A été fait dizainier :</Cell><Cell>A été fait dizainier :</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_capitaine</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_approche</Cell><Cell>Une bande approche du camp :</Cell><Cell>Une bande approche du camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_victoire</Cell><Cell>Victoire : la bande est repoussée.</Cell><Cell>Victoire : la bande est repoussée.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_victoire_couteuse</Cell><Cell>Victoire chèrement payée : la bande est repoussée, mais la Compagnie a saigné.</Cell><Cell>Victoire chèrement payée : la bande est repoussée, mais la Compagnie a saigné.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_repoussee</Cell><Cell>La bande a été repoussée, mais elle a mordu.</Cell><Cell>La bande a été repoussée, mais elle a mordu.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_defaite</Cell><Cell>Défaite : la bande a enfoncé le camp et pillé le coffre.</Cell><Cell>Défaite : la bande a enfoncé le camp et pillé le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_butin</Cell><Cell>Butin partagé, au coffre :</Cell><Cell>Butin partagé, au coffre :</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>

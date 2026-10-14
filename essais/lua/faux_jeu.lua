@@ -27,6 +27,12 @@ local faux = {
   prochain_personnage = 1,
   refuser_personnage = false,
   ordres = {},                 -- { identifiant, activite, position, place }
+  ennemis = {},                -- { identifiant, sorte, position, cap }
+  ennemis_vivants_par_id = {}, -- identifiant -> true/false
+  ennemis_renvoyes = {},
+  prochain_ennemi = 1,
+  refuser_ennemis = false,
+  personnages_morts = {},      -- identifiant -> true
 }
 
 function faux.remettre_a_zero()
@@ -55,6 +61,12 @@ function faux.remettre_a_zero()
   faux.prochain_personnage = 1
   faux.refuser_personnage = false
   faux.ordres = {}
+  faux.ennemis = {}
+  faux.ennemis_vivants_par_id = {}
+  faux.ennemis_renvoyes = {}
+  faux.prochain_ennemi = 1
+  faux.refuser_ennemis = false
+  faux.personnages_morts = {}
 end
 
 function faux.maintenant() return faux.temps end
@@ -117,6 +129,32 @@ end
 function faux.ordonner(identifiant, activite, position, place)
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, place = place })
 end
+function faux.faire_venir_ennemis(sorte, effectif, position, cap)
+  if faux.refuser_ennemis then return nil end
+  local liste = {}
+  for _ = 1, effectif do
+    local identifiant = "ennemi_" .. faux.prochain_ennemi
+    faux.prochain_ennemi = faux.prochain_ennemi + 1
+    table.insert(faux.ennemis, { identifiant = identifiant, sorte = sorte, position = position, cap = cap })
+    faux.ennemis_vivants_par_id[identifiant] = true
+    table.insert(liste, identifiant)
+  end
+  return liste
+end
+function faux.ennemis_vivants(liste)
+  local n = 0
+  for _, identifiant in ipairs(liste) do
+    if faux.ennemis_vivants_par_id[identifiant] then n = n + 1 end
+  end
+  return n
+end
+function faux.renvoyer_ennemis(liste)
+  for _, identifiant in ipairs(liste) do
+    table.insert(faux.ennemis_renvoyes, identifiant)
+    faux.ennemis_vivants_par_id[identifiant] = nil
+  end
+end
+function faux.personnage_mort(identifiant) return faux.personnages_morts[identifiant] == true end
 function faux.position_du_joueur() return faux.position_joueur end
 function faux.cap_du_joueur() return faux.cap_joueur end
 
