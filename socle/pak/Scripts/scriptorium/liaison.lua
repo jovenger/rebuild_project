@@ -300,5 +300,12 @@ function liaison.changer_porte(identifiant, etat)
   liaison.journal("Porte " .. tostring(identifiant) .. " : " .. tostring(etat))
 end
 
+-- Vrai quand une partie est chargée (le camp ne bat pas au menu principal).
+-- À vérifier en jeu : l'appel sûr ; en attendant, vrai si « player » existe.
+function liaison.partie_en_cours()
+  local ok, present = pcall(function() return player ~= nil and player.id ~= nil end)
+  return ok and present == true
+end
+
 Scriptorium.liaison_reelle = liaison
 Scriptorium.jeu = Scriptorium.jeu or liaison

@@ -93,6 +93,15 @@ local function tirage(d)
   return d.graine / 2147483647
 end
 
+-- Le même hasard, pour les autres morceaux (patrouilles).
+function bataille.tirage()
+  return tirage(donnees())
+end
+
+function bataille.fixer_la_graine(graine)
+  donnees().graine = graine
+end
+
 -- ---------------------------------------------------------------- lever une bande
 
 function bataille.lever_une_bande(ordre)
@@ -422,6 +431,43 @@ function bataille.resoudre_par_la_regle(id)
   return resultat
 end
 
+-- Une escarmouche loin du camp (embuscade de patrouille) : les seuls hommes donnés,
+-- sans enceinte, tranchée tout de suite par la règle. Rend le résultat.
+function bataille.escarmouche(ids, sorte, effectif)
+  local d = donnees()
+  local id = "escarmouche_" .. d.prochaine
+  d.prochaine = d.prochaine + 1
+  local b = { id = id, sorte = sorte, effectif = effectif, direction = 0, levee = jeu().heure_du_jeu(),
+              arrivee = jeu().heure_du_jeu(), etat = "au_contact", contact = jeu().heure_du_jeu(),
+              personnages = nil, combattants = {} }
+  local force, moral, nombre = 0, 0, 0
+  for _, homme in ipairs(ids) do
+    local f = hommes().fiche(homme)
+    if f and bataille.roles[f.role] and f.blessure == 0 then
+      table.insert(b.combattants, homme)
+      local facteur = (Scriptorium.atelier and Scriptorium.atelier.facteur_de) and Scriptorium.atelier.facteur_de(homme) or 1
+      force = force + bataille.roles[f.role].poids * facteur
+      moral = moral + f.moral
+      nombre = nombre + 1
+    end
+  end
+  if nombre > 0 then
+    force = force * (0.7 + 0.5 * (moral / nombre) / 100)
+  end
+  local leur = bataille.force_de_la_bande(b)
+  local rapport = (leur > 0) and (force / leur) or 10
+  local issue = choisir_issue(rapport)
+  d.bandes[id] = b
+  table.insert(d.ordre, id)
+  local resultat = appliquer(d, b, issue, nil)
+  resultat.rapport = rapport
+  b.etat = "finie"
+  b.fin = jeu().heure_du_jeu()
+  b.issue = resultat.issue
+  enregistrer()
+  return resultat
+end
+
 -- L'issue par le jeu : les ennemis vivants et nos morts constatés.
 local function resoudre_par_le_jeu(d, b)
   local vivants = jeu().ennemis_vivants(b.personnages)
@@ -464,6 +510,9 @@ function bataille.battre()
       local avance = bataille.reglages.avertissement
       if Scriptorium.enceinte and Scriptorium.enceinte.avance_de_guet then
         avance = avance + Scriptorium.enceinte.avance_de_guet()
+      end
+      if Scriptorium.patrouilles and Scriptorium.patrouilles.avance_de_guet then
+        avance = avance + Scriptorium.patrouilles.avance_de_guet()
       end
       if not b.annoncee and heure >= b.arrivee - avance then
         b.annoncee = true

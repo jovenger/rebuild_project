@@ -63,6 +63,11 @@
   <Row><Cell>ui_scriptorium_gestion_remede</Cell><Cell>Préparer un remède</Cell><Cell>Préparer un remède</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_onguent</Cell><Cell>Préparer un onguent</Cell><Cell>Préparer un onguent</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_soigner</Cell><Cell>Soigner un blessé</Cell><Cell>Soigner un blessé</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_partie</Cell><Cell>La patrouille est partie.</Cell><Cell>La patrouille est partie.</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_rien</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_rodeurs</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_embuscade</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_patrouille</Cell><Cell>Envoyer une patrouille</Cell><Cell>Envoyer une patrouille</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>

@@ -36,6 +36,7 @@ local faux = {
   directeurs = {},             -- { identifiant, position }
   refuser_directeur = false,
   ordres_porte = {},           -- { identifiant, etat }
+  partie = true,               -- une partie est en cours
 }
 
 function faux.remettre_a_zero()
@@ -73,6 +74,7 @@ function faux.remettre_a_zero()
   faux.directeurs = {}
   faux.refuser_directeur = false
   faux.ordres_porte = {}
+  faux.partie = true
 end
 
 function faux.maintenant() return faux.temps end
@@ -161,6 +163,7 @@ function faux.renvoyer_ennemis(liste)
   end
 end
 function faux.personnage_mort(identifiant) return faux.personnages_morts[identifiant] == true end
+function faux.partie_en_cours() return faux.partie end
 function faux.changer_porte(identifiant, etat)
   table.insert(faux.ordres_porte, { identifiant = identifiant, etat = etat })
 end

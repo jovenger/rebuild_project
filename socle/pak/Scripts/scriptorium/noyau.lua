@@ -8,6 +8,9 @@ Scriptorium.version = "0.1.0"
 Scriptorium.nom_du_mod = "scriptorium_socle"
 Scriptorium.morceaux = Scriptorium.morceaux or {}
 Scriptorium.demarre = Scriptorium.demarre or false
+Scriptorium.cadence_du_battement_ms = 30000
+-- L'ordre dans lequel les morceaux battent (ceux qui ont une fonction battre).
+Scriptorium.ordre_du_battement = { "bataille", "hommes", "directeur", "enceinte", "atelier", "patrouilles" }
 
 local function jeu()
   return Scriptorium.jeu
@@ -54,6 +57,7 @@ function Scriptorium.demarrer()
     end
   end
   Scriptorium.demarre = true
+  Scriptorium.lancer_le_battement()
   local prets, pannes = Scriptorium.bilan()
   if Scriptorium.bandeau then
     if pannes > 0 then
@@ -74,9 +78,52 @@ function Scriptorium.bilan()
   return prets, pannes
 end
 
+-- Un battement du camp : chaque morceau avance jusqu'à l'heure du jeu, seulement quand une partie est en cours.
+-- Un morceau qui casse ne bloque pas les autres.
+function Scriptorium.battre()
+  local rapport = { morceaux = {}, erreurs = 0 }
+  if jeu().partie_en_cours and not jeu().partie_en_cours() then
+    rapport.saute = true
+    return rapport
+  end
+  for _, nom in ipairs(Scriptorium.ordre_du_battement) do
+    local morceau = Scriptorium[nom]
+    if type(morceau) == "table" and type(morceau.battre) == "function" then
+      local ok, erreur = pcall(morceau.battre)
+      if ok then
+        table.insert(rapport.morceaux, nom)
+      else
+        rapport.erreurs = rapport.erreurs + 1
+        journal("Battement de « " .. nom .. " » en erreur : " .. tostring(erreur))
+      end
+    end
+  end
+  return rapport
+end
+
+function Scriptorium.lancer_le_battement()
+  if Scriptorium.battement_lance then
+    return
+  end
+  Scriptorium.battement_lance = true
+  local function battement()
+    if not Scriptorium.battement_lance then
+      return
+    end
+    Scriptorium.battre()
+    jeu().minuterie(Scriptorium.cadence_du_battement_ms, battement)
+  end
+  jeu().minuterie(Scriptorium.cadence_du_battement_ms, battement)
+end
+
+function Scriptorium.arreter_le_battement()
+  Scriptorium.battement_lance = false
+end
+
 -- Pour les essais : oublie le démarrage, sans toucher aux morceaux déclarés.
 function Scriptorium.remettre_a_zero()
   Scriptorium.demarre = false
+  Scriptorium.battement_lance = false
   for _, morceau in ipairs(Scriptorium.morceaux) do
     morceau.pret = false
     morceau.erreur = nil

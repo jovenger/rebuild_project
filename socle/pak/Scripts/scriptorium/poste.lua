@@ -106,25 +106,17 @@ function poste.essai_hommes()
   return ids, effectif
 end
 
--- Lance le battement du camp (hommes, bandes) toutes les trente secondes.
+-- Le battement du camp est celui du socle (Scriptorium.battre, lancé au démarrage) ;
+-- ici, on s'assure seulement qu'il tourne.
 function poste.battre_les_hommes()
-  if poste.battement_hommes_actif then
-    return
-  end
-  poste.battement_hommes_actif = true
-  local function battement()
-    if not poste.battement_hommes_actif then
-      return
-    end
-    for _, morceau in ipairs({ "bataille", "hommes", "directeur", "enceinte", "atelier" }) do
-      local ok, erreur = pcall(Scriptorium[morceau].battre)
-      if not ok then
-        jeu().journal("Battement de « " .. morceau .. " » en erreur : " .. tostring(erreur))
-      end
-    end
-    jeu().minuterie(30000, battement)
-  end
-  jeu().minuterie(30000, battement)
+  Scriptorium.lancer_le_battement()
+end
+
+-- Patrouille : envoie deux hommes faire la ronde proche.
+function poste.essai_patrouille()
+  local id, raison = Scriptorium.patrouilles.envoyer({ chemin = "ronde_proche", hommes = 2 })
+  jeu().journal("Poste : patrouille = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or ""))
+  return id
 end
 
 -- Bataille : lève une bande de cinq brigands venant du nord, qui arrive dans un quart d'heure de jeu.
@@ -209,5 +201,6 @@ Scriptorium.declarer_morceau("poste", function()
   jeu().commande("scriptorium_essai_directeur", "Scriptorium.poste.essai_directeur()", "Installe le Directeur et écrit le menu de la Gestion du camp")
   jeu().commande("scriptorium_gestion_rapport", "Scriptorium.poste.gestion('rapport')", "Le rapport du Directeur")
   jeu().commande("scriptorium_essai_enceinte", "Scriptorium.poste.essai_enceinte()", "Bâtit la palissade et les tours")
+  jeu().commande("scriptorium_essai_patrouille", "Scriptorium.poste.essai_patrouille()", "Envoie deux hommes faire la ronde proche")
   jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
 end)
