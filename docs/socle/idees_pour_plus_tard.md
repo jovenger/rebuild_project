@@ -1,6 +1,7 @@
-# Idées pour que le socle soit meilleur, et vraiment autre chose que le mod de base
+# IDÉES POUR PLUS TARD — vingt-six façons de rendre le socle meilleur et différent du mod de base
 
-État au 14/10/2026. Rien de ceci n'est fait ; c'est une liste à trier par JoVenGer. Les numéros ne sont pas un ordre.
+- Note prise le 14/10/2026, à la demande de JoVenGer, **pour après** : on termine d'abord ce qui est commencé (les neuf morceaux, leur essai en jeu, leur scellé).
+- Rien de ceci n'est fait ni promis. Liste à trier par JoVenGer quand le socle de base tiendra debout en jeu. Les numéros ne sont pas un ordre.
 
 ## A. Ce qui manque encore pour tenir debout (à faire avant toute nouveauté)
 1. **La Gestion du camp dans le jeu** : un vrai dialogue avec le Directeur (ou un écran) qui présente le menu déjà en données. Aujourd'hui, seule la console le joue.

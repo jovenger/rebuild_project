@@ -64,6 +64,9 @@ Et pour les empreintes (lecture seule sur la copie d'Alex) :
 py -3.13 outils\empreintes.py "C:\Users\maste\Desktop\Scriptorium\mercenaires" docs\socle\empreintes_alex.json
 ```
 
+## 6 bis. Pour plus tard, pas maintenant
+- `docs/socle/idees_pour_plus_tard.md` : vingt-six idées (contrats, chronique, discipline, histoires des hommes, calendrier, pavois et traits…). Consigne de JoVenGer : on termine d'abord ce qui est commencé.
+
 ## 7. Prochaines étapes, dans l'ordre
 1. Essai en jeu, réponses aux points V1 à V24 ; corriger `liaison.lua`, renseigner les âmes et les modèles d'après ce que le jeu dit.
 2. Relever les empreintes d'Alex, commettre `docs/socle/empreintes_alex.json`, vérifier que le contrôle d'absence donne 0 partout.

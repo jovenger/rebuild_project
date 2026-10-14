@@ -2,7 +2,7 @@
 
 - Tout en français, sans exception. Réponses concises, techniques, en listes.
 - Périmètre (14/10/2026) : refaire entièrement, à notre façon, le mod « Mercenaries » d'Alex, comme mod à part (`scriptorium_socle`). Son adaptation à Scriptorium viendra après, hors de ce chantier.
-- Plan : `docs/socle/plan_de_refonte.md`. Avancement : `docs/socle/avancement.md`. Fiches : `docs/socle/fiches/`. Essai en jeu : `docs/socle/essai_en_jeu.md`.
+- Plan : `docs/socle/plan_de_refonte.md`. Avancement : `docs/socle/avancement.md`. Fiches : `docs/socle/fiches/`. Essai en jeu : `docs/socle/essai_en_jeu.md`. Idées pour plus tard (pas maintenant) : `docs/socle/idees_pour_plus_tard.md`.
 
 ## Interdits (règle de JoVenGer du 14/10/2026)
 - Ne jamais écrire dans le Scriptorium actuel (`C:\Users\maste\Desktop\Scriptorium`), ni dans son git local. Lecture seule, si JoVenGer la donne.

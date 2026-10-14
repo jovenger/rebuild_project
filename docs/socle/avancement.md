@@ -37,6 +37,9 @@ Tous les morceaux sont écrits et passent au banc : 1 261 vérifications. Aucun 
 - **Enceinte et atelier :** palissade, porte (jour, nuit, barrée), tours de guet, bonus de défense ; alchimie (remèdes, onguents, soins) ; armurerie (usure, entretien).
 - **Patrouilles :** chemins en données, marche par points, rencontres (rien, rôdeurs, embuscade), risque qui bouge, avance de guet.
 
+## Pour plus tard
+- `docs/socle/idees_pour_plus_tard.md` : vingt-six idées notées le 14/10, à reprendre seulement quand le socle de base sera essayé en jeu et scellé.
+
 ## Prochaine étape
 - JoVenGer : essai en jeu (`docs/socle/essai_en_jeu.md`), relevé des empreintes d'Alex, validation des fiches 02 à 08.
 - Ensuite, d'après le jeu : corriger `liaison.lua` (sauvegarde, âmes, ordres, porte, affichage), renseigner `camp.modeles`, `enceinte.modeles`, `liaison.ames`, `liaison.ames_ennemies`, `liaison.ame_du_directeur` ; puis les tables du jeu (âmes, personnages) et la quête de fond, hors de ce premier passage.
