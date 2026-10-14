@@ -39,6 +39,19 @@
   <Row><Cell>ui_scriptorium_bataille_repoussee</Cell><Cell>La bande a été repoussée, mais elle a mordu.</Cell><Cell>La bande a été repoussée, mais elle a mordu.</Cell></Row>
   <Row><Cell>ui_scriptorium_bataille_defaite</Cell><Cell>Défaite : la bande a enfoncé le camp et pillé le coffre.</Cell><Cell>Défaite : la bande a enfoncé le camp et pillé le coffre.</Cell></Row>
   <Row><Cell>ui_scriptorium_bataille_butin</Cell><Cell>Butin partagé, au coffre :</Cell><Cell>Butin partagé, au coffre :</Cell></Row>
+  <Row><Cell>ui_scriptorium_directeur_installe</Cell><Cell>Le Directeur a pris ses fonctions.</Cell><Cell>Le Directeur a pris ses fonctions.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_rapport</Cell><Cell>Entendre le rapport</Cell><Cell>Entendre le rapport</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_livre</Cell><Cell>Consulter le livre de comptes</Cell><Cell>Consulter le livre de comptes</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_payer</Cell><Cell>Payer la solde maintenant</Cell><Cell>Payer la solde maintenant</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_engager</Cell><Cell>Engager un homme</Cell><Cell>Engager un homme</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_renvoyer</Cell><Cell>Renvoyer un homme</Cell><Cell>Renvoyer un homme</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_capitaine</Cell><Cell>Nommer le capitaine</Cell><Cell>Nommer le capitaine</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_renouveler</Cell><Cell>Renouveler un contrat</Cell><Cell>Renouveler un contrat</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_acheter</Cell><Cell>Acheter des réserves</Cell><Cell>Acheter des réserves</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_deposer</Cell><Cell>Déposer des groschen au coffre</Cell><Cell>Déposer des groschen au coffre</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_verser</Cell><Cell>Prendre des groschen au coffre</Cell><Cell>Prendre des groschen au coffre</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_agrandir</Cell><Cell>Agrandir le camp</Cell><Cell>Agrandir le camp</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_lever</Cell><Cell>Lever le camp</Cell><Cell>Lever le camp</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
   <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
 </Table>

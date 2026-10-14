@@ -10,6 +10,7 @@ Script.ReloadScript("Scripts/scriptorium/coffre.lua")
 Script.ReloadScript("Scripts/scriptorium/camp.lua")
 Script.ReloadScript("Scripts/scriptorium/hommes.lua")
 Script.ReloadScript("Scripts/scriptorium/bataille.lua")
+Script.ReloadScript("Scripts/scriptorium/directeur.lua")
 Script.ReloadScript("Scripts/scriptorium/poste.lua")
 
 Scriptorium.demarrer()

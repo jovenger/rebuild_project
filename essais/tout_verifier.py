@@ -94,7 +94,7 @@ def verifier_syntaxe(lua):
 
 # ------------------------------------------------------------------ 2. banc Lua
 
-ORDRE_SOCLE = ["noyau.lua", "bandeau.lua", "registre.lua", "coffre.lua", "camp.lua", "hommes.lua", "bataille.lua", "poste.lua"]
+ORDRE_SOCLE = ["noyau.lua", "bandeau.lua", "registre.lua", "coffre.lua", "camp.lua", "hommes.lua", "bataille.lua", "directeur.lua", "poste.lua"]
 
 
 def executer_banc(lua):

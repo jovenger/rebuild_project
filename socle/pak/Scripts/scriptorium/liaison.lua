@@ -268,5 +268,31 @@ function liaison.personnage_mort(identifiant)
   return ok and mort == true
 end
 
+-- L'âme du Directeur (personnage à nous, apparence neuve).
+-- À vérifier en jeu : à renseigner depuis les tables du socle.
+liaison.ame_du_directeur = nil
+
+-- Fait venir le Directeur dans sa tente. Rend son identifiant, ou nil.
+function liaison.faire_venir_directeur(position)
+  if liaison.ame_du_directeur == nil or position == nil then
+    liaison.journal("Venue impossible pour le Directeur : pas d'âme renseignée")
+    return nil
+  end
+  local ok, entite = pcall(function()
+    return System.SpawnEntity({
+      class = "NPC",
+      name = "Scriptorium_Directeur",
+      position = { x = position.x, y = position.y, z = position.z },
+      orientation = { x = 0, y = 0, z = 0 },
+      properties = { sharedSoulGuid = liaison.ame_du_directeur },
+    })
+  end)
+  if ok and entite and entite.id then
+    return entite.id
+  end
+  liaison.journal("Venue impossible pour le Directeur : " .. tostring(entite))
+  return nil
+end
+
 Scriptorium.liaison_reelle = liaison
 Scriptorium.jeu = Scriptorium.jeu or liaison

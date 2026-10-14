@@ -116,7 +116,7 @@ function poste.battre_les_hommes()
     if not poste.battement_hommes_actif then
       return
     end
-    for _, morceau in ipairs({ "bataille", "hommes" }) do
+    for _, morceau in ipairs({ "bataille", "hommes", "directeur" }) do
       local ok, erreur = pcall(Scriptorium[morceau].battre)
       if not ok then
         jeu().journal("Battement de « " .. morceau .. " » en erreur : " .. tostring(erreur))
@@ -134,6 +134,36 @@ function poste.essai_bataille()
                 .. ", force des nôtres = " .. Scriptorium.bataille.force_des_notres())
   poste.battre_les_hommes()
   return id
+end
+
+-- Directeur : l'installe, puis écrit le menu de la Gestion du camp au journal.
+function poste.essai_directeur()
+  local directeur = Scriptorium.directeur
+  if not directeur.est_installe() then
+    local ok, raison = directeur.installer()
+    jeu().journal("Poste : Directeur installé = " .. tostring(ok) .. (raison and (" (" .. raison .. ")") or ""))
+  end
+  for _, e in ipairs(directeur.menu()) do
+    jeu().journal("Poste : gestion, " .. e.action .. " : " .. (e.disponible and "possible" or ("impossible (" .. tostring(e.raison) .. ")"))
+                  .. ((#e.parametres > 0) and (" ; paramètres : " .. table.concat(e.parametres, ", ")) or ""))
+  end
+  poste.battre_les_hommes()
+  return directeur.menu()
+end
+
+-- Directeur : joue une action de la Gestion du camp depuis la console.
+-- Exemple : scriptorium_gestion engager role=archer semaines=4
+function poste.gestion(action, parametres)
+  local ok, resultat = Scriptorium.directeur.agir(action, parametres or {})
+  jeu().journal("Poste : gestion « " .. tostring(action) .. " » = " .. tostring(ok) .. " ; " .. tostring(resultat))
+  if ok and type(resultat) == "table" then
+    for cle, valeur in pairs(resultat) do
+      if type(valeur) ~= "table" then
+        jeu().journal("  " .. tostring(cle) .. " = " .. tostring(valeur))
+      end
+    end
+  end
+  return ok, resultat
 end
 
 -- Résumé du socle dans le journal.
@@ -161,5 +191,7 @@ Scriptorium.declarer_morceau("poste", function()
   jeu().commande("scriptorium_essai_camp_lever", "Scriptorium.poste.essai_camp_lever()", "Lève le camp")
   jeu().commande("scriptorium_essai_hommes", "Scriptorium.poste.essai_hommes()", "Engage trois hommes et lance leur journée")
   jeu().commande("scriptorium_essai_bataille", "Scriptorium.poste.essai_bataille()", "Lève une bande de cinq brigands venant du nord")
+  jeu().commande("scriptorium_essai_directeur", "Scriptorium.poste.essai_directeur()", "Installe le Directeur et écrit le menu de la Gestion du camp")
+  jeu().commande("scriptorium_gestion_rapport", "Scriptorium.poste.gestion('rapport')", "Le rapport du Directeur")
   jeu().commande("scriptorium_bilan", "Scriptorium.poste.bilan()", "Bilan du socle dans le journal")
 end)
