@@ -253,7 +253,8 @@ end
 -- SetSlotPos et SetSlotAngles) : 7 cm plus haut, un quart de tour autour de x pour flamber vers le haut.
 -- Vu le 14/10 : une entité ParticleEffect à part est refusée par System.SpawnEntity. À vérifier en jeu (V23).
 liaison.effet_du_feu = "WH_Particels.fires.exterior_fireplace"
-liaison.reglages_du_feu = { SpawnPeriod = 0, Scale = 1, CountScale = 1, bCountPerUnit = false, bSizePerUnit = 0,
+-- Plus grand que les réglages par défaut : à quelques mètres, la flamme par défaut n'était qu'un point (vu le 14/10).
+liaison.reglages_du_feu = { SpawnPeriod = 0, Scale = 3, CountScale = 2, bCountPerUnit = false, bSizePerUnit = 0,
                             AttachType = "none", AttachForm = "none", bPrime = true }
 
 function liaison.allumer(identifiant)
