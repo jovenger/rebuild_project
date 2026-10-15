@@ -20,6 +20,29 @@
 - **Positions.** `position_de(nom)` rend la position et le cap dans le monde d'un emplacement ; `point(x, y, cap)` fait de même pour un point quelconque du plan (postes de garde, lieux d'exercice).
 - **Enregistrement.** Après fondation, agrandissement, redressement et levée.
 
+## Meubles utilisables (proposé le 15/10/2026, à valider par JoVenGer)
+- **Ce que le joueur voit** : au repas et à la veillée, les hommes s'assoient sur les bancs du camp ; la nuit, chacun se
+  couche sur SA paillasse, dans SA tente ; le Directeur dans son lit.
+- **Comment (acquis en jeu, V62)** : un meuble visible (le modèle du jeu, comme aujourd'hui) et, posé dessus, un objet du
+  jeu (`StanceSmartObject`) de la sorte qui convient, un par place. C'est la façon du jeu : sa classe `Chair` relie son
+  meuble à un objet « so_chair » à part (`Scripts/Entities/WH/Chair/chair.lua`) ; les meubles du monde sont des modèles,
+  et les places des objets à part (V60). L'homme y va et s'y assoit ou s'y couche par le comportement « use » de l'objet.
+- **Le socle offre, il ne dispose pas** (règle de Scriptorium) : « rendre ce meuble utilisable » pose les objets du jeu
+  sur un meuble et les suit là où il est. La disposition du camp est l'affaire de l'éditeur du camp de Scriptorium ;
+  pendant le chantier, `camp.plan` reste la disposition d'essai.
+- **Règles en données** (catalogue de `reglages.lua`) : pour chaque modèle de meuble, la sorte de l'objet du jeu (siège
+  bas « Chair / Sit_1Place_Bench_Low » pour le banc de rondins ; paillasse « GroundBed », voir question 1), le nombre de
+  places et le décalage de chacune (droite, devant, hauteur, cap), réglés à l'essai.
+- **Les ordres des hommes** (fiche 04) : « repas » et « veillée » → s'asseoir sur le siège qu'il a réservé ; « sommeil »
+  et « repos » → se coucher sur sa paillasse ; « garde », « exercice », « corvée » → aller au point.
+- **Questions à JoVenGer** :
+  1. La paillasse des tentes : la sorte du jeu « Bed_1Place_Tent » (faite pour les tentes, suggestion de la conversation
+     Scriptorium) ou « Bed_1Place_Low » (paillasse basse ordinaire) ; la hauteur sera vérifiée à l'image.
+  2. Au rechargement : aujourd'hui `relancer` retire et repose tout le camp (14/10 : les objets gardés par la sauvegarde
+     revenaient blancs). Règle de Scriptorium : les tentes sont à JoVenGer, le socle ne les rebâtit jamais seul. Soit
+     redresser seulement les manquants, après une séance qui vérifie si les meubles reviennent encore blancs ; soit
+     garder le rebâtissage.
+
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.
 
