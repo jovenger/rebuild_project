@@ -502,6 +502,31 @@ local function ecrire_le_jeton(identite, chaine)
   return ok, erreur, n
 end
 
+-- Pour le poste d'essai (note de JoVenGer, partie 2, point 3) : ce que garde un jeton du jeu. Écrit dans le jeton
+-- « scriptorium_socle.essai_jeton_<longueur> » une chaîne connue de cette longueur, et rend sa relecture immédiate.
+local function texte_d_essai(longueur)
+  local motif = "0123456789abcdefghijklmnopqrstuvwxyz"
+  return string.sub(string.rep(motif, math.ceil(longueur / #motif)), 1, longueur)
+end
+
+function liaison.essayer_un_jeton(longueur)
+  local nom = "scriptorium_socle.essai_jeton_" .. longueur
+  local ok, erreur = pcall(function() GameToken.SetToken(nom, texte_d_essai(longueur)) end)
+  if not ok then
+    return false, tostring(erreur)
+  end
+  return liaison.relire_un_jeton(longueur)
+end
+
+-- Relit le jeton d'essai d'une longueur : rend la longueur relue et vrai si le texte est intact.
+function liaison.relire_un_jeton(longueur)
+  local valeur = jeton("scriptorium_socle.essai_jeton_" .. longueur)
+  if not valeur then
+    return 0, false
+  end
+  return #valeur, valeur == texte_d_essai(longueur)
+end
+
 -- Lit la chaîne du registre enregistrée dans cette partie, ou nil.
 function liaison.lire_registre()
   local identite, donnees, raison = lire_le_jeton()

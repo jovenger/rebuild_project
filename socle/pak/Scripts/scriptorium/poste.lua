@@ -42,6 +42,26 @@ function poste.essai_registre()
   return relu.appels, rapport
 end
 
+-- Jetons du jeu (note de JoVenGer, partie 2, point 3) : écrire des jetons de plus en plus longs et les relire aussitôt,
+-- puis, après « Sauvegarder et quitter » et rechargement, les relire encore : on sait ce que garde un jeton.
+poste.longueurs_de_jetons = { 16000, 32000, 60000, 65000, 66000, 100000, 200000 }
+
+function poste.essai_jetons_ecrire()
+  for _, longueur in ipairs(poste.longueurs_de_jetons) do
+    local relu, intact = jeu().essayer_un_jeton(longueur)
+    jeu().journal("Poste : jeton de " .. longueur .. " écrit, relu aussitôt " .. tostring(relu) .. ", intact = " .. tostring(intact))
+  end
+  return true
+end
+
+function poste.essai_jetons_relire()
+  for _, longueur in ipairs(poste.longueurs_de_jetons) do
+    local relu, intact = jeu().relire_un_jeton(longueur)
+    jeu().journal("Poste : jeton de " .. longueur .. " après rechargement : " .. tostring(relu) .. ", intact = " .. tostring(intact))
+  end
+  return true
+end
+
 -- Coffre : Henry dépose, le camp paie, une réserve entre et sort, une dépense trop grosse est refusée.
 function poste.essai_coffre()
   local coffre = Scriptorium.coffre
@@ -393,6 +413,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_bandeau", fonction = function() return poste.essai_bandeau() end, aide = "Essai du bandeau des messages" },
   { nom = "scriptorium_essai_registre", fonction = function() return poste.essai_registre() end, aide = "Essai du registre" },
   { nom = "scriptorium_essai_coffre", fonction = function() return poste.essai_coffre() end, aide = "Essai du coffre" },
+  { nom = "scriptorium_essai_jetons_ecrire", fonction = function() return poste.essai_jetons_ecrire() end, aide = "Écrit des jetons de 16 000 à 200 000 caractères et les relit" },
+  { nom = "scriptorium_essai_jetons_relire", fonction = function() return poste.essai_jetons_relire() end, aide = "Relit les jetons d'essai après rechargement" },
   { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
   { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },
   { nom = "scriptorium_essai_feu", fonction = function() return poste.essai_feu() end, aide = "Ce que le jeu dit du feu, d'un banc et d'une tente" },
