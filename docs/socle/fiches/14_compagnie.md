@@ -157,6 +157,26 @@
 - **Les flèches** : une cible qui ne fuit pas, l'adversaire à notre cerveau (V48, il ne réagit pas), à 15 m de l'archer ;
   flèches comptées avant et après.
 
+## Mesuré en V72 b (16/10, détail dans `essai_en_jeu.md`)
+- **Acquis, les flèches** (point 1 du pair, dernier point de V71) : elles s'usent au tir (25 → 22 → 18) et le socle les
+  complète à l'entrée en partie (18 → 25).
+- **Acquis, le délit (idée validée n° 2, la faction seule, sans règle Storm)** : Henry frappe un moine mendiant devant
+  deux de nos hommes ; la victime réagit (cri, peur, fuite), **nos hommes ne font rien** (ni course, ni attaque, ni
+  contexte de crime), aucun garde ne vient en 90 s. Réserve : la victime n'a perdu aucune santé (5 points par les règles
+  du jeu) ; un délit plus lourd, vu aussi par des gens du monde, reste à voir plus tard (avec les règles du pugilat et du
+  duel). Le retrait des rôles de crime par Storm (V72 b prévu par la question 3) n'est **pas nécessaire** à ce jour.
+- **Ouvert, de premier rang : l'écran noir.** Deux séances sur cinq de V72 : écran noir et emblème de chargement, jeu et
+  Lua actifs. (a) V72 a : juste après l'archer posé à 3 m devant Henry, dans la tente et le coffre du camp ; (b) V72 b :
+  au rechargement d'une sauvegarde où la cible (née à 12 m devant Henry) et l'archer Václav (au poste de garde, lui aussi
+  à 12 m d'Henry depuis son embauche) étaient en combat. **Sauvegarde qui le reproduit** :
+  `C:\Users\maste\Saved Games\kingdomcome2\essais_du_socle_rangees\playline3\2026-10-16_012417_exit.whs`. Hypothèse (non
+  vérifiée), comme Henry dans le banc en V67 : une entité posée dans un objet physique, ou deux entités au même point,
+  au moment où le jeu doit « être prêt » ; au rechargement, le jeu restaure la situation. Diagnostic proposé (V72 c) :
+  remettre cette sauvegarde dans `playline3`, la charger, constater le noir, relever les positions x, y de chacun
+  (`compagnie_voir`), puis déplacer la cible ailleurs et voir si l'image revient. Si oui : le socle refuse toute pose
+  à moins d'un mètre d'une autre entité et vérifie la place libre. **Le passage à l'étape suivante attend ce
+  diagnostic** (« rien de perdu au rechargement »).
+
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Les relations de la Compagnie** : (a) celles du chien et du cheval d'Henry (Recommandé : réglage du jeu déjà
    éprouvé pour les compagnons d'Henry, valable sur les deux cartes) ; (b) les mêmes, et ennemie de tous les ennemis du jeu (dont les bandits des

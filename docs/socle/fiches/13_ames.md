@@ -439,7 +439,9 @@
   dans leur paillasse). La mesure « deux hommes sur la même âme » est abandonnée : une âme par homme dans tous les cas.
 - **V71** : l'équipement de départ par le Lua (`EquipClothingPreset`, `EquipWeaponPreset`) : accepté hors `-devmode` ?
   vu à l'image ? gardé au rechargement ?
-- **V72** : la faction « la Compagnie » : sa fiche est la fiche 14 (`14_compagnie.md`).
+- **V72** : la faction « la Compagnie » : sa fiche est la fiche 14 (`14_compagnie.md`). **Le dernier point de V71 y est
+  fermé** (V72 b, 16/10) : les flèches s'usent au tir (25 → 22 → 18) et le socle les complète à l'entrée en partie
+  (18 → 25).
   À prévoir dans sa fiche (conversation Scriptorium, 15/10) : (1) dans un de ses combats, un archer contre le brigand,
   **les flèches comptées avant et après le tir** (dernier point de V71) ; (2) **les crimes d'Henry** (idée validée n° 2,
   rattachée à la faction) : les hommes de la Compagnie ne dénoncent jamais Henry et ne l'attaquent jamais pour un crime ;
