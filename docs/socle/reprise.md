@@ -138,6 +138,12 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   mod au cerveau `npc_basic` (faction amie d'Henry) : se bat-elle contre le brigand comme le garde du jeu ? (2) les
   « télécommandes » : quels messages aux boîtes de `npc_basic` deviennent des interruptions (`AI/npc/basic/switch/`),
   pour que le Directeur donne ses ordres (poste, garde, rassemblement, sommeil) à des hommes au cerveau du jeu.
+  **V50 (15/10 au soir), percée** : notre cerveau = un switch à nous (type 6, table `subbrain_switching`) + les
+  horaires du jeu (`npc_basic_scheduler`), rien d'autre (principe transmis par la conversation Scriptorium). La
+  partie se charge ; à l'ordre 8 (`Function_callInterrupt_attack`), notre homme charge le brigand du jeu : les
+  horaires jouent l'interruption. Ouvert : nos hommes frappent-ils ? (le brigand reste à 100 contre quatre). Prochain
+  essai : notre homme contre un adversaire qui ne se défend pas (sa santé baisse-t-elle ?). Puis les ordres de
+  marche en interruptions à nous (aller au point, poste, garde, rassemblement, sommeil).
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en
