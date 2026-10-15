@@ -201,6 +201,12 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   Pour voir : tour de vue sans déplacer Henry. Ensuite : des âmes à nous pour les hommes du camp (notre cerveau), puis
   leurs ordres repas, veillée, sommeil par les places du camp.
   V68, V69 : assis face au feu sur un banc du camp, couché sur une paillasse du camp (vus). Meubles utilisables acquis.
+  **Fiche 13, nos âmes** (validée 15/10) : 293 âmes à nous (`outils/ames.py` écrit `soul__scriptorium_socle.xml` ;
+  identifiant calculé `5c7a5c7a-RRRR-4PPP-8000-N…`, `liaison.ame_de` ; `tout_verifier.py` 2 quinquies accorde table et
+  liaison). Une âme par homme, tirée à l'embauche, gardée sur sa fiche, jamais changée (montée en grade comprise) ;
+  palier plein : le plus proche ; jamais de refus faute d'âme. V70 : hommes et Directeur nés sur nos âmes, assis sur les
+  bancs et couchés dans leurs paillasses sur ordre (vus). Ensuite : l'équipement par le Lua (V71), la faction (V72), puis
+  les ordres repas, veillée, sommeil des hommes par les places du camp.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

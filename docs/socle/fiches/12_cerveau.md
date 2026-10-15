@@ -109,6 +109,6 @@
 - **S'asseoir, dormir au camp** : acquis sur les objets du jeu (V62) et sur les meubles du camp (V66, V68, V69 ; fiche 03). Reste à poser, pour chaque siège et chaque
   paillasse du camp, un `StanceSmartObject` de la bonne sorte à l'endroit du modèle visible, à la même hauteur, puis à
   faire passer les ordres « repas », « veillée » et « sommeil » des hommes par ces objets.
-- **Âmes du mod** par rôle (homme d'armes, Directeur, artisan), avec leur équipement (préréglages d'inventaire du jeu par
-  niveau de combat : `Libs/Tables/item/InventoryPreset__armedFactions.xml`) : proposition dans la fiche 13.
+- **Âmes du mod** : fiche 13, validée ; acquis en jeu (V70) : les hommes du camp et le Directeur naissent sur nos âmes et
+  reçoivent nos ordres (assis sur les bancs, couchés dans leurs paillasses). Reste l'équipement par le Lua (fiche 13).
 - La version publiée n'aura ni poste ni ordres d'essai (`scriptorium_essai_*`).

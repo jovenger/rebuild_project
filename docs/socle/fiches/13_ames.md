@@ -46,6 +46,14 @@
 - **Compétences, homme par homme** : `soul:AdvanceToSkillLevel` après la venue (V53). Les tables `soul2skald_skill` et
   `soul2skald_soul_stat` sont par âme : le caractère de la fiche 11 se pose à la venue, pas dans la table.
 
+## Acquis en jeu (V70, 15/10/2026)
+- Les hommes engagés et le Directeur **naissent sur nos âmes** (identifiants relus sur chacun) ; **notre cerveau tourne**
+  pour chacun ; à l'image, **des soldats du jeu** (le jeu les nomme « Soldat »).
+- Ils **reçoivent nos ordres** : l'ordre 10 sur les bancs du camp (assis autour du feu, vu à l'image), l'ordre 11 sur
+  leurs paillasses et sur le lit du Directeur (couchés, vu à l'image).
+- Non vérifié en jeu : la renaissance d'un homme né sur une âme empruntée (vérifiée au banc) ; le rechargement avec nos
+  âmes (le marcheur, sur une âme à nous, revient au rechargement : V56).
+
 ## Le principe transmis par la conversation Scriptorium (mécanisme seulement, décision de JoVenGer du 15/10)
 - **Une âme par homme vivant, jamais partagée**, tirée d'une grande réserve rangée par palier de niveau ; chaque âme porte
   son `combat_level` et son propre personnage.
