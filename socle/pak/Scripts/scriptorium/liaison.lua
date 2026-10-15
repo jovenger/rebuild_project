@@ -1416,7 +1416,8 @@ local function habitant_le_plus_proche()
     local henry = player:GetWorldPos()
     for _, rayon in ipairs({ 40, 150 }) do
       for _, habitant in pairs(System.GetEntitiesInSphereByClass(henry, rayon, "NPC") or {}) do
-        if string.sub(habitant:GetName(), 1, 12) ~= "scriptorium_" then
+        -- Sans majuscules : le Directeur s'appelle « Scriptorium_Directeur » (V72 a, il était pris pour un habitant).
+        if string.lower(string.sub(habitant:GetName(), 1, 12)) ~= "scriptorium_" then
           local ou = habitant:GetWorldPos()
           local ecart = math.sqrt((ou.x - henry.x) ^ 2 + (ou.y - henry.y) ^ 2)
           if not distance or ecart < distance then plus_proche, distance = habitant, ecart end
@@ -2688,13 +2689,14 @@ function liaison.poser_pres_d_henry(qui, devant, a_droite, vers)
     or ("refusé : " .. tostring(erreur))
 end
 
--- La faction d'un personnage, par son nom (AI.GetFactionOf, Scripts/Entities/Triggers/AreaTrigger.lua), ou nil.
+-- Le nom de la faction d'un personnage, ou nil : soul:GetFactionID() rend le nom (vu en V72 a sur le brigand du jeu) ;
+-- AI.GetFactionOf(id) rend nil hors -devmode (V72 a).
 function liaison.faction_de(qui)
   local entite = entite_nommee(qui)
-  if not entite then
+  if not entite or type(entite.soul) ~= "table" then
     return nil
   end
-  local ok, nom = pcall(function() return AI.GetFactionOf(entite.id) end)
+  local ok, nom = pcall(function() return entite.soul:GetFactionID() end)
   return ok and nom or nil
 end
 

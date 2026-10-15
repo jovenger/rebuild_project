@@ -136,6 +136,27 @@
    V72 b, la règle Storm à nous (question 3). Si (b), (c) ou (d) : la règle Storm ne suffira sans doute pas (ce sont
    des comportements) ; nouveau diagnostic, et question à JoVenGer.
 
+## Mesuré en V72 a (16/10, trois séances ; détail dans `essai_en_jeu.md`)
+- **Acquis** : la faction est chargée par le jeu (aucune ligne « patched » au journal pour l'arbre des factions, ni pour
+  celui du mod Scriptorium, mais `soul:GetFactionID` rend `scriptorium_socle_compagnie` pour les hommes et le Directeur),
+  gardée au rechargement ; la partie se charge normalement ; `crime_skipInformationBroadcast` sur tous ; aucun n'est
+  civil, sécurité ni autorité ; munitions gardées au rechargement (20 carreaux, 25 flèches).
+- **Vu sans conclure** : deux brigands légers posés près du camp s'enfuient aussitôt ; nos hommes, sans ordre, ne
+  bougent pas et ne tirent pas.
+- **Non mesuré** : les flèches après un tir (le brigand fuit hors de portée ; l'archer sort son arc sans tirer).
+- **Non concluant** : le délit. Le figurant frappé (`kkut_extras_man_82`) n'a perdu aucune santé, ne s'est pas retourné et
+  regagnait déjà sa route ; nos témoins n'ont rien fait, mais sans victime qui réagisse, cela ne prouve rien.
+- **Appris** : ne poser **personne** (pas seulement Henry) dans un objet du camp : un archer posé dans la tente et le
+  coffre a laissé l'écran noir (cause probable, comme V67). Le Directeur porte une majuscule (« Scriptorium_Directeur ») :
+  tout filtre sur nos noms se fait sans majuscules.
+
+## Suite proposée (V72 b, à décider avec JoVenGer)
+- **Le délit, autrement** (deux hypothèses nouvelles, pas une troisième fois le même procédé) : une victime qui n'est pas
+  un figurant (écarter `additive` et `extras` dans le choix de l'habitant), posée et frappée dans le même appel (elle n'a
+  pas le temps de repartir), et la preuve que le coup a porté : sa santé baisse. Puis les mêmes relevés sur nos témoins.
+- **Les flèches** : une cible qui ne fuit pas, l'adversaire à notre cerveau (V48, il ne réagit pas), à 15 m de l'archer ;
+  flèches comptées avant et après.
+
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Les relations de la Compagnie** : (a) celles du chien et du cheval d'Henry (Recommandé : réglage du jeu déjà
    éprouvé pour les compagnons d'Henry, valable sur les deux cartes) ; (b) les mêmes, et ennemie de tous les ennemis du jeu (dont les bandits des

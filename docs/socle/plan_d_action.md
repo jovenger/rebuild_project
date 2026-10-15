@@ -117,3 +117,19 @@ Pas maintenant : on finit d'abord s'asseoir et dormir, puis la vie du camp. Chac
 7. **Le banc de l'économie** (étapes 4 et 5) : simuler au banc un mois du camp en quelques secondes (missions, solde,
    vivres, embauches) pour prouver que le Directeur fait des bénéfices et que le coffre ne se vide pas en boucle. Règles
    de Scriptorium : le camp paie au coffre, dépenses justes.
+
+## Deux règles de JoVenGer du 16/10/2026 (transmises par la conversation Scriptorium)
+1. **Le socle fait la mécanique, Scriptorium décide.** La vie du camp, les missions, l'embauche et les métiers existent
+   déjà dans Scriptorium, avec leurs règles (repas, garde, paye, prix, rapports, objectifs) : ne pas les refaire. Le
+   socle fournit ce que le mod d'Alex faisait en dessous : faire marcher, asseoir, coucher, garder, suivre et combattre
+   les hommes, poser les camps de bandits, envoyer une troupe dehors et la faire revenir. Qui, quand et combien restent à
+   Scriptorium, par le guichet. Avant chaque fiche de ces étapes : relire dans `CARTE_DES_REGLES.md` les dossiers de
+   Scriptorium qui en parlent, et n'écrire que la mécanique qui leur manquera sans Alex. La quête, les voix et les icônes
+   n'existent pas dans Scriptorium : là, tout est à faire.
+   **Nettement meilleur qu'Alex**, pas seulement équivalent : hommes vraiment vivants, rien de perdu au rechargement,
+   aucun homme figé, tout vérifié en jeu (« il faut vraiment que ça soit beaucoup mieux »).
+2. **Tous ceux qui sortent du camp partent à cheval et en reviennent à cheval** (validé par JoVenGer le 16/10) : le
+   coursier, les gens de métier (ville, bois, chasse) et les soldats en mission ou en sortie. Aux étapes des missions et
+   des métiers, pas maintenant. Chez Scriptorium, le coursier restait figé dès qu'on essayait de le faire monter. D'abord
+   chercher comment les arbres du jeu font monter, chevaucher et descendre ses cavaliers (messagers, soldats montés ;
+   « Réutiliser avant de créer »), puis un seul homme, prouvé à l'image.
