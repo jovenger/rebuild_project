@@ -153,6 +153,22 @@ function poste.essai_camp_agrandir()
 end
 
 -- Camp : lève le camp.
+-- Fin d'un essai de rechargement (V57) : renvoie les hommes, congédie le Directeur et lève le camp, pour ne rien
+-- laisser dans la sauvegarde de la partie d'essai.
+function poste.essai_tout_lever()
+  local renvoyes = 0
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    if Scriptorium.hommes.renvoyer(id) then
+      renvoyes = renvoyes + 1
+    end
+  end
+  local congedie = Scriptorium.directeur.est_installe() and Scriptorium.directeur.congedier()
+  local leve = Scriptorium.camp.est_fonde() and Scriptorium.camp.lever()
+  jeu().journal("Poste : tout levé, " .. renvoyes .. " homme(s) renvoyé(s), Directeur congédié = " .. tostring(congedie)
+                .. ", camp levé = " .. tostring(leve))
+  return true
+end
+
 function poste.essai_camp_lever()
   local ok, raison = Scriptorium.camp.lever()
   jeu().journal("Poste : camp levé = " .. tostring(ok) .. (raison and (" (" .. raison .. ")") or ""))
@@ -706,6 +722,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_aller_ouest", fonction = function() return poste.essai_aller(270) end, aide = "Pose Henry quarante mètres à l'ouest" },
   { nom = "scriptorium_essai_terrain_d_essai", fonction = function() return poste.essai_terrain_d_essai() end, aide = "Lève le camp et pose Henry sur le terrain d'essai" },
   { nom = "scriptorium_essai_camp_lever", fonction = function() return poste.essai_camp_lever() end, aide = "Lève le camp" },
+  { nom = "scriptorium_essai_tout_lever", fonction = function() return poste.essai_tout_lever() end, aide = "Renvoie les hommes, congédie le Directeur et lève le camp" },
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
