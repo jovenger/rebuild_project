@@ -421,6 +421,15 @@ local function faire_venir(d, f)
   end
   f.personnage = personnage
   f.derniere_activite = nil
+  -- Fiche 13, V71 b : un personnage refait naît avec une tenue de naissance et sans les pièces de l'ancien, parties avec
+  -- lui : il est rééquipé (tenue de naissance retirée de nouveau) ; les pièces données ensuite sont perdues.
+  local e = f.equipement
+  if e and e.etat ~= "impossible" and (e.naissance_retiree or e.etat == "pret" or e.etat == "a_rhabiller") then
+    if #(e.en_plus or {}) > 0 then
+      jeu().journal("Hommes : « " .. f.nom .. " » refait : " .. #e.en_plus .. " pièce(s) donnée(s) perdue(s) avec l'ancien")
+    end
+    e.naissance_retiree, e.etat, e.en_plus, e.otees, e.anciennes = false, "a_equiper", {}, {}, nil
+  end
   return true
 end
 
@@ -681,7 +690,7 @@ local function rhabiller(d, f)
     end
   end
   jeu().journal("Hommes : « " .. f.nom .. " » a remis ses affaires (" .. tostring(portes) .. " pièce(s)"
-    .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s)") or "") .. ")")
+    .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s) ou refusée(s)") or "") .. ")")
   appeler("apres_le_rhabillage", f.id)
 end
 
