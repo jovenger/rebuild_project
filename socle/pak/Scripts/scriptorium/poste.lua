@@ -396,6 +396,11 @@ function poste.essai_marcheur_competences()
   return true
 end
 
+function poste.essai_brigand_leger()
+  jeu().journal("Poste : brigand, " .. jeu().poser_le_brigand_du_jeu(jeu().ame_du_brigand_leger))
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -662,6 +667,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_armer", fonction = function() return poste.essai_marcheur_armer() end, aide = "Le marcheur tire son arme ; ses compétences de combat" },
   { nom = "scriptorium_essai_prairie", fonction = function() return poste.essai_prairie() end, aide = "Henry posé sur la prairie des essais de combat" },
   { nom = "scriptorium_essai_marcheur_competences", fonction = function() return poste.essai_marcheur_competences() end, aide = "Les compétences de combat du marcheur posées à 20, puis relues" },
+  { nom = "scriptorium_essai_brigand_leger", fonction = function() return poste.essai_brigand_leger() end, aide = "Un brigand du jeu plus léger (kkop_bandit_7), éveillé, à 8 m devant Henry" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },

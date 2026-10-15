@@ -1297,11 +1297,15 @@ end
 -- Le brigand du jeu (étape 1, conseil du 15/10) : une âme du jeu avec son cerveau d'origine (npc_basic), faction ennemie
 -- publique de Kuttenberg, née à 8 m devant Henry et éveillée, sans rien de notre cerveau ni de nos arbres. Se bat-elle ?
 liaison.ame_du_brigand_du_jeu = "08994591-c246-401d-bcd9-ca5d0fe1ddd7"   -- kopa_man_16, camp d'Opatovice
+-- Un brigand plus léger (V54) : kopa_man_16 porte une armure complète et n'a jamais été blessé (V43 à V53) ; celui-ci a
+-- le plus bas niveau de combat des brigands de Kuttenberg au cerveau npc_basic (combat_level 0.1 dans soul__kkop.xml).
+liaison.ame_du_brigand_leger = "74aea673-42aa-4e0d-b861-cc5d56a44574"   -- kkop_bandit_7, camp de Kopec Vysoká
 liaison.brigand_du_jeu = nil
 
-function liaison.poser_le_brigand_du_jeu()
+-- « ame » : l'âme du brigand ; celle de kopa_man_16 par défaut.
+function liaison.poser_le_brigand_du_jeu(ame)
   local nom, erreur = faire_naitre("NPC", "scriptorium_essai_brigand_du_jeu", pres_d_henry(8, 0), liaison.cap_du_joueur() + 180,
-                                   { guidSharedSoulId = liaison.ame_du_brigand_du_jeu, bWH_RequiresHome = false })
+                                   { guidSharedSoulId = ame or liaison.ame_du_brigand_du_jeu, bWH_RequiresHome = false })
   if not nom then
     return "brigand du jeu refusé : " .. tostring(erreur)
   end
