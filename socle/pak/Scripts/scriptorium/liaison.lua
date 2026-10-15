@@ -1378,6 +1378,10 @@ function liaison.henry_frappe_le_brigand(points)
   return frapper_par_henry(entite_nommee(liaison.brigand_du_jeu), "brigand du jeu", points)
 end
 
+function liaison.henry_frappe_le_marcheur(points)
+  return frapper_par_henry(entite_nommee(liaison.marcheur), "marcheur", points)
+end
+
 -- Le contrôle : le même coup sur l'habitant de la carte le plus proche. S'il ne réagit pas non plus, le coup ne prouve
 -- rien sur le brigand.
 liaison.habitant_frappe = nil
