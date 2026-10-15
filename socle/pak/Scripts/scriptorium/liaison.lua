@@ -1430,6 +1430,21 @@ function liaison.annoncer_la_naissance()
   return table.concat(lignes, " ; ")
 end
 
+-- L'ordre 8 (V45) : le marcheur reçoit le brigand du jeu pour cible (variable wuid) et l'ordre 8 ; son arbre appelle la
+-- fonction d'arbre du jeu callInterrupt_attack (AI/npc/basic/switch/callInterrupt_attack.xml), qui lui pose
+-- l'interruption « attaque » du jeu contre cette cible, sans aucun coup. Rend une ligne.
+function liaison.ordonner_l_attaque()
+  local qui, contre = entite_nommee(liaison.marcheur), entite_nommee(liaison.brigand_du_jeu)
+  local this_lu, this = pcall(function() return qui.this end)
+  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(contre) end)
+  if not qui or not contre or not this_lu or type(this) ~= "table" or not wuid_lu then
+    return "attaque : marcheur ou brigand du jeu introuvable, ou sans this"
+  end
+  local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
+  local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 8) end)
+  return "attaque : cible " .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre 8 " .. tostring(ordre_ok)
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)

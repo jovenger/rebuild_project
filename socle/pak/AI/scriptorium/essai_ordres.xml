@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <BehaviorTrees>
   <BehaviorTree name="onUpdate" is_function="0">
-    <Variables />
+    <Variables>
+      <Variable form="single" isPersistent="0" name="renseignement" type="information" values="" />
+    </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
         <Sequence>
           <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
+          <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 8" saveVersion="2">
+            <Then canSkip="1">
+              <Sequence>
+                <SuppressFailure>
+                  <Function_callInterrupt_attack target="$scriptorium_essai_cible" questBehavior="true" relationOverride="true" ignorePriority="true" priority="160" initiator="$enum:switch_interruptInitiator.switch" stimulusKind="$enum:crime_stimulusKind.enemy" previousReaction="$enum:crime_reactionKind.unknown" criminalFreshness="$enum:crime_criminalFreshness.unknown" defenceMode="false" escalatedFromFailedSurrender="false" freshlyAttributedCrime="false" information="$renseignement" assaultData="" nodeLabel="73110801" />
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1 &#10;$scriptorium_essai_ordre = 0" />
+                <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+              </Sequence>
+            </Then>
+            <Else canSkip="1">
           <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 4" saveVersion="2">
             <Then canSkip="1">
               <StanceElement smartObject="" stance="sitting" allowAny="true" enabled="true">
@@ -93,6 +106,8 @@
                   </IfElseCondition>
                 </Else>
               </IfElseCondition>
+            </Else>
+          </IfElseCondition>
             </Else>
           </IfElseCondition>
         </Sequence>

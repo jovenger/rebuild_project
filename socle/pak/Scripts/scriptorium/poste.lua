@@ -343,6 +343,11 @@ function poste.essai_henry_effleure()
   return true
 end
 
+function poste.essai_marcheur_attaque()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_l_attaque())
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -599,6 +604,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_frappe", fonction = function() return poste.essai_marcheur_frappe() end, aide = "Un vrai coup du marcheur au brigand du jeu (règles du jeu)" },
   { nom = "scriptorium_essai_marcheur_effleure", fonction = function() return poste.essai_marcheur_effleure() end, aide = "Un coup à 0 point du marcheur au brigand du jeu" },
   { nom = "scriptorium_essai_henry_effleure", fonction = function() return poste.essai_henry_effleure() end, aide = "Un coup à 0 point d'Henry au brigand du jeu" },
+  { nom = "scriptorium_essai_marcheur_attaque", fonction = function() return poste.essai_marcheur_attaque() end, aide = "Le marcheur demande au jeu d'attaquer le brigand du jeu (ordre 8)" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },

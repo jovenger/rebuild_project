@@ -140,7 +140,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   prévenir la conversation Scriptorium au début et à la fin de chaque essai ; JoVenGer laisse Claude choisir les essais.
 - Acquis revus sans `-devmode` le 15/10 : mêmes résultats (`essai_en_jeu.md`, « Avec ou sans `-devmode` »).
 - Contrôle d'absence : les lignes XML identiques au jeu de base qui portent un réglage s'écrivent à notre façon (choix de
-  JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 27.
+  JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 29.
 
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
