@@ -585,7 +585,6 @@ essai("équipement : un homme d'armes reçoit à l'embauche sa famille, une tenu
   egal(hommes.fiche(id).equipement.etat, "a_completer", "second passage au battement suivant")
   hommes.battre()
   egal(hommes.fiche(id).equipement.etat, "pret", "prêt")
-  egal(FauxJeu.dernier_porter.oter_d_abord, false, "second passage sans rien ôter")
   egal(#FauxJeu.portes[personnage_de(id)], 10, "toutes ses pièces portées une seconde fois")
 end)
 
@@ -651,7 +650,7 @@ essai("équipement : à chaque entrée en partie, chacun remet ses propres pièc
   egal(hommes.fiche(id).equipement.etat, "a_completer", "rhabillé, second passage à venir")
   egal(#FauxJeu.portes[p], #hommes.ce_qu_il_porte(id), "toutes ses pièces remises")
   egal(FauxJeu.portes[p][1], hommes.ce_qu_il_porte(id)[1], "dans l'ordre")
-  egal(FauxJeu.dernier_porter.oter_d_abord, true, "toutes ôtées d'abord, puis remises (même allure)")
+  egal(#FauxJeu.dernier_porter.objets, #hommes.ce_qu_il_porte(id), "rien n'est ôté : toutes ses pièces remises par-dessus")
   hommes.battre()
   egal(hommes.fiche(id).equipement.etat, "pret", "prêt après le second passage")
   egal(#FauxJeu.equipements, 1, "rien de recréé")

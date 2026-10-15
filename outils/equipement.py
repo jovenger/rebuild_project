@@ -55,6 +55,10 @@ PLACES_SANS_TYPES = {"Gauntlets": "gloves", "Gloves": "gloves", "HandWrap": "glo
                      "BootsKnee": "boot", "Coat": "body_coat", "Waffenrock": "body_coat", "CollarChain": "collar",
                      "CollarPadded": "collar", "BrigandineArm": "sleeves", "Hood": "head_hood"}
 COUCHE_INCONNUE = 9
+# Réponse de JoVenGer du 15/10/2026 (après V71 d) : l'homme d'hast n'a que son arme d'hast, comme chez Alex (avec une
+# arme courte, il se bat à l'épée et jamais à l'arme d'hast). Dans un préréglage d'hast, on ne garde que les objets de la
+# classe d'arme d'hast (item.xml, MeleeWeapon Class="7" : polearmGlaive, polearmVoulge, polearmBardiche…).
+CLASSE_D_HAST = "7"
 
 
 def lire_les_tables(jeu):
@@ -141,6 +145,18 @@ def principal(arguments):
     clothing_xml, weapon_xml, item_xml, slot_xml = lire_les_tables(jeu)
     par_id, par_nom = objets_du_jeu(item_xml)
     pieces = pieces_des_prereglages(clothing_xml, weapon_xml)
+    classe_d_arme = {}
+    for attributs in re.findall(r"<MeleeWeapon ([^>]*?)/?>", item_xml):
+        a = dict(re.findall(r'(\w+)="([^"]*)"', attributs))
+        if "Id" in a:
+            classe_d_arme[a["Id"].lower()] = a.get("Class", "")
+    for nom in pieces:
+        if nom.startswith("polearm_"):
+            seules = [g for g in pieces[nom] if classe_d_arme.get(g) == CLASSE_D_HAST]
+            if len(seules) != 1:
+                print("Erreur : %s : %d arme(s) d'hast au lieu d'une" % (nom, len(seules)))
+                return 1
+            pieces[nom] = seules
     couches, _ = couches_des_objets(item_xml, slot_xml)
     sans_couche = set()
     for nom in pieces:

@@ -687,7 +687,7 @@ end
 -- préréglages sont recréés au battement suivant. Ses munitions sont complétées jusqu'au nombre de son préréglage.
 local function rhabiller(d, f)
   local e = f.equipement
-  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f), true)
+  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
   e.etat = "a_completer"
   -- Le dernier état connu de chaque pièce donnée, pour la recréer telle quelle si le personnage est refait (V71 c).
   for i, piece in ipairs(e.en_plus or {}) do
@@ -723,7 +723,7 @@ end
 -- Second passage, au battement suivant (V71 c : un seul passage juste après la création ou la remise ne fait pas tout
 -- porter ; un second complète la tenue, un troisième ne change rien). Puis l'accroche « après le rhabillage ».
 local function completer(d, f)
-  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f), false)
+  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
   f.equipement.etat = "pret"
   jeu().journal("Hommes : « " .. f.nom .. " », second passage (" .. tostring(portes) .. " pièce(s)"
     .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s) ou refusée(s)") or "") .. ")")

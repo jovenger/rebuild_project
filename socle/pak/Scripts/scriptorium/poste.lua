@@ -604,11 +604,16 @@ function poste.essai_equipement_voir()
     local f = hommes.fiche(id)
     local e = f.equipement or {}
     local porte = hommes.ce_qu_il_porte(id)
-    local presents = 0
+    local presents, manquants = 0, {}
     for _, objet in ipairs(porte) do
       if f.personnage and jeu().compter_objet(f.personnage, objet) > 0 then
         presents = presents + 1
+      else
+        table.insert(manquants, objet)
       end
+    end
+    if #manquants > 0 then
+      jeu().journal("Poste : " .. f.nom .. ", pièces manquantes : " .. table.concat(manquants, ", "))
     end
     local munition = e.armes and jeu().munition_de(e.armes)
     jeu().journal(string.format("Poste : %s (%s, palier %s, famille %s) : %s, %s, %s ; %d pièce(s) à porter, %d dans son sac%s",
@@ -668,7 +673,7 @@ function poste.essai_equipement_reporter_sans_oter()
   if not f then
     return false
   end
-  local portes, introuvables = jeu().faire_porter(f.personnage, hommes.ce_qu_il_porte(id), false)
+  local portes, introuvables = jeu().faire_porter(f.personnage, hommes.ce_qu_il_porte(id))
   jeu().journal("Poste : " .. f.nom .. ", refait porter sans ôter : " .. tostring(portes) .. " ; " .. #introuvables .. " refusée(s)")
   return true
 end

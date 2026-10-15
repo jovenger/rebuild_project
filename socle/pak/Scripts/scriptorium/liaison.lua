@@ -815,15 +815,15 @@ liaison.pieces_des_prereglages = {
   ["mace_shield_4_02"] = { "839992c8-657b-4d5e-97c9-96ff94430d72", "9baedc28-f193-41a6-8035-2c6e3343219b" },
   ["mace_shield_5_01"] = { "65a211bd-2c7e-40a8-984f-66c8730444e4", "2fd517a8-e990-45a1-8fbc-e4b3636cf30a" },
   ["mace_shield_6_01"] = { "f2e86f22-8932-4751-8f62-fb1b8b846ddf", "e4e1b22a-428a-4e20-aa92-ce216b324c0a" },
-  ["polearm_2_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "e5f25908-a843-456a-b095-c31db34aa577" },
-  ["polearm_2_02"] = { "81494400-b654-4aa7-8f31-c95c689db5f6", "f4324daf-fe09-495e-b954-16f23226cf58" },
-  ["polearm_3_01"] = { "bd74ce18-2623-48ba-a1a1-c9b09bbb2827", "03b6321d-4151-46cd-bdec-451ea7bfaabc" },
-  ["polearm_3_02"] = { "0f41ad99-3307-47c8-a110-a7d9b4af75e8", "c164f346-0463-4116-b790-094b11274e5e" },
-  ["polearm_3_03"] = { "03b6321d-4151-46cd-bdec-451ea7bfaabc", "505b8feb-9447-462f-ab3d-68557f89d9f3" },
-  ["polearm_4_01"] = { "7cac0c1a-ad34-4fd7-a1e6-4d45edcf307f", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
-  ["polearm_4_02"] = { "4bda3dd1-871c-452a-87fe-b783946435c2", "c58fa1d7-dd10-45e1-b6da-b65f1d0b3f7a" },
-  ["polearm_5_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "51bb7893-2054-40d3-a355-d278f416c482" },
-  ["polearm_6_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "51bb7893-2054-40d3-a355-d278f416c482" },
+  ["polearm_2_01"] = { "e5f25908-a843-456a-b095-c31db34aa577" },
+  ["polearm_2_02"] = { "f4324daf-fe09-495e-b954-16f23226cf58" },
+  ["polearm_3_01"] = { "03b6321d-4151-46cd-bdec-451ea7bfaabc" },
+  ["polearm_3_02"] = { "0f41ad99-3307-47c8-a110-a7d9b4af75e8" },
+  ["polearm_3_03"] = { "03b6321d-4151-46cd-bdec-451ea7bfaabc" },
+  ["polearm_4_01"] = { "7cac0c1a-ad34-4fd7-a1e6-4d45edcf307f" },
+  ["polearm_4_02"] = { "4bda3dd1-871c-452a-87fe-b783946435c2" },
+  ["polearm_5_01"] = { "51bb7893-2054-40d3-a355-d278f416c482" },
+  ["polearm_6_01"] = { "51bb7893-2054-40d3-a355-d278f416c482" },
   ["scriptorium_arbaletrier_1_a"] = { "7673efc2-0566-4dde-9e18-f96c7790ce2e", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
   ["scriptorium_arbaletrier_1_b"] = { "cb6ee20b-6eee-434c-af4c-8031502e2bec", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
   ["scriptorium_arbaletrier_2_a"] = { "b77f912a-042b-47ca-8f42-5fddbcad3763", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
@@ -996,22 +996,14 @@ local function trouver(entite, personnage, objet)
   return trouve and id or nil
 end
 
--- Fait porter chaque objet, dans l'ordre (une pièce de cette classe trouvée dans le sac). « oter_d_abord » : toutes ses
--- pièces ôtées d'abord (V71 b : refaire porter une pièce déjà portée semble l'ôter ; ôtées puis remises, l'allure est
--- toujours la même). Rend le nombre de pièces portées et la liste des objets introuvables ou refusés.
-function liaison.faire_porter(personnage, objets, oter_d_abord)
+-- Fait porter chaque objet, dans l'ordre (une pièce de cette classe trouvée dans le sac). Rien n'est ôté d'abord : V71 c,
+-- refaire porter une pièce déjà portée ne l'ôte pas ; V71 d, ôter d'abord faisait perdre la cotte de dessus. Rend le
+-- nombre de pièces portées et la liste des objets introuvables ou refusés.
+function liaison.faire_porter(personnage, objets)
   local entite = porteur(personnage)
   local introuvables = {}
   if not entite then
     return 0, objets
-  end
-  if oter_d_abord then
-    for _, objet in ipairs(objets) do
-      local id = trouver(entite, personnage, objet)
-      if id then
-        pcall(function() entite.actor:UnequipInventoryItem(id) end)
-      end
-    end
   end
   local portes = 0
   for _, objet in ipairs(objets) do
@@ -1093,7 +1085,7 @@ function liaison.equiper_homme(personnage, ordre)
       crees = crees + 1
     end
   end
-  local portes, introuvables = liaison.faire_porter(personnage, ordre.porter or {}, true)
+  local portes, introuvables = liaison.faire_porter(personnage, ordre.porter or {})
   return string.format("%d pièce(s) de naissance retirée(s), %d créée(s), %d portée(s), %d introuvable(s)", retires, crees,
     portes, #introuvables)
 end

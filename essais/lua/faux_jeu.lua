@@ -335,10 +335,9 @@ function faux.etat_objet(personnage, objet)
   end
   return nil
 end
-function faux.faire_porter(personnage, objets, oter_d_abord)
+function faux.faire_porter(personnage, objets)
   local portes, introuvables = 0, {}
-  faux.dernier_porter = { personnage = personnage, objets = objets, oter_d_abord = oter_d_abord }
-  if oter_d_abord then faux.portes[personnage] = {} end
+  faux.dernier_porter = { personnage = personnage, objets = objets }
   faux.portes[personnage] = faux.portes[personnage] or {}
   for _, objet in ipairs(objets) do
     if faux.compter_objet(personnage, objet) > 0 then

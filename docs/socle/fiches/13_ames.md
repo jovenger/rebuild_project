@@ -385,6 +385,15 @@
   est perdue** ; en combat, **l'homme d'hast prend son épée**, pas l'arme d'hast ; pavois pas vu (le brigand du jeu a
   mis nos hommes à terre). **En attente de JoVenGer** : un quatrième essai sur l'allure (deux passages sans rien ôter,
   puisqu'il n'y a pas de bascule) et la façon de voir pavois et arme d'hast.
+- **Réponses de JoVenGer après V71 d (15/10/2026)** : **quatrième essai accordé** (au chargement, deux passages sans rien
+  ôter) ; **l'arme courte de l'homme d'hast est enlevée, comme chez Alex** (il n'a que l'arme d'hast et la prend au
+  combat ; au repos elle ne se voit pas). La piste du pair (choix de l'arme par la compétence, `AdvanceToSkillLevel`) est
+  notée, sans objet après cette réponse. La pièce manquante après le combat (11 sur 12) est à identifier (V71 e) avant
+  une question sur les pièces tombées en combat.
+- **V71 e (fait au banc, à essayer)** : remise sans rien ôter, deux passages ; préréglages d'hast réduits à l'arme d'hast
+  (`item.xml`, `MeleeWeapon Class="7"` ; ex. `polearm_4_02` : la bardiche seule) ; le relevé du poste nomme les pièces
+  manquantes. Essai : quatre hommes vus de près avant et après un rechargement ; puis l'homme d'hast contre le brigand du
+  jeu ; pièces manquantes relevées après le combat.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
