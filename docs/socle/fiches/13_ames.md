@@ -250,6 +250,25 @@
   porter nos pièces marche** (13 sur 13, vu de près) ; une pièce de naissance dont la place n'est pas prise par une des
   nôtres reste portée (le tabard rouge). Pour un aspect net, il faudrait aussi ôter ou retirer la tenue de naissance à
   chaque entrée en partie (non essayé). **Ceci touche la règle validée « rien au rechargement »** : question à JoVenGer.
+- **Question à JoVenGer (V71 b, après V71 a2 à a4)** : la règle du 5/10 disait « pas de rhabillage au chargement, parce
+  que le jeu garde l'inventaire ». Mesuré : le jeu garde bien les **pièces** (créées une à une, avec leur usure et donc
+  les réparations), mais pas le fait de les **porter** : à chaque chargement il rhabille l'homme de sa tenue de
+  naissance. Refaire porter les mêmes pièces ne perd ni usure ni réparation : l'esprit de la règle tient, pas sa lettre.
+  Le but de la règle (même allure, usure et réparations gardées, rien de tiré au hasard) est tenu si **chacun remet ses
+  propres affaires** à chaque chargement (présentation du pair, 15/10).
+  a) **à chaque entrée en partie, chaque homme remet ses propres pièces, et la tenue de naissance revenue est retirée**
+     (aspect net ; elle revient à chaque chargement sans s'empiler, le joueur n'y perd rien). Nos pièces reconnues par
+     leurs identifiants notés au registre à leur création, jamais par leur état (l'usure change en jeu) ; une pièce à
+     nous n'est jamais retirée. Un homme par battement, après l'entrée en partie, jamais en bataille. À mesurer d'abord
+     en V71 b : l'identifiant d'un objet reste-t-il le même après un rechargement, et le retrait — recommandé ;
+  b) refaire porter seulement (les pièces de naissance aux places non prises restent portées, le tabard par exemple) ;
+  c) chercher encore une ou deux séances à empêcher le jeu de rhabiller (préréglage d'inventaire de l'âme, directives
+     Storm) : incertain ;
+  d) rien au chargement : les hommes reviennent en tenue de naissance, leur équipement dans le sac.
+- **Ce qui change sans question** (la règle reste celle validée) : la façon d'équiper (pièce par pièce au lieu des
+  préréglages de l'outil de combat ; le contenu des préréglages lu dans les tables du jeu par un outil du dépôt) ; le
+  registre ne garde que les noms des préréglages (et la famille) de chaque homme, le jeu gardant l'usure ; le filet des
+  archers est compris dans la repose au chargement si a ou b.
 - **Le chemin d'équipement qui en découle** (pair, 15/10) : lire dans les tables du jeu la liste des objets de chaque
   préréglage (`clothing_preset.xml`, `weapon_preset.xml`) par un outil du dépôt, et créer chaque pièce une à une ; les
   choix de JoVenGer (préréglages par grade et par famille) restent valables tels quels.
@@ -282,7 +301,13 @@
 ## Sources
 - Paks du jeu, en lecture seule : `Tables.pak` (`Libs/Tables/rpg/soul*.xml`, `SoulPool.xml`, `social_class.xml`,
   `soul_crime_role.xml`, `Libs/Tables/skald/skald_character.xml`, `Libs/Tables/item/InventoryPreset*.xml`,
-  `clothing_preset*.xml`, `weapon_preset*.xml`), `Scripts.pak` (`Scripts/Debug/CombatDebug.lua`).
+  `clothing_preset*.xml`, `weapon_preset*.xml`), `Scripts.pak` (`Scripts/Debug/CombatDebug.lua`,
+  `Scripts/Utils/ItemUtils.lua`, `Scripts/Entities/actor/player.lua`, `BasicActor.lua`, `BasicAI.lua`, `NPC.lua`),
+  `IPL_GameData.pak` (`Libs/Storm/equipment/world/default.xml`, `classes.xml`, `factions.xml`, `Libs/Storm/common/base.xml`).
+- Appels vérifiés en jeu hors `-devmode` (V71 a à a4) : `inventory:CreateItem(objet, état, nombre)`, `inventory:FindItem`,
+  `inventory:GetInventoryTable`, `inventory:GetCountOfClass`, `ItemManager.GetItem(id)` (`health`, `amount`, `class`),
+  `actor:EquipInventoryItem(id)`, `actor:EquipClothingPreset`, `actor:EquipWeaponPreset` (acceptés, mais non gardés).
+  **`ItemManager.CreateItem` n'existe pas hors des outils** (`nil`), bien que des scripts du jeu l'emploient.
 - Programme Scriptorium, en lecture seule : `docs/socle/CARTE_DES_REGLES.md` (rôles seulement).
 - Recherches « Réutiliser avant de créer » (deux) : rien de propre à KCD2 sur les âmes d'un mod. Le forum de Warhorse
   (2019, « How to change NPC Armors ») décrit l'équipement de KCD1 par `initial_clothing_preset_ID` sur l'âme : cet
