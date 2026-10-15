@@ -110,5 +110,5 @@
   paillasse du camp, un `StanceSmartObject` de la bonne sorte à l'endroit du modèle visible, à la même hauteur, puis à
   faire passer les ordres « repas », « veillée » et « sommeil » des hommes par ces objets.
 - **Âmes du mod** par rôle (homme d'armes, Directeur, artisan), avec leur équipement (préréglages d'inventaire du jeu par
-  niveau de combat : `Libs/Tables/item/InventoryPreset__armedFactions.xml`).
+  niveau de combat : `Libs/Tables/item/InventoryPreset__armedFactions.xml`) : proposition dans la fiche 13.
 - La version publiée n'aura ni poste ni ordres d'essai (`scriptorium_essai_*`).
