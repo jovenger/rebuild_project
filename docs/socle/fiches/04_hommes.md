@@ -6,7 +6,7 @@
 
 ## Ce que le joueur voit
 - Des hommes engagés par contrat, qui vivent au camp : le jour ils mangent, s'exercent et font les corvées ; le soir ils veillent au feu ; la nuit ils dorment sous les tentes ou montent la garde, par tours de veille.
-- Chacun a un nom d'époque (Jan Kladivo, Ondřej le Rouge…), un rôle, un rang.
+- Chacun a un nom d'époque (Jan Kladivo, Mikuláš le Rouge, Ondřej de Sázava…), un rôle, un rang. Prénom et surnom changent tous deux d'un homme à l'autre, et toutes les combinaisons passent avant qu'un nom revienne (« aucun pareil », souhait de JoVenGer transmis le 15/10/2026 ; `hommes.nom_d_epoque`).
 - Messages : « Un homme a rejoint la Compagnie : Jan Kladivo », « La solde a été payée : 84 groschen », « La solde n'a pas pu être payée : le coffre manque de groschen. », « Les hommes ont eu faim : les vivres manquent. », « A déserté : … », « A été fait dizainier : … ».
 
 ## Règles

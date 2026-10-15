@@ -71,6 +71,24 @@ essai("hommes : les noms ne se répètent pas", function()
   end
 end)
 
+essai("hommes : prénom et surnom changent d'un homme à l'autre ; toutes les combinaisons avant qu'un nom revienne", function()
+  local np, ns = #hommes.prenoms, #hommes.surnoms
+  local vus, surnoms = {}, {}
+  for i = 1, np * ns do
+    local nom = hommes.nom_d_epoque(i)
+    verifier(not vus[nom], "nom nouveau : " .. nom)
+    vus[nom] = true
+  end
+  for i = 1, ns do
+    local surnom = string.sub(hommes.nom_d_epoque(i), string.find(hommes.nom_d_epoque(i), " ", 1, true) + 1)
+    verifier(not surnoms[surnom], "surnom nouveau parmi les premiers : " .. surnom)
+    surnoms[surnom] = true
+  end
+  egal(hommes.nom_d_epoque(1), "Jan Kladivo", "le premier")
+  egal(hommes.nom_d_epoque(2), "Mikuláš le Rouge", "le deuxième : autre prénom, autre surnom")
+  egal(hommes.nom_d_epoque(np * ns + 1), hommes.nom_d_epoque(1), "puis la liste recommence")
+end)
+
 essai("hommes : refus d'embauche", function()
   depart()
   local ok, raison = hommes.embaucher({ role = "archer", semaines = 2 })

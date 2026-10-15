@@ -169,12 +169,29 @@ end
 
 -- ---------------------------------------------------------------- noms
 
+local function pgcd(a, b)
+  while b ~= 0 do
+    a, b = b, a % b
+  end
+  return a
+end
+
+-- Le nom du i-ième homme engagé. Prénom et surnom changent tous deux d'un homme à l'autre (« aucun pareil », souhait
+-- de JoVenGer transmis le 15/10/2026 : en V70, les trois premiers s'appelaient tous Kladivo), et toutes les
+-- combinaisons passent avant qu'un nom revienne : par tranches du plus petit commun multiple des deux listes, le surnom
+-- décalé d'un cran à chaque tranche.
+function hommes.nom_d_epoque(i)
+  local np, ns = #hommes.prenoms, #hommes.surnoms
+  local tranche = np * ns / pgcd(np, ns)
+  local k = (i - 1) % (np * ns)
+  local decalage, r = math.floor(k / tranche), k % tranche
+  return hommes.prenoms[r % np + 1] .. " " .. hommes.surnoms[(r + decalage) % ns + 1]
+end
+
 local function nom_suivant(d)
   local i = d.prochain_nom
-  local prenom = hommes.prenoms[(i - 1) % #hommes.prenoms + 1]
-  local surnom = hommes.surnoms[math.floor((i - 1) / #hommes.prenoms) % #hommes.surnoms + 1]
   d.prochain_nom = i + 1
-  return prenom .. " " .. surnom
+  return hommes.nom_d_epoque(i)
 end
 
 -- ---------------------------------------------------------------- lecture
