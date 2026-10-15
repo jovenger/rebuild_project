@@ -14,6 +14,20 @@ Ce fichier est chargé automatiquement au début de chaque session. Ces règles 
 - **Lire avant de modifier.** Diff minimal plutôt que réécriture complète. Pas de refactoring non demandé.
 - **Doc à jour.** Pour toute librairie, API ou outil (moteur de jeu, framework de modding, Python…), vérifier la doc actuelle (Context7 si disponible) plutôt que de se fier à la mémoire.
 
+## Rapidité (éviter la latence)
+- Gros fichiers : Grep d'abord, puis Read avec offset/limit sur la zone utile. Jamais de lecture complète inutile.
+- Regrouper les lectures et commandes indépendantes dans le même tour.
+- Ne pas relire un fichier qu'on vient d'éditer sans raison.
+- Recherche large (plusieurs fichiers ou dossiers) : déléguer à un sous-agent Explore et ne garder que la conclusion.
+- Commandes longues : en arrière-plan avec timeout, ne jamais bloquer en attente.
+- Session longue : proposer `/compact` quand le contexte devient lourd.
+
+## Anti-boucle (obligatoire)
+- 2 échecs avec la même approche → STOP. Pas de 3e variante du même correctif.
+- Repartir du diagnostic : relire l'erreur exacte, tester une hypothèse différente.
+- Si toujours bloqué : rapport court à Yann (essayé / observé / hypothèses restantes / ce qu'il faut de lui) et attendre.
+- Interdit : relancer la même commande en espérant un autre résultat, élargir le correctif à l'aveugle.
+
 ## Sûreté
 - Avant une modification importante : vérifier qu'un commit existe. Sinon, en proposer un.
 - Aucune commande destructive (suppression, écrasement, `git reset --hard`, `git push --force`, `rm -rf`) sans confirmation explicite.
