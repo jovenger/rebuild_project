@@ -154,6 +154,12 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   tirage des compétences selon le caractère est une règle nouvelle : fiche 11 ou 12 d'abord, validation de JoVenGer.
   V54 : contre un brigand léger (`kkop_bandit_7`), notre homme le blesse et le met en fuite. Le combat de l'étape 1 est
   acquis. Suite : comportements à nous joués en interruption (`SmartEntity__so_interrupt`), puis fiche 12.
+  V55 : un comportement à nous (« scriptorium_aller ») joué en interruption, posé par notre switch avec le nœud
+  générique `AddInterrupt` sur l'entité des interruptions du jeu : l'homme va au point et compte son arrivée ; l'arbre
+  lit et écrit les variables de son cerveau. **Architecture de l'étape 1 trouvée** : cerveau = switch à nous (type 6)
+  + horaires du jeu ; chaque ordre du Directeur = une variable d'ordre + un comportement à nous en interruption ; le
+  combat = l'interruption d'attaque du jeu, arme tirée par l'ordre. Suite : fiche 12 (à envoyer à la conversation
+  Scriptorium, puis à faire valider par JoVenGer), puis les comportements poste, garde, rassemblement, sommeil.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en
