@@ -2173,6 +2173,83 @@ function liaison.sonder_les_objets(qui)
   return lignes
 end
 
+-- V71 a3 (fiche 13) : les deux axes que V71 a2 n'a pas fait varier. (1) Objet par objet, à la façon du jeu
+-- (Scripts/Utils/ItemUtils.lua, CreateInvItem ; player.lua, CheatGiveSword) : inventory:CreateItem(objet, état, nombre),
+-- inventory:FindItem(objet), actor:EquipInventoryItem(id), avec un état choisi pour le relire après le rechargement.
+-- (2) Un habitant du jeu habillé par le préréglage de V71 a, son nom gardé dans un jeton de la sauvegarde.
+liaison.sonde_objet_par_objet = {
+  { nom = "épée militaire", objet = "efa237c7-3905-4813-b9c3-a32b449c17ad", etat = 0.55, porter = true },
+  { nom = "écu", objet = "401266f6-ffb4-4ad0-a8e1-4a3cb3edab3e", etat = 0.45, porter = false },
+  { nom = "pièce 1 de soldier_generic_1_01", objet = "45b6d780-23e1-4a89-a0b1-dbc234a7ce21", etat = 0.35, porter = true },
+}
+liaison.jeton_de_l_habitant_sonde = "scriptorium_socle.essai_habitant_sonde"
+
+-- L'état de chaque objet de la sonde chez ce personnage : nombre, et état du premier trouvé. Rend des lignes.
+local function etat_des_objets(entite)
+  local lignes = {}
+  for _, o in ipairs(liaison.sonde_objet_par_objet) do
+    local _, nombre = pcall(function() return entite.inventory:GetCountOfClass(o.objet) end)
+    local _, id = pcall(function() return entite.inventory:FindItem(o.objet) end)
+    local lu, objet = pcall(function() return ItemManager.GetItem(id) end)
+    local etat = (lu and type(objet) == "table") and tostring(objet.health) or "?"
+    table.insert(lignes, string.format("%s : %s, état %s (voulu %.2f)", o.nom, tostring(nombre), etat, o.etat))
+  end
+  return lignes
+end
+
+function liaison.creer_les_objets_de_la_sonde(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return { "« " .. tostring(qui) .. " » introuvable" }
+  end
+  local lignes = { "ItemManager.CreateItem : " .. type(ItemManager.CreateItem) .. ", inventory.CreateItem : "
+                   .. type(entite.inventory.CreateItem) }
+  for _, o in ipairs(liaison.sonde_objet_par_objet) do
+    local cree, erreur = pcall(function() entite.inventory:CreateItem(o.objet, o.etat, 1) end)
+    local trouve, id = pcall(function() return entite.inventory:FindItem(o.objet) end)
+    local porte = "non demandé"
+    if o.porter and trouve and id then
+      local ok, e = pcall(function() return entite.actor:EquipInventoryItem(id) end)
+      porte = ok and ("accepté (" .. tostring(e) .. ")") or ("refusé : " .. tostring(e))
+    end
+    table.insert(lignes, string.format("%s : créé %s, trouvé %s, porté %s", o.nom,
+      cree and "oui" or ("non : " .. tostring(erreur)), trouve and tostring(id) or "non", porte))
+  end
+  for _, ligne in ipairs(etat_des_objets(entite)) do
+    table.insert(lignes, ligne)
+  end
+  return lignes
+end
+
+function liaison.relire_les_objets_de_la_sonde(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return { "« " .. tostring(qui) .. " » introuvable" }
+  end
+  return etat_des_objets(entite)
+end
+
+-- L'habitant du jeu le plus proche d'Henry (hors des nôtres) reçoit la tenue lourde de la sonde ; son nom va au jeton.
+function liaison.habiller_un_habitant()
+  local habitant, distance = habitant_le_plus_proche()
+  if not habitant or string.lower(string.sub(habitant:GetName(), 1, 12)) == "scriptorium_" then
+    return "aucun habitant du jeu à moins de 150 m"
+  end
+  local nom = habitant:GetName()
+  local ecrit, erreur = pcall(poser_un_jeton, liaison.jeton_de_l_habitant_sonde, nom)
+  local ligne = string.format("%s à %.0f m (jeton %s) : %s", nom, distance or -1,
+    ecrit and "écrit" or ("refusé : " .. tostring(erreur)), liaison.equiper_la_sonde(nom, "tenue_2"))
+  return ligne
+end
+
+function liaison.compter_l_habitant()
+  local nom = jeton(liaison.jeton_de_l_habitant_sonde)
+  if not nom then
+    return "pas de jeton d'habitant"
+  end
+  return nom .. " : " .. liaison.compter_l_equipement(nom)
+end
+
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
 -- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
 function liaison.faire_venir_directeur(position, ame)

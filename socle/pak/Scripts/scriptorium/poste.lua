@@ -635,6 +635,25 @@ function poste.essai_sonde_objets()
   return qui ~= nil
 end
 
+-- V71 a3 (fiche 13) : objet par objet sur le premier homme, et un habitant du jeu habillé par le préréglage.
+function poste.essai_objets_creer()
+  local qui, nom = premier_homme()
+  for _, ligne in ipairs(jeu().creer_les_objets_de_la_sonde(qui)) do
+    jeu().journal("Poste : " .. tostring(nom) .. ", " .. ligne)
+  end
+  jeu().journal("Poste : habitant, " .. jeu().habiller_un_habitant())
+  return qui ~= nil
+end
+
+function poste.essai_objets_relire()
+  local qui, nom = premier_homme()
+  for _, ligne in ipairs(jeu().relire_les_objets_de_la_sonde(qui)) do
+    jeu().journal("Poste : " .. tostring(nom) .. ", " .. ligne)
+  end
+  jeu().journal("Poste : habitant, " .. jeu().compter_l_habitant())
+  return qui ~= nil
+end
+
 function poste.essai_equiper_tenue() return equiper_la_sonde("tenue") end
 function poste.essai_equiper_tenue_2() return equiper_la_sonde("tenue_2") end
 function poste.essai_equiper_armes() return equiper_la_sonde("armes") end
@@ -948,6 +967,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_sonde_equiper", fonction = function() return poste.essai_sonde_equiper() end, aide = "Pose la tenue lourde et les armes sur le premier homme et les deux sondes, puis compte" },
   { nom = "scriptorium_essai_sonde_compter", fonction = function() return poste.essai_sonde_compter() end, aide = "Compte l'équipement du premier homme et des deux sondes" },
   { nom = "scriptorium_essai_sonde_objets", fonction = function() return poste.essai_sonde_objets() end, aide = "Ce que rendent GetInventoryTable et ItemManager pour le premier homme" },
+  { nom = "scriptorium_essai_objets_creer", fonction = function() return poste.essai_objets_creer() end, aide = "Crée trois objets avec leur état sur le premier homme, et habille l'habitant le plus proche (V71 a3)" },
+  { nom = "scriptorium_essai_objets_relire", fonction = function() return poste.essai_objets_relire() end, aide = "Relit les objets créés (nombre, état) et la tenue de l'habitant" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },

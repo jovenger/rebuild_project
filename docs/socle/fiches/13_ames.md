@@ -214,6 +214,30 @@
   du jeu, `Scripts/Debug/CombatDebug.lua` ; `player.lua` crée l'objet, le met à l'inventaire et le fait porter :
   `ItemManager.CreateItem`, `inventory:AddItem`, `actor:EquipInventoryItem`) et **l'origine du personnage** (un
   personnage du jeu, posé dans le niveau, équipé par le Lua). La piste Skald du pair reste non essayée, après celles-ci.
+- **Ce que la conversation Scriptorium a corrigé après V71 a2** (15/10, principe) : les hommes d'Alex sont équipés par
+  les mêmes appels de préréglages (`EquipClothingPreset`, `EquipWeaponPreset`), à l'embauche ; le 5/10, « gardée »
+  voulait dire « au moins 4 objets après le chargement » : **l'usure n'a jamais été comparée** ; et Scriptorium remet
+  après chaque chargement les pièces achetées à la forge, signe qu'elles ne survivaient pas. « Le jeu garde
+  l'inventaire » était une hypothèse, non une mesure : la règle du 5/10 (garder l'usure et les réparations) serait
+  tenue par une repose depuis le registre, non par le jeu.
+- **Essai V71 a3** (diagnostic, deux axes jamais variés, un changement chacun) :
+  1. **objet par objet** sur le témoin, à la façon du jeu (`Scripts/Utils/ItemUtils.lua`, `CreateInvItem` ;
+     `player.lua`, `CheatGiveSword`) : `inventory:CreateItem(objet, état, 1)`, `inventory:FindItem(objet)`,
+     `actor:EquipInventoryItem(id)`, avec un état choisi (0,55 ; 0,45 ; 0,35) pour le relire après le rechargement :
+     l'épée militaire portée, l'écu seulement mis à l'inventaire (non porté), une pièce de `soldier_generic_1_01`
+     portée ;
+  2. **un personnage du jeu** (l'habitant le plus proche d'Henry) habillé par le préréglage `soldier_generic_5_01`,
+     comme le témoin en V71 a ; son nom gardé dans un jeton de la sauvegarde pour le retrouver au rechargement.
+  Lecture : la création avec état est-elle acceptée, et l'état relu est-il le bon (faisabilité de la repose) ; les
+  pièces créées une à une sont-elles gardées (alors l'équipement se fait ainsi, sans repose) ; l'habitant du jeu
+  garde-t-il sa tenue (la régénération vise-t-elle tous les personnages, ou ceux nés par script).
+- **Mesuré en V71 a3** (15/10) : **les objets créés un à un par `inventory:CreateItem(objet, état, 1)` sont gardés au
+  rechargement, chacun avec son état exact** (0,55, 0,45, 0,35 relus avant et après), porté ou non. `ItemManager.CreateItem`
+  n'existe pas hors des outils. Les préréglages de l'outil de combat ne tiennent pour personne (l'habitant du jeu perd
+  aussi la tenue posée). La tenue de naissance revient à chaque chargement, à côté de nos objets, toujours la même
+  (mêmes états qu'en V71 a2). **Conséquence** : la règle du 5/10 (garder l'usure et les réparations) est tenue par le
+  jeu lui-même si chaque pièce est créée une à une ; pas de repose depuis le registre. **Non vérifié** : quelles pièces
+  l'homme porte après le rechargement (les nôtres, ou celles de naissance revenues) ; à voir de près (V71 a4).
 - **Pour la repose, s'il le faut** : le jeu crée un objet avec son état (`ItemManager.CreateItem(identifiant, état,
   nombre)`, `Scripts/Utils/ItemUtils.lua`) ; reste à savoir **lire** l'état d'une pièce portée : la sonde relève ce que
   rendent `inventory:GetInventoryTable()` et les fonctions d'`ItemManager` sur le témoin. **Vu en V71 a2** : l'état se lit
