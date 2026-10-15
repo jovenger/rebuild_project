@@ -8,8 +8,13 @@
   (`essai_en_jeu.md`, V29 à V55, sans `-devmode`) ; le reste est marqué « non vérifié ».
 
 ## Ce que le joueur voit
-- Nos hommes marchent, vont où le Directeur les envoie (poste, garde, rassemblement, lit), et y restent.
-- Sur ordre, un homme tire son arme et attaque l'ennemi désigné ; il blesse, met en fuite ou tue (acquis, V52 à V54).
+- Sur ordre, un homme va au point que le Directeur lui donne et y reste (acquis : « aller au point », V55). Les autres
+  ordres (poste, garde, rassemblement, lit, suivre Henry) sont à écrire sur le même modèle (non vérifié).
+- Sur ordre, un homme tire son arme et attaque l'ennemi désigné : il blesse et met en fuite un brigand léger du jeu
+  (V54), il tue un adversaire qui ne se défend pas (V52). Un brigand du jeu en armure complète l'a toujours emporté
+  (V43 à V53).
+- **Sans ordre, il ne fait rien** : il reste planté (V50 à V55). Les veillées de la fiche 11 (feu, dés, entraînement,
+  lit) devront devenir des comportements à nous, choisis selon ses envies (à faire).
 - Plus tard (ouvert) : ils attaquent d'eux-mêmes une bande qu'ils voient, ripostent quand on les frappe, défendent Henry.
 
 ## Comment c'est fait (acquis)
@@ -34,7 +39,8 @@
     `AI/scriptorium/comportements.xml`), déclaré en plus sur l'entité des interruptions du jeu
     (`Libs/Tables/ai/smartEntity/SmartEntity__so_interrupt__scriptorium_socle.xml`), posé par le nœud générique
     `AddInterrupt`. Il lit et écrit les variables du cerveau de l'homme (V55).
-- **Compétences de combat** : posables par `soul:AdvanceToSkillLevel` (relu, V53). À 0, un homme frappe déjà (V52).
+- **Compétences de combat** : posables par `soul:AdvanceToSkillLevel` (relu, V53 ; l'appel ne fait que monter, comme
+  l'aguerrissement de la fiche 11). À 0, un homme frappe déjà (V52).
 
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
@@ -45,24 +51,33 @@
      le jeu en charge déjà en plus, par ex. `FactionTree__tests.xml` ; amie d'Henry, hostile aux brigands et aux
      Coumans, sans autorité) — faisable sur le papier, **non vérifié** en jeu ;
    - b. une faction de soldats du jeu, amie d'Henry — risque d'agir en gardes.
+   - Ce qui pèse : la faction change le comportement des deux côtés, pas seulement « qui attaque qui » : un brigand a
+     fui devant notre homme à âme de garde de Trosky (V54), et un garde du jeu s'est porté de lui-même sur un brigand
+     (V49). Vérifier (a) coûte une séance : un `FactionTree__scriptorium_socle.xml` avec deux relations hostiles
+     (brigands, Coumans), sur la structure réelle de `FactionTree__tests.xml`.
 3. **Les compétences de combat** (règle nouvelle, réglable) :
    - a. tirées de l'**aguerrissement** de la fiche 11 (0 à 100) : par exemple de 5 (bleu) à 20 (vétéran), proportionnelles,
-     bornes réglables, remises à jour quand il s'aguerrit ;
+     bornes réglables, montées quand il s'aguerrit (jamais baissées) ;
    - b. un niveau fixe pour tous, réglable ;
    - c. laissées à 0 pour l'instant.
-4. **Les premiers comportements à écrire**, une chose à la fois : aller au poste, monter la garde (rester au poste,
-   arme prête), rejoindre le rassemblement, dormir (au lit ou par terre), suivre Henry.
+4. **Les premiers comportements à écrire**, une chose à la fois : aller au poste et y monter la garde (un seul
+   comportement, arme prête ou non), rejoindre le rassemblement, dormir (au lit ou par terre), suivre Henry ; puis les
+   veillées de la fiche 11.
 
 ## Règles (toutes en données, catalogue de `reglages.lua`, règle de JoVenGer du 14/10)
 - Priorité des interruptions de nos ordres, distance d'arrêt au point, durée d'attente avant d'abandonner un trajet,
   niveaux de compétences (si 3 a ou b), délai entre deux tours du switch.
 
 ## Ce qui reste ouvert (non vérifié)
+- La table `SmartEntity__so_interrupt__scriptorium_socle.xml` n'est pas annoncée au journal du jeu ; elle est prise
+  puisque le comportement est joué (V55).
 - **L'attaque à vue** (une bande qui attaque d'elle-même en voyant le camp) et la riposte : le brigand du jeu n'attaque
   pas Henry de lui-même à 8 m, même en prairie (V41, V43) ; pistes : perception (`IgnorePerception`), volumes perçus et
   sons des crimes du jeu.
-- **Rappeler un homme engagé** : rendre au Directeur un homme en combat (garde des comportements par la variable
-  d'ordre, `IfGate … RunLogic="Halt"` comme `interrupt_attack.xml` du jeu).
+- **Rappeler un homme engagé** : rendre au Directeur un homme en combat. Piste à essayer d'abord (une séance, un seul
+  changement) : les priorités. Nos ordres sont posés à 100, l'attaque du jeu à 160 : un ordre à 100 ne reprend pas un
+  homme pris par une interruption à 160, sauf `IgnorePriorityOnPreviousInterrupt="true"`. Sinon : garde des
+  comportements par la variable d'ordre (`IfGate … RunLogic="Halt"`, comme `interrupt_attack.xml` du jeu).
 - **S'asseoir, dormir** : siège ou lit reconnu par l'IA (V32, V33 : la posture assise par arbre bloquait).
 - **Réveil** à chaque entrée en partie et après rechargement ; sommeil au-delà d'environ 300 m d'Henry.
 - **Âmes du mod** par rôle (homme d'armes, Directeur, artisan), avec leur équipement (préréglages d'inventaire du jeu par
