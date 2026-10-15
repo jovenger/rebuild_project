@@ -30,6 +30,18 @@
                   </CombatMoveDecorator>
                 </Then>
                 <Else canSkip="1">
+                  <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 6" saveVersion="2">
+                    <Then canSkip="1">
+                      <Sequence>
+                        <Parallel successMode="Any" failureMode="Any">
+                          <Move stopWithinDistance="2.000000" stopDistanceVariation="0.500000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="false" destinationSpecification="$scriptorium_essai_cible" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                          <Wait duration="&apos;15s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                        </Parallel>
+                        <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
+                        <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </Then>
+                    <Else canSkip="1">
                   <Sequence>
                     <Parallel successMode="Any" failureMode="Any">
                       <Move stopWithinDistance="2.000000" stopDistanceVariation="0.500000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="false" destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
@@ -38,6 +50,8 @@
                     <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
                     <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                   </Sequence>
+                    </Else>
+                  </IfElseCondition>
                 </Else>
               </IfElseCondition>
             </Else>

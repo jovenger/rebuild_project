@@ -260,15 +260,18 @@ function poste.essai_marcheur_debout()
   return true
 end
 
-function poste.essai_marcheur_combat()
-  local nom, ligne = jeu().poser_l_adversaire()
-  jeu().journal("Poste : marcheur, " .. tostring(ligne))
-  if nom then
-    for _, texte in ipairs(jeu().ordonner_le_combat()) do
-      jeu().journal("Poste : marcheur, " .. texte)
-    end
+function poste.essai_marcheur_rejoindre()
+  for _, texte in ipairs(jeu().ordonner_de_rejoindre()) do
+    jeu().journal("Poste : marcheur, " .. texte)
   end
-  return nom ~= nil
+  return true
+end
+
+function poste.essai_marcheur_combat()
+  for _, texte in ipairs(jeu().ordonner_le_combat()) do
+    jeu().journal("Poste : marcheur, " .. texte)
+  end
+  return true
 end
 
 function poste.essai_marcheur_voir()
@@ -513,6 +516,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_point", fonction = function() return poste.essai_marcheur_point() end, aide = "Donne au marcheur un autre point" },
   { nom = "scriptorium_essai_marcheur_assis", fonction = function() return poste.essai_marcheur_assis() end, aide = "Ordre au marcheur : s'asseoir par terre" },
   { nom = "scriptorium_essai_marcheur_debout", fonction = function() return poste.essai_marcheur_debout() end, aide = "Ordre au marcheur : se relever et marcher au point" },
+  { nom = "scriptorium_essai_marcheur_rejoindre", fonction = function() return poste.essai_marcheur_rejoindre() end, aide = "Le marcheur rejoint l'adversaire désigné par sa variable de cerveau" },
   { nom = "scriptorium_essai_marcheur_combat", fonction = function() return poste.essai_marcheur_combat() end, aide = "Un adversaire du mod ; le marcheur et lui se battent" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },

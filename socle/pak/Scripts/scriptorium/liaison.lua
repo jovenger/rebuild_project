@@ -1230,9 +1230,37 @@ function liaison.poser_l_adversaire()
   return nom, "adversaire posé, sa place gardée : " .. tostring(ok)
 end
 
--- L'ordre de combat : chacun reçoit l'autre pour cible (variable wuid scriptorium_essai_cible) et l'ordre 5. Rend des lignes.
+-- L'ordre « rejoindre » : le marcheur reçoit l'adversaire pour cible (variable wuid) et l'ordre 6, marcher jusqu'à lui,
+-- sans rien de combat. Pose l'adversaire au besoin. Rend des lignes.
+function liaison.ordonner_de_rejoindre()
+  local lignes = {}
+  if not entite_nommee(liaison.adversaire) then
+    local _, ligne = liaison.poser_l_adversaire()
+    table.insert(lignes, tostring(ligne))
+  end
+  local qui, contre = entite_nommee(liaison.marcheur), entite_nommee(liaison.adversaire)
+  local this_lu, this = pcall(function() return qui.this end)
+  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(contre) end)
+  if qui and contre and this_lu and type(this) == "table" and wuid_lu then
+    local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
+    local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 6) end)
+    local relu_lu, relu = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_essai_cible") end)
+    table.insert(lignes, "rejoindre : cible " .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. " (" .. tostring(wuid)
+      .. "), relue " .. tostring(relu_lu and relu) .. ", ordre " .. tostring(ordre_ok))
+  else
+    table.insert(lignes, "rejoindre : impossible (introuvable ou sans this)")
+  end
+  return lignes
+end
+
+-- L'ordre de combat : chacun reçoit l'autre pour cible (variable wuid scriptorium_essai_cible) et l'ordre 5 ; l'adversaire
+-- déjà posé est repris (vu le 15/10 : en poser un second au même endroit les superpose). Rend des lignes.
 function liaison.ordonner_le_combat()
   local lignes = {}
+  if not entite_nommee(liaison.adversaire) then
+    local _, ligne = liaison.poser_l_adversaire()
+    table.insert(lignes, tostring(ligne))
+  end
   local paires = { { liaison.marcheur, liaison.adversaire }, { liaison.adversaire, liaison.marcheur } }
   for _, paire in ipairs(paires) do
     local qui, contre = entite_nommee(paire[1]), entite_nommee(paire[2])
@@ -1287,9 +1315,9 @@ function liaison.voir_le_marcheur()
     texte_adversaire = string.format(" ; adversaire à %.1f m, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
       vie_lue and tostring(vie) or "?")
   end
-  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, santé %s%s", au_point,
+  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, rejoint %s, santé %s%s", au_point,
     liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
-    variable("scriptorium_essai_assis"), sante_lue and tostring(sante) or "?", texte_adversaire)
+    variable("scriptorium_essai_assis"), variable("scriptorium_essai_rejoint"), sante_lue and tostring(sante) or "?", texte_adversaire)
 end
 
 -- La distance entre un personnage et Henry, ou nil.
