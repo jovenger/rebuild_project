@@ -250,7 +250,7 @@
   porter nos pièces marche** (13 sur 13, vu de près) ; une pièce de naissance dont la place n'est pas prise par une des
   nôtres reste portée (le tabard rouge). Pour un aspect net, il faudrait aussi ôter ou retirer la tenue de naissance à
   chaque entrée en partie (non essayé). **Ceci touche la règle validée « rien au rechargement »** : question à JoVenGer.
-- **Question à JoVenGer (V71 b, après V71 a2 à a4)** : la règle du 5/10 disait « pas de rhabillage au chargement, parce
+- **Question à JoVenGer (V71 b, après V71 a2 à a4) : cochée le 15/10/2026, réponse a (« Remettre et retirer »)** : la règle du 5/10 disait « pas de rhabillage au chargement, parce
   que le jeu garde l'inventaire ». Mesuré : le jeu garde bien les **pièces** (créées une à une, avec leur usure et donc
   les réparations), mais pas le fait de les **porter** : à chaque chargement il rhabille l'homme de sa tenue de
   naissance. Refaire porter les mêmes pièces ne perd ni usure ni réparation : l'esprit de la règle tient, pas sa lettre.
