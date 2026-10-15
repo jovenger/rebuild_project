@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import xml.etree.ElementTree as ET
+import zipfile
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOCLE = os.path.join(RACINE, "socle")
@@ -130,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 34:
-        erreur("ordres : %d commandes lues dans poste.lua, 34 attendues" % len(connues))
+    if len(connues) != 36:
+        erreur("ordres : %d commandes lues dans poste.lua, 36 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -575,6 +576,80 @@ def verifier_releve_des_noms():
             erreur("contrôle d'absence : noms de fichiers mal relevés (imposés par le jeu ou choisis)")
 
 
+JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
+# Les familles de fichiers XML du jeu de base dont le socle reprend la forme : (pak, début des chemins).
+FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
+
+
+FORMES_ADMISES_AU_PLUS = 15   # au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+# Les attributs d'une ligne de forme : structure des tables et des arbres, jamais un nom, une valeur ni un comportement.
+ATTRIBUTS_DE_FORME = {"version", "xmlns:xsi", "xsi:noNamespaceSchemaLocation", "OneTimeOnly", "FailState", "saveVersion",
+                      "canSkip", "is_function", "successMode", "failureMode"}
+NOMS_DE_FORME = {"barbora", "onUpdate"}   # le nom de toutes les bases du jeu, le nom d'entrée des arbres
+
+
+def est_une_ligne_de_forme(ligne):
+    """Vrai pour une ligne de structure : déclaration XML, balise fermante, balise vide sans attribut, ou balise dont
+    tous les attributs sont de structure (ATTRIBUTS_DE_FORME, et « name » seulement s'il vaut un NOMS_DE_FORME)."""
+    if re.fullmatch(r'<\?xml version="1\.0" encoding="us-ascii"\?>', ligne) or re.fullmatch(r"</\w+>", ligne):
+        return True
+    balise = re.fullmatch(r"<\w+((?:\s+[\w:]+=\"[^\"]*\")*)\s*/?>", ligne)
+    if not balise:
+        return False
+    for nom, valeur in re.findall(r'([\w:]+)="([^"]*)"', balise.group(1)):
+        if nom == "name" and valeur in NOMS_DE_FORME:
+            continue
+        if nom not in ATTRIBUTS_DE_FORME:
+            return False
+    return True
+
+
+def verifier_le_filtre_des_formes():
+    """Le filtre des lignes de forme refuse toute ligne qui porte un nom, une valeur ou un comportement."""
+    admises = ['<?xml version="1.0" encoding="us-ascii"?>', "</brains>", '<brains version="1">', "<ForestContainer />",
+               '<Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">']
+    refusees = ['<brain brain_id="b8a850d0" brain_name="scriptorium_essai_marche" />', '<Move speed="Walk" />',
+                '<BehaviorTree name="secret" is_function="0">', '<Wait duration="5s" />', "<Sequence> <Move />"]
+    for ligne in admises:
+        if not est_une_ligne_de_forme(ligne):
+            erreur("filtre des lignes de forme : ligne de structure refusée : " + ligne)
+    for ligne in refusees:
+        if est_une_ligne_de_forme(ligne):
+            erreur("filtre des lignes de forme : ligne admise à tort : " + ligne)
+
+
+def formes_du_jeu(lignes_d_alex):
+    """Les lignes XML du socle communes avec Alex qui sont des lignes de forme (est_une_ligne_de_forme) et figurent
+    aussi, telles quelles, dans les fichiers XML du jeu de base (lecture seule, en mémoire : rien n'est extrait), à
+    chaque passage. Rend { empreinte : ligne }. Sans le jeu, aucune."""
+    voulues = {}
+    for chemin in fichiers(PAK, {".xml"}):
+        for ligne in lire(chemin).splitlines():
+            normalisee = outil_empreintes.normaliser_ligne(ligne, ".xml")
+            marque = outil_empreintes.empreinte(normalisee)
+            if len(normalisee) >= outil_empreintes.LIGNE_MIN and marque in lignes_d_alex and est_une_ligne_de_forme(normalisee):
+                voulues[normalisee] = marque
+    trouvees = {}
+    for pak, debut in FAMILLES_DU_JEU:
+        chemin_du_pak = os.path.join(JEU, pak)
+        if not voulues or not os.path.exists(chemin_du_pak):
+            continue
+        with zipfile.ZipFile(chemin_du_pak) as archive:
+            for info in archive.infolist():
+                if not voulues or not info.filename.startswith(debut) or not info.filename.lower().endswith(".xml"):
+                    continue
+                info.orig_filename = info.filename.replace("/", "\\") if "\\" in info.orig_filename else info.orig_filename
+                try:
+                    texte = archive.open(info).read().decode("utf-8", "replace")
+                except zipfile.BadZipFile:
+                    continue
+                for ligne in texte.splitlines():
+                    normalisee = outil_empreintes.normaliser_ligne(ligne, ".xml")
+                    if normalisee in voulues:
+                        trouvees[voulues.pop(normalisee)] = normalisee
+    return trouvees
+
+
 def controle_absence(strict):
     verifier_releve_des_noms()
     if not os.path.exists(EMPREINTES):
@@ -600,12 +675,25 @@ def controle_absence(strict):
                     os.path.relpath(os.path.join(racine, nom), base).replace("\\", "/").lower()))
     socle["chemins"] = chemins_installes
 
+    # Les lignes XML qui figurent telles quelles dans les fichiers du jeu de base (en-têtes des tables, nœuds des
+    # arbres de comportement) sont la forme imposée par le jeu à tout mod, pas des lignes d'Alex : elles sont comptées
+    # à part. Toute autre ligne en commun reste une erreur.
+    verifier_le_filtre_des_formes()
+    formes = formes_du_jeu(alex["lignes"])
+    socle["lignes"] = socle["lignes"] - set(formes)
+    for ligne in sorted(formes.values()):
+        print("   ligne de forme du jeu : " + ligne)
+    if len(formes) > FORMES_ADMISES_AU_PLUS:
+        erreur("contrôle d'absence : %d lignes de forme du jeu, plus que les %d admises : revoir la liste"
+               % (len(formes), FORMES_ADMISES_AU_PLUS))
+
     resultats = {}
     for nom in ("fichiers", "chemins", "lignes", "noms", "cles", "textes"):
         communs = socle[nom] & alex[nom]
         resultats[nom] = len(communs)
         if communs:
             erreur("contrôle d'absence : %d %s en commun avec Alex" % (len(communs), nom))
+    resultats["lignes de forme du jeu"] = len(formes)
     if resultats["lignes"] or resultats["noms"] or resultats["textes"]:
         # Nommer les coupables, pour corriger vite.
         for chemin in list(fichiers(PAK, {".lua", ".xml", ".cfg"})) + list(fichiers(TEXTES, {".xml"})):
@@ -613,7 +701,8 @@ def controle_absence(strict):
             extension = os.path.splitext(chemin)[1].lower()
             for numero, ligne in enumerate(texte.splitlines(), 1):
                 normalisee = outil_empreintes.normaliser_ligne(ligne, extension)
-                if len(normalisee) >= outil_empreintes.LIGNE_MIN and outil_empreintes.empreinte(normalisee) in alex["lignes"]:
+                marque = outil_empreintes.empreinte(normalisee)
+                if len(normalisee) >= outil_empreintes.LIGNE_MIN and marque in alex["lignes"] and marque not in formes:
                     erreur("  ligne d'Alex : %s:%d" % (relatif(chemin), numero))
             if extension == ".lua":
                 for identifiant in set(outil_empreintes.noms_du_lua(texte)):

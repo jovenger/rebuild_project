@@ -34,7 +34,7 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   FauxJeu.entrer_en_partie()
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé à l'entrée en partie")
-  egal(#FauxJeu.commandes, 34, "trente-quatre commandes de console")
+  egal(#FauxJeu.commandes, 36, "trente-six commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 

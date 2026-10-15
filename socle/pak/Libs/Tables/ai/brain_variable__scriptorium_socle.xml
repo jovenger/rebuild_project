@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" xsi:noNamespaceSchemaLocation="../database.xsd">
+  <brain_variables version="1">
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_essai_vivant" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_essai_arrive" type="int" />
+  </brain_variables>
+</database>

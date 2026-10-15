@@ -1120,6 +1120,20 @@ function liaison.decrire_les_liens()
   return lignes
 end
 
+-- Vu en jeu le 15/10 : un personnage né par System.SpawnEntity reçoit le cerveau de son âme, mais son arbre ne fait
+-- qu'un tour à la naissance et n'est plus mis à jour. Activé dans la boucle du moteur (Activate), sans mise en sommeil
+-- de l'IA (AI.AutoDisable à 0, comme la fabrique AISpawner.lua du jeu), il vit : l'arbre tourne et il marche.
+function liaison.eveiller(nom, titre)
+  local entite = entite_nommee(nom)
+  if not entite then
+    return false
+  end
+  local active = pcall(function() entite:Activate(1) end)
+  local eveillee = pcall(function() AI.AutoDisable(entite.id, 0) end)
+  liaison.journal(tostring(titre or nom) .. " : Activate = " .. tostring(active) .. ", AutoDisable(0) = " .. tostring(eveillee))
+  return active and eveillee
+end
+
 -- Essai de combat (étape 1, piste des cerveaux sans horaires) : deux âmes au cerveau npc_battle, de camps faits pour
 -- s'affronter au siège de Suchdol (un défenseur, un fantassin de l'armée ennemie), posées à 6 m l'une de l'autre près
 -- d'Henry, sans besoin d'une maison (bWH_RequiresHome, vrai par défaut dans la classe NPC). Rend leurs deux noms, ou nil et l'erreur.
@@ -1145,7 +1159,72 @@ function liaison.poser_un_combat_d_essai()
   if not assaillant then
     return nil, "assaillant : " .. tostring(erreur2)
   end
+  liaison.eveiller(defenseur, "Défenseur")
+  liaison.eveiller(assaillant, "Assaillant")
   return { defenseur, assaillant }
+end
+
+-- Essai du cerveau à nous (étape 1) : une âme du mod (Libs/Tables/rpg/soul__scriptorium_socle.xml) dont le cerveau,
+-- déclaré par les tables du mod, n'a qu'un arbre (AI/scriptorium/essai_marche.xml : marcher jusqu'à Henry, attendre,
+-- recommencer). Le marcheur naît à 10 m devant Henry. Rend son nom, ou nil et l'erreur.
+liaison.ame_du_marcheur = "3241c366-db25-47da-9710-f621eb79554e"   -- scriptorium_essai_marcheur
+
+function liaison.poser_le_marcheur()
+  local henry = liaison.position_du_joueur()
+  local cap = liaison.cap_du_joueur()
+  local angle = math.rad(cap)
+  local ou = liaison.au_sol({ x = henry.x + math.sin(angle) * 10, y = henry.y + math.cos(angle) * 10, z = henry.z })
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_marcheur", ou, cap + 180,
+                                   { guidSharedSoulId = liaison.ame_du_marcheur, bWH_RequiresHome = false })
+  if not nom then
+    return nil, erreur
+  end
+  liaison.eveiller(nom, "Marcheur")
+  return nom
+end
+
+-- Le cerveau d'une entité tourne-t-il ? Lit une variable de son cerveau (XGenAIModule.GetBrainVariable, comme
+-- KettleActionTrigger.lua) de trois façons : par « this », par « this.id », par le WUID. Rend une ligne.
+local function lire_une_variable(entite, nom)
+  local morceaux = {}
+  local this_lu, this = pcall(function() return entite.this end)
+  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(entite) end)
+  local cles = {
+    { "this", this_lu and this or nil },
+    { "this.id", (this_lu and type(this) == "table") and this.id or nil },
+    { "WUID", wuid_lu and wuid or nil },
+  }
+  for _, cle in ipairs(cles) do
+    if cle[2] == nil then
+      table.insert(morceaux, cle[1] .. " : absent")
+    else
+      local ok, valeur = pcall(function() return XGenAIModule.GetBrainVariable(cle[2], nom) end)
+      table.insert(morceaux, cle[1] .. " : " .. (ok and ("lu « " .. tostring(valeur) .. " » (" .. type(valeur) .. ")") or ("refusé : " .. tostring(valeur))))
+    end
+  end
+  return "« " .. nom .. " » : " .. table.concat(morceaux, " ; ")
+end
+
+function liaison.lire_les_variables_de_cerveau(identifiant)
+  local lignes = { "Henry, " .. lire_une_variable(player, "b_lastUsedBed") }
+  local entite = entite_nommee(identifiant)
+  for _, nom in ipairs({ "scriptorium_essai_vivant", "scriptorium_essai_arrive", "scriptorium_variable_inexistante" }) do
+    table.insert(lignes, tostring(identifiant) .. ", " .. (entite and lire_une_variable(entite, nom) or "introuvable"))
+  end
+  return lignes
+end
+
+-- La distance entre un personnage et Henry, ou nil.
+function liaison.distance_a_henry(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return nil
+  end
+  local lu, ecart = pcall(function()
+    local ici, henry = entite:GetWorldPos(), player:GetWorldPos()
+    return math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2)
+  end)
+  return lu and ecart or nil
 end
 
 -- Compare un de nos personnages et le personnage du jeu (classe NPC, pas à nous) le plus proche d'Henry. Rend des
