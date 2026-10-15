@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<BehaviorTrees>
+  <BehaviorTree name="onUpdate" is_function="0">
+    <Variables />
+    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
+      <Behavior canSkip="1">
+        <Sequence>
+          <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
+          <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 4" saveVersion="2">
+            <Then canSkip="1">
+              <StanceElement smartObject="" stance="sitting" allowAny="false">
+                <Sequence>
+                  <WaitAction />
+                  <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
+                  <Wait duration="&apos;10s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                </Sequence>
+              </StanceElement>
+            </Then>
+            <Else canSkip="1">
+              <Sequence>
+                <Parallel successMode="Any" failureMode="Any">
+                  <Move stopWithinDistance="2.000000" stopDistanceVariation="0.500000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="false" destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                  <Wait duration="&apos;15s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                </Parallel>
+                <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+              </Sequence>
+            </Else>
+          </IfElseCondition>
+        </Sequence>
+      </Behavior>
+    </Root>
+    <ForestContainer />
+  </BehaviorTree>
+</BehaviorTrees>

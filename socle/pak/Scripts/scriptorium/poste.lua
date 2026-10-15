@@ -238,31 +238,30 @@ function poste.essai_liens()
   return true
 end
 
--- Cerveau à nous (étape 1) : le marcheur naît à 10 m devant Henry ; marche-t-il jusqu'à lui ?
-local marcheur = nil
-
+-- Cerveau à nous (étape 1) : le marcheur marche vers un point lu dans son cerveau ; un ordre lui donne un autre point.
 function poste.essai_marcheur()
-  local nom, erreur = jeu().poser_le_marcheur()
-  marcheur = nom
-  jeu().journal("Poste : marcheur, posé = " .. tostring(nom) .. (nom and "" or (" (" .. tostring(erreur) .. ")"))
-                .. (nom and string.format(", à %.1f m d'Henry", jeu().distance_a_henry(nom) or -1) or ""))
+  local nom, ligne = jeu().poser_le_marcheur()
+  jeu().journal("Poste : marcheur, posé = " .. tostring(nom) .. " ; " .. tostring(ligne))
   return nom ~= nil
 end
 
+function poste.essai_marcheur_point()
+  jeu().journal("Poste : marcheur, " .. jeu().viser_un_point("droite"))
+  return true
+end
+
+function poste.essai_marcheur_assis()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_au_marcheur(4))
+  return true
+end
+
+function poste.essai_marcheur_debout()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_au_marcheur(0))
+  return true
+end
+
 function poste.essai_marcheur_voir()
-  if not marcheur then
-    jeu().journal("Poste : marcheur, rien de posé")
-    return false
-  end
-  jeu().journal(string.format("Poste : marcheur, à %.1f m d'Henry", jeu().distance_a_henry(marcheur) or -1))
-  for _, ligne in ipairs(jeu().lire_les_variables_de_cerveau(marcheur)) do
-    jeu().journal("Poste : marcheur, cerveau de " .. ligne)
-  end
-  for _, ligne in ipairs(jeu().sonder_les_cerveaux(marcheur)) do
-    if string.find(ligne, "le nôtre", 1, true) or string.find(ligne, "  ", 1, true) == 1 then
-      jeu().journal("Poste : marcheur, " .. ligne)
-    end
-  end
+  jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
 end
 
@@ -499,8 +498,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_jetons_relire", fonction = function() return poste.essai_jetons_relire() end, aide = "Relit les jetons d'essai après rechargement" },
   { nom = "scriptorium_essai_cerveau", fonction = function() return poste.essai_cerveau() end, aide = "Nos hommes sont-ils connus de l'IA du jeu ? Comparaison avec un habitant" },
   { nom = "scriptorium_essai_liens", fonction = function() return poste.essai_liens() end, aide = "Liens de l'habitant le plus proche (moteur et IA)" },
-  { nom = "scriptorium_essai_marcheur", fonction = function() return poste.essai_marcheur() end, aide = "Un homme au cerveau du mod, à 10 m devant Henry" },
-  { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Le marcheur s'est-il approché d'Henry ?" },
+  { nom = "scriptorium_essai_marcheur", fonction = function() return poste.essai_marcheur() end, aide = "Un homme au cerveau du mod, qui marche vers un point de son cerveau" },
+  { nom = "scriptorium_essai_marcheur_point", fonction = function() return poste.essai_marcheur_point() end, aide = "Donne au marcheur un autre point" },
+  { nom = "scriptorium_essai_marcheur_assis", fonction = function() return poste.essai_marcheur_assis() end, aide = "Ordre au marcheur : s'asseoir par terre" },
+  { nom = "scriptorium_essai_marcheur_debout", fonction = function() return poste.essai_marcheur_debout() end, aide = "Ordre au marcheur : se relever et marcher au point" },
+  { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
   { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },

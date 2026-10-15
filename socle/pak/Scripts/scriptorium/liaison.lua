@@ -1164,54 +1164,84 @@ function liaison.poser_un_combat_d_essai()
   return { defenseur, assaillant }
 end
 
--- Essai du cerveau à nous (étape 1) : une âme du mod (Libs/Tables/rpg/soul__scriptorium_socle.xml) dont le cerveau,
--- déclaré par les tables du mod, n'a qu'un arbre (AI/scriptorium/essai_marche.xml : marcher jusqu'à Henry, attendre,
--- recommencer). Le marcheur naît à 10 m devant Henry. Rend son nom, ou nil et l'erreur.
+-- Sonde du cerveau à nous (étape 1), une seule chose changée depuis V29 : l'arbre (AI/scriptorium/essai_ordres.xml) est
+-- celui qui a fait marcher l'homme, réveillé de même, mais il marche vers un point lu dans une variable de son cerveau
+-- (scriptorium_essai_point, vec3), relue à chaque tour. Le point A est posé à la naissance (8 m à gauche d'Henry), le
+-- point B par un ordre (8 m à droite).
 liaison.ame_du_marcheur = "3241c366-db25-47da-9710-f621eb79554e"   -- scriptorium_essai_marcheur
+liaison.marcheur = nil
+liaison.point_vise = nil
+
+local function pres_d_henry(devant, a_droite)
+  local henry = liaison.position_du_joueur()
+  local angle = math.rad(liaison.cap_du_joueur())
+  local x = henry.x + math.sin(angle) * devant + math.cos(angle) * a_droite
+  local y = henry.y + math.cos(angle) * devant - math.sin(angle) * a_droite
+  return liaison.au_sol({ x = x, y = y, z = henry.z })
+end
+
+-- Pose le point visé dans le cerveau du marcheur ; rend une ligne.
+function liaison.viser_un_point(cote)
+  local entite = entite_nommee(liaison.marcheur)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not entite or not this_lu or type(this) ~= "table" then
+    return "point : marcheur introuvable ou sans this"
+  end
+  local point = pres_d_henry(0, cote == "droite" and 8 or -8)
+  local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+  liaison.point_vise = point
+  local relu_lu, relu = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_essai_point") end)
+  local texte_relu = tostring(relu)
+  if relu_lu and type(relu) == "table" then
+    texte_relu = string.format("%.1f, %.1f, %.1f", relu.x or -1, relu.y or -1, relu.z or -1)
+  end
+  return string.format("point %s (%.1f, %.1f) : %s ; relu %s", cote, point.x, point.y,
+    ok and "posé" or ("refusé : " .. tostring(erreur)), relu_lu and texte_relu or "illisible")
+end
 
 function liaison.poser_le_marcheur()
-  local henry = liaison.position_du_joueur()
-  local cap = liaison.cap_du_joueur()
-  local angle = math.rad(cap)
-  local ou = liaison.au_sol({ x = henry.x + math.sin(angle) * 10, y = henry.y + math.cos(angle) * 10, z = henry.z })
-  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_marcheur", ou, cap + 180,
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_marcheur", pres_d_henry(10, 0), liaison.cap_du_joueur() + 180,
                                    { guidSharedSoulId = liaison.ame_du_marcheur, bWH_RequiresHome = false })
   if not nom then
     return nil, erreur
   end
+  liaison.marcheur = nom
+  local ligne = liaison.viser_un_point("gauche")
   liaison.eveiller(nom, "Marcheur")
-  return nom
+  return nom, ligne
 end
 
--- Le cerveau d'une entité tourne-t-il ? Lit une variable de son cerveau (XGenAIModule.GetBrainVariable, comme
--- KettleActionTrigger.lua) de trois façons : par « this », par « this.id », par le WUID. Rend une ligne.
-local function lire_une_variable(entite, nom)
-  local morceaux = {}
+-- Un ordre au marcheur (variable scriptorium_essai_ordre : 4 = s'asseoir par terre, 0 = marcher au point). Rend une ligne.
+function liaison.ordonner_au_marcheur(ordre)
+  local entite = entite_nommee(liaison.marcheur)
   local this_lu, this = pcall(function() return entite.this end)
-  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(entite) end)
-  local cles = {
-    { "this", this_lu and this or nil },
-    { "this.id", (this_lu and type(this) == "table") and this.id or nil },
-    { "WUID", wuid_lu and wuid or nil },
-  }
-  for _, cle in ipairs(cles) do
-    if cle[2] == nil then
-      table.insert(morceaux, cle[1] .. " : absent")
-    else
-      local ok, valeur = pcall(function() return XGenAIModule.GetBrainVariable(cle[2], nom) end)
-      table.insert(morceaux, cle[1] .. " : " .. (ok and ("lu « " .. tostring(valeur) .. " » (" .. type(valeur) .. ")") or ("refusé : " .. tostring(valeur))))
-    end
+  if not entite or not this_lu or type(this) ~= "table" then
+    return "ordre : marcheur introuvable ou sans this"
   end
-  return "« " .. nom .. " » : " .. table.concat(morceaux, " ; ")
+  local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
+  return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
 end
 
-function liaison.lire_les_variables_de_cerveau(identifiant)
-  local lignes = { "Henry, " .. lire_une_variable(player, "b_lastUsedBed") }
-  local entite = entite_nommee(identifiant)
-  for _, nom in ipairs({ "scriptorium_essai_vivant", "scriptorium_essai_arrive", "scriptorium_variable_inexistante" }) do
-    table.insert(lignes, tostring(identifiant) .. ", " .. (entite and lire_une_variable(entite, nom) or "introuvable"))
+-- Ce que devient le marcheur : distance au point visé et à Henry, tours de l'arbre, arrivées.
+function liaison.voir_le_marcheur()
+  local entite = entite_nommee(liaison.marcheur)
+  if not entite then
+    return "marcheur introuvable"
   end
-  return lignes
+  local this_lu, this = pcall(function() return entite.this end)
+  local function variable(nom)
+    if not this_lu or type(this) ~= "table" then return "?" end
+    local ok, valeur = pcall(function() return XGenAIModule.GetBrainVariable(this.id, nom) end)
+    return ok and tostring(valeur) or "?"
+  end
+  local ici = entite:GetWorldPos()
+  local au_point = "-"
+  if liaison.point_vise then
+    au_point = string.format("%.1f", math.sqrt((ici.x - liaison.point_vise.x) ^ 2 + (ici.y - liaison.point_vise.y) ^ 2))
+  end
+  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s", au_point,
+    liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
+    variable("scriptorium_essai_assis"))
 end
 
 -- La distance entre un personnage et Henry, ou nil.
