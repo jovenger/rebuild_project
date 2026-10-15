@@ -1164,10 +1164,10 @@ function liaison.poser_un_combat_d_essai()
   return { defenseur, assaillant }
 end
 
--- Sonde du cerveau à nous (étape 1), une seule chose changée depuis V29 : l'arbre (AI/scriptorium/essai_ordres.xml) est
--- celui qui a fait marcher l'homme, réveillé de même, mais il marche vers un point lu dans une variable de son cerveau
--- (scriptorium_essai_point, vec3), relue à chaque tour. Le point A est posé à la naissance (8 m à gauche d'Henry), le
--- point B par un ordre (8 m à droite).
+-- Sonde du cerveau à nous (étape 1). Depuis V50, son arbre (AI/scriptorium/essai_ordres.xml) est un switch (type 6),
+-- avec les horaires du jeu à côté : il pose les interruptions (ordre 8 : attaquer la cible), les horaires les jouent.
+-- Jusqu'à V49, c'était un simple arbre qui marchait vers un point lu dans une variable de son cerveau
+-- (scriptorium_essai_point, vec3) : point A posé à la naissance (8 m à gauche d'Henry), point B par un ordre.
 liaison.ame_du_marcheur = "3241c366-db25-47da-9710-f621eb79554e"   -- scriptorium_essai_marcheur
 liaison.marcheur = nil
 liaison.point_vise = nil
