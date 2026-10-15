@@ -329,8 +329,16 @@ function faux.creer_objet(personnage, objet, etat, nombre)
   table.insert(faux.inventaires[personnage], { objet = objet, etat = etat, nombre = nombre })
   return true
 end
-function faux.faire_porter(personnage, objets)
+function faux.etat_objet(personnage, objet)
+  for _, o in ipairs(faux.inventaires[personnage] or {}) do
+    if o.objet == objet then return o.etat end
+  end
+  return nil
+end
+function faux.faire_porter(personnage, objets, oter_d_abord)
   local portes, introuvables = 0, {}
+  faux.dernier_porter = { personnage = personnage, objets = objets, oter_d_abord = oter_d_abord }
+  if oter_d_abord then faux.portes[personnage] = {} end
   faux.portes[personnage] = faux.portes[personnage] or {}
   for _, objet in ipairs(objets) do
     if faux.compter_objet(personnage, objet) > 0 then
@@ -363,6 +371,7 @@ function faux.equiper_homme(personnage, ordre)
   end
   for _, objet in ipairs(ordre.creer or {}) do faux.creer_objet(personnage, objet, ordre.etat or 1, 1) end
   if ordre.munition then faux.creer_objet(personnage, ordre.munition.objet, 1, ordre.munition.nombre) end
+  for _, piece in ipairs(ordre.recreer or {}) do faux.creer_objet(personnage, piece.objet, piece.etat, 1) end
   faux.portes[personnage] = {}
   local portes = faux.faire_porter(personnage, ordre.porter or {})
   return "équipé, " .. portes .. " portée(s)"

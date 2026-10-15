@@ -353,6 +353,11 @@
      `armures_de_la_forge`) : à chaque entrée en partie, l'état de chacune est relu (`ItemManager.GetItem(id).health`) et
      noté sur la fiche ; un personnage refait les retrouve, recréées avec cet état (1 sans état connu, écrit au journal),
      au lieu de les perdre.
+- **Essai V71 c** : quatre hommes dans les quatre paillasses (homme d'armes et arbalétrier au palier 1 ; pavoisier et
+  homme d'armes d'hast au palier 3, arme sortie, pour les réponses 2 et 3 de JoVenGer) ; carreaux comptés (20 attendus) ;
+  **la bascule éprouvée seule** (conseil du pair) : sur le premier homme équipé, ses pièces refaites porter sans les ôter,
+  vu, puis une seconde fois, vu ; puis rechargement : l'allure après la remise (ôter puis remettre) comparée à celle de
+  l'embauche.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune

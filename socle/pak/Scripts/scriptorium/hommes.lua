@@ -426,9 +426,10 @@ local function faire_venir(d, f)
   local e = f.equipement
   if e and e.etat ~= "impossible" and (e.naissance_retiree or e.etat == "pret" or e.etat == "a_rhabiller") then
     if #(e.en_plus or {}) > 0 then
-      jeu().journal("Hommes : « " .. f.nom .. " » refait : " .. #e.en_plus .. " pièce(s) donnée(s) perdue(s) avec l'ancien")
+      jeu().journal("Hommes : « " .. f.nom .. " » refait : " .. #e.en_plus .. " pièce(s) donnée(s) recréée(s) avec leur dernier état")
+      e.recreer_en_plus = true
     end
-    e.naissance_retiree, e.etat, e.en_plus, e.otees, e.anciennes = false, "a_equiper", {}, {}, nil
+    e.naissance_retiree, e.etat, e.otees, e.anciennes = false, "a_equiper", {}, nil
   end
   return true
 end
@@ -588,6 +589,11 @@ local function choisir_l_equipement(d, f)
   return true
 end
 
+-- Une pièce donnée (en_plus) : { objet, etat }, son dernier état connu (V71 c) ; une fiche d'avant n'a que l'objet.
+local function objet_de(piece)
+  return type(piece) == "table" and piece.objet or piece
+end
+
 -- Ce qu'il porte, dans l'ordre : pièces de sa tenue, de ses armes, ses munitions, puis les pièces données ensuite, moins
 -- celles qu'il ne porte plus. La dernière pièce d'une même place l'emporte : toujours la même (pair, 15/10).
 local function liste_portee(f)
@@ -602,8 +608,8 @@ local function liste_portee(f)
   if munition then
     table.insert(liste, munition)
   end
-  for _, objet in ipairs(e.en_plus or {}) do
-    table.insert(liste, objet)
+  for _, piece in ipairs(e.en_plus or {}) do
+    table.insert(liste, objet_de(piece))
   end
   for _, objet in ipairs(e.otees or {}) do
     for i = #liste, 1, -1 do
@@ -632,11 +638,27 @@ local function equiper(d, f)
     end
   end
   local munition = jeu().munition_de(e.armes)
+  -- Un personnage refait retrouve les pièces qu'on lui avait données, avec leur dernier état connu (V71 c ; « ce qu'il
+  -- a acheté est à lui », règle de JoVenGer dans Scriptorium).
+  local a_recreer = {}
+  if e.recreer_en_plus then
+    for i, piece in ipairs(e.en_plus) do
+      local etat = type(piece) == "table" and piece.etat or nil
+      if type(etat) ~= "number" then
+        etat = 1
+        jeu().journal("Hommes : « " .. f.nom .. " », état inconnu pour " .. tostring(objet_de(piece)) .. " : recréée neuve")
+      end
+      e.en_plus[i] = { objet = objet_de(piece), etat = etat }
+      table.insert(a_recreer, e.en_plus[i])
+    end
+    e.recreer_en_plus = nil
+  end
   local compte = jeu().equiper_homme(f.personnage, {
     retirer_naissance = not e.naissance_retiree,
     creer = a_creer,
     etat = hommes.equipement.etat_neuf,
     munition = (munition and (e.munitions or 0) > 0) and { objet = munition, nombre = e.munitions } or nil,
+    recreer = a_recreer,
     porter = liste_portee(f),
   })
   e.naissance_retiree = true
@@ -665,8 +687,13 @@ end
 -- préréglages sont recréés au battement suivant. Ses munitions sont complétées jusqu'au nombre de son préréglage.
 local function rhabiller(d, f)
   local e = f.equipement
-  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
+  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f), true)
   e.etat = "pret"
+  -- Le dernier état connu de chaque pièce donnée, pour la recréer telle quelle si le personnage est refait (V71 c).
+  for i, piece in ipairs(e.en_plus or {}) do
+    local etat = jeu().etat_objet(f.personnage, objet_de(piece))
+    e.en_plus[i] = { objet = objet_de(piece), etat = etat or (type(piece) == "table" and piece.etat or nil) }
+  end
   if e.tenue and e.armes then
     local reste = 0
     for _, objet in ipairs(jeu().pieces_de(e.tenue) or {}) do
@@ -1356,7 +1383,7 @@ function hommes.donner_une_piece(id, objet, etat, porter)
       choisir_l_equipement(d, f)
     end
     f.equipement = f.equipement or { en_plus = {}, otees = {}, naissance_retiree = false, etat = "pret" }
-    table.insert(f.equipement.en_plus, objet)
+    table.insert(f.equipement.en_plus, { objet = objet, etat = etat })
     jeu().faire_porter(f.personnage, { objet })
   end
   enregistrer()
@@ -1380,7 +1407,7 @@ function hommes.piece_otee(id, objet)
     return refuser("sans_equipement", f.nom)
   end
   for i = #e.en_plus, 1, -1 do
-    if e.en_plus[i] == objet then
+    if objet_de(e.en_plus[i]) == objet then
       table.remove(e.en_plus, i)
       enregistrer()
       return true

@@ -618,12 +618,47 @@ function poste.essai_equipement_voir()
   return true
 end
 
+-- V71 c : les quatre à voir (un homme d'armes, un arbalétrier pour ses carreaux, le pavoisier et l'homme d'armes
+-- d'hast du palier 3, réponses 2 et 3 de JoVenGer), dans les quatre paillasses du camp.
 function poste.essai_equipement_embaucher()
   local hommes = Scriptorium.hommes
-  local a, ra = hommes.embaucher({ role = "pavoisier", semaines = 4, palier = 3 })
-  local b, rb = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 3, famille = "arme_d_hast" })
-  jeu().journal("Poste : équipement, engagés = " .. tostring(a or ra) .. ", " .. tostring(b or rb))
-  return (a and b) and true or false
+  local ids = {}
+  for _, contrat in ipairs({
+    { role = "homme_d_armes", semaines = 4, palier = 1, famille = "epee_bouclier" },
+    { role = "arbaletrier", semaines = 4, palier = 1 },
+    { role = "pavoisier", semaines = 4, palier = 3 },
+    { role = "homme_d_armes", semaines = 4, palier = 3, famille = "arme_d_hast" },
+  }) do
+    local id, raison = hommes.embaucher(contrat)
+    table.insert(ids, tostring(id or raison))
+  end
+  jeu().journal("Poste : équipement, engagés = " .. table.concat(ids, ", "))
+  poste.battre_les_hommes()
+  return true
+end
+
+-- L'homme posé devant Henry (le dernier vu) sort son arme.
+function poste.essai_equipement_degainer()
+  local hommes = Scriptorium.hommes
+  local f = poste.dernier_vu and hommes.fiche(poste.dernier_vu)
+  if not f then
+    return false
+  end
+  jeu().journal("Poste : " .. f.nom .. ", " .. jeu().degainer(f.personnage))
+  return true
+end
+
+-- La bascule (V71 b) : refaire porter au premier homme toutes ses pièces sans les ôter d'abord.
+function poste.essai_equipement_reporter_sans_oter()
+  local hommes = Scriptorium.hommes
+  local id = hommes.liste()[1]
+  local f = id and hommes.fiche(id)
+  if not f then
+    return false
+  end
+  local portes, introuvables = jeu().faire_porter(f.personnage, hommes.ce_qu_il_porte(id), false)
+  jeu().journal("Poste : " .. f.nom .. ", refait porter sans ôter : " .. tostring(portes) .. " ; " .. #introuvables .. " refusée(s)")
+  return true
 end
 
 function poste.essai_equipement_monter()
@@ -655,6 +690,7 @@ function poste.essai_equipement_ici_suivant()
     return false
   end
   prochain_vu = prochain_vu % #liste + 1
+  poste.dernier_vu = liste[prochain_vu]
   local f = hommes.fiche(liste[prochain_vu])
   jeu().journal("Poste : " .. f.nom .. " (" .. f.role .. ", palier " .. tostring(f.palier) .. "), "
     .. jeu().poser_devant_henry(f.personnage))
@@ -1080,6 +1116,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_signature_ranger", fonction = function() return poste.essai_signature_ranger() end, aide = "Refait porter ses pièces et retire celles de la signature de naissance (garde-fous)" },
   { nom = "scriptorium_essai_equipement_voir", fonction = function() return poste.essai_equipement_voir() end, aide = "Équipement de chaque homme : préréglages, état, pièces dans son sac, munitions (V71 b)" },
   { nom = "scriptorium_essai_equipement_embaucher", fonction = function() return poste.essai_equipement_embaucher() end, aide = "Embauche un pavoisier et un homme d'armes (armes d'hast), palier 3" },
+  { nom = "scriptorium_essai_equipement_degainer", fonction = function() return poste.essai_equipement_degainer() end, aide = "L'homme posé devant Henry sort son arme (V71 c)" },
+  { nom = "scriptorium_essai_equipement_reporter_sans_oter", fonction = function() return poste.essai_equipement_reporter_sans_oter() end, aide = "Refait porter au premier homme toutes ses pièces sans les ôter (la bascule, V71 c)" },
   { nom = "scriptorium_essai_equipement_monter", fonction = function() return poste.essai_equipement_monter() end, aide = "Le premier homme monte d'un palier" },
   { nom = "scriptorium_essai_equipement_donner", fonction = function() return poste.essai_equipement_donner() end, aide = "Donne au premier homme une pièce de soldier_generic_6_01, état 0,5, portée" },
   { nom = "scriptorium_essai_equipement_ici_suivant", fonction = function() return poste.essai_equipement_ici_suivant() end, aide = "Pose l'homme suivant à 3 m devant Henry" },

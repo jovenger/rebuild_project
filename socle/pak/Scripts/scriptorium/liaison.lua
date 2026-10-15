@@ -988,21 +988,34 @@ function liaison.creer_objet(personnage, objet, etat, nombre)
   return ok
 end
 
--- Fait porter chaque objet, dans l'ordre (une pièce de cette classe trouvée dans le sac). Rend le nombre de pièces
--- portées et la liste des objets introuvables.
-function liaison.faire_porter(personnage, objets)
+local function trouver(entite, personnage, objet)
+  if liaison.compter_objet(personnage, objet) == 0 then
+    return nil
+  end
+  local trouve, id = pcall(function() return entite.inventory:FindItem(objet) end)
+  return trouve and id or nil
+end
+
+-- Fait porter chaque objet, dans l'ordre (une pièce de cette classe trouvée dans le sac). « oter_d_abord » : toutes ses
+-- pièces ôtées d'abord (V71 b : refaire porter une pièce déjà portée semble l'ôter ; ôtées puis remises, l'allure est
+-- toujours la même). Rend le nombre de pièces portées et la liste des objets introuvables ou refusés.
+function liaison.faire_porter(personnage, objets, oter_d_abord)
   local entite = porteur(personnage)
   local introuvables = {}
   if not entite then
     return 0, objets
   end
+  if oter_d_abord then
+    for _, objet in ipairs(objets) do
+      local id = trouver(entite, personnage, objet)
+      if id then
+        pcall(function() entite.actor:UnequipInventoryItem(id) end)
+      end
+    end
+  end
   local portes = 0
   for _, objet in ipairs(objets) do
-    local id = nil
-    if liaison.compter_objet(personnage, objet) > 0 then
-      local trouve, valeur = pcall(function() return entite.inventory:FindItem(objet) end)
-      id = trouve and valeur or nil
-    end
+    local id = trouver(entite, personnage, objet)
     if id and pcall(function() entite.actor:EquipInventoryItem(id) end) then
       portes = portes + 1
     else
@@ -1010,6 +1023,28 @@ function liaison.faire_porter(personnage, objets)
     end
   end
   return portes, introuvables
+end
+
+-- Le personnage sort son arme (forme de Player:CheatGiveSword, Scripts/Entities/actor/player.lua) : une arme d'hast
+-- rangée ne se voit pas (règle de JoVenGer dans Scriptorium). Pour le poste d'essai.
+function liaison.degainer(personnage)
+  local entite = porteur(personnage)
+  if not entite then
+    return "introuvable"
+  end
+  local ok, erreur = pcall(function() entite.human:DrawWeapon() end)
+  return ok and "arme sortie" or ("refusé : " .. tostring(erreur))
+end
+
+-- L'état d'une pièce de cet objet dans son sac (V71 a3 : ItemManager.GetItem(id).health), ou nil.
+function liaison.etat_objet(personnage, objet)
+  local entite = porteur(personnage)
+  local id = entite and trouver(entite, personnage, objet)
+  if not id then
+    return nil
+  end
+  local lu, piece = pcall(function() return ItemManager.GetItem(id) end)
+  return (lu and type(piece) == "table") and tonumber(piece.health) or nil
 end
 
 -- Retire de son sac une pièce de cet objet. Rend vrai si le compte a baissé.
@@ -1036,7 +1071,10 @@ function liaison.equiper_homme(personnage, ordre)
     for _, id in pairs((ok and type(liste) == "table") and liste or {}) do
       local lu, objet = pcall(function() return ItemManager.GetItem(id) end)
       local classe = (lu and type(objet) == "table") and string.lower(tostring(objet.class)) or nil
-      if classe and classe ~= liaison.objet_de_la_bourse and pcall(function() entite.inventory:DeleteItem(id, 1) end) then
+      -- Une pile (carreaux, flèches) se retire entière : DeleteItem(id, 1) n'en ôtait qu'un (V71 b).
+      local nombre = (lu and type(objet) == "table") and tonumber(objet.amount) or 1
+      if classe and classe ~= liaison.objet_de_la_bourse
+         and pcall(function() entite.inventory:DeleteItem(id, math.max(nombre or 1, 1)) end) then
         retires = retires + 1
       end
     end
@@ -1050,7 +1088,12 @@ function liaison.equiper_homme(personnage, ordre)
   if ordre.munition then
     liaison.creer_objet(personnage, ordre.munition.objet, 1, ordre.munition.nombre)
   end
-  local portes, introuvables = liaison.faire_porter(personnage, ordre.porter or {})
+  for _, piece in ipairs(ordre.recreer or {}) do
+    if liaison.creer_objet(personnage, piece.objet, piece.etat, 1) then
+      crees = crees + 1
+    end
+  end
+  local portes, introuvables = liaison.faire_porter(personnage, ordre.porter or {}, true)
   return string.format("%d pièce(s) de naissance retirée(s), %d créée(s), %d portée(s), %d introuvable(s)", retires, crees,
     portes, #introuvables)
 end

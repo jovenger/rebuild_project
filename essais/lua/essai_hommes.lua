@@ -643,6 +643,7 @@ essai("équipement : à chaque entrée en partie, chacun remet ses propres pièc
   egal(hommes.fiche(id).equipement.etat, "pret", "rhabillé")
   egal(#FauxJeu.portes[p], #hommes.ce_qu_il_porte(id), "toutes ses pièces remises")
   egal(FauxJeu.portes[p][1], hommes.ce_qu_il_porte(id)[1], "dans l'ordre")
+  egal(FauxJeu.dernier_porter.oter_d_abord, true, "toutes ôtées d'abord, puis remises (même allure)")
   egal(#FauxJeu.equipements, 1, "rien de recréé")
   egal(a_dans_le_sac(id, "scriptorium_archer_1_munition"), 25, "flèches complétées jusqu'au nombre du préréglage")
 end)
@@ -737,18 +738,30 @@ essai("équipement : un homme d'avant l'équipement (fiche sans équipement) est
   egal(a_dans_le_sac(id, "naissance_tunique"), 0, "tenue de naissance retirée")
 end)
 
-essai("équipement : un personnage refait est rééquipé, sa tenue de naissance retirée de nouveau", function()
+essai("équipement : un personnage refait est rééquipé, sa tenue de naissance retirée de nouveau, ses pièces données recréées avec leur dernier état", function()
   preparer(200, 10, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
   hommes.battre()
-  hommes.donner_une_piece(id, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", 0.4, true)
-  FauxJeu.personnages_existants[personnage_de(id)] = nil
+  local piece = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  hommes.donner_une_piece(id, piece, 0.4, true)
+  egal(hommes.fiche(id).equipement.en_plus[1].etat, 0.4, "état noté au don")
+  local p = personnage_de(id)
+  for _, o in ipairs(FauxJeu.inventaires[p]) do
+    if o.objet == piece then o.etat = 0.25 end
+  end
   hommes.relancer()
-  egal(personnage_de(id) ~= nil, true, "refait")
+  hommes.battre()
+  egal(hommes.fiche(id).equipement.en_plus[1].etat, 0.25, "dernier état relu à l'entrée en partie")
+  FauxJeu.personnages_existants[p] = nil
+  hommes.relancer()
+  egal(personnage_de(id) ~= p, true, "refait")
   egal(hommes.fiche(id).equipement.etat, "a_equiper", "à rééquiper")
-  egal(#hommes.fiche(id).equipement.en_plus, 0, "pièces données perdues avec l'ancien")
+  egal(#hommes.fiche(id).equipement.en_plus, 1, "pièce donnée gardée sur la fiche")
   hommes.battre()
   egal(#FauxJeu.equipements, 2, "rééquipé")
   egal(FauxJeu.equipements[2].ordre.retirer_naissance, true, "tenue de naissance du nouveau retirée")
   egal(a_dans_le_sac(id, "naissance_tunique"), 0, "plus de tunique de naissance")
+  egal(a_dans_le_sac(id, piece), 1, "pièce donnée recréée")
+  egal(FauxJeu.etat_objet(personnage_de(id), piece), 0.25, "avec son dernier état")
+  egal(hommes.ce_qu_il_porte(id)[#hommes.ce_qu_il_porte(id)], piece, "et portée après sa tenue")
 end)
