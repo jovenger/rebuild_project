@@ -238,6 +238,21 @@
   (mêmes états qu'en V71 a2). **Conséquence** : la règle du 5/10 (garder l'usure et les réparations) est tenue par le
   jeu lui-même si chaque pièce est créée une à une ; pas de repose depuis le registre. **Non vérifié** : quelles pièces
   l'homme porte après le rechargement (les nôtres, ou celles de naissance revenues) ; à voir de près (V71 a4).
+- **Essai V71 a4** (diagnostic) : sur le témoin, les 11 pièces de `soldier_generic_5_01`, l'épée et l'écu créés un à
+  un à l'état 0,6, puis portés ; le témoin posé à 3 m devant Henry, face à lui, pour le voir de près (on déplace
+  l'homme, jamais Henry). Puis **deux rechargements de suite** (conseil du pair) : à chacun, l'inventaire trié (nos
+  pièces : objet de la tenue et état 0,6 ; les autres) et une vue de près. Enfin nos pièces refaites porter
+  (`EquipInventoryItem`) et revues. Lecture : ce qu'il porte après le rechargement ; la tenue de naissance s'empile-t-elle
+  (alors la retirer à chaque entrée en partie, sans toucher à nos pièces) ; refaire porter suffit-il.
+- **Mesuré en V71 a4** (15/10) : nos 13 pièces créées une à une restent à l'inventaire après un puis deux
+  rechargements (état 0,6 gardé) ; **mais à chaque chargement le jeu rhabille l'homme de sa tenue de naissance** : nos
+  pièces ne sont plus portées. La tenue de naissance **ne s'empile pas** (11 objets après chaque chargement). **Refaire
+  porter nos pièces marche** (13 sur 13, vu de près) ; une pièce de naissance dont la place n'est pas prise par une des
+  nôtres reste portée (le tabard rouge). Pour un aspect net, il faudrait aussi ôter ou retirer la tenue de naissance à
+  chaque entrée en partie (non essayé). **Ceci touche la règle validée « rien au rechargement »** : question à JoVenGer.
+- **Le chemin d'équipement qui en découle** (pair, 15/10) : lire dans les tables du jeu la liste des objets de chaque
+  préréglage (`clothing_preset.xml`, `weapon_preset.xml`) par un outil du dépôt, et créer chaque pièce une à une ; les
+  choix de JoVenGer (préréglages par grade et par famille) restent valables tels quels.
 - **Pour la repose, s'il le faut** : le jeu crée un objet avec son état (`ItemManager.CreateItem(identifiant, état,
   nombre)`, `Scripts/Utils/ItemUtils.lua`) ; reste à savoir **lire** l'état d'une pièce portée : la sonde relève ce que
   rendent `inventory:GetInventoryTable()` et les fonctions d'`ItemManager` sur le témoin. **Vu en V71 a2** : l'état se lit

@@ -654,6 +654,23 @@ function poste.essai_objets_relire()
   return qui ~= nil
 end
 
+-- V71 a4 (fiche 13) : le témoin armé pièce par pièce, vu de près, après un puis deux rechargements.
+local function sur_le_temoin(action)
+  local qui, nom = premier_homme()
+  jeu().journal("Poste : témoin " .. tostring(nom) .. ", " .. action(qui))
+  return qui ~= nil
+end
+
+function poste.essai_temoin_armer() return sur_le_temoin(jeu().armer_le_temoin) end
+function poste.essai_temoin_ici() return sur_le_temoin(jeu().poser_devant_henry) end
+function poste.essai_temoin_voir() return sur_le_temoin(jeu().voir_le_temoin) end
+function poste.essai_temoin_reporter()
+  return sur_le_temoin(function(qui)
+    local portes, notres = jeu().faire_porter_la_sonde(qui)
+    return string.format("%d pièce(s) refaite(s) porter sur %d ; %s", portes, notres, jeu().voir_le_temoin(qui))
+  end)
+end
+
 function poste.essai_equiper_tenue() return equiper_la_sonde("tenue") end
 function poste.essai_equiper_tenue_2() return equiper_la_sonde("tenue_2") end
 function poste.essai_equiper_armes() return equiper_la_sonde("armes") end
@@ -969,6 +986,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_sonde_objets", fonction = function() return poste.essai_sonde_objets() end, aide = "Ce que rendent GetInventoryTable et ItemManager pour le premier homme" },
   { nom = "scriptorium_essai_objets_creer", fonction = function() return poste.essai_objets_creer() end, aide = "Crée trois objets avec leur état sur le premier homme, et habille l'habitant le plus proche (V71 a3)" },
   { nom = "scriptorium_essai_objets_relire", fonction = function() return poste.essai_objets_relire() end, aide = "Relit les objets créés (nombre, état) et la tenue de l'habitant" },
+  { nom = "scriptorium_essai_temoin_armer", fonction = function() return poste.essai_temoin_armer() end, aide = "Crée et fait porter au premier homme la tenue lourde, l'épée et l'écu, pièce par pièce, état 0,6 (V71 a4)" },
+  { nom = "scriptorium_essai_temoin_ici", fonction = function() return poste.essai_temoin_ici() end, aide = "Pose le premier homme à 3 m devant Henry, face à lui" },
+  { nom = "scriptorium_essai_temoin_voir", fonction = function() return poste.essai_temoin_voir() end, aide = "Trie l'inventaire du premier homme : nos pièces (état 0,6) et les autres" },
+  { nom = "scriptorium_essai_temoin_reporter", fonction = function() return poste.essai_temoin_reporter() end, aide = "Refait porter au premier homme nos pièces" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },

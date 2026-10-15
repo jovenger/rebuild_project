@@ -2250,6 +2250,103 @@ function liaison.compter_l_habitant()
   return nom .. " : " .. liaison.compter_l_equipement(nom)
 end
 
+-- V71 a4 (fiche 13) : ce que le témoin porte après un, puis deux rechargements. Toute la tenue lourde de la sonde
+-- (soldier_generic_5_01), son épée et son écu créés un à un à l'état 0,6 et portés ; la tenue de naissance
+-- s'empile-t-elle à chaque chargement ; nos pièces refaites porter.
+liaison.etat_de_la_sonde_a4 = 0.6
+
+local function pieces_de_la_sonde_a4()
+  local s = liaison.sonde_d_equipement
+  local liste = {}
+  for _, id in ipairs(s.tenues[2].pieces) do
+    table.insert(liste, id)
+  end
+  table.insert(liste, s.armes.epee)
+  table.insert(liste, s.armes.bouclier)
+  return liste
+end
+
+-- Les objets de l'inventaire en deux listes d'identifiants : les nôtres (objet de la sonde à l'état 0,6) et les autres.
+local function trier_l_inventaire(entite)
+  local a_nous = {}
+  for _, id in ipairs(pieces_de_la_sonde_a4()) do
+    a_nous[string.lower(id)] = true
+  end
+  local notres, autres = {}, {}
+  local ok, liste = pcall(function() return entite.inventory:GetInventoryTable() end)
+  if not ok or type(liste) ~= "table" then
+    return notres, autres
+  end
+  for _, id in pairs(liste) do
+    local lu, objet = pcall(function() return ItemManager.GetItem(id) end)
+    if lu and type(objet) == "table" and a_nous[string.lower(tostring(objet.class))]
+       and math.abs((tonumber(objet.health) or -1) - liaison.etat_de_la_sonde_a4) < 0.001 then
+      table.insert(notres, id)
+    else
+      table.insert(autres, id)
+    end
+  end
+  return notres, autres
+end
+
+-- Fait porter au personnage chacune de nos pièces. Rend le nombre de pièces acceptées et le nombre de pièces.
+function liaison.faire_porter_la_sonde(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return 0, 0
+  end
+  local notres = trier_l_inventaire(entite)
+  local portes = 0
+  for _, id in ipairs(notres) do
+    if pcall(function() entite.actor:EquipInventoryItem(id) end) then
+      portes = portes + 1
+    end
+  end
+  return portes, #notres
+end
+
+function liaison.armer_le_temoin(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local crees = 0
+  for _, objet in ipairs(pieces_de_la_sonde_a4()) do
+    if pcall(function() entite.inventory:CreateItem(objet, liaison.etat_de_la_sonde_a4, 1) end) then
+      crees = crees + 1
+    end
+  end
+  local portes, notres = liaison.faire_porter_la_sonde(qui)
+  return string.format("%d pièce(s) créée(s) sur %d, %d portée(s) sur %d trouvée(s) ; %s", crees, #pieces_de_la_sonde_a4(),
+    portes, notres, liaison.voir_le_temoin(qui))
+end
+
+function liaison.voir_le_temoin(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local notres, autres = trier_l_inventaire(entite)
+  return string.format("inventaire : %d objet(s), dont %d à nous (état 0,6) et %d autre(s)", #notres + #autres, #notres, #autres)
+end
+
+-- Pose le personnage à 3 m devant Henry, face à lui (on déplace l'homme, jamais Henry : V67).
+function liaison.poser_devant_henry(qui)
+  local entite = entite_nommee(qui)
+  local ok, angles = pcall(function() return player:GetWorldAngles() end)
+  if not entite or not ok or type(angles) ~= "table" or type(angles.z) ~= "number" then
+    return "« " .. tostring(qui) .. " » ou Henry introuvable"
+  end
+  local henry = liaison.position_du_joueur()
+  local a = angles.z
+  local place = liaison.au_sol({ x = henry.x - 3 * math.sin(a), y = henry.y + 3 * math.cos(a), z = henry.z })
+  local pose, erreur = pcall(function()
+    entite:SetWorldPos(place)
+    entite:SetWorldAngles({ x = 0, y = 0, z = a + math.pi })
+  end)
+  return pose and "posé à 3 m devant Henry" or ("refusé : " .. tostring(erreur))
+end
+
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
 -- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
 function liaison.faire_venir_directeur(position, ame)
