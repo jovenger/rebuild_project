@@ -17,11 +17,11 @@
 - La fatigue (« fatigué », « épuisé ») et l'aguerrissement (« bleu », « vétéran ») s'y lisent aussi.
 
 ## Les traits (tirés à l'embauche)
-- Notés de 0 à 100, 50 étant l'ordinaire, tirés au hasard **de 0 à 100** (extrêmes possibles) ; fourchette réglable.
+- Notés de 0 à 100, 50 étant l'ordinaire, tirés **en cloche** autour du milieu de la fourchette (note de JoVenGer ; largeur « étroite » choisie le 15/10) : deux hommes sur trois entre 40 et 60, dix-neuf sur vingt entre 30 et 70, les extrêmes presque jamais. Fourchette et largeur (écart de 10 points) réglables. La cloche : douze tirages de 0 à 1 ajoutés, moins six, fois l'écart, ajoutés au milieu, arrondis et gardés dans la fourchette.
 - **Appétit, endurance, forme** (récupération), **don d'apprendre**, **jugement**, **courage**, **sang-froid**,
   **penchants** pour la boisson, la bagarre, le vol.
-- **Envies** pour le temps libre : le feu, l'entraînement, les dés, le sommeil (chacune de 0 à 100).
-- **Aguerrissement** de départ : de 10 à 40.
+- **Envies** pour le temps libre : le feu, l'entraînement, les dés, le sommeil (chacune de 0 à 100, même cloche que les traits).
+- **Aguerrissement** de départ : de 10 à 40, en cloche autour de 25 (écart de 5 points, réglable) : deux sur trois entre 20 et 30.
 - Le hasard est celui du caractère (sa propre graine au registre) : il ne dérange pas celui des batailles.
 - Ils s'ajoutent aux chiffres que le jeu donne déjà à chaque âme (force, agilité, vitalité, compétences).
 
@@ -98,7 +98,7 @@ Rien : il passe par les hommes (activités, rations, soins), la bataille et la d
 - Directeur : entrée « Connaître ses hommes » de la Gestion du camp.
 
 ## Essais au banc (`essais/lua/essai_caractere.lua`)
-Tirage dans les fourchettes et graine propre ; ration selon l'appétit ; fatigue d'une journée selon endurance et forme,
+Tirage en cloche dans les fourchettes (milieu, dispersion, extrêmes rares, largeur réglable) et graine propre ; ration selon l'appétit ; fatigue d'une journée selon endurance et forme,
 seuils et moral de l'épuisé ; une semaine ordinaire laisse un homme ordinaire d'une compagnie de dix sous 50 de fatigue ; soins selon la forme ; aguerrissement selon le don ; force au combat ; ordre de chute ;
 sang-froid ; chance et poids des fautes ; temps libre (épuisé au lit, choix gardé pour la soirée) ; évolution ;
 découvertes ; rapport en mots ; oubli au départ ; écriture puis relecture.

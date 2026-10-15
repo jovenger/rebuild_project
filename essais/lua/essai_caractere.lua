@@ -42,6 +42,40 @@ local function lignes_avec(motif)
   return n
 end
 
+essai("caractère : tirage en cloche (note de JoVenGer) : autour du milieu, extrêmes rares, largeur réglable", function()
+  preparer(0, true)
+  local n, somme, entre_40_et_60, entre_30_et_70, extremes, hors = 3000, 0, 0, 0, 0, 0
+  for _ = 1, n do
+    local v = caractere.tirer_en_cloche(0, 100, caractere.reglages.trait_ecart)
+    if v < 0 or v > 100 or math.floor(v) ~= v then hors = hors + 1 end
+    somme = somme + v
+    if v >= 40 and v <= 60 then entre_40_et_60 = entre_40_et_60 + 1 end
+    if v >= 30 and v <= 70 then entre_30_et_70 = entre_30_et_70 + 1 end
+    if v <= 5 or v >= 95 then extremes = extremes + 1 end
+  end
+  egal(hors, 0, "tous entiers de 0 à 100")
+  verifier(math.abs(somme / n - 50) < 1, "moyenne vers 50 : " .. somme / n)
+  verifier(entre_40_et_60 / n > 0.62 and entre_40_et_60 / n < 0.78, "deux sur trois entre 40 et 60 : " .. entre_40_et_60 / n)
+  verifier(entre_30_et_70 / n > 0.93, "dix-neuf sur vingt entre 30 et 70 : " .. entre_30_et_70 / n)
+  verifier(extremes <= 1, "extrêmes presque jamais : " .. extremes)
+  local large = 0
+  for _ = 1, n do
+    local v = caractere.tirer_en_cloche(0, 100, 30)
+    if v >= 40 and v <= 60 then large = large + 1 end
+  end
+  verifier(large / n < 0.35, "largeur réglable : à 30, moins d'un sur trois entre 40 et 60 : " .. large / n)
+  local aguerri, hors_aguerri = 0, 0
+  for _ = 1, n do
+    local v = caractere.tirer_en_cloche(10, 40, caractere.reglages.aguerri_ecart)
+    if v < 10 or v > 40 then hors_aguerri = hors_aguerri + 1 end
+    aguerri = aguerri + v
+  end
+  egal(hors_aguerri, 0, "aguerrissement de 10 à 40")
+  verifier(math.abs(aguerri / n - 25) < 0.5, "aguerrissement autour de 25 : " .. aguerri / n)
+  egal(caractere.tirer_en_cloche(0, 100, 0), 50, "écart nul : le milieu")
+  egal(caractere.tirer_en_cloche(50, 50, 10), 50, "fourchette d'un seul point")
+end)
+
 essai("caractère : tirage dans les fourchettes, avec sa propre graine", function()
   local ids = preparer(0, true)
   bataille.fixer_la_graine(77)

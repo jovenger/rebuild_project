@@ -3,7 +3,7 @@
 > **Passe avant ce plan :** la note de JoVenGer `C:\Users\maste\Desktop\Scriptorium\docs\socle\NOTE_POUR_LE_SOCLE.md`,
 > lecture seule (avec `CARTE_DES_REGLES.md` et, à l'étape du guichet seulement, `CONTRAT_DU_SOCLE.md`). Le but : le socle
 > remplace le mod d'Alex **sous Scriptorium**, dont les règles priment ; chaque règle du socle a un interrupteur et passe par
-> un point d'accroche. Ordre : sa partie 2 (retrait sûr et taille du registre — faits le 15/10 —, tirage en cloche, un seul
+> un point d'accroche. Ordre : sa partie 2 (retrait sûr, taille du registre, tirage en cloche — faits le 15/10 —, un seul
 > nom par table), puis ses étapes 1 à 9. Son étape 3 (le « guichet ») remplace l'étape 3 ci-dessous : on ne refait ni la
 > Gestion du camp ni les dialogues du Directeur, que Scriptorium a déjà.
 

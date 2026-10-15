@@ -11,8 +11,10 @@ Scriptorium.caractere = caractere
 caractere.reglages = {
   trait_min = 0,                -- fourchette du tirage des traits et des envies (choix de JoVenGer : de 0 à 100)
   trait_max = 100,
-  aguerri_min = 10,             -- aguerrissement à l'embauche
+  trait_ecart = 10,             -- largeur de la cloche (note de JoVenGer ; « étroite » : 2 sur 3 entre 40 et 60)
+  aguerri_min = 10,             -- aguerrissement à l'embauche, en cloche autour du milieu (25)
   aguerri_max = 40,
+  aguerri_ecart = 5,            -- 2 sur 3 entre 20 et 30
   appetit_facteur_min = 0.5,    -- ration × ce facteur pour l'appétit 0 …
   appetit_facteur_max = 1.5,    -- … et celui-ci pour 100
   fatigue_par_heure = 4,        -- par heure de travail, × (1,5 − endurance ⁄ 100)
@@ -128,11 +130,23 @@ local function tirage(d)
   return Scriptorium.tirer(d.graine)
 end
 
-local function tirer_entre(d, mini, maxi)
+-- Un entier tiré en cloche autour du milieu de la fourchette : douze tirages de 0 à 1 ajoutés, moins six (presque
+-- une loi normale, bornée à six écarts), fois l'écart ; arrondi et gardé dans la fourchette.
+local function tirer_en_cloche(d, mini, maxi, ecart)
   if maxi <= mini then
     return mini
   end
-  return math.min(maxi, mini + math.floor(tirage(d) * (maxi - mini + 1)))
+  local somme = 0
+  for _ = 1, 12 do
+    somme = somme + tirage(d)
+  end
+  local valeur = math.floor((mini + maxi) / 2 + math.max(0, ecart) * (somme - 6) + 0.5)
+  return math.max(mini, math.min(maxi, valeur))
+end
+
+-- Le même tirage, avec le hasard du caractère, pour qui veut tirer un trait (essais, Scriptorium).
+function caractere.tirer_en_cloche(mini, maxi, ecart)
+  return tirer_en_cloche(donnees(), mini, maxi, ecart)
 end
 
 -- La fiche de caractère d'un homme ; tirée au premier usage pour un homme qui n'en a pas (sauvegarde d'avant ce
@@ -148,12 +162,12 @@ local function fiche_de(d, id)
   local r = caractere.reglages
   c = { traits = {}, envies = {}, connus = {}, fatigue = 0, soin_reste = 0, jours = 0, jours_exercice = 0, soir = nil }
   for _, trait in ipairs(caractere.traits) do
-    c.traits[trait.nom] = tirer_entre(d, r.trait_min, r.trait_max)
+    c.traits[trait.nom] = tirer_en_cloche(d, r.trait_min, r.trait_max, r.trait_ecart)
   end
   for _, envie in ipairs(caractere.envies) do
-    c.envies[envie.nom] = tirer_entre(d, r.trait_min, r.trait_max)
+    c.envies[envie.nom] = tirer_en_cloche(d, r.trait_min, r.trait_max, r.trait_ecart)
   end
-  c.aguerri = tirer_entre(d, r.aguerri_min, r.aguerri_max)
+  c.aguerri = tirer_en_cloche(d, r.aguerri_min, r.aguerri_max, r.aguerri_ecart)
   c.forme_d_embauche = c.traits.forme
   d.hommes[id] = c
   return c
