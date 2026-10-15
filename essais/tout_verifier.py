@@ -607,7 +607,8 @@ def verifier_noms():
 # la pose ; chaque autre fichier la reprend par sa première ligne de code ; aucune chaîne ne porte son nom ; aucun nom
 # du socle ne diffère d'un autre par une majuscule seulement, sauf les noms imposés par le moteur.
 REPRISE_DE_LA_TABLE = "local Scriptorium = Scriptorium"
-NOMS_DU_MOTEUR = {"properties": "Properties des classes d'entités, properties de System.SpawnEntity"}
+NOMS_DU_MOTEUR = {"properties": "Properties des classes d'entités, properties de System.SpawnEntity",
+                  "name": "Name de la classe sociale (soul:GetSocialClass().Name, Scripts/Utils/EntityUtils.lua)"}
 
 
 def lignes_de_code(texte):
