@@ -1441,12 +1441,13 @@ end
 -- L'ordre 8 (V45) : le marcheur reçoit le brigand du jeu pour cible (variable wuid) et l'ordre 8 ; son arbre appelle la
 -- fonction d'arbre du jeu callInterrupt_attack (AI/npc/basic/switch/callInterrupt_attack.xml), qui lui pose
 -- l'interruption « attaque » du jeu contre cette cible, sans aucun coup. Rend une ligne.
-function liaison.ordonner_l_attaque()
-  local qui, contre = entite_nommee(liaison.marcheur), entite_nommee(liaison.brigand_du_jeu)
+-- « cible » : le nom de l'entité à attaquer ; le brigand du jeu par défaut (V51 : l'adversaire, qui ne se défend pas).
+function liaison.ordonner_l_attaque(cible)
+  local qui, contre = entite_nommee(liaison.marcheur), entite_nommee(cible or liaison.brigand_du_jeu)
   local this_lu, this = pcall(function() return qui.this end)
   local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(contre) end)
   if not qui or not contre or not this_lu or type(this) ~= "table" or not wuid_lu then
-    return "attaque : marcheur ou brigand du jeu introuvable, ou sans this"
+    return "attaque : marcheur ou cible introuvable, ou sans this"
   end
   local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
   local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 8) end)
