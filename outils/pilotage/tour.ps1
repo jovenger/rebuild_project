@@ -1,5 +1,5 @@
 ﻿# Tour de vue d'Henry en huit images (six pas font un tour complet), assemblées en une planche
-# securite\captures\<Nom>.png. Le jeu doit être lancé ; il est mis au premier plan.
+# D:\socle_captures\captures\<Nom>.png. Le jeu doit être lancé ; il est mis au premier plan.
 param([string]$Nom = "tour")
 . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "touches.ps1")
 if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : pas de tour de vue"; return }

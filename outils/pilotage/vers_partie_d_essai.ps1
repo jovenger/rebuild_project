@@ -4,7 +4,7 @@
 # Sans -Charger : par « Continuer » ; refuse si la sauvegarde que « Continuer » reprendrait (la plus récente par l'heure
 # de son en-tête, mesuré en V59 ; sauvegardes.ps1) n'est pas dans la ligne demandée ; vérifie au journal que c'est bien cette ligne qui se charge, sinon ferme le jeu sans
 # sauvegarder ; dit si le chargement a échoué (retour au menu principal).
-# Avec -Charger : va seulement jusqu'à la liste « Charger partie » et la capture (securite\captures\charger_partie.png),
+# Avec -Charger : va seulement jusqu'à la liste « Charger partie » et la capture (D:\socle_captures\captures\charger_partie.png),
 # sans rien valider ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "<ligne>/<sauvegarde>".
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
 # -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.

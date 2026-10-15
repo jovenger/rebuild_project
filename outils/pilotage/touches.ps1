@@ -1,11 +1,13 @@
 ﻿# Pilotage du jeu pendant un essai (JoVenGer ne tape aucune commande) : touches et mouvements de souris envoyés au
-# jeu seulement s'il est au premier plan, vérifié avant chacun (jamais de touche système), et captures d'écran rangées dans securite\captures du dépôt (hors de git).
+# jeu seulement s'il est au premier plan, vérifié avant chacun (jamais de touche système), et captures d'écran rangées dans D:\socle_captures\captures
+# (décision de JoVenGer du 16/10/2026 : le disque C était plein ; sans disque D, dans securite\captures du dépôt, hors de git).
 # S'emploie par « . outils\pilotage\touches.ps1 », puis Capture, Touche, Marcher, Reculer, Tourner.
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 if (-not ("Cycle.U" -as [type])) {
   Add-Type -Namespace Cycle -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindow(System.IntPtr h, int n); [DllImport("user32.dll")] public static extern bool BringWindowToTop(System.IntPtr h); [DllImport("user32.dll")] public static extern void keybd_event(byte k, byte s, uint f, System.UIntPtr e); [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint p); [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool lier); [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId(); [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint c, uint t); [DllImport("user32.dll")] public static extern void mouse_event(uint f, int dx, int dy, uint d, System.UIntPtr e);'
 }
-$script:Travail = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))) "securite\captures"
+$script:Travail = "D:\socle_captures\captures"
+if (-not (Test-Path "D:\")) { $script:Travail = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))) "securite\captures" }
 New-Item -ItemType Directory -Force $script:Travail | Out-Null
 
 function Jeu-Au-Premier-Plan {

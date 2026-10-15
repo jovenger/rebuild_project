@@ -1,7 +1,7 @@
 ﻿# « Sauvegarder et quitter » dans une PARTIE D'ESSAI seulement (playline2 ou playline3) : refuse si la dernière
 # sauvegarde chargée au journal n'est pas de l'une d'elles ; donne l'alerte si la sauvegarde s'écrit hors de sa ligne. Menu de pause (Échap) : « Sauvegarder et quitter » est la neuvième ligne (huit
 # fois Bas) ; la question « Voulez-vous vraiment sauvegarder et quitter ? » a « Non » choisi : Haut puis Entrée.
-# Captures securite\captures\sauver_menu.png et sauver_oui.png. Le jeu se ferme ; la sauvegarde écrite est affichée.
+# Captures D:\socle_captures\captures\sauver_menu.png et sauver_oui.png. Le jeu se ferme ; la sauvegarde écrite est affichée.
 $journal = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2\kcd.log"
 $sauvegardes = "$env:USERPROFILE\Saved Games\kingdomcome2\saves"
 . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "touches.ps1")
@@ -24,4 +24,4 @@ foreach ($i in 1..60) { Start-Sleep -Seconds 2; if (-not (Get-Process -Name King
 $ecrite = Get-ChildItem $sauvegardes -Recurse -File -Filter *.whs | Where-Object { $_.LastWriteTime -gt $t0 } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($ecrite -and $ecrite.Directory.Name -ne $ligne) { "ALERTE : sauvegarde écrite dans " + $ecrite.Directory.Name + " et non dans " + $ligne + " : " + $ecrite.FullName + " (ne rien faire de plus, prévenir JoVenGer)"; return }
 if ($ecrite) { "sauvegardé : " + $ecrite.Directory.Name + "\" + $ecrite.Name + " (" + $ecrite.LastWriteTime + "), jeu fermé = " + (-not (Get-Process -Name KingdomCome -ErrorAction SilentlyContinue)) }
-else { "aucune sauvegarde écrite : regarder securite\captures\sauver_menu.png et sauver_oui.png" }
+else { "aucune sauvegarde écrite : regarder D:\socle_captures\captures\sauver_menu.png et sauver_oui.png" }

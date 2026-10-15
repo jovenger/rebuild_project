@@ -79,14 +79,14 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 2. `outils\pilotage\debut_essai.ps1` : vérifie la liste d'origine, arrête le veilleur du Scriptorium, ne laisse que
    `scriptorium_socle`.
 3. `outils\pilotage\vers_partie1.ps1` : ferme le jeu sans sauvegarder, contrôle la Partie 1, installe, lance avec
-   `-devmode`, va jusqu'à la sauvegarde 473 ; regarder `securite\captures\choix_473.png`, puis
+   `-devmode`, va jusqu'à la sauvegarde 473 ; regarder `D:\socle_captures\captures\choix_473.png`, puis
    `outils\pilotage\confirmer_partie1.ps1`.
 4. Ordres : `py -3.13 outils\ordonner.py --jeu "<jeu>" scriptorium_essai_aller_nord` (deux fois : le pré fauché),
    puis `_camp`, `_coffre` (trois fois), `_hommes`, `_directeur`, `_enceinte`, `_bataille`, `_voir_bande`, `_frapper`…
    (`--liste` pour tous). Cinq secondes entre deux ordres. Le journal `kcd.log` (racine du jeu) dit le résultat, lignes
    `[Scriptorium]`, écrites par moments.
 5. Voir : `. outils\pilotage\touches.ps1` puis `Capture "nom"`, `Tourner pas`, `Marcher secondes` ;
-   `outils\pilotage\tour.ps1 -Nom x` fait une planche de huit vues. Les images vont dans `securite\captures\`.
+   `outils\pilotage\tour.ps1 -Nom x` fait une planche de huit vues. Les images vont dans `D:\socle_captures\captures\`.
 - Partie d'essai (`playline2`, sauvegarde permise) : `outils\pilotage\vers_partie_d_essai.ps1` (par « Continuer ») ou,
   pour une sauvegarde précise, `vers_partie_d_essai.ps1 -Charger` (s'arrête sur la liste, capture `charger_partie.png`),
   choix à vue, puis `confirmer_sauvegarde.ps1 -Attendu "playline2/<sauvegarde>"`. Le chargement n'est réussi que si la

@@ -1,5 +1,5 @@
 ﻿# Ferme le jeu sans sauvegarder, installe le socle, relance avec -devmode et s'arrête au menu principal (capture
-# securite\captures\menu_principal.png). Ensuite, à vue : appuyer.ps1 -Touches ... -Attendu "playline0/autosave473".
+# D:\socle_captures\captures\menu_principal.png). Ensuite, à vue : appuyer.ps1 -Touches ... -Attendu "playline0/autosave473".
 # Refuse si la Partie 1 n'est plus identique à sa copie d'origine (securite\playline0_…\_etat_d_origine.txt).
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
 # -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.

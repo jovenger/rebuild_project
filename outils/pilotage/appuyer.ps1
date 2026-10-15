@@ -1,5 +1,5 @@
 ﻿# Envoie au jeu une suite de touches, une par une, jeu devant vérifié avant chacune (touches.ps1), puis capture l'écran
-# (securite\captures\<Nom>.png). Après chaque Entrée, regarde au journal si un chargement de sauvegarde a commencé : s'il
+# (D:\socle_captures\captures\<Nom>.png). Après chaque Entrée, regarde au journal si un chargement de sauvegarde a commencé : s'il
 # ne s'agit pas de la sauvegarde attendue (-Attendu, par exemple "playline0/autosave473"), le jeu est arrêté aussitôt,
 # ce qui ne sauvegarde rien (règle de JoVenGer : jamais la partie actuelle avec le socle).
 # Exemple : appuyer.ps1 -Touches "Bas,Bas,Entree" -Attendu "playline0/autosave473" -Nom "menu_charger"
