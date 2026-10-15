@@ -499,8 +499,8 @@ function poste.essai_marcheur_coucher_camp()
   return true
 end
 
-function poste.essai_henry_face_au_marcheur()
-  jeu().journal("Poste : " .. jeu().henry_face_au_marcheur())
+function poste.essai_henry_pres_du_marcheur()
+  jeu().journal("Poste : " .. jeu().henry_pres_du_marcheur())
   return true
 end
 
@@ -780,7 +780,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir_camp", fonction = function() return poste.essai_marcheur_asseoir_camp() end, aide = "Le marcheur s'assoit sur le premier banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_marcheur_coucher_camp", fonction = function() return poste.essai_marcheur_coucher_camp() end, aide = "Le marcheur se couche sur le premier lit du camp (ordre 11)" },
-  { nom = "scriptorium_essai_henry_face_au_marcheur", fonction = function() return poste.essai_henry_face_au_marcheur() end, aide = "Henry posé à 3 m du marcheur, tourné vers lui (pour l'image)" },
+  { nom = "scriptorium_essai_henry_pres_du_marcheur", fonction = function() return poste.essai_henry_pres_du_marcheur() end, aide = "Henry posé à 3 m du marcheur (pour l'image, avec un tour de vue)" },
   { nom = "scriptorium_essai_sieges_relever", fonction = function() return poste.essai_sieges_relever() end, aide = "Propriétés complètes des sièges et lits du jeu à copier ; écart des places d'un banc" },
   { nom = "scriptorium_essai_lit_poser", fonction = function() return poste.essai_lit_poser() end, aide = "Pose près d'Henry une copie du lit du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir", fonction = function() return poste.essai_marcheur_asseoir() end, aide = "Le marcheur s'assoit sur le siège posé (ordre 10)" },

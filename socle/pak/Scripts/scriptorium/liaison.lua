@@ -1909,12 +1909,13 @@ function liaison.ecart_a_l_objet_vise()
   return lu and ecart or nil
 end
 
--- Pour voir à l'image ce que fait le marcheur (V67) : Henry posé à quelques mètres de lui, du côté où il se tenait, le
--- regard tourné vers lui, comme le jeu pose Henry à un point d'apparition (Scripts/GameRules/SinglePlayer.lua :
--- player:SetWorldPos, puis player.actor:PlayerSetViewAngles). Rend une ligne.
+-- Pour voir à l'image ce que fait le marcheur (V67) : Henry posé à quelques mètres de lui, du côté où il se tenait ; un
+-- tour de vue le trouve ensuite. Vu en jeu le 15/10 : tourner aussi le regard par player.actor:PlayerSetViewAngles,
+-- comme le jeu à un point d'apparition (Scripts/GameRules/SinglePlayer.lua), laissait l'écran noir avec l'emblème de
+-- chargement jusqu'à la fermeture du jeu ; on ne s'en sert pas. Rend une ligne.
 liaison.distance_de_vue = 3
 
-function liaison.henry_face_au_marcheur()
+function liaison.henry_pres_du_marcheur()
   local marcheur = entite_nommee(liaison.marcheur)
   if not marcheur then
     return "vue : marcheur introuvable"
@@ -1929,8 +1930,7 @@ function liaison.henry_face_au_marcheur()
     local ici = liaison.au_sol({ x = la.x + dx / longueur * liaison.distance_de_vue,
                                  y = la.y + dy / longueur * liaison.distance_de_vue, z = la.z })
     player:SetWorldPos(ici)
-    player.actor:PlayerSetViewAngles({ x = 0, y = 0, z = math.atan2(-(la.x - ici.x), la.y - ici.y) })
-    return string.format("vue : Henry posé à %.1f m du marcheur, tourné vers lui", liaison.distance_de_vue)
+    return string.format("vue : Henry posé à %.1f m du marcheur", liaison.distance_de_vue)
   end)
   return ok and resultat or ("vue : refusé : " .. tostring(resultat))
 end
