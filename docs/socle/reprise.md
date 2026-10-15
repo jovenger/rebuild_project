@@ -167,6 +167,8 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   tourne sans réveil ; ses variables reviennent à zéro. Fait : à l'entrée en partie, ordres redonnés et manquants
   ramenés (`hommes.relancer`, `directeur.relancer`), réveil à la venue. Attention : la partie d'essai `playline2` est
   au prologue, temps arrêté ; « aller » n'y est pas joué. Les essais de comportements se font sur la Partie 1.
+  **V57** : correctif vérifié en jeu (aucun doublon à l'entrée en partie, ordres redonnés une fois) ; partie d'essai
+  laissée sans camp ni hommes (`scriptorium_essai_tout_lever`, puis sauvegarde).
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

@@ -46,6 +46,8 @@
   chaque entrée en partie, le socle redonne donc à chacun son ordre en cours et fait revenir les manquants
   (`hommes.relancer`, `directeur.relancer`) ; un homme est éveillé à sa venue (`liaison.faire_venir_homme`). Un réveil de
   plus ne gêne pas.
+  Vu en jeu (V57) : à l'instant de l'entrée en partie, les hommes de la sauvegarde sont déjà là (aucun doublon), et
+  leurs ordres sont redonnés une fois.
 - **Compétences de combat** : posables par `soul:AdvanceToSkillLevel` (relu, V53 ; l'appel ne fait que monter, comme
   l'aguerrissement de la fiche 11). À 0, un homme frappe déjà (V52).
 
@@ -83,7 +85,7 @@
   niveaux de compétences (si 3 a ou b), délai entre deux tours du switch.
 
 ## Ce qui reste ouvert (non vérifié), par ordre d'urgence
-- **Réveil** : acquis pour « Sauvegarder et quitter » puis rechargement, homme près d'Henry (V56). Non vérifié : le
+- **Réveil** : acquis pour « Sauvegarder et quitter » puis rechargement, homme près d'Henry (V56, V57). Non vérifié : le
   rechargement en cours de partie (menu de pause), un homme loin d'Henry au chargement, et le sommeil au-delà d'environ
   300 m d'Henry.
 - **La partie d'essai `playline2` est au prologue, temps du jeu arrêté** : l'ordre « aller » y est posé mais pas joué
