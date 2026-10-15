@@ -1599,7 +1599,15 @@ function liaison.voir_le_marcheur()
   texte_adversaire = texte_adversaire .. " ; Henry santé " .. (henry_lu and tostring(henry_sante) or "?")
   local ecart = liaison.ecart_a_l_objet_vise()
   if ecart then
-    texte_adversaire = texte_adversaire .. string.format(" ; à %.2f m de l'objet visé", ecart)
+    local liens_lus, liens = false, nil
+    if this_lu and type(this) == "table" then
+      liens_lus, liens = pcall(function() return XGenAIModule.FindLinks(this.id, "bench") end)
+    end
+    local n = 0
+    if liens_lus and type(liens) == "table" then
+      for _ in pairs(liens) do n = n + 1 end
+    end
+    texte_adversaire = texte_adversaire .. string.format(" ; à %.2f m de l'objet visé, liens « bench » %s", ecart, liens_lus and tostring(n) or "?")
   end
   return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, couchés %s, rejoint %s, combats %s, santé %s%s", au_point,
     liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
@@ -1663,13 +1671,15 @@ function liaison.retirer_le_marcheur()
   return "retirer : « " .. nom .. " » retiré, encore là = " .. tostring(entite_nommee(nom) ~= nil)
 end
 
--- S'asseoir et se coucher (V60, V61). Le jeu fait asseoir et coucher ses personnages par le nœud d'arbre StanceElement,
--- posé sur un « objet intelligent » désigné par son WUID (AI/_lukas/test_lukas_helper.xml : un banc, « sitting » ;
--- AI/special/so_injured.xml : un lit, « lying »), après une marche jusqu'à lui (Move sur le même WUID, arrêt à 0,2 m :
--- AI/quests/zranenylovci/zranenyLovci.xml). Principe transmis par la conversation Scriptorium : un StanceSmartObject et
--- son WUID. Vu en jeu (V60) : sièges et lits du monde sont tous des StanceSmartObject (5 354 autour de Kuttenberg,
--- aucune entité Bed) ; un banc a la sorte « Chair », le type 57cbebae-…, les points d'appui « Sit_1Place_Bench_Low », et
--- un WUID lisible. Sans la marche, l'homme reste debout à sa place (V60).
+-- S'asseoir et se coucher (V60 à V62). Principe transmis par la conversation Scriptorium : un StanceSmartObject et son
+-- WUID. Vu en jeu (V60) : sièges et lits du monde sont tous des StanceSmartObject (5 354 autour de Kuttenberg, aucune
+-- entité Bed) ; un banc a la sorte « Chair », le type so_sitPlace (57cbebae-…), les points d'appui
+-- « Sit_1Place_Bench_Low », et un WUID lisible ; un lit, la sorte GroundBed, NormalBed ou Bench et le type so_bed
+-- (425d4fdf-…). Notre StanceElement sur ce WUID, hébergé ailleurs que sur l'objet, n'assoit pas l'homme : ni sur place
+-- (V60), ni après une marche jusqu'au banc (V61, arrivé à 0,57 m, resté debout). Le jeu, lui, héberge la posture sur
+-- l'objet : son gabarit (Libs/Tables/ai/smartEntity/SmartEntity__so_sitPlace.xml, __so_bed.xml) porte un comportement
+-- « use » (AI/world/so_sitPlace.xml, so_bed.xml : liens « bench », puis StanceElement sur $__object.id), et un personnage
+-- le joue par CallBehavior sur l'objet (AI/crime/mournOnBench.xml). Nos comportements font de même (V62).
 liaison.objet_vise = nil
 liaison.sieges_d_essai = {}
 
