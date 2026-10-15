@@ -1491,6 +1491,24 @@ function liaison.voir_le_garde_du_jeu()
   return ligne
 end
 
+-- Armer le marcheur (V52) : l'arme tirée, comme l'outil de combat du jeu après la naissance de ses combattants
+-- (Scripts/Debug/CombatDebug.lua : human:DrawWeapon). Relève aussi ses compétences de combat (soul:GetSkillLevel), pour
+-- savoir si elles sont nulles. Rend une ligne.
+liaison.competences_de_combat = { "weapon_sword", "heavy_weapons", "weapon_large", "weapon_unarmed", "defense" }
+
+function liaison.armer_le_marcheur()
+  local entite = entite_nommee(liaison.marcheur)
+  if not entite then
+    return "armer : marcheur introuvable"
+  end
+  local tiree, erreur = pcall(function() entite.human:DrawWeapon() end)
+  local niveaux = {}
+  for _, competence in ipairs(liaison.competences_de_combat) do
+    table.insert(niveaux, competence .. " " .. sonder(entite.soul, "GetSkillLevel", competence))
+  end
+  return "armer : arme tirée " .. (tiree and "demandée" or ("refusée : " .. tostring(erreur))) .. " ; " .. table.concat(niveaux, ", ")
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)
@@ -1519,8 +1537,8 @@ function liaison.voir_le_marcheur()
   if adversaire then
     local la = adversaire:GetWorldPos()
     local vie_lue, vie = pcall(function() return adversaire.actor:GetHealth() end)
-    texte_adversaire = string.format(" ; adversaire à %.1f m, à %.1f m d'Henry, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
-      liaison.distance_a_henry(liaison.adversaire) or -1, vie_lue and tostring(vie) or "?")
+    texte_adversaire = string.format(" ; adversaire à %.1f m, à %.1f m d'Henry, santé %s, endurance %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
+      liaison.distance_a_henry(liaison.adversaire) or -1, vie_lue and tostring(vie) or "?", sonder(adversaire.soul, "GetState", "stamina"))
   end
   local henry_lu, henry_sante = pcall(function() return player.actor:GetHealth() end)
   texte_adversaire = texte_adversaire .. " ; Henry santé " .. (henry_lu and tostring(henry_sante) or "?")
