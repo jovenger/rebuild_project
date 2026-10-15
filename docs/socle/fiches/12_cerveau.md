@@ -41,6 +41,11 @@
     `AI/scriptorium/comportements.xml`), déclaré en plus sur l'entité des interruptions du jeu
     (`Libs/Tables/ai/smartEntity/SmartEntity__so_interrupt__scriptorium_socle.xml`), posé par le nœud générique
     `AddInterrupt`. Il lit et écrit les variables du cerveau de l'homme (V55).
+- **Au chargement** (V56, partie d'essai, « Sauvegarder et quitter » puis rechargement) : nos hommes sont encore dans le
+  monde et leur cerveau tourne sans réveil, mais **ses variables reviennent à zéro** (ordre, point, cible, compteurs). À
+  chaque entrée en partie, le socle redonne donc à chacun son ordre en cours et fait revenir les manquants
+  (`hommes.relancer`, `directeur.relancer`) ; un homme est éveillé à sa venue (`liaison.faire_venir_homme`). Un réveil de
+  plus ne gêne pas.
 - **Compétences de combat** : posables par `soul:AdvanceToSkillLevel` (relu, V53 ; l'appel ne fait que monter, comme
   l'aguerrissement de la fiche 11). À 0, un homme frappe déjà (V52).
 
@@ -78,8 +83,13 @@
   niveaux de compétences (si 3 a ou b), délai entre deux tours du switch.
 
 ## Ce qui reste ouvert (non vérifié), par ordre d'urgence
-- **Réveil** à chaque entrée en partie et après rechargement (sans lui, tout le camp serait figé au premier chargement) ;
-  sommeil au-delà d'environ 300 m d'Henry.
+- **Réveil** : acquis pour « Sauvegarder et quitter » puis rechargement, homme près d'Henry (V56). Non vérifié : le
+  rechargement en cours de partie (menu de pause), un homme loin d'Henry au chargement, et le sommeil au-delà d'environ
+  300 m d'Henry.
+- **La partie d'essai `playline2` est au prologue, temps du jeu arrêté** : l'ordre « aller » y est posé mais pas joué
+  (V56), alors qu'il l'était sur la Partie 1 (V55), qui ne se sauvegarde jamais. Hypothèse non vérifiée : les horaires du
+  jeu ne jouent pas d'interruption quand le temps est arrêté. Pour mesurer un rechargement avec le temps qui avance, il
+  faut une partie d'essai sauvegardable hors du prologue (décision de JoVenGer).
 - La table `SmartEntity__so_interrupt__scriptorium_socle.xml` n'est pas annoncée au journal du jeu ; elle est prise
   puisque le comportement est joué (V55).
 - **L'attaque à vue** (une bande qui attaque d'elle-même en voyant le camp) et la riposte : le brigand du jeu n'attaque

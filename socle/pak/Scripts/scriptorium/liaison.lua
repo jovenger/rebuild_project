@@ -757,7 +757,8 @@ liaison.ames = {
 
 -- Fait venir un personnage de la Compagnie et rend son identifiant, ou nil.
 -- La propriété d'âme d'un personnage s'appelle guidSharedSoulId (relevé Lua du jeu, table NPC.Properties).
--- À vérifier en jeu : System.SpawnEntity avec la classe NPC et cette propriété.
+-- Éveillé aussitôt né : sans réveil, le cerveau d'un personnage né par script ne fait qu'un tour (V29). Au
+-- rechargement, il n'en a pas besoin : son cerveau tourne encore (V56).
 function liaison.faire_venir_homme(role, nom, position)
   local ame = liaison.ames[role]
   if ame == nil or position == nil then
@@ -767,7 +768,9 @@ function liaison.faire_venir_homme(role, nom, position)
   local identifiant, raison = faire_naitre("NPC", "scriptorium_" .. nom, position, 0, { guidSharedSoulId = ame })
   if not identifiant then
     liaison.journal("Venue impossible pour « " .. nom .. " » : " .. tostring(raison))
+    return nil
   end
+  liaison.eveiller(identifiant, nom)
   return identifiant
 end
 
@@ -1716,7 +1719,9 @@ function liaison.faire_venir_directeur(position)
   local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { guidSharedSoulId = liaison.ame_du_directeur })
   if not identifiant then
     liaison.journal("Venue impossible pour le Directeur : " .. tostring(raison))
+    return nil
   end
+  liaison.eveiller(identifiant, "Directeur")
   return identifiant
 end
 

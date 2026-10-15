@@ -278,6 +278,26 @@ essai("hommes : les ordres ne partent qu'au changement d'activité", function()
   verifier(FauxJeu.ordres[2].position ~= nil, "avec une position")
 end)
 
+essai("hommes : à l'entrée en partie, l'ordre en cours est redonné à chacun (V56 : le cerveau perd ses variables)", function()
+  preparer(100, 100, 10)
+  hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  FauxJeu.ordres = {}
+  FauxJeu.heure = 10
+  egal(hommes.battre().ordres, 1, "premier ordre")
+  FauxJeu.heure = 10.5
+  egal(hommes.battre().ordres, 0, "même activité : pas d'ordre")
+  local revenus, manquants = hommes.relancer()
+  egal(revenus, 0, "le personnage est encore là : rien ne revient")
+  egal(manquants, 0, "aucun manquant")
+  FauxJeu.heure = 10.75
+  egal(hommes.battre().ordres, 1, "après l'entrée en partie, l'ordre est redonné")
+  egal(FauxJeu.ordres[2].activite, FauxJeu.ordres[1].activite, "le même ordre")
+  egal(hommes.battre().ordres, 0, "puis plus deux fois")
+  FauxJeu.personnages_existants[hommes.fiche(hommes.liste()[1]).personnage] = nil
+  revenus = hommes.relancer()
+  egal(revenus, 1, "un personnage manquant revient à l'entrée en partie")
+end)
+
 essai("hommes : un dizainier pour dix hommes, un capitaine d'office, rétrogradation", function()
   preparer(10000, 1000, 10)
   camp.agrandir()

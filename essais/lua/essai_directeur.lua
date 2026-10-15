@@ -56,6 +56,16 @@ essai("directeur : sa journée, un ordre au changement", function()
   egal(FauxJeu.ordres[2].activite, "veillee", "veillée")
 end)
 
+essai("directeur : à l'entrée en partie, son ordre en cours lui est redonné (V56)", function()
+  preparer(0, 10)
+  FauxJeu.ordres = {}
+  egal(directeur.battre().ordres, 1, "premier ordre")
+  egal(directeur.battre().ordres, 0, "pas deux fois")
+  verifier(directeur.relancer(), "toujours là")
+  egal(directeur.battre().ordres, 1, "redonné après l'entrée en partie")
+  egal(FauxJeu.ordres[2].activite, FauxJeu.ordres[1].activite, "le même ordre")
+end)
+
 essai("directeur : sans Directeur, rien ne se fait ; actions inconnues et paramètres manquants", function()
   depart()
   directeur.retirer_entrees()

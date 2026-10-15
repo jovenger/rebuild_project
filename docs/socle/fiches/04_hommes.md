@@ -21,7 +21,7 @@
 - **Garde :** un poste pour quatre hommes valides le jour (un au plus), un poste pour deux hommes valides la nuit (deux au plus) : **jamais plus de postes que d'hommes** (règle de JoVenGer), et un homme seul dort au lieu de veiller. Tours de veille de trois heures, en rotation ; les blessés ne gardent pas. Quatre postes autour du camp, à douze mètres.
 - **Blessés :** `blesser(id, jours)`. Un blessé se repose sur sa paillasse, ne s'exerce pas et ne garde pas. Chaque jour, un jour de soin en moins ; deux avec un barbier valide au camp.
 - **Départs :** fin de contrat (à l'aube, sauf renouvellement par `renouveler(id, semaines)`), solde impayée, désertion, renvoi par le joueur (`renvoyer`), mort (`retirer(id, "mort")`, par le morceau 5). La paillasse est libérée, le personnage renvoyé, la fiche gardée dans les anciens (cinquante au plus) avec la cause.
-- **Ordres :** à chaque battement, l'activité de chaque homme présent est calculée ; si elle change, le jeu reçoit l'ordre (activité, place, position). Jamais deux fois le même ordre.
+- **Ordres :** à chaque battement, l'activité de chaque homme présent est calculée ; si elle change, le jeu reçoit l'ordre (activité, place, position). Jamais deux fois le même ordre. À l'entrée en partie (nouvelle ou chargée), chacun reçoit de nouveau son ordre en cours et les personnages manquants reviennent : le cerveau d'un homme ne garde pas ses variables à la sauvegarde (V56, fiche 12).
 - **Enregistrement :** après chaque événement (embauche, départ, paie, repas, promotion, blessure).
 
 ## Sorts rendus

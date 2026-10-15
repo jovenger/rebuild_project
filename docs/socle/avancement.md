@@ -118,3 +118,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 15/10/2026 (soir) : V54 : contre un brigand léger du jeu, notre homme le blesse et le met en fuite. Combat de l'étape 1 acquis.
 - 15/10/2026 (soir) : V55 : un comportement à nous joué en interruption (aller au point) marche ; l'architecture du cerveau de nos hommes est trouvée. Suite : fiche 12.
 - 15/10/2026 (soir) : fiche 12 (le cerveau de nos hommes) validée par JoVenGer : architecture adoptée, faction « la Compagnie », compétences selon le niveau puis le caractère, comportements dans l'ordre de la vie du camp après le réveil au chargement.
+- 15/10/2026 (soir) : V56 (réveil au chargement) : nos hommes et leur cerveau survivent à « Sauvegarder et quitter » ; leurs variables non. Ordres redonnés à l'entrée en partie, manquants ramenés, réveil à la venue ; banc vert (1754). Séance fermée par `fin_essai.ps1`.

@@ -163,6 +163,10 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   **Fiche 12 validée par JoVenGer (15/10 au soir)** : architecture adoptée ; faction « la Compagnie » à nous ;
   compétences selon le niveau puis le caractère ; ordre : réveil au chargement, puis garde, rassemblement, poste ou
   travail, suivre Henry, dormir, puis veillées. Prochaine chose : le réveil de nos hommes à chaque entrée en partie.
+  **V56 (15/10)** : après « Sauvegarder et quitter » puis rechargement, nos hommes sont encore là et leur cerveau
+  tourne sans réveil ; ses variables reviennent à zéro. Fait : à l'entrée en partie, ordres redonnés et manquants
+  ramenés (`hommes.relancer`, `directeur.relancer`), réveil à la venue. Attention : la partie d'essai `playline2` est
+  au prologue, temps arrêté ; « aller » n'y est pas joué. Les essais de comportements se font sur la Partie 1.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

@@ -113,6 +113,13 @@ function directeur.redresser()
   return revenu
 end
 
+-- Entrée en partie : son ordre en cours lui est redonné au battement suivant (son cerveau ne garde pas ses variables
+-- à la sauvegarde, V56), et il revient s'il manque.
+function directeur.relancer()
+  donnees().derniere_activite = nil
+  return directeur.redresser()
+end
+
 -- Le Directeur s'en va (le camp est levé).
 function directeur.congedier()
   local d = donnees()

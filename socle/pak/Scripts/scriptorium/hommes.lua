@@ -891,6 +891,18 @@ function hommes.redresser()
   return revenus, manquants
 end
 
+-- Entrée en partie (nouvelle ou chargée). Vu en jeu le 15/10 (V56) : après « Sauvegarder et quitter » puis
+-- rechargement, nos personnages sont encore dans le monde et leur cerveau tourne sans réveil, mais ses variables
+-- reviennent à zéro : l'ordre en cours est perdu. Chaque homme présent reçoit donc de nouveau son ordre au battement
+-- suivant, et les personnages manquants reviennent. Rend (revenus, manquants).
+function hommes.relancer()
+  local d = donnees()
+  for _, id in ipairs(d.ordre) do
+    d.liste[id].derniere_activite = nil
+  end
+  return hommes.redresser()
+end
+
 Scriptorium.declarer_morceau("hommes", function()
   -- Le battement est lancé par le poste d'essai ou par le socle une fois la partie chargée.
 end)
