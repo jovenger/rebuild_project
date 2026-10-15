@@ -117,3 +117,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 15/10/2026 (soir) : V53 : ordre « prairie » vérifié ; l'ordre d'attaque tire l'arme lui-même et l'homme frappe ; compétences posables (AdvanceToSkillLevel) ; le brigand du jeu en armure complète n'est jamais blessé (arrêt, autre ennemi à choisir).
 - 15/10/2026 (soir) : V54 : contre un brigand léger du jeu, notre homme le blesse et le met en fuite. Combat de l'étape 1 acquis.
 - 15/10/2026 (soir) : V55 : un comportement à nous joué en interruption (aller au point) marche ; l'architecture du cerveau de nos hommes est trouvée. Suite : fiche 12.
+- 15/10/2026 (soir) : fiche 12 (le cerveau de nos hommes) validée par JoVenGer : architecture adoptée, faction « la Compagnie », compétences selon le niveau puis le caractère, comportements dans l'ordre de la vie du camp après le réveil au chargement.

@@ -4,8 +4,10 @@
   `Libs/Tables/ai/*__scriptorium_socle.xml`, arbres `AI/scriptorium/`.
 - But (étape 1 de la note de JoVenGer) : que nos hommes vivent, obéissent au Directeur et se battent, comme des
   personnages du jeu, sans rien emprunter au code d'Alex (principes seulement, décision de JoVenGer du 15/10).
-- État : **proposée, à valider par JoVenGer** (questions à cocher). Tout ce qui est marqué « acquis » a été vu en jeu
-  (`essai_en_jeu.md`, V29 à V55, sans `-devmode`) ; le reste est marqué « non vérifié ».
+- État : **validée par JoVenGer le 15/10/2026** (questions à cocher, après lecture par la conversation Scriptorium) :
+  architecture adoptée ; faction « la Compagnie », à nous ; compétences selon le niveau acheté puis le caractère ;
+  comportements dans l'ordre de la vie du camp, après le réveil au chargement. Tout ce qui est marqué « acquis » a été vu
+  en jeu (`essai_en_jeu.md`, V29 à V55, sans `-devmode`) ; le reste est marqué « non vérifié ».
 
 ## Ce que le joueur voit
 - Sur ordre, un homme va au point que le Directeur lui donne et y reste (acquis : « aller au point », V55). Les autres
