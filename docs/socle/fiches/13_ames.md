@@ -275,6 +275,33 @@
 - **Mesuré en V71 a5** (15/10) : **l'identifiant d'un objet change à chaque chargement** (0 de nos 13 pièces reconnues
   par identifiant après le rechargement, 13 par objet et état). Le garde-fou a joué, rien n'a été retiré. Nos pièces ne
   peuvent donc pas être reconnues par un identifiant noté ; le retrait reste à mesurer.
+- **Essai V71 a6** : la tenue de naissance régénérée a été la même dans toutes les séances (mêmes objets, mêmes états à
+  six décimales : 0,121384, 0,130205, 0,133178…), mais toujours lue après un rechargement, jamais à la naissance. Si elle
+  est aussi la même à la naissance, on la reconnaît par sa **signature** (objet et état de chaque pièce) notée à
+  l'embauche, et « à lui » est tout le reste. L'essai : relevé complet de l'inventaire du témoin à la naissance, avant
+  tout, noté dans un jeton ; les 13 pièces créées (état 0,6) et portées ; rechargement, relevé, comparaison ; rangement
+  par signature (ses pièces refaites porter d'abord, puis les pièces de la signature retirées une à une, recompte après
+  chaque retrait ; garde-fous : rien si les pièces « à lui » ne sont pas exactement nos 13) ; vue de près ; second
+  rechargement : la tenue de naissance revient-elle, toujours la même, nos 13 toujours là.
+- **Mesuré en V71 a6** (15/10) : la signature de naissance (11 pièces) est la même à la naissance et après le
+  rechargement, et la reconnaissance par signature est exacte (11 sur 11, nos 13 à part, une pièce de même objet que
+  l'une des nôtres départagée par l'état). Le retrait marche (10 sur 10 ; la bourse, une pile de pièces de monnaie,
+  n'est pas une pièce de tenue : à laisser). **Une fois retirée, la tenue de naissance ne revient pas** : elle n'était
+  pas régénérée mais gardée, comme nos pièces ; ce que le jeu fait au chargement, c'est **ne remettre portées qu'une
+  partie des pièces et ôter les armes** (après le second rechargement : gambison, chapel, gants ; ni écu ni épée).
+  **Conséquences pour V71 b** :
+  1. à l'embauche (et à la naissance d'un homme sans fiche d'équipement), la tenue de naissance est retirée **une fois**,
+     reconnue sans ambiguïté puisqu'elle est tout ce que l'homme a avant qu'on lui crée ses pièces (la bourse gardée) ;
+     **retirer d'abord, faire porter ensuite** (fait dans l'autre ordre, des pièces de naissance encore portées gênent :
+     la tenue lourde n'est complète qu'au second rangement) ;
+  2. à chaque entrée en partie, **refaire porter toutes ses pièces**, armes comprises (un homme par battement, jamais en
+     bataille) : c'est la réponse a de JoVenGer ; le « retrait de la tenue de naissance revenue » devient sans objet,
+     sauf pour un homme embauché avant V71 b (retrait une fois, par la même règle) ;
+  3. ni identifiant noté (il change à chaque chargement), ni signature à garder : le registre garde seulement les noms
+     des préréglages et la famille, les pièces données plus tard étant ajoutées à sa fiche par le service du guichet.
+- **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
+  problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
+  des pièces comptées. À reprendre seulement si la signature se montre fragile.
 - **Ce qui change sans question** (la règle reste celle validée) : la façon d'équiper (pièce par pièce au lieu des
   préréglages de l'outil de combat ; le contenu des préréglages lu dans les tables du jeu par un outil du dépôt) ; le
   registre ne garde que les noms des préréglages (et la famille) de chaque homme, le jeu gardant l'usure ; le filet des

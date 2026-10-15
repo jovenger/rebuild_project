@@ -2451,6 +2451,125 @@ function liaison.ranger_les_pieces_notees(qui)
   return string.format("%d portée(s), %d autre(s) retiré(s) sur %d ; %s", portes, retires, #autres, dire_les_pieces(entite))
 end
 
+-- V71 a6 (fiche 13) : la tenue de naissance reconnue par sa signature (objet et état de chaque pièce, à six décimales),
+-- notée à la naissance avant tout ; « à lui » est tout le reste. Rangement : ses pièces refaites porter, puis celles de la
+-- signature retirées une à une (inventory:DeleteItem(id, 1)), recompte après chaque retrait.
+liaison.jeton_de_la_signature_sonde = "scriptorium_socle.essai_signature_sonde"
+
+local function pieces_avec_etat(entite)
+  local pieces = {}
+  for _, id in ipairs(objets_de_l_inventaire(entite)) do
+    local lu, objet = pcall(function() return ItemManager.GetItem(id) end)
+    if lu and type(objet) == "table" then
+      table.insert(pieces, { id = id, objet = string.lower(tostring(objet.class)),
+                             cle = string.lower(tostring(objet.class)) .. ":" .. string.format("%.6f", tonumber(objet.health) or -1) })
+    end
+  end
+  return pieces
+end
+
+local function nombre_d_objets(entite)
+  return #objets_de_l_inventaire(entite)
+end
+
+-- Sépare les pièces : celles de la signature (chaque entrée de la signature ne sert qu'une fois) et les autres.
+local function trier_par_signature(entite)
+  local restantes, nombre = {}, 0
+  for cle in string.gmatch(jeton(liaison.jeton_de_la_signature_sonde) or "", "[^,]+") do
+    restantes[cle] = (restantes[cle] or 0) + 1
+    nombre = nombre + 1
+  end
+  local naissance, a_lui = {}, {}
+  for _, p in ipairs(pieces_avec_etat(entite)) do
+    if (restantes[p.cle] or 0) > 0 then
+      restantes[p.cle] = restantes[p.cle] - 1
+      table.insert(naissance, p)
+    else
+      table.insert(a_lui, p)
+    end
+  end
+  return naissance, a_lui, nombre
+end
+
+local function dire_la_signature(entite)
+  local naissance, a_lui, nombre = trier_par_signature(entite)
+  local _, par_etat = pcall(function() return #(trier_l_inventaire(entite)) end)
+  return string.format("inventaire : %d objet(s) ; %d de la signature (sur %d notées), %d à lui ; %s par objet et état 0,6",
+    #naissance + #a_lui, #naissance, nombre, #a_lui, tostring(par_etat))
+end
+
+function liaison.noter_la_naissance(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return { "« " .. tostring(qui) .. " » introuvable" }
+  end
+  local cles = {}
+  for _, p in ipairs(pieces_avec_etat(entite)) do
+    table.insert(cles, p.cle)
+  end
+  table.sort(cles)
+  local ecrit, erreur = pcall(poser_un_jeton, liaison.jeton_de_la_signature_sonde, table.concat(cles, ","))
+  return { string.format("signature de naissance : %d pièce(s), jeton %s", #cles, ecrit and "écrit" or ("refusé : " .. tostring(erreur))),
+           "pièces : " .. table.concat(cles, " ") }
+end
+
+function liaison.relever_l_inventaire(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return { "« " .. tostring(qui) .. " » introuvable" }
+  end
+  local naissance, a_lui = trier_par_signature(entite)
+  local function cles(liste)
+    local t = {}
+    for _, p in ipairs(liste) do
+      table.insert(t, p.cle)
+    end
+    table.sort(t)
+    return table.concat(t, " ")
+  end
+  return { dire_la_signature(entite), "de la signature : " .. cles(naissance), "à lui : " .. cles(a_lui) }
+end
+
+function liaison.ranger_par_signature(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local naissance, a_lui, nombre = trier_par_signature(entite)
+  local de_la_sonde = {}
+  for _, id in ipairs(pieces_de_la_sonde_a4()) do
+    de_la_sonde[string.lower(id)] = true
+  end
+  local justes = 0
+  for _, p in ipairs(a_lui) do
+    if de_la_sonde[p.objet] then
+      justes = justes + 1
+    end
+  end
+  if nombre == 0 or #a_lui ~= #pieces_de_la_sonde_a4() or justes ~= #a_lui then
+    return string.format("rangement refusé : %d pièce(s) « à lui », dont %d de la sonde, pour %d attendues ; %s", #a_lui, justes,
+      #pieces_de_la_sonde_a4(), dire_la_signature(entite))
+  end
+  local portes = 0
+  for _, p in ipairs(a_lui) do
+    if pcall(function() entite.actor:EquipInventoryItem(p.id) end) then
+      portes = portes + 1
+    end
+  end
+  local retires, echecs = 0, 0
+  for _, p in ipairs(naissance) do
+    local avant = nombre_d_objets(entite)
+    pcall(function() entite.inventory:DeleteItem(p.id, 1) end)
+    if nombre_d_objets(entite) == avant - 1 then
+      retires = retires + 1
+    else
+      echecs = echecs + 1
+    end
+  end
+  return string.format("%d portée(s) sur %d ; %d pièce(s) de naissance retirée(s), %d échec(s) ; %s", portes, #a_lui, retires,
+    echecs, dire_la_signature(entite))
+end
+
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
 -- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
 function liaison.faire_venir_directeur(position, ame)

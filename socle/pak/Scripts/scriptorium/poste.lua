@@ -676,6 +676,19 @@ function poste.essai_pieces_creer() return sur_le_temoin(jeu().creer_les_pieces_
 function poste.essai_pieces_voir() return sur_le_temoin(jeu().voir_les_pieces_notees) end
 function poste.essai_pieces_ranger() return sur_le_temoin(jeu().ranger_les_pieces_notees) end
 
+-- V71 a6 (fiche 13) : la tenue de naissance reconnue par sa signature.
+local function lignes_du_temoin(action)
+  local qui, nom = premier_homme()
+  for _, ligne in ipairs(action(qui)) do
+    jeu().journal("Poste : témoin " .. tostring(nom) .. ", " .. ligne)
+  end
+  return qui ~= nil
+end
+
+function poste.essai_naissance_noter() return lignes_du_temoin(jeu().noter_la_naissance) end
+function poste.essai_inventaire_relever() return lignes_du_temoin(jeu().relever_l_inventaire) end
+function poste.essai_signature_ranger() return sur_le_temoin(jeu().ranger_par_signature) end
+
 function poste.essai_equiper_tenue() return equiper_la_sonde("tenue") end
 function poste.essai_equiper_tenue_2() return equiper_la_sonde("tenue_2") end
 function poste.essai_equiper_armes() return equiper_la_sonde("armes") end
@@ -998,6 +1011,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_pieces_creer", fonction = function() return poste.essai_pieces_creer() end, aide = "Crée et fait porter au premier homme 13 pièces, leurs identifiants notés dans un jeton (V71 a5)" },
   { nom = "scriptorium_essai_pieces_voir", fonction = function() return poste.essai_pieces_voir() end, aide = "Reconnaît les pièces notées du premier homme par leur identifiant" },
   { nom = "scriptorium_essai_pieces_ranger", fonction = function() return poste.essai_pieces_ranger() end, aide = "Refait porter les pièces notées et retire toutes les autres (rien si une pièce notée manque)" },
+  { nom = "scriptorium_essai_naissance_noter", fonction = function() return poste.essai_naissance_noter() end, aide = "Note la signature de la tenue de naissance du premier homme (objet et état de chaque pièce, V71 a6)" },
+  { nom = "scriptorium_essai_inventaire_relever", fonction = function() return poste.essai_inventaire_relever() end, aide = "Relève l'inventaire du premier homme et le compare à la signature de naissance" },
+  { nom = "scriptorium_essai_signature_ranger", fonction = function() return poste.essai_signature_ranger() end, aide = "Refait porter ses pièces et retire celles de la signature de naissance (garde-fous)" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
