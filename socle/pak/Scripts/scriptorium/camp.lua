@@ -28,6 +28,11 @@ camp.modeles = {
   coffre = { chemin = "Objects/manmade/common_furniture/chests/chest_fancy_d_big.cgf" },
 }
 
+-- Réglages (fiche 03, choix de JoVenGer du 15/10/2026) : à l'entrée en partie, 0 = ne reposer que les objets qui
+-- manquent ; 1 = retirer et reposer tout le camp à l'identique (ce qui se faisait depuis le 14/10, quand les objets
+-- gardés par la sauvegarde revenaient blancs).
+camp.reglages = { reposer_tout_a_l_entree = 0 }
+
 -- Les sortes qui sont des places (un homme peut les prendre).
 camp.sortes_places = { lit = true, siege = true }
 
@@ -259,13 +264,17 @@ function camp.redresser()
   return reposes, manquants
 end
 
--- Entrée en partie (nouvelle ou chargée) : retire et repose tous les objets du camp. Vu en jeu le 14/10 :
--- les objets gardés par la sauvegarde reviennent blancs, sans texture ; posés à neuf, ils s'affichent bien.
+-- Entrée en partie (nouvelle ou chargée). Choix de JoVenGer (15/10) : ne reposer que ce qui manque. Avec le réglage
+-- reposer_tout_a_l_entree à 1 : retire et repose tous les objets du camp à l'identique (vu en jeu le 14/10 : les objets
+-- gardés par la sauvegarde revenaient blancs, sans texture ; posés à neuf, ils s'affichaient bien).
 -- Rend (reposés, manquants).
 function camp.relancer()
   local d = donnees()
   if not d.fonde then
     return 0, 0
+  end
+  if camp.reglages.reposer_tout_a_l_entree ~= 1 then
+    return camp.redresser()
   end
   for _, objet in pairs(d.objets) do
     if objet.identifiant then

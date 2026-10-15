@@ -68,12 +68,31 @@ essai("camp : bancs et lits posés comme objets du jeu, le feu allumé", functio
   verifier(FauxJeu.feux_allumes[camp.objet_de("feu_central")], "et brûle encore après la relance")
 end)
 
-essai("camp : à l'entrée en partie, tous les objets sont retirés et reposés à neuf", function()
+essai("camp : à l'entrée en partie, seuls les objets qui manquent sont reposés (choix de JoVenGer)", function()
   depart()
+  egal(camp.reglages.reposer_tout_a_l_entree, 0, "réglage validé : seulement les manquants")
   verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
   local avant = #FauxJeu.objets_poses
   local ancien_feu = camp.objet_de("feu_central")
   local reposes, manquants = camp.relancer()
+  egal(reposes, 0, "rien à reposer")
+  egal(manquants, 0, "rien ne manque")
+  egal(#FauxJeu.objets_retires, 0, "rien retiré")
+  egal(camp.objet_de("feu_central"), ancien_feu, "le feu garde son identifiant")
+  FauxJeu.objets_existants[camp.objet_de("siege_1")] = nil
+  reposes, manquants = camp.relancer()
+  egal(reposes, 1, "le siège manquant est reposé")
+  egal(#FauxJeu.objets_poses, avant + 1, "un seul objet posé de plus")
+end)
+
+essai("camp : réglage à 1, à l'entrée en partie, tous les objets sont retirés et reposés à neuf", function()
+  depart()
+  camp.reglages.reposer_tout_a_l_entree = 1
+  verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
+  local avant = #FauxJeu.objets_poses
+  local ancien_feu = camp.objet_de("feu_central")
+  local reposes, manquants = camp.relancer()
+  camp.reglages.reposer_tout_a_l_entree = 0
   egal(reposes, avant, "autant d'objets reposés que posés")
   egal(manquants, 0, "rien ne manque")
   egal(#FauxJeu.objets_retires, avant, "les anciens retirés")
