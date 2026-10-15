@@ -220,6 +220,24 @@ local function nos_personnages()
   return liste
 end
 
+-- Étape 1 de la note de JoVenGer : nos personnages sont-ils connus de l'IA du jeu ? Le premier de nos hommes présents,
+-- comparé au personnage du jeu le plus proche d'Henry.
+function poste.essai_cerveau()
+  local notres = nos_personnages()
+  for _, ligne in ipairs(jeu().sonder_les_cerveaux(notres[1])) do
+    jeu().journal("Poste : cerveau, " .. ligne)
+  end
+  return #notres
+end
+
+-- Les liens de l'habitant le plus proche (moteur et IA).
+function poste.essai_liens()
+  for _, ligne in ipairs(jeu().decrire_les_liens()) do
+    jeu().journal("Poste : liens, " .. ligne)
+  end
+  return true
+end
+
 -- Bataille : ce que le jeu dit d'un ennemi de la bande au contact et d'un de nos hommes (faction, hostilité, cible,
 -- fonctions de leur personnage), puis de chaque ennemi en une ligne (V18, V19).
 function poste.essai_sonder()
@@ -429,6 +447,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_coffre", fonction = function() return poste.essai_coffre() end, aide = "Essai du coffre" },
   { nom = "scriptorium_essai_jetons_ecrire", fonction = function() return poste.essai_jetons_ecrire() end, aide = "Écrit des jetons de 16 000 à 200 000 caractères et les relit" },
   { nom = "scriptorium_essai_jetons_relire", fonction = function() return poste.essai_jetons_relire() end, aide = "Relit les jetons d'essai après rechargement" },
+  { nom = "scriptorium_essai_cerveau", fonction = function() return poste.essai_cerveau() end, aide = "Nos hommes sont-ils connus de l'IA du jeu ? Comparaison avec un habitant" },
+  { nom = "scriptorium_essai_liens", fonction = function() return poste.essai_liens() end, aide = "Liens de l'habitant le plus proche (moteur et IA)" },
   { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },
   { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
   { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },

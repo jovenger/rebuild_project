@@ -282,10 +282,13 @@ local function proprietes_completes(classe, proprietes)
   return resultat
 end
 
+-- Les classes qui naissent avec une copie des propriétés de leur classe, plus les nôtres : les personnages.
+liaison.classes_completees = { NPC = true }
+
 local function faire_naitre(classe, nom, position, cap, proprietes)
   local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
   local angle = cap_vers_moteur(cap)
-  if classe == "NPC" then
+  if liaison.classes_completees[classe] then
     proprietes = proprietes_completes(classe, proprietes)
   end
   local ok, entite = pcall(function()
@@ -987,6 +990,154 @@ function liaison.decrire_personnage(identifiant, autre, avec_fonctions)
   ajouter("soul : GetState(health) = " .. sonder(entite.soul, "GetState", "health") .. " ; IsInCombatMode = "
           .. sonder(entite.soul, "IsInCombatMode") .. " ; IsInCombatDanger = " .. sonder(entite.soul, "IsInCombatDanger")
           .. " ; GetFactionID = " .. sonder(entite.soul, "GetFactionID"))
+  return lignes
+end
+
+-- Ce que le monde de l'IA du jeu sait d'une entité (étape 1 de la note de JoVenGer). Dans les scripts du jeu,
+-- « entite.this » n'existe que pour une entité inscrite auprès de l'IA (AnimStash.lua : « if self.this ~= nil ») ;
+-- l'IA la désigne par son WUID (XGenAIModule.GetMyWUID) et lui attache des liens (XGenAIModule.FindLinks).
+local function decrire_le_cerveau(entite)
+  local lignes = {}
+  local function ajouter(texte) table.insert(lignes, texte) end
+  local lu_nom, nom = pcall(function() return entite:GetName() end)
+  local lu_this, this = pcall(function() return entite.this end)
+  ajouter("« " .. tostring(lu_nom and nom or "?") .. " », classe " .. tostring(entite.class) .. " ; this = "
+          .. (lu_this and type(this) or ("illisible : " .. tostring(this))))
+  local ou_lu, ou = pcall(function() return entite:GetWorldPos() end)
+  if ou_lu and type(ou) == "table" then
+    ajouter(string.format("position %.1f, %.1f, %.1f", ou.x, ou.y, ou.z))
+  end
+  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(entite) end)
+  local texte_du_wuid = tostring(wuid)
+  if wuid_lu and type(Framework) == "table" and type(Framework.WUIDToMsg) == "function" then
+    local lu, message = pcall(Framework.WUIDToMsg, wuid)
+    if lu then texte_du_wuid = tostring(message) end
+  end
+  ajouter("WUID : " .. (wuid_lu and texte_du_wuid or ("refusé : " .. tostring(wuid))))
+  if lu_this and type(this) == "table" then
+    local lu, liens = pcall(function() return XGenAIModule.FindLinks(this.id, "") end)
+    local nombre = 0
+    if lu and type(liens) == "table" then
+      for _ in pairs(liens) do nombre = nombre + 1 end
+    end
+    ajouter("liens : " .. (lu and tostring(nombre) or ("refusé : " .. tostring(liens))))
+    local retour_lu, retour = pcall(function() return XGenAIModule.GetEntityByWUID(wuid) end)
+    ajouter("retour par le WUID : " .. (retour_lu and tostring(retour == entite or (type(retour) == "table" and retour.id == entite.id))
+                                         or ("refusé : " .. tostring(retour))))
+  end
+  local p = type(entite.Properties) == "table" and entite.Properties or {}
+  local ames = {}
+  for cle, valeur in pairs(p) do
+    if type(cle) == "string" and string.find(string.lower(cle), "soul", 1, true) then
+      table.insert(ames, cle .. " = " .. tostring(valeur))
+    end
+  end
+  table.sort(ames)
+  ajouter("propriétés d'âme : " .. (#ames > 0 and table.concat(ames, " ; ") or "aucune"))
+  ajouter("soul : " .. sonder(entite.soul, "GetFactionID") .. " (faction) ; actor = " .. type(entite.actor))
+  return lignes
+end
+
+-- Les liens d'une entité, tels que le moteur les garde (liens posés par la carte : « _!home », « _@camper_work »…) :
+-- une liste de { nom, cible }. Rend aussi la façon de lire qui a marché, ou l'erreur.
+local function liens_de(entite)
+  local liste = {}
+  local lu, nombre = pcall(function() return entite:CountLinks() end)
+  if not lu or type(nombre) ~= "number" then
+    return liste, "CountLinks : " .. tostring(nombre)
+  end
+  -- Plusieurs liens peuvent viser la même cible : GetLinkName(cible, rang) les distingue.
+  local rangs = {}
+  for i = 0, nombre - 1 do
+    local cible_lue, cible = pcall(function() return entite:GetLink(i) end)
+    local nom = "?"
+    if cible_lue and cible ~= nil and type(cible) ~= "table" then
+      local brut = cible
+      local lue, entite_cible = pcall(System.GetEntity, brut)
+      cible = (lue and type(entite_cible) == "table") and entite_cible or nil
+      if not cible then nom = "? (cible " .. type(brut) .. ")" end
+    end
+    if cible_lue and type(cible) == "table" then
+      local rang = rangs[cible.id] or 0
+      rangs[cible.id] = rang + 1
+      local nom_lu, texte = pcall(function() return entite:GetLinkName(cible.id, rang) end)
+      if not (nom_lu and texte) then
+        nom_lu, texte = pcall(function() return entite:GetLinkName(cible.id) end)
+      end
+      if nom_lu and texte then nom = tostring(texte) end
+    end
+    table.insert(liste, { nom = nom, cible = cible_lue and cible or nil })
+  end
+  return liste, string.format("%d lien(s)", nombre)
+end
+
+-- Ce que valent les liens de l'habitant du jeu le plus proche d'Henry : chaque lien du moteur, sa cible, et si l'IA
+-- le connaît aussi (XGenAIModule.FindLinks sous ce nom).
+local function habitant_le_plus_proche()
+  local plus_proche, distance = nil, nil
+  local function chercher_un_habitant()
+    local henry = player:GetWorldPos()
+    for _, rayon in ipairs({ 40, 150 }) do
+      for _, habitant in pairs(System.GetEntitiesInSphereByClass(henry, rayon, "NPC") or {}) do
+        if string.sub(habitant:GetName(), 1, 12) ~= "scriptorium_" then
+          local ou = habitant:GetWorldPos()
+          local ecart = math.sqrt((ou.x - henry.x) ^ 2 + (ou.y - henry.y) ^ 2)
+          if not distance or ecart < distance then plus_proche, distance = habitant, ecart end
+        end
+      end
+      if plus_proche then break end
+    end
+  end
+  pcall(chercher_un_habitant)
+  return plus_proche, distance
+end
+
+function liaison.decrire_les_liens()
+  local habitant, distance = habitant_le_plus_proche()
+  if not habitant then
+    return { "aucun personnage du jeu à moins de 150 m d'Henry" }
+  end
+  local lignes = { string.format("« %s », à %.0f m d'Henry", habitant:GetName(), distance) }
+  local liste, comment = liens_de(habitant)
+  table.insert(lignes, "moteur : " .. comment)
+  for _, lien in ipairs(liste) do
+    local cible = lien.cible
+    local texte_cible = "?"
+    if type(cible) == "table" then
+      local lu, nom = pcall(function() return cible:GetName() end)
+      texte_cible = (lu and tostring(nom) or "?") .. " [" .. tostring(cible.class) .. "]"
+    end
+    local connu = "pas de this"
+    local lu_this, this = pcall(function() return habitant.this end)
+    if lu_this and type(this) == "table" then
+      local lu, trouves = pcall(function() return XGenAIModule.FindLinks(this.id, lien.nom) end)
+      local n = 0
+      if lu and type(trouves) == "table" then for _ in pairs(trouves) do n = n + 1 end end
+      connu = lu and tostring(n) or ("refusé : " .. tostring(trouves))
+    end
+    table.insert(lignes, "  « " .. lien.nom .. " » -> " .. texte_cible .. " ; connu de l'IA : " .. connu)
+  end
+  return lignes
+end
+
+-- Compare un de nos personnages et le personnage du jeu (classe NPC, pas à nous) le plus proche d'Henry. Rend des
+-- lignes pour le journal.
+function liaison.sonder_les_cerveaux(identifiant)
+  local lignes = {}
+  local notre = entite_nommee(identifiant)
+  table.insert(lignes, "le nôtre (" .. tostring(identifiant) .. ") :")
+  if notre then
+    for _, ligne in ipairs(decrire_le_cerveau(notre)) do table.insert(lignes, "  " .. ligne) end
+  else
+    table.insert(lignes, "  introuvable")
+  end
+  local plus_proche, distance = habitant_le_plus_proche()
+  if plus_proche then
+    table.insert(lignes, string.format("celui du jeu, à %.0f m d'Henry :", distance))
+    for _, ligne in ipairs(decrire_le_cerveau(plus_proche)) do table.insert(lignes, "  " .. ligne) end
+  else
+    table.insert(lignes, "aucun personnage du jeu à moins de 150 m d'Henry")
+  end
   return lignes
 end
 
