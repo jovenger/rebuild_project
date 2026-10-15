@@ -265,6 +265,16 @@
   c) chercher encore une ou deux séances à empêcher le jeu de rhabiller (préréglage d'inventaire de l'âme, directives
      Storm) : incertain ;
   d) rien au chargement : les hommes reviennent en tenue de naissance, leur équipement dans le sac.
+- **Essai V71 a5** (avant V71 b, les deux points ouverts de la réponse a) : sur le témoin, les 13 pièces créées une à
+  une ; leurs identifiants (texte de l'identifiant d'objet) notés dans un jeton de la sauvegarde. Après un rechargement :
+  nos pièces reconnues par identifiant (et, pour contrôle, par objet et état 0,6) ; puis **rangement** : nos pièces
+  refaites porter, toutes les autres retirées (`inventory:DeleteItem(id, 1)`, forme de
+  `Scripts/Entities/WH/Triggers/TriggerBase.lua`), vu de près ; puis un second rechargement. Garde-fou : si une seule
+  de nos pièces n'est pas reconnue par son identifiant, rien n'est retiré. Lecture : l'identifiant tient-il ; le retrait
+  marche-t-il ; la tenue de naissance revient-elle après un retrait.
+- **Mesuré en V71 a5** (15/10) : **l'identifiant d'un objet change à chaque chargement** (0 de nos 13 pièces reconnues
+  par identifiant après le rechargement, 13 par objet et état). Le garde-fou a joué, rien n'a été retiré. Nos pièces ne
+  peuvent donc pas être reconnues par un identifiant noté ; le retrait reste à mesurer.
 - **Ce qui change sans question** (la règle reste celle validée) : la façon d'équiper (pièce par pièce au lieu des
   préréglages de l'outil de combat ; le contenu des préréglages lu dans les tables du jeu par un outil du dépôt) ; le
   registre ne garde que les noms des préréglages (et la famille) de chaque homme, le jeu gardant l'usure ; le filet des

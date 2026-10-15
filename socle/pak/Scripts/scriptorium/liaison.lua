@@ -2347,6 +2347,110 @@ function liaison.poser_devant_henry(qui)
   return pose and "posé à 3 m devant Henry" or ("refusé : " .. tostring(erreur))
 end
 
+-- V71 a5 (fiche 13) : nos pièces reconnues par l'identifiant noté à leur création, jamais par leur état ; la tenue de
+-- naissance retirée (inventory:DeleteItem(id, 1), Scripts/Entities/WH/Triggers/TriggerBase.lua). L'identifiant
+-- tient-il après un rechargement ? Garde-fou : si une de nos pièces n'est pas reconnue, rien n'est retiré.
+liaison.jeton_des_pieces_sonde = "scriptorium_socle.essai_pieces_sonde"
+
+local function objets_de_l_inventaire(entite)
+  local ok, liste = pcall(function() return entite.inventory:GetInventoryTable() end)
+  local objets = {}
+  if ok and type(liste) == "table" then
+    for _, id in pairs(liste) do
+      table.insert(objets, id)
+    end
+  end
+  return objets
+end
+
+local function pieces_notees()
+  local notees, nombre = {}, 0
+  for texte in string.gmatch(jeton(liaison.jeton_des_pieces_sonde) or "", "[^,]+") do
+    notees[texte] = true
+    nombre = nombre + 1
+  end
+  return notees, nombre
+end
+
+-- Les objets du personnage en deux listes : les nôtres (identifiant noté) et les autres ; plus le nombre des nôtres
+-- reconnus par objet et état 0,6 (contrôle) et le nombre de pièces notées.
+local function trier_par_identifiant(entite)
+  local notees, nombre = pieces_notees()
+  local notres, autres = {}, {}
+  for _, id in ipairs(objets_de_l_inventaire(entite)) do
+    if notees[tostring(id)] then
+      table.insert(notres, id)
+    else
+      table.insert(autres, id)
+    end
+  end
+  local par_etat = trier_l_inventaire(entite)
+  return notres, autres, #par_etat, nombre
+end
+
+local function dire_les_pieces(entite)
+  local notres, autres, par_etat, nombre = trier_par_identifiant(entite)
+  return string.format("inventaire : %d objet(s) ; %d des nôtres reconnus par identifiant (sur %d notés), %d par objet et "
+    .. "état ; %d autre(s)", #notres + #autres, #notres, nombre, par_etat, #autres)
+end
+
+function liaison.creer_les_pieces_notees(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local avant = {}
+  for _, id in ipairs(objets_de_l_inventaire(entite)) do
+    avant[tostring(id)] = true
+  end
+  for _, objet in ipairs(pieces_de_la_sonde_a4()) do
+    pcall(function() entite.inventory:CreateItem(objet, liaison.etat_de_la_sonde_a4, 1) end)
+  end
+  local textes, portes = {}, 0
+  for _, id in ipairs(objets_de_l_inventaire(entite)) do
+    if not avant[tostring(id)] then
+      table.insert(textes, tostring(id))
+      if pcall(function() entite.actor:EquipInventoryItem(id) end) then
+        portes = portes + 1
+      end
+    end
+  end
+  local ecrit, erreur = pcall(poser_un_jeton, liaison.jeton_des_pieces_sonde, table.concat(textes, ","))
+  return string.format("%d pièce(s) neuve(s) notée(s) (jeton %s, premier « %s »), %d portée(s) ; %s", #textes,
+    ecrit and "écrit" or ("refusé : " .. tostring(erreur)), tostring(textes[1]), portes, dire_les_pieces(entite))
+end
+
+function liaison.voir_les_pieces_notees(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  return dire_les_pieces(entite)
+end
+
+function liaison.ranger_les_pieces_notees(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local notres, autres, _, nombre = trier_par_identifiant(entite)
+  if nombre == 0 or #notres < nombre then
+    return string.format("retrait refusé : %d des nôtres reconnus sur %d notés ; %s", #notres, nombre, dire_les_pieces(entite))
+  end
+  local portes, retires = 0, 0
+  for _, id in ipairs(notres) do
+    if pcall(function() entite.actor:EquipInventoryItem(id) end) then
+      portes = portes + 1
+    end
+  end
+  for _, id in ipairs(autres) do
+    if pcall(function() entite.inventory:DeleteItem(id, 1) end) then
+      retires = retires + 1
+    end
+  end
+  return string.format("%d portée(s), %d autre(s) retiré(s) sur %d ; %s", portes, retires, #autres, dire_les_pieces(entite))
+end
+
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
 -- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
 function liaison.faire_venir_directeur(position, ame)

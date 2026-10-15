@@ -671,6 +671,11 @@ function poste.essai_temoin_reporter()
   end)
 end
 
+-- V71 a5 (fiche 13) : nos pièces reconnues par identifiant, la tenue de naissance retirée.
+function poste.essai_pieces_creer() return sur_le_temoin(jeu().creer_les_pieces_notees) end
+function poste.essai_pieces_voir() return sur_le_temoin(jeu().voir_les_pieces_notees) end
+function poste.essai_pieces_ranger() return sur_le_temoin(jeu().ranger_les_pieces_notees) end
+
 function poste.essai_equiper_tenue() return equiper_la_sonde("tenue") end
 function poste.essai_equiper_tenue_2() return equiper_la_sonde("tenue_2") end
 function poste.essai_equiper_armes() return equiper_la_sonde("armes") end
@@ -990,6 +995,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_temoin_ici", fonction = function() return poste.essai_temoin_ici() end, aide = "Pose le premier homme à 3 m devant Henry, face à lui" },
   { nom = "scriptorium_essai_temoin_voir", fonction = function() return poste.essai_temoin_voir() end, aide = "Trie l'inventaire du premier homme : nos pièces (état 0,6) et les autres" },
   { nom = "scriptorium_essai_temoin_reporter", fonction = function() return poste.essai_temoin_reporter() end, aide = "Refait porter au premier homme nos pièces" },
+  { nom = "scriptorium_essai_pieces_creer", fonction = function() return poste.essai_pieces_creer() end, aide = "Crée et fait porter au premier homme 13 pièces, leurs identifiants notés dans un jeton (V71 a5)" },
+  { nom = "scriptorium_essai_pieces_voir", fonction = function() return poste.essai_pieces_voir() end, aide = "Reconnaît les pièces notées du premier homme par leur identifiant" },
+  { nom = "scriptorium_essai_pieces_ranger", fonction = function() return poste.essai_pieces_ranger() end, aide = "Refait porter les pièces notées et retire toutes les autres (rien si une pièce notée manque)" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
