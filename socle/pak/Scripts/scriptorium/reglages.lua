@@ -19,6 +19,7 @@ reglages.catalogue = {
   { section = "bandeau", morceau = "bandeau", table = "reglages" },
   { section = "coffre", morceau = "coffre", table = "reglages" },
   { section = "camp", morceau = "camp", table = "reglages" },
+  { section = "meubles", morceau = "camp", table = "objets_du_jeu" },
   { section = "hommes", morceau = "hommes", table = "reglages" },
   { section = "soldes", morceau = "hommes", table = "roles" },
   { section = "rangs", morceau = "hommes", table = "rangs", taux = { soudoyer = true, dizainier = true, capitaine = true } },

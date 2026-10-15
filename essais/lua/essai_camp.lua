@@ -95,10 +95,10 @@ essai("camp : réglage à 1, à l'entrée en partie, tous les objets sont retir�
   camp.reglages.reposer_tout_a_l_entree = 0
   egal(reposes, avant, "autant d'objets reposés que posés")
   egal(manquants, 0, "rien ne manque")
-  egal(#FauxJeu.objets_retires, avant, "les anciens retirés")
+  egal(#FauxJeu.objets_retires, avant + 9, "les anciens retirés, meubles et leurs 9 places du jeu")
   local presents = 0
   for _ in pairs(FauxJeu.objets_existants) do presents = presents + 1 end
-  egal(presents, avant, "pas de doublon dans le monde")
+  egal(presents, avant + 9, "pas de doublon dans le monde (meubles et places du jeu)")
   verifier(camp.objet_de("feu_central") ~= nil and camp.objet_de("feu_central") ~= ancien_feu, "le feu a un nouvel identifiant")
 end)
 
@@ -211,6 +211,34 @@ essai("camp : redresser sans aucun homme marche, et sans camp ne fait rien", fun
   egal(reposes, compter_niveau(1), "tout reposé, sans aucun homme")
 end)
 
+essai("camp : meubles utilisables, une place du jeu sur chaque banc et chaque lit (fiche 03, V62, V65)", function()
+  depart()
+  verifier(camp.fonder({ x = 100, y = 200, z = 5 }, 90), "fondation")
+  egal(#FauxJeu.objets_du_jeu, 9, "quatre bancs et cinq lits au niveau 1 : neuf places du jeu")
+  local par_nom = {}
+  for _, o in ipairs(FauxJeu.objets_du_jeu) do par_nom[o.nom] = o end
+  local siege, lit = par_nom["siege_1_assise"], par_nom["lit_1a_couche"]
+  verifier(siege ~= nil and lit ~= nil, "places nommées d'après leur meuble")
+  egal(siege.proprietes.soclass_SmartObjectHelpers, "Sit_1Place_Bench_Low", "le banc : un siège bas")
+  egal(lit.proprietes.soclass_SmartObjectHelpers, "Bed_1Place_Tent", "le lit : un lit de tente (choix de JoVenGer)")
+  local meuble
+  for _, o in ipairs(FauxJeu.objets_poses) do if o.nom == "siege_1" then meuble = o end end
+  verifier(proche(siege.position.x, meuble.position.x) and proche(siege.position.y, meuble.position.y), "la place est sur son meuble")
+  egal(siege.cap, meuble.cap, "même cap que le meuble")
+  egal(camp.objet_du_jeu_de("siege_1"), siege.identifiant, "objet du jeu d'une place du camp")
+  egal(camp.objet_du_jeu_de("feu_central"), nil, "le feu n'a pas de place")
+  -- Après un chargement, rien du camp n'est gardé (V64) : tout est reposé, places comprises, sans doublon.
+  FauxJeu.objets_existants = {}
+  local reposes = camp.redresser()
+  egal(reposes, compter_niveau(1), "tous les meubles reposés")
+  egal(#FauxJeu.objets_du_jeu, 18, "et leurs neuf places")
+  verifier(camp.objet_du_jeu_de("siege_1") ~= siege.identifiant, "l'objet du jeu change d'identifiant, relu à chaque fois")
+  -- Une place perdue seule est reposée seule.
+  FauxJeu.objets_existants[camp.objet_du_jeu_de("lit_1a")] = nil
+  egal(camp.redresser(), 0, "aucun meuble à reposer")
+  egal(#FauxJeu.objets_du_jeu, 19, "seule la place perdue est reposée")
+end)
+
 essai("camp : lever retire tout et permet une nouvelle fondation", function()
   depart()
   camp.fonder({ x = 0, y = 0, z = 0 }, 0)
@@ -221,7 +249,7 @@ essai("camp : lever retire tout et permet une nouvelle fondation", function()
   egal(FauxJeu.en_ecran, nil, "le message de fondation est passé")
   verifier(camp.lever(), "levée")
   egal(camp.est_fonde(), false, "plus fondé")
-  egal(#FauxJeu.objets_retires, compter_niveau(1), "tous retirés")
+  egal(#FauxJeu.objets_retires, compter_niveau(1) + 9, "tous retirés, avec les 9 places du jeu des bancs et des lits")
   local reste = 0
   for _ in pairs(FauxJeu.objets_existants) do reste = reste + 1 end
   egal(reste, 0, "plus rien dans le jeu")

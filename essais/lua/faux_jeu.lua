@@ -17,6 +17,7 @@ local faux = {
   objets_poses = {},      -- { identifiant, sorte, modele, position, cap, nom }
   objets_retires = {},    -- identifiants
   objets_existants = {},  -- identifiant -> true
+  objets_du_jeu = {},     -- { identifiant, nom, position, cap, proprietes } : places posées sur les meubles
   prochain_objet = 1,
   refuser_pose = {},      -- nom -> true : le jeu refuse de poser cet objet
   position_joueur = { x = 0, y = 0, z = 0 },
@@ -64,6 +65,7 @@ function faux.remettre_a_zero()
   faux.objets_poses = {}
   faux.objets_retires = {}
   faux.objets_existants = {}
+  faux.objets_du_jeu = {}
   faux.prochain_objet = 1
   faux.refuser_pose = {}
   faux.position_joueur = { x = 0, y = 0, z = 0 }
@@ -174,6 +176,14 @@ function faux.retirer_objet(identifiant)
   faux.objets_existants[identifiant] = nil
 end
 function faux.objet_existe(identifiant) return faux.objets_existants[identifiant] == true end
+function faux.poser_objet_du_jeu(nom, position, cap, proprietes)
+  if faux.refuser_pose[nom] then return nil end
+  local identifiant = "place_" .. faux.prochain_objet
+  faux.prochain_objet = faux.prochain_objet + 1
+  table.insert(faux.objets_du_jeu, { identifiant = identifiant, nom = nom, position = position, cap = cap, proprietes = proprietes })
+  faux.objets_existants[identifiant] = true
+  return identifiant
+end
 function faux.faire_venir_homme(role, nom, position)
   if faux.refuser_personnage then return nil end
   local identifiant = "personnage_" .. faux.prochain_personnage

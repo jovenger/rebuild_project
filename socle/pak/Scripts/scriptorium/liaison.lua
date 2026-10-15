@@ -1848,6 +1848,18 @@ function liaison.poser_un_siege(genre)
     .. decrire_un_siege(entite_nommee(nom), liaison.distance_a_henry(nom))
 end
 
+-- Donne au marcheur le WUID de l'objet, puis l'ordre. Rend une ligne.
+local function donner_la_place(this, objet, libelle, ordre)
+  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(objet) end)
+  if not wuid_lu then
+    return "place : WUID refusé : " .. tostring(wuid)
+  end
+  local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
+  liaison.objet_vise = objet
+  return string.format("place : %s, %s ; WUID posé %s ; %s", libelle, decrire_un_siege(objet, liaison.ecart_a_l_objet_vise()),
+    tostring(pose), liaison.ordonner_au_marcheur(ordre))
+end
+
 -- L'ordre 10 (s'asseoir) ou 11 (se coucher) : le marcheur reçoit le WUID de la copie posée (sauf « reel ») ou du plus
 -- proche siège ou lit du jeu. Rend une ligne.
 function liaison.ordonner_de_prendre_place(genre, ordre, reel)
@@ -1867,14 +1879,21 @@ function liaison.ordonner_de_prendre_place(genre, ordre, reel)
   if not objet then
     return "place : aucun " .. genre
   end
-  local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(objet) end)
-  if not wuid_lu then
-    return "place : WUID refusé : " .. tostring(wuid)
+  return donner_la_place(this, objet, genre .. " (" .. origine .. ")", ordre)
+end
+
+-- L'ordre 10 ou 11 sur une place du camp, désignée par l'identifiant de son objet du jeu. Rend une ligne.
+function liaison.ordonner_sur_la_place(identifiant, ordre)
+  local marcheur = entite_nommee(liaison.marcheur)
+  local this_lu, this = pcall(function() return marcheur.this end)
+  if not marcheur or not this_lu or type(this) ~= "table" then
+    return "place du camp : marcheur introuvable ou sans this"
   end
-  local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
-  liaison.objet_vise = objet
-  return string.format("place : %s (%s), %s ; WUID posé %s ; %s", genre, origine,
-    decrire_un_siege(objet, liaison.ecart_a_l_objet_vise()), tostring(pose), liaison.ordonner_au_marcheur(ordre))
+  local objet = entite_nommee(identifiant)
+  if not objet then
+    return "place du camp : « " .. tostring(identifiant) .. " » introuvable"
+  end
+  return donner_la_place(this, objet, "place du camp", ordre)
 end
 
 -- L'écart entre le marcheur et l'objet visé, ou nil.
@@ -1953,6 +1972,20 @@ function liaison.faire_venir_directeur(position)
     return nil
   end
   liaison.eveiller(identifiant, "Directeur")
+  return identifiant
+end
+
+-- Pose un objet du jeu (StanceSmartObject) sur un meuble du camp : une place où s'asseoir ou se coucher (V62 ; propriétés
+-- relevées sur des objets réels, V65). Comme les autres objets du socle, il n'est pas gardé par la sauvegarde (V64) ;
+-- bOwnedByHome à false : le camp n'est pas une maison du jeu. Rend son identifiant, ou nil.
+function liaison.poser_objet_du_jeu(nom, position, cap, proprietes)
+  local p = copie_profonde(proprietes)
+  p.bSaved_by_game = false
+  p.bOwnedByHome = false
+  local identifiant, raison = faire_naitre("StanceSmartObject", "scriptorium_" .. nom, liaison.au_sol(position), cap, p)
+  if not identifiant then
+    liaison.journal("Pose impossible pour la place « " .. nom .. " » : " .. tostring(raison))
+  end
   return identifiant
 end
 

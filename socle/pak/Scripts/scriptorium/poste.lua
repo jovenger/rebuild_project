@@ -488,6 +488,17 @@ function poste.essai_marcheur_coucher_reel()
   return true
 end
 
+-- Meubles utilisables (V66) : le marcheur s'assoit sur le premier banc du camp, se couche sur le premier lit.
+function poste.essai_marcheur_asseoir_camp()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_sur_la_place(Scriptorium.camp.objet_du_jeu_de("siege_1"), 10))
+  return true
+end
+
+function poste.essai_marcheur_coucher_camp()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_sur_la_place(Scriptorium.camp.objet_du_jeu_de("lit_1a"), 11))
+  return true
+end
+
 function poste.essai_marcheur_retirer()
   jeu().journal("Poste : marcheur, " .. jeu().retirer_le_marcheur())
   return true
@@ -762,6 +773,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_retirer", fonction = function() return poste.essai_marcheur_retirer() end, aide = "Retire le marcheur du monde" },
   { nom = "scriptorium_essai_sieges_sonder", fonction = function() return poste.essai_sieges_sonder() end, aide = "Les sièges et lits du jeu les plus proches d'Henry" },
   { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
+  { nom = "scriptorium_essai_marcheur_asseoir_camp", fonction = function() return poste.essai_marcheur_asseoir_camp() end, aide = "Le marcheur s'assoit sur le premier banc du camp (ordre 10)" },
+  { nom = "scriptorium_essai_marcheur_coucher_camp", fonction = function() return poste.essai_marcheur_coucher_camp() end, aide = "Le marcheur se couche sur le premier lit du camp (ordre 11)" },
   { nom = "scriptorium_essai_sieges_relever", fonction = function() return poste.essai_sieges_relever() end, aide = "Propriétés complètes des sièges et lits du jeu à copier ; écart des places d'un banc" },
   { nom = "scriptorium_essai_lit_poser", fonction = function() return poste.essai_lit_poser() end, aide = "Pose près d'Henry une copie du lit du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir", fonction = function() return poste.essai_marcheur_asseoir() end, aide = "Le marcheur s'assoit sur le siège posé (ordre 10)" },

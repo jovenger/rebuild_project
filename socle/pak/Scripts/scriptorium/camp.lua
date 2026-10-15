@@ -33,6 +33,25 @@ camp.modeles = {
 -- gardés par la sauvegarde revenaient blancs).
 camp.reglages = { reposer_tout_a_l_entree = 0 }
 
+-- Les objets du jeu posés sur les meubles du camp pour qu'on puisse s'y asseoir ou s'y coucher (fiche 03, « Meubles
+-- utilisables », validée par JoVenGer le 15/10 ; acquis en jeu, V62). Propriétés relevées sur des objets réels du jeu
+-- (V65 : un siège bas de banc, un lit de tente). Une place de jeu par meuble (une place du camp = un homme) ; son
+-- décalage par rapport au meuble : x à droite, y devant (mètres), cap ajouté à celui du meuble (degrés), réglables.
+-- Relevé V65 pour plus tard : sur un vrai banc à deux places, les deux places sont côte à côte, à 0,70 m, même cap.
+camp.objets_du_jeu = {
+  siege = {
+    proprietes = { guidSmartObjectType = "57cbebae-c19a-443b-8945-999d8ee87955", soclass_SmartObjectHelpers = "Sit_1Place_Bench_Low",
+                   sWH_AI_EntityCategory = "Seat", Script = { esBedTypes = "Chair" }, Bed = { esReadingQuality = "bench_notable" } },
+    places = { { nom = "assise", x = 0, y = 0, cap = 0 } },
+  },
+  lit = {
+    proprietes = { guidSmartObjectType = "425d4fdf-8dcd-4a2b-fdc5-cbb1b5d25b89", soclass_SmartObjectHelpers = "Bed_1Place_Tent",
+                   sWH_AI_EntityCategory = "Bed", Script = { esBedTypes = "GroundBed" },
+                   Bed = { esSleepQuality = "low", esReadingQuality = "bed_ground" } },
+    places = { { nom = "couche", x = 0, y = 0, cap = 0 } },
+  },
+}
+
 -- Les sortes qui sont des places (un homme peut les prendre).
 camp.sortes_places = { lit = true, siege = true }
 
@@ -162,24 +181,56 @@ end
 
 -- ---------------------------------------------------------------- pose
 
--- Pose un emplacement s'il ne l'est pas déjà. Rend vrai si l'objet est en place.
-local function poser(d, e)
-  local objet = d.objets[e.nom]
-  if objet and objet.identifiant and jeu().objet_existe(objet.identifiant) then
-    return true
+-- Pose sur un meuble les objets du jeu de ses places, ceux qui manquent seulement (meubles utilisables).
+local function poser_les_objets_du_jeu(e, objet, position, cap)
+  local du_jeu = camp.objets_du_jeu[e.sorte]
+  if not du_jeu then
+    return
   end
+  objet.du_jeu = objet.du_jeu or {}
+  for _, p in ipairs(du_jeu.places) do
+    local deja = objet.du_jeu[p.nom]
+    if not (deja and jeu().objet_existe(deja)) then
+      local ici, cap_ici = camp.dans_le_monde({ x = position.x, y = position.y, z = position.z, cap = cap }, p.x, p.y, p.cap)
+      local identifiant = jeu().poser_objet_du_jeu(e.nom .. "_" .. p.nom, ici, cap_ici, du_jeu.proprietes)
+      if identifiant == nil then
+        jeu().journal("Camp : le jeu n'a pas posé la place « " .. p.nom .. " » de « " .. e.nom .. " »")
+      end
+      objet.du_jeu[p.nom] = identifiant
+    end
+  end
+end
+
+-- Retire un objet du camp et les objets du jeu posés dessus.
+local function retirer(objet)
+  if objet.identifiant then
+    jeu().retirer_objet(objet.identifiant)
+  end
+  for _, identifiant in pairs(objet.du_jeu or {}) do
+    jeu().retirer_objet(identifiant)
+  end
+end
+
+-- Pose un emplacement s'il ne l'est pas déjà, et les objets du jeu de ses places qui manquent. Rend vrai si l'objet est
+-- en place.
+local function poser(d, e)
   local modele = camp.modeles[e.sorte]
   local position, cap = camp.dans_le_monde(d.ancre, e.x, e.y, e.cap)
   cap = (cap + (modele.decalage or 0)) % 360
-  local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, e.nom, modele.classe)
-  if identifiant == nil then
-    jeu().journal("Camp : le jeu n'a pas posé « " .. e.nom .. " » (" .. e.sorte .. ")")
-    return false
+  local objet = d.objets[e.nom]
+  if not (objet and objet.identifiant and jeu().objet_existe(objet.identifiant)) then
+    local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, e.nom, modele.classe)
+    if identifiant == nil then
+      jeu().journal("Camp : le jeu n'a pas posé « " .. e.nom .. " » (" .. e.sorte .. ")")
+      return false
+    end
+    if modele.allume then
+      jeu().allumer(identifiant)
+    end
+    objet = { identifiant = identifiant, du_jeu = objet and objet.du_jeu or nil }
+    d.objets[e.nom] = objet
   end
-  if modele.allume then
-    jeu().allumer(identifiant)
-  end
-  d.objets[e.nom] = { identifiant = identifiant }
+  poser_les_objets_du_jeu(e, objet, position, cap)
   return true
 end
 
@@ -254,12 +305,12 @@ function camp.redresser()
       local present = objet and objet.identifiant and jeu().objet_existe(objet.identifiant)
       if not present then
         if poser(d, e) then reposes = reposes + 1 else manquants = manquants + 1 end
+      else
+        poser(d, e)  -- le meuble est là : seules ses places du jeu qui manquent sont reposées
       end
     end
   end
-  if reposes > 0 or manquants > 0 then
-    enregistrer()
-  end
+  enregistrer()
   jeu().journal("Camp : redressé, " .. reposes .. " objet(s) reposé(s), " .. manquants .. " manquant(s)")
   return reposes, manquants
 end
@@ -277,9 +328,7 @@ function camp.relancer()
     return camp.redresser()
   end
   for _, objet in pairs(d.objets) do
-    if objet.identifiant then
-      jeu().retirer_objet(objet.identifiant)
-    end
+    retirer(objet)
   end
   d.objets = {}
   local reposes, manquants = dresser(d)
@@ -296,9 +345,9 @@ function camp.lever()
   local retires = 0
   for nom, objet in pairs(d.objets) do
     if objet.identifiant then
-      jeu().retirer_objet(objet.identifiant)
       retires = retires + 1
     end
+    retirer(objet)
     d.objets[nom] = nil
   end
   d.fonde = false
@@ -312,6 +361,18 @@ function camp.lever()
 end
 
 -- ---------------------------------------------------------------- places et positions
+
+-- L'objet du jeu d'une place du camp (« siege_1 », « lit_1a ») : là où s'asseoir ou se coucher, ou nil. Son identifiant
+-- change à chaque chargement (V64 : rien du camp n'est gardé par la sauvegarde) ; on le relit ici à chaque fois.
+function camp.objet_du_jeu_de(nom)
+  local objet = donnees().objets[nom]
+  local e = emplacement_par_nom(nom)
+  local du_jeu = e and camp.objets_du_jeu[e.sorte]
+  if not objet or not objet.du_jeu or not du_jeu or not du_jeu.places[1] then
+    return nil
+  end
+  return objet.du_jeu[du_jeu.places[1].nom]
+end
 
 function camp.position_de(nom)
   local d = donnees()
