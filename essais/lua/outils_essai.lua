@@ -39,10 +39,12 @@ function depart()
   -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
   -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().
   -- À 50, chaque facteur vaut exactement 1 parce que les bornes validées sont symétriques autour de 1 (0,8 et 1,2 ;
-  -- 0,85 et 1,15 ; 0,5 et 1,5) : si l'une d'elles change, ce profil doit être revu.
+  -- 0,85 et 1,15 ; 0,5 et 1,5 ; 0,25 et 4 en progression géométrique) : si l'une d'elles change, ce profil doit être
+  -- revu. Ni don ni faiblesse marqués.
   if Scriptorium.caractere then
     local r = Scriptorium.caractere.reglages
     r.trait_min, r.trait_max, r.aguerri_min, r.aguerri_max = 50, 50, 50, 50
+    r.dons_min, r.dons_max, r.faiblesses_min, r.faiblesses_max, r.part_hors_du_commun = 0, 0, 0, 0, 0
   end
   if Scriptorium.poste then
     Scriptorium.poste.remettre_a_zero()

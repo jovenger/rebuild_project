@@ -22,6 +22,21 @@
   **penchants** pour la boisson, la bagarre, le vol.
 - **Envies** pour le temps libre : le feu, l'entraînement, les dés, le sommeil (chacune de 0 à 100, même cloche que les traits).
 - **Aguerrissement** de départ : de 10 à 40, en cloche autour de 25 (écart de 5 points, réglable) : deux sur trois entre 20 et 30.
+- **Dons et faiblesses (choix de JoVenGer du 15/10, questions à cocher)** : « aucun n'est pareil ». Chaque homme reçoit
+  1 ou 2 **dons** marqués et 1 ou 2 **faiblesses** marquées, jamais sur le même trait ; ses autres traits suivent la
+  cloche étroite. Le sens de chaque trait : appétit bas = don (petit mangeur), haut = faiblesse (gros mangeur) ;
+  endurance, forme, don d'apprendre, jugement, courage, sang-froid hauts = dons, bas = faiblesses ; penchants (boisson,
+  bagarre, vol) bas = dons (sobre, paisible, honnête), hauts = faiblesses. Les envies restent des goûts, ni dons ni
+  faiblesses. Un don ou une faiblesse marqués : de 80 à 95 vers son bout (de 5 à 20 pour un trait « bas »).
+  **Hors du commun** : environ un homme sur vingt a un don exceptionnel, de 96 à 100. Le rapport du Directeur les nomme
+  quand ils se montrent, avec des mots plus forts au-delà de 80 (ou en deçà de 20) : « mange comme quatre », « infatigable »,
+  « apprend très vite », « perd vite son sang-froid », « intrépide », « ivrogne »… ; « hors du commun » se dit comme le
+  reste, une fois son trait découvert (quand il se montre : séjour, exercice, bataille ou faute), jamais dès l'embauche. Tout réglable : nombre de dons et de faiblesses,
+  leurs fourchettes, la part des hommes hors du commun.
+- **L'apprentissage doit se voir** : l'aguerrissement gagné par heure d'exercice (et par bataille) est multiplié selon le
+  don d'apprendre, de 0,25 (don 0) à 4 (don 100), en progression géométrique (×1 à 50). Avec 4 h d'exercice par jour, de
+  bleu (≈ 25) à vétéran (70) : un doué (≈ 87) en 2 à 3 semaines, un ordinaire en 6 à 7 semaines, un lent (≈ 12) en
+  4 mois environ, un hors du commun en une dizaine de jours. Bornes réglables.
 - Le hasard est celui du caractère (sa propre graine au registre) : il ne dérange pas celui des batailles.
 - Ils s'ajoutent aux chiffres que le jeu donne déjà à chaque âme (force, agilité, vitalité, compétences).
 
@@ -39,7 +54,8 @@
 - **Forme → soins** : les jours de soin ôtés chaque jour (1, ou 2 avec un barbier) sont multipliés par 0,5 à 1,5 selon la
   forme ; les fractions s'additionnent d'un jour à l'autre.
 - **Don d'apprendre → aguerrissement** (0 à 100) : chaque heure d'exercice ou d'entraînement lui ajoute
-  0,25 × (0,5 + don ⁄ 100) ; une bataille survécue, 4 × (0,5 + don ⁄ 100).
+  0,25 × le facteur d'apprendre ; une bataille survécue, 4 × le facteur d'apprendre (0,25 pour un don de 0, 1 pour 50,
+  4 pour 100, en progression géométrique).
 - **Au combat** (règle des batailles et des escarmouches), la force de l'homme est multipliée par : l'aguerrissement
   (0,8 pour un bleu à 0, 1,2 pour un vétéran à 100), le courage (0,85 à 1,15), la fatigue (1, 0,85 ou 0,7), en plus de
   l'usure de son équipement.
@@ -102,3 +118,9 @@ Tirage en cloche dans les fourchettes (milieu, dispersion, extrêmes rares, larg
 seuils et moral de l'épuisé ; une semaine ordinaire laisse un homme ordinaire d'une compagnie de dix sous 50 de fatigue ; soins selon la forme ; aguerrissement selon le don ; force au combat ; ordre de chute ;
 sang-froid ; chance et poids des fautes ; temps libre (épuisé au lit, choix gardé pour la soirée) ; évolution ;
 découvertes ; rapport en mots ; oubli au départ ; écriture puis relecture.
+
+## Pour la bascule (tableau des doublons)
+- L'aguerrissement (bleu → vétéran) recoupe la progression de Scriptorium : grades, expérience, primes d'exercice
+  (progression_des_hommes, experience_des_hommes, carotte_de_l_exercice, entrainement_du_camp). Sa règle « plus la cible
+  est loin, plus l'expérience est grande » au tir se combinera avec le facteur d'apprendre : les deux se multiplient,
+  l'un ne remplace pas l'autre (remarque de la conversation Scriptorium, 15/10).

@@ -83,6 +83,27 @@
   <Row><Cell>ui_scriptorium_caractere_bagarre_fort</Cell><Cell>querelleur</Cell><Cell>querelleur</Cell></Row>
   <Row><Cell>ui_scriptorium_caractere_vol_faible</Cell><Cell>honnête</Cell><Cell>honnête</Cell></Row>
   <Row><Cell>ui_scriptorium_caractere_vol_fort</Cell><Cell>chapardeur</Cell><Cell>chapardeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_tres_faible</Cell><Cell>mange très peu</Cell><Cell>mange très peu</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_tres_fort</Cell><Cell>mange comme quatre</Cell><Cell>mange comme quatre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_tres_faible</Cell><Cell>s'épuise vite</Cell><Cell>s'épuise vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_tres_fort</Cell><Cell>infatigable</Cell><Cell>infatigable</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_tres_faible</Cell><Cell>très lent à se remettre</Cell><Cell>très lent à se remettre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_tres_fort</Cell><Cell>se remet très vite</Cell><Cell>se remet très vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_tres_faible</Cell><Cell>très lent à apprendre</Cell><Cell>très lent à apprendre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_tres_fort</Cell><Cell>apprend très vite</Cell><Cell>apprend très vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_tres_faible</Cell><Cell>tête brûlée</Cell><Cell>tête brûlée</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_tres_fort</Cell><Cell>très avisé</Cell><Cell>très avisé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_tres_faible</Cell><Cell>couard</Cell><Cell>couard</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_tres_fort</Cell><Cell>intrépide</Cell><Cell>intrépide</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_tres_faible</Cell><Cell>perd vite son sang-froid</Cell><Cell>perd vite son sang-froid</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_tres_fort</Cell><Cell>imperturbable</Cell><Cell>imperturbable</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_tres_faible</Cell><Cell>ne boit jamais</Cell><Cell>ne boit jamais</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_tres_fort</Cell><Cell>ivrogne</Cell><Cell>ivrogne</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_tres_faible</Cell><Cell>très paisible</Cell><Cell>très paisible</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_tres_fort</Cell><Cell>bagarreur</Cell><Cell>bagarreur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_tres_faible</Cell><Cell>d'une honnêteté sans faille</Cell><Cell>d'une honnêteté sans faille</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_tres_fort</Cell><Cell>voleur</Cell><Cell>voleur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_hors_du_commun</Cell><Cell>hors du commun</Cell><Cell>hors du commun</Cell></Row>
   <Row><Cell>ui_scriptorium_caractere_envie_feu</Cell><Cell>aime la veillée au feu</Cell><Cell>aime la veillée au feu</Cell></Row>
   <Row><Cell>ui_scriptorium_caractere_envie_entrainement</Cell><Cell>aime s'exercer</Cell><Cell>aime s'exercer</Cell></Row>
   <Row><Cell>ui_scriptorium_caractere_envie_des</Cell><Cell>aime les dés</Cell><Cell>aime les dés</Cell></Row>

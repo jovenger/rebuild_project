@@ -179,7 +179,9 @@ essai("caractère : l'aguerrissement selon le don, l'entraînement renforce l'en
   jours(2)
   local vite, lent = caractere.de(ids[1]).aguerri - 20, caractere.de(ids[2]).aguerri - 20
   verifier(vite > 0 and lent > 0, "les deux progressent à l'exercice")
-  verifier(math.abs(vite - 3 * lent) < 1e-9, "le doué progresse trois fois plus vite : " .. vite .. " / " .. lent)
+  verifier(math.abs(vite - 16 * lent) < 1e-9, "le doué progresse seize fois plus vite (facteur 4 contre 0,25) : " .. vite .. " / " .. lent)
+  verifier(math.abs(caractere.facteur_d_apprendre(50) - 1) < 1e-9, "un don de 50 : facteur 1")
+  verifier(math.abs(caractere.facteur_d_apprendre(87) - 0.25 * 16 ^ 0.87) < 1e-9, "progression géométrique")
   verifier(caractere.de(ids[1]).traits.endurance > 50, "l'exercice renforce l'endurance")
 end)
 
@@ -306,7 +308,7 @@ end)
 essai("caractère : découvert avec le temps, dit en mots au rapport", function()
   local ids = preparer(2, true)
   local id = ids[1]
-  caractere.poser_le_trait(id, "appetit", 90)
+  caractere.poser_le_trait(id, "appetit", 70)
   caractere.poser_le_trait(id, "endurance", 50)
   local savoir = caractere.connaitre(id)
   egal(#savoir.mots, 0, "rien de connu à l'embauche")
@@ -361,4 +363,64 @@ essai("caractère : un homme parti est oublié ; tout est relu", function()
   hommes.renvoyer(ids[2])
   egal(caractere.de(ids[2]), nil, "parti : oublié")
   egal(Scriptorium.registre.lire("caractere").hommes[ids[2]], nil, "plus rien au registre")
+end)
+
+essai("caractère : dons et faiblesses marqués, hors du commun, mots forts (choix de JoVenGer du 15/10)", function()
+  local ids = preparer(1, true)
+  local id = ids[1]
+  local r = caractere.reglages
+  local sens = {}
+  for _, trait in ipairs(caractere.traits) do sens[trait.nom] = trait.bon end
+  local function vers_le_haut(nom, est_un_don) return (sens[nom] == "haut") == est_un_don end
+  local tirages, hors, fautes = 400, 0, {}
+  local function faute(texte) if #fautes < 3 then table.insert(fautes, texte) end end
+  for _ = 1, tirages do
+    caractere.oublier(id)
+    caractere.naitre(id)
+    local c = caractere.de(id)
+    if #c.dons < 1 or #c.dons > 2 or #c.faiblesses < 1 or #c.faiblesses > 2 then faute("nombre " .. #c.dons .. "/" .. #c.faiblesses) end
+    local vus = {}
+    for _, liste in ipairs({ { c.dons, true }, { c.faiblesses, false } }) do
+      for _, nom in ipairs(liste[1]) do
+        if vus[nom] then faute("trait marqué deux fois : " .. nom) end
+        vus[nom] = true
+        local v = c.traits[nom]
+        local compte = vers_le_haut(nom, liste[2]) and v or (100 - v)
+        local mini, maxi = 80, 95
+        if c.hors_du_commun == nom then mini, maxi = 96, 100 end
+        if compte < mini or compte > maxi then faute(nom .. " = " .. v .. (liste[2] and " (don)" or " (faiblesse)")) end
+      end
+    end
+    if c.hors_du_commun then
+      hors = hors + 1
+      if c.hors_du_commun ~= c.dons[1] then faute("hors du commun hors des dons") end
+    end
+  end
+  egal(#fautes, 0, "dons et faiblesses dans leurs fourchettes, jamais sur le même trait : " .. table.concat(fautes, " ; "))
+  verifier(hors >= 8 and hors <= 34, "environ un homme sur vingt hors du commun : " .. hors .. " sur " .. tirages)
+  -- Réglable : ni don ni faiblesse.
+  r.dons_min, r.dons_max, r.faiblesses_min, r.faiblesses_max = 0, 0, 0, 0
+  caractere.oublier(id)
+  caractere.naitre(id)
+  egal(#caractere.de(id).dons + #caractere.de(id).faiblesses, 0, "réglable : aucun trait marqué")
+  -- Hors du commun : dit au rapport seulement une fois son trait découvert ; mots forts des traits marqués.
+  r.dons_min, r.dons_max, r.part_hors_du_commun = 1, 1, 1
+  caractere.oublier(id)
+  caractere.naitre(id)
+  local exceptionnel = caractere.de(id).hors_du_commun
+  verifier(exceptionnel ~= nil, "un homme hors du commun")
+  local function au_rapport(cle)
+    for _, mot in ipairs(caractere.connaitre(id).mots) do
+      if mot == cle then return true end
+    end
+    return false
+  end
+  verifier(not au_rapport(caractere.mot_hors_du_commun), "pas dit avant d'être découvert")
+  caractere.poser_le_trait(id, "appetit", exceptionnel == "appetit" and caractere.de(id).traits.appetit or 90)
+  caractere.apres_bataille({ id })
+  jours(30)
+  verifier(au_rapport(caractere.mot_hors_du_commun), "« hors du commun » une fois son don montré")
+  if exceptionnel ~= "appetit" then
+    verifier(au_rapport("ui_scriptorium_caractere_appetit_tres_fort"), "appétit 90 : « mange comme quatre »")
+  end
 end)

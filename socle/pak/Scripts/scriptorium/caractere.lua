@@ -25,8 +25,20 @@ caractere.reglages = {
   malus_fatigue = 0.85,         -- force au combat du fatigué
   malus_epuise = 0.7,           -- et de l'épuisé
   moral_epuise = -2,            -- par jour passé épuisé
-  gain_par_heure = 0.25,        -- aguerrissement par heure d'exercice, × (0,5 + don ⁄ 100)
-  gain_bataille = 4,            -- par bataille survécue, × (0,5 + don ⁄ 100)
+  gain_par_heure = 0.25,        -- aguerrissement par heure d'exercice, × le facteur d'apprendre
+  gain_bataille = 4,            -- par bataille survécue, × le facteur d'apprendre
+  apprendre_facteur_min = 0.25, -- facteur d'apprendre pour un don de 0 …
+  apprendre_facteur_max = 4,    -- … et pour 100, en progression géométrique : 1 à 50 (choix de JoVenGer du 15/10)
+  dons_min = 1,                 -- dons marqués par homme (choix de JoVenGer du 15/10 : aucun n'est pareil)
+  dons_max = 2,
+  faiblesses_min = 1,           -- faiblesses marquées par homme, jamais sur un trait qui porte un don
+  faiblesses_max = 2,
+  marque_min = 80,              -- un trait marqué, compté depuis le bout opposé à celui où il pousse
+  marque_max = 95,
+  part_hors_du_commun = 0.05,   -- un homme sur vingt a un don exceptionnel …
+  hors_du_commun_min = 96,      -- … compté de même
+  hors_du_commun_max = 100,
+  seuil_marque = 80,            -- au-delà (ou en deçà, vers l'autre bout), le rapport dit le mot fort
   aguerri_facteur_min = 0.8,    -- force au combat du bleu (0) …
   aguerri_facteur_max = 1.2,    -- … et du vétéran (100)
   courage_facteur_min = 0.85,
@@ -46,17 +58,18 @@ caractere.reglages = {
 
 -- Les traits, et ce qui les fait découvrir : « sejour » (sept jours au camp), « exercice » (sept jours d'exercice),
 -- « bataille » (la première), « faute » (la première de sa sorte, sinon après trente jours).
+-- « bon » : le bout où le trait est un don (choix de JoVenGer du 15/10) ; l'autre bout est une faiblesse.
 caractere.traits = {
-  { nom = "appetit", decouverte = "sejour" },
-  { nom = "endurance", decouverte = "sejour" },
-  { nom = "forme", decouverte = "sejour" },
-  { nom = "don", decouverte = "exercice" },
-  { nom = "jugement", decouverte = "bataille" },
-  { nom = "courage", decouverte = "bataille" },
-  { nom = "sang_froid", decouverte = "bataille" },
-  { nom = "boisson", decouverte = "faute" },
-  { nom = "bagarre", decouverte = "faute" },
-  { nom = "vol", decouverte = "faute" },
+  { nom = "appetit", decouverte = "sejour", bon = "bas" },
+  { nom = "endurance", decouverte = "sejour", bon = "haut" },
+  { nom = "forme", decouverte = "sejour", bon = "haut" },
+  { nom = "don", decouverte = "exercice", bon = "haut" },
+  { nom = "jugement", decouverte = "bataille", bon = "haut" },
+  { nom = "courage", decouverte = "bataille", bon = "haut" },
+  { nom = "sang_froid", decouverte = "bataille", bon = "haut" },
+  { nom = "boisson", decouverte = "faute", bon = "bas" },
+  { nom = "bagarre", decouverte = "faute", bon = "bas" },
+  { nom = "vol", decouverte = "faute", bon = "bas" },
 }
 
 -- Les envies du temps libre (la veillée), et le lieu où chacune se passe.
@@ -83,6 +96,20 @@ caractere.mots = {
   bagarre = { faible = "ui_scriptorium_caractere_bagarre_faible", fort = "ui_scriptorium_caractere_bagarre_fort" },
   vol = { faible = "ui_scriptorium_caractere_vol_faible", fort = "ui_scriptorium_caractere_vol_fort" },
 }
+-- Les mots forts, pour un trait marqué (au-delà du seuil de marque), et celui de l'homme hors du commun.
+caractere.mots_marques = {
+  appetit = { faible = "ui_scriptorium_caractere_appetit_tres_faible", fort = "ui_scriptorium_caractere_appetit_tres_fort" },
+  endurance = { faible = "ui_scriptorium_caractere_endurance_tres_faible", fort = "ui_scriptorium_caractere_endurance_tres_fort" },
+  forme = { faible = "ui_scriptorium_caractere_forme_tres_faible", fort = "ui_scriptorium_caractere_forme_tres_fort" },
+  don = { faible = "ui_scriptorium_caractere_don_tres_faible", fort = "ui_scriptorium_caractere_don_tres_fort" },
+  jugement = { faible = "ui_scriptorium_caractere_jugement_tres_faible", fort = "ui_scriptorium_caractere_jugement_tres_fort" },
+  courage = { faible = "ui_scriptorium_caractere_courage_tres_faible", fort = "ui_scriptorium_caractere_courage_tres_fort" },
+  sang_froid = { faible = "ui_scriptorium_caractere_sang_froid_tres_faible", fort = "ui_scriptorium_caractere_sang_froid_tres_fort" },
+  boisson = { faible = "ui_scriptorium_caractere_boisson_tres_faible", fort = "ui_scriptorium_caractere_boisson_tres_fort" },
+  bagarre = { faible = "ui_scriptorium_caractere_bagarre_tres_faible", fort = "ui_scriptorium_caractere_bagarre_tres_fort" },
+  vol = { faible = "ui_scriptorium_caractere_vol_tres_faible", fort = "ui_scriptorium_caractere_vol_tres_fort" },
+}
+caractere.mot_hors_du_commun = "ui_scriptorium_caractere_hors_du_commun"
 caractere.mots_de_l_etat = {
   fatigue = "ui_scriptorium_caractere_fatigue",
   epuise = "ui_scriptorium_caractere_epuise",
@@ -149,6 +176,61 @@ function caractere.tirer_en_cloche(mini, maxi, ecart)
   return tirer_en_cloche(donnees(), mini, maxi, ecart)
 end
 
+-- Un entier tiré à plat entre deux bornes comprises.
+local function tirer_un_entier(d, mini, maxi)
+  if maxi <= mini then
+    return mini
+  end
+  return math.min(maxi, mini + math.floor(tirage(d) * (maxi - mini + 1)))
+end
+
+-- La valeur d'un trait poussé vers un bout : « vers_le_don » vers le bout où il est un don, sinon vers l'autre ;
+-- « compte » se lit depuis le bout opposé (80 à 95 : près du bout visé).
+local function pousser(trait, vers_le_don, compte)
+  local r = caractere.reglages
+  local vers_le_haut = (trait.bon == "haut") == vers_le_don
+  local valeur = vers_le_haut and compte or (r.trait_max + r.trait_min - compte)
+  return math.max(r.trait_min, math.min(r.trait_max, valeur))
+end
+
+-- Les dons et les faiblesses marqués d'un homme (choix de JoVenGer du 15/10 : aucun n'est pareil) : des traits pris
+-- au hasard, jamais deux fois le même ; rarement, son premier don est hors du commun.
+local function marquer(d, c)
+  local r = caractere.reglages
+  local ordre = {}
+  for i, trait in ipairs(caractere.traits) do ordre[i] = trait end
+  for i = #ordre, 2, -1 do
+    local j = tirer_un_entier(d, 1, i)
+    ordre[i], ordre[j] = ordre[j], ordre[i]
+  end
+  local dons = math.min(#ordre, tirer_un_entier(d, r.dons_min, r.dons_max))
+  local faiblesses = math.min(#ordre - dons, tirer_un_entier(d, r.faiblesses_min, r.faiblesses_max))
+  c.dons, c.faiblesses = {}, {}
+  for i = 1, dons do
+    local trait = ordre[i]
+    c.traits[trait.nom] = pousser(trait, true, tirer_un_entier(d, r.marque_min, r.marque_max))
+    table.insert(c.dons, trait.nom)
+  end
+  for i = dons + 1, dons + faiblesses do
+    local trait = ordre[i]
+    c.traits[trait.nom] = pousser(trait, false, tirer_un_entier(d, r.marque_min, r.marque_max))
+    table.insert(c.faiblesses, trait.nom)
+  end
+  if dons > 0 and tirage(d) < r.part_hors_du_commun then
+    c.traits[ordre[1].nom] = pousser(ordre[1], true, tirer_un_entier(d, r.hors_du_commun_min, r.hors_du_commun_max))
+    c.hors_du_commun = ordre[1].nom
+  end
+end
+
+-- Le facteur d'apprendre : de apprendre_facteur_min (don 0) à apprendre_facteur_max (don 100), en progression
+-- géométrique ; 1 pour un don de 50 avec les bornes validées (0,25 et 4).
+function caractere.facteur_d_apprendre(don)
+  local r = caractere.reglages
+  local part = math.max(0, math.min(1, (don - r.trait_min) / math.max(1, r.trait_max - r.trait_min)))
+  local mini = math.max(0.01, r.apprendre_facteur_min)
+  return mini * (math.max(mini, r.apprendre_facteur_max) / mini) ^ part
+end
+
 -- La fiche de caractère d'un homme ; tirée au premier usage pour un homme qui n'en a pas (sauvegarde d'avant ce
 -- morceau). Rend nil pour un homme inconnu.
 local function fiche_de(d, id)
@@ -164,6 +246,7 @@ local function fiche_de(d, id)
   for _, trait in ipairs(caractere.traits) do
     c.traits[trait.nom] = tirer_en_cloche(d, r.trait_min, r.trait_max, r.trait_ecart)
   end
+  marquer(d, c)
   for _, envie in ipairs(caractere.envies) do
     c.envies[envie.nom] = tirer_en_cloche(d, r.trait_min, r.trait_max, r.trait_ecart)
   end
@@ -193,10 +276,12 @@ function caractere.de(id)
     return nil
   end
   local copie = { fatigue = c.fatigue, aguerri = c.aguerri, jours = c.jours, jours_exercice = c.jours_exercice,
-                  traits = {}, envies = {}, connus = {} }
+                  traits = {}, envies = {}, connus = {}, dons = {}, faiblesses = {}, hors_du_commun = c.hors_du_commun }
   for k, v in pairs(c.traits) do copie.traits[k] = v end
   for k, v in pairs(c.envies) do copie.envies[k] = v end
   for k, v in pairs(c.connus) do copie.connus[k] = v end
+  for i, nom in ipairs(c.dons or {}) do copie.dons[i] = nom end
+  for i, nom in ipairs(c.faiblesses or {}) do copie.faiblesses[i] = nom end
   return copie
 end
 
@@ -368,7 +453,7 @@ function caractere.apres_bataille(ids)
     local c = fiche_de(d, survivant)
     if c then
       c.fatigue = borner(c.fatigue + r.fatigue_bataille, 0, 100)
-      c.aguerri = borner(c.aguerri + r.gain_bataille * (0.5 + c.traits.don / 100), 0, 100)
+      c.aguerri = borner(c.aguerri + r.gain_bataille * caractere.facteur_d_apprendre(c.traits.don), 0, 100)
       decouvrir_par(c, survivant, "bataille")
     end
   end
@@ -437,7 +522,7 @@ function caractere.passer_la_journee(id, fin, affame)
   c.fatigue = borner(c.fatigue
     + heures_de_travail * r.fatigue_par_heure * (1.5 - c.traits.endurance / 100)
     - heures_de_sommeil * r.repos_par_heure * (0.5 + c.traits.forme / 100), 0, 100)
-  c.aguerri = borner(c.aguerri + heures_d_exercice * r.gain_par_heure * (0.5 + c.traits.don / 100), 0, 100)
+  c.aguerri = borner(c.aguerri + heures_d_exercice * r.gain_par_heure * caractere.facteur_d_apprendre(c.traits.don), 0, 100)
   c.traits.endurance = borner(c.traits.endurance + heures_d_exercice * r.endurance_par_heure, 0, 100)
   if affame then
     c.traits.forme = borner(c.traits.forme + r.faim_forme, 0, 100)
@@ -467,8 +552,10 @@ end
 
 local function mot_du_trait(nom, valeur)
   local r = caractere.reglages
-  local mots = caractere.mots[nom]
+  local mots, forts = caractere.mots[nom], caractere.mots_marques[nom]
   if not mots then return nil end
+  if valeur <= r.trait_max + r.trait_min - r.seuil_marque then return forts.faible end
+  if valeur >= r.seuil_marque then return forts.fort end
   if valeur <= r.seuil_faible then return mots.faible end
   if valeur >= r.seuil_fort then return mots.fort end
   return nil
@@ -488,6 +575,7 @@ function caractere.connaitre(id)
     if c.connus[trait.nom] then
       local mot = mot_du_trait(trait.nom, c.traits[trait.nom])
       if mot then table.insert(resultat.mots, mot) end
+      if c.hors_du_commun == trait.nom then table.insert(resultat.mots, caractere.mot_hors_du_commun) end
     else
       resultat.inconnus = resultat.inconnus + 1
     end
