@@ -499,6 +499,30 @@ function poste.essai_marcheur_coucher_camp()
   return true
 end
 
+-- Le lit de tente vu à découvert (V69, idée de la conversation Scriptorium) : les petites tentes du camp cachent
+-- l'homme couché (V68). Un lit du camp, meuble et place du jeu, avec les mêmes données que le camp, posé à 5 m devant
+-- Henry, sans tente ; puis le marcheur s'y couche.
+local lit_d_essai = nil
+
+function poste.essai_lit_a_decouvert()
+  local camp = Scriptorium.camp
+  local henry, cap = jeu().position_du_joueur(), jeu().cap_du_joueur()
+  local position, cap_lit = camp.dans_le_monde({ x = henry.x, y = henry.y, z = henry.z, cap = cap }, 0, 5, 0)
+  local modele = camp.modeles.lit
+  local meuble = jeu().poser_objet("lit", modele.chemin, position, cap_lit, "essai_lit_a_decouvert", modele.classe)
+  local du_jeu = camp.objets_du_jeu.lit
+  local p = du_jeu.places[1]
+  local ici, cap_ici = camp.dans_le_monde({ x = position.x, y = position.y, z = position.z, cap = cap_lit }, p.x, p.y, p.cap)
+  lit_d_essai = jeu().poser_objet_du_jeu("essai_lit_a_decouvert_" .. p.nom, ici, cap_ici, du_jeu.proprietes)
+  jeu().journal("Poste : lit à découvert, meuble " .. tostring(meuble) .. ", place " .. tostring(lit_d_essai))
+  return lit_d_essai ~= nil
+end
+
+function poste.essai_marcheur_coucher_a_decouvert()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_sur_la_place(lit_d_essai, 11))
+  return true
+end
+
 function poste.essai_marcheur_retirer()
   jeu().journal("Poste : marcheur, " .. jeu().retirer_le_marcheur())
   return true
@@ -775,6 +799,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir_camp", fonction = function() return poste.essai_marcheur_asseoir_camp() end, aide = "Le marcheur s'assoit sur le premier banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_marcheur_coucher_camp", fonction = function() return poste.essai_marcheur_coucher_camp() end, aide = "Le marcheur se couche sur le premier lit du camp (ordre 11)" },
+  { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
+  { nom = "scriptorium_essai_marcheur_coucher_a_decouvert", fonction = function() return poste.essai_marcheur_coucher_a_decouvert() end, aide = "Le marcheur se couche sur le lit à découvert (ordre 11)" },
   { nom = "scriptorium_essai_sieges_relever", fonction = function() return poste.essai_sieges_relever() end, aide = "Propriétés complètes des sièges et lits du jeu à copier ; écart des places d'un banc" },
   { nom = "scriptorium_essai_lit_poser", fonction = function() return poste.essai_lit_poser() end, aide = "Pose près d'Henry une copie du lit du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir", fonction = function() return poste.essai_marcheur_asseoir() end, aide = "Le marcheur s'assoit sur le siège posé (ordre 10)" },
