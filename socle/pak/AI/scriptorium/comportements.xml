@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<BehaviorTrees>
+  <BehaviorTree name="scriptorium_aller" is_function="0">
+    <Variables />
+    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
+      <Behavior canSkip="1">
+        <Sequence>
+          <Parallel successMode="Any" failureMode="Any">
+            <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="2.000000" stopDistanceVariation="0.500000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="false" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+            <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+          </Parallel>
+          <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+        </Sequence>
+      </Behavior>
+    </Root>
+    <ForestContainer />
+  </BehaviorTree>
+</BehaviorTrees>

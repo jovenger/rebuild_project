@@ -1553,6 +1553,14 @@ function liaison.donner_des_competences(niveau)
   return "compétences : " .. table.concat(lignes, ", ")
 end
 
+-- L'ordre 9 (V55) : aller au point joué en interruption. Le point (8 m à droite d'Henry) est posé dans la variable du
+-- cerveau ; le switch pose l'interruption générique « scriptorium_aller » (AI/scriptorium/comportements.xml), hébergée
+-- par l'entité des interruptions du jeu. Compteurs : « rejoint » = interruption posée, « arrive » = arrivée. Rend une ligne.
+function liaison.ordonner_d_aller(cote)
+  local ligne = liaison.viser_un_point(cote or "droite")
+  return ligne .. " ; " .. liaison.ordonner_au_marcheur(9)
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)
