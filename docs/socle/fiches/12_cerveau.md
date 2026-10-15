@@ -47,7 +47,7 @@
    interruption ; l'attaque par la fonction du jeu).
 2. **La faction de nos hommes** : elle décide qui ils attaquent et qui les attaque, et si le jeu les traite en gardes
    (un garde arrête Henry pour un vol).
-   - a. **une faction à nous**, ajoutée à l'arbre des factions du jeu (`Libs/Tables/rpg/FactionTree__scriptorium_socle.xml` :
+   - a. **une faction à nous** (« la Compagnie »), ajoutée à l'arbre des factions du jeu (`Libs/Tables/rpg/FactionTree__scriptorium_socle.xml` :
      le jeu en charge déjà en plus, par ex. `FactionTree__tests.xml` ; amie d'Henry, hostile aux brigands et aux
      Coumans, sans autorité) — faisable sur le papier, **non vérifié** en jeu ;
    - b. une faction de soldats du jeu, amie d'Henry — risque d'agir en gardes.
@@ -55,20 +55,29 @@
      fui devant notre homme à âme de garde de Trosky (V54), et un garde du jeu s'est porté de lui-même sur un brigand
      (V49). Vérifier (a) coûte une séance : un `FactionTree__scriptorium_socle.xml` avec deux relations hostiles
      (brigands, Coumans), sur la structure réelle de `FactionTree__tests.xml`.
+   - Côté programme Scriptorium (remarque de sa conversation) : un de nos hommes n'arrête ni n'attaque jamais Henry de
+     lui-même (la justice du camp est celle du Directeur) ; mais les duels et pugilats avec Henry sont voulus : la
+     faction doit pouvoir être rendue hostile le temps d'un ordre (`RelationOverride` de l'attaque), puis amie.
 3. **Les compétences de combat** (règle nouvelle, réglable) :
-   - a. tirées de l'**aguerrissement** de la fiche 11 (0 à 100) : par exemple de 5 (bleu) à 20 (vétéran), proportionnelles,
-     bornes réglables, montées quand il s'aguerrit (jamais baissées) ;
+   - a. selon le **niveau acheté** puis le **caractère** : le programme Scriptorium embauche par niveau (recrue,
+     confirmé, vétéran, avec prix et paie selon le niveau) ; une fourchette par niveau (par exemple recrue 5–10,
+     confirmé 10–15, vétéran 15–20, réglables), la place dans la fourchette selon l'aguerrissement et les dons de la
+     fiche 11 ; montées quand il s'aguerrit ou s'entraîne (jamais baissées). Même cohérence à reprendre pour
+     l'aguerrissement de départ de la fiche 11 (aujourd'hui en cloche autour de 25, sans lien avec le niveau) ;
    - b. un niveau fixe pour tous, réglable ;
    - c. laissées à 0 pour l'instant.
-4. **Les premiers comportements à écrire**, une chose à la fois : aller au poste et y monter la garde (un seul
-   comportement, arme prête ou non), rejoindre le rassemblement, dormir (au lit ou par terre), suivre Henry ; puis les
-   veillées de la fiche 11.
+4. **Les premiers comportements à écrire**, une chose à la fois, dans l'ordre de la vie du camp : (1) monter la garde
+   (aller au poste et y rester, arme prête) ; (2) rejoindre le rassemblement (l'alerte) ; (3) aller au poste ou au
+   travail ; (4) suivre Henry ; (5) dormir, quand le lit sera reconnu ; puis les veillées de la fiche 11. Le socle
+   fournit le geste ; qui va où reste une règle du programme Scriptorium.
 
 ## Règles (toutes en données, catalogue de `reglages.lua`, règle de JoVenGer du 14/10)
 - Priorité des interruptions de nos ordres, distance d'arrêt au point, durée d'attente avant d'abandonner un trajet,
   niveaux de compétences (si 3 a ou b), délai entre deux tours du switch.
 
-## Ce qui reste ouvert (non vérifié)
+## Ce qui reste ouvert (non vérifié), par ordre d'urgence
+- **Réveil** à chaque entrée en partie et après rechargement (sans lui, tout le camp serait figé au premier chargement) ;
+  sommeil au-delà d'environ 300 m d'Henry.
 - La table `SmartEntity__so_interrupt__scriptorium_socle.xml` n'est pas annoncée au journal du jeu ; elle est prise
   puisque le comportement est joué (V55).
 - **L'attaque à vue** (une bande qui attaque d'elle-même en voyant le camp) et la riposte : le brigand du jeu n'attaque
@@ -79,7 +88,6 @@
   homme pris par une interruption à 160, sauf `IgnorePriorityOnPreviousInterrupt="true"`. Sinon : garde des
   comportements par la variable d'ordre (`IfGate … RunLogic="Halt"`, comme `interrupt_attack.xml` du jeu).
 - **S'asseoir, dormir** : siège ou lit reconnu par l'IA (V32, V33 : la posture assise par arbre bloquait).
-- **Réveil** à chaque entrée en partie et après rechargement ; sommeil au-delà d'environ 300 m d'Henry.
 - **Âmes du mod** par rôle (homme d'armes, Directeur, artisan), avec leur équipement (préréglages d'inventaire du jeu par
   niveau de combat : `Libs/Tables/item/InventoryPreset__armedFactions.xml`).
 - La version publiée n'aura ni poste ni ordres d'essai (`scriptorium_essai_*`).
