@@ -55,11 +55,16 @@ local function trier_cles(table_)
   return nombres, chaines
 end
 
+-- Les nombres courts (note de JoVenGer du 15/10) : un entier sans décimales, un autre nombre à neuf chiffres
+-- significatifs (assez pour l'heure du jeu à la seconde près, une fatigue, une part).
 local function ecrire_nombre(nombre)
   if nombre ~= nombre or nombre == math.huge or nombre == -math.huge then
     error("registre : nombre impossible à enregistrer")
   end
-  return string.format("%.17g", nombre)
+  if nombre == math.floor(nombre) and math.abs(nombre) < 1e15 then
+    return string.format("%.0f", nombre)
+  end
+  return string.format("%.9g", nombre)
 end
 
 local function serialiser_valeur(valeur, morceaux, profondeur)

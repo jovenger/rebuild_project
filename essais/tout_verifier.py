@@ -343,6 +343,42 @@ def verifier_identifiants():
         if l.retirer_groschen_a_henry(10) then return "retrait accepté avec une bourse illisible" end
         if #appels ~= 2 then return "appels au moteur inattendus : " .. #appels end
         player = nil
+        -- Registre en tranches (note de JoVenGer : aucune valeur de plus de 65 535 octets). Un registre de 200 Ko se
+        -- coupe, se recolle et se relit à l'identique ; une tranche abîmée ou d'une autre partie fait tout refuser.
+        GameToken = { valeurs = {} }
+        function GameToken.SetToken(nom, valeur) GameToken.valeurs[nom] = valeur end
+        function GameToken.GetToken(nom) return GameToken.valeurs[nom] end
+        local morceaux = {}
+        for i = 1, 4000 do morceaux[i] = string.format("[%d]={[\\"nom\\"]=\\"homme_%d\\",[\\"moral\\"]=%d},", i, i, i % 100) end
+        local gros = "{" .. table.concat(morceaux) .. "}"
+        while #gros < 200000 do gros = "{[1]=" .. gros .. "}" end
+        l.ecrire_registre(gros)
+        l.memoire.registre = nil
+        if l.lire_registre() ~= gros then return "registre de " .. #gros .. " octets mal recollé" end
+        local tranches, plus_long = 0, 0
+        for nom, valeur in pairs(GameToken.valeurs) do
+          if string.find(nom, "^scriptorium_socle%.registre%.%d+$") and valeur ~= "" then
+            tranches = tranches + 1
+            plus_long = math.max(plus_long, #valeur)
+          end
+        end
+        if tranches ~= math.ceil(#gros / l.taille_des_tranches) then return "nombre de tranches : " .. tranches end
+        if plus_long > 65535 then return "une tranche dépasse 65 535 octets : " .. plus_long end
+        local juste = GameToken.valeurs["scriptorium_socle.registre.2"]
+        GameToken.valeurs["scriptorium_socle.registre.2"] = string.gsub(juste, "homme", "hommx", 1)
+        if l.lire_registre() ~= nil then return "une tranche abîmée n'est pas refusée" end
+        GameToken.valeurs["scriptorium_socle.registre.2"] = string.gsub(juste, "^[%w_]+|", "p_autre|")
+        if l.lire_registre() ~= nil then return "une tranche d'une autre partie n'est pas refusée" end
+        GameToken.valeurs["scriptorium_socle.registre.2"] = juste
+        if l.lire_registre() ~= gros then return "registre non relu une fois la tranche rendue" end
+        l.ecrire_registre("{a=2}")
+        l.memoire.registre = nil
+        if l.lire_registre() ~= "{a=2}" then return "un registre plus court n'est pas relu" end
+        if GameToken.valeurs["scriptorium_socle.registre.3"] ~= "" then return "les tranches d'une écriture plus longue restent" end
+        local identite = string.match(GameToken.valeurs["scriptorium_socle.registre"], "^([%w_]+)|")
+        GameToken.valeurs["scriptorium_socle.registre"] = identite .. "|{ancien=1}"
+        if l.lire_registre() ~= "{ancien=1}" then return "l'ancien format en un seul jeton n'est plus lu" end
+        GameToken = nil
         return "ok"
     end)()""")
     if resultat != "ok":
@@ -517,6 +553,10 @@ def principal(arguments):
         if not erreurs:
             reussis, echecs, nb_fichiers = executer_banc(lua)
             print("2. banc Lua : %d fichiers d'essais, %d vérifications réussies, %d échecs" % (nb_fichiers, reussis, echecs))
+            taille = lua.globals().Essais.taille_du_registre_plein
+            if taille:
+                print("   registre d'un camp plein (80 hommes, livre plein, enceinte, réserves) : %d octets, %d tranche(s) de 30 000"
+                      % (taille, -(-taille // 30000)))
             print("2 bis. ordres par fichier : %d commandes, aller-retour avec la liaison vérifié" % verifier_ordres())
             verifier_identifiants()
             print("2 ter. liaison : entités désignées par leur nom, caps de boussole, pose au sol, registre par jeton, argent d'Henry sûr, vérifié")

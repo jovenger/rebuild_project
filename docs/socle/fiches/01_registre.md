@@ -2,6 +2,7 @@
 
 - Morceau : 1. Table : `Scriptorium.registre`. Fichier : `socle/pak/Scripts/scriptorium/registre.lua`.
 - État : écrit et passé au banc (12 essais). En attente de l'essai en jeu, surtout pour le mécanisme de sauvegarde.
+- **Taille (note de JoVenGer du 15/10 : aucune valeur enregistrée de plus de 65 535 octets).** Mesuré au banc : le registre d'un camp plein (80 hommes avec leur caractère, livre plein, enceinte, réserves, batailles, fautes, patrouilles) pèse 87 819 octets. La liaison le coupe donc en tranches de 30 000 caractères, une par jeton du jeu, sous un en-tête (identité, nombre de tranches, longueur, somme de contrôle de tous les octets) ; à la lecture, tout est recollé et vérifié, et une tranche manquante, abîmée ou d'une autre partie fait tout refuser. L'ancien format en un seul jeton se lit toujours. Les nombres s'écrivent courts : un entier sans décimales, un autre à neuf chiffres significatifs. Vérifié au banc : un registre de 200 Ko se coupe, se recolle et se relit à l'identique. Reste à mesurer en jeu ce que garde un jeton.
 
 ## Ce que le joueur voit
 - Rien, en temps normal.

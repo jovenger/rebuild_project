@@ -419,23 +419,98 @@ end
 -- le jeton vient d'une autre partie et il est ignoré. La mémoire de secours couvre un jeton refusé.
 liaison.nom_du_jeton = "scriptorium_socle.registre"
 liaison.prefixe_de_la_marque = "scriptorium_registre_"
+-- Règle de JoVenGer (note du 15/10) : aucune valeur enregistrée de plus de 65 535 octets (le 8/10, des sauvegardes
+-- sont devenues impossibles à recharger). Le registre est donc coupé en tranches, une par jeton :
+--   en-tête  « nom_du_jeton »      : « identité|tranches|n|longueur|somme »
+--   tranche  « nom_du_jeton.<i> »  : « identité|i|texte »
+-- et recollé à la lecture, longueur et somme vérifiées. L'ancien format, un seul jeton « identité|données », se lit
+-- toujours. Taille des tranches bien sous la limite, en attendant la mesure en jeu de ce que garde un jeton.
+liaison.taille_des_tranches = 30000
 local identite_de_la_partie = nil
 local jeton_essaye = false
+local tranches_ecrites = 0
 
+local function jeton(nom)
+  local ok, valeur = pcall(function() return GameToken.GetToken(nom) end)
+  if ok and type(valeur) == "string" then
+    return valeur
+  end
+  return nil
+end
+
+-- Une somme de contrôle de tous les octets d'une chaîne. Le registre s'écrit après chaque événement : les octets sont
+-- lus seize par seize (un seul appel), chacun avec son poids, pour que tout octet changé change la somme.
+local function somme_de(chaine)
+  local somme, longueur, i = 0, #chaine, 1
+  while i + 15 <= longueur do
+    local o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, o13, o14, o15, o16 = string.byte(chaine, i, i + 15)
+    somme = (somme * 31 + o1 + o2 * 3 + o3 * 5 + o4 * 7 + o5 * 11 + o6 * 13 + o7 * 17 + o8 * 19 + o9 * 23 + o10 * 29
+             + o11 * 37 + o12 * 41 + o13 * 43 + o14 * 47 + o15 * 53 + o16 * 59) % 2147483647
+    i = i + 16
+  end
+  while i <= longueur do
+    somme = (somme * 31 + string.byte(chaine, i)) % 2147483647
+    i = i + 1
+  end
+  return somme
+end
+
+-- Rend l'identité et les données du registre (recollées s'il est en tranches), ou nil. « raison » : pourquoi un
+-- registre en tranches est refusé (tranche manquante, d'une autre partie, longueur ou somme fausse).
 local function lire_le_jeton()
-  local ok, valeur = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
-  if not ok or type(valeur) ~= "string" then
+  local valeur = jeton(liaison.nom_du_jeton)
+  if not valeur then
     return nil, nil
   end
-  local identite, donnees = string.match(valeur, "^([%w_]+)|(.*)$")
+  local identite, n, longueur, somme = string.match(valeur, "^([%w_]+)|tranches|(%d+)|(%d+)|(%d+)$")
+  if not identite then
+    return string.match(valeur, "^([%w_]+)|(.*)$")
+  end
+  local morceaux = {}
+  for i = 1, tonumber(n) do
+    local tranche = jeton(liaison.nom_du_jeton .. "." .. i)
+    local de_qui, numero, texte = string.match(tranche or "", "^([%w_]+)|(%d+)|(.*)$")
+    if de_qui ~= identite or tonumber(numero) ~= i then
+      return identite, nil, "tranche " .. i .. " manquante ou d'une autre partie"
+    end
+    morceaux[i] = texte
+  end
+  local donnees = table.concat(morceaux)
+  if #donnees ~= tonumber(longueur) or somme_de(donnees) ~= tonumber(somme) then
+    return identite, nil, "longueur ou somme fausse"
+  end
   return identite, donnees
+end
+
+-- Écrit le registre en tranches : les tranches d'abord, l'en-tête ensuite ; les tranches d'une écriture plus longue
+-- sont vidées. Rend vrai, ou faux et l'erreur.
+local function ecrire_le_jeton(identite, chaine)
+  local taille = liaison.taille_des_tranches
+  local n = math.max(1, math.ceil(#chaine / taille))
+  local ok, erreur = pcall(function()
+    for i = 1, n do
+      GameToken.SetToken(liaison.nom_du_jeton .. "." .. i, identite .. "|" .. i .. "|" .. string.sub(chaine, (i - 1) * taille + 1, i * taille))
+    end
+    for i = n + 1, tranches_ecrites do
+      GameToken.SetToken(liaison.nom_du_jeton .. "." .. i, "")
+    end
+    GameToken.SetToken(liaison.nom_du_jeton, identite .. "|tranches|" .. n .. "|" .. #chaine .. "|" .. somme_de(chaine))
+  end)
+  if ok then
+    tranches_ecrites = n
+  end
+  return ok, erreur, n
 end
 
 -- Lit la chaîne du registre enregistrée dans cette partie, ou nil.
 function liaison.lire_registre()
-  local identite, donnees = lire_le_jeton()
+  local identite, donnees, raison = lire_le_jeton()
   if identite and entite_nommee(liaison.prefixe_de_la_marque .. identite) then
     identite_de_la_partie = identite
+    if raison then
+      liaison.journal("Registre : en tranches, refusé (" .. raison .. ")")
+      return liaison.memoire.registre
+    end
     return donnees
   end
   if identite and identite ~= liaison.identite_ignoree then
@@ -467,15 +542,14 @@ function liaison.ecrire_registre(chaine)
       return
     end
   end
-  local valeur = identite_de_la_partie .. "|" .. chaine
-  local ok, erreur = pcall(function() GameToken.SetToken(liaison.nom_du_jeton, valeur) end)
+  local ok, erreur, n = ecrire_le_jeton(identite_de_la_partie, chaine)
   if not jeton_essaye then
     jeton_essaye = true
-    local relu_ok, relu = pcall(function() return GameToken.GetToken(liaison.nom_du_jeton) end)
-    if ok and relu_ok and relu == valeur then
-      liaison.journal("Registre : jeton du jeu en service (" .. #chaine .. " caractères)")
+    local _, relu, raison = lire_le_jeton()
+    if ok and relu == chaine then
+      liaison.journal("Registre : jeton du jeu en service (" .. #chaine .. " caractères, " .. n .. " tranche(s))")
     else
-      liaison.journal("Registre : jeton du jeu refusé (" .. tostring(ok and (relu_ok and "relu différent" or relu) or erreur)
+      liaison.journal("Registre : jeton du jeu refusé (" .. tostring(ok and (raison or "relu différent") or erreur)
                       .. ") ; mémoire de secours seule")
     end
   end
