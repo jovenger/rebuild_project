@@ -365,6 +365,16 @@ function poste.essai_henry_effleure_adversaire()
   return true
 end
 
+function poste.essai_garde_du_jeu()
+  jeu().journal("Poste : garde, " .. jeu().poser_le_garde_du_jeu())
+  return true
+end
+
+function poste.essai_garde_voir()
+  jeu().journal("Poste : garde, " .. jeu().voir_le_garde_du_jeu())
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -625,6 +635,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_henry_effleure_marcheur", fonction = function() return poste.essai_henry_effleure_marcheur() end, aide = "Un coup à 0 point d'Henry au marcheur" },
   { nom = "scriptorium_essai_adversaire_brigand", fonction = function() return poste.essai_adversaire_brigand() end, aide = "Un adversaire à âme de brigand et à notre cerveau, posé seul" },
   { nom = "scriptorium_essai_henry_effleure_adversaire", fonction = function() return poste.essai_henry_effleure_adversaire() end, aide = "Un coup à 0 point d'Henry à l'adversaire" },
+  { nom = "scriptorium_essai_garde_du_jeu", fonction = function() return poste.essai_garde_du_jeu() end, aide = "Un garde du jeu (son âme, son cerveau), éveillé, à 4 m d'Henry" },
+  { nom = "scriptorium_essai_garde_voir", fonction = function() return poste.essai_garde_voir() end, aide = "Ce que fait le garde du jeu ; santé du brigand du jeu" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },

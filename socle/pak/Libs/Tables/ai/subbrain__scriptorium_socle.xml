@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" xsi:noNamespaceSchemaLocation="../database.xsd">
   <subbrains version="1">
-    <subbrain always_active="true" subbrain_id="afc7e1e9-9a1d-4c60-9cf2-6cd369bc2ae2" subbrain_name="scriptorium_essai_marche" subbrain_type="1" timeout="0" />
+    <subbrain always_active="true" subbrain_id="afc7e1e9-9a1d-4c60-9cf2-6cd369bc2ae2" subbrain_name="scriptorium_essai_marche" subbrain_type="9" timeout="0" />
   </subbrains>
 </database>

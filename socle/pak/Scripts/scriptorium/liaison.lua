@@ -1453,6 +1453,43 @@ function liaison.ordonner_l_attaque()
   return "attaque : cible " .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre 8 " .. tostring(ordre_ok)
 end
 
+-- Le garde du jeu (V49) : une âme de garde de Kuttenberg faite pour être appelée par le jeu (extraGuards, cerveau
+-- npc_basic), née par script à 4 m d'Henry, sur sa gauche, et éveillée. Vient-il défendre Henry contre le brigand du jeu ?
+liaison.ame_du_garde_du_jeu = "0e1aba06-82de-4270-b0ec-46a8b4744abc"   -- extraGuards_kutnaHora_soldiers_guards_7
+liaison.garde_du_jeu = nil
+
+function liaison.poser_le_garde_du_jeu()
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_garde_du_jeu", pres_d_henry(2, -4), liaison.cap_du_joueur(),
+                                   { guidSharedSoulId = liaison.ame_du_garde_du_jeu, bWH_RequiresHome = false })
+  if not nom then
+    return "garde du jeu refusé : " .. tostring(erreur)
+  end
+  liaison.garde_du_jeu = nom
+  liaison.eveiller(nom, "Garde du jeu")
+  return "garde du jeu posé à 4 m : " .. nom
+end
+
+function liaison.voir_le_garde_du_jeu()
+  local garde = entite_nommee(liaison.garde_du_jeu)
+  if not garde then
+    return "garde du jeu introuvable"
+  end
+  local vie_lue, vie = pcall(function() return garde.actor:GetHealth() end)
+  local ligne = string.format("garde du jeu à %.1f m d'Henry, santé %s", liaison.distance_a_henry(liaison.garde_du_jeu) or -1,
+    vie_lue and tostring(vie) or "?")
+  local brigand = entite_nommee(liaison.brigand_du_jeu)
+  if brigand then
+    local ecart_lu, ecart = pcall(function()
+      local p, q = garde:GetWorldPos(), brigand:GetWorldPos()
+      return math.sqrt((p.x - q.x) ^ 2 + (p.y - q.y) ^ 2)
+    end)
+    local sa_vie_lue, sa_vie = pcall(function() return brigand.actor:GetHealth() end)
+    ligne = ligne .. string.format(" ; à %s m du brigand du jeu, santé du brigand %s", ecart_lu and string.format("%.1f", ecart) or "?",
+      sa_vie_lue and tostring(sa_vie) or "?")
+  end
+  return ligne
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)
