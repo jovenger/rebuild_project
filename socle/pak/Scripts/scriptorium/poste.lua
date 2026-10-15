@@ -736,21 +736,24 @@ function poste.essai_compagnie_voir()
     local e = f.equipement or {}
     local munition = e.armes and jeu().munition_de(e.armes)
     local ici = f.personnage and jeu().distance_a_henry(f.personnage)
-    jeu().journal(string.format("Poste : %s (%s) : faction %s, à %s m d'Henry%s ; %s", f.nom, f.role,
+    jeu().journal(string.format("Poste : %s (%s) : faction %s, à %s m d'Henry (%s)%s ; %s", f.nom, f.role,
       tostring(f.personnage and jeu().faction_de(f.personnage)), ici and string.format("%.1f", ici) or "?",
+      tostring(f.personnage and jeu().position_de(f.personnage)),
       munition and (", " .. munition .. " " .. jeu().compter_objet(f.personnage, munition)) or "",
       f.personnage and contextes_en_ligne(f.personnage) or "absent"))
   end
   local directeur = Scriptorium.directeur.personnage()
   if directeur then
-    jeu().journal("Poste : le Directeur : faction " .. tostring(jeu().faction_de(directeur)) .. " ; " .. contextes_en_ligne(directeur))
+    jeu().journal("Poste : le Directeur : faction " .. tostring(jeu().faction_de(directeur)) .. " (" .. tostring(jeu().position_de(directeur))
+      .. ") ; " .. contextes_en_ligne(directeur))
   end
   -- V72 b : la cible de l'archer et l'habitant frappé, s'ils sont là.
   for _, autre in ipairs({ { "cible de l'archer", jeu().cible_de_l_archer }, { "habitant frappé", jeu().habitant_frappe } }) do
     if autre[2] then
       local ici = jeu().distance_a_henry(autre[2])
-      jeu().journal(string.format("Poste : %s « %s » : santé %s, à %s m d'Henry, faction %s", autre[1], autre[2],
-        tostring(jeu().sante_de(autre[2])), ici and string.format("%.1f", ici) or "?", tostring(jeu().faction_de(autre[2]))))
+      jeu().journal(string.format("Poste : %s « %s » : santé %s, à %s m d'Henry (%s), faction %s", autre[1], autre[2],
+        tostring(jeu().sante_de(autre[2])), ici and string.format("%.1f", ici) or "?", tostring(jeu().position_de(autre[2])),
+        tostring(jeu().faction_de(autre[2]))))
     end
   end
   return true
@@ -803,6 +806,12 @@ end
 -- par les règles du jeu, 5 points (réponses de JoVenGer du 16/10).
 function poste.essai_compagnie_frapper()
   jeu().journal("Poste : coup, " .. jeu().frapper_un_vrai_habitant(1.5, 5))
+  return true
+end
+
+-- V72 b : qui serait frappé (le vrai habitant le plus proche), sans le toucher.
+function poste.essai_compagnie_qui()
+  jeu().journal("Poste : victime possible, " .. jeu().qui_serait_frappe())
   return true
 end
 
@@ -1260,6 +1269,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_compagnie_archer_ici", fonction = function() return poste.essai_compagnie_archer_ici() end, aide = "Pose le dernier archer à 3 m devant Henry (V72)" },
   { nom = "scriptorium_essai_compagnie_temoins", fonction = function() return poste.essai_compagnie_temoins() end, aide = "Deux hommes en témoins, de part et d'autre de la place de la victime (V72)" },
   { nom = "scriptorium_essai_compagnie_frapper", fonction = function() return poste.essai_compagnie_frapper() end, aide = "Un vrai habitant posé devant Henry et frappé par les règles du jeu, 5 points (V72 b)" },
+  { nom = "scriptorium_essai_compagnie_qui", fonction = function() return poste.essai_compagnie_qui() end, aide = "Nomme le vrai habitant qui serait frappé, sans le toucher (V72 b)" },
   { nom = "scriptorium_essai_compagnie_cible", fonction = function() return poste.essai_compagnie_cible() end, aide = "La cible de l'archer, née à 12 m devant Henry (V72 b)" },
   { nom = "scriptorium_essai_compagnie_archer_tire", fonction = function() return poste.essai_compagnie_archer_tire() end, aide = "Le dernier archer attaque la cible (V72 b)" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },

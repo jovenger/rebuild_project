@@ -2725,6 +2725,26 @@ function liaison.contextes_de(qui, noms)
   return rendu
 end
 
+-- La position d'un personnage, en texte « x, y », ou nil (V72 b : au prochain écran noir, les positions).
+function liaison.position_de(qui)
+  local entite = entite_nommee(qui)
+  local ok, ou = pcall(function() return entite:GetWorldPos() end)
+  return ok and type(ou) == "table" and string.format("%.1f, %.1f", ou.x, ou.y) or nil
+end
+
+-- Le vrai habitant le plus proche (pas un figurant), nommé sans être touché : nom, distance, faction, classe sociale.
+-- Pour regarder qui serait frappé avant le coup (V72 b : pas un garde).
+function liaison.qui_serait_frappe()
+  local habitant, distance = habitant_le_plus_proche(true)
+  if not habitant then
+    return "aucun habitant du jeu, hors figurants, à moins de 300 m d'Henry"
+  end
+  local nom = habitant:GetName()
+  local lu, classe = pcall(function() return habitant.soul:GetSocialClass().Name end)
+  return string.format("« %s » à %.0f m, faction %s, classe %s", nom, distance or -1, tostring(liaison.faction_de(nom)),
+    lu and tostring(classe) or "?")
+end
+
 -- La santé d'un personnage, ou nil.
 function liaison.sante_de(qui)
   local entite = entite_nommee(qui)
