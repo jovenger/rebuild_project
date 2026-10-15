@@ -108,3 +108,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 15/10/2026 (soir) : V44 : un coup sans blessure (0 point) d'Henry suffit à déclencher le combat du brigand ; un coup venu d'un personnage (notre marcheur) ne déclenche rien. Suite : comment le jeu demande à un personnage d'en attaquer un autre (callInterrupt_attack.xml).
 - 15/10/2026 (soir) : V45 : notre arbre appelle la fonction d'attaque du jeu (callInterrupt_attack) ; l'appel a lieu mais le marcheur n'attaque pas. Étude sur le papier : hôte de l'interruption et sous-cerveaux de npc_basic.
 - 15/10/2026 (soir) : V46 : avec les 24 boîtes aux lettres de npc_basic, notre marcheur n'attaque toujours pas sur ordre 8 et ne réagit pas au coup d'Henry. Reste à essayer : le sous-cerveau des horaires de npc_basic.
+- 15/10/2026 (soir) : V47 : avec le sous-cerveau des horaires de npc_basic, la partie ne finit plus de charger ; retiré, contrôle à la séance suivante.
