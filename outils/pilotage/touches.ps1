@@ -1,9 +1,9 @@
-﻿# Pilotage du jeu pendant un essai (JoVenGer ne tape aucune commande) : touches envoyées au jeu, seulement s'il est
-# au premier plan, et captures d'écran rangées dans securite\captures du dépôt (hors de git).
+﻿# Pilotage du jeu pendant un essai (JoVenGer ne tape aucune commande) : touches et mouvements de souris envoyés au
+# jeu seulement s'il est au premier plan, vérifié avant chacun (jamais de touche système), et captures d'écran rangées dans securite\captures du dépôt (hors de git).
 # S'emploie par « . outils\pilotage\touches.ps1 », puis Capture, Touche, Marcher, Reculer, Tourner.
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 if (-not ("Cycle.U" -as [type])) {
-  Add-Type -Namespace Cycle -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindow(System.IntPtr h, int n); [DllImport("user32.dll")] public static extern void keybd_event(byte k, byte s, uint f, System.UIntPtr e); [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint c, uint t); [DllImport("user32.dll")] public static extern void mouse_event(uint f, int dx, int dy, uint d, System.UIntPtr e);'
+  Add-Type -Namespace Cycle -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindow(System.IntPtr h, int n); [DllImport("user32.dll")] public static extern bool BringWindowToTop(System.IntPtr h); [DllImport("user32.dll")] public static extern void keybd_event(byte k, byte s, uint f, System.UIntPtr e); [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint p); [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool lier); [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId(); [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint c, uint t); [DllImport("user32.dll")] public static extern void mouse_event(uint f, int dx, int dy, uint d, System.UIntPtr e);'
 }
 $script:Travail = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))) "securite\captures"
 New-Item -ItemType Directory -Force $script:Travail | Out-Null
@@ -11,6 +11,27 @@ New-Item -ItemType Directory -Force $script:Travail | Out-Null
 function Jeu-Au-Premier-Plan {
   $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
   return ($p -and ([Cycle.U]::GetForegroundWindow() -eq $p.MainWindowHandle))
+}
+
+# Met le jeu devant SANS aucune touche (règle de JoVenGer, 15/10 : aucune touche simulée hors du jeu, jamais de touche
+# système) : rattache un instant notre fil d'entrée à celui de la fenêtre de devant, puis demande le premier plan.
+# Rend vrai seulement si la fenêtre de devant est bien celle du jeu ; sinon, l'appelant n'envoie rien.
+function Mettre-Le-Jeu-Devant {
+  $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
+  if (-not $p) { return $false }
+  $h = $p.MainWindowHandle
+  foreach ($essai in 1..3) {
+    if ([Cycle.U]::GetForegroundWindow() -eq $h) { return $true }
+    $devant = [Cycle.U]::GetForegroundWindow()
+    $inutile = [uint32]0
+    $fil_devant = [Cycle.U]::GetWindowThreadProcessId($devant, [ref]$inutile)
+    $fil_ici = [Cycle.U]::GetCurrentThreadId()
+    [void][Cycle.U]::AttachThreadInput($fil_ici, $fil_devant, $true)
+    [void][Cycle.U]::ShowWindow($h, 9); [void][Cycle.U]::BringWindowToTop($h); [void][Cycle.U]::SetForegroundWindow($h)
+    [void][Cycle.U]::AttachThreadInput($fil_ici, $fil_devant, $false)
+    Start-Sleep -Milliseconds 600
+  }
+  return ([Cycle.U]::GetForegroundWindow() -eq $h)
 }
 
 # Après le choix d'une sauvegarde : $true quand le poste du socle écrit « partie en cours = true » après le dernier
@@ -32,7 +53,7 @@ function Attendre-Partie-Chargee([string]$journal, [int]$secondes = 150) {
 
 # Noms : Entree, Echap, Haut, Bas.
 function Touche([string]$nom) {
-  if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu n'est pas au premier plan : touche « $nom » non envoyée" }
+  if (-not (Mettre-Le-Jeu-Devant)) { throw "le jeu n'est pas au premier plan : touche « $nom » non envoyée" }
   $codes = @{ Entree = @(0x0D, 0); Echap = @(0x1B, 0); Haut = @(0x26, 1); Bas = @(0x28, 1) }
   $vk = $codes[$nom][0]; $fl = $codes[$nom][1]
   $sc = [byte][Cycle.U]::MapVirtualKey($vk, 0)
@@ -54,7 +75,7 @@ function Capture([string]$nom, [int[]]$zone) {
 
 # Henry avance (touche physique « avancer », code 0x11) pendant « secondes » ; avec -Course, Maj est tenue.
 function Marcher([double]$secondes, [switch]$Course) {
-  if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu n'est pas au premier plan : Henry ne bouge pas" }
+  if (-not (Mettre-Le-Jeu-Devant)) { throw "le jeu n'est pas au premier plan : Henry ne bouge pas" }
   if ($Course) { [Cycle.U]::keybd_event(0, 0x2A, 0x8, [System.UIntPtr]::Zero) }
   [Cycle.U]::keybd_event(0, 0x11, 0x8, [System.UIntPtr]::Zero)
   Start-Sleep -Milliseconds ([int]($secondes * 1000))
@@ -65,17 +86,24 @@ function Marcher([double]$secondes, [switch]$Course) {
 
 # Tourne la vue d'Henry : pas positifs vers la droite (10 pas = un huitième de tour environ) ; « haut » négatif lève la vue.
 function Tourner([int]$pas, [int]$haut = 0) {
-  if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu n'est pas au premier plan : la vue ne tourne pas" }
+  if (-not (Mettre-Le-Jeu-Devant)) { throw "le jeu n'est pas au premier plan : la vue ne tourne pas" }
+  # Chaque pas de souris est vérifié : si le jeu n'est plus devant, plus rien ne part.
   $n = [Math]::Abs($pas); $dx = if ($pas -ge 0) { 40 } else { -40 }
-  foreach ($k in 1..([Math]::Max($n,1))) { if ($n -gt 0) { [Cycle.U]::mouse_event(0x0001, $dx, 0, 0, [System.UIntPtr]::Zero) }; Start-Sleep -Milliseconds 15 }
+  foreach ($k in 1..([Math]::Max($n,1))) {
+    if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu a quitté le premier plan : la vue ne tourne plus" }
+    if ($n -gt 0) { [Cycle.U]::mouse_event(0x0001, $dx, 0, 0, [System.UIntPtr]::Zero) }; Start-Sleep -Milliseconds 15
+  }
   $m = [Math]::Abs($haut); $dy = if ($haut -ge 0) { 40 } else { -40 }
-  if ($m -gt 0) { foreach ($k in 1..$m) { [Cycle.U]::mouse_event(0x0001, 0, $dy, 0, [System.UIntPtr]::Zero); Start-Sleep -Milliseconds 15 } }
+  if ($m -gt 0) { foreach ($k in 1..$m) {
+    if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu a quitté le premier plan : la vue ne tourne plus" }
+    [Cycle.U]::mouse_event(0x0001, 0, $dy, 0, [System.UIntPtr]::Zero); Start-Sleep -Milliseconds 15
+  } }
   Start-Sleep -Milliseconds 600
 }
 
 # Henry recule (touche physique « reculer », code 0x1F) pendant « secondes ».
 function Reculer([double]$secondes) {
-  if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu n'est pas au premier plan : Henry ne bouge pas" }
+  if (-not (Mettre-Le-Jeu-Devant)) { throw "le jeu n'est pas au premier plan : Henry ne bouge pas" }
   [Cycle.U]::keybd_event(0, 0x1F, 0x8, [System.UIntPtr]::Zero)
   Start-Sleep -Milliseconds ([int]($secondes * 1000))
   [Cycle.U]::keybd_event(0, 0x1F, 0xA, [System.UIntPtr]::Zero)

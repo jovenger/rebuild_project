@@ -17,9 +17,9 @@ $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
 if ($p) {
   [void]$p.CloseMainWindow(); $p.WaitForExit(15000) | Out-Null
   if (-not $p.HasExited) {
-    [void][Cycle.U]::SetForegroundWindow($p.MainWindowHandle); Start-Sleep -Milliseconds 800
-    if (Jeu-Au-Premier-Plan) { Touche Haut; Touche Entree }
-    $p.WaitForExit(30000) | Out-Null
+    if (Mettre-Le-Jeu-Devant) { Touche Haut; Touche Entree; $p.WaitForExit(30000) | Out-Null }
+    # Si le jeu ne vient pas devant, aucune touche : il est arrêté, ce qui ne sauvegarde rien.
+    if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; $p.WaitForExit(15000) | Out-Null }
   }
   if (-not $p.HasExited) { "le jeu ne se ferme pas : arrêt"; return }
 }
@@ -36,8 +36,7 @@ foreach ($i in 1..150) { Start-Sleep -Seconds 2; if ((Get-Item $journal).LastWri
 if (-not $menu) { "menu non atteint : arrêt"; return }
 Start-Sleep -Seconds 4
 $p = Get-Process -Name KingdomCome; $h = $p.MainWindowHandle
-[Cycle.U]::keybd_event(0x12,0,0,[System.UIntPtr]::Zero); [Cycle.U]::keybd_event(0x12,0,2,[System.UIntPtr]::Zero)
-[void][Cycle.U]::ShowWindow($h, 9); [void][Cycle.U]::SetForegroundWindow($h); Start-Sleep -Milliseconds 800
+if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : rien n'est tapé, arrêt"; return }
 Touche Bas; Touche Bas; Touche Entree; Start-Sleep -Seconds 3
 # Sans -devmode, le menu du jeu n'est pas le même (vu le 15/10 : le chargement est parti une touche plus tôt) : arrêt sur
 # la liste, capturée ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "playline0/autosave473".

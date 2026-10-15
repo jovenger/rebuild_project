@@ -12,8 +12,7 @@ $charge = Select-String -Path $journal -Pattern "Loading saved game" | Select-Ob
 if (-not $charge -or $charge.Line -notmatch "playline2/") { "la partie chargée n'est pas la partie d'essai : rien n'est sauvegardé"; return }
 if (-not (Attendre-Partie-Chargee $journal 5)) { "la partie d'essai n'est pas chargée : rien n'est sauvegardé"; return }
 $t0 = Get-Date
-[Cycle.U]::keybd_event(0x12,0,0,[System.UIntPtr]::Zero); [Cycle.U]::keybd_event(0x12,0,2,[System.UIntPtr]::Zero)
-[void][Cycle.U]::ShowWindow($p.MainWindowHandle, 9); [void][Cycle.U]::SetForegroundWindow($p.MainWindowHandle); Start-Sleep -Milliseconds 800
+if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : rien n'est tapé, arrêt"; return }
 Touche Echap; Start-Sleep -Seconds 2
 foreach ($i in 1..8) { Touche Bas }
 Start-Sleep -Milliseconds 500; Capture "sauver_menu" | Out-Null

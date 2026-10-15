@@ -26,8 +26,7 @@ foreach ($i in 1..150) { Start-Sleep -Seconds 2; if ((Get-Item $journal).LastWri
 if (-not $menu) { "menu non atteint : arrêt"; return }
 Start-Sleep -Seconds 4
 $p = Get-Process -Name KingdomCome; $h = $p.MainWindowHandle
-[Cycle.U]::keybd_event(0x12,0,0,[System.UIntPtr]::Zero); [Cycle.U]::keybd_event(0x12,0,2,[System.UIntPtr]::Zero)
-[void][Cycle.U]::ShowWindow($h, 9); [void][Cycle.U]::SetForegroundWindow($h); Start-Sleep -Milliseconds 800
+if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : rien n'est tapé, arrêt"; return }
 if ($Charger) {
   Touche Bas; Touche Bas; Touche Entree; Start-Sleep -Seconds 3
   "liste des parties à regarder : " + (Capture "charger_partie")

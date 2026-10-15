@@ -17,9 +17,9 @@ $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
 if ($p) {
   [void]$p.CloseMainWindow(); $p.WaitForExit(15000) | Out-Null
   if (-not $p.HasExited) {
-    [void][Cycle.U]::SetForegroundWindow($p.MainWindowHandle); Start-Sleep -Milliseconds 800
-    if (Jeu-Au-Premier-Plan) { Touche Haut; Touche Entree }
-    $p.WaitForExit(30000) | Out-Null
+    if (Mettre-Le-Jeu-Devant) { Touche Haut; Touche Entree; $p.WaitForExit(30000) | Out-Null }
+    # Si le jeu ne vient pas devant, aucune touche : il est arrêté, ce qui ne sauvegarde rien.
+    if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; $p.WaitForExit(15000) | Out-Null }
   }
   if (-not $p.HasExited) { "le jeu ne se ferme pas : liste des mods NON remise, à refaire"; return }
 }

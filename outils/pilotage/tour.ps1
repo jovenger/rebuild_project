@@ -2,11 +2,11 @@
 # securite\captures\<Nom>.png. Le jeu doit être lancé ; il est mis au premier plan.
 param([string]$Nom = "tour")
 . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "touches.ps1")
-Jeu-Au-Premier-Plan | Out-Null
+if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : pas de tour de vue"; return }
 $dir = Join-Path $script:Travail $Nom
 New-Item -ItemType Directory -Force $dir | Out-Null; Remove-Item "$dir\*.png" -ErrorAction SilentlyContinue
 foreach ($i in 0..7) {
-  if ($i -gt 0) { foreach ($k in 1..10) { [Cycle.U]::mouse_event(0x0001, 40, 0, 0, [System.UIntPtr]::Zero); Start-Sleep -Milliseconds 15 } }
+  if ($i -gt 0) { try { Tourner 10 } catch { "tour de vue arrêté : " + $_.Exception.Message; return } }
   Start-Sleep -Milliseconds 700; Capture ("{0}\{1:D2}" -f $Nom, $i) | Out-Null
 }
 $fichiers = Get-ChildItem "$dir\*.png" | Sort-Object Name
