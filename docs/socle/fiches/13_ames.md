@@ -323,8 +323,15 @@
   **retirer d'abord sa tenue de naissance** (tout ce qu'il a, sauf la bourse), puis créer chaque pièce une à une
   (`inventory:CreateItem(objet, état, nombre)`), puis lui faire porter ce qu'il porte, dans l'ordre.
 - **Au changement de grade** (`hommes.changer_de_palier`, service pour le programme Scriptorium) : nouveaux préréglages
-  de la même famille ; les pièces de l'ancien grade sont retirées (sinon son sac grossit à chaque grade), les pièces
-  `en_plus` gardées.
+  de la même famille, créés et portés ; les pièces `en_plus` gardées. **Les pièces de l'ancien grade** (objets de
+  valeur ; rien ne se perd sans raison) : question à JoVenGer ci-dessous ; tant qu'il n'a pas répondu, elles passent
+  par l'accroche « pièce ôtée » et restent dans le sac de l'homme si personne ne les prend ; rien n'est détruit.
+- **Munitions** (pair, 15/10) : flèches et carreaux s'usent au combat ; l'essai mesure si le nombre d'un homme baisse
+  après un tir. Si oui, à chaque entrée en partie, ses munitions sont complétées jusqu'au nombre de son préréglage (plus
+  tard, le programme Scriptorium pourra les prendre sur le stock du camp, par une accroche).
+- **Question à JoVenGer (pièces de l'ancien grade, proposée par le pair) : cochée le 15/10/2026, réponse a (« Rendues au camp »)** : a) rendues au camp par l'accroche « pièce
+  ôtée », pour que le programme Scriptorium les range dans la réserve de l'armurerie ou les vende (recommandé) ;
+  b) détruites.
 - **À chaque entrée en partie** (réponse a) : chaque homme, un par battement, jamais en bataille, se voit refaire porter
   ce qu'il porte : pour chaque objet de la liste, dans l'ordre, une pièce de cet objet est cherchée dans son sac
   (`FindItem`) et portée. Une pièce introuvable est notée au journal, jamais recréée au hasard. **Filet** (règle du
