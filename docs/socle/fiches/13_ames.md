@@ -380,6 +380,11 @@
   l'équipement comme après la remise, **un second passage au battement suivant** (état « à compléter »), puis l'accroche
   « après le rhabillage » ; un homme vu peut attaquer le brigand du jeu (ordre 8 de V54, même cerveau) pour voir ce
   qu'il prend en main.
+- **Mesuré en V71 d** (15/10) : à l'embauche, tenue complète du premier coup ; après le rechargement, même allure pour
+  l'homme d'armes et l'arbalétrier (chapel compris), mais **la cotte de dessus (couche 4) du pavoisier et de l'homme d'hast
+  est perdue** ; en combat, **l'homme d'hast prend son épée**, pas l'arme d'hast ; pavois pas vu (le brigand du jeu a
+  mis nos hommes à terre). **En attente de JoVenGer** : un quatrième essai sur l'allure (deux passages sans rien ôter,
+  puisqu'il n'y a pas de bascule) et la façon de voir pavois et arme d'hast.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
