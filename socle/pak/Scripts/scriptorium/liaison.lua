@@ -1740,6 +1740,66 @@ local function decrire_un_siege(e, distance)
     distance or -1, sorte, aides, tostring(p.guidSmartObjectType), wuid_lu and "lu" or ("refusé : " .. tostring(wuid)))
 end
 
+-- Relevé des propriétés complètes d'un objet du jeu (V65), pour écrire en données les sièges et les lits du camp
+-- d'après des objets réels, jamais devinés. Rend une ligne « clé=valeur » par propriété, triées.
+local function proprietes_a_plat(t, prefixe, lignes, profondeur)
+  if profondeur > 4 or type(t) ~= "table" then
+    return lignes
+  end
+  for cle, valeur in pairs(t) do
+    local nom = prefixe .. tostring(cle)
+    if type(valeur) == "table" then
+      proprietes_a_plat(valeur, nom .. ".", lignes, profondeur + 1)
+    else
+      table.insert(lignes, nom .. "=" .. tostring(valeur))
+    end
+  end
+  return lignes
+end
+
+liaison.aides_a_relever = { "Sit_1Place_Bench_Low", "Bed_1Place_Tent", "Bed_1Place_Low" }
+
+-- Pour chaque sorte de points d'appui à relever : le plus proche objet du jeu, son cap, ses propriétés complètes ; et
+-- pour le plus proche banc à deux places, l'écart et les caps de ses deux objets. Rend des lignes.
+function liaison.relever_les_sieges()
+  local lignes = {}
+  local function cap_de(e)
+    local lu, angles = pcall(function() return e:GetWorldAngles() end)
+    return lu and type(angles) == "table" and string.format("%.0f", cap_depuis_moteur(angles.z or 0)) or "?"
+  end
+  for _, aides_voulues in ipairs(liaison.aides_a_relever) do
+    local proches = plus_proches(function(e) return select(2, sorte_de(e)) == aides_voulues end, 1)
+    local t = proches[1]
+    if not t then
+      table.insert(lignes, aides_voulues .. " : aucun")
+    else
+      local nom_lu, nom = pcall(function() return t.entite:GetName() end)
+      table.insert(lignes, string.format("%s : « %s » à %.0f m, cap %s", aides_voulues, nom_lu and tostring(nom) or "?",
+        t.distance, cap_de(t.entite)))
+      local props = proprietes_a_plat(t.entite.Properties, "", {}, 1)
+      table.sort(props)
+      table.insert(lignes, "  " .. table.concat(props, " ; "))
+    end
+  end
+  local bancs = plus_proches(function(e) return select(2, sorte_de(e)) == "Sit_1Place_Bench_Low" end, 40)
+  for i = 1, #bancs do
+    for j = i + 1, #bancs do
+      local a, b = bancs[i].entite, bancs[j].entite
+      local na_lu, na = pcall(function() return a:GetName() end)
+      local nb_lu, nb = pcall(function() return b:GetName() end)
+      if na_lu and nb_lu and na == nb then
+        local pa, pb = a:GetWorldPos(), b:GetWorldPos()
+        table.insert(lignes, string.format("banc à deux places « %s » : écart %.2f m (dz %.2f), caps %s et %s, du premier au second : %.0f°",
+          tostring(na), math.sqrt((pa.x - pb.x) ^ 2 + (pa.y - pb.y) ^ 2), pb.z - pa.z, cap_de(a), cap_de(b),
+          cap_depuis_moteur(math.atan2(-(pb.x - pa.x), pb.y - pa.y))))
+        return lignes
+      end
+    end
+  end
+  table.insert(lignes, "banc à deux places : aucun parmi les 40 plus proches")
+  return lignes
+end
+
 -- Les sortes d'objets à moins de 300 m d'Henry (nombre, la plus proche), puis les deux sièges et les deux lits les
 -- plus proches. Rend des lignes.
 function liaison.sonder_les_sieges()

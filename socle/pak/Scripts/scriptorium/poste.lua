@@ -447,6 +447,17 @@ function poste.essai_sieges_sonder()
   return true
 end
 
+function poste.essai_sieges_relever()
+  for _, ligne in ipairs(jeu().relever_les_sieges()) do
+    local debut = 1
+    while debut <= #ligne do
+      jeu().journal("Poste : relevé, " .. string.sub(ligne, debut, debut + 399))
+      debut = debut + 400
+    end
+  end
+  return true
+end
+
 function poste.essai_siege_poser()
   jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("siege"))
   return true
@@ -751,6 +762,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_retirer", fonction = function() return poste.essai_marcheur_retirer() end, aide = "Retire le marcheur du monde" },
   { nom = "scriptorium_essai_sieges_sonder", fonction = function() return poste.essai_sieges_sonder() end, aide = "Les sièges et lits du jeu les plus proches d'Henry" },
   { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
+  { nom = "scriptorium_essai_sieges_relever", fonction = function() return poste.essai_sieges_relever() end, aide = "Propriétés complètes des sièges et lits du jeu à copier ; écart des places d'un banc" },
   { nom = "scriptorium_essai_lit_poser", fonction = function() return poste.essai_lit_poser() end, aide = "Pose près d'Henry une copie du lit du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir", fonction = function() return poste.essai_marcheur_asseoir() end, aide = "Le marcheur s'assoit sur le siège posé (ordre 10)" },
   { nom = "scriptorium_essai_marcheur_coucher", fonction = function() return poste.essai_marcheur_coucher() end, aide = "Le marcheur se couche sur le lit posé (ordre 11)" },
