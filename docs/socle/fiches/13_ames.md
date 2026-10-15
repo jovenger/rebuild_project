@@ -358,6 +358,12 @@
   **la bascule éprouvée seule** (conseil du pair) : sur le premier homme équipé, ses pièces refaites porter sans les ôter,
   vu, puis une seconde fois, vu ; puis rechargement : l'allure après la remise (ôter puis remettre) comparée à celle de
   l'embauche.
+- **Mesuré en V71 c** (15/10) : piles de naissance retirées entières (carreaux 20/20) ; **pas de bascule** : un seul
+  passage juste après la création ne fait pas tout porter (Jan sans chausses), un second passage complète la tenue, un
+  troisième ne change rien ; après la remise (ôter puis remettre), même tenue sauf le chapel. **En attente** (deux remèdes
+  essayés sur l'allure, arrêt selon la règle anti-boucle) : savoir pourquoi un passage ne suffit pas (hypothèses : le jeu
+  n'applique pas tout dans le même instant ; des pièces d'une même tenue se disputent une place et l'ordre décide) avant
+  un troisième remède ; voir le pavois et l'arme d'hast (« sortir son arme » tire l'arme courte).
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
