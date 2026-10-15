@@ -192,7 +192,10 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   **Meubles utilisables (fiche 03), validés par JoVenGer le 15/10** : un objet du jeu par place, posé sur le meuble
   visible ; paillasses des tentes en « Bed_1Place_Tent » ; au rechargement, seulement les manquants (après une séance
   qui vérifie les meubles blancs ; jamais un objet à état à l'aveugle) ; places gardées à la Compagnie et à Henry.
-  Suite : cette séance de vérification, puis le code.
+  V63 : les tentes gardées par la sauvegarde revenaient blanches (modèle par défaut de BasicEntity) ; V64 : objets du
+  socle posés avec `bSaved_by_game` à false, plus rien n'est gardé, tout est reposé à neuf depuis le registre (vu à
+  l'image). Suite : poser les objets du jeu (sièges, lits de tente) sur les meubles du camp, relire leurs WUID après
+  chaque repose, puis les ordres repas, veillée, sommeil des hommes par eux.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

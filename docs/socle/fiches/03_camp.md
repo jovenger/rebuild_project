@@ -46,6 +46,11 @@
   2. Au rechargement : seulement les manquants, après une séance qui vérifie si les meubles reviennent encore blancs.
      Un objet qui a un état (le coffre et son contenu, la porte, le feu allumé) n'est jamais reposé à l'aveugle ; une
      tente que JoVenGer a retirée, ou une tente détruite, n'est jamais remise.
+     Vu en jeu (V63, V64) : un objet gardé par la sauvegarde revenait avec le modèle par défaut de sa classe (tentes
+     blanches) ; chaque objet du socle est donc posé avec `bSaved_by_game` à false : rien du camp n'est gardé par la
+     sauvegarde, et tout est reposé depuis le registre à l'entrée en partie, à l'identique. Conséquence : les WUID des
+     sièges et des lits changent à chaque chargement ; la place d'un homme se garde par son nom (lit_1a…), et le WUID
+     se relit après chaque repose.
   3. Sièges et lits du camp gardés aux hommes de la Compagnie et à Henry ; le lit d'Henry dans sa tente à lui seul.
 
 ## Sorts rendus
