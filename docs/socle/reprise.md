@@ -189,6 +189,10 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   jeu, ou copie posée, sans meuble visible). Suite : sièges et paillasses du camp en objets du jeu, puis les ordres
   « repas », « veillée », « sommeil » des hommes par eux. Sept idées validées par JoVenGer le 15/10 : dans
   `plan_d_action.md`, à leur étape (pas maintenant).
+  **Meubles utilisables (fiche 03), validés par JoVenGer le 15/10** : un objet du jeu par place, posé sur le meuble
+  visible ; paillasses des tentes en « Bed_1Place_Tent » ; au rechargement, seulement les manquants (après une séance
+  qui vérifie les meubles blancs ; jamais un objet à état à l'aveugle) ; places gardées à la Compagnie et à Henry.
+  Suite : cette séance de vérification, puis le code.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

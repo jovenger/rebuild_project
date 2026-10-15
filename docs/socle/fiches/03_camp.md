@@ -20,7 +20,7 @@
 - **Positions.** `position_de(nom)` rend la position et le cap dans le monde d'un emplacement ; `point(x, y, cap)` fait de même pour un point quelconque du plan (postes de garde, lieux d'exercice).
 - **Enregistrement.** Après fondation, agrandissement, redressement et levée.
 
-## Meubles utilisables (proposé le 15/10/2026, à valider par JoVenGer)
+## Meubles utilisables (validé par JoVenGer le 15/10/2026, questions à cocher)
 - **Ce que le joueur voit** : au repas et à la veillée, les hommes s'assoient sur les bancs du camp ; la nuit, chacun se
   couche sur SA paillasse, dans SA tente ; le Directeur dans son lit.
 - **Comment (acquis en jeu, V62)** : un meuble visible (le modèle du jeu, comme aujourd'hui) et, posé dessus, un objet du
@@ -40,15 +40,13 @@
 - **Places gardées** : les gens du jeu (villageois de passage, brigands d'un raid) cherchent parfois un banc proche
   (`AI/crime/mournOnBench.xml`) ; les sièges et les lits du camp sont aux hommes de la Compagnie et à Henry, dont le lit
   dans sa tente reste à lui seul. Comment l'obtenir du jeu : à chercher et à vérifier en jeu (non vérifié).
-- **Questions à JoVenGer** :
-  1. La paillasse des tentes : la sorte du jeu « Bed_1Place_Tent » (faite pour les tentes, suggestion de la conversation
-     Scriptorium) ou « Bed_1Place_Low » (paillasse basse ordinaire) ; la hauteur sera vérifiée à l'image.
-  2. Au rechargement : aujourd'hui `relancer` retire et repose le camp à l'identique (mêmes objets, mêmes places), parce
-     que le 14/10 les objets gardés par la sauvegarde revenaient blancs. Soit ne reposer que ce qui manque, après une
-     séance qui vérifie si les meubles reviennent encore blancs ; soit garder le camp reposé à l'identique. Dans les deux
-     cas, un objet qui a un état (le coffre et son contenu, la porte ouverte ou fermée, le feu allumé) n'est jamais
-     reposé à l'aveugle ; et le socle ne remet jamais une tente que JoVenGer a retirée ni une tente détruite.
-  3. Les sièges et les lits du camp : gardés aux hommes de la Compagnie et à Henry, ou ouverts à tous.
+- **Choix de JoVenGer (15/10)** :
+  1. Paillasse des tentes : la sorte du jeu « Bed_1Place_Tent » (lit de tente), une par homme ; hauteur vérifiée à
+     l'image.
+  2. Au rechargement : seulement les manquants, après une séance qui vérifie si les meubles reviennent encore blancs.
+     Un objet qui a un état (le coffre et son contenu, la porte, le feu allumé) n'est jamais reposé à l'aveugle ; une
+     tente que JoVenGer a retirée, ou une tente détruite, n'est jamais remise.
+  3. Sièges et lits du camp gardés aux hommes de la Compagnie et à Henry ; le lit d'Henry dans sa tente à lui seul.
 
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.
