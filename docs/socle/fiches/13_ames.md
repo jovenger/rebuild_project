@@ -405,6 +405,8 @@
   `6_01`, `6_03`, `6_04` ; 15 tenues restent au palier 3 ; liste `hommes.equipement.tenue.exclues`, vérifiée par le banc) ;
   **un essai de combat du pavoisier** pour voir s'il prend son pavois (V71 f) ; s'il ne le prend pas, question : un
   bouclier ordinaire en attendant, ou le pavois laissé tel quel.
+- **Mesuré en V71 f** (15/10) : les tenues tirées au palier 3 ne sont plus parmi les exclues ; **le pavoisier se bat avec
+  son pavois au bras gauche** et son coutelas en main : réponse 3 de JoVenGer vérifiée. Pas de question à poser.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
