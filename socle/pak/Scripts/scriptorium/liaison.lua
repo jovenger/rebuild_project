@@ -1415,17 +1415,29 @@ local function est_un_figurant(nom)
   return string.find(bas, "additive", 1, true) ~= nil or string.find(bas, "extras", 1, true) ~= nil
 end
 
+-- Les classes sociales armées ou d'autorité (V72 b : le vrai habitant le plus proche était un garde de Kuttenberg ; le
+-- frapper, c'est une arrestation, pas un petit délit). Noms de social_class.xml.
+local CLASSES_ECARTEES = { guard = true, guardLeader = true, watchman = true, catchpole = true, soldier = true,
+                           soldier_crimeAuthority = true, bailiff = true, huntsman_crimeAuthority = true, security = true,
+                           officer = true }
+
+local function classe_sociale(habitant)
+  local lu, nom = pcall(function() return habitant.soul:GetSocialClass().Name end)
+  return lu and nom or nil
+end
+
 -- Ce que valent les liens de l'habitant du jeu le plus proche d'Henry : chaque lien du moteur, sa cible, et si l'IA
--- le connaît aussi (XGenAIModule.FindLinks sous ce nom). « sans_figurants » : les figurants sont écartés.
-local function habitant_le_plus_proche(sans_figurants)
+-- le connaît aussi (XGenAIModule.FindLinks sous ce nom). « vrai_habitant » : ni figurant, ni garde, soldat ou autorité.
+local function habitant_le_plus_proche(vrai_habitant)
   local plus_proche, distance = nil, nil
   local function chercher_un_habitant()
     local henry = player:GetWorldPos()
-    for _, rayon in ipairs({ 40, 150, 300 }) do
+    for _, rayon in ipairs({ 40, 150, 300, 600 }) do
       for _, habitant in pairs(System.GetEntitiesInSphereByClass(henry, rayon, "NPC") or {}) do
         -- Sans majuscules : le Directeur s'appelle « Scriptorium_Directeur » (V72 a, il était pris pour un habitant).
         if string.lower(string.sub(habitant:GetName(), 1, 12)) ~= "scriptorium_"
-           and not (sans_figurants and est_un_figurant(habitant:GetName())) then
+           and not (vrai_habitant and (est_un_figurant(habitant:GetName())
+                                       or CLASSES_ECARTEES[classe_sociale(habitant) or ""])) then
           local ou = habitant:GetWorldPos()
           local ecart = math.sqrt((ou.x - henry.x) ^ 2 + (ou.y - henry.y) ^ 2)
           if not distance or ecart < distance then plus_proche, distance = habitant, ecart end
@@ -2737,12 +2749,11 @@ end
 function liaison.qui_serait_frappe()
   local habitant, distance = habitant_le_plus_proche(true)
   if not habitant then
-    return "aucun habitant du jeu, hors figurants, à moins de 300 m d'Henry"
+    return "aucun vrai habitant du jeu à moins de 600 m d'Henry"
   end
   local nom = habitant:GetName()
-  local lu, classe = pcall(function() return habitant.soul:GetSocialClass().Name end)
   return string.format("« %s » à %.0f m, faction %s, classe %s", nom, distance or -1, tostring(liaison.faction_de(nom)),
-    lu and tostring(classe) or "?")
+    tostring(classe_sociale(habitant)))
 end
 
 -- La santé d'un personnage, ou nil.
@@ -2759,7 +2770,7 @@ end
 function liaison.frapper_un_vrai_habitant(devant, points)
   local habitant, distance = habitant_le_plus_proche(true)
   if not habitant then
-    return "aucun habitant du jeu, hors figurants, à moins de 300 m d'Henry"
+    return "aucun vrai habitant du jeu à moins de 600 m d'Henry"
   end
   local nom = habitant:GetName()
   liaison.habitant_frappe = nom
