@@ -1408,16 +1408,24 @@ local function liens_de(entite)
   return liste, string.format("%d lien(s)", nombre)
 end
 
+-- Un figurant du jeu (« additive », « extras » dans son nom) : vie simplifiée ; en V72 a, frappé, il n'a ni perdu de
+-- santé ni réagi.
+local function est_un_figurant(nom)
+  local bas = string.lower(nom)
+  return string.find(bas, "additive", 1, true) ~= nil or string.find(bas, "extras", 1, true) ~= nil
+end
+
 -- Ce que valent les liens de l'habitant du jeu le plus proche d'Henry : chaque lien du moteur, sa cible, et si l'IA
--- le connaît aussi (XGenAIModule.FindLinks sous ce nom).
-local function habitant_le_plus_proche()
+-- le connaît aussi (XGenAIModule.FindLinks sous ce nom). « sans_figurants » : les figurants sont écartés.
+local function habitant_le_plus_proche(sans_figurants)
   local plus_proche, distance = nil, nil
   local function chercher_un_habitant()
     local henry = player:GetWorldPos()
-    for _, rayon in ipairs({ 40, 150 }) do
+    for _, rayon in ipairs({ 40, 150, 300 }) do
       for _, habitant in pairs(System.GetEntitiesInSphereByClass(henry, rayon, "NPC") or {}) do
         -- Sans majuscules : le Directeur s'appelle « Scriptorium_Directeur » (V72 a, il était pris pour un habitant).
-        if string.lower(string.sub(habitant:GetName(), 1, 12)) ~= "scriptorium_" then
+        if string.lower(string.sub(habitant:GetName(), 1, 12)) ~= "scriptorium_"
+           and not (sans_figurants and est_un_figurant(habitant:GetName())) then
           local ou = habitant:GetWorldPos()
           local ecart = math.sqrt((ou.x - henry.x) ^ 2 + (ou.y - henry.y) ^ 2)
           if not distance or ecart < distance then plus_proche, distance = habitant, ecart end
@@ -2717,21 +2725,54 @@ function liaison.contextes_de(qui, noms)
   return rendu
 end
 
--- Le délit d'Henry (fiche 14, réponse 4 a de JoVenGer) : l'habitant du jeu le plus proche, posé à « devant » m devant
--- Henry, face à lui ; son nom va à liaison.habitant_frappe (voir_l_habitant_frappe le suit).
-function liaison.poser_l_habitant_devant_henry(devant)
-  local habitant, distance = habitant_le_plus_proche()
-  if not habitant then
-    return "aucun habitant du jeu à moins de 150 m d'Henry"
-  end
-  liaison.habitant_frappe = habitant:GetName()
-  return string.format("« %s » (à %.0f m, faction %s) : %s", liaison.habitant_frappe, distance or -1,
-    tostring(liaison.faction_de(liaison.habitant_frappe)), liaison.poser_pres_d_henry(liaison.habitant_frappe, devant, 0))
+-- La santé d'un personnage, ou nil.
+function liaison.sante_de(qui)
+  local entite = entite_nommee(qui)
+  local ok, vie = pcall(function() return entite.actor:GetHealth() end)
+  return ok and tonumber(vie) or nil
 end
 
--- Le vrai coup d'Henry sur l'habitant posé, par les règles du jeu (V43 ; réponse de JoVenGer du 16/10 : pas de clic).
-function liaison.henry_frappe_l_habitant_pose(points)
-  return frapper_par_henry(entite_nommee(liaison.habitant_frappe), "« " .. tostring(liaison.habitant_frappe) .. " »", points)
+-- Le délit d'Henry (fiche 14, réponses 4 a et « refaire autrement » de JoVenGer, V72 b) : le vrai habitant du jeu le
+-- plus proche (pas un figurant), posé à « devant » m devant Henry, face à lui, et frappé dans le même appel par les
+-- règles du jeu (V43, sans clic) ; sa santé avant et juste après. Son nom va à liaison.habitant_frappe
+-- (voir_l_habitant_frappe le suit).
+function liaison.frapper_un_vrai_habitant(devant, points)
+  local habitant, distance = habitant_le_plus_proche(true)
+  if not habitant then
+    return "aucun habitant du jeu, hors figurants, à moins de 300 m d'Henry"
+  end
+  local nom = habitant:GetName()
+  liaison.habitant_frappe = nom
+  local avant = liaison.sante_de(nom)
+  local pose = liaison.poser_pres_d_henry(nom, devant, 0)
+  local coup = frapper_par_henry(habitant, "« " .. nom .. " »", points)
+  return string.format("« %s » (à %.0f m, faction %s) : %s ; %s ; santé %s, juste après %s", nom, distance or -1,
+    tostring(liaison.faction_de(nom)), pose, coup, tostring(avant), tostring(liaison.sante_de(nom)))
+end
+
+-- La cible de l'archer (V72 b) : une âme du brigand d'essai (notre cerveau, faction ennemie publique de Kuttenberg ; il
+-- ne réagit pas, V48), née directement à « devant » m devant Henry (repère de poser_devant_henry), sur une place
+-- regardée libre à l'image avant l'ordre (V72 a : personne dans un meuble du camp), et qui y reste.
+liaison.cible_de_l_archer = nil
+
+function liaison.poser_la_cible_de_l_archer(devant)
+  local point = liaison.point_devant_henry(devant)
+  if not point then
+    return "Henry introuvable"
+  end
+  local place = liaison.au_sol(point)
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_cible", place, liaison.cap_du_joueur() + 180,
+                                   { guidSharedSoulId = liaison.ame_du_brigand_d_essai, bWH_RequiresHome = false })
+  if not nom then
+    return "cible refusée : " .. tostring(erreur)
+  end
+  liaison.cible_de_l_archer = nom
+  local entite = entite_nommee(nom)
+  local this_lu, this = pcall(function() return entite.this end)
+  local gardee = this_lu and type(this) == "table"
+    and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", place) end)
+  liaison.eveiller(nom, "Cible de l'archer")
+  return string.format("cible posée à %.0f m devant Henry : %s (place gardée : %s)", devant, nom, tostring(gardee))
 end
 
 -- V71 a5 (fiche 13) : nos pièces reconnues par l'identifiant noté à leur création, jamais par leur état ; la tenue de

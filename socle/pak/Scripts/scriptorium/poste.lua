@@ -745,6 +745,14 @@ function poste.essai_compagnie_voir()
   if directeur then
     jeu().journal("Poste : le Directeur : faction " .. tostring(jeu().faction_de(directeur)) .. " ; " .. contextes_en_ligne(directeur))
   end
+  -- V72 b : la cible de l'archer et l'habitant frappé, s'ils sont là.
+  for _, autre in ipairs({ { "cible de l'archer", jeu().cible_de_l_archer }, { "habitant frappé", jeu().habitant_frappe } }) do
+    if autre[2] then
+      local ici = jeu().distance_a_henry(autre[2])
+      jeu().journal(string.format("Poste : %s « %s » : santé %s, à %s m d'Henry, faction %s", autre[1], autre[2],
+        tostring(jeu().sante_de(autre[2])), ici and string.format("%.1f", ici) or "?", tostring(jeu().faction_de(autre[2]))))
+    end
+  end
   return true
 end
 
@@ -776,7 +784,7 @@ function poste.essai_compagnie_archer_ici()
 end
 
 -- Le délit d'Henry (réponse 4 a de JoVenGer) : les deux premiers hommes du camp en témoins, à 2 m devant Henry et 3 m
--- de part et d'autre, tournés vers l'habitant du jeu le plus proche, posé à 1,5 m devant Henry, face à lui.
+-- de part et d'autre, tournés vers la place de la victime, à 1,5 m devant Henry.
 function poste.essai_compagnie_temoins()
   local hommes = Scriptorium.hommes
   local liste = hommes.liste()
@@ -788,13 +796,37 @@ function poste.essai_compagnie_temoins()
     local f = hommes.fiche(liste[rang])
     jeu().journal("Poste : témoin " .. f.nom .. ", " .. jeu().poser_pres_d_henry(f.personnage, 2, cote, vers))
   end
-  jeu().journal("Poste : habitant, " .. jeu().poser_l_habitant_devant_henry(1.5))
   return true
 end
 
--- Le coup d'Henry sur l'habitant posé : par les règles du jeu, 5 points (réponse de JoVenGer du 16/10).
+-- V72 b : le vrai habitant le plus proche (pas un figurant), posé à 1,5 m devant Henry et frappé dans le même appel,
+-- par les règles du jeu, 5 points (réponses de JoVenGer du 16/10).
 function poste.essai_compagnie_frapper()
-  jeu().journal("Poste : coup, " .. jeu().henry_frappe_l_habitant_pose(5))
+  jeu().journal("Poste : coup, " .. jeu().frapper_un_vrai_habitant(1.5, 5))
+  return true
+end
+
+-- V72 b : la cible de l'archer, née à 12 m devant Henry (place regardée libre avant l'ordre).
+function poste.essai_compagnie_cible()
+  jeu().journal("Poste : " .. jeu().poser_la_cible_de_l_archer(12))
+  return jeu().cible_de_l_archer ~= nil
+end
+
+-- V72 b : le dernier archer engagé attaque la cible (ordre 8) ; ses flèches sont comptées par compagnie_voir.
+function poste.essai_compagnie_archer_tire()
+  local hommes = Scriptorium.hommes
+  local archer = nil
+  for _, id in ipairs(hommes.liste()) do
+    if hommes.fiche(id).role == "archer" then
+      archer = id
+    end
+  end
+  if not archer or not jeu().cible_de_l_archer then
+    return false
+  end
+  poste.dernier_vu = archer
+  local f = hommes.fiche(archer)
+  jeu().journal("Poste : " .. f.nom .. ", " .. jeu().ordonner_l_attaque(jeu().cible_de_l_archer, f.personnage))
   return true
 end
 
@@ -1226,8 +1258,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_compagnie_voir", fonction = function() return poste.essai_compagnie_voir() end, aide = "Faction, distance à Henry, munitions et contextes de crime de chaque homme et du Directeur (V72)" },
   { nom = "scriptorium_essai_compagnie_embaucher", fonction = function() return poste.essai_compagnie_embaucher() end, aide = "Engage un archer du palier 1, homme d'après la Compagnie (V72)" },
   { nom = "scriptorium_essai_compagnie_archer_ici", fonction = function() return poste.essai_compagnie_archer_ici() end, aide = "Pose le dernier archer à 3 m devant Henry (V72)" },
-  { nom = "scriptorium_essai_compagnie_temoins", fonction = function() return poste.essai_compagnie_temoins() end, aide = "Deux hommes en témoins, l'habitant le plus proche posé devant Henry (V72)" },
-  { nom = "scriptorium_essai_compagnie_frapper", fonction = function() return poste.essai_compagnie_frapper() end, aide = "Henry frappe l'habitant posé, par les règles du jeu, 5 points (V72)" },
+  { nom = "scriptorium_essai_compagnie_temoins", fonction = function() return poste.essai_compagnie_temoins() end, aide = "Deux hommes en témoins, de part et d'autre de la place de la victime (V72)" },
+  { nom = "scriptorium_essai_compagnie_frapper", fonction = function() return poste.essai_compagnie_frapper() end, aide = "Un vrai habitant posé devant Henry et frappé par les règles du jeu, 5 points (V72 b)" },
+  { nom = "scriptorium_essai_compagnie_cible", fonction = function() return poste.essai_compagnie_cible() end, aide = "La cible de l'archer, née à 12 m devant Henry (V72 b)" },
+  { nom = "scriptorium_essai_compagnie_archer_tire", fonction = function() return poste.essai_compagnie_archer_tire() end, aide = "Le dernier archer attaque la cible (V72 b)" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
