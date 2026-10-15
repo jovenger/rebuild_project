@@ -1215,10 +1215,15 @@ end
 -- place de naissance (il y reste). Rend son nom et une ligne.
 liaison.adversaire = nil
 
-function liaison.poser_l_adversaire()
+liaison.ame_du_brigand_d_essai = "edd4e924-20ea-441e-8048-e8d73aee4bca"   -- scriptorium_essai_brigand : notre cerveau, faction de brigands
+
+-- « brigand » : l'adversaire reçoit l'âme du brigand d'essai (faction ennemie publique de Kuttenberg) au lieu de celle du
+-- marcheur ; même cerveau.
+function liaison.poser_l_adversaire(brigand)
   local place = pres_d_henry(6, 3)
   local nom, erreur = faire_naitre("NPC", "scriptorium_essai_adversaire", place, liaison.cap_du_joueur() + 180,
-                                   { guidSharedSoulId = liaison.ame_du_marcheur, bWH_RequiresHome = false })
+                                   { guidSharedSoulId = brigand and liaison.ame_du_brigand_d_essai or liaison.ame_du_marcheur,
+                                     bWH_RequiresHome = false })
   if not nom then
     return nil, "adversaire refusé : " .. tostring(erreur)
   end
@@ -1255,10 +1260,10 @@ end
 
 -- L'ordre de combat : chacun reçoit l'autre pour cible (variable wuid scriptorium_essai_cible) et l'ordre 5 ; l'adversaire
 -- déjà posé est repris (vu le 15/10 : en poser un second au même endroit les superpose). Rend des lignes.
-function liaison.ordonner_le_combat()
+function liaison.ordonner_le_combat(brigand)
   local lignes = {}
-  if not entite_nommee(liaison.adversaire) then
-    local _, ligne = liaison.poser_l_adversaire()
+  if brigand or not entite_nommee(liaison.adversaire) then
+    local _, ligne = liaison.poser_l_adversaire(brigand)
     table.insert(lignes, tostring(ligne))
   end
   local paires = { { liaison.marcheur, liaison.adversaire }, { liaison.adversaire, liaison.marcheur } }
@@ -1315,9 +1320,10 @@ function liaison.voir_le_marcheur()
     texte_adversaire = string.format(" ; adversaire à %.1f m, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
       vie_lue and tostring(vie) or "?")
   end
-  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, rejoint %s, santé %s%s", au_point,
+  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, rejoint %s, combats %s, santé %s%s", au_point,
     liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
-    variable("scriptorium_essai_assis"), variable("scriptorium_essai_rejoint"), sante_lue and tostring(sante) or "?", texte_adversaire)
+    variable("scriptorium_essai_assis"), variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_combats"),
+    sante_lue and tostring(sante) or "?", texte_adversaire)
 end
 
 -- La distance entre un personnage et Henry, ou nil.

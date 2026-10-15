@@ -106,6 +106,23 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   portait de 66 000 à 200 000 caractères ne s'est plus rechargée (`playline2\exit.whs`, « Échec du chargement » ;
   `autosave003.whs` intacte). La liaison refuse désormais (`poser_un_jeton`).
 
+## 6 bis. Où reprendre l'étape 1 (pause du 15/10/2026, demandée par JoVenGer)
+- **Acquis en jeu** (V29 à V36, `essai_en_jeu.md`) : un homme né par script, avec une âme du mod
+  (`Libs/Tables/rpg/soul__scriptorium_socle.xml`) et un cerveau du mod (tables `Libs/Tables/ai/*__scriptorium_socle.xml`,
+  arbre `AI/scriptorium/essai_ordres.xml`), **vit s'il est éveillé** juste après sa naissance (`liaison.eveiller` :
+  `entite:Activate(1)` et `AI.AutoDisable(id, 0)`). Il marche vers un point donné en variable `vec3` du cerveau, change de
+  point sur ordre (variable `int` lue à chaque tour : l'arbre finit chaque branche et recommence), rejoint un autre homme
+  désigné par une variable `wuid`. Avec le sous-cerveau « switch » du jeu (`npc_basic_switch`) en plus, il tire l'épée.
+- **Ouvert** : s'asseoir à même le sol (V32, V33 : la branche bloque) ; s'asseoir sur un siège posé par script (pas de
+  `this`) ; **porter des coups** (V34, V36, V37 : `CombatAction` échoue aussitôt, même contre un brigand). Pistes : ce qui
+  précède `CombatAction` chez les habitants (`AddToSkirmish`, inscription au combat, cible vue), les arbres du jeu
+  `AI/crime/friendlyFight.xml` et `AI/battles/battlegroupcontroller.xml`.
+- **Méthode** (JoVenGer, via la conversation Scriptorium) : une chose changée à la fois, en partant de ce qui marche ;
+  prévenir la conversation Scriptorium au début et à la fin de chaque essai ; JoVenGer laisse Claude choisir les essais.
+- **À faire à la prochaine séance** : revoir les acquis sans `-devmode` (les scripts de pilotage lancent tous avec).
+- Contrôle d'absence : les lignes XML identiques au jeu de base qui portent un réglage s'écrivent à notre façon (choix de
+  JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 25.
+
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
 3. dialogue du Directeur et Gestion du camp à l'écran ; 4. quête de fond ; 5. voix et icônes ; 6. essais en jeu restants ;

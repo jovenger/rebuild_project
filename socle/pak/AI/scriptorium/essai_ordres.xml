@@ -21,13 +21,23 @@
             <Else canSkip="1">
               <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 5" saveVersion="2">
                 <Then canSkip="1">
-                  <CombatMoveDecorator>
-                    <Parallel successMode="Any" failureMode="Any">
-                      <AddToSkirmish TargetNPC="$scriptorium_essai_cible" RelationOverride="Hostile" />
-                      <Move stopWithinDistance="0.200000" stopDistanceVariation="0.100000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="true" destinationSpecification="$scriptorium_essai_cible" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
-                      <Wait duration="&apos;20s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-                    </Parallel>
-                  </CombatMoveDecorator>
+                  <Sequence>
+                    <MeleeDefenseAutomationDecorator active = "true">
+                      <MeleeGuardAutomationDecorator active="true" GuardMode="automate">
+                        <WeaponAutomationDecorator WeaponChange="none" active="true">
+                          <CombatFollowerDecorator active="true" RPGSweetSpotArcDriver="true" ProbablisticDrivenSweetSpot="true">
+                            <Parallel successMode="Any" failureMode="Any">
+                              <SuppressFailure>
+                                <CombatAction TargetNPC="$scriptorium_essai_cible" RelationOverride="Hostile" />
+                              </SuppressFailure>
+                              <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                            </Parallel>
+                          </CombatFollowerDecorator>
+                        </WeaponAutomationDecorator>
+                      </MeleeGuardAutomationDecorator>
+                    </MeleeDefenseAutomationDecorator>
+                    <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1" />
+                  </Sequence>
                 </Then>
                 <Else canSkip="1">
                   <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 6" saveVersion="2">

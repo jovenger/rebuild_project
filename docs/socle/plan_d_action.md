@@ -79,6 +79,12 @@ de débogage du jeu) n'existe pas dans le jeu publié. `AI.AddPersonallyHostile`
 - L'onguent n'a été vu qu'au banc (pas d'appel au moteur).
 
 ## Étape 7 — Fin du chantier
+- **Version publiée sans essai** (remarque de la conversation Scriptorium, 15/10) : le mod publié ne contient ni le poste
+  d'essai (`poste.lua`, ses ordres `scriptorium_essai_*`), ni la lecture du fichier d'ordres, ni aucun cerveau, âme ou
+  arbre d'essai (`essai_*`). L'installateur fait deux versions, « essai » avec le poste, « publiée » sans ; le banc
+  vérifie que la version publiée n'a aucun nom en « essai ».
+- **Revu sans `-devmode`** : chaque résultat clé (cerveau à nous V29, ordres V31, cible V35, tables suffixées, registre
+  en tranches) vu au moins une fois en jeu lancé sans `-devmode` ; `essai_en_jeu.md` le dit pour chaque point.
 - Contrôle d'absence en mode strict (`tout_verifier.py --strict`), morceaux scellés un par un dans `avancement.md`.
 - Autres langues (D3 : plus tard).
 - La bascule vers Scriptorium : seulement sur l'ordre de JoVenGer (le programme Scriptorium écrira alors le fichier de
