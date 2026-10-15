@@ -438,6 +438,35 @@ function poste.essai_marcheur_eveiller()
   return true
 end
 
+-- S'asseoir et se coucher (V60) : les sièges et lits du jeu les plus proches, une copie posée près d'Henry, l'ordre au
+-- marcheur.
+function poste.essai_sieges_sonder()
+  for _, ligne in ipairs(jeu().sonder_les_sieges()) do
+    jeu().journal("Poste : sièges, " .. ligne)
+  end
+  return true
+end
+
+function poste.essai_siege_poser()
+  jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("StanceSmartObject"))
+  return true
+end
+
+function poste.essai_lit_poser()
+  jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("Bed"))
+  return true
+end
+
+function poste.essai_marcheur_asseoir()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("StanceSmartObject", 10))
+  return true
+end
+
+function poste.essai_marcheur_coucher()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("Bed", 11))
+  return true
+end
+
 function poste.essai_marcheur_retirer()
   jeu().journal("Poste : marcheur, " .. jeu().retirer_le_marcheur())
   return true
@@ -710,6 +739,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_retrouver", fonction = function() return poste.essai_marcheur_retrouver() end, aide = "Après rechargement : le marcheur retrouvé par son nom, et ce que garde son cerveau" },
   { nom = "scriptorium_essai_marcheur_eveiller", fonction = function() return poste.essai_marcheur_eveiller() end, aide = "Le marcheur retrouvé est éveillé comme à sa naissance" },
   { nom = "scriptorium_essai_marcheur_retirer", fonction = function() return poste.essai_marcheur_retirer() end, aide = "Retire le marcheur du monde" },
+  { nom = "scriptorium_essai_sieges_sonder", fonction = function() return poste.essai_sieges_sonder() end, aide = "Les sièges et lits du jeu les plus proches d'Henry" },
+  { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
+  { nom = "scriptorium_essai_lit_poser", fonction = function() return poste.essai_lit_poser() end, aide = "Pose près d'Henry une copie du lit du jeu le plus proche" },
+  { nom = "scriptorium_essai_marcheur_asseoir", fonction = function() return poste.essai_marcheur_asseoir() end, aide = "Le marcheur s'assoit sur le siège posé (ordre 10)" },
+  { nom = "scriptorium_essai_marcheur_coucher", fonction = function() return poste.essai_marcheur_coucher() end, aide = "Le marcheur se couche sur le lit posé (ordre 11)" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
   { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },

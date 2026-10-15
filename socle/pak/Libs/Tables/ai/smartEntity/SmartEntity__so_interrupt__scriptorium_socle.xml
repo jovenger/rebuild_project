@@ -6,6 +6,12 @@
         <SmartBehaviorTemplate Name="scriptorium_aller" MaxInstances="-1" InitialState="Enabled">
           <TreeLocation TreeName="scriptorium_aller" FileName="scriptorium/comportements.xml" />
         </SmartBehaviorTemplate>
+        <SmartBehaviorTemplate Name="scriptorium_s_asseoir" MaxInstances="-1" InitialState="Enabled">
+          <TreeLocation TreeName="scriptorium_s_asseoir" FileName="scriptorium/comportements.xml" />
+        </SmartBehaviorTemplate>
+        <SmartBehaviorTemplate Name="scriptorium_se_coucher" MaxInstances="-1" InitialState="Enabled">
+          <TreeLocation TreeName="scriptorium_se_coucher" FileName="scriptorium/comportements.xml" />
+        </SmartBehaviorTemplate>
       </BehaviorTemplates>
     </SmartEntityTemplate>
   </SmartEntitys>

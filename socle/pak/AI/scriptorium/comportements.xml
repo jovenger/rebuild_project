@@ -15,4 +15,32 @@
     </Root>
     <ForestContainer />
   </BehaviorTree>
+  <BehaviorTree name="scriptorium_s_asseoir" is_function="0">
+    <Variables />
+    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
+      <Behavior canSkip="1">
+        <StanceElement smartObject="$scriptorium_essai_siege" stance="sitting" allowAny="false" enabled="true">
+          <Sequence>
+            <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
+            <Wait duration="&apos;90s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+          </Sequence>
+        </StanceElement>
+      </Behavior>
+    </Root>
+    <ForestContainer />
+  </BehaviorTree>
+  <BehaviorTree name="scriptorium_se_coucher" is_function="0">
+    <Variables />
+    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
+      <Behavior canSkip="1">
+        <StanceElement smartObject="$scriptorium_essai_siege" stance="lying" allowAny="false" enabled="true">
+          <Sequence>
+            <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
+            <Wait duration="&apos;90s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+          </Sequence>
+        </StanceElement>
+      </Behavior>
+    </Root>
+    <ForestContainer />
+  </BehaviorTree>
 </BehaviorTrees>

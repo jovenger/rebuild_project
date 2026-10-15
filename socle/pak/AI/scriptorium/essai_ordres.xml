@@ -33,6 +33,30 @@
                 <Expression expressions="$scriptorium_essai_ordre = 0" />
               </Sequence>
             </IfCondition>
+            <IfCondition condition="$scriptorium_essai_ordre == 10" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Sequence>
+                    <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110803" />
+                    <AddInterrupt Behavior="&apos;scriptorium_s_asseoir&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
+                    <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
+                  </Sequence>
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
+            <IfCondition condition="$scriptorium_essai_ordre == 11" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Sequence>
+                    <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110804" />
+                    <AddInterrupt Behavior="&apos;scriptorium_se_coucher&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
+                    <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
+                  </Sequence>
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
             <Wait timeType="GameTime" duration="&apos;2s&apos;" doFail="false" variation="" skipInLOD="false" />
           </Sequence>
         </While>
