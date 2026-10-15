@@ -165,6 +165,55 @@ function Scriptorium.arreter_le_battement()
   Scriptorium.battement_lance = false
 end
 
+-- Le hasard du socle, gardé au registre par chaque morceau qui en a besoin (Wichmann et Hill, 1982 : trois suites
+-- mêlées). Le Lua du jeu compte en simple précision (vu en jeu le 15/10 : 16777217 s'y écrit 1.67772e+07, et
+-- (2147483646 × 16807) mod 2147483647 y vaut 0) : ici, aucun calcul ne dépasse 172 × 30306 = 5 212 632, sous
+-- 2^24 = 16 777 216 ; la suite est donc la même dans le jeu et au banc.
+Scriptorium.modules_du_hasard = { 30269, 30307, 30323 }
+Scriptorium.facteurs_du_hasard = { 171, 172, 170 }
+
+-- Trois germes tirés d'un nombre quelconque (une ancienne graine, une graine d'essai). Les divisions par deux sont
+-- justes en simple précision ; sous 2^20, les restes le sont aussi.
+function Scriptorium.hasard_depuis(graine)
+  local n = tonumber(graine) or 1
+  if n ~= n or n == math.huge or n == -math.huge then
+    n = 1
+  end
+  n = math.floor(math.abs(n))
+  while n >= 1048576 do
+    n = math.floor(n / 2)
+  end
+  local etat = {}
+  for i, module in ipairs(Scriptorium.modules_du_hasard) do
+    etat[i] = (n + 97 * i) % (module - 1) + 1
+  end
+  return etat
+end
+
+-- Vrai si la valeur est un état du hasard en bon ordre : trois entiers, chacun entre 1 et son module moins un.
+function Scriptorium.hasard_en_ordre(etat)
+  if type(etat) ~= "table" then
+    return false
+  end
+  for i, module in ipairs(Scriptorium.modules_du_hasard) do
+    local valeur = etat[i]
+    if type(valeur) ~= "number" or valeur ~= math.floor(valeur) or valeur < 1 or valeur >= module then
+      return false
+    end
+  end
+  return true
+end
+
+-- Un tirage entre 0 (compris) et 1 (exclu) ; l'état avance.
+function Scriptorium.tirer(etat)
+  local somme = 0
+  for i, module in ipairs(Scriptorium.modules_du_hasard) do
+    etat[i] = (Scriptorium.facteurs_du_hasard[i] * etat[i]) % module
+    somme = somme + etat[i] / module
+  end
+  return somme % 1
+end
+
 -- Pour les essais : oublie le démarrage, sans toucher aux morceaux déclarés.
 function Scriptorium.remettre_a_zero()
   Scriptorium.demarre = false

@@ -27,29 +27,21 @@ local function preparer(nb_hommes, heure)
   return ids
 end
 
--- Cherche une graine qui produit une faute de la sorte voulue à la prochaine aube.
+-- Cherche une graine qui produit une faute de la sorte voulue à la prochaine aube : la même aube est rejouée, depuis
+-- le même registre, avec une autre graine (rien ne s'use d'un essai à l'autre : ni la réputation, ni les contrats).
 local function provoquer(sorte)
   local depart_heure = FauxJeu.heure
+  local avant = Scriptorium.registre.enregistrer()
   for graine = 1, 2000 do
+    Scriptorium.registre.charger(avant)
     bataille.fixer_la_graine(graine)
     FauxJeu.heure = depart_heure + 24
-    local rapport = discipline.battre()
-    local fautes = discipline.a_juger()
-    local trouvee = nil
-    for _, f in ipairs(fautes) do
-      if f.sorte == sorte then trouvee = f end
+    discipline.battre()
+    for _, f in ipairs(discipline.a_juger()) do
+      if f.sorte == sorte then
+        return f, graine
+      end
     end
-    if trouvee then
-      return trouvee, graine
-    end
-    -- Pas la bonne : on nettoie, on soigne tout le monde, et on recommence à l'aube suivante.
-    for _, f in ipairs(fautes) do
-      discipline.juger(f.id, "pardon")
-    end
-    for _, id in ipairs(hommes.liste()) do
-      if hommes.fiche(id).blessure > 0 then hommes.guerir(id, 10) end
-    end
-    depart_heure = FauxJeu.heure
   end
   return nil
 end

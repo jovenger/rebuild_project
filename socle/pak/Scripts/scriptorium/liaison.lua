@@ -424,8 +424,11 @@ liaison.prefixe_de_la_marque = "scriptorium_registre_"
 --   en-tête  « nom_du_jeton »      : « identité|tranches|n|longueur|somme »
 --   tranche  « nom_du_jeton.<i> »  : « identité|i|texte »
 -- et recollé à la lecture, longueur et somme vérifiées. L'ancien format, un seul jeton « identité|données », se lit
--- toujours. Taille des tranches bien sous la limite, en attendant la mesure en jeu de ce que garde un jeton.
+-- toujours. Vu en jeu le 15/10 : une sauvegarde qui portait des jetons d'essai de 66 000 à 200 000 caractères
+-- (relus intacts avant la sauvegarde) n'a plus pu être rechargée (« Échec du chargement »). Aucun jeton ne
+-- s'écrit donc au-delà de 65 535 octets, essais compris : poser_un_jeton refuse.
 liaison.taille_des_tranches = 30000
+liaison.plus_long_jeton = 65535
 local identite_de_la_partie = nil
 local jeton_essaye = false
 local tranches_ecrites = 0
@@ -438,18 +441,31 @@ local function jeton(nom)
   return nil
 end
 
+-- Le seul chemin vers GameToken.SetToken. Une valeur trop longue lève une erreur (attrapée par les appelants) au
+-- lieu d'être écrite.
+local function poser_un_jeton(nom, valeur)
+  if #valeur > liaison.plus_long_jeton then
+    error(string.format("jeton « %s » de %d octets, au-delà de %d : non écrit", nom, #valeur, liaison.plus_long_jeton))
+  end
+  GameToken.SetToken(nom, valeur)
+end
+
 -- Une somme de contrôle de tous les octets d'une chaîne. Le registre s'écrit après chaque événement : les octets sont
--- lus seize par seize (un seul appel), chacun avec son poids, pour que tout octet changé change la somme.
+-- lus seize par seize (un seul appel), chacun avec son poids, pour que tout octet changé change la somme. Le Lua du
+-- jeu compte en simple précision : le module 65521 garde chaque calcul sous 65520 × 31 + 255 × 408 = 2 135 160,
+-- loin de 2^24, donc juste dans le jeu comme au banc.
+local MODULE_DE_LA_SOMME = 65521
+
 local function somme_de(chaine)
   local somme, longueur, i = 0, #chaine, 1
   while i + 15 <= longueur do
     local o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, o13, o14, o15, o16 = string.byte(chaine, i, i + 15)
     somme = (somme * 31 + o1 + o2 * 3 + o3 * 5 + o4 * 7 + o5 * 11 + o6 * 13 + o7 * 17 + o8 * 19 + o9 * 23 + o10 * 29
-             + o11 * 37 + o12 * 41 + o13 * 43 + o14 * 47 + o15 * 53 + o16 * 59) % 2147483647
+             + o11 * 37 + o12 * 41 + o13 * 43 + o14 * 47 + o15 * 53 + o16 * 59) % MODULE_DE_LA_SOMME
     i = i + 16
   end
   while i <= longueur do
-    somme = (somme * 31 + string.byte(chaine, i)) % 2147483647
+    somme = (somme * 31 + string.byte(chaine, i)) % MODULE_DE_LA_SOMME
     i = i + 1
   end
   return somme
@@ -464,11 +480,15 @@ local function lire_le_jeton()
   end
   local identite, n, longueur, somme = string.match(valeur, "^([%w_]+)|tranches|(%d+)|(%d+)|(%d+)$")
   if not identite then
-    return string.match(valeur, "^([%w_]+)|(.*)$")
+    local ancienne_identite, ancien = string.match(valeur, "^([%w_]+)|(.*)$")
+    if ancien and string.sub(ancien, 1, 9) == "tranches|" then
+      return ancienne_identite, nil, "en-tête illisible"
+    end
+    return ancienne_identite, ancien
   end
   local morceaux = {}
   for i = 1, tonumber(n) do
-    local tranche = jeton(liaison.nom_du_jeton .. "." .. i)
+    local tranche = jeton(string.format("%s.%d", liaison.nom_du_jeton, i))
     local de_qui, numero, texte = string.match(tranche or "", "^([%w_]+)|(%d+)|(.*)$")
     if de_qui ~= identite or tonumber(numero) ~= i then
       return identite, nil, "tranche " .. i .. " manquante ou d'une autre partie"
@@ -483,18 +503,24 @@ local function lire_le_jeton()
 end
 
 -- Écrit le registre en tranches : les tranches d'abord, l'en-tête ensuite ; les tranches d'une écriture plus longue
--- sont vidées. Rend vrai, ou faux et l'erreur.
+-- sont vidées. Les nombres s'écrivent par « %d » : le Lua du jeu écrit 1 000 000 « 1e+06 » quand on le colle à une
+-- chaîne. Rend vrai, ou faux et l'erreur.
+function liaison.entete_du_registre(identite, n, chaine)
+  return string.format("%s|tranches|%d|%d|%d", identite, n, #chaine, somme_de(chaine))
+end
+
 local function ecrire_le_jeton(identite, chaine)
   local taille = liaison.taille_des_tranches
   local n = math.max(1, math.ceil(#chaine / taille))
   local ok, erreur = pcall(function()
     for i = 1, n do
-      GameToken.SetToken(liaison.nom_du_jeton .. "." .. i, identite .. "|" .. i .. "|" .. string.sub(chaine, (i - 1) * taille + 1, i * taille))
+      poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i),
+                         string.format("%s|%d|", identite, i) .. string.sub(chaine, (i - 1) * taille + 1, i * taille))
     end
     for i = n + 1, tranches_ecrites do
-      GameToken.SetToken(liaison.nom_du_jeton .. "." .. i, "")
+      poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i), "")
     end
-    GameToken.SetToken(liaison.nom_du_jeton, identite .. "|tranches|" .. n .. "|" .. #chaine .. "|" .. somme_de(chaine))
+    poser_un_jeton(liaison.nom_du_jeton, liaison.entete_du_registre(identite, n, chaine))
   end)
   if ok then
     tranches_ecrites = n
@@ -511,7 +537,7 @@ end
 
 function liaison.essayer_un_jeton(longueur)
   local nom = "scriptorium_socle.essai_jeton_" .. longueur
-  local ok, erreur = pcall(function() GameToken.SetToken(nom, texte_d_essai(longueur)) end)
+  local ok, erreur = pcall(function() poser_un_jeton(nom, texte_d_essai(longueur)) end)
   if not ok then
     return false, tostring(erreur)
   end
@@ -525,6 +551,41 @@ function liaison.relire_un_jeton(longueur)
     return 0, false
   end
   return #valeur, valeur == texte_d_essai(longueur)
+end
+
+-- Pour le poste d'essai : ce que le jeu garde du registre en tranches (en-tête, chaque tranche). Rend des lignes pour
+-- le journal.
+function liaison.decrire_le_registre()
+  local lignes = {}
+  local entete = jeton(liaison.nom_du_jeton)
+  table.insert(lignes, "en-tête : " .. (entete and (string.format("%d car., « ", #entete) .. string.sub(entete, 1, 80) .. " »") or "absent"))
+  local n = entete and tonumber(string.match(entete, "|tranches|(%d+)|")) or 0
+  for i = 1, n do
+    local tranche = jeton(string.format("%s.%d", liaison.nom_du_jeton, i))
+    table.insert(lignes, string.format("tranche %d : ", i)
+                         .. (tranche and (string.format("%d car., « ", #tranche) .. string.sub(tranche, 1, 40) .. " »") or "absente"))
+  end
+  return lignes
+end
+
+-- Les calculs du socle qui doivent rester justes dans le Lua du jeu (simple précision) : la somme de contrôle du
+-- registre et le hasard. Les valeurs attendues sont celles du banc (double précision), qui les vérifie aussi. Rend
+-- vrai si tout est juste, et une ligne pour le journal.
+liaison.nombres_attendus = { somme = 34016, hasard = { 3675, 21111, 15850 } }
+
+function liaison.verifier_les_nombres()
+  local somme = somme_de(texte_d_essai(100000))
+  local etat = Scriptorium.hasard_depuis(12345)
+  for _ = 1, 999 do
+    Scriptorium.tirer(etat)
+  end
+  local justes = somme == liaison.nombres_attendus.somme
+  for i = 1, 3 do
+    justes = justes and etat[i] == liaison.nombres_attendus.hasard[i]
+  end
+  return justes, string.format("somme d'essai %d (attendu %d), hasard après 999 tirages %d %d %d (attendu %d %d %d)",
+    somme, liaison.nombres_attendus.somme, etat[1], etat[2], etat[3],
+    liaison.nombres_attendus.hasard[1], liaison.nombres_attendus.hasard[2], liaison.nombres_attendus.hasard[3])
 end
 
 -- Lit la chaîne du registre enregistrée dans cette partie, ou nil.

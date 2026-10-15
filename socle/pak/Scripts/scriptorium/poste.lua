@@ -43,8 +43,9 @@ function poste.essai_registre()
 end
 
 -- Jetons du jeu (note de JoVenGer, partie 2, point 3) : écrire des jetons de plus en plus longs et les relire aussitôt,
--- puis, après « Sauvegarder et quitter » et rechargement, les relire encore : on sait ce que garde un jeton.
-poste.longueurs_de_jetons = { 16000, 32000, 60000, 65000, 66000, 100000, 200000 }
+-- puis, après « Sauvegarder et quitter » et rechargement, les relire encore : on sait ce que garde un jeton. Jamais
+-- au-delà de 65 535 octets : le 15/10, des jetons de 66 000 à 200 000 ont rendu la sauvegarde impossible à recharger.
+poste.longueurs_de_jetons = { 16000, 32000, 60000, 65000, 65535 }
 
 function poste.essai_jetons_ecrire()
   for _, longueur in ipairs(poste.longueurs_de_jetons) do
@@ -52,6 +53,18 @@ function poste.essai_jetons_ecrire()
     jeu().journal("Poste : jeton de " .. longueur .. " écrit, relu aussitôt " .. tostring(relu) .. ", intact = " .. tostring(intact))
   end
   return true
+end
+
+-- Registre : ce que le jeu garde de ses tranches ; et les calculs du socle qui doivent rester justes dans le Lua du
+-- jeu (simple précision).
+function poste.essai_registre_tranches()
+  Scriptorium.registre.enregistrer()
+  for _, ligne in ipairs(jeu().decrire_le_registre()) do
+    jeu().journal("Poste : registre, " .. ligne)
+  end
+  local justes, ligne = jeu().verifier_les_nombres()
+  jeu().journal("Poste : nombres " .. (justes and "justes" or "FAUX") .. ", " .. ligne)
+  return justes
 end
 
 function poste.essai_jetons_relire()
@@ -415,6 +428,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_coffre", fonction = function() return poste.essai_coffre() end, aide = "Essai du coffre" },
   { nom = "scriptorium_essai_jetons_ecrire", fonction = function() return poste.essai_jetons_ecrire() end, aide = "Écrit des jetons de 16 000 à 200 000 caractères et les relit" },
   { nom = "scriptorium_essai_jetons_relire", fonction = function() return poste.essai_jetons_relire() end, aide = "Relit les jetons d'essai après rechargement" },
+  { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },
   { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
   { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },
   { nom = "scriptorium_essai_feu", fonction = function() return poste.essai_feu() end, aide = "Ce que le jeu dit du feu, d'un banc et d'une tente" },

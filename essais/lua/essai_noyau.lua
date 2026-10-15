@@ -34,7 +34,7 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   FauxJeu.entrer_en_partie()
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé à l'entrée en partie")
-  egal(#FauxJeu.commandes, 29, "vingt-neuf commandes de console")
+  egal(#FauxJeu.commandes, 30, "trente commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 
@@ -218,4 +218,31 @@ essai("poste : l'essai du registre compte les appels à travers écriture et rel
   egal(appels, 1, "premier appel")
   appels = Scriptorium.poste.essai_registre()
   egal(appels, 2, "second appel, relu depuis la partie")
+end)
+
+essai("noyau : le hasard reste juste en simple précision et prend toute graine ; une ancienne graine se convertit", function()
+  for _, graine in ipairs({ 1, 12345, 0, -5, 2.5, 1e12, 2 ^ 40 + 1, 0 / 0, math.huge, -math.huge, "x" }) do
+    verifier(Scriptorium.hasard_en_ordre(Scriptorium.hasard_depuis(graine)), "graine " .. tostring(graine))
+  end
+  verifier(Scriptorium.hasard_en_ordre(Scriptorium.hasard_depuis(nil)), "sans graine")
+  verifier(not Scriptorium.hasard_en_ordre({ 0, 5, 5 }) and not Scriptorium.hasard_en_ordre({ 5, 5, 30323 })
+           and not Scriptorium.hasard_en_ordre({ 5, 5.5, 5 }) and not Scriptorium.hasard_en_ordre(42), "états en désordre refusés")
+  local etat = Scriptorium.hasard_depuis(12345)
+  local somme, mini, maxi = 0, 1, 0
+  for _ = 1, 20000 do
+    local u = Scriptorium.tirer(etat)
+    somme = somme + u
+    mini = math.min(mini, u)
+    maxi = math.max(maxi, u)
+  end
+  verifier(mini >= 0 and maxi < 1, "tirages entre 0 et 1")
+  verifier(math.abs(somme / 20000 - 0.5) < 0.01, "moyenne proche de 0,5 : " .. somme / 20000)
+  verifier(Scriptorium.hasard_en_ordre(etat), "état en ordre après vingt mille tirages")
+  -- Une ancienne graine (un seul nombre, telle qu'écrite par le Lua du jeu) au registre de la bataille.
+  depart()
+  Scriptorium.bataille.resultats()
+  Scriptorium.registre.lire("bataille").graine = 1039970000
+  local u = Scriptorium.bataille.tirage()
+  verifier(u >= 0 and u < 1, "tirage depuis une ancienne graine")
+  verifier(Scriptorium.hasard_en_ordre(Scriptorium.registre.lire("bataille").graine), "ancienne graine convertie")
 end)

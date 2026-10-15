@@ -28,7 +28,7 @@
 `delai_par_defaut` 2, `distance_arrivee` 60, `avertissement` 1, `duree_max_contact` 2, `ecart_entre_hommes` 1.2, `distance_rang_avant` 10, `distance_rang_arriere` 7, `effectif_max` 60, `journal_gardes` 30, `duree_des_corps` 24.
 
 ## Ce qui est sauvegardé (case `bataille`, version 1)
-`{ prochaine = 1, bandes = { [id] = … }, ordre = {…}, resultats = {…}, graine }` ; une bande finie garde ses `corps` et l'heure `corps_retires_a` jusqu'à leur retrait.
+`{ prochaine = 1, bandes = { [id] = … }, ordre = {…}, resultats = {…}, graine }` ; une bande finie garde ses `corps` et l'heure `corps_retires_a` jusqu'à leur retrait. La graine est l'état du hasard du noyau (trois germes, calculs sous 2^24, justes dans le Lua du jeu, qui compte en simple précision) ; une ancienne graine d'un seul nombre se convertit à la première lecture.
 
 ## Ce que la bataille demande au jeu (liaison)
 `faire_venir_ennemis(sorte, effectif, position, cap)` → liste d'identifiants ou nil ; `ennemis_vivants(liste)` → nombre ; `renvoyer_ennemis(liste)` ; `personnage_mort(identifiant)` ; `ordonner(…)` par les hommes ; `heure_du_jeu()` ; `journal(texte)`.

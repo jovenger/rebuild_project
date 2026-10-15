@@ -130,8 +130,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 29:
-        erreur("ordres : %d commandes lues dans poste.lua, 29 attendues" % len(connues))
+    if len(connues) != 30:
+        erreur("ordres : %d commandes lues dans poste.lua, 30 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -238,6 +238,7 @@ def verifier_identifiants():
         end
         function System.LogAlways() end
     """)
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
     resultat = lua.eval("""(function()
         local l = Scriptorium.liaison_reelle
@@ -363,7 +364,36 @@ def verifier_identifiants():
           end
         end
         if tranches ~= math.ceil(#gros / l.taille_des_tranches) then return "nombre de tranches : " .. tranches end
+        -- Le Lua du jeu compte en simple précision et écrit les grands nombres « 1.03997e+09 » (vu en jeu le 15/10) :
+        -- l'en-tête ne porte que des chiffres, et sa somme reste sous 65 521.
+        local entete = GameToken.valeurs["scriptorium_socle.registre"]
+        local somme = tonumber(string.match(entete, "^[%w_]+|tranches|%d+|%d+|(%d+)$") or "")
+        if not somme or somme >= 65521 then return "en-tête mal formé : " .. entete end
+        if not string.find(l.entete_du_registre("p1", 2, string.rep("x", 1000000)), "^p1|tranches|2|1000000|%d+$") then
+          return "en-tête d'un million de caractères mal écrit"
+        end
+        GameToken.valeurs["scriptorium_socle.registre"] = string.match(entete, "^([%w_]+)|") .. "|tranches|1|5434|1.03997e+09"
+        l.memoire.registre = "{secours=1}"
+        if l.lire_registre() ~= "{secours=1}" then return "un en-tête illisible n'est pas refusé" end
+        GameToken.valeurs["scriptorium_socle.registre"] = entete
+        l.memoire.registre = nil
+        -- Les calculs qui doivent rester justes dans le jeu : mêmes valeurs qu'au banc, et aucun produit du hasard
+        -- au-dessus de 2^24.
+        local justes, ligne = l.verifier_les_nombres()
+        if not justes then return "nombres attendus faux au banc : " .. ligne end
+        for i, module in ipairs(Scriptorium.modules_du_hasard) do
+          if Scriptorium.facteurs_du_hasard[i] * (module - 1) >= 16777216 then return "hasard au-dessus de 2^24" end
+        end
         if plus_long > 65535 then return "une tranche dépasse 65 535 octets : " .. plus_long end
+        -- Aucun jeton au-delà de 65 535 octets, essais compris (vu en jeu le 15/10 : la sauvegarde ne se recharge plus).
+        local poses = 0
+        local pose_d_origine = GameToken.SetToken
+        GameToken.SetToken = function(nom, valeur) poses = poses + 1 ; return pose_d_origine(nom, valeur) end
+        if l.essayer_un_jeton(65536) or poses ~= 0 then return "un jeton d'essai de 65 536 octets a été écrit" end
+        local relu, intact = l.essayer_un_jeton(65535)
+        if relu ~= 65535 or not intact or poses ~= 1 then return "le jeton d'essai de 65 535 octets n'est pas écrit et relu" end
+        GameToken.SetToken = pose_d_origine
+        GameToken.valeurs["scriptorium_socle.essai_jeton_65535"] = nil
         local juste = GameToken.valeurs["scriptorium_socle.registre.2"]
         GameToken.valeurs["scriptorium_socle.registre.2"] = string.gsub(juste, "homme", "hommx", 1)
         if l.lire_registre() ~= nil then return "une tranche abîmée n'est pas refusée" end
@@ -383,6 +413,14 @@ def verifier_identifiants():
     end)()""")
     if resultat != "ok":
         erreur("liaison : identifiants d'entités : " + str(resultat))
+    # Les longueurs des jetons d'essai du poste restent sous 65 535 octets (vu en jeu le 15/10).
+    longueurs = re.search(r"poste\.longueurs_de_jetons = \{([^}]*)\}", lire(os.path.join(PAK, "Scripts", "scriptorium", "poste.lua")))
+    if not longueurs:
+        erreur("poste : longueurs des jetons d'essai introuvables")
+    else:
+        trop = [n for n in (int(x) for x in re.findall(r"\d+", longueurs.group(1))) if n > 65535]
+        if trop:
+            erreur("poste : jetons d'essai au-delà de 65 535 octets : " + str(trop))
 
 
 # ------------------------------------------------------------------ 3. noms interdits

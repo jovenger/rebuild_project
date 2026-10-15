@@ -105,7 +105,7 @@ end
 -- ---------------------------------------------------------------- données
 
 local function donnees_neuves()
-  return { graine = 4242, hommes = {} }
+  return { graine = Scriptorium.hasard_depuis(4242), hommes = {} }
 end
 
 local function donnees()
@@ -122,9 +122,10 @@ end
 
 -- Le hasard du caractère, avec sa propre graine : il ne dérange pas celui des batailles.
 local function tirage(d)
-  d.graine = (d.graine * 16807) % 2147483647
-  if d.graine == 0 then d.graine = 1 end
-  return d.graine / 2147483647
+  if not Scriptorium.hasard_en_ordre(d.graine) then
+    d.graine = Scriptorium.hasard_depuis(d.graine)
+  end
+  return Scriptorium.tirer(d.graine)
 end
 
 local function tirer_entre(d, mini, maxi)

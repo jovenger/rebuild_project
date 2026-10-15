@@ -68,7 +68,7 @@ end
 -- ---------------------------------------------------------------- données
 
 local function donnees_neuves()
-  return { prochaine = 1, bandes = {}, ordre = {}, resultats = {}, graine = 12345 }
+  return { prochaine = 1, bandes = {}, ordre = {}, resultats = {}, graine = Scriptorium.hasard_depuis(12345) }
 end
 
 local function donnees()
@@ -88,11 +88,13 @@ local function refuser(raison, detail)
   return false, raison
 end
 
--- Hasard gardé au registre : la même partie rejoue les mêmes coups.
+-- Hasard gardé au registre : la même partie rejoue les mêmes coups. Une ancienne graine (un seul nombre) donne ses
+-- trois germes à la première lecture.
 local function tirage(d)
-  d.graine = (d.graine * 16807) % 2147483647
-  if d.graine == 0 then d.graine = 1 end
-  return d.graine / 2147483647
+  if not Scriptorium.hasard_en_ordre(d.graine) then
+    d.graine = Scriptorium.hasard_depuis(d.graine)
+  end
+  return Scriptorium.tirer(d.graine)
 end
 
 -- Le même hasard, pour les autres morceaux (patrouilles).
@@ -101,7 +103,7 @@ function bataille.tirage()
 end
 
 function bataille.fixer_la_graine(graine)
-  donnees().graine = graine
+  donnees().graine = Scriptorium.hasard_depuis(graine)
 end
 
 -- ---------------------------------------------------------------- lever une bande
