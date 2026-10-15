@@ -1449,9 +1449,13 @@ function liaison.ordonner_l_attaque(cible)
   if not qui or not contre or not this_lu or type(this) ~= "table" or not wuid_lu then
     return "attaque : marcheur ou cible introuvable, ou sans this"
   end
+  -- Vu en V51, V52 : sans arme tirée, il engage sans blesser ; l'ordre d'attaque la fait donc tirer (human:DrawWeapon,
+  -- comme Scripts/Debug/CombatDebug.lua du jeu après la naissance de ses combattants).
+  local tiree, refus = pcall(function() qui.human:DrawWeapon() end)
   local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
   local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 8) end)
-  return "attaque : cible " .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre 8 " .. tostring(ordre_ok)
+  return "attaque : arme " .. (tiree and "tirée" or ("non tirée : " .. tostring(refus))) .. ", cible "
+    .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre 8 " .. tostring(ordre_ok)
 end
 
 -- Le garde du jeu (V49) : une âme de garde de Kuttenberg faite pour être appelée par le jeu (extraGuards, cerveau
@@ -1521,6 +1525,28 @@ function liaison.mener_henry_en_prairie()
     return "prairie : refusé : " .. tostring(erreur)
   end
   return string.format("prairie : Henry posé en (%.1f, %.1f, %.1f)", lieu.x, lieu.y, lieu.z)
+end
+
+-- Les compétences de combat du marcheur (essai V53) : l'outil de combat du jeu les pose par soul:SetSkillLevelDebug
+-- (Scripts/Debug/CombatDebug.lua), le jeu fait monter celles d'Henry par soul:AdvanceToSkillLevel
+-- (Scripts/Entities/actor/player.lua). On essaie l'un puis l'autre, et on relit. Rend une ligne.
+liaison.niveau_de_combat_d_essai = 20
+
+function liaison.donner_des_competences(niveau)
+  local entite = entite_nommee(liaison.marcheur)
+  if not entite or type(entite.soul) ~= "table" then
+    return "compétences : marcheur introuvable"
+  end
+  local lignes = {}
+  for _, competence in ipairs(liaison.competences_de_combat) do
+    local comment = "aucun appel accepté"
+    for _, appel in ipairs({ "SetSkillLevelDebug", "AdvanceToSkillLevel" }) do
+      local ok = pcall(function() entite.soul[appel](entite.soul, competence, niveau) end)
+      if ok then comment = appel break end
+    end
+    table.insert(lignes, competence .. " " .. sonder(entite.soul, "GetSkillLevel", competence) .. " (" .. comment .. ")")
+  end
+  return "compétences : " .. table.concat(lignes, ", ")
 end
 
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).

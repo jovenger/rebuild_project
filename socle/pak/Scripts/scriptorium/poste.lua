@@ -391,6 +391,11 @@ function poste.essai_prairie()
   return true
 end
 
+function poste.essai_marcheur_competences()
+  jeu().journal("Poste : marcheur, " .. jeu().donner_des_competences(jeu().niveau_de_combat_d_essai))
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -656,6 +661,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_attaque_adversaire", fonction = function() return poste.essai_marcheur_attaque_adversaire() end, aide = "Le marcheur attaque l'adversaire (ordre 8)" },
   { nom = "scriptorium_essai_marcheur_armer", fonction = function() return poste.essai_marcheur_armer() end, aide = "Le marcheur tire son arme ; ses compétences de combat" },
   { nom = "scriptorium_essai_prairie", fonction = function() return poste.essai_prairie() end, aide = "Henry posé sur la prairie des essais de combat" },
+  { nom = "scriptorium_essai_marcheur_competences", fonction = function() return poste.essai_marcheur_competences() end, aide = "Les compétences de combat du marcheur posées à 20, puis relues" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
