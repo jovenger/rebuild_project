@@ -89,9 +89,9 @@
   rechargement en cours de partie (menu de pause), un homme loin d'Henry au chargement, et le sommeil au-delà d'environ
   300 m d'Henry.
 - **La partie d'essai `playline2` est au prologue, temps du jeu arrêté** : l'ordre « aller » y est posé mais pas joué
-  (V56), alors qu'il l'était sur la Partie 1 (V55), qui ne se sauvegarde jamais. Hypothèse non vérifiée : les horaires du
-  jeu ne jouent pas d'interruption quand le temps est arrêté. Pour mesurer un rechargement avec le temps qui avance, il
-  faut une partie d'essai sauvegardable hors du prologue (décision de JoVenGer).
+  (V56) ; sur la partie d'essai n° 3 (`playline3`, copie de la sauvegarde 473, temps qui avance), il est joué, avant
+  comme après rechargement (V58). L'hypothèse (les horaires du jeu ne jouent pas d'interruption quand le temps est
+  arrêté) en sort renforcée, sans être isolée. Les essais de comportements et de rechargement se font sur `playline3`.
 - La table `SmartEntity__so_interrupt__scriptorium_socle.xml` n'est pas annoncée au journal du jeu ; elle est prise
   puisque le comportement est joué (V55).
 - **L'attaque à vue** (une bande qui attaque d'elle-même en voyant le camp) et la riposte : le brigand du jeu n'attaque

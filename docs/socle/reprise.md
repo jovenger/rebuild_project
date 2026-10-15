@@ -91,7 +91,15 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   pour une sauvegarde précise, `vers_partie_d_essai.ps1 -Charger` (s'arrête sur la liste, capture `charger_partie.png`),
   choix à vue, puis `confirmer_sauvegarde.ps1 -Attendu "playline2/<sauvegarde>"`. Le chargement n'est réussi que si la
   veille du poste dit « partie en cours = true » (un échec ramène au menu, et « entrée en partie » s'écrit quand même).
-  `sauvegarder_et_quitter.ps1` sauvegarde la partie d'essai et ferme le jeu (refuse si la partie chargée n'est pas `playline2`).
+  `sauvegarder_et_quitter.ps1` sauvegarde la partie d'essai et ferme le jeu (refuse si la partie chargée n'est pas `playline2`
+  ou `playline3` ; alerte si la sauvegarde s'écrit hors de la ligne chargée).
+- **Partie d'essai n° 3** (`playline3`, « Partie 4 » au menu ; accord de JoVenGer du 15/10) : copie de la sauvegarde 473 de
+  la Partie 1, temps qui avance, sauvegarde permise ; c'est elle qu'il faut pour les comportements et les rechargements
+  (`playline2` est au prologue, temps arrêté : les interruptions n'y sont pas jouées). `vers_partie_d_essai.ps1 -Ligne
+  playline3` (par « Continuer », si sa sauvegarde est la plus récente) ; sinon `-Charger`, « Partie 4 » (trois fois Bas),
+  puis `confirmer_sauvegarde.ps1 -Attendu "playline3/<sauvegarde>"`. Ne jamais appuyer sur X dans la liste (supprime).
+- Après une séance qui sauvegarde une partie d'essai, « Continuer » du jeu chargerait cette partie d'essai et non celle de
+  JoVenGer : le lui dire (charger sa partie par « Charger partie », « Partie 2 »).
 6. **Toujours finir** par `outils\pilotage\fin_essai.ps1` : jeu fermé sans sauvegarde, Partie 1 contrôlée, liste des
    mods d'origine remise (empreinte `75A3A33C…`), veilleur relancé. Le noter dans `avancement.md`.
 - Pièges connus : la console du jeu ne s'ouvre pas (d'où les ordres par fichier) ; au menu principal, fermer demande
@@ -169,6 +177,8 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   au prologue, temps arrêté ; « aller » n'y est pas joué. Les essais de comportements se font sur la Partie 1.
   **V57** : correctif vérifié en jeu (aucun doublon à l'entrée en partie, ordres redonnés une fois) ; partie d'essai
   laissée sans camp ni hommes (`scriptorium_essai_tout_lever`, puis sauvegarde).
+  **V58** : partie d'essai n° 3 créée (`playline3`) ; « aller » y est joué, avant et après rechargement ; sauvegarde écrite
+  dans `playline3`, autres lignes intactes. Suite : la faction « la Compagnie », puis monter la garde.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en
