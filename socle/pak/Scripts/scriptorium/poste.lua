@@ -570,6 +570,37 @@ function poste.essai_hommes_voir()
   return true
 end
 
+-- V71 a (fiche 13) : la sonde d'équipement, sur le premier homme du camp.
+local function premier_homme()
+  local liste = Scriptorium.hommes.liste()
+  local f = liste[1] and Scriptorium.hommes.fiche(liste[1])
+  return f and f.personnage, f and f.nom
+end
+
+function poste.essai_inventaire_sonder()
+  local qui, nom = premier_homme()
+  for _, ligne in ipairs(jeu().sonder_l_inventaire(qui)) do
+    jeu().journal("Poste : " .. tostring(nom) .. ", " .. ligne)
+  end
+  return qui ~= nil
+end
+
+function poste.essai_equipement_compter()
+  local qui, nom = premier_homme()
+  jeu().journal("Poste : " .. tostring(nom) .. ", " .. jeu().compter_l_equipement(qui))
+  return qui ~= nil
+end
+
+local function equiper_la_sonde(quoi)
+  local qui, nom = premier_homme()
+  jeu().journal("Poste : " .. tostring(nom) .. ", " .. jeu().equiper_la_sonde(qui, quoi))
+  return qui ~= nil
+end
+
+function poste.essai_equiper_tenue() return equiper_la_sonde("tenue") end
+function poste.essai_equiper_tenue_2() return equiper_la_sonde("tenue_2") end
+function poste.essai_equiper_armes() return equiper_la_sonde("armes") end
+
 -- Le lit de tente vu à découvert (V69, idée de la conversation Scriptorium) : les petites tentes du camp cachent
 -- l'homme couché (V68). Un lit du camp, meuble et place du jeu, avec les mêmes données que le camp, posé à 5 m devant
 -- Henry, sans tente ; puis le marcheur s'y couche.
@@ -870,6 +901,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir_camp", fonction = function() return poste.essai_marcheur_asseoir_camp() end, aide = "Le marcheur s'assoit sur le premier banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_marcheur_coucher_camp", fonction = function() return poste.essai_marcheur_coucher_camp() end, aide = "Le marcheur se couche sur le premier lit du camp (ordre 11)" },
+  { nom = "scriptorium_essai_inventaire_sonder", fonction = function() return poste.essai_inventaire_sonder() end, aide = "Fonctions de l'inventaire et de l'acteur du premier homme (V71 a)" },
+  { nom = "scriptorium_essai_equipement_compter", fonction = function() return poste.essai_equipement_compter() end, aide = "Compte les pièces des tenues et des armes de la sonde sur le premier homme" },
+  { nom = "scriptorium_essai_equiper_tenue", fonction = function() return poste.essai_equiper_tenue() end, aide = "Pose la tenue soldier_generic_1_01 sur le premier homme, puis compte" },
+  { nom = "scriptorium_essai_equiper_tenue_lourde", fonction = function() return poste.essai_equiper_tenue_2() end, aide = "Pose la tenue soldier_generic_5_01 sur le premier homme, puis compte" },
+  { nom = "scriptorium_essai_equiper_armes", fonction = function() return poste.essai_equiper_armes() end, aide = "Pose les armes sword_shield_3_01 sur le premier homme, puis compte" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },

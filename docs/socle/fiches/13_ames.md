@@ -112,6 +112,67 @@
 4. **L'apparence des combattants** : a) soldats génériques du jeu (33 personnages) (recommandé) ; b) gardes du jeu
    (10 personnages), avec la classe 33 quand même.
 
+## L'équipement (V71) : validé par JoVenGer le 15/10/2026 (questions à cocher, après relecture par la conversation Scriptorium)
+- **Ses réponses** : 1. la tenue selon le grade (`soldier_generic` 1–2, 3–4, 5–6, variante tirée) ; 2. le tirage au hasard
+  de la famille (contrat sans famille) se fait parmi **les six familles, armes d'hast comprises** ; 3. le pavoisier porte
+  **un pavois peint** (masse, hache ou coutelas et pavois, préréglages du jeu, selon son grade) ; 4. flèches et carreaux
+  **selon le grade** (grossiers, ordinaires, puis de chasse ou de fin tireur).
+- **Ajouts de la conversation Scriptorium** : un point d'accroche « après le rhabillage d'un homme » (le programme y
+  repose les pièces d'armure que l'homme a achetées à la forge, qui sont à lui) ; si l'inventaire ne sait pas compter ses
+  objets, le filet devient « l'homme n'a plus son arme principale ou plus sa tenue de corps ».
+- **Règles déjà fixées par JoVenGer dans Scriptorium** (elles priment ; lues dans `Scriptorium\choses\`, LISEZMOI de
+  `styles_du_camp` du 28/09, `tenue_selon_le_grade` du 26/09, `tenue_gardee_au_chargement` du 5/10, transmises par la
+  conversation Scriptorium) :
+  - **six familles** de fantassins : épée et bouclier, hache et bouclier, épée longue à deux mains, masse et bouclier,
+    hache, armes d'hast (lance à crochet, glaive, guisarme, bardiche, hache d'armes) ; jamais « masse seule » ni « épée
+    courte seule ». **La famille se choisit à l'embauche, homme par homme, et il la garde toute sa vie** ; seule la
+    qualité suit le grade (trois grades : faible, moyen, fort = recrue, confirmé, vétéran) ;
+  - **la tenue et les armes changent à chaque grade** ; archers : débutant `bow_b` (105) et une épée courte commune, bon
+    tireur `bow_c` (155) et une épée courte large, œil de lynx `bow_d_a` (230, le meilleur arc du jeu) et une épée courte
+    lourde ; arbalétriers : faible, vieille arbalète de chasse ou arbalète de chasse ; moyen, vieille arbalète de campagne
+    ou arbalète de campagne ; fort, arbalète lourde renforcée ou arbalète lourde ;
+  - **jamais rhabillé au rechargement** : le jeu sauve l'inventaire (usure et réparations de la forge comprises) ;
+    l'équipement se donne à l'embauche et à chaque changement de grade, un homme à la fois, jamais en bataille ; filet :
+    un homme revenu presque nu (moins de 4 objets) est rhabillé ;
+  - une arme d'hast rangée ne s'affiche pas : l'homme semble désarmé tant qu'il ne l'a pas sortie ;
+  - principe d'Alex (conversation Scriptorium) : le bouclier est compris dans le préréglage d'arme ; un archer garde
+    toujours son arme de tir ; une tenue complète posée sur des pièces données une à une ne les retire pas ; seulement des
+    objets du jeu de base.
+- **Relevé** (`Tables.pak`, lecture seule ; objets dans `Libs/Tables/item/item.xml`, préréglages dans
+  `weapon_preset.xml` et `clothing_preset.xml`, noms français dans `Localization/French_xml.pak`) : le jeu a, par
+  niveau, des préréglages d'arme **pour les six familles, bouclier compris** :
+  - épée et bouclier : `sword_shield_3` (épée militaire et écu), `_4` (épée large), `_5` (basilard) ;
+  - hache et bouclier : `axe_shield_3` (doloire), `_4` (hache de guerre), `_5`–`_6` (bec de faucon, hache de chevalier) ;
+  - épée longue : `longsword_3` (de chevalier), `_4` (commune), `_5`–`_6` (à lame large, de bataille, de duel) ;
+  - masse et bouclier : `mace_shield_2` (massue légère), `_3` (masse ordinaire, masse d'armes lourde), `_4`–`_6` ;
+  - hache : `axe_2` (de charpentier), `_3` (doloire), `_5` (bec de faucon) ;
+  - armes d'hast : `polearm_2` (glaive, serpe), `_3` (vouge, guisarme), `_4`–`_6` (bardiche, morgenstern, hache
+    d'armes), chacune **avec une arme courte** à la ceinture (visible quand l'arme d'hast est rangée) ;
+  - des préréglages à **pavois peint** : `mace_shield_2_02`, `_2_03`, `_3_04`, `_4_02`, `axe_shield_3_02`, `_3_03`,
+    `_4_02`, `huntingsword_shield_3_01`, `_3_02`, `_4_01` ;
+  - tenues de soldat `soldier_generic_1` à `_6` (13, 13, 16, 15, 12 et 9 variantes ; six pièces chacune) ;
+  - les arcs et arbalètes de la règle existent (`bow_b`, `bow_c`, `bow_d_a` ; `crossbowLightCheap01`,
+    `crossbowLightNormal01`, `crossbowMediumCheap01`, `crossbowMediumNormal01`, `crossbowHeavyCheap01`,
+    `crossbowHeavyNormal01`), ainsi que les épées courtes (`shortswordCommon` « épée militaire », `shortswordBroad`
+    « épée large », `shortswordHeavy` « épée de chevalier ») ; mais aucun préréglage du jeu ne les assemble ainsi.
+- **Proposé** :
+  - fantassins (homme d'armes) : la **famille** sur la fiche de l'homme, donnée par le contrat (`famille`), sinon selon la
+    question 2 ; l'arme, un préréglage du jeu de sa famille au niveau de son grade (faible, moyen, fort ci-dessus), la
+    variante tirée pour chaque homme ;
+  - archers et arbalétriers : **nos préréglages** (`weapon_preset__scriptorium_socle.xml`, forme de `weapon_preset.xml`,
+    objets du jeu de base seulement) : par grade, l'arc ou l'arbalète de la règle, ses flèches ou carreaux (question 4)
+    et l'épée courte de la règle (épée militaire pour les arbalétriers) ;
+  - pavoisier : question 3 ; gens de métier et Directeur : rien (la tenue de leur personnage) ;
+  - la tenue selon le grade (question 1) ;
+  - **quand** : à l'embauche, et à chaque changement de grade (`hommes.changer_de_palier`, service pour le programme
+    Scriptorium) ; un homme par battement ; jamais en bataille ; **rien au rechargement**, sauf le filet ;
+  - les noms des préréglages choisis gardés sur la fiche de l'homme ; leurs identifiants écrits dans la liaison par un
+    outil du dépôt (comme les âmes).
+- **À mesurer en V71** : les deux appels acceptés hors `-devmode` sur nos hommes ; tenue et armes vues à l'image ; une
+  tenue complète posée sur une autre la remplace-t-elle ; l'inventaire revient-il au rechargement ; ce que l'inventaire
+  d'un homme sait dire (le jeu n'a pas d'appel « nombre d'objets » dans ses scripts ; il a `GetCountOfClass`, `FindItem`,
+  `AddItem`, `CreateItem`) : de quoi bâtir le filet.
+
 ## Essais prévus (un changement chacun, partie d'essai `playline3`)
 - **V70** : les hommes du camp nés sur nos âmes (notre cerveau, soldats du jeu, classe 33, faction provisoire du
   marcheur) ; ceux d'une partie déjà en cours, nés sur une âme empruntée, renaissent sur une âme à nous à l'entrée en

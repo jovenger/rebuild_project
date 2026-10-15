@@ -2016,6 +2016,88 @@ function liaison.blesser(identifiant, points)
   return ok, (not ok) and tostring(erreur) or nil
 end
 
+-- V71 a (fiche 13) : l'équipement par le Lua, mesuré avant d'écrire les tables. Les appels de l'outil de combat du jeu
+-- (Scripts/Debug/CombatDebug.lua : actor:EquipClothingPreset, actor:EquipWeaponPreset) sur l'un de nos hommes, hors
+-- -devmode ; et ce qu'ils donnent, compté par inventory:GetCountOfClass (Scripts/Utils/ItemUtils.lua). Préréglages et
+-- objets relevés dans Tables.pak (clothing_preset.xml, weapon_preset.xml, item.xml).
+liaison.sonde_d_equipement = {
+  tenues = {
+    { nom = "soldier_generic_1_01", id = "9c2ff51e-e487-4455-974a-c5933ae0e452",
+      pieces = { "45b6d780-23e1-4a89-a0b1-dbc234a7ce21", "d4ade1cb-79dd-41a7-8d72-7bd88ec2e0d4", "ffd9af7c-d24d-4e70-8c25-ad22a37a64e7",
+                 "62183c25-a930-4044-8e08-243c5d46c6cc", "8ec8f99a-57a7-4006-bb61-1f737996a0a9", "81e27f41-709f-47c8-96b3-8f8c9619d2fa" } },
+    { nom = "soldier_generic_5_01", id = "dcd55b1c-00f1-487f-a8b5-c271a6e36af5",
+      pieces = { "a79e8354-4706-4dde-bec3-51e1d88bf699", "808101ad-28ff-4425-ad2a-5fbe4f9fbbbe", "f9be9c8b-de15-4216-bf0d-7e71d25c0b84",
+                 "3a1811fb-124e-4dbd-95ee-114debe21091", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "260ccafb-0504-4c17-9833-304539d30698",
+                 "0aba49a1-bffe-460b-bcc0-781654d79ac1", "63eff267-424a-43fd-a5ec-132c89c286f0", "403db8bc-649a-4b10-9385-01275b96f141",
+                 "9da82290-e31b-4ba6-b0e8-680081e06e9a", "43f25763-bdbd-4e22-a946-722e2fd156c4" } },
+  },
+  armes = { nom = "sword_shield_3_01", id = "9bb17a1a-8691-4b0b-8443-c7bc6210bb5b",
+            epee = "efa237c7-3905-4813-b9c3-a32b449c17ad",       -- shortswordCommon, « Épée militaire »
+            bouclier = "401266f6-ffb4-4ad0-a8e1-4a3cb3edab3e" },  -- shieldHeater_whole_T, « Écu »
+}
+
+-- Ce que l'inventaire et l'acteur d'un de nos personnages savent faire (de quoi bâtir le filet du rechargement). Rend
+-- des lignes.
+function liaison.sonder_l_inventaire(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return { "« " .. tostring(qui) .. " » introuvable" }
+  end
+  local acteur = {}
+  for _, nom in ipairs(fonctions_de(entite.actor)) do
+    if string.find(nom, "Equip") or string.find(nom, "Cloth") or string.find(nom, "Dress") or string.find(nom, "Item")
+       or string.find(nom, "Weapon") or string.find(nom, "Inventor") then
+      table.insert(acteur, nom)
+    end
+  end
+  return { "inventaire : " .. table.concat(fonctions_de(entite.inventory), ", "),
+           "acteur (équipement) : " .. table.concat(acteur, ", ") }
+end
+
+-- Le compte des objets de la sonde dans l'inventaire du personnage. Rend une ligne.
+function liaison.compter_l_equipement(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local function compte(id)
+    local ok, n = pcall(function() return entite.inventory:GetCountOfClass(id) end)
+    return ok and tonumber(n) or nil
+  end
+  local function pieces(liste)
+    local total, lues = 0, 0
+    for _, id in ipairs(liste) do
+      local n = compte(id)
+      if n then
+        total, lues = total + n, lues + 1
+      end
+    end
+    return string.format("%d (sur %d pièces lues)", total, lues)
+  end
+  local s = liaison.sonde_d_equipement
+  return string.format("tenue 1 %s ; tenue 2 %s ; épée %s ; écu %s", pieces(s.tenues[1].pieces), pieces(s.tenues[2].pieces),
+    tostring(compte(s.armes.epee)), tostring(compte(s.armes.bouclier)))
+end
+
+-- Pose sur le personnage la tenue 1 ou 2, ou les armes, de la sonde ; puis compte. Rend une ligne.
+function liaison.equiper_la_sonde(qui, quoi)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local s = liaison.sonde_d_equipement
+  local ok, erreur, nom
+  if quoi == "armes" then
+    nom = s.armes.nom
+    ok, erreur = pcall(function() entite.actor:EquipWeaponPreset(s.armes.id) end)
+  else
+    local tenue = s.tenues[quoi == "tenue_2" and 2 or 1]
+    nom = tenue.nom
+    ok, erreur = pcall(function() entite.actor:EquipClothingPreset(tenue.id) end)
+  end
+  return nom .. " : " .. (ok and "accepté" or ("refusé : " .. tostring(erreur))) .. " ; " .. liaison.compter_l_equipement(qui)
+end
+
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
 -- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
 function liaison.faire_venir_directeur(position, ame)
