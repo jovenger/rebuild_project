@@ -12,6 +12,10 @@ $copie = Join-Path $racine "securite\mod_order_origine_2026-10-14_170426\mod_ord
 $empreinte = "75A3A33CC968B4868E40EDCFA2286252E299AE49230C0B6668A3A2E1252A404C"
 
 if (Get-Process -Name KingdomCome -ErrorAction SilentlyContinue) { "le jeu est lancé : le fermer d'abord"; return }
+# Garde du disque (16/10/2026, conseil de la conversation Scriptorium) : les sauvegardes du jeu sont sur C ; sous 1 Go
+# libre, une sauvegarde peut échouer ou être tronquée.
+$libre_c = [Math]::Round((Get-PSDrive C).Free / 1GB, 2)
+if ($libre_c -lt 1) { "disque C : $libre_c Go libres, moins de 1 Go : pas de séance (rien n'est changé)"; return }
 . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "sauvegardes.ps1")
 Ranger-Les-Essais | ForEach-Object { if ($_ -like "rangée :*") { "à l'ouverture, revenue (nuage Steam ?) et " + $_ } else { $_ } }
 if (-not (Test-Path -LiteralPath $copie) -or (Get-FileHash $copie -Algorithm SHA256).Hash -ne $empreinte) { "copie d'origine de la liste des mods absente ou changée : arrêt"; return }
