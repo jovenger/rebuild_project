@@ -42,7 +42,8 @@ camp.objets_du_jeu = {
   siege = {
     proprietes = { guidSmartObjectType = "57cbebae-c19a-443b-8945-999d8ee87955", soclass_SmartObjectHelpers = "Sit_1Place_Bench_Low",
                    sWH_AI_EntityCategory = "Seat", Script = { esBedTypes = "Chair" }, Bed = { esReadingQuality = "bench_notable" } },
-    places = { { nom = "assise", x = 0, y = 0, cap = 0 } },
+    -- Vu en jeu (V66) : à cap 0, l'homme assis tournait le dos au feu ; un demi-tour le met face au feu.
+    places = { { nom = "assise", x = 0, y = 0, cap = 180 } },
   },
   lit = {
     proprietes = { guidSmartObjectType = "425d4fdf-8dcd-4a2b-fdc5-cbb1b5d25b89", soclass_SmartObjectHelpers = "Bed_1Place_Tent",

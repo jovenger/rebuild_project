@@ -1909,6 +1909,32 @@ function liaison.ecart_a_l_objet_vise()
   return lu and ecart or nil
 end
 
+-- Pour voir à l'image ce que fait le marcheur (V67) : Henry posé à quelques mètres de lui, du côté où il se tenait, le
+-- regard tourné vers lui, comme le jeu pose Henry à un point d'apparition (Scripts/GameRules/SinglePlayer.lua :
+-- player:SetWorldPos, puis player.actor:PlayerSetViewAngles). Rend une ligne.
+liaison.distance_de_vue = 3
+
+function liaison.henry_face_au_marcheur()
+  local marcheur = entite_nommee(liaison.marcheur)
+  if not marcheur then
+    return "vue : marcheur introuvable"
+  end
+  local ok, resultat = pcall(function()
+    local la, henry = marcheur:GetWorldPos(), player:GetWorldPos()
+    local dx, dy = henry.x - la.x, henry.y - la.y
+    local longueur = math.sqrt(dx * dx + dy * dy)
+    if longueur < 0.1 then
+      dx, dy, longueur = 0, 1, 1
+    end
+    local ici = liaison.au_sol({ x = la.x + dx / longueur * liaison.distance_de_vue,
+                                 y = la.y + dy / longueur * liaison.distance_de_vue, z = la.z })
+    player:SetWorldPos(ici)
+    player.actor:PlayerSetViewAngles({ x = 0, y = 0, z = math.atan2(-(la.x - ici.x), la.y - ici.y) })
+    return string.format("vue : Henry posé à %.1f m du marcheur, tourné vers lui", liaison.distance_de_vue)
+  end)
+  return ok and resultat or ("vue : refusé : " .. tostring(resultat))
+end
+
 -- La distance entre un personnage et Henry, ou nil.
 function liaison.distance_a_henry(identifiant)
   local entite = entite_nommee(identifiant)

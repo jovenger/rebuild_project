@@ -224,7 +224,7 @@ essai("camp : meubles utilisables, une place du jeu sur chaque banc et chaque li
   local meuble
   for _, o in ipairs(FauxJeu.objets_poses) do if o.nom == "siege_1" then meuble = o end end
   verifier(proche(siege.position.x, meuble.position.x) and proche(siege.position.y, meuble.position.y), "la place est sur son meuble")
-  egal(siege.cap, meuble.cap, "même cap que le meuble")
+  egal(siege.cap, (meuble.cap + 180) % 360, "un demi-tour par rapport au banc : face au feu (V66)")
   egal(camp.objet_du_jeu_de("siege_1"), siege.identifiant, "objet du jeu d'une place du camp")
   egal(camp.objet_du_jeu_de("feu_central"), nil, "le feu n'a pas de place")
   -- Après un chargement, rien du camp n'est gardé (V64) : tout est reposé, places comprises, sans doublon.
