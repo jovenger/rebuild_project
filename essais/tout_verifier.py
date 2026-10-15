@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 81:
-        erreur("ordres : %d commandes lues dans poste.lua, 81 attendues" % len(connues))
+    if len(connues) != 85:
+        erreur("ordres : %d commandes lues dans poste.lua, 85 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -294,7 +294,7 @@ def verifier_identifiants():
         AI = {}
         function AI.GetFactionOf(id) return "brigands" end
         local e1 = l.faire_venir_ennemis("brigands", 2, p, 0)
-        local n1 = l.faire_venir_homme("archer", "homme_1", p)
+        local n1 = l.faire_venir_homme(l.ame_de("combattant", 1, 1), "homme_1", p)
         if type(e1) ~= "table" or #e1 ~= 2 or not n1 then return "ennemis ou homme non venus" end
         local lignes = l.decrire_personnage(e1[1], n1, true)
         local texte = table.concat(lignes, " | ")
@@ -314,9 +314,13 @@ def verifier_identifiants():
         local recu = nil
         local naissance_d_origine = System.SpawnEntity
         function System.SpawnEntity(params) recu = params.properties ; return naissance_d_origine(params) end
-        local h2 = l.faire_venir_homme("archer", "homme_2", p)
+        local h2 = l.faire_venir_homme(l.ame_de("combattant", 1, 2), "homme_2", p)
         if not h2 or not recu then return "personnage non venu" end
-        if recu.guidSharedSoulId ~= l.ames.archer then return "âme perdue dans les propriétés complètes" end
+        if recu.guidSharedSoulId ~= "5c7a5c7a-0001-4001-8000-000000000002" then return "âme perdue dans les propriétés complètes" end
+        if l.faire_venir_homme(nil, "homme_3", p) ~= nil then return "un homme venu sans âme" end
+        if l.ame_de("combattant", 4, 1) or l.ame_de("combattant", 1, 81) or l.ame_de("femme", 1, 0) or l.ame_de("aucune", 1, 1) then
+          return "âme rendue hors des réserves"
+        end
         if recu.bWH_PerceptorObject ~= true or recu.esNavigationType ~= "MediumSizedCharacters" then return "propriétés de la classe NPC perdues" end
         recu.CharacterSounds.foleyEffect = "change"
         if NPC.Properties.CharacterSounds.foleyEffect ~= "foleys_npc" then return "propriétés de la classe partagées au lieu d'être copiées" end
@@ -427,6 +431,61 @@ def verifier_identifiants():
 
 
 # ------------------------------------------------------------------ 3. noms interdits
+
+TABLE_DES_AMES = os.path.join(PAK, "Libs", "Tables", "rpg", "soul__scriptorium_socle.xml")
+NOTRE_CERVEAU = "b8a850d0-47c6-44a1-872e-ce7efcf4b9f9"
+
+
+def verifier_ames():
+    """Fiche 13 : la table des âmes (écrite par outils/ames.py) et les réserves de la liaison s'accordent, âme par âme ;
+    chaque âme a notre cerveau, un nom et un identifiant uniques ; les femmes ont l'archétype féminin du jeu (1), les
+    combattants un niveau de combat. Rend le nombre d'âmes des réserves."""
+    lua = runtime_lua()
+    if lua is None:
+        return 0
+    lua.execute("System = { LogAlways = function() end }")
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
+    lignes = lua.eval("""(function()
+        local l = Scriptorium.liaison_reelle
+        local lignes = {}
+        for reserve, r in pairs(l.reserves_d_ames) do
+          for palier, taille in ipairs(r.paliers) do
+            for numero = 1, taille do
+              table.insert(lignes, reserve .. "|" .. palier .. "|" .. tostring(l.ame_de(reserve, palier, numero)))
+            end
+          end
+        end
+        return table.concat(lignes, "\\n")
+    end)()""")
+    attendues = {}
+    for ligne in lignes.split("\n"):
+        reserve, palier, ame = ligne.split("|")
+        attendues[ame] = (reserve, int(palier))
+    racine = ET.parse(TABLE_DES_AMES).getroot()
+    ames = [s.attrib for s in racine.iter("soul")]
+    noms = [a.get("soul_name") for a in ames]
+    ids = [a.get("soul_id", "").lower() for a in ames]
+    if len(set(noms)) != len(noms) or len(set(ids)) != len(ids):
+        erreur("âmes : nom ou identifiant en double dans la table")
+    for a in ames:
+        if a.get("brain_id") != NOTRE_CERVEAU:
+            erreur("âmes : %s n'a pas notre cerveau" % a.get("soul_name"))
+    du_mod = {a["soul_id"].lower(): a for a in ames if a.get("soul_id", "").lower().startswith("5c7a5c7a")}
+    for ame, (reserve, palier) in attendues.items():
+        a = du_mod.get(ame)
+        if a is None:
+            erreur("âmes : %s (réserve %s, palier %d) absente de la table" % (ame, reserve, palier))
+            continue
+        if reserve == "femme" and a.get("soul_archetype_id") != "1":
+            erreur("âmes : %s, une femme sans l'archétype féminin" % a.get("soul_name"))
+        if reserve == "combattant" and not a.get("combat_level"):
+            erreur("âmes : %s, un combattant sans niveau de combat" % a.get("soul_name"))
+    for ame in du_mod:
+        if ame not in attendues:
+            erreur("âmes : %s dans la table, hors des réserves de la liaison" % du_mod[ame].get("soul_name"))
+    return len(attendues)
+
 
 def verifier_noms():
     compte = 0
@@ -744,6 +803,7 @@ def principal(arguments):
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 
+    print("2 quinquies. âmes : %d âmes des réserves, table et liaison accordées, notre cerveau partout" % verifier_ames())
     print("3. noms interdits : %d" % verifier_noms())
     print("3 bis. un seul nom par table : %d noms relevés, table posée par le seul noyau" % verifier_un_seul_nom())
     definies, employees = verifier_textes()

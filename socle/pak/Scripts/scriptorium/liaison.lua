@@ -750,24 +750,45 @@ function liaison.aller_au_terrain_d_essai()
   end
   return resultat[1], resultat[2]
 end
--- Les âmes (du jeu ou à nous) par rôle, pour faire venir un personnage.
--- Provisoire, en attendant les tables à nous : des gardes « en réserve » de Trosky, génériques et non hostiles
--- (extraGuards_dummy_*, table Libs/Tables/rpg/soul__extraGuards.xml). Vu en jeu le 14/10 : l'homme d'armes vient
--- (V16). Une âme par rôle seulement : deux hommes du même rôle partagent la même âme (à vérifier en jeu).
-liaison.ames = {
-  homme_d_armes = "63daa80b-d1f4-46f5-8222-c22a541cae07",   -- extraGuards_dummy_1
-  arbaletrier   = "6e04789b-f704-4da7-98b6-4558fac75748",   -- extraGuards_dummy_3
-  archer        = "2e96ee86-7c95-4b57-91f6-6d3abce75d22",   -- extraGuards_dummy_5
+-- Nos âmes (fiche 13, validée par JoVenGer le 15/10/2026) : une âme par personne vivante, jamais partagée, dans
+-- Libs/Tables/rpg/soul__scriptorium_socle.xml (lignes écrites par outils/ames.py, toutes avec notre cerveau). Elles
+-- remplacent les âmes de gardes de Trosky empruntées au jeu (extraGuards_dummy_1, 3, 5 ; cerveau du jeu, V16). Par
+-- réserve, le nombre d'âmes de chaque palier dans la table ; l'identifiant se calcule à partir de la réserve, du palier et
+-- du numéro (préfixe absent des âmes du jeu). tout_verifier.py vérifie que la table et ces tailles s'accordent.
+liaison.reserves_d_ames = {
+  combattant = { code = 1, paliers = { 80, 80, 80 } },   -- recrue, confirmé, vétéran
+  metier     = { code = 2, paliers = { 40 } },
+  femme      = { code = 3, paliers = { 12 } },
+  directeur  = { code = 4, paliers = { 1 } },
 }
 
--- Fait venir un personnage de la Compagnie et rend son identifiant, ou nil.
+-- L'identifiant d'une âme, ou nil hors des réserves.
+function liaison.ame_de(reserve, palier, numero)
+  local r = liaison.reserves_d_ames[reserve]
+  local taille = r and r.paliers[palier]
+  if type(taille) ~= "number" or type(numero) ~= "number" or numero ~= math.floor(numero) or numero < 1 or numero > taille then
+    return nil
+  end
+  return string.format("5c7a5c7a-%04x-4%03x-8000-%012x", r.code, palier, numero)
+end
+
+-- Le nombre d'âmes de chaque palier d'une réserve (une copie), ou une liste vide.
+function liaison.paliers_de(reserve)
+  local r = liaison.reserves_d_ames[reserve]
+  local copie = {}
+  for i, n in ipairs(r and r.paliers or {}) do
+    copie[i] = n
+  end
+  return copie
+end
+
+-- Fait venir un personnage de la Compagnie sur son âme et rend son identifiant, ou nil.
 -- La propriété d'âme d'un personnage s'appelle guidSharedSoulId (relevé Lua du jeu, table NPC.Properties).
 -- Éveillé aussitôt né : sans réveil, le cerveau d'un personnage né par script ne fait qu'un tour (V29). Au
 -- rechargement, il n'en a pas besoin : son cerveau tourne encore (V56).
-function liaison.faire_venir_homme(role, nom, position)
-  local ame = liaison.ames[role]
+function liaison.faire_venir_homme(ame, nom, position)
   if ame == nil or position == nil then
-    liaison.journal("Venue impossible pour « " .. nom .. " » : pas d'âme pour le rôle " .. tostring(role))
+    liaison.journal("Venue impossible pour « " .. nom .. " » : " .. (ame == nil and "pas d'âme" or "pas de position"))
     return nil
   end
   local identifiant, raison = faire_naitre("NPC", "scriptorium_" .. nom, position, 0, { guidSharedSoulId = ame })
@@ -1291,15 +1312,23 @@ function liaison.ordonner_le_combat(brigand)
   return lignes
 end
 
--- Un ordre au marcheur (variable scriptorium_essai_ordre : 4 = s'asseoir par terre, 0 = marcher au point). Rend une ligne.
-function liaison.ordonner_au_marcheur(ordre)
-  local entite = entite_nommee(liaison.marcheur)
+-- Un ordre à l'un de nos personnages (variable de cerveau scriptorium_essai_ordre). Rend une ligne.
+local function poser_l_ordre(entite, ordre)
   local this_lu, this = pcall(function() return entite.this end)
   if not entite or not this_lu or type(this) ~= "table" then
-    return "ordre : marcheur introuvable ou sans this"
+    return "ordre : personnage introuvable ou sans this"
   end
   local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
   return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
+end
+
+-- Un ordre au marcheur (4 = s'asseoir par terre, 0 = marcher au point). Rend une ligne.
+function liaison.ordonner_au_marcheur(ordre)
+  local entite = entite_nommee(liaison.marcheur)
+  if not entite then
+    return "ordre : marcheur introuvable"
+  end
+  return poser_l_ordre(entite, ordre)
 end
 
 -- Le brigand du jeu (étape 1, conseil du 15/10) : une âme du jeu avec son cerveau d'origine (npc_basic), faction ennemie
@@ -1848,25 +1877,37 @@ function liaison.poser_un_siege(genre)
     .. decrire_un_siege(entite_nommee(nom), liaison.distance_a_henry(nom))
 end
 
--- Donne au marcheur le WUID de l'objet, puis l'ordre. Rend une ligne.
-local function donner_la_place(this, objet, libelle, ordre)
+-- L'écart entre deux entités, ou nil.
+local function ecart_entre(a, b)
+  local lu, ecart = pcall(function()
+    local ici, la = a:GetWorldPos(), b:GetWorldPos()
+    return math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2 + (ici.z - la.z) ^ 2)
+  end)
+  return lu and ecart or nil
+end
+
+-- Donne à l'un de nos personnages le WUID de l'objet, puis l'ordre. Rend une ligne.
+local function donner_la_place(entite, objet, libelle, ordre)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not this_lu or type(this) ~= "table" then
+    return "place : personnage sans this"
+  end
   local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(objet) end)
   if not wuid_lu then
     return "place : WUID refusé : " .. tostring(wuid)
   end
   local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
   liaison.objet_vise = objet
-  return string.format("place : %s, %s ; WUID posé %s ; %s", libelle, decrire_un_siege(objet, liaison.ecart_a_l_objet_vise()),
-    tostring(pose), liaison.ordonner_au_marcheur(ordre))
+  return string.format("place : %s, %s ; WUID posé %s ; %s", libelle, decrire_un_siege(objet, ecart_entre(entite, objet)),
+    tostring(pose), poser_l_ordre(entite, ordre))
 end
 
 -- L'ordre 10 (s'asseoir) ou 11 (se coucher) : le marcheur reçoit le WUID de la copie posée (sauf « reel ») ou du plus
 -- proche siège ou lit du jeu. Rend une ligne.
 function liaison.ordonner_de_prendre_place(genre, ordre, reel)
   local marcheur = entite_nommee(liaison.marcheur)
-  local this_lu, this = pcall(function() return marcheur.this end)
-  if not marcheur or not this_lu or type(this) ~= "table" then
-    return "place : marcheur introuvable ou sans this"
+  if not marcheur then
+    return "place : marcheur introuvable"
   end
   local objet, origine = nil, "copie posée"
   if not reel then
@@ -1879,21 +1920,42 @@ function liaison.ordonner_de_prendre_place(genre, ordre, reel)
   if not objet then
     return "place : aucun " .. genre
   end
-  return donner_la_place(this, objet, genre .. " (" .. origine .. ")", ordre)
+  return donner_la_place(marcheur, objet, genre .. " (" .. origine .. ")", ordre)
 end
 
--- L'ordre 10 ou 11 sur une place du camp, désignée par l'identifiant de son objet du jeu. Rend une ligne.
-function liaison.ordonner_sur_la_place(identifiant, ordre)
-  local marcheur = entite_nommee(liaison.marcheur)
-  local this_lu, this = pcall(function() return marcheur.this end)
-  if not marcheur or not this_lu or type(this) ~= "table" then
-    return "place du camp : marcheur introuvable ou sans this"
+-- L'ordre 10 ou 11 sur une place du camp, désignée par l'identifiant de son objet du jeu, au personnage « qui » (le
+-- marcheur s'il n'est pas donné). Rend une ligne.
+function liaison.ordonner_sur_la_place(identifiant, ordre, qui)
+  local personnage = entite_nommee(qui or liaison.marcheur)
+  if not personnage then
+    return "place du camp : « " .. tostring(qui or "marcheur") .. " » introuvable"
   end
   local objet = entite_nommee(identifiant)
   if not objet then
     return "place du camp : « " .. tostring(identifiant) .. " » introuvable"
   end
-  return donner_la_place(this, objet, "place du camp", ordre)
+  return donner_la_place(personnage, objet, "place du camp", ordre)
+end
+
+-- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, et ses compteurs « assis » et « couchés ».
+-- Rend une ligne.
+function liaison.voir_sur_la_place(qui, identifiant)
+  local personnage = entite_nommee(qui)
+  if not personnage then
+    return "« " .. tostring(qui) .. " » introuvable"
+  end
+  local this_lu, this = pcall(function() return personnage.this end)
+  local function variable(nom)
+    if not this_lu or type(this) ~= "table" then return "?" end
+    local ok, valeur = pcall(function() return XGenAIModule.GetBrainVariable(this.id, nom) end)
+    return ok and tostring(valeur) or "?"
+  end
+  local objet = entite_nommee(identifiant)
+  local ecart = objet and ecart_entre(personnage, objet)
+  local ame_lue, ame = pcall(function() return personnage.Properties.guidSharedSoulId end)
+  return string.format("à %s m de sa place ; assis %s, couchés %s, tours %s ; âme %s", ecart and string.format("%.2f", ecart) or "?",
+    variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_vivant"),
+    ame_lue and tostring(ame) or "?")
 end
 
 -- L'écart entre le marcheur et l'objet visé, ou nil.
@@ -1954,19 +2016,14 @@ function liaison.blesser(identifiant, points)
   return ok, (not ok) and tostring(erreur) or nil
 end
 
--- L'âme du Directeur (personnage à nous, apparence neuve).
--- À vérifier en jeu : à renseigner depuis les tables du socle.
--- Provisoire, en attendant une âme et une apparence à nous (V20) : un garde « en réserve » de Trosky
--- (extraGuards_dummy_6), générique et non hostile.
-liaison.ame_du_directeur = "5f05b3d3-3c0f-4a55-95d7-d2eef1af4bbb"
-
--- Fait venir le Directeur dans sa tente. Rend son identifiant, ou nil.
-function liaison.faire_venir_directeur(position)
-  if liaison.ame_du_directeur == nil or position == nil then
-    liaison.journal("Venue impossible pour le Directeur : pas d'âme renseignée")
+-- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
+-- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
+function liaison.faire_venir_directeur(position, ame)
+  if ame == nil or position == nil then
+    liaison.journal("Venue impossible pour le Directeur : " .. (ame == nil and "pas d'âme" or "pas de position"))
     return nil
   end
-  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { guidSharedSoulId = liaison.ame_du_directeur })
+  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { guidSharedSoulId = ame })
   if not identifiant then
     liaison.journal("Venue impossible pour le Directeur : " .. tostring(raison))
     return nil

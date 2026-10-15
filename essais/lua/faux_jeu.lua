@@ -22,7 +22,8 @@ local faux = {
   refuser_pose = {},      -- nom -> true : le jeu refuse de poser cet objet
   position_joueur = { x = 0, y = 0, z = 0 },
   cap_joueur = 0,
-  personnages = {},            -- { identifiant, role, nom, position }
+  personnages = {},            -- { identifiant, ame, nom, position }
+  tailles_paliers = nil,       -- réserves d'âmes : reserve -> { taille par palier } (remises à zéro ci-dessous)
   personnages_existants = {},  -- identifiant -> true
   personnages_renvoyes = {},
   prochain_personnage = 1,
@@ -71,6 +72,7 @@ function faux.remettre_a_zero()
   faux.position_joueur = { x = 0, y = 0, z = 0 }
   faux.cap_joueur = 0
   faux.personnages = {}
+  faux.tailles_paliers = { combattant = { 80, 80, 80 }, metier = { 40 }, femme = { 12 }, directeur = { 1 } }
   faux.personnages_existants = {}
   faux.personnages_renvoyes = {}
   faux.prochain_personnage = 1
@@ -184,11 +186,23 @@ function faux.poser_objet_du_jeu(nom, position, cap, proprietes)
   faux.objets_existants[identifiant] = true
   return identifiant
 end
-function faux.faire_venir_homme(role, nom, position)
-  if faux.refuser_personnage then return nil end
+-- Les âmes (fiche 13) : même forme que la liaison, réserve, palier et numéro.
+function faux.ame_de(reserve, palier, numero)
+  local paliers = faux.tailles_paliers[reserve]
+  local taille = paliers and paliers[palier]
+  if not taille or numero < 1 or numero > taille then return nil end
+  return "ame_" .. reserve .. "_" .. palier .. "_" .. numero
+end
+function faux.paliers_de(reserve)
+  local copie = {}
+  for i, n in ipairs(faux.tailles_paliers[reserve] or {}) do copie[i] = n end
+  return copie
+end
+function faux.faire_venir_homme(ame, nom, position)
+  if faux.refuser_personnage or ame == nil then return nil end
   local identifiant = "personnage_" .. faux.prochain_personnage
   faux.prochain_personnage = faux.prochain_personnage + 1
-  table.insert(faux.personnages, { identifiant = identifiant, role = role, nom = nom, position = position })
+  table.insert(faux.personnages, { identifiant = identifiant, ame = ame, nom = nom, position = position })
   faux.personnages_existants[identifiant] = true
   return identifiant
 end
@@ -236,11 +250,11 @@ function faux.partie_en_cours() return faux.partie end
 function faux.changer_porte(identifiant, etat)
   table.insert(faux.ordres_porte, { identifiant = identifiant, etat = etat })
 end
-function faux.faire_venir_directeur(position)
-  if faux.refuser_directeur then return nil end
+function faux.faire_venir_directeur(position, ame)
+  if faux.refuser_directeur or ame == nil then return nil end
   local identifiant = "directeur_" .. (#faux.directeurs + 1) .. "_" .. faux.prochain_personnage
   faux.prochain_personnage = faux.prochain_personnage + 1
-  table.insert(faux.directeurs, { identifiant = identifiant, position = position })
+  table.insert(faux.directeurs, { identifiant = identifiant, position = position, ame = ame })
   faux.personnages_existants[identifiant] = true
   return identifiant
 end

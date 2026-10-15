@@ -63,20 +63,34 @@ end
 
 -- ---------------------------------------------------------------- le personnage
 
+-- Le Directeur vient sur son âme (fiche 13, réserve « directeur »). Né avant la fiche 13 sur une âme empruntée au jeu
+-- (cerveau du jeu), il renaît sur la sienne.
 local function faire_venir(d)
+  local ame = jeu().ame_de("directeur", 1, 1)
   if d.personnage and jeu().personnage_existe(d.personnage) then
-    return true
+    if d.ame == ame then
+      return true
+    end
+    jeu().journal("Directeur : renaît sur son âme")
+    jeu().renvoyer_homme(d.personnage)
+    d.personnage = nil
   end
   local position = camp().position_de("lit_directeur")
-  local personnage = jeu().faire_venir_directeur(position)
+  local personnage = jeu().faire_venir_directeur(position, ame)
   if personnage == nil then
     jeu().journal("Directeur : le jeu n'a pas fait venir le Directeur ; il reste sur le registre")
     d.personnage = nil
     return false
   end
   d.personnage = personnage
+  d.ame = ame
   d.derniere_activite = nil
   return true
+end
+
+-- Le personnage du Directeur dans le jeu, ou nil.
+function directeur.personnage()
+  return donnees().personnage
 end
 
 function directeur.est_installe()

@@ -34,7 +34,7 @@
 `{ prochain = 1, prochain_nom = 1, liste = { [id] = fiche }, ordre = {…}, anciens = {…}, prochaine_paie, dernier_jour_repas, derniere_aube, derniere_heure, capitaine }`.
 
 ## Ce que les hommes demandent au jeu (liaison)
-`faire_venir_homme(role, nom, position)` → identifiant de personnage ou nil ; `personnage_existe(identifiant)` ; `renvoyer_homme(identifiant)` ; `ordonner(identifiant, activite, position, place)` ; `heure_du_jeu()` ; `journal(texte)`. Et, par les autres morceaux : le coffre (prime, solde, vivres), le camp (paillasses, points).
+`faire_venir_homme(ame, nom, position)` → identifiant de personnage ou nil (l'âme de l'homme, tirée à l'embauche dans la réserve de son rôle et gardée sur sa fiche : fiche 13 ; `ame_de(reserve, palier, numero)`, `paliers_de(reserve)`) ; `personnage_existe(identifiant)` ; `renvoyer_homme(identifiant)` ; `ordonner(identifiant, activite, position, place)` ; `heure_du_jeu()` ; `journal(texte)`. Et, par les autres morceaux : le coffre (prime, solde, vivres), le camp (paillasses, points).
 
 ## À vérifier en jeu
 - Comment faire venir un personnage de la Compagnie (`System.SpawnEntity` classe `NPC` avec une âme à nous : tables du morceau 2.9) et comment lui donner un ordre simple (dormir ici, s'asseoir là, se tenir là). En attendant, la liaison note l'ordre au journal.

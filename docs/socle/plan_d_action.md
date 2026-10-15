@@ -54,7 +54,7 @@ de débogage du jeu) n'existe pas dans le jeu publié. `AI.AddPersonallyHostile`
 - Âmes à nous pour les sept rôles, les bandes (brigands, déserteurs, soudards, Coumans) et le Directeur (V20) ;
   apparences neuves ; faction de la Compagnie, amie du joueur et ennemie des bandes (arbre `FactionTree`).
 - Aujourd'hui, provisoire : gardes de Trosky pour nos hommes, brigand de Trosecko pour les bandes, garde « en réserve »
-  pour le Directeur (`liaison.ames`, `ames_ennemies`, `ame_du_directeur`).
+  pour le Directeur (`liaison.reserves_d_ames` et `liaison.ame_de` depuis la fiche 13, `ames_ennemies`).
 - Recherche : comment un mod ajoute des lignes aux tables du jeu (fichiers de table propres au mod, comme les textes
   `…__scriptorium_socle.xml`) ; vérifier au journal que les lignes sont chargées.
 - **Fait quand :** nos personnages viennent avec nos âmes, et la faction est respectée en combat (après l'étape 1).

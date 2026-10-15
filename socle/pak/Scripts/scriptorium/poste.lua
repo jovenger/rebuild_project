@@ -499,6 +499,77 @@ function poste.essai_marcheur_coucher_camp()
   return true
 end
 
+-- V70 (fiche 13) : les hommes du camp, nés sur nos âmes, reçoivent les ordres de notre cerveau. Chacun prend un banc du
+-- camp, dans l'ordre du plan (un homme par banc), ou sa paillasse ; le Directeur, son lit. On garde la place donnée à
+-- chacun pour voir ensuite où il en est.
+local places_donnees = {}
+
+local function donner_les_places(ordre, place_de)
+  local hommes = Scriptorium.hommes
+  local n = 0
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    local place = place_de(f)
+    local objet = place and Scriptorium.camp.objet_du_jeu_de(place)
+    if f.personnage and objet then
+      places_donnees[f.personnage] = objet
+      jeu().journal("Poste : " .. f.nom .. " → " .. place .. ", " .. jeu().ordonner_sur_la_place(objet, ordre, f.personnage))
+      n = n + 1
+    else
+      jeu().journal("Poste : " .. f.nom .. " : " .. (f.personnage and ("pas de place (" .. tostring(place) .. ")") or "sans personnage"))
+    end
+  end
+  return n
+end
+
+function poste.essai_hommes_asseoir()
+  local sieges = {}
+  for _, e in ipairs(Scriptorium.camp.plan) do
+    if e.sorte == "siege" and Scriptorium.camp.objet_du_jeu_de(e.nom) then
+      table.insert(sieges, e.nom)
+    end
+  end
+  local rang = 0
+  return donner_les_places(10, function()
+    rang = rang + 1
+    return sieges[rang]
+  end) > 0
+end
+
+function poste.essai_hommes_coucher()
+  return donner_les_places(11, function(f) return f.lit end) > 0
+end
+
+function poste.essai_directeur_coucher()
+  local personnage = Scriptorium.directeur.personnage()
+  local objet = Scriptorium.camp.objet_du_jeu_de("lit_directeur")
+  if not personnage or not objet then
+    jeu().journal("Poste : Directeur : " .. (personnage and "pas de lit" or "sans personnage"))
+    return false
+  end
+  places_donnees[personnage] = objet
+  jeu().journal("Poste : Directeur → lit_directeur, " .. jeu().ordonner_sur_la_place(objet, 11, personnage))
+  return true
+end
+
+function poste.essai_hommes_voir()
+  local hommes = Scriptorium.hommes
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    if f.personnage then
+      jeu().journal("Poste : " .. f.nom .. " (" .. tostring(f.role) .. ", palier " .. tostring(f.palier) .. ") "
+                    .. jeu().voir_sur_la_place(f.personnage, places_donnees[f.personnage]))
+    else
+      jeu().journal("Poste : " .. f.nom .. " : sans personnage")
+    end
+  end
+  local personnage = Scriptorium.directeur.personnage()
+  if personnage then
+    jeu().journal("Poste : Directeur " .. jeu().voir_sur_la_place(personnage, places_donnees[personnage]))
+  end
+  return true
+end
+
 -- Le lit de tente vu à découvert (V69, idée de la conversation Scriptorium) : les petites tentes du camp cachent
 -- l'homme couché (V68). Un lit du camp, meuble et place du jeu, avec les mêmes données que le camp, posé à 5 m devant
 -- Henry, sans tente ; puis le marcheur s'y couche.
@@ -799,6 +870,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_siege_poser", fonction = function() return poste.essai_siege_poser() end, aide = "Pose près d'Henry une copie du siège du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir_camp", fonction = function() return poste.essai_marcheur_asseoir_camp() end, aide = "Le marcheur s'assoit sur le premier banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_marcheur_coucher_camp", fonction = function() return poste.essai_marcheur_coucher_camp() end, aide = "Le marcheur se couche sur le premier lit du camp (ordre 11)" },
+  { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
+  { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
+  { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
+  { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
   { nom = "scriptorium_essai_marcheur_coucher_a_decouvert", fonction = function() return poste.essai_marcheur_coucher_a_decouvert() end, aide = "Le marcheur se couche sur le lit à découvert (ordre 11)" },
   { nom = "scriptorium_essai_sieges_relever", fonction = function() return poste.essai_sieges_relever() end, aide = "Propriétés complètes des sièges et lits du jeu à copier ; écart des places d'un banc" },

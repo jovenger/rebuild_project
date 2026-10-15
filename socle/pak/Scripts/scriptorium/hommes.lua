@@ -22,17 +22,19 @@ hommes.reglages = {
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
+  palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
 }
 
--- Rôles et solde hebdomadaire de base, en groschen.
+-- Rôles, solde hebdomadaire de base en groschen, et réserve d'âmes où l'homme prend la sienne (fiche 13 : combattants
+-- par palier, gens de métier).
 hommes.roles = {
-  homme_d_armes = { solde = 12 },
-  arbaletrier   = { solde = 14 },
-  archer        = { solde = 12 },
-  pavoisier     = { solde = 10 },
-  barbier       = { solde = 15 },
-  cuisinier     = { solde = 8 },
-  armurier      = { solde = 16 },
+  homme_d_armes = { solde = 12, reserve = "combattant" },
+  arbaletrier   = { solde = 14, reserve = "combattant" },
+  archer        = { solde = 12, reserve = "combattant" },
+  pavoisier     = { solde = 10, reserve = "combattant" },
+  barbier       = { solde = 15, reserve = "metier" },
+  cuisinier     = { solde = 8, reserve = "metier" },
+  armurier      = { solde = 16, reserve = "metier" },
 }
 
 -- Rangs et multiplicateur de solde.
@@ -301,15 +303,65 @@ end
 
 -- ---------------------------------------------------------------- venue et départ des personnages
 
+-- Une âme libre pour l'homme (fiche 13, validée par JoVenGer le 15/10/2026) : une âme par homme vivant, jamais partagée,
+-- prise dans la réserve de son rôle, à son palier ; palier plein, au palier le plus proche (ses compétences corrigent
+-- ensuite son niveau). Rend l'identifiant de l'âme, ou nil quand toute la réserve est prise.
+local function choisir_ame(d, f)
+  local role = hommes.roles[f.role]
+  local reserve = role and role.reserve
+  local paliers = reserve and jeu().paliers_de(reserve) or {}
+  local prises = {}
+  for _, id in ipairs(d.ordre) do
+    local autre = d.liste[id]
+    if autre and autre ~= f and autre.ame then
+      prises[autre.ame] = true
+    end
+  end
+  local voulu = f.palier or 1
+  local ordre_des_paliers = { voulu }
+  for ecart = 1, #paliers do
+    table.insert(ordre_des_paliers, voulu - ecart)
+    table.insert(ordre_des_paliers, voulu + ecart)
+  end
+  for _, palier in ipairs(ordre_des_paliers) do
+    for numero = 1, paliers[palier] or 0 do
+      local ame = jeu().ame_de(reserve, palier, numero)
+      if ame and not prises[ame] then
+        return ame
+      end
+    end
+  end
+  return nil
+end
+
+-- L'âme est tirée une fois, à la première venue, et gardée sur le registre : même visage et même voix au retour, et
+-- l'homme la garde quand il monte en grade. Un homme né avant la fiche 13 sur une âme empruntée au jeu (cerveau du jeu)
+-- renaît sur une âme à nous.
 local function faire_venir(d, f)
-  if f.personnage and jeu().personnage_existe(f.personnage) then
+  local present = f.personnage and jeu().personnage_existe(f.personnage)
+  if present and f.ame then
     return true
+  end
+  if not f.ame then
+    f.ame = choisir_ame(d, f)
+    if not f.ame then
+      jeu().journal("Hommes : plus d'âme libre pour « " .. f.nom .. " » (" .. tostring(f.role) .. ") ; il reste sur le registre")
+      if not present then
+        f.personnage = nil
+      end
+      return present and true or false
+    end
+    if present then
+      jeu().journal("Hommes : « " .. f.nom .. " » renaît sur une âme à nous")
+      jeu().renvoyer_homme(f.personnage)
+      f.personnage = nil
+    end
   end
   local position = nil
   if camp().est_fonde() then
     position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
   end
-  local personnage = jeu().faire_venir_homme(f.role, f.nom, position)
+  local personnage = jeu().faire_venir_homme(f.ame, f.nom, position)
   if personnage == nil then
     jeu().journal("Hommes : le jeu n'a pas fait venir « " .. f.nom .. " » ; il reste sur le registre")
     f.personnage = nil
@@ -375,6 +427,11 @@ function hommes.embaucher(contrat)
   end
   local solde = contrat.solde or role.solde
   local prime = contrat.prime or solde * 2
+  local palier = contrat.palier or hommes.reglages.palier_par_defaut
+  local nb_paliers = #jeu().paliers_de(role.reserve)
+  if type(palier) ~= "number" or math.floor(palier) ~= palier or palier < 1 or palier > math.max(nb_paliers, 1) then
+    return refuser("palier_invalide", tostring(palier))
+  end
   local lits = camp().places_libres("lit", "hommes")
   if #lits == 0 then
     annoncer("ui_scriptorium_hommes_pas_de_lit")
@@ -392,6 +449,8 @@ function hommes.embaucher(contrat)
     nom = nom_suivant(d),
     role = contrat.role,
     rang = "soudoyer",
+    palier = palier,
+    ame = nil,
     contrat = { semaines = semaines, solde = solde, prime = prime, debut = heure, fin = heure + semaines * 7 * 24 },
     moral = hommes.reglages.moral_depart,
     blessure = 0,
@@ -880,7 +939,7 @@ function hommes.redresser()
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     local present = f.personnage and jeu().personnage_existe(f.personnage)
-    if not present then
+    if not present or not f.ame then
       if faire_venir(d, f) then revenus = revenus + 1 else manquants = manquants + 1 end
     end
   end

@@ -459,3 +459,82 @@ essai("hommes : montée de version 1 -> 2 du registre, les affectations passagè
   egal(f and f.affectation, nil, "affectation de l'ancien format oubliée")
   egal(Scriptorium.registre.etat_de("hommes"), "migree", "case montée de version")
 end)
+
+-- Fiche 13 (validée par JoVenGer le 15/10/2026) : une âme à nous par homme vivant, jamais partagée.
+
+essai("hommes : une âme par homme, tirée à l'embauche dans la réserve de son rôle, gardée au retour", function()
+  preparer(10000, 0, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  local b = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 3 })
+  local c = hommes.embaucher({ role = "barbier", semaines = 1, prime = 0 })
+  egal(hommes.fiche(a).ame, "ame_combattant_1_1", "un combattant, recrue par défaut")
+  egal(hommes.fiche(a).palier, 1, "palier gardé sur la fiche")
+  egal(hommes.fiche(b).ame, "ame_combattant_3_1", "un vétéran")
+  egal(hommes.fiche(c).ame, "ame_metier_1_1", "un homme de métier")
+  egal(FauxJeu.personnages[1].ame, "ame_combattant_1_1", "le personnage vient sur son âme")
+  local d = hommes.embaucher({ role = "pavoisier", semaines = 1, prime = 0 })
+  egal(hommes.fiche(d).ame, "ame_combattant_1_2", "jamais une âme déjà portée")
+  for _, id in ipairs(hommes.liste()) do
+    FauxJeu.personnages_existants[hommes.fiche(id).personnage] = nil
+  end
+  local revenus = hommes.redresser()
+  egal(revenus, 4, "tous revenus")
+  egal(hommes.fiche(a).ame, "ame_combattant_1_1", "même âme au retour")
+  egal(FauxJeu.personnages[#FauxJeu.personnages].ame, "ame_combattant_1_2", "le dernier revenu sur la sienne")
+end)
+
+essai("hommes : palier plein, l'âme du palier le plus proche ; jamais de refus faute d'âme", function()
+  preparer(10000, 0, 10)
+  camp.agrandir()
+  FauxJeu.tailles_paliers.combattant = { 1, 1, 1 }
+  local a = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 2 })
+  local b = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 2 })
+  local c = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 2 })
+  egal(hommes.fiche(a).ame, "ame_combattant_2_1", "son palier")
+  egal(hommes.fiche(b).ame, "ame_combattant_1_1", "palier plein : celui d'en dessous d'abord")
+  egal(hommes.fiche(c).ame, "ame_combattant_3_1", "puis celui d'au-dessus")
+  egal(hommes.fiche(b).palier, 2, "il garde son palier d'embauche")
+  local e = hommes.embaucher({ role = "archer", semaines = 1, prime = 0 })
+  verifier(e, "embauché quand même : jamais de refus faute d'âme")
+  egal(hommes.fiche(e).ame, nil, "sans âme")
+  egal(hommes.fiche(e).personnage, nil, "sans personnage, il reste sur le registre")
+  local dit = false
+  for _, ligne in ipairs(FauxJeu.journal_lignes) do
+    if string.find(ligne, "plus d'âme libre", 1, true) then dit = true end
+  end
+  verifier(dit, "dit au journal")
+  hommes.renvoyer(a)
+  local revenus = hommes.redresser()
+  egal(revenus, 1, "l'âme rendue sert à celui qui attendait")
+  egal(hommes.fiche(e).ame, "ame_combattant_2_1", "l'âme de l'homme parti")
+end)
+
+essai("hommes : un palier hors des réserves est refusé", function()
+  preparer(10000, 0, 10)
+  local ok, raison = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 4 })
+  egal(ok, false, "refusé")
+  egal(raison, "palier_invalide", "raison")
+  ok, raison = hommes.embaucher({ role = "barbier", semaines = 1, prime = 0, palier = 2 })
+  egal(raison, "palier_invalide", "un seul palier pour les gens de métier")
+  ok, raison = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 1.5 })
+  egal(raison, "palier_invalide", "un palier entier")
+  egal(#hommes.liste(), 0, "personne d'embauché")
+end)
+
+essai("hommes : un homme né sur une âme empruntée au jeu renaît sur une âme à nous", function()
+  preparer(10000, 0, 10)
+  local a = hommes.embaucher({ role = "archer", semaines = 1, prime = 0 })
+  local ancien = hommes.fiche(a).personnage
+  -- Comme un homme engagé avant la fiche 13 : présent dans le monde, sans âme à nous sur sa fiche.
+  Scriptorium.registre.lire("hommes").liste[a].ame = nil
+  local revenus, manquants = hommes.relancer()
+  egal(revenus, 1, "il renaît")
+  egal(manquants, 0, "aucun manquant")
+  egal(FauxJeu.personnages_renvoyes[#FauxJeu.personnages_renvoyes], ancien, "l'ancien personnage est retiré")
+  local f = hommes.fiche(a)
+  egal(f.ame, "ame_combattant_1_1", "une âme à nous")
+  verifier(f.personnage ~= ancien, "un nouveau personnage")
+  egal(FauxJeu.personnages[#FauxJeu.personnages].ame, "ame_combattant_1_1", "né sur son âme")
+  revenus = hommes.relancer()
+  egal(revenus, 0, "une seule fois")
+end)

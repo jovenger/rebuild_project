@@ -39,7 +39,7 @@
 `{ installe, personnage, derniere_activite }`.
 
 ## Ce que le Directeur demande au jeu (liaison)
-`faire_venir_directeur(position)` → identifiant ou nil ; `personnage_existe` ; `renvoyer_homme` ; `ordonner` ; `heure_du_jeu` ; `journal`.
+`faire_venir_directeur(position, ame)` → identifiant ou nil (son âme : réserve « directeur », fiche 13) ; `personnage_existe` ; `renvoyer_homme` ; `ordonner` ; `heure_du_jeu` ; `journal`.
 
 ## À vérifier en jeu
 - Comment faire venir le Directeur (âme à nous, apparence neuve, différente de tout intendant d'un autre mod) et ouvrir un dialogue avec lui qui présente le menu (système de dialogues du jeu) ; en attendant, le poste d'essai joue le menu par la console.
