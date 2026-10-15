@@ -21,6 +21,8 @@
 - **Enregistrement.** Après fondation, agrandissement, redressement et levée.
 
 ## Meubles utilisables (validé par JoVenGer le 15/10/2026, questions à cocher)
+- **Acquis en jeu** (V66, V68, V69) : un homme s'assoit sur un banc du camp, face au feu, et se couche sur une
+  paillasse du camp, à la bonne hauteur. Données : `camp.objets_du_jeu` (propriétés relevées en V65, décalages réglables).
 - **Ce que le joueur voit** : au repas et à la veillée, les hommes s'assoient sur les bancs du camp ; la nuit, chacun se
   couche sur SA paillasse, dans SA tente ; le Directeur dans son lit.
 - **Comment (acquis en jeu, V62)** : un meuble visible (le modèle du jeu, comme aujourd'hui) et, posé dessus, un objet du

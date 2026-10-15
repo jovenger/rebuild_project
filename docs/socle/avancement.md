@@ -126,3 +126,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 15/10/2026 (soir) : fiche 03, meubles utilisables, validée par JoVenGer (lit de tente « Bed_1Place_Tent », seulement les manquants au rechargement, places gardées à la Compagnie et à Henry).
 - 15/10/2026 (soir) : V63, V64 : le camp au rechargement ; objets du socle posés avec `bSaved_by_game` à false, plus d'objet blanc, le camp reposé à neuf depuis le registre (vu à l'image).
 - 15/10/2026 (soir) : V65 à V67 : propriétés réelles des sièges et lits du jeu relevées ; une place du jeu sur chaque banc et chaque lit du camp ; le marcheur s'assoit sur un banc du camp (vu) ; lit de tente non vu ; poser Henry près du marcheur laisse l'écran noir (outil retiré).
+- 15/10/2026 (soir) : V68, V69 : meubles utilisables acquis à l'image (assis face au feu sur un banc du camp, couché sur une paillasse du camp).

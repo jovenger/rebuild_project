@@ -200,6 +200,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   revu) ; le lit de tente non vu à l'image. Ne jamais poser Henry près des meubles du camp par script : écran noir (V67).
   Pour voir : tour de vue sans déplacer Henry. Ensuite : des âmes à nous pour les hommes du camp (notre cerveau), puis
   leurs ordres repas, veillée, sommeil par les places du camp.
+  V68, V69 : assis face au feu sur un banc du camp, couché sur une paillasse du camp (vus). Meubles utilisables acquis.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

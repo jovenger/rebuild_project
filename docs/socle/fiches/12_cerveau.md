@@ -106,7 +106,7 @@
   changement) : les priorités. Nos ordres sont posés à 100, l'attaque du jeu à 160 : un ordre à 100 ne reprend pas un
   homme pris par une interruption à 160, sauf `IgnorePriorityOnPreviousInterrupt="true"`. Sinon : garde des
   comportements par la variable d'ordre (`IfGate … RunLogic="Halt"`, comme `interrupt_attack.xml` du jeu).
-- **S'asseoir, dormir au camp** : acquis sur les objets du jeu (V62). Reste à poser, pour chaque siège et chaque
+- **S'asseoir, dormir au camp** : acquis sur les objets du jeu (V62) et sur les meubles du camp (V66, V68, V69 ; fiche 03). Reste à poser, pour chaque siège et chaque
   paillasse du camp, un `StanceSmartObject` de la bonne sorte à l'endroit du modèle visible, à la même hauteur, puis à
   faire passer les ordres « repas », « veillée » et « sommeil » des hommes par ces objets.
 - **Âmes du mod** par rôle (homme d'armes, Directeur, artisan), avec leur équipement (préréglages d'inventaire du jeu par
