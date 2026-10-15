@@ -123,8 +123,13 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   `npc_basic` (`hitData`…) dans notre cerveau ; (2) un vrai coup « de la part de » notre homme sur un brigand : le
   brigand l'attaque-t-il, et notre homme se défend-il ? (moyen possible pour le Directeur de lancer un combat).
   V44 (15/10 au soir) : un coup à 0 point d'Henry suffit ; un coup « de la part de » notre marcheur (0 ou 10 points) ne
-  déclenche rien. Prochaine piste : le message par lequel le jeu demande une attaque à un personnage
-  (`AI/npc/basic/switch/callInterrupt_attack.xml`), à lire sur le papier avant toute séance.
+  déclenche rien. V45, V46 : notre arbre appelle `Function_callInterrupt_attack` (ordre 8) ; avec ou sans les 24 boîtes
+  aux lettres de `npc_basic`, pas d'attaque, et le marcheur ne réagit pas au coup d'Henry. Trois différences restent avec
+  `npc_basic` : le sous-cerveau des horaires (type 9 « Scheduler », qui joue sans doute les interruptions), notre arbre
+  (un `Move` relancé à chaque tour), l'âme (garde contre brigand). V47 : horaires ajoutés, compteur d'appel dans le
+  `SuppressFailure`, deux hommes observés (garde et brigand à notre cerveau). Si rien : un arbre qui se tait après
+  l'ordre 8 (`Wait` long). Pour la fiche 12 : l'architecture du jeu serait « ordres = interruptions jouées par le
+  Scheduler » ; le type 8 (DogCompanion) est une piste pour l'escorte d'Henry, plus tard.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

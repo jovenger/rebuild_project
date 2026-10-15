@@ -1382,6 +1382,10 @@ function liaison.henry_frappe_le_marcheur(points)
   return frapper_par_henry(entite_nommee(liaison.marcheur), "marcheur", points)
 end
 
+function liaison.henry_frappe_l_adversaire(points)
+  return frapper_par_henry(entite_nommee(liaison.adversaire), "adversaire", points)
+end
+
 -- Le contrôle : le même coup sur l'habitant de la carte le plus proche. S'il ne réagit pas non plus, le coup ne prouve
 -- rien sur le brigand.
 liaison.habitant_frappe = nil
@@ -1477,8 +1481,8 @@ function liaison.voir_le_marcheur()
   if adversaire then
     local la = adversaire:GetWorldPos()
     local vie_lue, vie = pcall(function() return adversaire.actor:GetHealth() end)
-    texte_adversaire = string.format(" ; adversaire à %.1f m, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
-      vie_lue and tostring(vie) or "?")
+    texte_adversaire = string.format(" ; adversaire à %.1f m, à %.1f m d'Henry, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
+      liaison.distance_a_henry(liaison.adversaire) or -1, vie_lue and tostring(vie) or "?")
   end
   local henry_lu, henry_sante = pcall(function() return player.actor:GetHealth() end)
   texte_adversaire = texte_adversaire .. " ; Henry santé " .. (henry_lu and tostring(henry_sante) or "?")

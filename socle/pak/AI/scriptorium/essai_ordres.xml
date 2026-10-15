@@ -12,9 +12,12 @@
             <Then canSkip="1">
               <Sequence>
                 <SuppressFailure>
-                  <Function_callInterrupt_attack target="$scriptorium_essai_cible" questBehavior="true" relationOverride="true" ignorePriority="true" priority="160" initiator="$enum:switch_interruptInitiator.switch" stimulusKind="$enum:crime_stimulusKind.enemy" previousReaction="$enum:crime_reactionKind.unknown" criminalFreshness="$enum:crime_criminalFreshness.unknown" defenceMode="false" escalatedFromFailedSurrender="false" freshlyAttributedCrime="false" information="$renseignement" assaultData="" nodeLabel="73110801" />
+                  <Sequence>
+                    <Function_callInterrupt_attack target="$scriptorium_essai_cible" questBehavior="true" relationOverride="true" ignorePriority="true" priority="160" initiator="$enum:switch_interruptInitiator.switch" stimulusKind="$enum:crime_stimulusKind.enemy" previousReaction="$enum:crime_reactionKind.unknown" criminalFreshness="$enum:crime_criminalFreshness.unknown" defenceMode="false" escalatedFromFailedSurrender="false" freshlyAttributedCrime="false" information="$renseignement" assaultData="" nodeLabel="73110801" />
+                    <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1" />
+                  </Sequence>
                 </SuppressFailure>
-                <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1 &#10;$scriptorium_essai_ordre = 0" />
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
                 <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
               </Sequence>
             </Then>
