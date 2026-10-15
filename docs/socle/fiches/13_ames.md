@@ -364,6 +364,16 @@
   essayés sur l'allure, arrêt selon la règle anti-boucle) : savoir pourquoi un passage ne suffit pas (hypothèses : le jeu
   n'applique pas tout dans le même instant ; des pièces d'une même tenue se disputent une place et l'ordre décide) avant
   un troisième remède ; voir le pavois et l'arme d'hast (« sortir son arme » tire l'arme courte).
+- **Éléments de la conversation Scriptorium après V71 c** (15/10, principe) :
+  - arme d'hast chez Alex : ses préréglages d'hast ne contiennent que l'arme d'hast, sans arme courte ; l'homme n'a
+    rien d'autre à sortir. L'arme rangée invisible n'est pas réglée chez lui, seulement notée. Pavois : ni Alex ni
+    Scriptorium n'en ont ;
+  - pour voir pavois et arme d'hast : un vrai combat (ordre d'attaque contre un brigand léger, comme en V54), le cerveau
+    de combat choisissant ce qu'il prend en main, plutôt que `DrawWeapon` au repos ;
+  - l'allure, deux pistes éprouvables dans un même essai : **deux passages séparés par un battement** (le second passage
+    de V71 c a complété la tenue) ; **l'ordre des couches** (dessous : chemise, chausses, gambison, coiffe ; puis dessus :
+    cotte, plates, casque ; puis armes), la coiffe mise après le chapel pouvant l'ôter.
+- **Troisième remède sur l'allure : seulement avec l'accord de JoVenGer** (règle anti-boucle).
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
