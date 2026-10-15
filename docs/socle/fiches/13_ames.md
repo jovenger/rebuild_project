@@ -299,6 +299,42 @@
      sauf pour un homme embauché avant V71 b (retrait une fois, par la même règle) ;
   3. ni identifiant noté (il change à chaque chargement), ni signature à garder : le registre garde seulement les noms
      des préréglages et la famille, les pièces données plus tard étant ajoutées à sa fiche par le service du guichet.
+- **Objection du pair au point 3 (15/10), retenue** : « refaire porter toutes ses pièces » laisse au hasard de l'ordre
+  des appels ce qu'il porte dès qu'il a deux pièces pour une même place (armure de la forge et ancienne dans le sac,
+  arme de rechange) : c'est le rhabillage au hasard refusé le 5/10. Sa fiche garde donc **ce qu'il porte**, dans l'ordre.
+
+## V71 b : l'équipement pièce par pièce (proposé, d'après V71 a à a6 et la réponse a de JoVenGer)
+- **Les pièces des préréglages** : un outil du dépôt (`outils/equipement.py`) lit en lecture seule dans `Tables.pak`
+  les objets de chaque préréglage retenu (`clothing_preset.xml` : `<Items><Guid>` ; `weapon_preset.xml` :
+  `weapon_preset_item item_class_id`), vérifie chaque objet dans `item.xml`, et écrit dans `liaison` un bloc de données :
+  `liaison.pieces_des_prereglages[nom] = { objet, … }`. Les arcs et arbalètes de la règle (pas de préréglage du jeu à
+  leur mesure) y sont écrits de même, objet par objet, avec leurs munitions (nombre). Plus besoin de
+  `weapon_preset__scriptorium_socle.xml`. Préréglages retenus : ceux de la section validée ci-dessus (tenues
+  `soldier_generic_1` à `6` sans `_crimeScene` ; les six familles par niveau ; pavois peint pour le pavoisier).
+- **Règles en données** (catalogue de `reglages.lua`) : tenue par palier (1 → `soldier_generic_1` ou `2`, 2 → `3` ou
+  `4`, 3 → `5` ou `6`) ; familles et préréglages par palier ; arcs et arbalètes par palier ; état des pièces neuves
+  (1 par défaut).
+- **La fiche de l'homme** garde : sa famille (tirée à l'embauche, à vie), ses deux préréglages (tenue, armes), les
+  pièces données ensuite (`en_plus`, dans l'ordre, objet seulement) et celles qu'il ne porte plus (`otees`). **Ce qu'il
+  porte** = pièces de la tenue, puis des armes, puis `en_plus`, moins `otees` : une liste ordonnée d'objets, la dernière
+  pièce d'une même place l'emportant, toujours la même. Ni identifiant (il change à chaque chargement, V71 a5), ni état
+  (le jeu le garde, V71 a3).
+- **À l'embauche** (et pour un homme embauché avant V71 b, une fois) : un homme par battement, jamais en bataille ;
+  **retirer d'abord sa tenue de naissance** (tout ce qu'il a, sauf la bourse), puis créer chaque pièce une à une
+  (`inventory:CreateItem(objet, état, nombre)`), puis lui faire porter ce qu'il porte, dans l'ordre.
+- **Au changement de grade** (`hommes.changer_de_palier`, service pour le programme Scriptorium) : nouveaux préréglages
+  de la même famille ; les pièces de l'ancien grade sont retirées (sinon son sac grossit à chaque grade), les pièces
+  `en_plus` gardées.
+- **À chaque entrée en partie** (réponse a) : chaque homme, un par battement, jamais en bataille, se voit refaire porter
+  ce qu'il porte : pour chaque objet de la liste, dans l'ordre, une pièce de cet objet est cherchée dans son sac
+  (`FindItem`) et portée. Une pièce introuvable est notée au journal, jamais recréée au hasard. **Filet** (règle du
+  5/10) : s'il n'a plus aucune pièce de sa tenue de corps ou plus d'arme principale, ses préréglages sont recréés.
+- **Pour le guichet** : `hommes.donner_une_piece(nom, objet, état, porter)` crée la pièce dans son sac et, si elle est
+  portée, l'ajoute à `en_plus` ; `hommes.piece_otee(nom, objet)` (vendue, cassée, perdue) l'ajoute à `otees`.
+- Gens de métier et Directeur : rien (leur tenue de naissance), comme validé.
+- **Essai V71 b** : trois hommes embauchés (un par grade), vus de près ; deux rechargements ; un changement de grade ;
+  une pièce donnée par le service ; un homme d'avant V71 b équipé une fois.
+
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
   des pièces comptées. À reprendre seulement si la signature se montre fragile.
