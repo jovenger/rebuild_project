@@ -7,7 +7,8 @@
   **leur faction à eux, « la Compagnie », amie d'Henry et ennemie des bandes**, et qu'ils ne dénoncent jamais Henry
   (idée validée n° 2 du 15/10). Aujourd'hui, toutes nos âmes ont la faction provisoire du marcheur, celle des gardes de
   Trosky (`trosecko_settlements_trosky_soldiers_guards`).
-- État : **à relire par la conversation Scriptorium, puis questions à JoVenGer**. Rien n'est codé. Ce qui est marqué
+- État : **relue par la conversation Scriptorium le 16/10** (principe d'Alex et remarques inscrits ci-dessous) ;
+  **questions à JoVenGer**. Rien n'est codé. Ce qui est marqué
   « relu » vient des paks du jeu (lecture seule) ; tout le reste est « non vérifié » en jeu.
 
 ## Ce que le joueur voit
@@ -69,6 +70,14 @@
     du fichier qu'a le mod Scriptorium installé (vu seulement dans la liste de son pak ; son contenu n'est pas lu). Une règle à nous
     (`hasFaction name="la Compagnie"`, puis `removeRole` pour chaque rôle de crime) retirerait ces rôles à nos seuls
     hommes. **Non vérifié**, en particulier l'ordre : notre retrait passe-t-il après l'ajout du jeu ?
+  - **Les contextes de script** (`Libs/Tables/ai/ScriptContext.xml`) : `crime_isCivilian`, `crime_isSecurity`,
+    `crime_isAuthority`, `crime_interrupt`, `crime_interruptAttack`, `crime_interruptArrest`… Les arbres de crime s'y
+    branchent (`AI/crime/getAuthorityKindByContext.xml`), et le Lua les lit sur l'âme
+    (`soul:HasScriptContext(nom)`, `Scripts/Entities/actor/BasicActor.lua`).
+  - **Un contexte joue pour la Compagnie** : la règle Storm `contexts_disabledInformationBroadcast`
+    (`Libs/Storm/contexts/contexts.xml`) donne `crime_skipInformationBroadcast` à toute âme dont la faction n'a pas
+    l'étiquette `settlement`. Nos hommes de Trosky ne l'ont pas (Trosky porte cette étiquette) ; ceux de la Compagnie,
+    sans étiquette, l'auront : **ils ne transmettront plus ce qu'ils ont vu** (relu, non mesuré).
   - **Mais nos hommes n'ont pas le switch du jeu** (fiche 12) : c'est notre switch qui pose leurs interruptions, et
     sans ordre ils ne font rien. Ils gardent les 24 boîtes aux lettres de `npc_basic`, dont quatre de crime
     (`crime_forgetCrimes`, `crime_switchBark`, `crime_playerIsSurrendering`, `crime_attackInitiatedByConcept`) et la
@@ -77,6 +86,12 @@
   (`callInterrupt_attack`, V54) : il rend l'attaque possible sans changer la faction. Ces règles viendront plus tard.
 - **Lire la faction en jeu** : `AI.GetFactionOf(id)` rend son nom (`Scripts/Entities/Triggers/AreaTrigger.lua`) ;
   `soul:GetFactionID()` rend son numéro (`Scripts/Utils/EntityUtils.lua`).
+- **Ce que la conversation Scriptorium a transmis du mod d'Alex** (16/10, principe seulement) : sa faction de compagnie
+  a exactement les relations du chien et du cheval (éprouvées depuis des semaines dans la partie de JoVenGer) ; il a
+  aussi ses propres factions d'ennemis pour les bandes (premier niveau, étiquette `publicEnemy`, hostiles à Henry et à
+  sa compagnie), à prévoir plus tard, aux raids et aux missions ; **pour les crimes, il n'a rien fait** (ni Storm, ni
+  retrait de rôle), et JoVenGer ne s'en est jamais plaint ; il lit `crime_interruptAttack` sur l'âme pour savoir qu'un
+  homme est pris par une attaque de crime.
 - Recherches « Réutiliser avant de créer » (deux, sur les règles Storm d'un mod et sur une faction amie qui ne dénonce
   pas) : rien de propre à KCD2 ; on s'appuie sur les fichiers du jeu ci-dessus.
 
@@ -103,9 +118,14 @@
 2. **Amis et ennemis** : le brigand du jeu posé près de nos hommes, sans ordre : l'attaque-t-il ? Un garde du jeu
    reste-t-il en paix avec eux ? Puis l'ordre d'attaque (ordre 8), comme en V71.
 3. **Les flèches** (point 1 du pair) : un archer contre le brigand ; flèches comptées avant et après le tir.
-4. **Le délit d'Henry** (point 2 du pair) : Henry commet un petit délit devant deux de nos hommes (question 4). On
-   note à part, pour l'homme visé et pour le témoin : (a) une réplique ou un cri ; (b) une course, vers la garde ou
-   ailleurs ; (c) une attaque contre Henry ; et pour Henry : (d) recherché, ou réputation en baisse. Si (a) seulement :
+4. **Le délit d'Henry** (point 2 du pair) : **un crime contre le monde** devant deux de nos hommes (question 4) :
+   l'habitant du jeu le plus proche est posé devant Henry (on déplace l'habitant, jamais Henry), et Henry le frappe à
+   mains nues. La partie d'essai est sauvegardée avant le délit, jamais après. On note à part, pour chacun de nos deux
+   témoins : (a) une réplique ou un cri ; (b) une course, vers la garde ou ailleurs ; (c) une attaque contre Henry, ou
+   aux côtés des gardes ; et pour Henry : (d) recherché, ou réputation en baisse. Mesure exacte en plus de l'image
+   (conseil du pair) : les contextes de nos témoins avant et après (`crime_isCivilian`, `crime_isAuthority`,
+   `crime_isSecurity`, `crime_interrupt`, `crime_interruptAttack`, `crime_skipInformationBroadcast`). « Henry frappe
+   un de nos hommes » relève de la discipline et du pugilat : question à part, plus tard. Si (a) seulement :
    V72 b, la règle Storm à nous (question 3). Si (b), (c) ou (d) : la règle Storm ne suffira sans doute pas (ce sont
    des comportements) ; nouveau diagnostic, et question à JoVenGer.
 
@@ -119,19 +139,22 @@
 3. **Le retrait des rôles de crime** : (a) d'abord la faction seule ; si nos hommes ne font que des répliques au délit
    d'Henry, la règle Storm à nous en V72 b (Recommandé : un changement à la fois, et le retrait n'est peut-être pas
    utile) ; (b) les deux d'un coup, dans le même essai.
-4. **Le délit de l'essai** : (a) Henry frappe à mains nues un de nos hommes, devant un autre ; je pilote. Il faut pour
-   cela ajouter un clic gauche à `touches.ps1` (aujourd'hui, seulement des touches et des déplacements de souris), avec
-   la même garde : rien ne part si le jeu n'est pas au premier plan (Recommandé : aucun villageois en jeu) ; (b) tu
-   fais le délit toi-même pendant l'essai ; (c) pas de délit dans cet essai, seulement la faction.
+4. **Le délit de l'essai** : (a) Henry frappe à mains nues un habitant du jeu devant deux de nos hommes ; je pilote. Il
+   faut pour cela ajouter un clic gauche à `touches.ps1` (aujourd'hui, seulement des touches et des déplacements de
+   souris), avec la même garde : rien ne part si le jeu n'est pas au premier plan (Recommandé : c'est le cas de l'idée
+   n° 2, un crime contre le monde) ; (b) tu fais le délit toi-même pendant l'essai ; (c) pas de délit dans cet essai,
+   seulement la faction.
 
 ## Sources
 - `Tables.pak` : `Libs/Tables/rpg/FactionTree.xml`, `FactionTree__tests.xml`, `FactionTree__autotests.xml`,
-  `faction_label.xml`, `social_class.xml`, `soul_crime_role.xml`, `Libs/Tables/ai/mailbox.xml`.
+  `faction_label.xml`, `social_class.xml`, `soul_crime_role.xml`, `Libs/Tables/ai/mailbox.xml`,
+  `Libs/Tables/ai/ScriptContext.xml`.
 - `IPL_GameData.pak` : `Libs/Storm/storm.xml`, `storm.dtd`, `common/base.xml`, `roles/world/crime.xml`,
   `abilities/base/factions.xml`, `abilities/base/classes.xml`, `equipment/world/classes.xml`,
-  `equipment/world/factions.xml`, `names/names.xml`.
+  `equipment/world/factions.xml`, `names/names.xml`, `contexts/contexts.xml`.
 - `Scripts.pak` : `Scripts/Entities/Triggers/AreaTrigger.lua`, `Scripts/Utils/EntityUtils.lua`,
-  `Scripts/Systems/KCD1/SocialClass.lua`.
+  `Scripts/Systems/KCD1/SocialClass.lua`,
+  `Scripts/Entities/actor/BasicActor.lua`, `AI/crime/getAuthorityKindByContext.xml`.
 - Pak du mod Scriptorium installé : seulement la liste de ses fichiers (`storm__scriptorium.xml`,
   `FactionTree__scriptorium.xml`) : signe, non vérifié, que le jeu accepte ces fichiers ajoutés ; leur contenu n'est
   pas lu.
