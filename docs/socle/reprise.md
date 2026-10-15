@@ -132,8 +132,9 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   Scheduler » ; le type 8 (DogCompanion) est une piste pour l'escorte d'Henry, plus tard.
   V47 à V49 (15/10 au soir) : le sous-cerveau des horaires de `npc_basic` empêche la partie de se charger ; notre
   sous-cerveau en type 9 n'est plus joué ; la fonction d'attaque réussit mais notre cerveau ne la joue pas ; c'est le
-  cerveau, pas l'âme. **Mais un garde du jeu né par script engage de lui-même le brigand du jeu, et ils se battent.**
-  Voie retenue : nos hommes d'armes au cerveau `npc_basic`, avec nos propres âmes. Étapes suivantes : (1) une âme du
+  cerveau, pas l'âme. **Mais un garde du jeu né par script se porte de lui-même vers le brigand du jeu, qui le tue**
+  (brigand à 100 : que le garde ait frappé n'est pas établi). Voie à confirmer : nos hommes d'armes au cerveau
+  `npc_basic`, avec nos propres âmes ; décision d'architecture à faire valider par JoVenGer (fiche 12). Étapes suivantes : (1) une âme du
   mod au cerveau `npc_basic` (faction amie d'Henry) : se bat-elle contre le brigand comme le garde du jeu ? (2) les
   « télécommandes » : quels messages aux boîtes de `npc_basic` deviennent des interruptions (`AI/npc/basic/switch/`),
   pour que le Directeur donne ses ordres (poste, garde, rassemblement, sommeil) à des hommes au cerveau du jeu.
