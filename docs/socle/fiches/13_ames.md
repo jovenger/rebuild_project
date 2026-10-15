@@ -168,6 +168,10 @@
     Scriptorium) ; un homme par battement ; jamais en bataille ; **rien au rechargement**, sauf le filet ;
   - les noms des préréglages choisis gardés sur la fiche de l'homme ; leurs identifiants écrits dans la liaison par un
     outil du dépôt (comme les âmes).
+- **Mesuré en V71 a** (15/10) : les deux appels sont acceptés hors `-devmode` ; une tenue complète remplace l'autre,
+  les armes remplacent les armes ; l'inventaire sait compter (`GetCount`, `GetInventoryTable`). **Mais l'équipement posé
+  n'est pas gardé au rechargement** : l'homme revient avec la tenue de son personnage. Bloquant pour la règle du 5/10 ;
+  principe demandé à la conversation Scriptorium (comment les hommes du mod d'Alex gardent leur inventaire).
 - **À mesurer en V71** : les deux appels acceptés hors `-devmode` sur nos hommes ; tenue et armes vues à l'image ; une
   tenue complète posée sur une autre la remplace-t-elle ; l'inventaire revient-il au rechargement ; ce que l'inventaire
   d'un homme sait dire (le jeu n'a pas d'appel « nombre d'objets » dans ses scripts ; il a `GetCountOfClass`, `FindItem`,
