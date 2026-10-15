@@ -74,6 +74,10 @@ function faux.remettre_a_zero()
   faux.personnages = {}
   faux.tailles_paliers = { combattant = { 80, 80, 80 }, metier = { 40 }, femme = { 12 }, directeur = { 1 } }
   faux.personnages_existants = {}
+  faux.inventaires = {}
+  faux.portes = {}
+  faux.equipements = {}
+  faux.refuser_objets = false
   faux.personnages_renvoyes = {}
   faux.prochain_personnage = 1
   faux.refuser_personnage = false
@@ -204,6 +208,9 @@ function faux.faire_venir_homme(ame, nom, position)
   faux.prochain_personnage = faux.prochain_personnage + 1
   table.insert(faux.personnages, { identifiant = identifiant, ame = ame, nom = nom, position = position })
   faux.personnages_existants[identifiant] = true
+  faux.inventaires[identifiant] = { { objet = "naissance_tunique", etat = 0.12, nombre = 1 },
+                                    { objet = "naissance_chapel", etat = 0.13, nombre = 1 },
+                                    { objet = "bourse", etat = 1, nombre = 30 } }
   return identifiant
 end
 function faux.personnage_existe(identifiant) return faux.personnages_existants[identifiant] == true end
@@ -260,6 +267,106 @@ function faux.faire_venir_directeur(position, ame)
 end
 function faux.position_du_joueur() return faux.position_joueur end
 function faux.cap_du_joueur() return faux.cap_joueur end
+
+-- L'équipement pièce par pièce (fiche 13, V71 b) : mêmes fonctions que la liaison. Les préréglages d'essai suivent la
+-- forme des vrais noms ; chaque personnage naît avec une tenue de naissance et une bourse.
+local function prereglages_d_essai()
+  local pieces, munitions = {}, {}
+  for n = 1, 6 do
+    for v = 1, 2 do
+      local nom = string.format("soldier_generic_%d_%02d", n, v)
+      pieces[nom] = { nom .. "_corps", nom .. "_tete", nom .. "_jambes" }
+    end
+  end
+  for _, sorte in ipairs({ "sword_shield", "axe_shield", "longsword", "mace_shield", "axe", "polearm" }) do
+    for n = 2, 6 do
+      local nom = string.format("%s_%d_01", sorte, n)
+      pieces[nom] = { nom .. "_arme", nom .. "_seconde" }
+    end
+  end
+  for _, nom in ipairs({ "mace_shield_2_02", "mace_shield_2_03", "mace_shield_3_04", "mace_shield_4_02", "axe_shield_3_02",
+                         "axe_shield_3_03", "axe_shield_4_02", "huntingsword_shield_3_01", "huntingsword_shield_3_02",
+                         "huntingsword_shield_4_01" }) do
+    pieces[nom] = { nom .. "_arme", nom .. "_pavois" }
+  end
+  for _, nom in ipairs({ "scriptorium_archer_1", "scriptorium_archer_2", "scriptorium_archer_3", "scriptorium_arbaletrier_1_a",
+                         "scriptorium_arbaletrier_1_b", "scriptorium_arbaletrier_2_a", "scriptorium_arbaletrier_2_b",
+                         "scriptorium_arbaletrier_3_a", "scriptorium_arbaletrier_3_b" }) do
+    pieces[nom] = { nom .. "_tir", nom .. "_epee" }
+    munitions[nom] = nom .. "_munition"
+  end
+  return pieces, munitions
+end
+faux.pieces_d_essai, faux.munitions_d_essai = prereglages_d_essai()
+faux.objet_de_la_bourse = "bourse"
+
+function faux.noms_des_prereglages()
+  local noms = {}
+  for nom in pairs(faux.pieces_d_essai) do
+    table.insert(noms, nom)
+  end
+  table.sort(noms)
+  return noms
+end
+function faux.pieces_de(nom)
+  local liste = nom and faux.pieces_d_essai[nom]
+  if not liste then return nil end
+  local copie = {}
+  for i, objet in ipairs(liste) do copie[i] = objet end
+  return copie
+end
+function faux.munition_de(nom) return nom and faux.munitions_d_essai[nom] or nil end
+function faux.compter_objet(personnage, objet)
+  local n = 0
+  for _, o in ipairs(faux.inventaires[personnage] or {}) do
+    if o.objet == objet then n = n + o.nombre end
+  end
+  return n
+end
+function faux.creer_objet(personnage, objet, etat, nombre)
+  if not faux.personnages_existants[personnage] or faux.refuser_objets then return false end
+  faux.inventaires[personnage] = faux.inventaires[personnage] or {}
+  table.insert(faux.inventaires[personnage], { objet = objet, etat = etat, nombre = nombre })
+  return true
+end
+function faux.faire_porter(personnage, objets)
+  local portes, introuvables = 0, {}
+  faux.portes[personnage] = faux.portes[personnage] or {}
+  for _, objet in ipairs(objets) do
+    if faux.compter_objet(personnage, objet) > 0 then
+      table.insert(faux.portes[personnage], objet)
+      portes = portes + 1
+    else
+      table.insert(introuvables, objet)
+    end
+  end
+  return portes, introuvables
+end
+function faux.retirer_un_objet(personnage, objet)
+  for i, o in ipairs(faux.inventaires[personnage] or {}) do
+    if o.objet == objet then
+      table.remove(faux.inventaires[personnage], i)
+      return true
+    end
+  end
+  return false
+end
+function faux.equiper_homme(personnage, ordre)
+  if not faux.personnages_existants[personnage] then return "personnage introuvable" end
+  table.insert(faux.equipements, { personnage = personnage, ordre = ordre })
+  if ordre.retirer_naissance then
+    local garde = {}
+    for _, o in ipairs(faux.inventaires[personnage] or {}) do
+      if o.objet == faux.objet_de_la_bourse then table.insert(garde, o) end
+    end
+    faux.inventaires[personnage] = garde
+  end
+  for _, objet in ipairs(ordre.creer or {}) do faux.creer_objet(personnage, objet, ordre.etat or 1, 1) end
+  if ordre.munition then faux.creer_objet(personnage, ordre.munition.objet, 1, ordre.munition.nombre) end
+  faux.portes[personnage] = {}
+  local portes = faux.faire_porter(personnage, ordre.porter or {})
+  return "équipé, " .. portes .. " portée(s)"
+end
 
 -- Exécute la prochaine minuterie en attente (une seule), comme le ferait le moteur.
 function faux.tic_minuterie()

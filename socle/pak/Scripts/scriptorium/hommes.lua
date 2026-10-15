@@ -40,6 +40,41 @@ hommes.roles = {
 -- Rangs et multiplicateur de solde.
 hommes.rangs = { soudoyer = 1, dizainier = 1.5, capitaine = 2 }
 
+-- L'équipement des combattants (fiche 13, V71 b ; règles validées par JoVenGer le 15/10/2026) : la tenue selon le grade,
+-- la famille d'armes de l'homme d'armes tirée à l'embauche (ou donnée par le contrat) et gardée à vie, la qualité selon
+-- le grade ; le pavoisier, un préréglage à pavois peint ; archers et arbalétriers, nos assemblages de tir et leurs
+-- munitions. Niveaux de préréglage « de » à « a » compris, la variante tirée ; les pièces de chaque préréglage sont dans
+-- la liaison (outils/equipement.py). Chaque pièce est créée une à une : le jeu la garde avec son usure (V71 a3).
+hommes.equipement = {
+  etat_neuf = 1,     -- état des pièces neuves (1 : neuves)
+  tenue = { sorte = "soldier_generic", palier_1 = { de = 1, a = 2 }, palier_2 = { de = 3, a = 4 }, palier_3 = { de = 5, a = 6 } },
+  familles = {
+    epee_bouclier  = { sorte = "sword_shield", palier_1 = { de = 3, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 5 } },
+    hache_bouclier = { sorte = "axe_shield", palier_1 = { de = 3, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 6 } },
+    epee_longue    = { sorte = "longsword", palier_1 = { de = 3, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 6 } },
+    masse_bouclier = { sorte = "mace_shield", palier_1 = { de = 2, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 6 } },
+    hache          = { sorte = "axe", palier_1 = { de = 2, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 5, a = 5 } },
+    arme_d_hast    = { sorte = "polearm", palier_1 = { de = 2, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 4, a = 6 } },
+  },
+  pavois = {
+    palier_1 = { "mace_shield_2_02", "mace_shield_2_03" },
+    palier_2 = { "mace_shield_3_04", "axe_shield_3_02", "axe_shield_3_03", "huntingsword_shield_3_01", "huntingsword_shield_3_02" },
+    palier_3 = { "mace_shield_4_02", "axe_shield_4_02", "huntingsword_shield_4_01" },
+  },
+  tir = {
+    archer = {
+      palier_1 = { prereglages = { "scriptorium_archer_1" }, munitions = 25 },
+      palier_2 = { prereglages = { "scriptorium_archer_2" }, munitions = 30 },
+      palier_3 = { prereglages = { "scriptorium_archer_3" }, munitions = 30 },
+    },
+    arbaletrier = {
+      palier_1 = { prereglages = { "scriptorium_arbaletrier_1_a", "scriptorium_arbaletrier_1_b" }, munitions = 20 },
+      palier_2 = { prereglages = { "scriptorium_arbaletrier_2_a", "scriptorium_arbaletrier_2_b" }, munitions = 20 },
+      palier_3 = { prereglages = { "scriptorium_arbaletrier_3_a", "scriptorium_arbaletrier_3_b" }, munitions = 20 },
+    },
+  },
+}
+
 -- Les niveaux de moral.
 hommes.niveaux_de_moral = {
   { seuil = 75, nom = "ardent" },
@@ -425,6 +460,259 @@ local function faire_partir(d, f, cause, cle)
   end
 end
 
+-- ---------------------------------------------------------------- équipement (fiche 13, V71 b)
+
+-- Les accroches : le programme Scriptorium y branche ses fonctions. « apres_le_rhabillage » (identifiant de l'homme) :
+-- après qu'un homme a été équipé ou a remis ses affaires ; « piece_otee » (identifiant, objet) : une pièce de son ancien
+-- grade, rendue au camp (réponse a de JoVenGer, 15/10) : la fonction rend vrai si elle la prend, et la pièce sort alors
+-- du sac de l'homme ; si personne ne la prend, elle y reste, rien n'est détruit.
+hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {} }
+
+function hommes.accrocher(nom, fonction)
+  local liste = hommes.accroches[nom]
+  if not liste or type(fonction) ~= "function" then
+    return refuser("accroche_inconnue", tostring(nom))
+  end
+  table.insert(liste, fonction)
+  return true
+end
+
+local function appeler(nom, ...)
+  local pris = false
+  for _, fonction in ipairs(hommes.accroches[nom] or {}) do
+    local ok, rendu = pcall(fonction, ...)
+    if not ok then
+      jeu().journal("Hommes : accroche « " .. nom .. " » en panne : " .. tostring(rendu))
+    elseif rendu then
+      pris = true
+    end
+  end
+  return pris
+end
+
+local function est_combattant(f)
+  local role = hommes.roles[f.role]
+  return role ~= nil and role.reserve == "combattant"
+end
+
+-- Le hasard de l'équipement, propre aux hommes et gardé sur le registre.
+local function tirer(d)
+  if not Scriptorium.hasard_en_ordre(d.graine_equipement) then
+    d.graine_equipement = Scriptorium.hasard_depuis(7171)
+  end
+  return Scriptorium.tirer(d.graine_equipement)
+end
+
+local function choisir(d, liste)
+  if #liste == 0 then
+    return nil
+  end
+  return liste[math.floor(tirer(d) * #liste) + 1]
+end
+
+local function est_un_pavois(nom)
+  for _, liste in pairs(hommes.equipement.pavois) do
+    for _, p in ipairs(liste) do
+      if p == nom then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+-- Les préréglages connus d'une sorte entre deux niveaux, sans ceux à pavois (réservés au pavoisier).
+local function prereglages_de(sorte, bornes)
+  local liste = {}
+  if type(bornes) ~= "table" or type(bornes.de) ~= "number" or type(bornes.a) ~= "number" then
+    return liste
+  end
+  for _, nom in ipairs(jeu().noms_des_prereglages()) do
+    local s, niveau = string.match(nom, "^(.-)_(%d+)_%d+$")
+    niveau = tonumber(niveau)
+    if s == sorte and niveau and niveau >= bornes.de and niveau <= bornes.a and not est_un_pavois(nom) then
+      table.insert(liste, nom)
+    end
+  end
+  return liste
+end
+
+local function noms_des_familles()
+  local noms = {}
+  for nom in pairs(hommes.equipement.familles) do
+    table.insert(noms, nom)
+  end
+  table.sort(noms)
+  return noms
+end
+
+-- Choisit la tenue et les armes d'un combattant pour son palier (sa famille tirée une fois, s'il n'en a pas), à
+-- équiper au prochain battement. Rend vrai s'il en a.
+local function choisir_l_equipement(d, f)
+  local regles = hommes.equipement
+  local cle = "palier_" .. tostring(f.palier or 1)
+  local e = f.equipement or {}
+  e.en_plus, e.otees = e.en_plus or {}, e.otees or {}
+  e.naissance_retiree = e.naissance_retiree or false
+  f.equipement = e
+  local tenue = choisir(d, prereglages_de(regles.tenue.sorte, regles.tenue[cle]))
+  local armes, munitions = nil, 0
+  if f.role == "homme_d_armes" then
+    if not (f.famille and regles.familles[f.famille]) then
+      f.famille = choisir(d, noms_des_familles())
+    end
+    local famille = regles.familles[f.famille]
+    armes = choisir(d, prereglages_de(famille.sorte, famille[cle]))
+  elseif f.role == "pavoisier" then
+    armes = choisir(d, regles.pavois[cle] or {})
+  elseif regles.tir[f.role] then
+    local tir = regles.tir[f.role][cle] or {}
+    armes = choisir(d, tir.prereglages or {})
+    munitions = tir.munitions or 0
+  end
+  if not tenue or not armes then
+    e.etat = "impossible"
+    jeu().journal("Hommes : pas de préréglage pour « " .. f.nom .. " » (" .. tostring(f.role) .. ", " .. cle .. ")")
+    return false
+  end
+  e.tenue, e.armes, e.munitions, e.etat = tenue, armes, munitions, "a_equiper"
+  return true
+end
+
+-- Ce qu'il porte, dans l'ordre : pièces de sa tenue, de ses armes, ses munitions, puis les pièces données ensuite, moins
+-- celles qu'il ne porte plus. La dernière pièce d'une même place l'emporte : toujours la même (pair, 15/10).
+local function liste_portee(f)
+  local e = f.equipement or {}
+  local liste = {}
+  for _, nom in ipairs({ e.tenue or false, e.armes or false }) do
+    for _, objet in ipairs(nom and jeu().pieces_de(nom) or {}) do
+      table.insert(liste, objet)
+    end
+  end
+  local munition = e.armes and jeu().munition_de(e.armes)
+  if munition then
+    table.insert(liste, munition)
+  end
+  for _, objet in ipairs(e.en_plus or {}) do
+    table.insert(liste, objet)
+  end
+  for _, objet in ipairs(e.otees or {}) do
+    for i = #liste, 1, -1 do
+      if liste[i] == objet then
+        table.remove(liste, i)
+        break
+      end
+    end
+  end
+  return liste
+end
+
+function hommes.ce_qu_il_porte(id)
+  local f = donnees().liste[id]
+  return f and liste_portee(f) or {}
+end
+
+-- Équipe l'homme : sa tenue de naissance retirée d'abord, une fois (V71 a6), puis chaque pièce créée une à une, puis
+-- portée dans l'ordre ; les pièces de l'ancien grade offertes à l'accroche « piece_otee ».
+local function equiper(d, f)
+  local e = f.equipement
+  local a_creer = {}
+  for _, nom in ipairs({ e.tenue, e.armes }) do
+    for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
+      table.insert(a_creer, objet)
+    end
+  end
+  local munition = jeu().munition_de(e.armes)
+  local compte = jeu().equiper_homme(f.personnage, {
+    retirer_naissance = not e.naissance_retiree,
+    creer = a_creer,
+    etat = hommes.equipement.etat_neuf,
+    munition = (munition and (e.munitions or 0) > 0) and { objet = munition, nombre = e.munitions } or nil,
+    porter = liste_portee(f),
+  })
+  e.naissance_retiree = true
+  e.etat = "pret"
+  if e.anciennes then
+    local portees = {}
+    for _, objet in ipairs(liste_portee(f)) do
+      portees[objet] = true
+    end
+    local rendues = 0
+    for _, objet in ipairs(e.anciennes) do
+      if not portees[objet] and appeler("piece_otee", f.id, objet) and jeu().retirer_un_objet(f.personnage, objet) then
+        rendues = rendues + 1
+      end
+    end
+    jeu().journal("Hommes : « " .. f.nom .. " », " .. rendues .. " pièce(s) de l'ancien grade rendue(s) au camp")
+    e.anciennes = nil
+  end
+  jeu().journal("Hommes : « " .. f.nom .. " » équipé (" .. tostring(e.tenue) .. ", " .. tostring(e.armes) .. ") : " .. tostring(compte))
+  appeler("apres_le_rhabillage", f.id)
+end
+
+-- À chaque entrée en partie, l'homme remet ses propres pièces, dans l'ordre (réponse a de JoVenGer, 15/10) : le jeu ne
+-- lui laisse portée qu'une partie de ses pièces et lui ôte ses armes (V71 a6). Une pièce introuvable est notée, jamais
+-- recréée au hasard. Filet (règle du 5/10) : plus aucune pièce de sa tenue, ou plus son arme principale : ses
+-- préréglages sont recréés au battement suivant. Ses munitions sont complétées jusqu'au nombre de son préréglage.
+local function rhabiller(d, f)
+  local e = f.equipement
+  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
+  e.etat = "pret"
+  if e.tenue and e.armes then
+    local reste = 0
+    for _, objet in ipairs(jeu().pieces_de(e.tenue) or {}) do
+      if jeu().compter_objet(f.personnage, objet) > 0 then
+        reste = reste + 1
+      end
+    end
+    local armes = jeu().pieces_de(e.armes) or {}
+    if reste == 0 or not armes[1] or jeu().compter_objet(f.personnage, armes[1]) == 0 then
+      jeu().journal("Hommes : « " .. f.nom .. " » sans sa tenue ou sans son arme : ses préréglages seront recréés")
+      e.etat = "a_equiper"
+      return
+    end
+    local munition = jeu().munition_de(e.armes)
+    if munition then
+      local n = jeu().compter_objet(f.personnage, munition)
+      if n < (e.munitions or 0) then
+        jeu().creer_objet(f.personnage, munition, 1, e.munitions - n)
+        jeu().journal("Hommes : « " .. f.nom .. " », munitions complétées (" .. n .. " -> " .. e.munitions .. ")")
+      end
+    end
+  end
+  jeu().journal("Hommes : « " .. f.nom .. " » a remis ses affaires (" .. tostring(portes) .. " pièce(s)"
+    .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s)") or "") .. ")")
+  appeler("apres_le_rhabillage", f.id)
+end
+
+local function en_bataille()
+  return Scriptorium.bataille ~= nil and #Scriptorium.bataille.bandes() > 0
+end
+
+-- Un homme par battement, jamais en bataille. Rend vrai si un homme a été équipé ou rhabillé.
+local function equiper_un_homme(d)
+  if en_bataille() then
+    return false
+  end
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if f.personnage and jeu().personnage_existe(f.personnage) then
+      if not f.equipement and est_combattant(f) then
+        choisir_l_equipement(d, f)
+      end
+      local etat = f.equipement and f.equipement.etat
+      if etat == "a_equiper" then
+        equiper(d, f)
+        return true
+      elseif etat == "a_rhabiller" then
+        rhabiller(d, f)
+        return true
+      end
+    end
+  end
+  return false
+end
+
 -- ---------------------------------------------------------------- embauche
 
 function hommes.embaucher(contrat)
@@ -448,6 +736,9 @@ function hommes.embaucher(contrat)
   local nb_paliers = #jeu().paliers_de(role.reserve)
   if type(palier) ~= "number" or math.floor(palier) ~= palier or palier < 1 or palier > math.max(nb_paliers, 1) then
     return refuser("palier_invalide", tostring(palier))
+  end
+  if contrat.famille ~= nil and not hommes.equipement.familles[contrat.famille] then
+    return refuser("famille_inconnue", tostring(contrat.famille))
   end
   local lits = camp().places_libres("lit", "hommes")
   if #lits == 0 then
@@ -477,6 +768,7 @@ function hommes.embaucher(contrat)
     derniere_activite = nil,
     engage = heure,
     retenue = 0,
+    famille = contrat.famille,
   }
   if prime > 0 then
     local ok = coffre().payer(prime, "prime")
@@ -497,6 +789,9 @@ function hommes.embaucher(contrat)
     d.dernier_jour_repas = jour_de(heure - hommes.reglages.heure_repas)
   end
   faire_venir(d, f)
+  if est_combattant(f) then
+    choisir_l_equipement(d, f)
+  end
   verifier_rangs(d, {})
   enregistrer()
   annoncer("ui_scriptorium_hommes_rejoint", { complement = f.nom })
@@ -879,7 +1174,7 @@ end
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
-  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, changements = 0 }
+  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0 }
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -942,6 +1237,10 @@ function hommes.battre()
       end
     end
   end
+  if equiper_un_homme(d) then
+    rapport.equipes = rapport.equipes + 1
+    rapport.changements = rapport.changements + 1
+  end
   d.derniere_heure = heure
   if rapport.changements > 0 then
     enregistrer()
@@ -974,9 +1273,113 @@ end
 function hommes.relancer()
   local d = donnees()
   for _, id in ipairs(d.ordre) do
-    d.liste[id].derniere_activite = nil
+    local f = d.liste[id]
+    f.derniere_activite = nil
+    -- Fiche 13, V71 b : chacun remettra ses propres affaires, un par battement.
+    if f.equipement and f.equipement.etat == "pret" then
+      f.equipement.etat = "a_rhabiller"
+    elseif f.equipement and f.equipement.etat == "impossible" then
+      f.equipement = nil
+    end
   end
   return hommes.redresser()
+end
+
+-- Service pour le programme Scriptorium (fiche 13, V71 b) : le grade d'un homme change ; sa famille et son âme
+-- restent ; il reçoit au battement suivant la tenue et les armes du nouveau grade ; les pièces de l'ancien grade sont
+-- rendues au camp par l'accroche « piece_otee » (réponse a de JoVenGer, 15/10).
+function hommes.changer_de_palier(id, palier)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  local nb_paliers = #jeu().paliers_de(hommes.roles[f.role].reserve)
+  if type(palier) ~= "number" or math.floor(palier) ~= palier or palier < 1 or palier > math.max(nb_paliers, 1) then
+    return refuser("palier_invalide", tostring(palier))
+  end
+  if palier == f.palier then
+    return true
+  end
+  local e = f.equipement
+  local anciennes = {}
+  if e and (e.etat == "pret" or e.etat == "a_rhabiller") then
+    for _, nom in ipairs({ e.tenue, e.armes }) do
+      for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
+        table.insert(anciennes, objet)
+      end
+    end
+  end
+  f.palier = palier
+  if est_combattant(f) and choisir_l_equipement(d, f) then
+    f.equipement.otees = {}
+    f.equipement.anciennes = #anciennes > 0 and anciennes or nil
+  end
+  enregistrer()
+  jeu().journal("Hommes : « " .. f.nom .. " » passe au palier " .. palier)
+  return true
+end
+
+-- Service pour le guichet (fiche 13, V71 b) : une pièce donnée à un homme (forge, butin) est créée une à une dans son
+-- sac, avec son état ; portée, elle s'ajoute à ce qu'il porte, après sa tenue de grade.
+function hommes.donner_une_piece(id, objet, etat, porter)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if type(objet) ~= "string" or not string.match(objet, "^%x+%-%x+%-%x+%-%x+%-%x+$") then
+    return refuser("objet_invalide", tostring(objet))
+  end
+  etat = etat or hommes.equipement.etat_neuf
+  if type(etat) ~= "number" or etat <= 0 or etat > 1 then
+    return refuser("etat_invalide", tostring(etat))
+  end
+  if not (f.personnage and jeu().personnage_existe(f.personnage)) then
+    return refuser("homme_absent", f.nom)
+  end
+  objet = string.lower(objet)
+  if not jeu().creer_objet(f.personnage, objet, etat, 1) then
+    return refuser("objet_refuse", objet)
+  end
+  if porter then
+    if not f.equipement and est_combattant(f) then
+      choisir_l_equipement(d, f)
+    end
+    f.equipement = f.equipement or { en_plus = {}, otees = {}, naissance_retiree = false, etat = "pret" }
+    table.insert(f.equipement.en_plus, objet)
+    jeu().faire_porter(f.personnage, { objet })
+  end
+  enregistrer()
+  jeu().journal("Hommes : une pièce donnée à « " .. f.nom .. " » (" .. objet .. ", état " .. etat .. ")")
+  return true
+end
+
+-- Accroche du guichet (fiche 13, V71 b) : une pièce qu'il ne porte plus (vendue, cassée, perdue) sort de ce qu'il porte.
+function hommes.piece_otee(id, objet)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if type(objet) ~= "string" then
+    return refuser("objet_invalide", tostring(objet))
+  end
+  objet = string.lower(objet)
+  local e = f.equipement
+  if not e then
+    return refuser("sans_equipement", f.nom)
+  end
+  for i = #e.en_plus, 1, -1 do
+    if e.en_plus[i] == objet then
+      table.remove(e.en_plus, i)
+      enregistrer()
+      return true
+    end
+  end
+  table.insert(e.otees, objet)
+  enregistrer()
+  return true
 end
 
 Scriptorium.declarer_morceau("hommes", function()

@@ -783,6 +783,278 @@ function liaison.paliers_de(reserve)
   return copie
 end
 
+-- DÉBUT DES PIÈCES (écrit par outils/equipement.py ; ne pas modifier à la main)
+-- Les pièces de chaque préréglage retenu (fiche 13, V71 b), dans l'ordre du jeu, créées une à une par le socle ;
+-- et l'objet des munitions de nos assemblages de tir (leur nombre est une règle de hommes.equipement).
+liaison.pieces_des_prereglages = {
+  ["axe_2_01"] = { "81494400-b654-4aa7-8f31-c95c689db5f6" },
+  ["axe_3_01"] = { "53612e76-76fd-4dca-84b6-7905b986dc3b" },
+  ["axe_5_01"] = { "0f0164d5-3746-4d07-a1ed-0f138225a6d9" },
+  ["axe_shield_3_01"] = { "53612e76-76fd-4dca-84b6-7905b986dc3b", "2fd517a8-e990-45a1-8fbc-e4b3636cf30a" },
+  ["axe_shield_3_02"] = { "53612e76-76fd-4dca-84b6-7905b986dc3b", "aff5df75-e6f0-4f0f-a4b7-de6cd7ab0a5e" },
+  ["axe_shield_3_03"] = { "53612e76-76fd-4dca-84b6-7905b986dc3b", "684cb3f5-a873-44cb-9a8e-413b3bd6a0e5" },
+  ["axe_shield_4_01"] = { "bd74ce18-2623-48ba-a1a1-c9b09bbb2827", "8baa70c0-222a-42dc-a289-035c83a33d5e" },
+  ["axe_shield_4_02"] = { "bd74ce18-2623-48ba-a1a1-c9b09bbb2827", "ee57f6f1-dc5c-489b-912a-bf3f3a76d357" },
+  ["axe_shield_5_01"] = { "0f0164d5-3746-4d07-a1ed-0f138225a6d9", "760d7474-6e5f-4987-9631-d007d5fff22e" },
+  ["axe_shield_6_01"] = { "214ffcdd-a7a7-4b7a-b484-f60c8d00b39b", "37bffa89-4b82-48f9-9e84-b52c0130b0af" },
+  ["huntingsword_shield_3_01"] = { "505b8feb-9447-462f-ab3d-68557f89d9f3", "684cb3f5-a873-44cb-9a8e-413b3bd6a0e5" },
+  ["huntingsword_shield_3_02"] = { "505b8feb-9447-462f-ab3d-68557f89d9f3", "684cb3f5-a873-44cb-9a8e-413b3bd6a0e5" },
+  ["huntingsword_shield_4_01"] = { "c58fa1d7-dd10-45e1-b6da-b65f1d0b3f7a", "cf5a563b-2a84-4270-92ed-c414b46a82bf" },
+  ["longsword_3_01"] = { "bdb6fc2a-43e4-40b8-93c8-f2d9162c1e45" },
+  ["longsword_4_01"] = { "9e31a288-7de0-4c0d-81cd-5cf00548d2d5" },
+  ["longsword_5_01"] = { "3858560f-cf48-436f-8815-4426003288fb" },
+  ["longsword_5_02"] = { "23855649-1783-4e0d-95ad-d3478797b642" },
+  ["longsword_6_01"] = { "00cca9e3-8ef2-46db-8cbf-86ec51930919" },
+  ["mace_shield_2_01"] = { "9cc07405-4195-46ab-bf17-fd0fd99721bd", "e4e1b22a-428a-4e20-aa92-ce216b324c0a" },
+  ["mace_shield_2_02"] = { "9cc07405-4195-46ab-bf17-fd0fd99721bd", "3edb6ed3-6fef-4f7a-9ded-e0a842dce10e" },
+  ["mace_shield_2_03"] = { "9cc07405-4195-46ab-bf17-fd0fd99721bd", "684cb3f5-a873-44cb-9a8e-413b3bd6a0e5" },
+  ["mace_shield_3_02"] = { "00b0039b-daa4-4f32-ac7f-69a6a2e0add8", "8baa70c0-222a-42dc-a289-035c83a33d5e" },
+  ["mace_shield_3_03"] = { "af6a6142-c6f7-4ae7-94a9-bb5be41ebecc", "f0720bb0-b964-40fe-b358-b84a35ecb601" },
+  ["mace_shield_3_04"] = { "c67de991-e22a-4a19-8b68-9369919c41dd", "3edb6ed3-6fef-4f7a-9ded-e0a842dce10e" },
+  ["mace_shield_4_01"] = { "839992c8-657b-4d5e-97c9-96ff94430d72", "25d5e06c-09e2-405a-b0e8-4ffb6d44c975" },
+  ["mace_shield_4_02"] = { "839992c8-657b-4d5e-97c9-96ff94430d72", "9baedc28-f193-41a6-8035-2c6e3343219b" },
+  ["mace_shield_5_01"] = { "65a211bd-2c7e-40a8-984f-66c8730444e4", "2fd517a8-e990-45a1-8fbc-e4b3636cf30a" },
+  ["mace_shield_6_01"] = { "f2e86f22-8932-4751-8f62-fb1b8b846ddf", "e4e1b22a-428a-4e20-aa92-ce216b324c0a" },
+  ["polearm_2_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "e5f25908-a843-456a-b095-c31db34aa577" },
+  ["polearm_2_02"] = { "81494400-b654-4aa7-8f31-c95c689db5f6", "f4324daf-fe09-495e-b954-16f23226cf58" },
+  ["polearm_3_01"] = { "bd74ce18-2623-48ba-a1a1-c9b09bbb2827", "03b6321d-4151-46cd-bdec-451ea7bfaabc" },
+  ["polearm_3_02"] = { "0f41ad99-3307-47c8-a110-a7d9b4af75e8", "c164f346-0463-4116-b790-094b11274e5e" },
+  ["polearm_3_03"] = { "03b6321d-4151-46cd-bdec-451ea7bfaabc", "505b8feb-9447-462f-ab3d-68557f89d9f3" },
+  ["polearm_4_01"] = { "7cac0c1a-ad34-4fd7-a1e6-4d45edcf307f", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["polearm_4_02"] = { "4bda3dd1-871c-452a-87fe-b783946435c2", "c58fa1d7-dd10-45e1-b6da-b65f1d0b3f7a" },
+  ["polearm_5_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "51bb7893-2054-40d3-a355-d278f416c482" },
+  ["polearm_6_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "51bb7893-2054-40d3-a355-d278f416c482" },
+  ["scriptorium_arbaletrier_1_a"] = { "7673efc2-0566-4dde-9e18-f96c7790ce2e", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_arbaletrier_1_b"] = { "cb6ee20b-6eee-434c-af4c-8031502e2bec", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_arbaletrier_2_a"] = { "b77f912a-042b-47ca-8f42-5fddbcad3763", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_arbaletrier_2_b"] = { "48f25a62-e787-490e-83e9-9335bf303ef9", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_arbaletrier_3_a"] = { "f0fb0494-6ebd-4c6a-bb9e-ef396db3c5d4", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_arbaletrier_3_b"] = { "588c12c6-f0fb-4b3e-847d-ce1df2739e73", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_archer_1"] = { "0fffb172-2183-4545-bbdb-01e04a3ff32f", "efa237c7-3905-4813-b9c3-a32b449c17ad" },
+  ["scriptorium_archer_2"] = { "d2011311-2315-43a1-a953-76432df04329", "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a" },
+  ["scriptorium_archer_3"] = { "77262956-daee-4a0e-9035-517569f18ef4", "b3f7a363-5526-45b1-a32b-422a0a8e4da4" },
+  ["soldier_generic_1_01"] = { "45b6d780-23e1-4a89-a0b1-dbc234a7ce21", "d4ade1cb-79dd-41a7-8d72-7bd88ec2e0d4", "ffd9af7c-d24d-4e70-8c25-ad22a37a64e7", "62183c25-a930-4044-8e08-243c5d46c6cc", "8ec8f99a-57a7-4006-bb61-1f737996a0a9", "81e27f41-709f-47c8-96b3-8f8c9619d2fa" },
+  ["soldier_generic_1_02"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "121c90c7-3543-4078-9360-94977d2e16ec", "8ec8f99a-57a7-4006-bb61-1f737996a0a9", "62183c25-a930-4044-8e08-243c5d46c6cc", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "51d9a001-eb09-4db8-98f0-d23b794c530d", "3b0a1c2e-c631-47d6-b5f4-ac798318e86d", "6021520e-b6a9-4daf-adce-21a8a208646c", "fbc58e41-81e9-4447-8a86-e9d236b9dad5" },
+  ["soldier_generic_1_03"] = { "a856e87a-8065-4338-919d-0aff7a63341d", "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "ccd43d26-4668-48db-acd5-82a7226bf5e6", "62183c25-a930-4044-8e08-243c5d46c6cc", "868581d6-f9ab-4ae2-b074-9200e7d054bd", "6069fdce-2661-4870-815b-20c37aeda40c" },
+  ["soldier_generic_1_04"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "f3aa4492-06fb-4ce3-9e41-784cbac8801f", "62183c25-a930-4044-8e08-243c5d46c6cc", "73b9efe7-4082-4d5a-a879-4b5c7bdc5ea2", "965274e3-4b6e-49de-b49e-778aafbe1762", "6021520e-b6a9-4daf-adce-21a8a208646c", "e5e650f0-dc71-48ff-afaa-b61c7770284e", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed" },
+  ["soldier_generic_1_05"] = { "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "d4ade1cb-79dd-41a7-8d72-7bd88ec2e0d4", "62183c25-a930-4044-8e08-243c5d46c6cc", "cb4cc490-717b-4a56-8e73-0b2f5820e0dd", "44e538cc-56f9-4027-a0ff-dbb96004d0e3", "6021520e-b6a9-4daf-adce-21a8a208646c", "6069fdce-2661-4870-815b-20c37aeda40c" },
+  ["soldier_generic_1_06"] = { "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "d4ade1cb-79dd-41a7-8d72-7bd88ec2e0d4", "62183c25-a930-4044-8e08-243c5d46c6cc", "634ed69a-23dd-43e2-8208-73c167490d01", "e5e650f0-dc71-48ff-afaa-b61c7770284e", "100b9146-1c41-4136-9991-ff80983f1955", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed" },
+  ["soldier_generic_1_07"] = { "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "d4ade1cb-79dd-41a7-8d72-7bd88ec2e0d4", "0973959e-9c95-477a-bbfc-31de29a429e9", "a856e87a-8065-4338-919d-0aff7a63341d", "100b9146-1c41-4136-9991-ff80983f1955", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "e57a90f9-837c-466b-90a7-5be5ad7023a7", "0a46c96b-11fa-4627-8a89-786a4577a441" },
+  ["soldier_generic_1_08"] = { "62183c25-a930-4044-8e08-243c5d46c6cc", "cb4cc490-717b-4a56-8e73-0b2f5820e0dd", "315fa220-fcb8-44e3-9a68-545c6822ec9f", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "b173b837-5ee6-4b16-b843-b72eae1a1ce6", "a1526093-c93e-4b10-9bb2-6d75ef8bf9dc", "018c1614-ddbf-4d9b-a797-40330be86c1c", "892f8540-77ed-4f33-9bf5-a8c2b17df4bf" },
+  ["soldier_generic_1_09"] = { "62183c25-a930-4044-8e08-243c5d46c6cc", "3f72f25b-8763-4434-bec7-a2640057ad1e", "f3aa4492-06fb-4ce3-9e41-784cbac8801f", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "73b9efe7-4082-4d5a-a879-4b5c7bdc5ea2", "3b0a1c2e-c631-47d6-b5f4-ac798318e86d", "765d83b6-e6c8-4caf-8fb4-cdae43c41985" },
+  ["soldier_generic_1_10"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "62183c25-a930-4044-8e08-243c5d46c6cc", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "44e538cc-56f9-4027-a0ff-dbb96004d0e3", "a856e87a-8065-4338-919d-0aff7a63341d", "6c9dcdf3-7db0-4272-94d5-939014a6accc", "867cddb7-32e6-4a3d-98f2-f6b9ba3ae7c9", "868581d6-f9ab-4ae2-b074-9200e7d054bd", "13eccab3-ee46-40e4-b0d1-73f3acde338c" },
+  ["soldier_generic_1_11"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "62183c25-a930-4044-8e08-243c5d46c6cc", "44e538cc-56f9-4027-a0ff-dbb96004d0e3", "81e27f41-709f-47c8-96b3-8f8c9619d2fa", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "91e17195-0d9f-4373-ab2a-aed59193ac2d" },
+  ["soldier_generic_1_12"] = { "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "62183c25-a930-4044-8e08-243c5d46c6cc", "965274e3-4b6e-49de-b49e-778aafbe1762", "73b9efe7-4082-4d5a-a879-4b5c7bdc5ea2", "992f2afc-ee61-4787-a359-8c6adbfa7c40", "8a8e914e-d384-4e7b-ae5e-534f48679c85", "4e5c9449-d757-415d-b418-e5276218ee1e" },
+  ["soldier_generic_1_13"] = { "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "62183c25-a930-4044-8e08-243c5d46c6cc", "cb4cc490-717b-4a56-8e73-0b2f5820e0dd", "a856e87a-8065-4338-919d-0aff7a63341d", "0027df44-5f9c-4c92-9f81-a83ca124c4a8", "76f096c4-6829-43fb-8101-a163d15468e0", "b091659c-7293-4a63-992f-1b4bde3b87fd", "91e17195-0d9f-4373-ab2a-aed59193ac2d" },
+  ["soldier_generic_2_01"] = { "62183c25-a930-4044-8e08-243c5d46c6cc", "1149024d-72f5-405d-8edb-041d58b59f74", "100b9146-1c41-4136-9991-ff80983f1955", "4e5c9449-d757-415d-b418-e5276218ee1e", "333a3cc8-516d-44cc-8d07-4158326c235e", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "6021520e-b6a9-4daf-adce-21a8a208646c", "02e23cb9-05aa-4aab-bbb8-4023a72e22f9", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "97318a25-2aa3-458b-b4f0-7f265fba32a0" },
+  ["soldier_generic_2_02"] = { "942a42a0-5c46-4c46-983a-71d86adb43c4", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "cc1adb78-fa5a-45c9-be7b-b7b50e182cb3", "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "4e5c9449-d757-415d-b418-e5276218ee1e", "e4222df1-647a-4652-9be9-9a7a72230182", "192733fd-accf-41bc-bb8e-7854d3ba3443", "513342ce-7788-4c3e-8352-4febb17a609c", "e5e650f0-dc71-48ff-afaa-b61c7770284e" },
+  ["soldier_generic_2_03"] = { "942a42a0-5c46-4c46-983a-71d86adb43c4", "09ba8849-d20d-48f2-b94e-c36f10abcf41", "b091659c-7293-4a63-992f-1b4bde3b87fd", "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "b128bc50-58da-494a-ba3d-c47d2d044e7c", "b8df2253-e5c8-4e6c-9303-b4bc84192e67" },
+  ["soldier_generic_2_04"] = { "73b9efe7-4082-4d5a-a879-4b5c7bdc5ea2", "62183c25-a930-4044-8e08-243c5d46c6cc", "1149024d-72f5-405d-8edb-041d58b59f74", "13eccab3-ee46-40e4-b0d1-73f3acde338c", "2cfb13ee-d15c-48d3-84e0-fed50436c49f", "3b0a1c2e-c631-47d6-b5f4-ac798318e86d", "6fad4fc0-eb11-4394-943f-d8def9871cc2" },
+  ["soldier_generic_2_05"] = { "b091659c-7293-4a63-992f-1b4bde3b87fd", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "08d82149-af01-48b6-9e72-b3f000da5e5f", "4e5c9449-d757-415d-b418-e5276218ee1e", "e5e650f0-dc71-48ff-afaa-b61c7770284e", "62183c25-a930-4044-8e08-243c5d46c6cc", "965274e3-4b6e-49de-b49e-778aafbe1762" },
+  ["soldier_generic_2_06"] = { "100b9146-1c41-4136-9991-ff80983f1955", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "868581d6-f9ab-4ae2-b074-9200e7d054bd", "942a42a0-5c46-4c46-983a-71d86adb43c4", "b128bc50-58da-494a-ba3d-c47d2d044e7c", "993d563a-7a0b-46d9-8aba-5a9d689bfa03" },
+  ["soldier_generic_2_07"] = { "62183c25-a930-4044-8e08-243c5d46c6cc", "1149024d-72f5-405d-8edb-041d58b59f74", "02e23cb9-05aa-4aab-bbb8-4023a72e22f9", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "fe365538-9abe-41ca-90e8-97e191662490", "b128bc50-58da-494a-ba3d-c47d2d044e7c", "8a8e914e-d384-4e7b-ae5e-534f48679c85", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "8662ab7a-6af0-468a-8bce-a1a8768c24b7" },
+  ["soldier_generic_2_08"] = { "942a42a0-5c46-4c46-983a-71d86adb43c4", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "4e5c9449-d757-415d-b418-e5276218ee1e", "192733fd-accf-41bc-bb8e-7854d3ba3443", "09ba8849-d20d-48f2-b94e-c36f10abcf41", "a856e87a-8065-4338-919d-0aff7a63341d", "9748ecfc-9f6d-4a84-88f8-d5259070a35c", "899ea0bb-89ea-495c-ad69-29e76fb7bb9e" },
+  ["soldier_generic_2_09"] = { "942a42a0-5c46-4c46-983a-71d86adb43c4", "a8a8db9c-955c-410f-9d47-1af70d917900", "3b0a1c2e-c631-47d6-b5f4-ac798318e86d", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "8a8e914e-d384-4e7b-ae5e-534f48679c85", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "0bd0ee54-f7c8-4808-b620-da6d059640fe", "fbc58e41-81e9-4447-8a86-e9d236b9dad5" },
+  ["soldier_generic_2_10"] = { "73b9efe7-4082-4d5a-a879-4b5c7bdc5ea2", "62183c25-a930-4044-8e08-243c5d46c6cc", "1149024d-72f5-405d-8edb-041d58b59f74", "13eccab3-ee46-40e4-b0d1-73f3acde338c", "2cfb13ee-d15c-48d3-84e0-fed50436c49f", "3b0a1c2e-c631-47d6-b5f4-ac798318e86d", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "9bd6afca-f2cd-45b2-b057-2586811817f8", "8dd4862d-8290-4f36-ac8b-c53d42c60f65" },
+  ["soldier_generic_2_11"] = { "b091659c-7293-4a63-992f-1b4bde3b87fd", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "2a169fbe-251a-49f8-85d1-0b9a651f61d1", "4e5c9449-d757-415d-b418-e5276218ee1e", "62183c25-a930-4044-8e08-243c5d46c6cc", "965274e3-4b6e-49de-b49e-778aafbe1762", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "a856e87a-8065-4338-919d-0aff7a63341d", "4724c8d8-c049-46bf-a5f3-8bf51ea74828" },
+  ["soldier_generic_2_12"] = { "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "868581d6-f9ab-4ae2-b074-9200e7d054bd", "942a42a0-5c46-4c46-983a-71d86adb43c4", "fe365538-9abe-41ca-90e8-97e191662490", "fc214bc3-f5cb-402a-a2e6-ba27622d9eab", "b49694c9-31dd-49f0-bc1b-be86644cf1fa", "52d761bd-6c65-4eb0-9763-7c6c025a621d" },
+  ["soldier_generic_2_13"] = { "62183c25-a930-4044-8e08-243c5d46c6cc", "1149024d-72f5-405d-8edb-041d58b59f74", "02e23cb9-05aa-4aab-bbb8-4023a72e22f9", "8dd4862d-8290-4f36-ac8b-c53d42c60f65", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "b5bfc0d3-b4e2-421c-ae14-4bce9f1f54be", "786efb5a-320e-4c2c-aec8-fc4c8ba2d534", "b40942a9-f067-4a6d-8cd3-59a03e8a59d1", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "9da82290-e31b-4ba6-b0e8-680081e06e9a" },
+  ["soldier_generic_3_01"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "f8f97efa-a624-486d-b966-fbf35757431f", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "5d5b2f4d-5f18-4ebe-ae2e-6eccbd8f92ea", "177e55fc-31bc-40dc-b399-899b478093d0", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "d3bc6b02-d678-4336-8d4a-6f4157fd1376" },
+  ["soldier_generic_3_02"] = { "100b9146-1c41-4136-9991-ff80983f1955", "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "38102e92-9a28-4d57-85c4-716b97a0ecb8", "63eff267-424a-43fd-a5ec-132c89c286f0", "7c8cdd6c-b094-4b70-b588-286b50cffe02", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "cfc1fd72-dbb7-49a4-8713-6acf215a72be", "ca521570-403a-4a72-b7cf-58cca2869052" },
+  ["soldier_generic_3_03"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "c6a66736-2f9e-4c0c-9def-4d6fd5906b82", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "72a7e155-fae8-4c97-bad7-458664218252", "7d602455-05bc-49b9-a11f-67c76992016c", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "86055ea8-0e06-47f2-a976-e5453bdf84d1", "e5e650f0-dc71-48ff-afaa-b61c7770284e", "3a1811fb-124e-4dbd-95ee-114debe21091", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e" },
+  ["soldier_generic_3_04"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "a79e8354-4706-4dde-bec3-51e1d88bf699", "177e55fc-31bc-40dc-b399-899b478093d0", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "7d602455-05bc-49b9-a11f-67c76992016c", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "942a42a0-5c46-4c46-983a-71d86adb43c4", "ca521570-403a-4a72-b7cf-58cca2869052", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d" },
+  ["soldier_generic_3_05"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "100b9146-1c41-4136-9991-ff80983f1955", "63eff267-424a-43fd-a5ec-132c89c286f0", "d86cfc84-c1b4-4b13-bfcb-a09c5ae6d314", "a8a8db9c-955c-410f-9d47-1af70d917900", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "6021520e-b6a9-4daf-adce-21a8a208646c", "48e7619e-9436-4f27-948c-1577daa9a6e9", "263e6aa0-cffd-4c30-87ea-98e3fcaa4dc7", "260ccafb-0504-4c17-9833-304539d30698" },
+  ["soldier_generic_3_06"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "100b9146-1c41-4136-9991-ff80983f1955", "5a189394-0191-4545-9d9f-98db7fce4745", "260ccafb-0504-4c17-9833-304539d30698", "3f72f25b-8763-4434-bec7-a2640057ad1e", "d1926fdf-d10e-4ab5-9531-2deeff6f8d07", "fb7ebf36-7aea-410d-800e-2482193d0982", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "9dfd4215-673d-460b-a052-a38ba439857e" },
+  ["soldier_generic_3_07"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "260ccafb-0504-4c17-9833-304539d30698", "e1c454dd-9834-4da0-940e-da2a27b0b795", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "faed9509-92fe-42f2-be78-3c07d2c494b5", "0bd0ee54-f7c8-4808-b620-da6d059640fe", "fb7ebf36-7aea-410d-800e-2482193d0982" },
+  ["soldier_generic_3_08"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "260ccafb-0504-4c17-9833-304539d30698", "ba9c9623-40fc-49ee-8eee-5f3ba2b93e74", "0a46c96b-11fa-4627-8a89-786a4577a441", "01fd6791-d9dc-46d3-8331-1ac65ee61dd5", "cdafe0da-d6fa-4285-80e2-02ad7626f3dd", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "627e8530-e405-487b-9bef-7f85d2459360" },
+  ["soldier_generic_3_09"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "5d5b2f4d-5f18-4ebe-ae2e-6eccbd8f92ea", "177e55fc-31bc-40dc-b399-899b478093d0", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "0a46c96b-11fa-4627-8a89-786a4577a441", "77288289-02b0-4664-86b7-c786163388c9" },
+  ["soldier_generic_3_10"] = { "100b9146-1c41-4136-9991-ff80983f1955", "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "38102e92-9a28-4d57-85c4-716b97a0ecb8", "7c8cdd6c-b094-4b70-b588-286b50cffe02", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "cfc1fd72-dbb7-49a4-8713-6acf215a72be", "ca521570-403a-4a72-b7cf-58cca2869052", "513342ce-7788-4c3e-8352-4febb17a609c", "e9f59d27-ee5f-4a7e-8341-643854166285", "233e4fbc-42b8-4a70-a699-8b1978419f0c" },
+  ["soldier_generic_3_11"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "c6a66736-2f9e-4c0c-9def-4d6fd5906b82", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "72a7e155-fae8-4c97-bad7-458664218252", "7d602455-05bc-49b9-a11f-67c76992016c", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "86055ea8-0e06-47f2-a976-e5453bdf84d1", "d20252f7-51f0-4f8e-857c-b086fcec15be", "b107b189-7eea-4eae-bc64-2a23bd650b14" },
+  ["soldier_generic_3_12"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "5a189394-0191-4545-9d9f-98db7fce4745", "177e55fc-31bc-40dc-b399-899b478093d0", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "942a42a0-5c46-4c46-983a-71d86adb43c4", "ca521570-403a-4a72-b7cf-58cca2869052", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "260ccafb-0504-4c17-9833-304539d30698", "215026f1-e62b-4aa5-a919-36ece35a7817" },
+  ["soldier_generic_3_13"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "100b9146-1c41-4136-9991-ff80983f1955", "d86cfc84-c1b4-4b13-bfcb-a09c5ae6d314", "a8a8db9c-955c-410f-9d47-1af70d917900", "48e7619e-9436-4f27-948c-1577daa9a6e9", "263e6aa0-cffd-4c30-87ea-98e3fcaa4dc7", "51ea4abf-bff3-4458-89f2-2ed18a4340a2", "a856e87a-8065-4338-919d-0aff7a63341d", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "260ccafb-0504-4c17-9833-304539d30698" },
+  ["soldier_generic_3_14"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "fb7ebf36-7aea-410d-800e-2482193d0982", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "9dfd4215-673d-460b-a052-a38ba439857e", "315fa220-fcb8-44e3-9a68-545c6822ec9f", "3d03fd46-32cb-4a9c-a7a1-f159a5f926d0", "a3c3146a-84a7-4c98-a7a9-eb27d547e547", "260ccafb-0504-4c17-9833-304539d30698", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d" },
+  ["soldier_generic_3_15"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "0bd0ee54-f7c8-4808-b620-da6d059640fe", "cc672cc6-b8a8-4604-bf1d-6f42716fab59", "7d602455-05bc-49b9-a11f-67c76992016c", "fe365538-9abe-41ca-90e8-97e191662490", "6ca69142-da64-4abc-b989-682fc91b83c7", "7ae64aa3-444f-4f10-b05d-4a943c965551" },
+  ["soldier_generic_3_16"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "0a46c96b-11fa-4627-8a89-786a4577a441", "c01ca195-4129-4fbd-a966-f8eb7b162ddf", "627e8530-e405-487b-9bef-7f85d2459360", "c42f0260-8490-438a-a67b-ae521a48bf0d", "3024ad3e-9647-41f7-9be6-0aa29c2e7bd2", "54933fe9-c9e1-43af-b0bf-8595fc3bad76", "978586ca-3269-493b-a1fd-88ae04a6ded6", "9748ecfc-9f6d-4a84-88f8-d5259070a35c", "e5e650f0-dc71-48ff-afaa-b61c7770284e" },
+  ["soldier_generic_4_01"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "d20252f7-51f0-4f8e-857c-b086fcec15be", "713a4f57-647f-4ab6-8c6e-ad189f6f5eee", "a856e87a-8065-4338-919d-0aff7a63341d", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "3b912b8e-3669-43e6-a53f-8136b7ae3e99" },
+  ["soldier_generic_4_02"] = { "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "7c8cdd6c-b094-4b70-b588-286b50cffe02", "a157447c-3c6f-463a-a02d-d4b696e644e1", "a8a8db9c-955c-410f-9d47-1af70d917900", "737fcf80-5ce8-45d2-9ffe-10b952d125a0", "62a81406-526e-400a-bea3-16cc76dfd069", "8472dd03-91d6-4496-a92e-e6e9baaa46ba", "fe365538-9abe-41ca-90e8-97e191662490", "fbc58e41-81e9-4447-8a86-e9d236b9dad5", "38102e92-9a28-4d57-85c4-716b97a0ecb8" },
+  ["soldier_generic_4_03"] = { "a6f4fcf5-9d0a-45c4-8641-b9689415983b", "d20252f7-51f0-4f8e-857c-b086fcec15be", "3437c616-a14c-4ba2-a382-f4898765eeff", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "c6a66736-2f9e-4c0c-9def-4d6fd5906b82", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "a8a8db9c-955c-410f-9d47-1af70d917900", "63eff267-424a-43fd-a5ec-132c89c286f0" },
+  ["soldier_generic_4_04"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "d20252f7-51f0-4f8e-857c-b086fcec15be", "fe365538-9abe-41ca-90e8-97e191662490", "713a4f57-647f-4ab6-8c6e-ad189f6f5eee", "892f8540-77ed-4f33-9bf5-a8c2b17df4bf", "8472dd03-91d6-4496-a92e-e6e9baaa46ba" },
+  ["soldier_generic_4_05"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "d20252f7-51f0-4f8e-857c-b086fcec15be", "100b9146-1c41-4136-9991-ff80983f1955", "6021520e-b6a9-4daf-adce-21a8a208646c", "7e55a88a-1a07-443e-846b-b24217c732f9", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "627e8530-e405-487b-9bef-7f85d2459360", "48bd6984-747d-4ae3-9489-666a2bdcd66c" },
+  ["soldier_generic_4_06"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "260ccafb-0504-4c17-9833-304539d30698", "d20252f7-51f0-4f8e-857c-b086fcec15be", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "fe365538-9abe-41ca-90e8-97e191662490", "e9f59d27-ee5f-4a7e-8341-643854166285", "48e7619e-9436-4f27-948c-1577daa9a6e9", "f7bcdadb-de2f-4576-b84f-474c2a56804f" },
+  ["soldier_generic_4_07"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "d20252f7-51f0-4f8e-857c-b086fcec15be", "8472dd03-91d6-4496-a92e-e6e9baaa46ba", "7ae64aa3-444f-4f10-b05d-4a943c965551", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "fe365538-9abe-41ca-90e8-97e191662490", "d3bc6b02-d678-4336-8d4a-6f4157fd1376" },
+  ["soldier_generic_4_08"] = { "260ccafb-0504-4c17-9833-304539d30698", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "d20252f7-51f0-4f8e-857c-b086fcec15be", "5a0fb76a-1999-450d-ab39-48cf75d9952e", "76f096c4-6829-43fb-8101-a163d15468e0", "d534337c-54ff-4534-a62e-fc555bd9c571", "ccb82eee-2caa-445d-9cd1-ca3820edb6b5", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "8a8e914e-d384-4e7b-ae5e-534f48679c85", "0a46c96b-11fa-4627-8a89-786a4577a441" },
+  ["soldier_generic_4_09"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "a6f4fcf5-9d0a-45c4-8641-b9689415983b", "d20252f7-51f0-4f8e-857c-b086fcec15be", "81e27f41-709f-47c8-96b3-8f8c9619d2fa", "8472dd03-91d6-4496-a92e-e6e9baaa46ba" },
+  ["soldier_generic_4_10"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "3437c616-a14c-4ba2-a382-f4898765eeff", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "a8a8db9c-955c-410f-9d47-1af70d917900", "6021520e-b6a9-4daf-adce-21a8a208646c", "978586ca-3269-493b-a1fd-88ae04a6ded6", "b6b5f07a-d94d-4a1b-a9af-bad64277ab13", "078e439b-1a5b-40ca-b009-d4abf6fcf810", "63eff267-424a-43fd-a5ec-132c89c286f0" },
+  ["soldier_generic_4_11"] = { "a6f4fcf5-9d0a-45c4-8641-b9689415983b", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "e72e27a2-87db-480d-977b-318c34e0444f", "7c8cdd6c-b094-4b70-b588-286b50cffe02", "a157447c-3c6f-463a-a02d-d4b696e644e1", "b90f82a2-f590-4564-af7b-f5f5bd44bc1c", "a8a8db9c-955c-410f-9d47-1af70d917900", "737fcf80-5ce8-45d2-9ffe-10b952d125a0", "38102e92-9a28-4d57-85c4-716b97a0ecb8" },
+  ["soldier_generic_4_12"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "260ccafb-0504-4c17-9833-304539d30698", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "d20252f7-51f0-4f8e-857c-b086fcec15be", "713a4f57-647f-4ab6-8c6e-ad189f6f5eee", "8472dd03-91d6-4496-a92e-e6e9baaa46ba", "3f72f25b-8763-4434-bec7-a2640057ad1e", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d", "86055ea8-0e06-47f2-a976-e5453bdf84d1" },
+  ["soldier_generic_4_13"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "d20252f7-51f0-4f8e-857c-b086fcec15be", "7e55a88a-1a07-443e-846b-b24217c732f9", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "627e8530-e405-487b-9bef-7f85d2459360", "93d145b7-251f-49e2-b44d-8c3e455621a4", "3b912b8e-3669-43e6-a53f-8136b7ae3e99", "d40cc1ba-5ea4-44d7-86fb-ccb1680b611d" },
+  ["soldier_generic_4_14"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "a8a8db9c-955c-410f-9d47-1af70d917900", "260ccafb-0504-4c17-9833-304539d30698", "3f5dc1aa-ae52-4760-a466-0ebac0d483ed", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "d20252f7-51f0-4f8e-857c-b086fcec15be", "315fa220-fcb8-44e3-9a68-545c6822ec9f", "91f76dc9-7d86-4fd3-b4f0-e518ca6c342e", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "fe365538-9abe-41ca-90e8-97e191662490" },
+  ["soldier_generic_4_15"] = { "be916959-2459-4a31-81fc-4b00090c3f42", "d20252f7-51f0-4f8e-857c-b086fcec15be", "7ae64aa3-444f-4f10-b05d-4a943c965551", "b40942a9-f067-4a6d-8cd3-59a03e8a59d1", "2a4b891d-9131-4a45-8b93-4734da890724", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "40700938-bd53-480d-80c3-2820ed3b5380", "25bd008c-f308-4521-8a4f-a1feeb76ea3c", "3b912b8e-3669-43e6-a53f-8136b7ae3e99" },
+  ["soldier_generic_5_01"] = { "a79e8354-4706-4dde-bec3-51e1d88bf699", "808101ad-28ff-4425-ad2a-5fbe4f9fbbbe", "f9be9c8b-de15-4216-bf0d-7e71d25c0b84", "3a1811fb-124e-4dbd-95ee-114debe21091", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "260ccafb-0504-4c17-9833-304539d30698", "0aba49a1-bffe-460b-bcc0-781654d79ac1", "63eff267-424a-43fd-a5ec-132c89c286f0", "403db8bc-649a-4b10-9385-01275b96f141", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "43f25763-bdbd-4e22-a946-722e2fd156c4" },
+  ["soldier_generic_5_02"] = { "a6f4fcf5-9d0a-45c4-8641-b9689415983b", "d20252f7-51f0-4f8e-857c-b086fcec15be", "c6a66736-2f9e-4c0c-9def-4d6fd5906b82", "260ccafb-0504-4c17-9833-304539d30698", "2a4b891d-9131-4a45-8b93-4734da890724", "a8a8db9c-955c-410f-9d47-1af70d917900", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "bfee5c98-846b-4535-9827-98a3300d4302", "8b2cb8f5-31e8-4ee3-b4bc-b50c06f7ff4c", "cc0c46b1-830f-46cb-aeb9-38d18ff06ab4", "663d6ec1-c5b9-406e-9017-04f1688331ea" },
+  ["soldier_generic_5_03"] = { "260ccafb-0504-4c17-9833-304539d30698", "a79e8354-4706-4dde-bec3-51e1d88bf699", "ee8a0292-d4be-4066-a4b1-edb18f1e7b44", "f19e049a-1209-4f18-b02d-615e5efb2c48", "d1926fdf-d10e-4ab5-9531-2deeff6f8d07", "aea861d5-30ef-483d-a326-6a29a98ea726", "c684625e-5f43-4e05-8cca-bb8cfadef4b7", "cd17455c-b023-4977-8205-4f2685370b5e", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "c01ca195-4129-4fbd-a966-f8eb7b162ddf" },
+  ["soldier_generic_5_04"] = { "fe365538-9abe-41ca-90e8-97e191662490", "86055ea8-0e06-47f2-a976-e5453bdf84d1", "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "91e17195-0d9f-4373-ab2a-aed59193ac2d", "260ccafb-0504-4c17-9833-304539d30698", "6c7ea4d3-011f-4052-a23e-3349cc54d56c", "d20252f7-51f0-4f8e-857c-b086fcec15be", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "3b912b8e-3669-43e6-a53f-8136b7ae3e99", "85bf9cdb-d3ad-4ff3-b77e-a01319ed87d3", "49ac17ff-a290-4fb4-8ca6-0e3bed1ddbd7" },
+  ["soldier_generic_5_05"] = { "a79e8354-4706-4dde-bec3-51e1d88bf699", "3a1811fb-124e-4dbd-95ee-114debe21091", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "260ccafb-0504-4c17-9833-304539d30698", "a0ff8ee9-9c48-4906-b25d-1ee2865f8c4e", "9e19280b-f3a2-445b-9283-8bd2b6b611ad", "3b912b8e-3669-43e6-a53f-8136b7ae3e99", "0658b976-5789-4349-ad70-10042b84e870", "808101ad-28ff-4425-ad2a-5fbe4f9fbbbe", "a856e87a-8065-4338-919d-0aff7a63341d", "978586ca-3269-493b-a1fd-88ae04a6ded6", "38c34f78-cfa0-40c9-a94e-5e04dcf35608" },
+  ["soldier_generic_5_06"] = { "260ccafb-0504-4c17-9833-304539d30698", "cd17455c-b023-4977-8205-4f2685370b5e", "ba6a0b5e-4674-4fac-9f2f-bd6076a6069c", "88f1ceff-5a1e-40b5-92f7-68e941268f3b", "0f70adb9-d36a-4f72-8367-a64454159a4f", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "177e55fc-31bc-40dc-b399-899b478093d0", "737fcf80-5ce8-45d2-9ffe-10b952d125a0", "fbc58e41-81e9-4447-8a86-e9d236b9dad5", "b29874c7-734e-448a-9227-b0b261c900d2", "263e6aa0-cffd-4c30-87ea-98e3fcaa4dc7" },
+  ["soldier_generic_5_07"] = { "a6f4fcf5-9d0a-45c4-8641-b9689415983b", "d20252f7-51f0-4f8e-857c-b086fcec15be", "c6a66736-2f9e-4c0c-9def-4d6fd5906b82", "260ccafb-0504-4c17-9833-304539d30698", "2a4b891d-9131-4a45-8b93-4734da890724", "bf69906e-4f4b-40dd-803c-9deee8c0bd15", "a8a8db9c-955c-410f-9d47-1af70d917900", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "bfee5c98-846b-4535-9827-98a3300d4302", "737fcf80-5ce8-45d2-9ffe-10b952d125a0" },
+  ["soldier_generic_5_08"] = { "260ccafb-0504-4c17-9833-304539d30698", "cd17455c-b023-4977-8205-4f2685370b5e", "407d0b00-9517-45c5-9d87-63895ed72dd0", "ba6a0b5e-4674-4fac-9f2f-bd6076a6069c", "7c8cdd6c-b094-4b70-b588-286b50cffe02", "88f1ceff-5a1e-40b5-92f7-68e941268f3b", "0f70adb9-d36a-4f72-8367-a64454159a4f", "263e6aa0-cffd-4c30-87ea-98e3fcaa4dc7", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "b0b3babe-9c0a-4cb4-9f50-f4447a835ffa" },
+  ["soldier_generic_5_09"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "91e17195-0d9f-4373-ab2a-aed59193ac2d", "260ccafb-0504-4c17-9833-304539d30698", "d20252f7-51f0-4f8e-857c-b086fcec15be", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "5f0a8ce2-8ebd-4a1a-ade0-997c2621b7f3", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "63eff267-424a-43fd-a5ec-132c89c286f0", "fe365538-9abe-41ca-90e8-97e191662490", "86055ea8-0e06-47f2-a976-e5453bdf84d1", "7dc23682-02cd-43d9-bcc8-e805489ae1a0" },
+  ["soldier_generic_5_10"] = { "a79e8354-4706-4dde-bec3-51e1d88bf699", "3a1811fb-124e-4dbd-95ee-114debe21091", "9da82290-e31b-4ba6-b0e8-680081e06e9a", "260ccafb-0504-4c17-9833-304539d30698", "63eff267-424a-43fd-a5ec-132c89c286f0", "a0ff8ee9-9c48-4906-b25d-1ee2865f8c4e", "7c8cdd6c-b094-4b70-b588-286b50cffe02", "3b912b8e-3669-43e6-a53f-8136b7ae3e99", "0658b976-5789-4349-ad70-10042b84e870", "808101ad-28ff-4425-ad2a-5fbe4f9fbbbe", "9e19280b-f3a2-445b-9283-8bd2b6b611ad" },
+  ["soldier_generic_5_11"] = { "765d83b6-e6c8-4caf-8fb4-cdae43c41985", "91e17195-0d9f-4373-ab2a-aed59193ac2d", "260ccafb-0504-4c17-9833-304539d30698", "d20252f7-51f0-4f8e-857c-b086fcec15be", "6fad4fc0-eb11-4394-943f-d8def9871cc2", "3625fd0b-94df-47ca-a0db-09f5f8833ac0", "97318a25-2aa3-458b-b4f0-7f265fba32a0", "7d602455-05bc-49b9-a11f-67c76992016c", "9c6aac7c-4797-4aa9-a297-939fd5e5a54e", "d1926fdf-d10e-4ab5-9531-2deeff6f8d07", "aea861d5-30ef-483d-a326-6a29a98ea726", "fe365538-9abe-41ca-90e8-97e191662490" },
+  ["soldier_generic_5_12"] = { "260ccafb-0504-4c17-9833-304539d30698", "cd17455c-b023-4977-8205-4f2685370b5e", "ba6a0b5e-4674-4fac-9f2f-bd6076a6069c", "88f1ceff-5a1e-40b5-92f7-68e941268f3b", "0f70adb9-d36a-4f72-8367-a64454159a4f", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "315fa220-fcb8-44e3-9a68-545c6822ec9f", "f7bcdadb-de2f-4576-b84f-474c2a56804f", "85bf9cdb-d3ad-4ff3-b77e-a01319ed87d3", "177e55fc-31bc-40dc-b399-899b478093d0", "8b2cb8f5-31e8-4ee3-b4bc-b50c06f7ff4c" },
+  ["soldier_generic_6_01"] = { "a79e8354-4706-4dde-bec3-51e1d88bf699", "7963c946-f52a-4373-94f4-b30fabd15f8f", "135a64e5-8958-42f4-bbe8-16e6744fc20b", "344b633a-b7a0-44ef-8a11-9d1288f9a0ca", "9bd6afca-f2cd-45b2-b057-2586811817f8", "86cf52c6-4329-4e07-b316-facdb667a386", "156a20c9-d2ff-48e3-a9cb-e3e106139042", "5d5b2f4d-5f18-4ebe-ae2e-6eccbd8f92ea", "b1b9a304-4f2c-4e43-8f2c-166abf25243c", "8472dd03-91d6-4496-a92e-e6e9baaa46ba", "916a6a5e-a1c1-4db7-b573-909c139a1b52" },
+  ["soldier_generic_6_02"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "0fda3070-6b14-4fa9-bfd1-26da6924d32e", "3d03fd46-32cb-4a9c-a7a1-f159a5f926d0", "260ccafb-0504-4c17-9833-304539d30698", "5f0a8ce2-8ebd-4a1a-ade0-997c2621b7f3", "3f31f6fd-e150-4564-80a5-2a9d1ed7dd6b", "a6fdf67f-f133-429d-a06b-ef4380ba5c35", "737fcf80-5ce8-45d2-9ffe-10b952d125a0", "6aabc182-4cc0-4095-a134-a2b23eafc5c6", "2f20e7ab-77ae-4c17-be1d-e6f4931769d5" },
+  ["soldier_generic_6_03"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "260ccafb-0504-4c17-9833-304539d30698", "6f275925-deff-47ba-8bd6-68ac4ce1c6ed", "168579ba-c191-41ba-80e4-ed711a328ec9", "177e55fc-31bc-40dc-b399-899b478093d0", "2463ac9b-f30b-4cac-bfbc-d846b54c328e", "663d6ec1-c5b9-406e-9017-04f1688331ea", "d444ea2d-1233-4040-b3bc-269e8426d40e", "b9fa2db6-ee6e-4976-9449-24ae92916789", "45b6d780-23e1-4a89-a0b1-dbc234a7ce21" },
+  ["soldier_generic_6_04"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "25bd008c-f308-4521-8a4f-a1feeb76ea3c", "ad878f77-e53d-4dec-948b-2627fea5df1d", "cc0c46b1-830f-46cb-aeb9-38d18ff06ab4", "916a6a5e-a1c1-4db7-b573-909c139a1b52", "c684625e-5f43-4e05-8cca-bb8cfadef4b7", "b1b9a304-4f2c-4e43-8f2c-166abf25243c", "d89df714-7b5e-41a0-a3f6-d9538a97e630", "403db8bc-649a-4b10-9385-01275b96f141", "34f2f8b6-2ed4-4b89-ba68-ac4d6a8a7fab" },
+  ["soldier_generic_6_05"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "b90f82a2-f590-4564-af7b-f5f5bd44bc1c", "3cea4901-cce2-4582-b4a0-c208df45cd53", "0fda3070-6b14-4fa9-bfd1-26da6924d32e", "3d03fd46-32cb-4a9c-a7a1-f159a5f926d0", "219debf1-3e0a-4bad-b6bb-6bad5e334b8c", "260ccafb-0504-4c17-9833-304539d30698", "53a0ba78-7f73-4f19-8932-a8bae86f7814" },
+  ["soldier_generic_6_06"] = { "a79e8354-4706-4dde-bec3-51e1d88bf699", "156a20c9-d2ff-48e3-a9cb-e3e106139042", "cfc1fd72-dbb7-49a4-8713-6acf215a72be", "7963c946-f52a-4373-94f4-b30fabd15f8f", "135a64e5-8958-42f4-bbe8-16e6744fc20b", "344b633a-b7a0-44ef-8a11-9d1288f9a0ca", "b1b9a304-4f2c-4e43-8f2c-166abf25243c", "403db8bc-649a-4b10-9385-01275b96f141", "5d5b2f4d-5f18-4ebe-ae2e-6eccbd8f92ea", "63eff267-424a-43fd-a5ec-132c89c286f0" },
+  ["soldier_generic_6_07"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "0fda3070-6b14-4fa9-bfd1-26da6924d32e", "3d03fd46-32cb-4a9c-a7a1-f159a5f926d0", "260ccafb-0504-4c17-9833-304539d30698", "2463ac9b-f30b-4cac-bfbc-d846b54c328e", "5f0a8ce2-8ebd-4a1a-ade0-997c2621b7f3", "3f31f6fd-e150-4564-80a5-2a9d1ed7dd6b", "b26e6866-c903-4238-9f64-24eca84fc34a", "a6fdf67f-f133-429d-a06b-ef4380ba5c35" },
+  ["soldier_generic_6_08"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "260ccafb-0504-4c17-9833-304539d30698", "6f275925-deff-47ba-8bd6-68ac4ce1c6ed", "168579ba-c191-41ba-80e4-ed711a328ec9", "177e55fc-31bc-40dc-b399-899b478093d0", "2463ac9b-f30b-4cac-bfbc-d846b54c328e", "663d6ec1-c5b9-406e-9017-04f1688331ea", "d444ea2d-1233-4040-b3bc-269e8426d40e", "b9fa2db6-ee6e-4976-9449-24ae92916789" },
+  ["soldier_generic_6_09"] = { "d20252f7-51f0-4f8e-857c-b086fcec15be", "a79e8354-4706-4dde-bec3-51e1d88bf699", "38c34f78-cfa0-40c9-a94e-5e04dcf35608", "100b9146-1c41-4136-9991-ff80983f1955", "6f6bc011-d298-4f69-8877-71f94abe6d9e", "459ae318-ac5d-4de1-b34e-f6ce5ef6492c", "25bd008c-f308-4521-8a4f-a1feeb76ea3c", "a6fdf67f-f133-429d-a06b-ef4380ba5c35", "ad878f77-e53d-4dec-948b-2627fea5df1d" },
+  ["sword_shield_3_01"] = { "efa237c7-3905-4813-b9c3-a32b449c17ad", "401266f6-ffb4-4ad0-a8e1-4a3cb3edab3e" },
+  ["sword_shield_4_01"] = { "9aa773b1-ede0-4ff5-bbd8-2595b36c8a1a", "760d7474-6e5f-4987-9631-d007d5fff22e" },
+  ["sword_shield_5_01"] = { "e37bdf86-4cc8-4805-b04c-3b05964b9484", "25d5e06c-09e2-405a-b0e8-4ffb6d44c975" },
+}
+liaison.munitions_des_prereglages = {
+  ["scriptorium_arbaletrier_1_a"] = "bcdd6887-8c80-4bae-8aa6-567574a75867",
+  ["scriptorium_arbaletrier_1_b"] = "bcdd6887-8c80-4bae-8aa6-567574a75867",
+  ["scriptorium_arbaletrier_2_a"] = "8460003f-637f-4713-92c9-4954037c4b9c",
+  ["scriptorium_arbaletrier_2_b"] = "8460003f-637f-4713-92c9-4954037c4b9c",
+  ["scriptorium_arbaletrier_3_a"] = "081fc4a1-25e9-4492-8dc8-2d9d6668c07a",
+  ["scriptorium_arbaletrier_3_b"] = "081fc4a1-25e9-4492-8dc8-2d9d6668c07a",
+  ["scriptorium_archer_1"] = "dfea5d01-b25c-414a-9ab4-6911a5f82118",
+  ["scriptorium_archer_2"] = "ad6f0f01-aec4-44d1-982c-1210eb01b74a",
+  ["scriptorium_archer_3"] = "710e3706-8974-404b-b23a-6f51670ef1ed",
+}
+-- FIN DES PIÈCES
+
+-- L'équipement pièce par pièce (fiche 13, V71 b ; mesuré en V71 a3 à a6). inventory:CreateItem(objet, état, nombre) :
+-- la pièce est gardée au rechargement avec son usure ; actor:EquipInventoryItem la fait porter ; inventory:DeleteItem(id,
+-- 1) la retire (Scripts/Entities/WH/Triggers/TriggerBase.lua). L'identifiant d'un objet change à chaque chargement :
+-- un objet se désigne ici par sa classe.
+liaison.objet_de_la_bourse = "5ef63059-322e-4e1b-abe8-926e100c770e"   -- pièces de monnaie : jamais retirées
+
+function liaison.noms_des_prereglages()
+  local noms = {}
+  for nom in pairs(liaison.pieces_des_prereglages or {}) do
+    table.insert(noms, nom)
+  end
+  table.sort(noms)
+  return noms
+end
+
+function liaison.pieces_de(nom)
+  local liste = nom and (liaison.pieces_des_prereglages or {})[nom]
+  if not liste then
+    return nil
+  end
+  local copie = {}
+  for i, objet in ipairs(liste) do
+    copie[i] = objet
+  end
+  return copie
+end
+
+function liaison.munition_de(nom)
+  return nom and (liaison.munitions_des_prereglages or {})[nom] or nil
+end
+
+local function porteur(personnage)
+  local entite = entite_nommee(personnage)
+  if entite and entite.inventory and entite.actor then
+    return entite
+  end
+  return nil
+end
+
+function liaison.compter_objet(personnage, objet)
+  local entite = porteur(personnage)
+  if not entite then
+    return 0
+  end
+  local ok, n = pcall(function() return entite.inventory:GetCountOfClass(objet) end)
+  return ok and tonumber(n) or 0
+end
+
+function liaison.creer_objet(personnage, objet, etat, nombre)
+  local entite = porteur(personnage)
+  if not entite then
+    return false
+  end
+  local ok, erreur = pcall(function() entite.inventory:CreateItem(objet, etat, nombre) end)
+  if not ok then
+    liaison.journal("Objet " .. tostring(objet) .. " refusé : " .. tostring(erreur))
+  end
+  return ok
+end
+
+-- Fait porter chaque objet, dans l'ordre (une pièce de cette classe trouvée dans le sac). Rend le nombre de pièces
+-- portées et la liste des objets introuvables.
+function liaison.faire_porter(personnage, objets)
+  local entite = porteur(personnage)
+  local introuvables = {}
+  if not entite then
+    return 0, objets
+  end
+  local portes = 0
+  for _, objet in ipairs(objets) do
+    local id = nil
+    if liaison.compter_objet(personnage, objet) > 0 then
+      local trouve, valeur = pcall(function() return entite.inventory:FindItem(objet) end)
+      id = trouve and valeur or nil
+    end
+    if id and pcall(function() entite.actor:EquipInventoryItem(id) end) then
+      portes = portes + 1
+    else
+      table.insert(introuvables, objet)
+    end
+  end
+  return portes, introuvables
+end
+
+-- Retire de son sac une pièce de cet objet. Rend vrai si le compte a baissé.
+function liaison.retirer_un_objet(personnage, objet)
+  local entite = porteur(personnage)
+  local avant = liaison.compter_objet(personnage, objet)
+  if not entite or avant == 0 then
+    return false
+  end
+  pcall(function() entite.inventory:DeleteItem(entite.inventory:FindItem(objet), 1) end)
+  return liaison.compter_objet(personnage, objet) < avant
+end
+
+-- Équipe un homme : sa tenue de naissance retirée d'abord (tout son sac, sauf la bourse), puis chaque pièce créée,
+-- ses munitions, puis ce qu'il porte, dans l'ordre. Rend une ligne pour le journal.
+function liaison.equiper_homme(personnage, ordre)
+  local entite = porteur(personnage)
+  if not entite then
+    return "personnage introuvable"
+  end
+  local retires = 0
+  if ordre.retirer_naissance then
+    local ok, liste = pcall(function() return entite.inventory:GetInventoryTable() end)
+    for _, id in pairs((ok and type(liste) == "table") and liste or {}) do
+      local lu, objet = pcall(function() return ItemManager.GetItem(id) end)
+      local classe = (lu and type(objet) == "table") and string.lower(tostring(objet.class)) or nil
+      if classe and classe ~= liaison.objet_de_la_bourse and pcall(function() entite.inventory:DeleteItem(id, 1) end) then
+        retires = retires + 1
+      end
+    end
+  end
+  local crees = 0
+  for _, objet in ipairs(ordre.creer or {}) do
+    if liaison.creer_objet(personnage, objet, ordre.etat or 1, 1) then
+      crees = crees + 1
+    end
+  end
+  if ordre.munition then
+    liaison.creer_objet(personnage, ordre.munition.objet, 1, ordre.munition.nombre)
+  end
+  local portes, introuvables = liaison.faire_porter(personnage, ordre.porter or {})
+  return string.format("%d pièce(s) de naissance retirée(s), %d créée(s), %d portée(s), %d introuvable(s)", retires, crees,
+    portes, #introuvables)
+end
+
 -- Fait venir un personnage de la Compagnie sur son âme et rend son identifiant, ou nil.
 -- La propriété d'âme d'un personnage s'appelle guidSharedSoulId (relevé Lua du jeu, table NPC.Properties).
 -- Éveillé aussitôt né : sans réveil, le cerveau d'un personnage né par script ne fait qu'un tour (V29). Au

@@ -597,6 +597,70 @@ local function equiper_la_sonde(quoi)
   return qui ~= nil
 end
 
+-- V71 b (fiche 13) : l'équipement pièce par pièce, vu en jeu.
+function poste.essai_equipement_voir()
+  local hommes = Scriptorium.hommes
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    local e = f.equipement or {}
+    local porte = hommes.ce_qu_il_porte(id)
+    local presents = 0
+    for _, objet in ipairs(porte) do
+      if f.personnage and jeu().compter_objet(f.personnage, objet) > 0 then
+        presents = presents + 1
+      end
+    end
+    local munition = e.armes and jeu().munition_de(e.armes)
+    jeu().journal(string.format("Poste : %s (%s, palier %s, famille %s) : %s, %s, %s ; %d pièce(s) à porter, %d dans son sac%s",
+      f.nom, f.role, tostring(f.palier), tostring(f.famille), tostring(e.tenue), tostring(e.armes), tostring(e.etat), #porte,
+      presents, munition and (", munitions " .. jeu().compter_objet(f.personnage, munition) .. "/" .. tostring(e.munitions)) or ""))
+  end
+  return true
+end
+
+function poste.essai_equipement_embaucher()
+  local hommes = Scriptorium.hommes
+  local a, ra = hommes.embaucher({ role = "pavoisier", semaines = 4, palier = 3 })
+  local b, rb = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 3, famille = "arme_d_hast" })
+  jeu().journal("Poste : équipement, engagés = " .. tostring(a or ra) .. ", " .. tostring(b or rb))
+  return (a and b) and true or false
+end
+
+function poste.essai_equipement_monter()
+  local hommes = Scriptorium.hommes
+  local id = hommes.liste()[1]
+  local f = id and hommes.fiche(id)
+  if not f then
+    return false
+  end
+  local ok, raison = hommes.changer_de_palier(id, math.min((f.palier or 1) + 1, 3))
+  jeu().journal("Poste : " .. f.nom .. " change de palier : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok
+end
+
+function poste.essai_equipement_donner()
+  local hommes = Scriptorium.hommes
+  local id = hommes.liste()[1]
+  local piece = (jeu().pieces_de("soldier_generic_6_01") or {})[1]
+  local ok, raison = hommes.donner_une_piece(id, piece, 0.5, true)
+  jeu().journal("Poste : pièce " .. tostring(piece) .. " donnée à " .. tostring(id) .. " : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok
+end
+
+local prochain_vu = 0
+function poste.essai_equipement_ici_suivant()
+  local hommes = Scriptorium.hommes
+  local liste = hommes.liste()
+  if #liste == 0 then
+    return false
+  end
+  prochain_vu = prochain_vu % #liste + 1
+  local f = hommes.fiche(liste[prochain_vu])
+  jeu().journal("Poste : " .. f.nom .. " (" .. f.role .. ", palier " .. tostring(f.palier) .. "), "
+    .. jeu().poser_devant_henry(f.personnage))
+  return true
+end
+
 -- V71 a2 (fiche 13) : le témoin (premier homme) et les deux sondes nées à côté de lui.
 local function les_trois()
   local qui, nom = premier_homme()
@@ -1014,6 +1078,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_naissance_noter", fonction = function() return poste.essai_naissance_noter() end, aide = "Note la signature de la tenue de naissance du premier homme (objet et état de chaque pièce, V71 a6)" },
   { nom = "scriptorium_essai_inventaire_relever", fonction = function() return poste.essai_inventaire_relever() end, aide = "Relève l'inventaire du premier homme et le compare à la signature de naissance" },
   { nom = "scriptorium_essai_signature_ranger", fonction = function() return poste.essai_signature_ranger() end, aide = "Refait porter ses pièces et retire celles de la signature de naissance (garde-fous)" },
+  { nom = "scriptorium_essai_equipement_voir", fonction = function() return poste.essai_equipement_voir() end, aide = "Équipement de chaque homme : préréglages, état, pièces dans son sac, munitions (V71 b)" },
+  { nom = "scriptorium_essai_equipement_embaucher", fonction = function() return poste.essai_equipement_embaucher() end, aide = "Embauche un pavoisier et un homme d'armes (armes d'hast), palier 3" },
+  { nom = "scriptorium_essai_equipement_monter", fonction = function() return poste.essai_equipement_monter() end, aide = "Le premier homme monte d'un palier" },
+  { nom = "scriptorium_essai_equipement_donner", fonction = function() return poste.essai_equipement_donner() end, aide = "Donne au premier homme une pièce de soldier_generic_6_01, état 0,5, portée" },
+  { nom = "scriptorium_essai_equipement_ici_suivant", fonction = function() return poste.essai_equipement_ici_suivant() end, aide = "Pose l'homme suivant à 3 m devant Henry" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },

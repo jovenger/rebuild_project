@@ -23,6 +23,7 @@ reglages.catalogue = {
   { section = "hommes", morceau = "hommes", table = "reglages" },
   { section = "soldes", morceau = "hommes", table = "roles" },
   { section = "rangs", morceau = "hommes", table = "rangs", taux = { soudoyer = true, dizainier = true, capitaine = true } },
+  { section = "equipement", morceau = "hommes", table = "equipement", parts = { etat_neuf = true } },
   { section = "bataille", morceau = "bataille", table = "reglages" },
   { section = "bandes", morceau = "bataille", table = "sortes", taux = { poids = true } },
   { section = "combattants", morceau = "bataille", table = "roles", taux = { poids = true } },

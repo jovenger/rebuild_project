@@ -556,3 +556,183 @@ essai("hommes : un homme né sur une âme empruntée au jeu renaît sur une âme
   revenus = hommes.relancer()
   egal(revenus, 0, "une seule fois")
 end)
+
+-- ---------------------------------------------------------------- équipement (fiche 13, V71 b)
+
+local function personnage_de(id) return hommes.fiche(id).personnage end
+local function a_dans_le_sac(id, objet) return FauxJeu.compter_objet(personnage_de(id), objet) end
+
+essai("équipement : un homme d'armes reçoit à l'embauche sa famille, une tenue et des armes de son palier, créées une à une au battement", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  local f = hommes.fiche(id)
+  egal(f.famille, "hache", "famille du contrat")
+  egal(f.equipement.etat, "a_equiper", "à équiper au battement")
+  egal(f.equipement.armes, "axe_3_01", "armes de sa famille au palier 2 (niveau 3)")
+  egal(string.match(f.equipement.tenue, "^soldier_generic_[34]_0[12]$") ~= nil, true, "tenue du palier 2 (niveaux 3 et 4)")
+  egal(#FauxJeu.equipements, 0, "rien avant le battement")
+  hommes.battre()
+  egal(#FauxJeu.equipements, 1, "équipé au battement")
+  egal(FauxJeu.equipements[1].ordre.retirer_naissance, true, "tenue de naissance retirée la première fois")
+  egal(a_dans_le_sac(id, "naissance_tunique"), 0, "tunique de naissance retirée")
+  egal(a_dans_le_sac(id, "bourse"), 30, "bourse gardée")
+  egal(a_dans_le_sac(id, "axe_3_01_arme"), 1, "arme créée")
+  egal(a_dans_le_sac(id, f.equipement.tenue .. "_corps"), 1, "pièce de tenue créée")
+  egal(hommes.fiche(id).equipement.etat, "pret", "prêt")
+  local porte = hommes.ce_qu_il_porte(id)
+  egal(#porte, 5, "trois pièces de tenue, deux d'armes")
+  egal(porte[4], "axe_3_01_arme", "tenue d'abord, armes ensuite")
+  egal(#FauxJeu.portes[personnage_de(id)], 5, "tout porté")
+end)
+
+essai("équipement : famille inconnue refusée ; sans famille, une des six est tirée et gardée", function()
+  preparer(200, 10, 10)
+  local id, raison = hommes.embaucher({ role = "homme_d_armes", semaines = 4, famille = "fronde" })
+  egal(id, false, "refus")
+  egal(raison, "famille_inconnue", "raison")
+  local id2 = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local famille = hommes.fiche(id2).famille
+  egal(hommes.equipement.familles[famille] ~= nil, true, "une des six familles")
+end)
+
+essai("équipement : archer, pavoisier et arbalétrier selon leur palier ; gens de métier sans rien", function()
+  preparer(300, 10, 10)
+  local archer = hommes.embaucher({ role = "archer", semaines = 4, palier = 3 })
+  local pavoisier = hommes.embaucher({ role = "pavoisier", semaines = 4, palier = 1 })
+  local arbaletrier = hommes.embaucher({ role = "arbaletrier", semaines = 4, palier = 2 })
+  local cuisinier = hommes.embaucher({ role = "cuisinier", semaines = 4 })
+  egal(hommes.fiche(archer).equipement.armes, "scriptorium_archer_3", "arc du palier 3")
+  egal(hommes.fiche(archer).equipement.munitions, 30, "munitions du palier 3")
+  egal(string.match(hommes.fiche(pavoisier).equipement.armes, "^mace_shield_2_0[23]$") ~= nil, true, "pavois du palier 1")
+  egal(string.match(hommes.fiche(arbaletrier).equipement.armes, "^scriptorium_arbaletrier_2_[ab]$") ~= nil, true, "arbalète du palier 2")
+  egal(hommes.fiche(cuisinier).equipement, nil, "cuisinier : rien")
+  for _ = 1, 4 do hommes.battre() end
+  egal(#FauxJeu.equipements, 3, "trois combattants équipés, un par battement")
+  egal(a_dans_le_sac(archer, "scriptorium_archer_3_munition"), 30, "flèches")
+  egal(a_dans_le_sac(cuisinier, "naissance_tunique"), 1, "cuisinier : tenue de naissance gardée")
+end)
+
+essai("équipement : un homme par battement, jamais en bataille", function()
+  preparer(200, 10, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local b = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local bandes = Scriptorium.bataille.bandes
+  Scriptorium.bataille.bandes = function() return { "bande_1" } end
+  hommes.battre()
+  Scriptorium.bataille.bandes = bandes
+  egal(#FauxJeu.equipements, 0, "rien en bataille")
+  hommes.battre()
+  egal(#FauxJeu.equipements, 1, "un seul au premier battement")
+  egal(hommes.fiche(a).equipement.etat, "pret", "le premier")
+  egal(hommes.fiche(b).equipement.etat, "a_equiper", "le second attend")
+  hommes.battre()
+  egal(hommes.fiche(b).equipement.etat, "pret", "le second au battement suivant")
+end)
+
+essai("équipement : à chaque entrée en partie, chacun remet ses propres pièces, dans l'ordre ; munitions complétées", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "archer", semaines = 4, palier = 1 })
+  hommes.battre()
+  local p = personnage_de(id)
+  FauxJeu.portes[p] = {}
+  FauxJeu.retirer_un_objet(p, "scriptorium_archer_1_munition")
+  FauxJeu.creer_objet(p, "scriptorium_archer_1_munition", 1, 10)
+  hommes.relancer()
+  egal(hommes.fiche(id).equipement.etat, "a_rhabiller", "à rhabiller")
+  hommes.battre()
+  egal(hommes.fiche(id).equipement.etat, "pret", "rhabillé")
+  egal(#FauxJeu.portes[p], #hommes.ce_qu_il_porte(id), "toutes ses pièces remises")
+  egal(FauxJeu.portes[p][1], hommes.ce_qu_il_porte(id)[1], "dans l'ordre")
+  egal(#FauxJeu.equipements, 1, "rien de recréé")
+  egal(a_dans_le_sac(id, "scriptorium_archer_1_munition"), 25, "flèches complétées jusqu'au nombre du préréglage")
+end)
+
+essai("équipement : filet, sans tenue ni arme principale ses préréglages sont recréés ; pièce introuvable jamais recréée seule", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, famille = "epee_bouclier" })
+  hommes.battre()
+  local p = personnage_de(id)
+  local e = hommes.fiche(id).equipement
+  FauxJeu.retirer_un_objet(p, e.tenue .. "_tete")
+  hommes.relancer()
+  hommes.battre()
+  egal(#FauxJeu.equipements, 1, "une pièce manque : pas de recréation")
+  egal(a_dans_le_sac(id, e.tenue .. "_tete"), 0, "la pièce perdue n'est pas recréée")
+  FauxJeu.retirer_un_objet(p, "sword_shield_3_01_arme")
+  hommes.relancer()
+  hommes.battre()
+  egal(hommes.fiche(id).equipement.etat, "a_equiper", "plus d'arme principale : à rééquiper")
+  hommes.battre()
+  egal(#FauxJeu.equipements, 2, "préréglages recréés")
+  egal(FauxJeu.equipements[2].ordre.retirer_naissance, false, "la tenue de naissance n'est retirée qu'une fois")
+  egal(a_dans_le_sac(id, "sword_shield_3_01_arme"), 1, "arme recréée")
+end)
+
+essai("équipement : changer de palier, même famille, nouvelles pièces ; anciennes rendues au camp si l'accroche les prend", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, famille = "epee_longue", palier = 1 })
+  hommes.battre()
+  local ame = hommes.fiche(id).ame
+  local ancienne_tenue = hommes.fiche(id).equipement.tenue
+  local offertes = {}
+  local accroches = hommes.accroches
+  hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {} }
+  hommes.accrocher("piece_otee", function(homme, objet)
+    table.insert(offertes, objet)
+    return objet ~= "longsword_3_01_arme"
+  end)
+  local ok, raison = hommes.changer_de_palier(id, 4)
+  egal(raison, "palier_invalide", "palier hors des réserves refusé")
+  egal(hommes.changer_de_palier(id, 3), true, "palier 3")
+  local f = hommes.fiche(id)
+  egal(f.famille, "epee_longue", "même famille")
+  egal(f.ame, ame, "même âme")
+  egal(string.match(f.equipement.armes, "^longsword_[56]_01$") ~= nil, true, "armes du palier 3")
+  hommes.battre()
+  hommes.accroches = accroches
+  egal(#offertes, 5, "anciennes pièces offertes à l'accroche")
+  egal(a_dans_le_sac(id, "longsword_3_01_arme"), 1, "pièce non prise : gardée dans son sac")
+  egal(a_dans_le_sac(id, ancienne_tenue .. "_corps"), 0, "pièce prise : sortie de son sac")
+  egal(FauxJeu.equipements[2].ordre.retirer_naissance, false, "pas de second retrait de naissance")
+end)
+
+essai("équipement : une pièce donnée est créée, portée et gardée après sa tenue ; ôtée, elle sort de ce qu'il porte", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  hommes.battre()
+  local appels = 0
+  local accroches = hommes.accroches
+  hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {} }
+  hommes.accrocher("apres_le_rhabillage", function() appels = appels + 1 end)
+  local _, raison = hommes.donner_une_piece(id, "pas un objet", 1, true)
+  egal(raison, "objet_invalide", "objet invalide refusé")
+  _, raison = hommes.donner_une_piece(id, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", 1.5, true)
+  egal(raison, "etat_invalide", "état invalide refusé")
+  egal(hommes.donner_une_piece(id, "AAAAAAAA-bbbb-cccc-dddd-eeeeeeeeeeee", 0.4, true), true, "pièce donnée")
+  local porte = hommes.ce_qu_il_porte(id)
+  egal(porte[#porte], "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "après sa tenue de grade")
+  hommes.relancer()
+  hommes.battre()
+  egal(appels, 1, "accroche après le rhabillage appelée")
+  egal(hommes.piece_otee(id, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), true, "pièce ôtée")
+  egal(#hommes.ce_qu_il_porte(id), #porte - 1, "sortie de ce qu'il porte")
+  local tete = hommes.fiche(id).equipement.tenue .. "_tete"
+  hommes.piece_otee(id, tete)
+  local reste = hommes.ce_qu_il_porte(id)
+  for _, objet in ipairs(reste) do
+    egal(objet ~= tete, true, "pièce de tenue ôtée")
+  end
+  hommes.accroches = accroches
+  egal(hommes.accrocher("inconnue", function() end), false, "accroche inconnue refusée")
+end)
+
+essai("équipement : un homme d'avant l'équipement (fiche sans équipement) est équipé une fois au battement", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "arbaletrier", semaines = 4 })
+  Scriptorium.registre.lire("hommes").liste[id].equipement = nil
+  hommes.battre()
+  local e = hommes.fiche(id).equipement
+  egal(e.etat, "pret", "équipé")
+  egal(string.match(e.armes, "^scriptorium_arbaletrier_1_[ab]$") ~= nil, true, "arbalète du palier 1")
+  egal(a_dans_le_sac(id, "naissance_tunique"), 0, "tenue de naissance retirée")
+end)

@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 106:
-        erreur("ordres : %d commandes lues dans poste.lua, 106 attendues" % len(connues))
+    if len(connues) != 111:
+        erreur("ordres : %d commandes lues dans poste.lua, 111 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -487,6 +487,67 @@ def verifier_ames():
     return len(attendues)
 
 
+def verifier_equipement():
+    """Fiche 13, V71 b : chaque préréglage que citent les règles d'équipement (hommes.equipement) est dans le bloc des
+    pièces de la liaison (écrit par outils/equipement.py) ; chaque palier de chaque famille et de la tenue a au moins un
+    préréglage ; chaque assemblage de tir a ses munitions ; chaque objet a la forme d'un identifiant. Rend le nombre de
+    préréglages du bloc."""
+    lua = runtime_lua()
+    if lua is None:
+        return 0
+    lua.execute("System = { LogAlways = function() end }")
+    for nom in ("noyau.lua", "liaison.lua", "hommes.lua"):
+        lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", nom)))
+    rendu = lua.eval("""(function()
+        local l = Scriptorium.liaison_reelle
+        local e = Scriptorium.hommes.equipement
+        local erreurs, noms = {}, l.noms_des_prereglages()
+        local pavois = {}
+        for _, liste in pairs(e.pavois) do for _, p in ipairs(liste) do pavois[p] = true end end
+        local function candidats(sorte, bornes)
+          local n = 0
+          for _, nom in ipairs(noms) do
+            local s, niveau = string.match(nom, "^(.-)_(%d+)_%d+$")
+            niveau = tonumber(niveau)
+            if s == sorte and niveau and niveau >= bornes.de and niveau <= bornes.a and not pavois[nom] then n = n + 1 end
+          end
+          return n
+        end
+        for palier = 1, 3 do
+          local cle = "palier_" .. palier
+          if candidats(e.tenue.sorte, e.tenue[cle]) == 0 then table.insert(erreurs, "tenue " .. cle) end
+          for famille, f in pairs(e.familles) do
+            if candidats(f.sorte, f[cle]) == 0 then table.insert(erreurs, famille .. " " .. cle) end
+          end
+          for _, p in ipairs(e.pavois[cle] or {}) do
+            if not l.pieces_de(p) then table.insert(erreurs, "pavois absent " .. p) end
+          end
+          if #(e.pavois[cle] or {}) == 0 then table.insert(erreurs, "pavois " .. cle) end
+          for role, t in pairs(e.tir) do
+            if #((t[cle] or {}).prereglages or {}) == 0 then table.insert(erreurs, role .. " " .. cle) end
+            for _, p in ipairs((t[cle] or {}).prereglages or {}) do
+              if not l.pieces_de(p) then table.insert(erreurs, "tir absent " .. p) end
+              if not l.munition_de(p) then table.insert(erreurs, "munitions absentes " .. p) end
+            end
+          end
+        end
+        for _, nom in ipairs(noms) do
+          for _, objet in ipairs(l.pieces_de(nom)) do
+            if not string.match(objet, "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$") then
+              table.insert(erreurs, nom .. " : objet mal formé " .. tostring(objet))
+            end
+          end
+        end
+        return #noms .. "|" .. table.concat(erreurs, ";")
+    end)()""")
+    nombre, erreurs = rendu.split("|", 1)
+    for e in [x for x in erreurs.split(";") if x]:
+        erreur("équipement : " + e)
+    if int(nombre) == 0:
+        erreur("équipement : bloc des pièces vide (lancer outils/equipement.py)")
+    return int(nombre)
+
+
 def verifier_noms():
     compte = 0
     for chemin in fichiers(SOCLE, {".lua", ".xml", ".cfg", ".manifest", ".txt"}):
@@ -804,6 +865,7 @@ def principal(arguments):
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 
     print("2 quinquies. âmes : %d âmes des réserves, table et liaison accordées, notre cerveau partout" % verifier_ames())
+    print("2 sexies. équipement : %d préréglages dans la liaison, chaque règle trouve les siens" % verifier_equipement())
     print("3. noms interdits : %d" % verifier_noms())
     print("3 bis. un seul nom par table : %d noms relevés, table posée par le seul noyau" % verifier_un_seul_nom())
     definies, employees = verifier_textes()
