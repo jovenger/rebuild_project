@@ -114,3 +114,4 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 15/10/2026 (soir) : V50, percée : notre cerveau en switch à nous + horaires du jeu ; la partie se charge et, sur ordre, notre homme charge le brigand (l'interruption d'attaque est jouée). Ouvert : frappe-t-il ?
 - 15/10/2026 (soir) : V51 : notre homme engage l'adversaire mais ne le blesse pas (santé 100). Fusion de main (règles de Yann, règle « Réutiliser avant de créer »). Suite : armer nos hommes après la naissance (arme tirée, compétences) et mesurer aussi l'endurance.
 - 15/10/2026 (soir) : V52 : arme tirée, notre homme attaque sur ordre et tue l'adversaire (santé 100 → 0). Le combat de l'étape 1 aboutit.
+- 15/10/2026 (soir) : V53 : ordre « prairie » vérifié ; l'ordre d'attaque tire l'arme lui-même et l'homme frappe ; compétences posables (AdvanceToSkillLevel) ; le brigand du jeu en armure complète n'est jamais blessé (arrêt, autre ennemi à choisir).
