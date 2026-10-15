@@ -411,6 +411,22 @@ function poste.essai_marcheur_voir()
   return true
 end
 
+-- Réveil (V56) : le marcheur après rechargement, retrouvé par son nom, puis éveillé ; retiré à la fin de l'essai.
+function poste.essai_marcheur_retrouver()
+  jeu().journal("Poste : marcheur, " .. jeu().retrouver_le_marcheur())
+  return true
+end
+
+function poste.essai_marcheur_eveiller()
+  jeu().journal("Poste : marcheur, " .. jeu().eveiller_le_marcheur())
+  return true
+end
+
+function poste.essai_marcheur_retirer()
+  jeu().journal("Poste : marcheur, " .. jeu().retirer_le_marcheur())
+  return true
+end
+
 -- Combat d'essai (étape 1) : deux âmes au cerveau npc_battle de camps opposés, devant Henry ; puis ce qu'ils deviennent.
 local combattants_d_essai = {}
 
@@ -675,6 +691,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_brigand_leger", fonction = function() return poste.essai_brigand_leger() end, aide = "Un brigand du jeu plus léger (kkop_bandit_7), éveillé, à 8 m devant Henry" },
   { nom = "scriptorium_essai_marcheur_aller", fonction = function() return poste.essai_marcheur_aller() end, aide = "Le marcheur va au point (8 m à droite d'Henry), en interruption (ordre 9)" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
+  { nom = "scriptorium_essai_marcheur_retrouver", fonction = function() return poste.essai_marcheur_retrouver() end, aide = "Après rechargement : le marcheur retrouvé par son nom, et ce que garde son cerveau" },
+  { nom = "scriptorium_essai_marcheur_eveiller", fonction = function() return poste.essai_marcheur_eveiller() end, aide = "Le marcheur retrouvé est éveillé comme à sa naissance" },
+  { nom = "scriptorium_essai_marcheur_retirer", fonction = function() return poste.essai_marcheur_retirer() end, aide = "Retire le marcheur du monde" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
   { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },

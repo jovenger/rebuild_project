@@ -1600,6 +1600,62 @@ function liaison.voir_le_marcheur()
     sante_lue and tostring(sante) or "?", texte_adversaire)
 end
 
+-- Essai du réveil (V56). Après « Sauvegarder et quitter » puis rechargement, la mémoire Lua est neuve : liaison.marcheur
+-- est nul. Le marcheur est cherché sous son nom de naissance (le premier rendu par nom_libre) ; la ligne dit s'il est
+-- encore dans le monde, s'il a encore un cerveau lisible (this) et ce que gardent ses variables. Le jeu ne réveille pas
+-- lui-même ses personnages au chargement : sa fabrique (Scripts/Entities/AI/AISpawner.lua) ne fait AI.AutoDisable(id, 0)
+-- qu'à la naissance, et BasicAI.lua ne garde à la sauvegarde que sa table AI. Rend une ligne.
+liaison.nom_du_marcheur = "scriptorium_essai_marcheur"
+
+function liaison.retrouver_le_marcheur()
+  local nom = liaison.marcheur or liaison.nom_du_marcheur
+  local entite = entite_nommee(nom)
+  if not entite then
+    return "retrouver : « " .. nom .. " » absent du monde"
+  end
+  liaison.marcheur = nom
+  local this_lu, this = pcall(function() return entite.this end)
+  if not this_lu or type(this) ~= "table" then
+    return "retrouver : « " .. nom .. " » présent, sans this (cerveau illisible)"
+  end
+  local function variable(cle)
+    local ok, valeur = pcall(function() return XGenAIModule.GetBrainVariable(this.id, cle) end)
+    if not ok then
+      return "?"
+    end
+    return valeur
+  end
+  local point = variable("scriptorium_essai_point")
+  local texte_point = tostring(point)
+  if type(point) == "table" then
+    liaison.point_vise = { x = point.x, y = point.y, z = point.z }
+    texte_point = string.format("%.1f, %.1f", point.x or -1, point.y or -1)
+  end
+  return string.format("retrouver : « %s » présent, à %.1f m d'Henry ; point %s, ordre %s, tours %s, arrivées %s", nom,
+    liaison.distance_a_henry(nom) or -1, texte_point, tostring(variable("scriptorium_essai_ordre")),
+    tostring(variable("scriptorium_essai_vivant")), tostring(variable("scriptorium_essai_arrive")))
+end
+
+-- Le réveil du marcheur retrouvé (V56), le même que celui de sa naissance. Rend une ligne.
+function liaison.eveiller_le_marcheur()
+  if not entite_nommee(liaison.marcheur) then
+    return "éveiller : marcheur introuvable (le retrouver d'abord)"
+  end
+  return "éveiller : " .. (liaison.eveiller(liaison.marcheur, "Marcheur") and "fait" or "refusé (voir la ligne du marcheur)")
+end
+
+-- Retire le marcheur du monde (fin de l'essai V56, pour ne pas le laisser dans la sauvegarde de la partie d'essai).
+function liaison.retirer_le_marcheur()
+  local nom = liaison.marcheur or liaison.nom_du_marcheur
+  if not entite_nommee(nom) then
+    return "retirer : « " .. nom .. " » absent"
+  end
+  liaison.retirer_objet(nom)
+  liaison.marcheur = nil
+  liaison.point_vise = nil
+  return "retirer : « " .. nom .. " » retiré, encore là = " .. tostring(entite_nommee(nom) ~= nil)
+end
+
 -- La distance entre un personnage et Henry, ou nil.
 function liaison.distance_a_henry(identifiant)
   local entite = entite_nommee(identifiant)
