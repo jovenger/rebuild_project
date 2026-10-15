@@ -320,8 +320,13 @@ end
 -- Vu en jeu le 14/10 : System.SpawnEntity avec la classe BasicEntity pose bien l'objet ;
 -- un modèle introuvable donne une forme blanche. « classe » : une classe d'entité du jeu qui prend un modèle
 -- (Chair, Bed : Henry peut s'y asseoir, y dormir) ; BasicEntity par défaut (un décor).
+-- Vu en jeu le 15/10 (V63) : un objet gardé par la sauvegarde revient avec le modèle par défaut de sa classe (pour
+-- BasicEntity, objects/default/primitive_pyramid.cgf : les « tentes blanches ») ; les classes Chair et Bed du jeu, qui
+-- ont bSaved_by_game à false, ne sont pas gardées, et le camp les repose à neuf. Chaque objet posé par le socle porte donc
+-- bSaved_by_game à false, comme les classes du jeu qui ne doivent pas être sauvegardées (GeomEntity, TagPoint…).
 function liaison.poser_objet(sorte, modele, position, cap, nom, classe)
-  local identifiant, raison = faire_naitre(classe or "BasicEntity", "scriptorium_" .. nom, liaison.au_sol(position), cap, { object_Model = modele })
+  local identifiant, raison = faire_naitre(classe or "BasicEntity", "scriptorium_" .. nom, liaison.au_sol(position), cap,
+                                           { object_Model = modele, bSaved_by_game = false })
   if identifiant then
     -- Vu le 14/10 : posé par script, un objet n'était plus dessiné au-delà d'une dizaine de mètres (la palissade,
     -- à 15 m, restait invisible). Sa distance d'affichage est mise au plus loin.
