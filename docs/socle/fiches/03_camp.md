@@ -33,15 +33,22 @@
 - **Règles en données** (catalogue de `reglages.lua`) : pour chaque modèle de meuble, la sorte de l'objet du jeu (siège
   bas « Chair / Sit_1Place_Bench_Low » pour le banc de rondins ; paillasse « GroundBed », voir question 1), le nombre de
   places et le décalage de chacune (droite, devant, hauteur, cap), réglés à l'essai.
-- **Les ordres des hommes** (fiche 04) : « repas » et « veillée » → s'asseoir sur le siège qu'il a réservé ; « sommeil »
-  et « repos » → se coucher sur sa paillasse ; « garde », « exercice », « corvée » → aller au point.
+- **Les ordres des hommes** (fiche 04) : « repas » et « veillée » → s'asseoir sur le siège qu'il a réservé, ou debout au
+  feu s'il n'y en a plus (règle déjà validée de la fiche 04 ; jamais assis dans le vide) ; « sommeil » et « repos » → se
+  coucher sur sa paillasse, à lui seul, libérée à sa mort ou à son départ ; « garde », « exercice », « corvée » → aller au
+  point.
+- **Places gardées** : les gens du jeu (villageois de passage, brigands d'un raid) cherchent parfois un banc proche
+  (`AI/crime/mournOnBench.xml`) ; les sièges et les lits du camp sont aux hommes de la Compagnie et à Henry, dont le lit
+  dans sa tente reste à lui seul. Comment l'obtenir du jeu : à chercher et à vérifier en jeu (non vérifié).
 - **Questions à JoVenGer** :
   1. La paillasse des tentes : la sorte du jeu « Bed_1Place_Tent » (faite pour les tentes, suggestion de la conversation
      Scriptorium) ou « Bed_1Place_Low » (paillasse basse ordinaire) ; la hauteur sera vérifiée à l'image.
-  2. Au rechargement : aujourd'hui `relancer` retire et repose tout le camp (14/10 : les objets gardés par la sauvegarde
-     revenaient blancs). Règle de Scriptorium : les tentes sont à JoVenGer, le socle ne les rebâtit jamais seul. Soit
-     redresser seulement les manquants, après une séance qui vérifie si les meubles reviennent encore blancs ; soit
-     garder le rebâtissage.
+  2. Au rechargement : aujourd'hui `relancer` retire et repose le camp à l'identique (mêmes objets, mêmes places), parce
+     que le 14/10 les objets gardés par la sauvegarde revenaient blancs. Soit ne reposer que ce qui manque, après une
+     séance qui vérifie si les meubles reviennent encore blancs ; soit garder le camp reposé à l'identique. Dans les deux
+     cas, un objet qui a un état (le coffre et son contenu, la porte ouverte ou fermée, le feu allumé) n'est jamais
+     reposé à l'aveugle ; et le socle ne remet jamais une tente que JoVenGer a retirée ni une tente détruite.
+  3. Les sièges et les lits du camp : gardés aux hommes de la Compagnie et à Henry, ou ouverts à tous.
 
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.
