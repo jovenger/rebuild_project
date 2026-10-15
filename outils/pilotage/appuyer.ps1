@@ -9,22 +9,25 @@ $journal = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2\kcd.log"
 
 function Chargements { return @(Select-String -Path $journal -Pattern "Loading saved game") }
 
-$avant = (Chargements).Count
 foreach ($touche in $Touches.Split(",")) {
+  $avant = (Chargements).Count
   Touche $touche.Trim()
   if ($touche.Trim() -eq "Entree") {
-    Start-Sleep -Seconds 3
-    $lignes = Chargements
-    if ($lignes.Count -gt $avant) {
-      $charge = $lignes[-1].Line
-      if (-not $Attendu -or $charge -notmatch [regex]::Escape($Attendu)) {
-        $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
-        if ($p) { Stop-Process -Id $p.Id -Force }
-        "CHARGEMENT INATTENDU, jeu arrêté sans sauvegarde : $charge"
+    # Un chargement peut ne paraître au journal qu'après quelques secondes : jusqu'à dix secondes d'attente.
+    foreach ($s in 1..10) {
+      Start-Sleep -Seconds 1
+      $lignes = Chargements
+      if ($lignes.Count -gt $avant) {
+        $charge = $lignes[-1].Line
+        if (-not $Attendu -or $charge -notmatch [regex]::Escape($Attendu)) {
+          $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
+          if ($p) { Stop-Process -Id $p.Id -Force }
+          "CHARGEMENT INATTENDU, jeu arrêté sans sauvegarde : $charge"
+          return
+        }
+        "chargement attendu commencé : $charge"
         return
       }
-      "chargement attendu commencé : $charge"
-      return
     }
   }
 }

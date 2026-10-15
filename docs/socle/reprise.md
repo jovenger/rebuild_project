@@ -114,14 +114,22 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   point sur ordre (variable `int` lue à chaque tour : l'arbre finit chaque branche et recommence), rejoint un autre homme
   désigné par une variable `wuid`. Avec le sous-cerveau « switch » du jeu (`npc_basic_switch`) en plus, il tire l'épée.
 - **Ouvert** : s'asseoir à même le sol (V32, V33 : la branche bloque) ; s'asseoir sur un siège posé par script (pas de
-  `this`) ; **porter des coups** (V34, V36, V37 : `CombatAction` échoue aussitôt, même contre un brigand). Pistes : ce qui
-  précède `CombatAction` chez les habitants (`AddToSkirmish`, inscription au combat, cible vue), les arbres du jeu
-  `AI/crime/friendlyFight.xml` et `AI/battles/battlegroupcontroller.xml`.
+  `this`) ; **porter des coups** (V34, V36 à V40 : épée tirée, aucun coup ; avec la chaîne de la bagarre du jeu, le
+  sous-arbre n'est plus mis à jour). Ordre des essais suivants (15/10 au soir) : (1) `scriptorium_essai_brigand_du_jeu`,
+  une âme du jeu (`kopa_man_16`, cerveau `npc_basic`) née devant Henry et éveillée, rien de nous : attaque-t-elle ?
+  (2) `scriptorium_essai_coup_recu` : le marcheur riposte-t-il à un coup ? (3) seulement si (1) attaque : les boîtes aux
+  lettres de `npc_basic` dans notre cerveau ; (4) un coup donné à la main par JoVenGer.
+- **Pour la fiche 12 (le cerveau de nos hommes)**, déjà acquis : une branche de combat ne rend jamais la main, et l'homme
+  n'obéit plus à aucun ordre (compteur des tours figé, nouveau marcheur à chaque essai). Les arbres du jeu entourent
+  chaque action longue d'une garde `IfGate … RunLogic="Halt"` sur leur variable d'état (`AI/npc/basic/switch/interrupt_attack.xml` :
+  `$attackState == …attacking`, vu dans `Scripts.pak`). Le même arbre note de ne mettre aucun nœud d'horloge (attente)
+  avant le `CombatAction` ; nos essais V37 à V40 en ont un à côté (`Parallel` avec `Wait`). Chaque branche de notre arbre sera gardée par la variable d'ordre, sinon le Directeur ne pourra pas
+  rappeler un homme engagé.
 - **Méthode** (JoVenGer, via la conversation Scriptorium) : une chose changée à la fois, en partant de ce qui marche ;
   prévenir la conversation Scriptorium au début et à la fin de chaque essai ; JoVenGer laisse Claude choisir les essais.
-- **À faire à la prochaine séance** : revoir les acquis sans `-devmode` (les scripts de pilotage lancent tous avec).
+- Acquis revus sans `-devmode` le 15/10 : mêmes résultats (`essai_en_jeu.md`, « Avec ou sans `-devmode` »).
 - Contrôle d'absence : les lignes XML identiques au jeu de base qui portent un réglage s'écrivent à notre façon (choix de
-  JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 25.
+  JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 27.
 
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;

@@ -1294,6 +1294,54 @@ function liaison.ordonner_au_marcheur(ordre)
   return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
 end
 
+-- Le brigand du jeu (étape 1, conseil du 15/10) : une âme du jeu avec son cerveau d'origine (npc_basic), faction ennemie
+-- publique de Kuttenberg, née à 8 m devant Henry et éveillée, sans rien de notre cerveau ni de nos arbres. Se bat-elle ?
+liaison.ame_du_brigand_du_jeu = "08994591-c246-401d-bcd9-ca5d0fe1ddd7"   -- kopa_man_16, camp d'Opatovice
+liaison.brigand_du_jeu = nil
+
+function liaison.poser_le_brigand_du_jeu()
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_brigand_du_jeu", pres_d_henry(8, 0), liaison.cap_du_joueur() + 180,
+                                   { guidSharedSoulId = liaison.ame_du_brigand_du_jeu, bWH_RequiresHome = false })
+  if not nom then
+    return "brigand du jeu refusé : " .. tostring(erreur)
+  end
+  liaison.brigand_du_jeu = nom
+  liaison.eveiller(nom, "Brigand du jeu")
+  return "brigand du jeu posé à 8 m : " .. nom
+end
+
+function liaison.voir_le_brigand_du_jeu()
+  local entite = entite_nommee(liaison.brigand_du_jeu)
+  if not entite then
+    return "brigand du jeu introuvable"
+  end
+  local vie_lue, vie = pcall(function() return entite.actor:GetHealth() end)
+  local henry_lu, henry = pcall(function() return player.actor:GetHealth() end)
+  local faction = sonder(entite.soul, "GetFactionID")
+  return string.format("brigand du jeu à %.1f m d'Henry, santé %s ; Henry santé %s ; faction %s",
+    liaison.distance_a_henry(liaison.brigand_du_jeu) or -1, vie_lue and tostring(vie) or "?", henry_lu and tostring(henry) or "?", faction)
+end
+
+-- Le coup reçu (étape 1) : blesse « victime » de quelques points en donnant « auteur » comme auteur du coup ; le troisième
+-- argument de soul:DealDamage vaut __null dans l'aide du jeu (Scripts/Debug/Quick.lua) : on essaie l'entité de l'auteur,
+-- puis son this.id. Rend une ligne.
+function liaison.blesser_de_la_part_de(victime, auteur, points)
+  local cible, source = entite_nommee(victime), entite_nommee(auteur)
+  if not cible or not source or type(cible.soul) ~= "table" then
+    return "coup impossible : victime ou auteur introuvable"
+  end
+  local essais = {}
+  local this_lu, this = pcall(function() return source.this end)
+  for _, forme in ipairs({ { "entité", source }, { "this.id", (this_lu and type(this) == "table") and this.id or nil }, { "id", source.id } }) do
+    if forme[2] ~= nil then
+      local ok, erreur = pcall(function() cible.soul:DealDamage(points, points, forme[2], true) end)
+      table.insert(essais, forme[1] .. " " .. (ok and "accepté" or ("refusé : " .. tostring(erreur))))
+      if ok then break end
+    end
+  end
+  return "coup de " .. auteur .. " à " .. victime .. " (" .. points .. ") : " .. table.concat(essais, ", ")
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)

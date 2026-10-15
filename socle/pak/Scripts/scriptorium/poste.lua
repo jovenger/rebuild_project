@@ -286,6 +286,26 @@ function poste.essai_marcheur_contre_henry()
   return true
 end
 
+function poste.essai_brigand_du_jeu()
+  jeu().journal("Poste : brigand, " .. jeu().poser_le_brigand_du_jeu())
+  return true
+end
+
+function poste.essai_brigand_voir()
+  jeu().journal("Poste : brigand, " .. jeu().voir_le_brigand_du_jeu())
+  return true
+end
+
+-- Le marcheur reçoit un coup léger de la part de l'adversaire : riposte-t-il de lui-même (switch du jeu) ?
+function poste.essai_coup_recu()
+  if not jeu().marcheur or not jeu().adversaire then
+    jeu().journal("Poste : coup, il faut d'abord le marcheur et l'adversaire")
+    return false
+  end
+  jeu().journal("Poste : coup, " .. jeu().blesser_de_la_part_de(jeu().marcheur, jeu().adversaire, 5))
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -532,6 +552,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_marcheur_combat", fonction = function() return poste.essai_marcheur_combat() end, aide = "Un adversaire du mod ; le marcheur et lui se battent" },
   { nom = "scriptorium_essai_marcheur_brigand", fonction = function() return poste.essai_marcheur_brigand() end, aide = "Un brigand au cerveau du mod ; le marcheur et lui se battent" },
   { nom = "scriptorium_essai_marcheur_contre_henry", fonction = function() return poste.essai_marcheur_contre_henry() end, aide = "Ordre au marcheur : se battre contre Henry" },
+  { nom = "scriptorium_essai_brigand_du_jeu", fonction = function() return poste.essai_brigand_du_jeu() end, aide = "Un brigand du jeu (son âme, son cerveau), éveillé, à 8 m devant Henry" },
+  { nom = "scriptorium_essai_brigand_voir", fonction = function() return poste.essai_brigand_voir() end, aide = "Ce que fait le brigand du jeu ; santé d'Henry" },
+  { nom = "scriptorium_essai_coup_recu", fonction = function() return poste.essai_coup_recu() end, aide = "Le marcheur reçoit un coup léger de l'adversaire" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
