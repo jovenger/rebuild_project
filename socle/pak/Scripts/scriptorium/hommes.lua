@@ -424,7 +424,8 @@ local function faire_venir(d, f)
   -- Fiche 13, V71 b : un personnage refait naît avec une tenue de naissance et sans les pièces de l'ancien, parties avec
   -- lui : il est rééquipé (tenue de naissance retirée de nouveau) ; les pièces données ensuite sont perdues.
   local e = f.equipement
-  if e and e.etat ~= "impossible" and (e.naissance_retiree or e.etat == "pret" or e.etat == "a_rhabiller") then
+  if e and e.etat ~= "impossible" and (e.naissance_retiree or e.etat == "pret" or e.etat == "a_rhabiller"
+                                       or e.etat == "a_completer") then
     if #(e.en_plus or {}) > 0 then
       jeu().journal("Hommes : « " .. f.nom .. " » refait : " .. #e.en_plus .. " pièce(s) donnée(s) recréée(s) avec leur dernier état")
       e.recreer_en_plus = true
@@ -662,7 +663,7 @@ local function equiper(d, f)
     porter = liste_portee(f),
   })
   e.naissance_retiree = true
-  e.etat = "pret"
+  e.etat = "a_completer"
   if e.anciennes then
     local portees = {}
     for _, objet in ipairs(liste_portee(f)) do
@@ -678,7 +679,6 @@ local function equiper(d, f)
     e.anciennes = nil
   end
   jeu().journal("Hommes : « " .. f.nom .. " » équipé (" .. tostring(e.tenue) .. ", " .. tostring(e.armes) .. ") : " .. tostring(compte))
-  appeler("apres_le_rhabillage", f.id)
 end
 
 -- À chaque entrée en partie, l'homme remet ses propres pièces, dans l'ordre (réponse a de JoVenGer, 15/10) : le jeu ne
@@ -688,7 +688,7 @@ end
 local function rhabiller(d, f)
   local e = f.equipement
   local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f), true)
-  e.etat = "pret"
+  e.etat = "a_completer"
   -- Le dernier état connu de chaque pièce donnée, pour la recréer telle quelle si le personnage est refait (V71 c).
   for i, piece in ipairs(e.en_plus or {}) do
     local etat = jeu().etat_objet(f.personnage, objet_de(piece))
@@ -718,6 +718,15 @@ local function rhabiller(d, f)
   end
   jeu().journal("Hommes : « " .. f.nom .. " » a remis ses affaires (" .. tostring(portes) .. " pièce(s)"
     .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s) ou refusée(s)") or "") .. ")")
+end
+
+-- Second passage, au battement suivant (V71 c : un seul passage juste après la création ou la remise ne fait pas tout
+-- porter ; un second complète la tenue, un troisième ne change rien). Puis l'accroche « après le rhabillage ».
+local function completer(d, f)
+  local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f), false)
+  f.equipement.etat = "pret"
+  jeu().journal("Hommes : « " .. f.nom .. " », second passage (" .. tostring(portes) .. " pièce(s)"
+    .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s) ou refusée(s)") or "") .. ")")
   appeler("apres_le_rhabillage", f.id)
 end
 
@@ -742,6 +751,9 @@ local function equiper_un_homme(d)
         return true
       elseif etat == "a_rhabiller" then
         rhabiller(d, f)
+        return true
+      elseif etat == "a_completer" then
+        completer(d, f)
         return true
       end
     end
@@ -1312,7 +1324,7 @@ function hommes.relancer()
     local f = d.liste[id]
     f.derniere_activite = nil
     -- Fiche 13, V71 b : chacun remettra ses propres affaires, un par battement.
-    if f.equipement and f.equipement.etat == "pret" then
+    if f.equipement and (f.equipement.etat == "pret" or f.equipement.etat == "a_completer") then
       f.equipement.etat = "a_rhabiller"
     elseif f.equipement and f.equipement.etat == "impossible" then
       f.equipement = nil
@@ -1339,7 +1351,7 @@ function hommes.changer_de_palier(id, palier)
   end
   local e = f.equipement
   local anciennes = {}
-  if e and (e.etat == "pret" or e.etat == "a_rhabiller") then
+  if e and (e.etat == "pret" or e.etat == "a_rhabiller" or e.etat == "a_completer") then
     for _, nom in ipairs({ e.tenue, e.armes }) do
       for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
         table.insert(anciennes, objet)

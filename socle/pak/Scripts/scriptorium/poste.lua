@@ -648,6 +648,18 @@ function poste.essai_equipement_degainer()
   return true
 end
 
+-- V71 d : l'homme posé devant Henry (le dernier vu) attaque le brigand du jeu (ordre 8, comme le marcheur en V54) :
+-- son cerveau de combat choisit ce qu'il prend en main (pavois, arme d'hast).
+function poste.essai_equipement_combat()
+  local hommes = Scriptorium.hommes
+  local f = poste.dernier_vu and hommes.fiche(poste.dernier_vu)
+  if not f then
+    return false
+  end
+  jeu().journal("Poste : " .. f.nom .. ", " .. jeu().ordonner_l_attaque(nil, f.personnage))
+  return true
+end
+
 -- La bascule (V71 b) : refaire porter au premier homme toutes ses pièces sans les ôter d'abord.
 function poste.essai_equipement_reporter_sans_oter()
   local hommes = Scriptorium.hommes
@@ -1117,6 +1129,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_equipement_voir", fonction = function() return poste.essai_equipement_voir() end, aide = "Équipement de chaque homme : préréglages, état, pièces dans son sac, munitions (V71 b)" },
   { nom = "scriptorium_essai_equipement_embaucher", fonction = function() return poste.essai_equipement_embaucher() end, aide = "Embauche un pavoisier et un homme d'armes (armes d'hast), palier 3" },
   { nom = "scriptorium_essai_equipement_degainer", fonction = function() return poste.essai_equipement_degainer() end, aide = "L'homme posé devant Henry sort son arme (V71 c)" },
+  { nom = "scriptorium_essai_equipement_combat", fonction = function() return poste.essai_equipement_combat() end, aide = "L'homme posé devant Henry attaque le brigand du jeu (V71 d)" },
   { nom = "scriptorium_essai_equipement_reporter_sans_oter", fonction = function() return poste.essai_equipement_reporter_sans_oter() end, aide = "Refait porter au premier homme toutes ses pièces sans les ôter (la bascule, V71 c)" },
   { nom = "scriptorium_essai_equipement_monter", fonction = function() return poste.essai_equipement_monter() end, aide = "Le premier homme monte d'un palier" },
   { nom = "scriptorium_essai_equipement_donner", fonction = function() return poste.essai_equipement_donner() end, aide = "Donne au premier homme une pièce de soldier_generic_6_01, état 0,5, portée" },

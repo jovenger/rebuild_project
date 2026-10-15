@@ -373,7 +373,13 @@
   - l'allure, deux pistes éprouvables dans un même essai : **deux passages séparés par un battement** (le second passage
     de V71 c a complété la tenue) ; **l'ordre des couches** (dessous : chemise, chausses, gambison, coiffe ; puis dessus :
     cotte, plates, casque ; puis armes), la coiffe mise après le chapel pouvant l'ôter.
-- **Troisième remède sur l'allure : seulement avec l'accord de JoVenGer** (règle anti-boucle).
+- **Troisième remède sur l'allure : accordé par JoVenGer le 15/10/2026 (V71 d : couches dans l'ordre, second passage au battement suivant, combat pour voir pavois et arme d'hast)** ; **l'arme courte de l'homme d'hast est gardée** (réponse de JoVenGer, même jour).
+- **V71 d (fait au banc, à essayer)** : l'outil écrit les pièces de chaque tenue **des dessous aux dessus** (couche de
+  la place, `equipment_slot.xml` ; type de la pièce, début de son modèle `Clothing` ; toutes les pièces de nos 78
+  tenues ont une couche connue ; Jan : gambison, chausses, souliers, coiffe, puis brassards, chapel, gants) ; après
+  l'équipement comme après la remise, **un second passage au battement suivant** (état « à compléter »), puis l'accroche
+  « après le rhabillage » ; un homme vu peut attaquer le brigand du jeu (ordre 8 de V54, même cerveau) pour voir ce
+  qu'il prend en main.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune

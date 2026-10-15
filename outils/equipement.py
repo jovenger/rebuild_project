@@ -8,8 +8,9 @@ actor:EquipWeaponPreset) n'est pas gardé au rechargement ; une pièce créée u
 son usure. Le socle crée donc chaque pièce d'un préréglage une à une ; cet outil en relève la liste.
 
 Lit en lecture seule, dans <jeu>\\Data\\Tables.pak : Libs/Tables/item/clothing_preset.xml (<Items><Guid>),
-Libs/Tables/item/weapon_preset.xml (weapon_preset_item item_class_id) et Libs/Tables/item/item.xml (chaque objet doit
-y être). N'écrit que le bloc compris entre les deux repères de socle/pak/Scripts/scriptorium/liaison.lua, à l'identique
+Libs/Tables/item/weapon_preset.xml (weapon_preset_item item_class_id), Libs/Tables/item/item.xml (chaque objet doit
+y être) et Libs/Tables/item/equipment_slot.xml (la couche de chaque place : les pièces d'une tenue sont écrites des
+dessous aux dessus, V71 d). N'écrit que le bloc compris entre les deux repères de socle/pak/Scripts/scriptorium/liaison.lua, à l'identique
 quand rien n'a changé. Les règles (quel préréglage à quel grade, combien de munitions) sont dans hommes.equipement ;
 essais/tout_verifier.py vérifie que chaque nom qu'elles citent est dans le bloc.
 """
@@ -46,6 +47,14 @@ TIR = {
     "scriptorium_arbaletrier_3_b": (["crossbowHeavyCheap01", "shortswordCommon"], "bolt_enh_precise"),
 }
 GUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+# V71 d (fiche 13) : les pièces d'une tenue se portent par couches, des dessous aux dessus (V71 c : la coiffe mise après
+# le chapel l'ôtait). La couche d'une place est son BodyLayerTypeId (equipment_slot.xml) ; une place liste ses types
+# d'armure (ArmorTypes) ; le type d'une pièce est le début du nom de son modèle (attribut Clothing de item.xml :
+# « LegsPadded03_m01 » -> LegsPadded). Les places sans liste de types sont nommées ici d'après leur nom de place.
+PLACES_SANS_TYPES = {"Gauntlets": "gloves", "Gloves": "gloves", "HandWrap": "gloves", "Shoes": "boot", "BootsAnkle": "boot",
+                     "BootsKnee": "boot", "Coat": "body_coat", "Waffenrock": "body_coat", "CollarChain": "collar",
+                     "CollarPadded": "collar", "BrigandineArm": "sleeves", "Hood": "head_hood"}
+COUCHE_INCONNUE = 9
 
 
 def lire_les_tables(jeu):
@@ -54,7 +63,33 @@ def lire_les_tables(jeu):
         def lire(nom):
             return pak.read(nom).decode("utf-8", "replace")
         return (lire("Libs/Tables/item/clothing_preset.xml"), lire("Libs/Tables/item/weapon_preset.xml"),
-                lire("Libs/Tables/item/item.xml"))
+                lire("Libs/Tables/item/item.xml"), lire("Libs/Tables/item/equipment_slot.xml"))
+
+
+def couches_des_objets(item_xml, slot_xml):
+    """Identifiant (minuscules) -> couche (1 dessous … 4 dessus), et les types restés sans couche."""
+    couche_de_place, couche_de_type = {}, {}
+    for attributs in re.findall(r"<EquipmentSlot ([^>]*?)/?>", slot_xml):
+        a = dict(re.findall(r'(\w+)="([^"]*)"', attributs))
+        couche = int(a.get("BodyLayerTypeId", COUCHE_INCONNUE))
+        couche_de_place[a.get("Name")] = couche
+        for t in a.get("ArmorTypes", "").split():
+            couche_de_type[t] = couche
+    couches, inconnus = {}, set()
+    for attributs in re.findall(r"<\w+ ([^>]*?)/?>", item_xml):
+        a = dict(re.findall(r'(\w+)="([^"]*)"', attributs))
+        if "Id" not in a or not a.get("Clothing"):
+            continue
+        sorte = re.match(r"[A-Za-z]+", a["Clothing"])
+        sorte = sorte.group(0) if sorte else ""
+        couche = couche_de_type.get(sorte)
+        if couche is None and sorte in PLACES_SANS_TYPES:
+            couche = couche_de_place.get(PLACES_SANS_TYPES[sorte])
+        if couche is None:
+            inconnus.add(sorte)
+            couche = COUCHE_INCONNUE
+        couches[a["Id"].lower()] = couche
+    return couches, inconnus
 
 
 def objets_du_jeu(item_xml):
@@ -103,9 +138,20 @@ def principal(arguments):
         print(__doc__)
         return 2
     jeu = arguments[arguments.index("--jeu") + 1]
-    clothing_xml, weapon_xml, item_xml = lire_les_tables(jeu)
+    clothing_xml, weapon_xml, item_xml, slot_xml = lire_les_tables(jeu)
     par_id, par_nom = objets_du_jeu(item_xml)
     pieces = pieces_des_prereglages(clothing_xml, weapon_xml)
+    couches, _ = couches_des_objets(item_xml, slot_xml)
+    sans_couche = set()
+    for nom in pieces:
+        if nom.startswith("soldier_generic"):
+            for g in pieces[nom]:
+                if couches.get(g, COUCHE_INCONNUE) == COUCHE_INCONNUE:
+                    sans_couche.add(g)
+            rang = {g: i for i, g in enumerate(pieces[nom])}
+            pieces[nom] = sorted(pieces[nom], key=lambda g: (couches.get(g, COUCHE_INCONNUE), rang[g]))
+    if sans_couche:
+        print("Attention : %d pièce(s) de tenue sans couche connue, portées en dernier" % len(sans_couche))
     munitions = {}
     for nom, (armes, munition) in TIR.items():
         manquants = [n for n in armes + [munition] if n not in par_nom]
