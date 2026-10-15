@@ -341,6 +341,18 @@
 - Gens de métier et Directeur : rien (leur tenue de naissance), comme validé.
 - **Essai V71 b** : trois hommes embauchés (un par grade), vus de près ; deux rechargements ; un changement de grade ;
   une pièce donnée par le service ; un homme d'avant V71 b équipé une fois.
+- **Acquis en V71 b** (15/10) : équipement à l'embauche (tenue de naissance retirée, pièces créées et portées), pièces
+  toutes présentes après deux rechargements, flèches gardées (25/25), changement de grade (nouvelles pièces, anciennes
+  dans le sac), pièce donnée et portée.
+- **À revoir après V71 b (V71 c)** :
+  1. **retirer les piles entières** de la tenue de naissance (carreaux : `DeleteItem(id, 1)` n'en ôte qu'un ; 49 carreaux
+     pour 20) : `DeleteItem(id, nombre)`, le nombre lu par `ItemManager.GetItem(id).amount` ; la bourse toujours gardée ;
+  2. **même allure après la remise qu'à l'embauche** : refaire porter une pièce déjà portée semble l'ôter (bascule) ;
+     la remise ôte donc d'abord toutes ses pièces (`UnequipInventoryItem`), puis les remet dans l'ordre ;
+  3. **pièces données (`en_plus`) avec leur dernier état connu** (pair, 15/10 ; règle « ce qu'il a acheté est à lui »,
+     `armures_de_la_forge`) : à chaque entrée en partie, l'état de chacune est relu (`ItemManager.GetItem(id).health`) et
+     noté sur la fiche ; un personnage refait les retrouve, recréées avec cet état (1 sans état connu, écrit au journal),
+     au lieu de les perdre.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
