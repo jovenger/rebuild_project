@@ -8,23 +8,38 @@
           <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
           <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 4" saveVersion="2">
             <Then canSkip="1">
-              <StanceElement smartObject="" stance="sitting" allowAny="false">
+              <StanceElement smartObject="" stance="sitting" allowAny="true" enabled="true">
                 <Sequence>
-                  <WaitAction />
+                  <UrgencyDecorator Urgency="Slow">
+                    <WaitAction />
+                  </UrgencyDecorator>
                   <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
                   <Wait duration="&apos;10s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                 </Sequence>
               </StanceElement>
             </Then>
             <Else canSkip="1">
-              <Sequence>
-                <Parallel successMode="Any" failureMode="Any">
-                  <Move stopWithinDistance="2.000000" stopDistanceVariation="0.500000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="false" destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
-                  <Wait duration="&apos;15s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
-                </Parallel>
-                <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
-                <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-              </Sequence>
+              <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 5" saveVersion="2">
+                <Then canSkip="1">
+                  <CombatMoveDecorator>
+                    <Parallel successMode="Any" failureMode="Any">
+                      <AddToSkirmish TargetNPC="$scriptorium_essai_cible" RelationOverride="Hostile" />
+                      <Move stopWithinDistance="0.200000" stopDistanceVariation="0.100000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="true" destinationSpecification="$scriptorium_essai_cible" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                      <Wait duration="&apos;20s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                    </Parallel>
+                  </CombatMoveDecorator>
+                </Then>
+                <Else canSkip="1">
+                  <Sequence>
+                    <Parallel successMode="Any" failureMode="Any">
+                      <Move stopWithinDistance="2.000000" stopDistanceVariation="0.500000" rayCasteFlee="false" successDistance="0.000000" changeNPCState="false" destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                      <Wait duration="&apos;15s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                    </Parallel>
+                    <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                    <Wait duration="&apos;5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                  </Sequence>
+                </Else>
+              </IfElseCondition>
             </Else>
           </IfElseCondition>
         </Sequence>

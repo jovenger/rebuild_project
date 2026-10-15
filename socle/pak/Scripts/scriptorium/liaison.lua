@@ -1211,6 +1211,45 @@ function liaison.poser_le_marcheur()
   return nom, ligne
 end
 
+-- L'adversaire d'essai : même âme et même cerveau que le marcheur, posé à 6 m devant Henry ; son point visé est sa
+-- place de naissance (il y reste). Rend son nom et une ligne.
+liaison.adversaire = nil
+
+function liaison.poser_l_adversaire()
+  local place = pres_d_henry(6, 3)
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_adversaire", place, liaison.cap_du_joueur() + 180,
+                                   { guidSharedSoulId = liaison.ame_du_marcheur, bWH_RequiresHome = false })
+  if not nom then
+    return nil, "adversaire refusé : " .. tostring(erreur)
+  end
+  liaison.adversaire = nom
+  local entite = entite_nommee(nom)
+  local this_lu, this = pcall(function() return entite.this end)
+  local ok = this_lu and type(this) == "table" and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", place) end)
+  liaison.eveiller(nom, "Adversaire")
+  return nom, "adversaire posé, sa place gardée : " .. tostring(ok)
+end
+
+-- L'ordre de combat : chacun reçoit l'autre pour cible (variable wuid scriptorium_essai_cible) et l'ordre 5. Rend des lignes.
+function liaison.ordonner_le_combat()
+  local lignes = {}
+  local paires = { { liaison.marcheur, liaison.adversaire }, { liaison.adversaire, liaison.marcheur } }
+  for _, paire in ipairs(paires) do
+    local qui, contre = entite_nommee(paire[1]), entite_nommee(paire[2])
+    local this_lu, this = pcall(function() return qui.this end)
+    local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(contre) end)
+    if qui and contre and this_lu and type(this) == "table" and wuid_lu then
+      local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
+      local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 5) end)
+      table.insert(lignes, tostring(paire[1]) .. " contre " .. tostring(paire[2]) .. " : cible " ..
+        (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre " .. tostring(ordre_ok))
+    else
+      table.insert(lignes, tostring(paire[1]) .. " : combat impossible (introuvable ou sans this)")
+    end
+  end
+  return lignes
+end
+
 -- Un ordre au marcheur (variable scriptorium_essai_ordre : 4 = s'asseoir par terre, 0 = marcher au point). Rend une ligne.
 function liaison.ordonner_au_marcheur(ordre)
   local entite = entite_nommee(liaison.marcheur)
@@ -1239,9 +1278,18 @@ function liaison.voir_le_marcheur()
   if liaison.point_vise then
     au_point = string.format("%.1f", math.sqrt((ici.x - liaison.point_vise.x) ^ 2 + (ici.y - liaison.point_vise.y) ^ 2))
   end
-  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s", au_point,
+  local sante_lue, sante = pcall(function() return entite.actor:GetHealth() end)
+  local texte_adversaire = ""
+  local adversaire = entite_nommee(liaison.adversaire)
+  if adversaire then
+    local la = adversaire:GetWorldPos()
+    local vie_lue, vie = pcall(function() return adversaire.actor:GetHealth() end)
+    texte_adversaire = string.format(" ; adversaire à %.1f m, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
+      vie_lue and tostring(vie) or "?")
+  end
+  return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, santé %s%s", au_point,
     liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
-    variable("scriptorium_essai_assis"))
+    variable("scriptorium_essai_assis"), sante_lue and tostring(sante) or "?", texte_adversaire)
 end
 
 -- La distance entre un personnage et Henry, ou nil.
