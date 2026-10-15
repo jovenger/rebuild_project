@@ -185,6 +185,10 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   laissée sans camp ni hommes (`scriptorium_essai_tout_lever`, puis sauvegarde).
   **V58** : partie d'essai n° 3 créée (`playline3`) ; « aller » y est joué, avant et après rechargement ; sauvegarde écrite
   dans `playline3`, autres lignes intactes. Suite : la faction « la Compagnie », puis monter la garde.
+  **V60 à V62 (s'asseoir, se coucher)** : acquis par `CallBehavior` du comportement « use » de l'objet (banc ou lit du
+  jeu, ou copie posée, sans meuble visible). Suite : sièges et paillasses du camp en objets du jeu, puis les ordres
+  « repas », « veillée », « sommeil » des hommes par eux. Sept idées validées par JoVenGer le 15/10 : dans
+  `plan_d_action.md`, à leur étape (pas maintenant).
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en

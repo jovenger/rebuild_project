@@ -48,6 +48,11 @@
   plus ne gêne pas.
   Vu en jeu (V57) : à l'instant de l'entrée en partie, les hommes de la sauvegarde sont déjà là (aucun doublon), et
   leurs ordres sont redonnés une fois.
+- **S'asseoir, se coucher** (V60 à V62) : sièges et lits du monde sont des entités `StanceSmartObject` (sortes « Chair »
+  pour s'asseoir ; « GroundBed », « NormalBed », « Bench » pour dormir ; gabarits du jeu `so_sitPlace` et `so_bed`).
+  L'homme reçoit le WUID de l'objet, et notre comportement joue le comportement « use » de l'objet lui-même
+  (`CallBehavior`, comme le jeu) : il y va, s'assoit ou se couche. Une copie posée par script (mêmes propriétés) marche
+  aussi, mais sans meuble visible.
 - **Compétences de combat** : posables par `soul:AdvanceToSkillLevel` (relu, V53 ; l'appel ne fait que monter, comme
   l'aguerrissement de la fiche 11). À 0, un homme frappe déjà (V52).
 
@@ -101,7 +106,9 @@
   changement) : les priorités. Nos ordres sont posés à 100, l'attaque du jeu à 160 : un ordre à 100 ne reprend pas un
   homme pris par une interruption à 160, sauf `IgnorePriorityOnPreviousInterrupt="true"`. Sinon : garde des
   comportements par la variable d'ordre (`IfGate … RunLogic="Halt"`, comme `interrupt_attack.xml` du jeu).
-- **S'asseoir, dormir** : siège ou lit reconnu par l'IA (V32, V33 : la posture assise par arbre bloquait).
+- **S'asseoir, dormir au camp** : acquis sur les objets du jeu (V62). Reste à poser, pour chaque siège et chaque
+  paillasse du camp, un `StanceSmartObject` de la bonne sorte à l'endroit du modèle visible, à la même hauteur, puis à
+  faire passer les ordres « repas », « veillée » et « sommeil » des hommes par ces objets.
 - **Âmes du mod** par rôle (homme d'armes, Directeur, artisan), avec leur équipement (préréglages d'inventaire du jeu par
   niveau de combat : `Libs/Tables/item/InventoryPreset__armedFactions.xml`).
 - La version publiée n'aura ni poste ni ordres d'essai (`scriptorium_essai_*`).

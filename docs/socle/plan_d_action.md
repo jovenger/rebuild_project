@@ -20,9 +20,11 @@ gestes, le combat, le dialogue du Directeur, la quête.
 3. Code neuf d'après la fiche ; toute valeur de règle en données, ajoutée au catalogue de `reglages.lua`
    (règle de JoVenGer : tout doit rester réglable par le programme Scriptorium).
 4. Essais au banc ; `py -3.13 essais\tout_verifier.py` doit finir par « tout passe » avant tout commit.
-5. Essai en jeu dans la **Partie 1** (`playline0`, sauvegarde 473), **jamais sauvegardée**, avec l'accord de JoVenGer
-   pour changer la liste des mods : `outils\pilotage\debut_essai.ps1`, `vers_partie1.ps1`, `confirmer_partie1.ps1`,
-   ordres par `outils\ordonner.py`, puis `fin_essai.ps1` (obligatoire avant de s'arrêter).
+5. Essai en jeu dans la **Partie 4** (`playline3`, copie de la sauvegarde 473 de la Partie 1, sauvegarde permise ; accord
+   de JoVenGer du 15/10), ou dans la Partie 1 (`playline0`), **jamais sauvegardée** : `outils\pilotage\debut_essai.ps1`,
+   `vers_partie_d_essai.ps1 -Charger -Ligne playline3` (ou `vers_partie1.ps1`), choix à vue, `confirmer_sauvegarde.ps1`,
+   ordres par `outils\ordonner.py`, puis `fin_essai.ps1`, le jeu encore ouvert (obligatoire avant de s'arrêter ; il
+   range les sauvegardes d'essai pour que « Continuer » reprenne la partie de JoVenGer).
 6. Notes dans `docs/socle/avancement.md` et `essai_en_jeu.md`, commit et envoi sur GitHub.
 
 ## Étape 1 — Le comportement des personnages (priorité)
@@ -90,3 +92,28 @@ de débogage du jeu) n'existe pas dans le jeu publié. `AI.AddPersonallyHostile`
 - La bascule vers Scriptorium : seulement sur l'ordre de JoVenGer (le programme Scriptorium écrira alors le fichier de
   réglages, `fiche 10`).
 - Ensuite seulement : `docs/socle/idees_pour_plus_tard.md` (vingt-six idées).
+
+## Sept idées validées par JoVenGer le 15/10/2026 (question à cocher, transmise par la conversation Scriptorium)
+Pas maintenant : on finit d'abord s'asseoir et dormir, puis la vie du camp. Chacune à son étape de la note de JoVenGer
+(`NOTE_POUR_LE_SOCLE.md`, étapes 1 à 9).
+1. **Le gardien des hommes** (fin de l'étape 1) : un contrôle régulier que chaque homme vit — son cerveau tourne, il
+   obéit, il n'est ni coincé ni tombé (d'une tour, sous le sol) ; sinon il est remis d'aplomb seul (réveil,
+   replacement), et c'est noté au journal. (Déjà vus : des hommes figés, des archers qui sautaient des tours.)
+2. **Les crimes d'Henry** (étape 1 ou 2, avec la faction « la Compagnie ») : nos hommes ont les boîtes `crime_*` de
+   `npc_basic` ; ils ne dénoncent jamais Henry aux gardes et ne l'attaquent jamais pour un crime. La Compagnie ferme les
+   yeux sur son capitaine ; au camp, seule la discipline de Scriptorium juge. Duel et pugilat restent hostiles le temps
+   du combat (fiche 12).
+3. **Suivre Henry partout** (étape 1, au comportement « suivre Henry ») : voyage rapide, Henry à cheval, villes et
+   intérieurs, passage d'une carte à l'autre ; à l'arrivée, l'escorte réapparaît près d'Henry. Modèle : le chien du jeu
+   (`companion_playerDog`).
+4. **La garde contre les mises à jour du jeu** (étape 3 ou 7) : au lancement, vérifier que chaque fonction et chaque
+   table du jeu dont le socle a besoin existe encore ; sinon le dire clairement au bandeau et passer en mode prudent,
+   sans rien écrire qui puisse abîmer la sauvegarde.
+5. **Le retrait propre pour le Workshop** (étape 9) : un ordre « quitter le mod » qui renvoie les hommes, congédie le
+   Directeur, lève le camp, rend le coffre à Henry et efface le registre. Partir de l'ordre de fin de V57
+   (`poste.essai_tout_lever`).
+6. **La fluidité mesurée** (étape 7, essai du camp plein) : mesurer les images par seconde avec 80 hommes ; les hommes
+   loin d'Henry ou hors de sa vue réfléchissent moins souvent.
+7. **Le banc de l'économie** (étapes 4 et 5) : simuler au banc un mois du camp en quelques secondes (missions, solde,
+   vivres, embauches) pour prouver que le Directeur fait des bénéfices et que le coffre ne se vide pas en boucle. Règles
+   de Scriptorium : le camp paie au coffre, dépenses justes.
