@@ -13,6 +13,23 @@ function Jeu-Au-Premier-Plan {
   return ($p -and ([Cycle.U]::GetForegroundWindow() -eq $p.MainWindowHandle))
 }
 
+# Après le choix d'une sauvegarde : $true quand le poste du socle écrit « partie en cours = true » après le dernier
+# « Loading saved game » du journal ; $false si le jeu revient au menu principal (« Échec du chargement », vu le 15/10 :
+# la ligne « entrée en partie » arrive même alors) ou si rien n'arrive dans le délai.
+function Attendre-Partie-Chargee([string]$journal, [int]$secondes = 150) {
+  foreach ($i in 1..$secondes) {
+    $l = @(Get-Content $journal -Encoding UTF8)
+    $debut = (@($l | Select-String -Pattern "Loading saved game") | Select-Object -Last 1).LineNumber
+    if ($debut -and $debut -lt $l.Count) {
+      $suite = $l[$debut..($l.Count - 1)]
+      if ($suite | Select-String -Pattern "PlayVideoOnly 'main_menu" -Quiet) { return $false }
+      if ($suite | Select-String -Pattern "Poste : veille, partie en cours = true" -Quiet) { return $true }
+    }
+    Start-Sleep -Seconds 1
+  }
+  return $false
+}
+
 # Noms : Entree, Echap, Haut, Bas.
 function Touche([string]$nom) {
   if (-not (Jeu-Au-Premier-Plan)) { throw "le jeu n'est pas au premier plan : touche « $nom » non envoyée" }

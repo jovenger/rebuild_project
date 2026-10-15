@@ -44,8 +44,9 @@ end
 
 -- Jetons du jeu (note de JoVenGer, partie 2, point 3) : écrire des jetons de plus en plus longs et les relire aussitôt,
 -- puis, après « Sauvegarder et quitter » et rechargement, les relire encore : on sait ce que garde un jeton. Jamais
--- au-delà de 65 535 octets : le 15/10, des jetons de 66 000 à 200 000 ont rendu la sauvegarde impossible à recharger.
-poste.longueurs_de_jetons = { 16000, 32000, 60000, 65000, 65535 }
+-- au-delà de 65 535 octets : le 15/10, des jetons de 66 000 à 200 000 ont rendu la sauvegarde impossible à recharger ;
+-- 65 535 tout juste n'est pas essayé (le bord exact pourrait casser aussi).
+poste.longueurs_de_jetons = { 16000, 32000, 60000, 65000 }
 
 function poste.essai_jetons_ecrire()
   for _, longueur in ipairs(poste.longueurs_de_jetons) do
