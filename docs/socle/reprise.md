@@ -96,10 +96,16 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **Partie d'essai n° 3** (`playline3`, « Partie 4 » au menu ; accord de JoVenGer du 15/10) : copie de la sauvegarde 473 de
   la Partie 1, temps qui avance, sauvegarde permise ; c'est elle qu'il faut pour les comportements et les rechargements
   (`playline2` est au prologue, temps arrêté : les interruptions n'y sont pas jouées). `vers_partie_d_essai.ps1 -Ligne
-  playline3` (par « Continuer », si sa sauvegarde est la plus récente) ; sinon `-Charger`, « Partie 4 » (trois fois Bas),
-  puis `confirmer_sauvegarde.ps1 -Attendu "playline3/<sauvegarde>"`. Ne jamais appuyer sur X dans la liste (supprime).
-- Après une séance qui sauvegarde une partie d'essai, « Continuer » du jeu chargerait cette partie d'essai et non celle de
-  JoVenGer : le lui dire (charger sa partie par « Charger partie », « Partie 2 »).
+  playline3` (par « Continuer », seulement si une sauvegarde d'essai faite dans la séance est la plus récente) ; sinon
+  `-Charger`, « Partie 4 » choisie à vue (troisième ligne depuis le 15/10 : la Partie 3 a disparu), puis
+  `confirmer_sauvegarde.ps1 -Attendu "playline3/<sauvegarde>"`. Ne jamais appuyer sur X, ni dans la liste ni au menu
+  principal (supprime la sauvegarde choisie).
+- **« Continuer »** reprend la sauvegarde dont l'heure de l'en-tête (`SaveTime`) est la plus récente (V59). Décision de
+  JoVenGer (15/10) : il doit reprendre sa partie après chaque essai. `fin_essai.ps1` range donc à part (déplace, ne
+  supprime jamais) les sauvegardes d'essai plus récentes que sa partie, dans `Saved Games\kingdomcome2\essais_du_socle_rangees`,
+  **jeu ouvert, avant de le fermer** : rangées jeu fermé, le nuage Steam les remet au lancement suivant. Une séance finit
+  donc le jeu ouvert (au menu ou en partie), jamais par `sauvegarder_et_quitter.ps1`. `sauvegardes.ps1` dit aussi ce que
+  « Continuer » reprendra.
 6. **Toujours finir** par `outils\pilotage\fin_essai.ps1` : jeu fermé sans sauvegarde, Partie 1 contrôlée, liste des
    mods d'origine remise (empreinte `75A3A33C…`), veilleur relancé. Le noter dans `avancement.md`.
 - Pièges connus : la console du jeu ne s'ouvre pas (d'où les ordres par fichier) ; au menu principal, fermer demande

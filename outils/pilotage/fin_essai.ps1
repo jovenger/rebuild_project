@@ -3,7 +3,11 @@
 # - vérifie que la Partie 1 (playline0) est identique à sa copie ; sinon le dit, sans rien rétablir (accord de
 #   JoVenGer nécessaire) ;
 # - remet la liste des mods d'origine et vérifie son empreinte ;
-# - relance le veilleur du Scriptorium actuel.
+# - relance le veilleur du Scriptorium actuel ;
+# - range à part les sauvegardes d'essai plus récentes que la partie de JoVenGer, pour que « Continuer » reprenne sa
+#   partie (décision de JoVenGer du 15/10/2026 ; sauvegardes.ps1). Rangées jeu ouvert, AVANT de le fermer : rangées jeu
+#   fermé, le nuage Steam les remet au lancement suivant (V59). Une séance finit donc le jeu ouvert, jamais par
+#   sauvegarder_et_quitter.ps1 ; sinon ce script le dit.
 $racine = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
 $jeu = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 $liste = Join-Path $jeu "Mods\mod_order.txt"
@@ -12,9 +16,11 @@ $empreinte = "75A3A33CC968B4868E40EDCFA2286252E299AE49230C0B6668A3A2E1252A404C"
 $etat = Join-Path $racine "securite\playline0_2026-10-14_214438\_etat_d_origine.txt"
 $veilleur = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup\Scriptorium - veilleur du jeu.lnk"
 . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "touches.ps1")
+. (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "sauvegardes.ps1")
 
 $p = Get-Process -Name KingdomCome -ErrorAction SilentlyContinue
 if ($p) {
+  Ranger-Les-Essais -PendantLeJeu
   [void]$p.CloseMainWindow(); $p.WaitForExit(15000) | Out-Null
   if (-not $p.HasExited) {
     if (Mettre-Le-Jeu-Devant) { Touche Haut; Touche Entree; $p.WaitForExit(30000) | Out-Null }
@@ -32,3 +38,6 @@ if ((Get-FileHash $liste -Algorithm SHA256).Hash -eq $empreinte) { "liste des mo
 else { "ATTENTION : la liste des mods n'a pas l'empreinte d'origine" }
 if (-not (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "veilleur" })) { Start-Process -FilePath $veilleur; Start-Sleep -Seconds 4 }
 "veilleur relancé = " + [bool](Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "veilleur" })
+Ranger-Les-Essais | ForEach-Object {
+  if ($_ -like "rangée :*") { "ATTENTION, rangée jeu fermé (le nuage Steam la remettra au prochain lancement ; ouvrir une séance courte et la finir jeu ouvert) : " + $_ } else { $_ }
+}

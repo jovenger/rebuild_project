@@ -1,8 +1,8 @@
 ﻿# Installe le socle, lance le jeu avec -devmode et charge une PARTIE D'ESSAI, où l'on peut sauvegarder : playline2
 # (par défaut ; partie neuve, au prologue, temps du jeu arrêté) ou, avec -Ligne playline3, la copie de la sauvegarde 473
 # de la Partie 1 (temps qui avance ; créée le 15/10/2026 avec l'accord de JoVenGer).
-# Sans -Charger : par « Continuer » ; refuse si la sauvegarde la plus récente n'est pas dans la ligne demandée (Continuer
-# chargerait une autre partie) ; vérifie au journal que c'est bien cette ligne qui se charge, sinon ferme le jeu sans
+# Sans -Charger : par « Continuer » ; refuse si la sauvegarde que « Continuer » reprendrait (la plus récente par l'heure
+# de son en-tête, mesuré en V59 ; sauvegardes.ps1) n'est pas dans la ligne demandée ; vérifie au journal que c'est bien cette ligne qui se charge, sinon ferme le jeu sans
 # sauvegarder ; dit si le chargement a échoué (retour au menu principal).
 # Avec -Charger : va seulement jusqu'à la liste « Charger partie » et la capture (securite\captures\charger_partie.png),
 # sans rien valider ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "<ligne>/<sauvegarde>".
@@ -14,10 +14,11 @@ $jeu = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 $journal = Join-Path $jeu "kcd.log"
 $sauvegardes = "$env:USERPROFILE\Saved Games\kingdomcome2\saves"
 . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "touches.ps1")
+. (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "sauvegardes.ps1")
 
 if (Get-Process -Name KingdomCome -ErrorAction SilentlyContinue) { "le jeu est lancé : le fermer d'abord"; return }
-$derniere = Get-ChildItem $sauvegardes -Recurse -File -Filter *.whs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $Charger -and $derniere.Directory.Name -ne $Ligne) { "la sauvegarde la plus récente est dans " + $derniere.Directory.Name + " : « Continuer » ne chargerait pas la partie d'essai ; arrêt"; return }
+$derniere = Sauvegarde-De-Continuer
+if (-not $Charger -and $derniere.Ligne -ne $Ligne) { "« Continuer » reprendrait " + $derniere.Ligne + "\" + $derniere.Nom + " : pas la partie d'essai demandée ; arrêt (prendre -Charger)"; return }
 Set-Location $racine
 py -3.13 noyau\installer.py --jeu $jeu | Select-Object -Last 1
 $t0 = Get-Date
