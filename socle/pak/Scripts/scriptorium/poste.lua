@@ -238,6 +238,28 @@ function poste.essai_liens()
   return true
 end
 
+-- Combat d'essai (étape 1) : deux âmes au cerveau npc_battle de camps opposés, devant Henry ; puis ce qu'ils deviennent.
+local combattants_d_essai = {}
+
+function poste.essai_combat()
+  local noms, erreur = jeu().poser_un_combat_d_essai()
+  combattants_d_essai = noms or {}
+  jeu().journal("Poste : combat, posés = " .. (noms and table.concat(noms, ", ") or ("refus : " .. tostring(erreur))))
+  return noms ~= nil
+end
+
+function poste.essai_combat_voir()
+  local a, b = combattants_d_essai[1], combattants_d_essai[2]
+  if not a then
+    jeu().journal("Poste : combat, rien de posé")
+    return false
+  end
+  for _, paire in ipairs({ { a, b }, { b, a } }) do
+    jeu().journal("Poste : combat « " .. paire[1] .. " » : " .. table.concat(jeu().decrire_personnage(paire[1], paire[2], false), " | "))
+  end
+  return true
+end
+
 -- Bataille : ce que le jeu dit d'un ennemi de la bande au contact et d'un de nos hommes (faction, hostilité, cible,
 -- fonctions de leur personnage), puis de chaque ennemi en une ligne (V18, V19).
 function poste.essai_sonder()
@@ -449,6 +471,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_jetons_relire", fonction = function() return poste.essai_jetons_relire() end, aide = "Relit les jetons d'essai après rechargement" },
   { nom = "scriptorium_essai_cerveau", fonction = function() return poste.essai_cerveau() end, aide = "Nos hommes sont-ils connus de l'IA du jeu ? Comparaison avec un habitant" },
   { nom = "scriptorium_essai_liens", fonction = function() return poste.essai_liens() end, aide = "Liens de l'habitant le plus proche (moteur et IA)" },
+  { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
+  { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
   { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },
   { nom = "scriptorium_essai_camp", fonction = function() return poste.essai_camp() end, aide = "Fonde le camp où se tient Henry, ou le redresse" },
   { nom = "scriptorium_essai_camp_agrandir", fonction = function() return poste.essai_camp_agrandir() end, aide = "Agrandit le camp d'un niveau" },

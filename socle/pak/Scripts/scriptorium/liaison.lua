@@ -1120,6 +1120,34 @@ function liaison.decrire_les_liens()
   return lignes
 end
 
+-- Essai de combat (étape 1, piste des cerveaux sans horaires) : deux âmes au cerveau npc_battle, de camps faits pour
+-- s'affronter au siège de Suchdol (un défenseur, un fantassin de l'armée ennemie), posées à 6 m l'une de l'autre près
+-- d'Henry, sans besoin d'une maison (bWH_RequiresHome, vrai par défaut dans la classe NPC). Rend leurs deux noms, ou nil et l'erreur.
+liaison.ames_du_combat_d_essai = {
+  defenseur = "e2366f94-2002-44c3-905a-f29ae50dba93",   -- oblehaniSuchdole_spojenciB_obrance1
+  assaillant = "dda22693-6704-49ff-9278-a4ab030bd186",  -- oblehaniSuchdole_neprateleA_pesak20
+}
+
+function liaison.poser_un_combat_d_essai()
+  local henry = liaison.position_du_joueur()
+  local cap = liaison.cap_du_joueur()
+  local angle = math.rad(cap)
+  local function devant(metres)
+    return liaison.au_sol({ x = henry.x + math.sin(angle) * metres, y = henry.y + math.cos(angle) * metres, z = henry.z })
+  end
+  local defenseur, erreur = faire_naitre("NPC", "scriptorium_essai_defenseur", devant(8), cap + 180,
+                                        { guidSharedSoulId = liaison.ames_du_combat_d_essai.defenseur, bWH_RequiresHome = false })
+  if not defenseur then
+    return nil, "défenseur : " .. tostring(erreur)
+  end
+  local assaillant, erreur2 = faire_naitre("NPC", "scriptorium_essai_assaillant", devant(14), cap,
+                                          { guidSharedSoulId = liaison.ames_du_combat_d_essai.assaillant, bWH_RequiresHome = false })
+  if not assaillant then
+    return nil, "assaillant : " .. tostring(erreur2)
+  end
+  return { defenseur, assaillant }
+end
+
 -- Compare un de nos personnages et le personnage du jeu (classe NPC, pas à nous) le plus proche d'Henry. Rend des
 -- lignes pour le journal.
 function liaison.sonder_les_cerveaux(identifiant)
