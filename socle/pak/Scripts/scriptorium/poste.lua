@@ -714,6 +714,90 @@ function poste.essai_equipement_ici_suivant()
   return true
 end
 
+-- V72 (fiche 14) : la Compagnie. Pour chaque homme et le Directeur : sa faction, sa distance à Henry, ses munitions
+-- (point 1 du pair : les flèches avant et après un tir) et ses contextes de crime (conseil du pair).
+local CONTEXTES_DE_CRIME = { "crime_isCivilian", "crime_isSecurity", "crime_isAuthority", "crime_interrupt",
+                             "crime_interruptAttack", "crime_skipInformationBroadcast" }
+
+local function contextes_en_ligne(qui)
+  local lus = jeu().contextes_de(qui, CONTEXTES_DE_CRIME)
+  local morceaux = {}
+  for _, nom in ipairs(CONTEXTES_DE_CRIME) do
+    local valeur = lus[nom]
+    table.insert(morceaux, (string.gsub(nom, "^crime_", "")) .. "=" .. (valeur == nil and "?" or (valeur and "1" or "0")))
+  end
+  return table.concat(morceaux, " ")
+end
+
+function poste.essai_compagnie_voir()
+  local hommes = Scriptorium.hommes
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    local e = f.equipement or {}
+    local munition = e.armes and jeu().munition_de(e.armes)
+    local ici = f.personnage and jeu().distance_a_henry(f.personnage)
+    jeu().journal(string.format("Poste : %s (%s) : faction %s, à %s m d'Henry%s ; %s", f.nom, f.role,
+      tostring(f.personnage and jeu().faction_de(f.personnage)), ici and string.format("%.1f", ici) or "?",
+      munition and (", " .. munition .. " " .. jeu().compter_objet(f.personnage, munition)) or "",
+      f.personnage and contextes_en_ligne(f.personnage) or "absent"))
+  end
+  local directeur = Scriptorium.directeur.personnage()
+  if directeur then
+    jeu().journal("Poste : le Directeur : faction " .. tostring(jeu().faction_de(directeur)) .. " ; " .. contextes_en_ligne(directeur))
+  end
+  return true
+end
+
+-- Un archer du palier 1 (homme d'après la Compagnie), qui devient le dernier vu (pour l'ordre d'attaque).
+function poste.essai_compagnie_embaucher()
+  local id, raison = Scriptorium.hommes.embaucher({ role = "archer", semaines = 4, palier = 1 })
+  jeu().journal("Poste : la Compagnie, archer engagé : " .. tostring(id or raison))
+  poste.dernier_vu = id or poste.dernier_vu
+  poste.battre_les_hommes()
+  return id ~= nil
+end
+
+-- Le dernier archer engagé, posé à 3 m devant Henry ; il devient le dernier vu.
+function poste.essai_compagnie_archer_ici()
+  local hommes = Scriptorium.hommes
+  local archer = nil
+  for _, id in ipairs(hommes.liste()) do
+    if hommes.fiche(id).role == "archer" then
+      archer = id
+    end
+  end
+  if not archer then
+    return false
+  end
+  poste.dernier_vu = archer
+  local f = hommes.fiche(archer)
+  jeu().journal("Poste : " .. f.nom .. " (archer), " .. jeu().poser_devant_henry(f.personnage))
+  return true
+end
+
+-- Le délit d'Henry (réponse 4 a de JoVenGer) : les deux premiers hommes du camp en témoins, à 2 m devant Henry et 3 m
+-- de part et d'autre, tournés vers l'habitant du jeu le plus proche, posé à 1,5 m devant Henry, face à lui.
+function poste.essai_compagnie_temoins()
+  local hommes = Scriptorium.hommes
+  local liste = hommes.liste()
+  local vers = jeu().point_devant_henry(1.5)
+  if #liste < 2 or not vers then
+    return false
+  end
+  for rang, cote in ipairs({ -3, 3 }) do
+    local f = hommes.fiche(liste[rang])
+    jeu().journal("Poste : témoin " .. f.nom .. ", " .. jeu().poser_pres_d_henry(f.personnage, 2, cote, vers))
+  end
+  jeu().journal("Poste : habitant, " .. jeu().poser_l_habitant_devant_henry(1.5))
+  return true
+end
+
+-- Le coup d'Henry sur l'habitant posé : par les règles du jeu, 5 points (réponse de JoVenGer du 16/10).
+function poste.essai_compagnie_frapper()
+  jeu().journal("Poste : coup, " .. jeu().henry_frappe_l_habitant_pose(5))
+  return true
+end
+
 -- V71 a2 (fiche 13) : le témoin (premier homme) et les deux sondes nées à côté de lui.
 local function les_trois()
   local qui, nom = premier_homme()
@@ -1139,6 +1223,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_equipement_monter", fonction = function() return poste.essai_equipement_monter() end, aide = "Le premier homme monte d'un palier" },
   { nom = "scriptorium_essai_equipement_donner", fonction = function() return poste.essai_equipement_donner() end, aide = "Donne au premier homme une pièce de soldier_generic_6_01, état 0,5, portée" },
   { nom = "scriptorium_essai_equipement_ici_suivant", fonction = function() return poste.essai_equipement_ici_suivant() end, aide = "Pose l'homme suivant à 3 m devant Henry" },
+  { nom = "scriptorium_essai_compagnie_voir", fonction = function() return poste.essai_compagnie_voir() end, aide = "Faction, distance à Henry, munitions et contextes de crime de chaque homme et du Directeur (V72)" },
+  { nom = "scriptorium_essai_compagnie_embaucher", fonction = function() return poste.essai_compagnie_embaucher() end, aide = "Engage un archer du palier 1, homme d'après la Compagnie (V72)" },
+  { nom = "scriptorium_essai_compagnie_archer_ici", fonction = function() return poste.essai_compagnie_archer_ici() end, aide = "Pose le dernier archer à 3 m devant Henry (V72)" },
+  { nom = "scriptorium_essai_compagnie_temoins", fonction = function() return poste.essai_compagnie_temoins() end, aide = "Deux hommes en témoins, l'habitant le plus proche posé devant Henry (V72)" },
+  { nom = "scriptorium_essai_compagnie_frapper", fonction = function() return poste.essai_compagnie_frapper() end, aide = "Henry frappe l'habitant posé, par les règles du jeu, 5 points (V72)" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },

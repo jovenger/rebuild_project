@@ -7,8 +7,13 @@
   **leur faction à eux, « la Compagnie », amie d'Henry et ennemie des bandes**, et qu'ils ne dénoncent jamais Henry
   (idée validée n° 2 du 15/10). Aujourd'hui, toutes nos âmes ont la faction provisoire du marcheur, celle des gardes de
   Trosky (`trosecko_settlements_trosky_soldiers_guards`).
-- État : **relue par la conversation Scriptorium le 16/10** (principe d'Alex et remarques inscrits ci-dessous) ;
-  **questions à JoVenGer**. Rien n'est codé. Ce qui est marqué
+- État : **validée par JoVenGer le 16/10/2026** (questions à cocher, après relecture par la conversation Scriptorium) :
+  relations du chien et du cheval (1 a), classe « soldier » gardée (2 a), la faction seule d'abord (3 a), Henry frappe
+  un habitant du jeu devant deux de nos hommes (4 a). Ensuite, le même jour : le coup est porté **par les règles du jeu**
+  (`g_gameRules:CreateHit`, Henry pour auteur, 5 points, comme en V43), sans clic : choisir les poings dans la roue des
+  armes ne se pilote pas sûrement ; et le contrôle d'absence **admet les 8 lignes de relation**, identiques chez Alex
+  parce qu'il les a prises, lui aussi, au chien et au cheval du jeu : seulement si chacune est une relation de
+  `animalCompanions` dans l'arbre du jeu, relu à chaque passage (`tout_verifier.py`, au plus 8, nommées à chaque fois). Rien n'est codé. Ce qui est marqué
   « relu » vient des paks du jeu (lecture seule) ; tout le reste est « non vérifié » en jeu.
 
 ## Ce que le joueur voit
@@ -106,8 +111,10 @@
 - **Le banc** (`tout_verifier.py`) : la faction nommée par chaque âme des réserves existe dans notre fichier de
   factions ; le fichier est bien formé ; chaque cible de relation est une faction du jeu (relevée par
   `outils/ames.py`).
-- **Une commande d'essai** au poste : la faction de chaque homme (`AI.GetFactionOf`), et ses flèches ou carreaux
-  (nombre exact, pour le point 1 du pair).
+- **Les commandes d'essai** au poste (`scriptorium_essai_compagnie_*`) : `voir` (faction, distance à Henry, munitions
+  et contextes de crime de chaque homme et du Directeur), `embaucher` (un archer du palier 1), `archer_ici`, `temoins`
+  (deux hommes en témoins, l'habitant le plus proche posé à 1,5 m devant Henry), `frapper` (le coup d'Henry) ; avec
+  `brigand_du_jeu`, `equipement_combat` et `habitant_voir`, déjà là.
 - **Rien au catalogue de `reglages.lua`** : les relations sont une table du jeu, chargée au lancement ; le Lua ne les
   change pas (aucun appel relevé). Comme les identifiants d'âmes, ce ne sont pas des réglages chiffrés.
 

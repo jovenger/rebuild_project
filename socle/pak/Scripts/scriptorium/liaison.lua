@@ -2655,6 +2655,83 @@ function liaison.poser_devant_henry(qui)
   return pose and "posé à 3 m devant Henry" or ("refusé : " .. tostring(erreur))
 end
 
+-- V72 (fiche 14) : le point à « devant » m devant Henry, dans le repère de poser_devant_henry (Henry regarde vers
+-- (-sin a, cos a), a = angle z de ses angles du monde, en radians).
+function liaison.point_devant_henry(devant)
+  local ok, angles = pcall(function() return player:GetWorldAngles() end)
+  if not ok or type(angles) ~= "table" or type(angles.z) ~= "number" then
+    return nil
+  end
+  local henry = liaison.position_du_joueur()
+  return { x = henry.x - devant * math.sin(angles.z), y = henry.y + devant * math.cos(angles.z), z = henry.z }
+end
+
+-- Pose le personnage à « devant » m devant Henry et « a_droite » m sur sa droite, tourné vers le point « vers » (vers
+-- Henry si nil). On déplace le personnage, jamais Henry (V67).
+function liaison.poser_pres_d_henry(qui, devant, a_droite, vers)
+  local entite = entite_nommee(qui)
+  local ok, angles = pcall(function() return player:GetWorldAngles() end)
+  if not entite or not ok or type(angles) ~= "table" or type(angles.z) ~= "number" then
+    return "« " .. tostring(qui) .. " » ou Henry introuvable"
+  end
+  local henry = liaison.position_du_joueur()
+  local a = angles.z
+  local place = liaison.au_sol({ x = henry.x - devant * math.sin(a) + a_droite * math.cos(a),
+                                y = henry.y + devant * math.cos(a) + a_droite * math.sin(a), z = henry.z })
+  local cible = vers or henry
+  local regard = math.atan2(place.x - cible.x, cible.y - place.y)
+  local pose, erreur = pcall(function()
+    entite:SetWorldPos(place)
+    entite:SetWorldAngles({ x = 0, y = 0, z = regard })
+  end)
+  return pose and string.format("posé à %.1f m devant Henry, %.1f m sur sa droite", devant, a_droite)
+    or ("refusé : " .. tostring(erreur))
+end
+
+-- La faction d'un personnage, par son nom (AI.GetFactionOf, Scripts/Entities/Triggers/AreaTrigger.lua), ou nil.
+function liaison.faction_de(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return nil
+  end
+  local ok, nom = pcall(function() return AI.GetFactionOf(entite.id) end)
+  return ok and nom or nil
+end
+
+-- Les contextes de script de son âme (soul:HasScriptContext, Scripts/Entities/actor/BasicActor.lua) : { nom = vrai ou
+-- faux } ; un nom dont la lecture est refusée n'a pas de clé.
+function liaison.contextes_de(qui, noms)
+  local entite = entite_nommee(qui)
+  local rendu = {}
+  if not entite or type(entite.soul) ~= "table" then
+    return rendu
+  end
+  for _, nom in ipairs(noms) do
+    local ok, oui = pcall(function() return entite.soul:HasScriptContext(nom) end)
+    if ok then
+      rendu[nom] = oui == true or oui == 1
+    end
+  end
+  return rendu
+end
+
+-- Le délit d'Henry (fiche 14, réponse 4 a de JoVenGer) : l'habitant du jeu le plus proche, posé à « devant » m devant
+-- Henry, face à lui ; son nom va à liaison.habitant_frappe (voir_l_habitant_frappe le suit).
+function liaison.poser_l_habitant_devant_henry(devant)
+  local habitant, distance = habitant_le_plus_proche()
+  if not habitant then
+    return "aucun habitant du jeu à moins de 150 m d'Henry"
+  end
+  liaison.habitant_frappe = habitant:GetName()
+  return string.format("« %s » (à %.0f m, faction %s) : %s", liaison.habitant_frappe, distance or -1,
+    tostring(liaison.faction_de(liaison.habitant_frappe)), liaison.poser_pres_d_henry(liaison.habitant_frappe, devant, 0))
+end
+
+-- Le vrai coup d'Henry sur l'habitant posé, par les règles du jeu (V43 ; réponse de JoVenGer du 16/10 : pas de clic).
+function liaison.henry_frappe_l_habitant_pose(points)
+  return frapper_par_henry(entite_nommee(liaison.habitant_frappe), "« " .. tostring(liaison.habitant_frappe) .. " »", points)
+end
+
 -- V71 a5 (fiche 13) : nos pièces reconnues par l'identifiant noté à leur création, jamais par leur état ; la tenue de
 -- naissance retirée (inventory:DeleteItem(id, 1), Scripts/Entities/WH/Triggers/TriggerBase.lua). L'identifiant
 -- tient-il après un rechargement ? Garde-fou : si une de nos pièces n'est pas reconnue, rien n'est retiré.

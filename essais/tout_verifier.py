@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 114:
-        erreur("ordres : %d commandes lues dans poste.lua, 114 attendues" % len(connues))
+    if len(connues) != 119:
+        erreur("ordres : %d commandes lues dans poste.lua, 119 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -433,13 +433,15 @@ def verifier_identifiants():
 # ------------------------------------------------------------------ 3. noms interdits
 
 TABLE_DES_AMES = os.path.join(PAK, "Libs", "Tables", "rpg", "soul__scriptorium_socle.xml")
+TABLE_DES_FACTIONS = os.path.join(PAK, "Libs", "Tables", "rpg", "FactionTree__scriptorium_socle.xml")
 NOTRE_CERVEAU = "b8a850d0-47c6-44a1-872e-ce7efcf4b9f9"
 
 
 def verifier_ames():
     """Fiche 13 : la table des âmes (écrite par outils/ames.py) et les réserves de la liaison s'accordent, âme par âme ;
     chaque âme a notre cerveau, un nom et un identifiant uniques ; les femmes ont l'archétype féminin du jeu (1), les
-    combattants un niveau de combat. Rend le nombre d'âmes des réserves."""
+    combattants un niveau de combat. Fiche 14 : toutes les âmes des réserves sont de la Compagnie, seule faction de la
+    table des factions du socle, amie d'Henry, sans étiquette, sans lieu ni carte. Rend le nombre d'âmes des réserves."""
     lua = runtime_lua()
     if lua is None:
         return 0
@@ -484,7 +486,41 @@ def verifier_ames():
     for ame in du_mod:
         if ame not in attendues:
             erreur("âmes : %s dans la table, hors des réserves de la liaison" % du_mod[ame].get("soul_name"))
+    compagnie = verifier_la_compagnie()
+    for a in du_mod.values():
+        if compagnie and a.get("factionName") != compagnie:
+            erreur("âmes : %s n'est pas de la Compagnie (%s)" % (a.get("soul_name"), a.get("factionName")))
     return len(attendues)
+
+
+def verifier_la_compagnie():
+    """Fiche 14 : la table des factions du socle (écrite par outils/ames.py, qui vérifie les cibles dans l'arbre du jeu).
+    Rend le nom de la Compagnie, ou None."""
+    racine = ET.parse(TABLE_DES_FACTIONS).getroot()
+    factions = list(racine.iter("Faction"))
+    if racine.tag != "database" or racine.find("FactionTree") is None or len(factions) != 1:
+        erreur("factions : une seule faction attendue, sous database/FactionTree")
+        return None
+    f = factions[0]
+    nom = f.get("Name", "")
+    if not nom.startswith("scriptorium_socle_"):
+        erreur("factions : %s n'a pas le préfixe du socle" % nom)
+    # Sans étiquette : « settlement » lui ôterait crime_skipInformationBroadcast ; « camp » ou « publicEnemy » ferait de nos
+    # hommes des brigands pour les règles du jeu (isBandit). Sans lieu ni carte : valable partout, comme animalCompanions.
+    for attribut in ("Labels", "LocationId", "LevelId"):
+        if f.get(attribut):
+            erreur("factions : la Compagnie porte %s" % attribut)
+    relations = [(r.get("target", ""), r.get("reputation", "")) for r in f.iter("Relation")]
+    for cible, reputation in relations:
+        try:
+            juste = cible != "" and -1 <= float(reputation) <= 1
+        except ValueError:
+            juste = False
+        if not juste:
+            erreur("factions : relation mal formée (%s, %s)" % (cible, reputation))
+    if ("player", "1") not in relations:
+        erreur("factions : la Compagnie n'est pas amie d'Henry")
+    return nom
 
 
 def verifier_equipement():
@@ -776,6 +812,36 @@ def formes_du_jeu(lignes_d_alex):
     return trouvees
 
 
+# Décision de JoVenGer du 16/10/2026 (fiche 14) : les relations de la Compagnie sont celles de la faction du chien et du
+# cheval d'Henry, recopiées de l'arbre des factions du jeu ; Alex a repris les mêmes lignes du jeu. Seules ces lignes-là
+# sont admises : celles de la table des factions du socle qui sont, telles quelles, une relation de animalCompanions dans
+# l'arbre du jeu (relu à chaque passage, en mémoire), au plus RELATIONS_DU_JEU_AU_PLUS. Sans le jeu, aucune.
+FACTION_MODELE = "animalCompanions"
+RELATIONS_DU_JEU_AU_PLUS = 8
+
+
+def relations_du_jeu(lignes_d_alex):
+    """Les lignes de la table des factions du socle communes avec Alex qui sont une relation de FACTION_MODELE dans
+    Libs/Tables/rpg/FactionTree.xml du jeu. Rend { empreinte : ligne }."""
+    voulues = {}
+    for ligne in lire(TABLE_DES_FACTIONS).splitlines():
+        normalisee = outil_empreintes.normaliser_ligne(ligne, ".xml")
+        marque = outil_empreintes.empreinte(normalisee)
+        if marque in lignes_d_alex and re.fullmatch(r'<Relation target="[^"]+" reputation="[^"]+" />', normalisee):
+            voulues[normalisee] = marque
+    chemin_du_pak = os.path.join(JEU, "Data", "Tables.pak")
+    if not voulues or not os.path.exists(chemin_du_pak):
+        return {}
+    with zipfile.ZipFile(chemin_du_pak) as archive:
+        texte = archive.read("Libs/Tables/rpg/FactionTree.xml").decode("utf-8", "replace")
+    debut = texte.find('<Faction Name="%s"' % FACTION_MODELE)
+    fin = texte.find("</Faction>", debut)
+    if debut < 0 or fin < 0:
+        return {}
+    du_modele = {outil_empreintes.normaliser_ligne(l, ".xml") for l in texte[debut:fin].splitlines()}
+    return {marque: ligne for ligne, marque in voulues.items() if ligne in du_modele}
+
+
 def controle_absence(strict):
     verifier_releve_des_noms()
     if not os.path.exists(EMPREINTES):
@@ -812,6 +878,12 @@ def controle_absence(strict):
     if len(formes) > FORMES_ADMISES_AU_PLUS:
         erreur("contrôle d'absence : %d lignes de forme du jeu, plus que les %d admises : revoir la liste"
                % (len(formes), FORMES_ADMISES_AU_PLUS))
+    relations = relations_du_jeu(alex["lignes"])
+    socle["lignes"] = socle["lignes"] - set(relations)
+    for ligne in sorted(relations.values()):
+        print("   relation du jeu (%s) : %s" % (FACTION_MODELE, ligne))
+    if len(relations) > RELATIONS_DU_JEU_AU_PLUS:
+        erreur("contrôle d'absence : %d relations du jeu, plus que les %d admises" % (len(relations), RELATIONS_DU_JEU_AU_PLUS))
 
     resultats = {}
     for nom in ("fichiers", "chemins", "lignes", "noms", "cles", "textes"):
@@ -820,6 +892,7 @@ def controle_absence(strict):
         if communs:
             erreur("contrôle d'absence : %d %s en commun avec Alex" % (len(communs), nom))
     resultats["lignes de forme du jeu"] = len(formes)
+    resultats["relations du jeu"] = len(relations)
     if resultats["lignes"] or resultats["noms"] or resultats["textes"]:
         # Nommer les coupables, pour corriger vite.
         for chemin in list(fichiers(PAK, {".lua", ".xml", ".cfg"})) + list(fichiers(TEXTES, {".xml"})):
@@ -869,7 +942,7 @@ def principal(arguments):
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 
-    print("2 quinquies. âmes : %d âmes des réserves, table et liaison accordées, notre cerveau partout" % verifier_ames())
+    print("2 quinquies. âmes : %d âmes des réserves, table et liaison accordées, notre cerveau et la Compagnie partout" % verifier_ames())
     print("2 sexies. équipement : %d préréglages dans la liaison, chaque règle trouve les siens" % verifier_equipement())
     print("3. noms interdits : %d" % verifier_noms())
     print("3 bis. un seul nom par table : %d noms relevés, table posée par le seul noyau" % verifier_un_seul_nom())

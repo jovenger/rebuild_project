@@ -1,10 +1,11 @@
-"""Écrit les âmes du socle dans socle/pak/Libs/Tables/rpg/soul__scriptorium_socle.xml (fiche 13).
+"""Écrit les âmes du socle dans socle/pak/Libs/Tables/rpg/soul__scriptorium_socle.xml (fiche 13), et leur faction, « la
+Compagnie », dans socle/pak/Libs/Tables/rpg/FactionTree__scriptorium_socle.xml (fiche 14).
 
 Usage (sur le PC de JoVenGer) :
     py -3.13 outils/ames.py --jeu "G:\\SteamLibrary\\steamapps\\common\\KingdomComeDeliverance2"
 
 Lit en lecture seule, dans <jeu>\\Data\\Tables.pak, les personnages génériques du jeu (table skald_character) et les
-identifiants des âmes du jeu ; n'écrit que la table des âmes du socle. Les âmes d'essai déjà présentes (marcheur,
+identifiants des âmes du jeu et l'arbre des factions ; n'écrit que la table des âmes et la table des factions du socle. Les âmes d'essai déjà présentes (marcheur,
 brigand d'essai) sont gardées telles quelles ; les réserves sont réécrites, toujours à l'identique.
 
 Une âme par personne vivante, jamais partagée (fiche 13, validée par JoVenGer le 15/10/2026). L'identifiant se calcule à
@@ -20,11 +21,26 @@ import zipfile
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "rpg", "soul__scriptorium_socle.xml")
+TABLE_DES_FACTIONS = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "rpg", "FactionTree__scriptorium_socle.xml")
 
 PREFIXE = "5c7a5c7a"
 NOTRE_CERVEAU = "b8a850d0-47c6-44a1-872e-ce7efcf4b9f9"
-# Faction provisoire de toutes nos âmes : celle du marcheur, jusqu'à l'essai de la faction « la Compagnie » (fiche 13).
-FACTION = "trosecko_settlements_trosky_soldiers_guards"
+# La faction de toutes les âmes des réserves : « la Compagnie » (fiche 14, réponse 1 a de JoVenGer du 16/10/2026), de
+# premier niveau, sans étiquette (une faction sans « settlement » reçoit crime_skipInformationBroadcast, règle Storm
+# contexts_disabledInformationBroadcast), sans lieu ni carte, avec exactement les relations de la faction du chien et du
+# cheval d'Henry (animalCompanions, FactionTree.xml du jeu).
+FACTION = "scriptorium_socle_compagnie"
+COMMENTAIRE_DE_LA_FACTION = "Scriptorium socle : la Compagnie, amie d'Henry ; relations de animalCompanions"
+RELATIONS = [
+    ("player", "1"),
+    ("players_friends", "1"),
+    ("kutnohorsko_allies", "1"),
+    ("trosecko_allies", "1"),
+    ("players_enemies", "-1"),
+    ("trosecko_enemies", "-1"),
+    ("kutnohorsko_enemies", "-1"),
+    ("kutnohorsko_enemies_oblehaniSuchdoleEnemyArmy", "-1"),
+]
 
 # Les réserves : code, nom des âmes, tailles par palier, personnages (familles du jeu), classe sociale, archétype,
 # niveau de combat par palier. Les tailles doivent être celles de liaison.reserves_d_ames.
@@ -59,11 +75,45 @@ def lire_le_jeu(jeu):
     with zipfile.ZipFile(chemin) as tables:
         personnages = tables.read("Libs/Tables/skald/skald_character.xml").decode("utf-8", "replace")
         ames = set()
+        factions = set()
         for nom in tables.namelist():
             if re.search(r"libs/tables/rpg/soul(__[^/]+)?\.xml$", nom, re.I):
                 texte = tables.read(nom).decode("utf-8", "replace")
                 ames.update(i.lower() for i in re.findall(r'soul_id="([^"]+)"', texte))
-    return set(re.findall(r'skald_character_name="([^"]+)"', personnages)), ames
+            if re.search(r"libs/tables/rpg/factiontree(__[^/]+)?\.xml$", nom, re.I):
+                texte = tables.read(nom).decode("utf-8", "replace")
+                factions.update(re.findall(r'<Faction\s[^>]*?Name="([^"]+)"', texte))
+    return set(re.findall(r'skald_character_name="([^"]+)"', personnages)), ames, factions
+
+
+def texte_des_factions(fin):
+    """La table des factions du socle, sur l'enveloppe des ajouts du jeu (FactionTree__tests.xml, FactionTree.xsd)."""
+    lignes = [
+        '<?xml version="1.0" encoding="us-ascii"?>',
+        '<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" '
+        'xsi:noNamespaceSchemaLocation="FactionTree.xsd">',
+        '  <FactionTree version="1">',
+        '    <Faction Name="%s" Comment="%s">' % (FACTION, COMMENTAIRE_DE_LA_FACTION),
+        "      <Relations>",
+    ]
+    for cible, reputation in RELATIONS:
+        lignes.append('        <Relation target="%s" reputation="%s" />' % (cible, reputation))
+    lignes += ["      </Relations>", "    </Faction>", "  </FactionTree>", "</database>", ""]
+    return fin.join(lignes)
+
+
+def ecrire_si_change(chemin, texte, quoi):
+    texte.encode("ascii")
+    ancien = None
+    if os.path.isfile(chemin):
+        with open(chemin, "r", encoding="ascii", newline="") as fichier:
+            ancien = fichier.read()
+    if ancien == texte:
+        print("%s : déjà à jour" % quoi)
+        return
+    with open(chemin, "w", encoding="ascii", newline="") as fichier:
+        fichier.write(texte)
+    print("%s écrite" % quoi)
 
 
 def palette(personnages, familles):
@@ -119,10 +169,20 @@ def principal(arguments):
     if not os.path.isfile(os.path.join(jeu, "Data", "Tables.pak")):
         print("REFUS : Tables.pak introuvable sous " + jeu)
         return 2
-    personnages, ames_du_jeu = lire_le_jeu(jeu)
+    personnages, ames_du_jeu, factions_du_jeu = lire_le_jeu(jeu)
     pris = sorted(i for i in ames_du_jeu if i.startswith(PREFIXE))
     if pris:
         print("REFUS : le préfixe %s est déjà pris par le jeu : %s" % (PREFIXE, ", ".join(pris[:5])))
+        return 1
+    if len(factions_du_jeu) < 1000:
+        print("REFUS : arbre des factions du jeu illisible (%d factions lues)" % len(factions_du_jeu))
+        return 1
+    if FACTION in factions_du_jeu:
+        print("REFUS : la faction %s existe déjà dans le jeu" % FACTION)
+        return 1
+    absentes = [cible for cible, _ in RELATIONS if cible not in factions_du_jeu]
+    if absentes:
+        print("REFUS : relation vers une faction absente du jeu : " + ", ".join(absentes))
         return 1
     with open(TABLE, "r", encoding="ascii", newline="") as fichier:
         texte = fichier.read()
@@ -135,6 +195,7 @@ def principal(arguments):
     sortie = tete + gardees + neuves + ["  </souls>", "</database>", ""]
     nouveau = fin.join(sortie)
     nouveau.encode("ascii")
+    ecrire_si_change(TABLE_DES_FACTIONS, texte_des_factions(fin), "Table des factions (%s, %d relations)" % (FACTION, len(RELATIONS)))
     if nouveau == texte:
         print("Table des âmes : déjà à jour (%d âmes d'essai, %d âmes des réserves)" % (len(gardees), len(neuves)))
         return 0
