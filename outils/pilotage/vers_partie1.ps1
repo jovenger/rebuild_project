@@ -1,9 +1,8 @@
-﻿# Ferme le jeu sans sauvegarder, installe le socle, relance avec -devmode, et va jusqu'au choix de la sauvegarde 473 de
-# la Partie 1 (Charger partie > Partie 1 > cinquième sauvegarde). S'arrête AVANT de valider : la capture
-# securite\captures\choix_473.png est à regarder, puis confirmer_partie1.ps1 valide.
+﻿# Ferme le jeu sans sauvegarder, installe le socle, relance avec -devmode et s'arrête au menu principal (capture
+# securite\captures\menu_principal.png). Ensuite, à vue : appuyer.ps1 -Touches ... -Attendu "playline0/autosave473".
 # Refuse si la Partie 1 n'est plus identique à sa copie d'origine (securite\playline0_…\_etat_d_origine.txt).
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
-# -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode, et s'arrête sur la liste « Charger partie ».
+# -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.
 param([switch]$SansDevmode)
 $racine = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
 $jeu = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
@@ -37,10 +36,7 @@ if (-not $menu) { "menu non atteint : arrêt"; return }
 Start-Sleep -Seconds 4
 $p = Get-Process -Name KingdomCome; $h = $p.MainWindowHandle
 if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : rien n'est tapé, arrêt"; return }
-Touche Bas; Touche Bas; Touche Entree; Start-Sleep -Seconds 3
-# Sans -devmode, le menu du jeu n'est pas le même (vu le 15/10 : le chargement est parti une touche plus tôt) : arrêt sur
-# la liste, capturée ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "playline0/autosave473".
-if ($SansDevmode) { "liste à regarder (sans -devmode) : " + (Capture "charger_partie_sans_devmode"); return }
-Touche Entree; Start-Sleep -Seconds 3
-Touche Bas; Touche Bas; Touche Bas; Touche Bas; Start-Sleep -Milliseconds 600
-"choix de la sauvegarde à vérifier : " + (Capture "choix_473")
+# Plus aucune touche à l'aveugle dans les menus (vu le 15/10 : une validation a lancé un chargement plus tôt que
+# prévu) : arrêt au menu principal, capturé ; la suite se fait à vue, touche par touche, par appuyer.ps1, qui arrête le jeu
+# si un chargement inattendu commence.
+"menu principal à regarder : " + (Capture "menu_principal")

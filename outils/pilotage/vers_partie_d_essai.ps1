@@ -35,6 +35,6 @@ if ($Charger) {
 Touche Entree
 $charge = $null
 foreach ($i in 1..30) { $charge = Select-String -Path $journal -Pattern "Loading saved game" | Select-Object -Last 1; if ($charge) { break }; Start-Sleep -Seconds 1 }
-if (-not $charge -or $charge.Line -notmatch "playline2") { "chargement inattendu : fermeture sans sauvegarde"; [void]$p.CloseMainWindow(); return }
+if (-not $charge -or $charge.Line -notmatch "playline2") { Stop-Process -Id $p.Id -Force; "chargement inattendu : jeu arrêté sans sauvegarde"; return }
 if (Attendre-Partie-Chargee $journal) { "partie d'essai chargée (" + $charge.Line.Trim() + ")" }
 else { "ÉCHEC du chargement de la partie d'essai (" + $charge.Line.Trim() + ") : le jeu est revenu au menu principal ou ne répond pas" }

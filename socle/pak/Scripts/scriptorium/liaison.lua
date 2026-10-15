@@ -1294,6 +1294,11 @@ function liaison.ordonner_au_marcheur(ordre)
   return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
 end
 
+-- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
+function liaison.ordonner_contre_henry()
+  return liaison.ordonner_au_marcheur(7)
+end
+
 -- Ce que devient le marcheur : distance au point visé et à Henry, tours de l'arbre, arrivées.
 function liaison.voir_le_marcheur()
   local entite = entite_nommee(liaison.marcheur)
@@ -1320,6 +1325,8 @@ function liaison.voir_le_marcheur()
     texte_adversaire = string.format(" ; adversaire à %.1f m, santé %s", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2),
       vie_lue and tostring(vie) or "?")
   end
+  local henry_lu, henry_sante = pcall(function() return player.actor:GetHealth() end)
+  texte_adversaire = texte_adversaire .. " ; Henry santé " .. (henry_lu and tostring(henry_sante) or "?")
   return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, rejoint %s, combats %s, santé %s%s", au_point,
     liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_combats"),

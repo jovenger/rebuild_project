@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 42:
-        erreur("ordres : %d commandes lues dans poste.lua, 42 attendues" % len(connues))
+    if len(connues) != 43:
+        erreur("ordres : %d commandes lues dans poste.lua, 43 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -581,8 +581,8 @@ JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
 
 
-FORMES_ADMISES_AU_PLUS = 26   # au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
-# (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; revues)
+FORMES_ADMISES_AU_PLUS = 27   # au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+# (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; 27 avec EntityContext ; revues)
 # Les attributs d'une ligne de forme : structure des tables et des arbres, jamais un nom, une valeur ni un comportement.
 ATTRIBUTS_DE_FORME = {"version", "xmlns:xsi", "xsi:noNamespaceSchemaLocation", "OneTimeOnly", "FailState", "saveVersion",
                       "canSkip", "is_function", "successMode", "failureMode"}

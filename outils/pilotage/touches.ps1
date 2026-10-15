@@ -30,6 +30,10 @@ function Mettre-Le-Jeu-Devant {
     [void][Cycle.U]::ShowWindow($h, 9); [void][Cycle.U]::BringWindowToTop($h); [void][Cycle.U]::SetForegroundWindow($h)
     [void][Cycle.U]::AttachThreadInput($fil_ici, $fil_devant, $false)
     Start-Sleep -Milliseconds 600
+    # Second moyen, toujours sans touche (vu le 15/10 : le premier ne suffit pas toujours) : réduire puis rétablir.
+    if ([Cycle.U]::GetForegroundWindow() -ne $h) {
+      [void][Cycle.U]::ShowWindow($h, 6); Start-Sleep -Milliseconds 500; [void][Cycle.U]::ShowWindow($h, 9); Start-Sleep -Milliseconds 800
+    }
   }
   return ([Cycle.U]::GetForegroundWindow() -eq $h)
 }
