@@ -386,6 +386,11 @@ function poste.essai_marcheur_armer()
   return true
 end
 
+function poste.essai_prairie()
+  jeu().journal("Poste : " .. jeu().mener_henry_en_prairie())
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -650,6 +655,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_garde_voir", fonction = function() return poste.essai_garde_voir() end, aide = "Ce que fait le garde du jeu ; santé du brigand du jeu" },
   { nom = "scriptorium_essai_marcheur_attaque_adversaire", fonction = function() return poste.essai_marcheur_attaque_adversaire() end, aide = "Le marcheur attaque l'adversaire (ordre 8)" },
   { nom = "scriptorium_essai_marcheur_armer", fonction = function() return poste.essai_marcheur_armer() end, aide = "Le marcheur tire son arme ; ses compétences de combat" },
+  { nom = "scriptorium_essai_prairie", fonction = function() return poste.essai_prairie() end, aide = "Henry posé sur la prairie des essais de combat" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },

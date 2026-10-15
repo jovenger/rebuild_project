@@ -1509,6 +1509,20 @@ function liaison.armer_le_marcheur()
   return "armer : arme tirée " .. (tiree and "demandée" or ("refusée : " .. tostring(erreur))) .. " ; " .. table.concat(niveaux, ", ")
 end
 
+-- Le lieu des essais de combat (V43 à V52) : la prairie au nord des remparts de Kuttenberg, loin des maisons. Plutôt
+-- que d'y mener Henry en courant à chaque séance (question de JoVenGer du 15/10), il y est posé, posé au sol, comme le
+-- jeu pose Henry à un point d'apparition (Scripts/GameRules/SinglePlayer.lua : player:SetWorldPos). Rend une ligne.
+liaison.prairie_des_essais = { x = 3327.4, y = 1078.5 }
+
+function liaison.mener_henry_en_prairie()
+  local lieu = liaison.au_sol({ x = liaison.prairie_des_essais.x, y = liaison.prairie_des_essais.y, z = 0 })
+  local ok, erreur = pcall(function() player:SetWorldPos(lieu) end)
+  if not ok then
+    return "prairie : refusé : " .. tostring(erreur)
+  end
+  return string.format("prairie : Henry posé en (%.1f, %.1f, %.1f)", lieu.x, lieu.y, lieu.z)
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)
