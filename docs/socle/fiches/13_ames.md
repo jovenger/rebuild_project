@@ -400,6 +400,11 @@
   disparaît après le rechargement. Quatre essais faits sur l'allure : **arrêt** (règle anti-boucle) ; piste pour plus
   tard, à lire d'abord : `Libs/Tables/Character/ClothingHidingGroup.xml` (le jeu masque des couches selon l'ensemble
   porté) ; le pavois reste à voir en main.
+- **Réponses de JoVenGer après V71 e (15/10/2026)** : **les six tenues du palier 3 qui superposent une cotte, une
+  brigandine ou une cuirasse et une cotte de mailles sont retirées du tirage** (`soldier_generic_5_02`, `5_05`, `5_12`,
+  `6_01`, `6_03`, `6_04` ; 15 tenues restent au palier 3 ; liste `hommes.equipement.tenue.exclues`, vérifiée par le banc) ;
+  **un essai de combat du pavoisier** pour voir s'il prend son pavois (V71 f) ; s'il ne le prend pas, question : un
+  bouclier ordinaire en attendant, ou le pavois laissé tel quel.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune

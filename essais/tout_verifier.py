@@ -504,12 +504,17 @@ def verifier_equipement():
         local erreurs, noms = {}, l.noms_des_prereglages()
         local pavois = {}
         for _, liste in pairs(e.pavois) do for _, p in ipairs(liste) do pavois[p] = true end end
+        local exclues = {}
+        for _, nom in ipairs(e.tenue.exclues or {}) do
+          if not l.pieces_de(nom) then table.insert(erreurs, "tenue exclue inconnue " .. nom) end
+          exclues[nom] = true
+        end
         local function candidats(sorte, bornes)
           local n = 0
           for _, nom in ipairs(noms) do
             local s, niveau = string.match(nom, "^(.-)_(%d+)_%d+$")
             niveau = tonumber(niveau)
-            if s == sorte and niveau and niveau >= bornes.de and niveau <= bornes.a and not pavois[nom] then n = n + 1 end
+            if s == sorte and niveau and niveau >= bornes.de and niveau <= bornes.a and not pavois[nom] and not exclues[nom] then n = n + 1 end
           end
           return n
         end

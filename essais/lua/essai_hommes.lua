@@ -776,4 +776,15 @@ essai("équipement : un personnage refait est rééquipé, sa tenue de naissance
   egal(a_dans_le_sac(id, piece), 1, "pièce donnée recréée")
   egal(FauxJeu.etat_objet(personnage_de(id), piece), 0.25, "avec son dernier état")
   egal(hommes.ce_qu_il_porte(id)[#hommes.ce_qu_il_porte(id)], piece, "et portée après sa tenue")
+end)
+
+essai("équipement : les tenues exclues ne sont jamais tirées", function()
+  preparer(300, 10, 10)
+  local exclues = hommes.equipement.tenue.exclues
+  hommes.equipement.tenue.exclues = { "soldier_generic_5_01", "soldier_generic_5_02", "soldier_generic_6_01" }
+  for _ = 1, 4 do
+    local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 3 })
+    egal(hommes.fiche(id).equipement.tenue, "soldier_generic_6_02", "seule tenue du palier 3 hors des exclues")
+  end
+  hommes.equipement.tenue.exclues = exclues
 end)

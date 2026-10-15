@@ -47,7 +47,11 @@ hommes.rangs = { soudoyer = 1, dizainier = 1.5, capitaine = 2 }
 -- la liaison (outils/equipement.py). Chaque pièce est créée une à une : le jeu la garde avec son usure (V71 a3).
 hommes.equipement = {
   etat_neuf = 1,     -- état des pièces neuves (1 : neuves)
-  tenue = { sorte = "soldier_generic", palier_1 = { de = 1, a = 2 }, palier_2 = { de = 3, a = 4 }, palier_3 = { de = 5, a = 6 } },
+  tenue = { sorte = "soldier_generic", palier_1 = { de = 1, a = 2 }, palier_2 = { de = 3, a = 4 }, palier_3 = { de = 5, a = 6 },
+            -- Hors du tirage (réponse de JoVenGer du 15/10/2026, après V71 e) : les six tenues du palier 3 qui superposent
+            -- une cotte, une brigandine ou une cuirasse et une cotte de mailles ; la cotte de dessus n'y est pas portée.
+            exclues = { "soldier_generic_5_02", "soldier_generic_5_05", "soldier_generic_5_12", "soldier_generic_6_01",
+                        "soldier_generic_6_03", "soldier_generic_6_04" } },
   familles = {
     epee_bouclier  = { sorte = "sword_shield", palier_1 = { de = 3, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 5 } },
     hache_bouclier = { sorte = "axe_shield", palier_1 = { de = 3, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 6 } },
@@ -532,16 +536,20 @@ local function est_un_pavois(nom)
   return false
 end
 
--- Les préréglages connus d'une sorte entre deux niveaux, sans ceux à pavois (réservés au pavoisier).
-local function prereglages_de(sorte, bornes)
-  local liste = {}
+-- Les préréglages connus d'une sorte entre deux niveaux, sans ceux à pavois (réservés au pavoisier) ni ceux de la liste
+-- « exclues ».
+local function prereglages_de(sorte, bornes, exclues)
+  local liste, hors = {}, {}
+  for _, nom in ipairs(exclues or {}) do
+    hors[nom] = true
+  end
   if type(bornes) ~= "table" or type(bornes.de) ~= "number" or type(bornes.a) ~= "number" then
     return liste
   end
   for _, nom in ipairs(jeu().noms_des_prereglages()) do
     local s, niveau = string.match(nom, "^(.-)_(%d+)_%d+$")
     niveau = tonumber(niveau)
-    if s == sorte and niveau and niveau >= bornes.de and niveau <= bornes.a and not est_un_pavois(nom) then
+    if s == sorte and niveau and niveau >= bornes.de and niveau <= bornes.a and not est_un_pavois(nom) and not hors[nom] then
       table.insert(liste, nom)
     end
   end
@@ -566,7 +574,7 @@ local function choisir_l_equipement(d, f)
   e.en_plus, e.otees = e.en_plus or {}, e.otees or {}
   e.naissance_retiree = e.naissance_retiree or false
   f.equipement = e
-  local tenue = choisir(d, prereglages_de(regles.tenue.sorte, regles.tenue[cle]))
+  local tenue = choisir(d, prereglages_de(regles.tenue.sorte, regles.tenue[cle], regles.tenue.exclues))
   local armes, munitions = nil, 0
   if f.role == "homme_d_armes" then
     if not (f.famille and regles.familles[f.famille]) then
