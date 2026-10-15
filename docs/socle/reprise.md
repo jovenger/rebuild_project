@@ -122,6 +122,11 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   (notre cerveau + switch du jeu) reçoit un vrai coup : riposte-t-il ? sinon, alors seulement, les boîtes aux lettres de
   `npc_basic` (`hitData`…) dans notre cerveau ; (2) un vrai coup « de la part de » notre homme sur un brigand : le
   brigand l'attaque-t-il, et notre homme se défend-il ? (moyen possible pour le Directeur de lancer un combat).
+  Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
+  tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
+  voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en
+  prairie ; pistes : boîtes aux lettres de `npc_basic`, `XGenAIModule.IgnorePerception`, volumes perceptibles et sons
+  des crimes du jeu.
 - **Pour la fiche 12 (le cerveau de nos hommes)**, déjà acquis : une branche de combat ne rend jamais la main, et l'homme
   n'obéit plus à aucun ordre (compteur des tours figé, nouveau marcheur à chaque essai). Les arbres du jeu entourent
   chaque action longue d'une garde `IfGate … RunLogic="Halt"` sur leur variable d'état (`AI/npc/basic/switch/interrupt_attack.xml` :

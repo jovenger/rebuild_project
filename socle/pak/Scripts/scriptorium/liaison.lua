@@ -1318,8 +1318,19 @@ function liaison.voir_le_brigand_du_jeu()
   local vie_lue, vie = pcall(function() return entite.actor:GetHealth() end)
   local henry_lu, henry = pcall(function() return player.actor:GetHealth() end)
   local faction = sonder(entite.soul, "GetFactionID")
-  return string.format("brigand du jeu à %.1f m d'Henry, santé %s ; Henry santé %s ; faction %s",
+  local ligne = string.format("brigand du jeu à %.1f m d'Henry, santé %s ; Henry santé %s ; faction %s",
     liaison.distance_a_henry(liaison.brigand_du_jeu) or -1, vie_lue and tostring(vie) or "?", henry_lu and tostring(henry) or "?", faction)
+  local marcheur = entite_nommee(liaison.marcheur)
+  if marcheur then
+    local ou_lu, ecart = pcall(function()
+      local p, q = entite:GetWorldPos(), marcheur:GetWorldPos()
+      return math.sqrt((p.x - q.x) ^ 2 + (p.y - q.y) ^ 2)
+    end)
+    local sa_vie_lue, sa_vie = pcall(function() return marcheur.actor:GetHealth() end)
+    ligne = ligne .. string.format(" ; à %s m du marcheur, santé du marcheur %s", ou_lu and string.format("%.1f", ecart) or "?",
+      sa_vie_lue and tostring(sa_vie) or "?")
+  end
+  return ligne
 end
 
 -- Le coup reçu (étape 1) : blesse « victime » de quelques points en donnant « auteur » comme auteur du coup ; le troisième
@@ -1345,12 +1356,22 @@ end
 -- Le vrai coup d'Henry (étape 1, 15/10) : par les règles du jeu (g_gameRules:CreateHit, Scripts/GameRules/SinglePlayer.lua),
 -- le chemin de tous les coups du jeu (réaction, stimulus de l'IA), Henry pour auteur ; soul:DealDamage (V42) ne baisse
 -- peut-être que la santé. Rend une ligne.
-local function frapper_par_henry(cible, titre, points)
-  if not cible then
-    return titre .. " introuvable"
+local function frapper(cible, auteur, qui, titre, points)
+  if not cible or not auteur then
+    return titre .. " ou " .. qui .. " introuvable"
   end
-  local ok, erreur = pcall(function() g_gameRules:CreateHit(cible.id, player.id, player.id, points) end)
-  return string.format("coup d'Henry à %s (%d) : %s", titre, points, ok and "porté" or ("refusé : " .. tostring(erreur)))
+  local ok, erreur = pcall(function() g_gameRules:CreateHit(cible.id, auteur.id, auteur.id, points) end)
+  return string.format("coup de %s à %s (%d) : %s", qui, titre, points, ok and "porté" or ("refusé : " .. tostring(erreur)))
+end
+
+local function frapper_par_henry(cible, titre, points)
+  return frapper(cible, player, "Henry", titre, points)
+end
+
+-- Le coup « de la part de » notre homme (V44) : le marcheur pour auteur d'un vrai coup sur le brigand du jeu. Le brigand
+-- l'attaque-t-il, et le marcheur se défend-il ? (moyen possible, pour le Directeur, de lancer un combat).
+function liaison.marcheur_frappe_le_brigand(points)
+  return frapper(entite_nommee(liaison.brigand_du_jeu), entite_nommee(liaison.marcheur), "marcheur", "brigand du jeu", points)
 end
 
 function liaison.henry_frappe_le_brigand(points)

@@ -326,6 +326,23 @@ function poste.essai_brigand_naissance()
   return true
 end
 
+function poste.essai_marcheur_frappe()
+  jeu().journal("Poste : coup, " .. jeu().marcheur_frappe_le_brigand(10))
+  return true
+end
+
+-- Le coup sans blessure (V44, demande de JoVenGer) : 0 point ; s'il suffit à déclencher le combat, le Directeur pourra le
+-- lancer sans que personne ne soit touché par magie.
+function poste.essai_marcheur_effleure()
+  jeu().journal("Poste : coup, " .. jeu().marcheur_frappe_le_brigand(0))
+  return true
+end
+
+function poste.essai_henry_effleure()
+  jeu().journal("Poste : coup, " .. jeu().henry_frappe_le_brigand(0))
+  return true
+end
+
 function poste.essai_marcheur_voir()
   jeu().journal("Poste : marcheur, " .. jeu().voir_le_marcheur())
   return true
@@ -579,6 +596,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_henry_frappe_habitant", fonction = function() return poste.essai_henry_frappe_habitant() end, aide = "Le même coup sur l'habitant de la carte le plus proche (contrôle)" },
   { nom = "scriptorium_essai_habitant_voir", fonction = function() return poste.essai_habitant_voir() end, aide = "Ce que devient l'habitant frappé" },
   { nom = "scriptorium_essai_brigand_naissance", fonction = function() return poste.essai_brigand_naissance() end, aide = "Annonce à l'IA la naissance du brigand du jeu (XGenAIModule.OnSpawn, OnStart)" },
+  { nom = "scriptorium_essai_marcheur_frappe", fonction = function() return poste.essai_marcheur_frappe() end, aide = "Un vrai coup du marcheur au brigand du jeu (règles du jeu)" },
+  { nom = "scriptorium_essai_marcheur_effleure", fonction = function() return poste.essai_marcheur_effleure() end, aide = "Un coup à 0 point du marcheur au brigand du jeu" },
+  { nom = "scriptorium_essai_henry_effleure", fonction = function() return poste.essai_henry_effleure() end, aide = "Un coup à 0 point d'Henry au brigand du jeu" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
