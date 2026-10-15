@@ -66,7 +66,9 @@ function Touche([string]$nom) {
 }
 
 # Capture une zone de l'écran (coordonnées réelles) dans le dossier de travail ; sans zone, tout l'écran à demi-taille.
+# Le jeu lancé est d'abord remis devant (vu le 15/10 : une autre fenêtre le couvrait pendant une observation).
 function Capture([string]$nom, [int[]]$zone) {
+  if ((Get-Process -Name KingdomCome -ErrorAction SilentlyContinue) -and -not (Jeu-Au-Premier-Plan)) { [void](Mettre-Le-Jeu-Devant); Start-Sleep -Milliseconds 500 }
   $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
   $img = New-Object System.Drawing.Bitmap $b.Width, $b.Height
   $g = [System.Drawing.Graphics]::FromImage($img); $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $img.Size)

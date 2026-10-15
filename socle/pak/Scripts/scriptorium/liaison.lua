@@ -1342,6 +1342,73 @@ function liaison.blesser_de_la_part_de(victime, auteur, points)
   return "coup de " .. auteur .. " à " .. victime .. " (" .. points .. ") : " .. table.concat(essais, ", ")
 end
 
+-- Le vrai coup d'Henry (étape 1, 15/10) : par les règles du jeu (g_gameRules:CreateHit, Scripts/GameRules/SinglePlayer.lua),
+-- le chemin de tous les coups du jeu (réaction, stimulus de l'IA), Henry pour auteur ; soul:DealDamage (V42) ne baisse
+-- peut-être que la santé. Rend une ligne.
+local function frapper_par_henry(cible, titre, points)
+  if not cible then
+    return titre .. " introuvable"
+  end
+  local ok, erreur = pcall(function() g_gameRules:CreateHit(cible.id, player.id, player.id, points) end)
+  return string.format("coup d'Henry à %s (%d) : %s", titre, points, ok and "porté" or ("refusé : " .. tostring(erreur)))
+end
+
+function liaison.henry_frappe_le_brigand(points)
+  return frapper_par_henry(entite_nommee(liaison.brigand_du_jeu), "brigand du jeu", points)
+end
+
+-- Le contrôle : le même coup sur l'habitant de la carte le plus proche. S'il ne réagit pas non plus, le coup ne prouve
+-- rien sur le brigand.
+liaison.habitant_frappe = nil
+
+function liaison.henry_frappe_un_habitant(points)
+  local habitant, distance = habitant_le_plus_proche()
+  if not habitant then
+    return "aucun habitant à moins de 150 m d'Henry"
+  end
+  liaison.habitant_frappe = habitant:GetName()
+  return frapper_par_henry(habitant, string.format("« %s », à %.0f m,", habitant:GetName(), distance), points)
+end
+
+function liaison.voir_l_habitant_frappe()
+  local entite = entite_nommee(liaison.habitant_frappe)
+  if not entite then
+    return "habitant frappé introuvable"
+  end
+  local vie_lue, vie = pcall(function() return entite.actor:GetHealth() end)
+  local henry_lu, henry = pcall(function() return player.actor:GetHealth() end)
+  return string.format("« %s » à %.1f m d'Henry, santé %s ; Henry santé %s", liaison.habitant_frappe,
+    liaison.distance_a_henry(liaison.habitant_frappe) or -1, vie_lue and tostring(vie) or "?", henry_lu and tostring(henry) or "?")
+end
+
+-- Les appels de naissance de l'IA (piste de la conversation Scriptorium, 15/10) : XGenAIModule.OnSpawn et OnStart existent
+-- dans le jeu publié, et aucun script du jeu ne les appelle. Essayés sur le brigand du jeu : this.id, puis l'entité,
+-- puis son id ; on s'arrête à la première forme acceptée. Rend une ligne.
+function liaison.annoncer_la_naissance()
+  local entite = entite_nommee(liaison.brigand_du_jeu)
+  if not entite then
+    return "brigand du jeu introuvable"
+  end
+  local this_lu, this = pcall(function() return entite.this end)
+  local formes = { { "this.id", (this_lu and type(this) == "table") and this.id or nil }, { "entité", entite }, { "id", entite.id } }
+  local lignes = {}
+  for _, nom in ipairs({ "OnSpawn", "OnStart" }) do
+    local lu, appel = pcall(function() return XGenAIModule[nom] end)
+    if not lu or type(appel) ~= "function" then
+      table.insert(lignes, nom .. " absente")
+    else
+      for _, forme in ipairs(formes) do
+        if forme[2] ~= nil then
+          local ok, rendu = pcall(appel, forme[2])
+          table.insert(lignes, nom .. "(" .. forme[1] .. ") " .. (ok and ("rend " .. tostring(rendu)) or ("refusé : " .. tostring(rendu))))
+          if ok then break end
+        end
+      end
+    end
+  end
+  return table.concat(lignes, " ; ")
+end
+
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
 function liaison.ordonner_contre_henry()
   return liaison.ordonner_au_marcheur(7)
