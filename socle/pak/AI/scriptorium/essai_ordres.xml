@@ -22,20 +22,22 @@
               <IfElseCondition failOnCondition="false" condition="$scriptorium_essai_ordre == 5" saveVersion="2">
                 <Then canSkip="1">
                   <Sequence>
-                    <MeleeDefenseAutomationDecorator active = "true">
-                      <MeleeGuardAutomationDecorator active="true" GuardMode="automate">
-                        <WeaponAutomationDecorator WeaponChange="none" active="true">
-                          <CombatFollowerDecorator active="true" RPGSweetSpotArcDriver="true" ProbablisticDrivenSweetSpot="true">
-                            <Parallel successMode="Any" failureMode="Any">
-                              <SuppressFailure>
-                                <CombatAction TargetNPC="$scriptorium_essai_cible" RelationOverride="Hostile" />
-                              </SuppressFailure>
-                              <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-                            </Parallel>
-                          </CombatFollowerDecorator>
-                        </WeaponAutomationDecorator>
-                      </MeleeGuardAutomationDecorator>
-                    </MeleeDefenseAutomationDecorator>
+                    <CombatMoveDecorator>
+                      <MeleeOffenseAutomationDecorator active = "true">
+                        <MeleeDefenseAutomationDecorator active = "true">
+                          <MeleeGuardAutomationDecorator active="true" GuardMode="automate">
+                            <WeaponAutomationDecorator active="true" WeaponChange="melee">
+                              <CombatFollowerDecorator active="true" RPGSweetSpotArcDriver="true" ProbablisticDrivenSweetSpot="true">
+                                <Parallel successMode="Any" failureMode="Any">
+                                  <CombatAction TargetNPC="$scriptorium_essai_cible" RelationOverride="Hostile" />
+                                  <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                </Parallel>
+                              </CombatFollowerDecorator>
+                            </WeaponAutomationDecorator>
+                          </MeleeGuardAutomationDecorator>
+                        </MeleeDefenseAutomationDecorator>
+                      </MeleeOffenseAutomationDecorator>
+                    </CombatMoveDecorator>
                     <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1" />
                   </Sequence>
                 </Then>

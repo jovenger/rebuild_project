@@ -5,7 +5,8 @@
 # Avec -Charger : va seulement jusqu'à la liste « Charger partie » et la capture (securite\captures\charger_partie.png),
 # sans rien valider ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "playline2/<sauvegarde>".
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
-param([switch]$Charger)
+# -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.
+param([switch]$Charger, [switch]$SansDevmode)
 $racine = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
 $jeu = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 $journal = Join-Path $jeu "kcd.log"
@@ -18,7 +19,8 @@ if (-not $Charger -and $derniere.Directory.Name -ne "playline2") { "la sauvegard
 Set-Location $racine
 py -3.13 noyau\installer.py --jeu $jeu | Select-Object -Last 1
 $t0 = Get-Date
-Start-Process -FilePath "C:\Program Files (x86)\Steam\steam.exe" -ArgumentList "-applaunch","1771300","-devmode"
+$arguments = @("-applaunch", "1771300"); if (-not $SansDevmode) { $arguments += "-devmode" }
+Start-Process -FilePath "C:\Program Files (x86)\Steam\steam.exe" -ArgumentList $arguments
 $menu = $false
 foreach ($i in 1..150) { Start-Sleep -Seconds 2; if ((Get-Item $journal).LastWriteTime -gt $t0 -and (Select-String -Path $journal -Pattern "PlayVideoOnly 'main_menu" -Quiet)) { $menu = $true; break } }
 if (-not $menu) { "menu non atteint : arrêt"; return }
