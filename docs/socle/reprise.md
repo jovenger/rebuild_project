@@ -144,6 +144,10 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   horaires jouent l'interruption. Ouvert : nos hommes frappent-ils ? (le brigand reste à 100 contre quatre). Prochain
   essai : notre homme contre un adversaire qui ne se défend pas (sa santé baisse-t-elle ?). Puis les ordres de
   marche en interruptions à nous (aller au point, poste, garde, rassemblement, sommeil).
+  **V51, V52 : le combat de l'étape 1 aboutit.** Sans arme tirée, notre homme engage sans blesser (V51) ; arme
+  tirée par `human:DrawWeapon` (comme `CombatDebug.lua` du jeu), il tue l'adversaire sur ordre (V52), compétences à 0.
+  Suite : les comportements à nous joués en interruption (aller au point, poste, garde, rassemblement, sommeil),
+  par la table `SmartEntity__so_interrupt` (principe transmis par la conversation Scriptorium) ; puis la fiche 12.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en
