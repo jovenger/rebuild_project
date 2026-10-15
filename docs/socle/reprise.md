@@ -47,15 +47,19 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **Quatorze morceaux** dans `socle\pak\Scripts\scriptorium\` : `noyau`, `liaison` (seul fichier qui parle au moteur),
   `bandeau`, `registre`, `coffre`, `camp`, `hommes`, `bataille`, `directeur`, `enceinte` et `atelier`, `patrouilles`,
   `discipline`, `caractere` (fiche 11, idée de JoVenGer du 15/10 : chaque homme est quelqu'un), `reglages`, et le `poste`
-  d'essai (27 ordres). Démarrage : `socle\pak\Scripts\Mods\scriptorium_socle.lua`.
+  d'essai (30 ordres). Démarrage : `socle\pak\Scripts\Mods\scriptorium_socle.lua`. Seul le noyau pose la table
+  `Scriptorium` ; chaque morceau la reprend par `local Scriptorium = Scriptorium` (à la bascule : `scriptorium.socle`).
+- **Note de JoVenGer, partie 2, toute faite le 15/10** : argent d'Henry sûr ; registre en tranches de 30 000 (vu en jeu
+  après sauvegarde et rechargement) ; nombres justes en simple précision (hasard du noyau à trois germes) ; aucun jeton
+  au-delà de 65 535 octets ; caractère tiré en cloche (étroite) ; un seul nom par table. Suite : son étape 1.
 - **Fiches 00 à 11** dans `docs\socle\fiches\` ; **02 à 11 validées par JoVenGer** (14 et 15/10, questions à cocher).
   Changements qu'il a demandés : livre de comptes à 50 lignes, deux rations par homme et par jour, butin doublé, corps
   ennemis laissés à fouiller une journée, enceinte de 20 m (22 pans), l'onguent soin léger, réglages par fichier.
-- **Banc** : `essais\tout_verifier.py` — syntaxe Lua 5.1, 1 701 vérifications sur un faux jeu, ordres par fichier,
+- **Banc** : `essais\tout_verifier.py` — syntaxe Lua 5.1, 1 731 vérifications sur un faux jeu, ordres par fichier,
   liaison sur un faux moteur, réglages par fichier (outil, liaison, installateur), noms interdits, 80 textes, manifeste,
   contrôle d'absence contre les empreintes d'Alex (0 partout). Tout passe.
 - **Outils** : `noyau\installer.py` (garde le fichier de réglages), `outils\ordonner.py` (ordres au poste),
-  `outils\regler.py` (réglages : `chemin=valeur`, `--retirer`, `--voir`, `--liste` des 166 valeurs),
+  `outils\regler.py` (réglages : `chemin=valeur`, `--retirer`, `--voir`, `--liste` des 168 valeurs),
   `outils\verifier_modeles.py`, `outils\empreintes.py`, et `outils\pilotage\` (voir partie 6).
 
 ## 5. Ce qui est vu en jeu (points V1 à V24 dans `essai_en_jeu.md`)
