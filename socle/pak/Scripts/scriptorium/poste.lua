@@ -448,22 +448,32 @@ function poste.essai_sieges_sonder()
 end
 
 function poste.essai_siege_poser()
-  jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("StanceSmartObject"))
+  jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("siege"))
   return true
 end
 
 function poste.essai_lit_poser()
-  jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("Bed"))
+  jeu().journal("Poste : sièges, " .. jeu().poser_un_siege("lit"))
   return true
 end
 
 function poste.essai_marcheur_asseoir()
-  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("StanceSmartObject", 10))
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("siege", 10))
   return true
 end
 
 function poste.essai_marcheur_coucher()
-  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("Bed", 11))
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("lit", 11))
+  return true
+end
+
+function poste.essai_marcheur_asseoir_reel()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("siege", 10, true))
+  return true
+end
+
+function poste.essai_marcheur_coucher_reel()
+  jeu().journal("Poste : marcheur, " .. jeu().ordonner_de_prendre_place("lit", 11, true))
   return true
 end
 
@@ -744,6 +754,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_lit_poser", fonction = function() return poste.essai_lit_poser() end, aide = "Pose près d'Henry une copie du lit du jeu le plus proche" },
   { nom = "scriptorium_essai_marcheur_asseoir", fonction = function() return poste.essai_marcheur_asseoir() end, aide = "Le marcheur s'assoit sur le siège posé (ordre 10)" },
   { nom = "scriptorium_essai_marcheur_coucher", fonction = function() return poste.essai_marcheur_coucher() end, aide = "Le marcheur se couche sur le lit posé (ordre 11)" },
+  { nom = "scriptorium_essai_marcheur_asseoir_reel", fonction = function() return poste.essai_marcheur_asseoir_reel() end, aide = "Le marcheur s'assoit sur le siège du jeu le plus proche (ordre 10)" },
+  { nom = "scriptorium_essai_marcheur_coucher_reel", fonction = function() return poste.essai_marcheur_coucher_reel() end, aide = "Le marcheur se couche sur le lit du jeu le plus proche (ordre 11)" },
   { nom = "scriptorium_essai_combat", fonction = function() return poste.essai_combat() end, aide = "Deux combattants npc_battle de camps opposés devant Henry" },
   { nom = "scriptorium_essai_combat_voir", fonction = function() return poste.essai_combat_voir() end, aide = "Ce que deviennent les deux combattants d'essai" },
   { nom = "scriptorium_essai_registre_tranches", fonction = function() return poste.essai_registre_tranches() end, aide = "Ce que le jeu garde du registre en tranches ; nombres justes en simple précision" },

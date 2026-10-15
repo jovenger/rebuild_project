@@ -1597,6 +1597,10 @@ function liaison.voir_le_marcheur()
   end
   local henry_lu, henry_sante = pcall(function() return player.actor:GetHealth() end)
   texte_adversaire = texte_adversaire .. " ; Henry santé " .. (henry_lu and tostring(henry_sante) or "?")
+  local ecart = liaison.ecart_a_l_objet_vise()
+  if ecart then
+    texte_adversaire = texte_adversaire .. string.format(" ; à %.2f m de l'objet visé", ecart)
+  end
   return string.format("à %s m du point visé, %.1f m d'Henry ; tours %s, arrivées %s, assis %s, couchés %s, rejoint %s, combats %s, santé %s%s", au_point,
     liaison.distance_a_henry(liaison.marcheur) or -1, variable("scriptorium_essai_vivant"), variable("scriptorium_essai_arrive"),
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_combats"),
@@ -1659,26 +1663,48 @@ function liaison.retirer_le_marcheur()
   return "retirer : « " .. nom .. " » retiré, encore là = " .. tostring(entite_nommee(nom) ~= nil)
 end
 
--- S'asseoir et se coucher (V60). Le jeu fait asseoir et coucher ses personnages par le nœud d'arbre StanceElement, posé
--- sur un « objet intelligent » désigné par son WUID (AI/_lukas/test_lukas_helper.xml : un banc, « sitting » ;
--- AI/special/so_injured.xml : un lit, « lying »). Ces objets sont des entités de classe StanceSmartObject (sièges, sans
--- modèle : Scripts/Entities/WH/Bed/StanceSmartObject.lua) ou Bed (lits, avec modèle : Bed.lua). Principe transmis par
--- la conversation Scriptorium : un StanceSmartObject et son WUID. On relève les vrais sièges et lits du jeu les plus
--- proches, on en pose une copie près d'Henry (mêmes propriétés), et le marcheur reçoit son WUID.
-liaison.classes_de_sieges = { "StanceSmartObject", "Bed" }
+-- S'asseoir et se coucher (V60, V61). Le jeu fait asseoir et coucher ses personnages par le nœud d'arbre StanceElement,
+-- posé sur un « objet intelligent » désigné par son WUID (AI/_lukas/test_lukas_helper.xml : un banc, « sitting » ;
+-- AI/special/so_injured.xml : un lit, « lying »), après une marche jusqu'à lui (Move sur le même WUID, arrêt à 0,2 m :
+-- AI/quests/zranenylovci/zranenyLovci.xml). Principe transmis par la conversation Scriptorium : un StanceSmartObject et
+-- son WUID. Vu en jeu (V60) : sièges et lits du monde sont tous des StanceSmartObject (5 354 autour de Kuttenberg,
+-- aucune entité Bed) ; un banc a la sorte « Chair », le type 57cbebae-…, les points d'appui « Sit_1Place_Bench_Low », et
+-- un WUID lisible. Sans la marche, l'homme reste debout à sa place (V60).
+liaison.objet_vise = nil
 liaison.sieges_d_essai = {}
 
--- Les entités d'une classe, de la plus proche d'Henry à la plus loin ; rend les « combien » premières et le total.
-local function plus_proches(classe, combien)
+local function sorte_de(e)
+  local p = type(e.Properties) == "table" and e.Properties or {}
+  local donnees_script = type(p.Script) == "table" and p.Script or {}
+  return tostring(donnees_script.esBedTypes), tostring(p.soclass_SmartObjectHelpers)
+end
+
+-- Un lit se reconnaît à sa sorte ou à ses points d'appui (couché, sommeil) ; un siège à la sorte « Chair ».
+local function est_un_lit(e)
+  local sorte, aides = sorte_de(e)
+  local texte = string.lower(sorte .. " " .. aides)
+  return sorte ~= "Chair" and (string.find(texte, "bed", 1, true) or string.find(texte, "sleep", 1, true)
+    or string.find(texte, "lie", 1, true) or string.find(texte, "lying", 1, true)) ~= nil
+end
+
+local function est_un_siege(e)
+  return (sorte_de(e)) == "Chair"
+end
+
+local genres = { siege = est_un_siege, lit = est_un_lit }
+
+-- Les StanceSmartObject du monde qui passent le filtre, du plus proche d'Henry au plus loin ; rend les « combien »
+-- premiers et le total.
+local function plus_proches(filtre, combien)
   local henry = liaison.position_du_joueur()
-  local ok, liste = pcall(System.GetEntitiesByClass, classe)
+  local ok, liste = pcall(System.GetEntitiesByClass, "StanceSmartObject")
   if not ok or type(liste) ~= "table" then
     return {}, "liste refusée : " .. tostring(liste)
   end
   local trouves = {}
   for _, e in pairs(liste) do
     local lu, ici = pcall(function() return e:GetWorldPos() end)
-    if lu and type(ici) == "table" then
+    if lu and type(ici) == "table" and (filtre == nil or filtre(e)) then
       table.insert(trouves, { entite = e, distance = math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2) })
     end
   end
@@ -1691,23 +1717,37 @@ local function plus_proches(classe, combien)
 end
 
 local function decrire_un_siege(e, distance)
+  local sorte, aides = sorte_de(e)
   local p = type(e.Properties) == "table" and e.Properties or {}
-  local donnees_script = type(p.Script) == "table" and p.Script or {}
-  local lit = type(p.Bed) == "table" and p.Bed or {}
   local nom_lu, nom = pcall(function() return e:GetName() end)
   local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(e) end)
-  return string.format("« %s » [%s] à %.0f m : modèle %s, sorte %s, type %s, aides %s, assise %s, sommeil %s, WUID %s",
-    nom_lu and tostring(nom) or "?", tostring(e.class), distance or -1, tostring(p.object_Model or p.object_editorModel),
-    tostring(donnees_script.esBedTypes), tostring(p.guidSmartObjectType), tostring(p.soclass_SmartObjectHelpers),
-    tostring(p.sSittingTagGlobal), tostring(lit.esSleepQuality), wuid_lu and "lu" or ("refusé : " .. tostring(wuid)))
+  return string.format("« %s » à %.0f m : sorte %s, aides %s, type %s, WUID %s", nom_lu and tostring(nom) or "?",
+    distance or -1, sorte, aides, tostring(p.guidSmartObjectType), wuid_lu and "lu" or ("refusé : " .. tostring(wuid)))
 end
 
--- Les trois sièges et les trois lits du jeu les plus proches d'Henry, avec leurs propriétés. Rend des lignes.
+-- Les sortes d'objets à moins de 300 m d'Henry (nombre, la plus proche), puis les deux sièges et les deux lits les
+-- plus proches. Rend des lignes.
 function liaison.sonder_les_sieges()
   local lignes = {}
-  for _, classe in ipairs(liaison.classes_de_sieges) do
-    local proches, total = plus_proches(classe, 3)
-    table.insert(lignes, classe .. " : " .. tostring(total) .. " dans le monde")
+  local tous, total = plus_proches(nil, 100000)
+  table.insert(lignes, "StanceSmartObject : " .. tostring(total) .. " dans le monde")
+  local sortes, ordre = {}, {}
+  for _, t in ipairs(tous) do
+    if t.distance > 300 then break end
+    local sorte, aides = sorte_de(t.entite)
+    local cle = sorte .. " / " .. aides
+    if not sortes[cle] then
+      sortes[cle] = { nombre = 0, distance = t.distance }
+      table.insert(ordre, cle)
+    end
+    sortes[cle].nombre = sortes[cle].nombre + 1
+  end
+  for i = 1, math.min(15, #ordre) do
+    table.insert(lignes, string.format("  sorte %s : %d, la plus proche à %.0f m", ordre[i], sortes[ordre[i]].nombre, sortes[ordre[i]].distance))
+  end
+  for _, genre in ipairs({ "siege", "lit" }) do
+    local proches, nombre = plus_proches(genres[genre], 2)
+    table.insert(lignes, genre .. " : " .. tostring(nombre) .. " dans le monde")
     for _, t in ipairs(proches) do
       table.insert(lignes, "  " .. decrire_un_siege(t.entite, t.distance))
     end
@@ -1715,52 +1755,64 @@ function liaison.sonder_les_sieges()
   return lignes
 end
 
--- Pose près d'Henry une copie (mêmes propriétés) du plus proche objet du jeu de cette classe. Rend une ligne.
-function liaison.poser_un_siege(classe)
-  local proches = plus_proches(classe, 1)
+-- Pose près d'Henry une copie (mêmes propriétés) du plus proche siège ou lit du jeu. Rend une ligne.
+function liaison.poser_un_siege(genre)
+  local proches = plus_proches(genres[genre], 1)
   if #proches == 0 then
-    return "poser : aucun " .. classe .. " dans le monde"
+    return "poser : aucun " .. genre .. " dans le monde"
   end
   local modele = proches[1].entite
-  local place = pres_d_henry(4, classe == "Bed" and -3 or 3)
-  local nom, erreur = faire_naitre(classe, "scriptorium_essai_" .. string.lower(classe), place, liaison.cap_du_joueur(),
+  local place = pres_d_henry(4, genre == "lit" and -3 or 3)
+  local nom, erreur = faire_naitre("StanceSmartObject", "scriptorium_essai_" .. genre, place, liaison.cap_du_joueur(),
                                    copie_profonde(modele.Properties))
   if not nom then
-    return "poser : " .. classe .. " refusé : " .. tostring(erreur)
+    return "poser : " .. genre .. " refusé : " .. tostring(erreur)
   end
-  liaison.sieges_d_essai[classe] = nom
-  local nom_lu, nom_du_modele = pcall(function() return modele:GetName() end)
-  return "poser : copie de « " .. (nom_lu and tostring(nom_du_modele) or "?") .. " » : "
+  liaison.sieges_d_essai[genre] = nom
+  return "poser : copie de " .. decrire_un_siege(modele, proches[1].distance) .. " ; la copie : "
     .. decrire_un_siege(entite_nommee(nom), liaison.distance_a_henry(nom))
 end
 
--- L'ordre 10 (s'asseoir) ou 11 (se coucher) : le marcheur reçoit le WUID de la copie posée ou, à défaut, du plus proche
--- objet du jeu de cette classe. Rend une ligne.
-function liaison.ordonner_de_prendre_place(classe, ordre)
+-- L'ordre 10 (s'asseoir) ou 11 (se coucher) : le marcheur reçoit le WUID de la copie posée (sauf « reel ») ou du plus
+-- proche siège ou lit du jeu. Rend une ligne.
+function liaison.ordonner_de_prendre_place(genre, ordre, reel)
   local marcheur = entite_nommee(liaison.marcheur)
   local this_lu, this = pcall(function() return marcheur.this end)
   if not marcheur or not this_lu or type(this) ~= "table" then
     return "place : marcheur introuvable ou sans this"
   end
-  local objet, origine = entite_nommee(liaison.sieges_d_essai[classe]), "copie posée"
+  local objet, origine = nil, "copie posée"
+  if not reel then
+    objet = entite_nommee(liaison.sieges_d_essai[genre])
+  end
   if not objet then
-    local proches = plus_proches(classe, 1)
+    local proches = plus_proches(genres[genre], 1)
     objet, origine = proches[1] and proches[1].entite, "le plus proche du jeu"
   end
   if not objet then
-    return "place : aucun " .. classe
+    return "place : aucun " .. genre
   end
   local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(objet) end)
   if not wuid_lu then
     return "place : WUID refusé : " .. tostring(wuid)
   end
   local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
-  local ecart_lu, ecart = pcall(function()
-    local ici, la = marcheur:GetWorldPos(), objet:GetWorldPos()
-    return math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
+  liaison.objet_vise = objet
+  return string.format("place : %s (%s), %s ; WUID posé %s ; %s", genre, origine,
+    decrire_un_siege(objet, liaison.ecart_a_l_objet_vise()), tostring(pose), liaison.ordonner_au_marcheur(ordre))
+end
+
+-- L'écart entre le marcheur et l'objet visé, ou nil.
+function liaison.ecart_a_l_objet_vise()
+  local marcheur = entite_nommee(liaison.marcheur)
+  if not marcheur or not liaison.objet_vise then
+    return nil
+  end
+  local lu, ecart = pcall(function()
+    local ici, la = marcheur:GetWorldPos(), liaison.objet_vise:GetWorldPos()
+    return math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2 + (ici.z - la.z) ^ 2)
   end)
-  return string.format("place : %s (%s), à %.1f m du marcheur ; WUID posé %s ; %s", classe, origine,
-    ecart_lu and ecart or -1, tostring(pose), liaison.ordonner_au_marcheur(ordre))
+  return lu and ecart or nil
 end
 
 -- La distance entre un personnage et Henry, ou nil.

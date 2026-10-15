@@ -19,12 +19,18 @@
     <Variables />
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
-        <StanceElement smartObject="$scriptorium_essai_siege" stance="sitting" allowAny="false" enabled="true">
-          <Sequence>
-            <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
-            <Wait duration="&apos;90s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-          </Sequence>
-        </StanceElement>
+        <Sequence>
+          <Parallel successMode="Any" failureMode="Any">
+            <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="0.200000" stopDistanceVariation="0.100000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+            <Wait duration="&apos;40s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+          </Parallel>
+          <StanceElement smartObject="$scriptorium_essai_siege" stance="sitting" allowAny="false" enabled="true">
+            <Sequence>
+              <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
+              <Wait duration="&apos;90s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+            </Sequence>
+          </StanceElement>
+        </Sequence>
       </Behavior>
     </Root>
     <ForestContainer />
@@ -33,12 +39,18 @@
     <Variables />
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
-        <StanceElement smartObject="$scriptorium_essai_siege" stance="lying" allowAny="false" enabled="true">
-          <Sequence>
-            <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
-            <Wait duration="&apos;90s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-          </Sequence>
-        </StanceElement>
+        <Sequence>
+          <Parallel successMode="Any" failureMode="Any">
+            <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="0.200000" stopDistanceVariation="0.100000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+            <Wait duration="&apos;40s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+          </Parallel>
+          <StanceElement smartObject="$scriptorium_essai_siege" stance="lying" allowAny="false" enabled="true">
+            <Sequence>
+              <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
+              <Wait duration="&apos;90s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+            </Sequence>
+          </StanceElement>
+        </Sequence>
       </Behavior>
     </Root>
     <ForestContainer />
