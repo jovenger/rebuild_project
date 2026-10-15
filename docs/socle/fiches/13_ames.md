@@ -394,6 +394,12 @@
   (`item.xml`, `MeleeWeapon Class="7"` ; ex. `polearm_4_02` : la bardiche seule) ; le relevé du poste nomme les pièces
   manquantes. Essai : quatre hommes vus de près avant et après un rechargement ; puis l'homme d'hast contre le brigand du
   jeu ; pièces manquantes relevées après le combat.
+- **Mesuré en V71 e** (15/10) : homme d'armes, arbalétrier et pavoisier ont la même allure avant et après le
+  rechargement ; **l'homme d'hast se bat avec son arme d'hast** (réponse de JoVenGer vérifiée) ; aucune pièce manquante
+  après le combat. **Reste** : la cotte de dessus du pavoisier n'est plus portée, même à l'embauche, et son camail
+  disparaît après le rechargement. Quatre essais faits sur l'allure : **arrêt** (règle anti-boucle) ; piste pour plus
+  tard, à lire d'abord : `Libs/Tables/Character/ClothingHidingGroup.xml` (le jeu masque des couches selon l'ensemble
+  porté) ; le pavois reste à voir en main.
 
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
