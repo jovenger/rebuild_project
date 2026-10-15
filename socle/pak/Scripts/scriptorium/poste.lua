@@ -597,6 +597,44 @@ local function equiper_la_sonde(quoi)
   return qui ~= nil
 end
 
+-- V71 a2 (fiche 13) : le témoin (premier homme) et les deux sondes nées à côté de lui.
+local function les_trois()
+  local qui, nom = premier_homme()
+  local n = jeu().noms_de_la_sonde or {}
+  return { { qui, "témoin " .. tostring(nom) }, { n.seule, "sonde seule" }, { n.hors_regles, "sonde hors règles" } }
+end
+
+function poste.essai_sonde_naitre()
+  local qui = premier_homme()
+  for _, ligne in ipairs(jeu().faire_naitre_la_sonde(qui)) do
+    jeu().journal("Poste : sonde, " .. ligne)
+  end
+  return qui ~= nil
+end
+
+function poste.essai_sonde_equiper()
+  for _, t in ipairs(les_trois()) do
+    jeu().journal("Poste : " .. t[2] .. ", " .. jeu().equiper_la_sonde(t[1], "tenue_2"))
+    jeu().journal("Poste : " .. t[2] .. ", " .. jeu().equiper_la_sonde(t[1], "armes"))
+  end
+  return true
+end
+
+function poste.essai_sonde_compter()
+  for _, t in ipairs(les_trois()) do
+    jeu().journal("Poste : " .. t[2] .. ", " .. jeu().compter_l_equipement(t[1]))
+  end
+  return true
+end
+
+function poste.essai_sonde_objets()
+  local qui, nom = premier_homme()
+  for _, ligne in ipairs(jeu().sonder_les_objets(qui)) do
+    jeu().journal("Poste : " .. tostring(nom) .. ", " .. ligne)
+  end
+  return qui ~= nil
+end
+
 function poste.essai_equiper_tenue() return equiper_la_sonde("tenue") end
 function poste.essai_equiper_tenue_2() return equiper_la_sonde("tenue_2") end
 function poste.essai_equiper_armes() return equiper_la_sonde("armes") end
@@ -906,6 +944,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_equiper_tenue", fonction = function() return poste.essai_equiper_tenue() end, aide = "Pose la tenue soldier_generic_1_01 sur le premier homme, puis compte" },
   { nom = "scriptorium_essai_equiper_tenue_lourde", fonction = function() return poste.essai_equiper_tenue_2() end, aide = "Pose la tenue soldier_generic_5_01 sur le premier homme, puis compte" },
   { nom = "scriptorium_essai_equiper_armes", fonction = function() return poste.essai_equiper_armes() end, aide = "Pose les armes sword_shield_3_01 sur le premier homme, puis compte" },
+  { nom = "scriptorium_essai_sonde_naitre", fonction = function() return poste.essai_sonde_naitre() end, aide = "Fait naître les deux sondes près du premier homme (V71 a2)" },
+  { nom = "scriptorium_essai_sonde_equiper", fonction = function() return poste.essai_sonde_equiper() end, aide = "Pose la tenue lourde et les armes sur le premier homme et les deux sondes, puis compte" },
+  { nom = "scriptorium_essai_sonde_compter", fonction = function() return poste.essai_sonde_compter() end, aide = "Compte l'équipement du premier homme et des deux sondes" },
+  { nom = "scriptorium_essai_sonde_objets", fonction = function() return poste.essai_sonde_objets() end, aide = "Ce que rendent GetInventoryTable et ItemManager pour le premier homme" },
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },

@@ -177,6 +177,53 @@
   d'un homme sait dire (le jeu n'a pas d'appel « nombre d'objets » dans ses scripts ; il a `GetCountOfClass`, `FindItem`,
   `AddItem`, `CreateItem`) : de quoi bâtir le filet.
 
+## Pourquoi l'équipement n'est pas gardé : diagnostic V71 a2 (avant V71 b ; sans question à JoVenGer, essai seulement)
+- **Ce que dit le journal de V71 a** : au rechargement, « Hommes : redressés, 0 revenu(s), 0 manquant(s) », et les ordres
+  vont à `scriptorium_Jan_Kladivo` : l'homme rechargé est **le même personnage**, gardé par le jeu, pas refait par le
+  socle. C'est donc le jeu qui l'a rhabillé.
+- **Ce qui l'habille, relu dans le jeu** (`IPL_GameData.pak`, `Libs/Storm/equipment/`, lecture seule) : les règles
+  « Storm » donnent à chaque personnage un préréglage d'inventaire (`setInventory`) selon sa classe sociale, sa faction,
+  le nom de son âme, son archétype. Nos âmes (classe 33 « soldier », faction `trosecko_settlements_trosky_soldiers_guards`)
+  tombent sous `inventory_combatants_tro` et `inventory_bergovSoldier_tro` (`world/classes.xml`, `world/factions.xml`) ;
+  tout homme tombe au moins sous `inventory_default_male` (`world/default.xml`). La tenue n'est pas dans la ligne Skald
+  du personnage (`skald_character.xml` : âge, corps, voix, noms ; `unique_assets` vide pour les soldats génériques).
+  Le Lua du jeu ne rhabille rien au chargement (`BasicActor.ResetCommon` ne fait que vider `self.AI`) : c'est le moteur.
+- **Ce que la conversation Scriptorium a transmis** (principe) : chez JoVenGer le 5/10, 69 tenues sur 69 et les armes de
+  mêlée revenues au chargement ; mais 12 archers sur 20 sans arc (Scriptorium réarme donc au chargement un archer sans arc
+  et un homme sans arme : **le filet est à prévoir de toute façon**). Ses hommes naissent en classe NPC avec la seule
+  âme pour propriété ; leurs âmes pointent vers ses propres personnages Skald.
+- **Essai V71 a2, trois hommes côte à côte, un seul changement chacun par rapport au premier** (même tenue lourde
+  `soldier_generic_5_01` et mêmes armes `sword_shield_3_01` posées sur les trois, compte avant et après le rechargement,
+  comme en V71 a) :
+  1. **témoin** : le premier homme du camp (copie des propriétés de la classe, âme de soldat) ;
+  2. **la seule âme** (piste du pair) : un homme né avec `{ guidSharedSoulId }` pour seule propriété, sur une âme d'essai
+     identique à celle du témoin (`scriptorium_essai_sonde_seule`) ; inerte possible (vu le 14/10), sans effet ici ;
+  3. **hors des règles Storm** (la piste Skald du pair, ramenée à ce qui habille vraiment) : né comme le témoin, sur une
+     âme d'essai que seule la règle par défaut vise (faction `animalCompanions`, classe 63 « fortuneTeller », toutes deux
+     absentes des règles d'équipement ; `scriptorium_essai_sonde_hors_regles`).
+  Les deux sondes ne sont pas au registre : le socle ne les touche pas au chargement.
+- **Lecture** : si le 2 garde son équipement, la cause est la copie des propriétés ; essai suivant : la copie sans les
+  propriétés qui composent le personnage (`esClothingConfig`, `fileModel`), les autres le font vivre. Si le 3 le garde,
+  ce sont les règles Storm visant nos âmes ; la faction « la Compagnie » (V72) et une classe hors règles en seraient le
+  remède. Si aucun ne le garde : repose depuis le registre, chaque pièce et son état (question à JoVenGer).
+- **Mesuré en V71 a2** (15/10) : **les trois reviennent exactement à leur inventaire de naissance** (comptes d'avant
+  l'équipement retrouvés homme par homme ; 16 objets avant, 11 après, d'autres identifiants et d'autres états : un
+  inventaire régénéré, pas gardé). Les sondes, inconnues du socle, sont gardées par le jeu comme le témoin. **Ni la copie
+  des propriétés, ni les règles Storm qui visent nos âmes n'en sont la cause.** Les deux essais ont fait varier l'homme ;
+  restent deux axes jamais variés (V71 a3) : **la façon d'équiper** (les deux préréglages viennent de l'outil de combat
+  du jeu, `Scripts/Debug/CombatDebug.lua` ; `player.lua` crée l'objet, le met à l'inventaire et le fait porter :
+  `ItemManager.CreateItem`, `inventory:AddItem`, `actor:EquipInventoryItem`) et **l'origine du personnage** (un
+  personnage du jeu, posé dans le niveau, équipé par le Lua). La piste Skald du pair reste non essayée, après celles-ci.
+- **Pour la repose, s'il le faut** : le jeu crée un objet avec son état (`ItemManager.CreateItem(identifiant, état,
+  nombre)`, `Scripts/Utils/ItemUtils.lua`) ; reste à savoir **lire** l'état d'une pièce portée : la sonde relève ce que
+  rendent `inventory:GetInventoryTable()` et les fonctions d'`ItemManager` sur le témoin. **Vu en V71 a2** : l'état se lit
+  (`ItemManager.GetItem(id)` rend `health`, `amount`, `class`, `entity`) ; `ItemManager.CreateItem` n'apparaît pas dans la
+  liste des fonctions d'`ItemManager` (à vérifier par l'appel). Si la repose est retenue : ne pas garder l'identifiant de
+  chaque pièce (300 hommes × 16 pièces × 42 octets dépassent 65 535 octets, même en tranches) mais le nom du préréglage
+  et l'état de ses pièces dans l'ordre ; retirer d'abord l'inventaire régénéré.
+- Recherches « Réutiliser avant de créer » (deux, sur les personnages Skald d'un mod et l'équipement gardé) : rien de
+  propre à KCD2.
+
 ## Essais prévus (un changement chacun, partie d'essai `playline3`)
 - **V70** : les hommes du camp nés sur nos âmes (notre cerveau, soldats du jeu, classe 33, faction provisoire du
   marcheur) ; ceux d'une partie déjà en cours, nés sur une âme empruntée, renaissent sur une âme à nous à l'entrée en

@@ -285,10 +285,11 @@ end
 -- Les classes qui naissent avec une copie des propriétés de leur classe, plus les nôtres : les personnages.
 liaison.classes_completees = { NPC = true }
 
-local function faire_naitre(classe, nom, position, cap, proprietes)
+-- « brut » : sans la copie des propriétés de la classe (sonde V71 a2 seulement, fiche 13).
+local function faire_naitre(classe, nom, position, cap, proprietes, brut)
   local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
   local angle = cap_vers_moteur(cap)
-  if liaison.classes_completees[classe] then
+  if liaison.classes_completees[classe] and not brut then
     proprietes = proprietes_completes(classe, proprietes)
   end
   local ok, entite = pcall(function()
@@ -2096,6 +2097,80 @@ function liaison.equiper_la_sonde(qui, quoi)
     ok, erreur = pcall(function() entite.actor:EquipClothingPreset(tenue.id) end)
   end
   return nom .. " : " .. (ok and "accepté" or ("refusé : " .. tostring(erreur))) .. " ; " .. liaison.compter_l_equipement(qui)
+end
+
+-- V71 a2 (fiche 13) : pourquoi l'équipement posé n'est pas gardé au rechargement. Deux sondes à côté du premier homme
+-- (le témoin), chacune différente de lui sur un seul point : « seule », née avec l'âme pour seule propriété ;
+-- « hors_regles », née comme lui sur une âme que seule la règle Storm par défaut vise (faction animalCompanions,
+-- classe 63). Leurs âmes sont des âmes d'essai de notre table (copies de scriptorium_combattant_1_01).
+liaison.ames_de_la_sonde = {
+  seule = "58a3065f-3817-414f-b5d6-59e160a700e8",        -- scriptorium_essai_sonde_seule
+  hors_regles = "4a509f20-d52c-4eb8-bc89-771560f87728",  -- scriptorium_essai_sonde_hors_regles
+}
+liaison.noms_de_la_sonde = { seule = "scriptorium_sonde_seule", hors_regles = "scriptorium_sonde_hors_regles" }
+
+-- Fait naître les deux sondes à 2 et 4 m du témoin (une seule fois : déjà nées, elles ne renaissent pas). Rend des lignes.
+function liaison.faire_naitre_la_sonde(temoin)
+  local entite = entite_nommee(temoin)
+  local ok, ici = pcall(function() return entite:GetWorldPos() end)
+  if not entite or not ok or type(ici) ~= "table" then
+    return { "témoin « " .. tostring(temoin) .. " » introuvable" }
+  end
+  local lignes = {}
+  for i, sorte in ipairs({ "seule", "hors_regles" }) do
+    local nom = liaison.noms_de_la_sonde[sorte]
+    if entite_nommee(nom) then
+      table.insert(lignes, nom .. " : déjà née")
+    else
+      local place = liaison.au_sol({ x = ici.x + 2 * i, y = ici.y, z = ici.z })
+      local ne, raison = faire_naitre("NPC", nom, place, 0, { guidSharedSoulId = liaison.ames_de_la_sonde[sorte] },
+                                     sorte == "seule")
+      if ne then
+        liaison.eveiller(ne, ne)
+      end
+      table.insert(lignes, nom .. " : " .. (ne and ("née (" .. ne .. ")") or ("refusée : " .. tostring(raison))))
+    end
+  end
+  return lignes
+end
+
+-- Ce que rendent l'inventaire et le gestionnaire d'objets du jeu pour les pièces portées (de quoi reposer chaque pièce
+-- avec son état, s'il le faut). Rend des lignes.
+function liaison.sonder_les_objets(qui)
+  local entite = entite_nommee(qui)
+  if not entite then
+    return { "« " .. tostring(qui) .. " » introuvable" }
+  end
+  local lignes = { "ItemManager : " .. table.concat(fonctions_de(ItemManager), ", ") }
+  local ok, liste = pcall(function() return entite.inventory:GetInventoryTable() end)
+  if not ok or type(liste) ~= "table" then
+    table.insert(lignes, "GetInventoryTable : " .. tostring(liste))
+    return lignes
+  end
+  local vus = 0
+  for cle, valeur in pairs(liste) do
+    vus = vus + 1
+    if vus <= 3 then
+      local champs = {}
+      if type(valeur) == "table" then
+        for k, v in pairs(valeur) do
+          table.insert(champs, tostring(k) .. "=" .. tostring(v))
+        end
+      end
+      local lu, objet = pcall(function() return ItemManager.GetItem(valeur) end)
+      local du_jeu = {}
+      if lu and type(objet) == "table" then
+        for k, v in pairs(objet) do
+          table.insert(du_jeu, tostring(k) .. "=" .. tostring(v))
+        end
+      end
+      table.insert(lignes, string.format("objet %s : %s (%s) ; GetItem : %s", tostring(cle), tostring(valeur),
+        table.concat(champs, ", "),
+        lu and (type(objet) == "table" and table.concat(du_jeu, ", ") or tostring(objet)) or ("erreur " .. tostring(objet))))
+    end
+  end
+  table.insert(lignes, "GetInventoryTable : " .. vus .. " entrée(s)")
+  return lignes
 end
 
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
