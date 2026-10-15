@@ -8,7 +8,7 @@
 --                complement = "texte ajouté après le message (un nom, un montant)" }
 -- Scriptorium.bandeau.battre() fait avancer le bandeau ; demarrer() le fait battre tout seul.
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local bandeau = {}
 Scriptorium.bandeau = bandeau

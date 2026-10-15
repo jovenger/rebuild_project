@@ -5,7 +5,7 @@
 -- Chaque fonction marquée « à vérifier en jeu » repose sur un appel du moteur
 -- qui n'a pas encore été confirmé sur le PC de JoVenGer. Voir docs/socle/essai_en_jeu.md.
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local liaison = {}
 

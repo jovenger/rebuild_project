@@ -1,7 +1,7 @@
 -- L'atelier : l'alchimie (des herbes en remèdes) et l'armurerie (l'entretien des armes).
 -- Fiche de comportement : docs/socle/fiches/07_enceinte.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local atelier = {}
 Scriptorium.atelier = atelier

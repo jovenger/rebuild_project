@@ -1,7 +1,7 @@
 -- Le combat et les batailles : lever une bande, l'ordre de bataille, l'issue, les pertes, le butin.
 -- Fiche de comportement : docs/socle/fiches/05_bataille.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local bataille = {}
 Scriptorium.bataille = bataille

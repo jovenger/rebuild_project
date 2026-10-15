@@ -1,7 +1,7 @@
 -- Les hommes au camp : fiches, contrats, solde, vivres, moral, journée, garde, départs.
 -- Fiche de comportement : docs/socle/fiches/04_hommes.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local hommes = {}
 Scriptorium.hommes = hommes

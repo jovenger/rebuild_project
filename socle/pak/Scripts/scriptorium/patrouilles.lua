@@ -1,7 +1,7 @@
 -- Les patrouilles : des hommes envoyés sur un chemin, qui reviennent et rendent compte.
 -- Fiche de comportement : docs/socle/fiches/08_patrouilles.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local patrouilles = {}
 Scriptorium.patrouilles = patrouilles

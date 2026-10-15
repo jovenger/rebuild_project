@@ -2,7 +2,7 @@
 -- son redressement après un chargement, sa levée.
 -- Fiche de comportement : docs/socle/fiches/03_camp.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local camp = {}
 Scriptorium.camp = camp

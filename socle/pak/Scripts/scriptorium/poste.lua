@@ -1,7 +1,7 @@
 -- Poste d'essai : des commandes en français pour éprouver chaque morceau en jeu,
 -- sans rien d'autre que le socle. Voir docs/socle/essai_en_jeu.md.
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local poste = {}
 Scriptorium.poste = poste
@@ -612,7 +612,7 @@ end
 
 Scriptorium.declarer_morceau("poste", function()
   for _, commande in ipairs(poste.commandes) do
-    jeu().commande(commande.nom, "Scriptorium.poste.executer('" .. commande.nom .. "')", commande.aide)
+    jeu().commande(commande.nom, Scriptorium.chemin .. ".poste.executer('" .. commande.nom .. "')", commande.aide)
   end
   poste.demarrer()
 end)

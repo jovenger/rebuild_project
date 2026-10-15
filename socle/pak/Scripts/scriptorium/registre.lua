@@ -9,7 +9,7 @@
 -- Scriptorium.registre.lire(nom) rend la table vivante de la case (chargée au besoin).
 -- Scriptorium.registre.enregistrer() écrit tout dans la partie ; charger() relit tout.
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local registre = {}
 Scriptorium.registre = registre

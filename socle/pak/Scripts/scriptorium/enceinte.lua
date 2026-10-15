@@ -1,7 +1,7 @@
 -- L'enceinte : palissade, porte, tours de guet. Bâtie contre du bois, posée comme le camp.
 -- Fiche de comportement : docs/socle/fiches/07_enceinte.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local enceinte = {}
 Scriptorium.enceinte = enceinte

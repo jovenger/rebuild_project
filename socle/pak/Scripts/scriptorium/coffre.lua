@@ -4,7 +4,7 @@
 -- Règle de JoVenGer : le camp paie au coffre, jamais avec la bourse d'Henry.
 -- Une dépense que le coffre ne peut pas couvrir est refusée ; rien n'est pris ailleurs.
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local coffre = {}
 Scriptorium.coffre = coffre

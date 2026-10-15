@@ -136,6 +136,7 @@ def verifier_ordres():
     if lua is None:
         return len(connues)
     chemin_liaison = os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
     lua.execute(lire(chemin_liaison))
     liaison = lua.globals().Scriptorium.liaison_reelle
     with tempfile.TemporaryDirectory() as dossier:
@@ -182,6 +183,7 @@ def verifier_reglages_par_fichier():
     if not regler.retirer(donnees, "hommes.ration") or "hommes" in donnees:
         erreur("réglages : retirer une valeur devrait vider sa section")
     regler.poser(donnees, "hommes.ration", 3)
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
     liaison = lua.globals().Scriptorium.liaison_reelle
     with tempfile.TemporaryDirectory() as dossier:
@@ -437,6 +439,55 @@ def verifier_noms():
     return compte
 
 
+# ------------------------------------------------------------------ 3 bis. un seul nom par table
+
+# Note de JoVenGer (partie 2, point 5) : à la bascule, la table du socle deviendra « scriptorium.socle ». Seul le noyau
+# la pose ; chaque autre fichier la reprend par sa première ligne de code ; aucune chaîne ne porte son nom ; aucun nom
+# du socle ne diffère d'un autre par une majuscule seulement, sauf les noms imposés par le moteur.
+REPRISE_DE_LA_TABLE = "local Scriptorium = Scriptorium"
+NOMS_DU_MOTEUR = {"properties": "Properties des classes d'entités, properties de System.SpawnEntity"}
+
+
+def lignes_de_code(texte):
+    """Les lignes sans commentaires ni contenu de chaînes (assez pour des noms)."""
+    texte = re.sub(r"--\[\[.*?\]\]", " ", texte, flags=re.S)
+    resultat = []
+    for ligne in texte.splitlines():
+        ligne = re.sub(r'"(?:[^"\\]|\\.)*"', '""', ligne)
+        ligne = re.sub(r"'(?:[^'\\]|\\.)*'", "''", ligne)
+        resultat.append(re.sub(r"--.*$", "", ligne).rstrip())
+    return resultat
+
+
+def verifier_un_seul_nom():
+    morceaux = os.path.join(PAK, "Scripts", "scriptorium")
+    formes = {}
+    for chemin in fichiers(os.path.join(PAK, "Scripts"), {".lua"}):
+        texte = lire(chemin)
+        code = lignes_de_code(texte)
+        nom = os.path.basename(chemin)
+        poses = [i + 1 for i, ligne in enumerate(code) if re.match(r"^\s*Scriptorium\s*=", ligne)]
+        if os.path.dirname(chemin) == morceaux and nom != "noyau.lua":
+            if poses:
+                erreur("un seul nom par table : %s pose la table du socle (ligne %d)" % (relatif(chemin), poses[0]))
+            premiere = next((ligne.strip() for ligne in code if ligne.strip()), "")
+            if premiere != REPRISE_DE_LA_TABLE:
+                erreur("un seul nom par table : %s ne commence pas par « %s » : %s" % (relatif(chemin), REPRISE_DE_LA_TABLE, premiere))
+        elif nom == "noyau.lua" and len(poses) != 1:
+            erreur("un seul nom par table : le noyau doit poser la table une fois (%d)" % len(poses))
+        for numero, ligne in enumerate(texte.splitlines(), 1):
+            sans_commentaire = re.sub(r"--.*$", "", ligne)
+            if re.search(r"""["']Scriptorium[.:]""", sans_commentaire):
+                erreur("un seul nom par table : nom de la table dans une chaîne, %s:%d : %s" % (relatif(chemin), numero, ligne.strip()))
+        for ligne in code:
+            for mot in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", ligne):
+                formes.setdefault(mot.lower(), set()).add(mot)
+    doubles = {cle: sorted(f) for cle, f in formes.items() if len(f) > 1 and cle not in NOMS_DU_MOTEUR}
+    for cle, f in sorted(doubles.items()):
+        erreur("un seul nom par table : noms qui ne diffèrent que par une majuscule : " + ", ".join(f))
+    return len(formes)
+
+
 # ------------------------------------------------------------------ 4. textes
 
 def verifier_textes():
@@ -604,6 +655,7 @@ def principal(arguments):
             print("2. banc Lua : non lancé (syntaxe en erreur)")
 
     print("3. noms interdits : %d" % verifier_noms())
+    print("3 bis. un seul nom par table : %d noms relevés, table posée par le seul noyau" % verifier_un_seul_nom())
     definies, employees = verifier_textes()
     print("4. textes : %d clés définies, %d employées" % (definies, employees))
     verifier_manifeste()

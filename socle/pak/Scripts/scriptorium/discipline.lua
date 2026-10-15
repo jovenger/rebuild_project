@@ -1,7 +1,7 @@
 -- La discipline et la justice du camp : fautes, jugements, réputation auprès des villages.
 -- Fiche de comportement : docs/socle/fiches/09_discipline.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local discipline = {}
 Scriptorium.discipline = discipline

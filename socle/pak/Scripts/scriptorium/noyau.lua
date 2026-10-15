@@ -3,7 +3,13 @@
 -- Scriptorium.demarrer() lance les morceaux dans l'ordre de déclaration ;
 -- un morceau qui échoue est annoncé en clair et ne bloque pas les suivants.
 
+-- La table du socle (note de JoVenGer, partie 2, point 5 : un seul nom par table). Elle s'appelle aujourd'hui
+-- « Scriptorium », à côté du mod actuel « scriptorium » ; à la bascule, elle deviendra la sous-table
+-- « scriptorium.socle ». Seul ce fichier la pose ; chaque autre fichier la reprend par sa première ligne,
+-- « local Scriptorium = Scriptorium », seule ligne à changer à la bascule. « chemin » sert aux chaînes que le jeu
+-- exécute (commandes de la console). Aucun autre nom du socle ne diffère d'un autre par une majuscule seulement.
 Scriptorium = Scriptorium or {}
+Scriptorium.chemin = "Scriptorium"
 Scriptorium.version = "0.1.0"
 Scriptorium.nom_du_mod = "scriptorium_socle"
 Scriptorium.morceaux = Scriptorium.morceaux or {}

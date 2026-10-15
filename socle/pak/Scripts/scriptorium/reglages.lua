@@ -3,7 +3,7 @@
 -- Scriptorium doit pouvoir modifier règles et comportements ; pendant le chantier, outils/regler.py écrit le fichier.
 -- Fiche de comportement : docs/socle/fiches/10_reglages.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local reglages = {}
 Scriptorium.reglages = reglages

@@ -1,7 +1,7 @@
 -- Le Directeur : le personnage qui tient le camp, et la Gestion du camp (un menu en données).
 -- Fiche de comportement : docs/socle/fiches/06_directeur.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local directeur = {}
 Scriptorium.directeur = directeur

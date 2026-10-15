@@ -3,7 +3,7 @@
 -- Idée de JoVenGer du 15/10 : chaque homme est quelqu'un.
 -- Fiche de comportement : docs/socle/fiches/11_caractere.md
 
-Scriptorium = Scriptorium or {}
+local Scriptorium = Scriptorium
 
 local caractere = {}
 Scriptorium.caractere = caractere
