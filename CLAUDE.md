@@ -12,6 +12,7 @@
 
 ## Règles de travail
 - Jamais recopier, traduire ou renommer le code d'Alex : fiche de comportement d'abord (`docs/socle/fiches/`), code neuf ensuite, d'après la fiche seule.
+- Décision de JoVenGer (15/10/2026, confirmée directement) : quand le socle bloque, la conversation Scriptorium regarde comment le mod d'Alex s'y prend et transmet SEULEMENT le principe (quel mécanisme du jeu employer), jamais son code, ses noms, ses fichiers ni sa structure. Claude n'ouvre toujours jamais le dossier d'Alex, écrit son propre code, et le contrôle d'absence reste strict.
 - Une chose à la fois, menée jusqu'au bout ; rien laissé en essai ; pas de `TODO`.
 - Pas de commit si `py -3.13 essais/tout_verifier.py` ne passe pas entièrement (ici : `python3`, avec `lupa` installé).
 - Aucune action destructive sans l'accord de JoVenGer juste avant.

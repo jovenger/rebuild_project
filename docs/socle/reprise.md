@@ -151,6 +151,9 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   rappeler un homme engagé.
 - **Méthode** (JoVenGer, via la conversation Scriptorium) : une chose changée à la fois, en partant de ce qui marche ;
   prévenir la conversation Scriptorium au début et à la fin de chaque essai ; JoVenGer laisse Claude choisir les essais.
+  Décision de JoVenGer du 15/10 (confirmée directement) : quand le socle bloque, la conversation Scriptorium regarde
+  comment le mod d'Alex s'y prend et transmet seulement le principe (le mécanisme du jeu), jamais son code, ses noms,
+  ses fichiers ni sa structure ; Claude n'ouvre jamais le dossier d'Alex, écrit son propre code, contrôle d'absence strict.
 - Acquis revus sans `-devmode` le 15/10 : mêmes résultats (`essai_en_jeu.md`, « Avec ou sans `-devmode` »).
 - Contrôle d'absence : les lignes XML identiques au jeu de base qui portent un réglage s'écrivent à notre façon (choix de
   JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 31.
