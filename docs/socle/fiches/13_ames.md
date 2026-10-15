@@ -269,6 +269,10 @@
   préréglages de l'outil de combat ; le contenu des préréglages lu dans les tables du jeu par un outil du dépôt) ; le
   registre ne garde que les noms des préréglages (et la famille) de chaque homme, le jeu gardant l'usure ; le filet des
   archers est compris dans la repose au chargement si a ou b.
+- **Pour le guichet** (pair, 15/10, sans question) : les pièces données plus tard par le programme Scriptorium (forge,
+  butin, armure d'un gradé) sont elles aussi « à lui » : un service « donner une pièce à un homme » la crée une à une,
+  avec son état, et la note sur sa fiche ; une accroche « pièce retirée ou perdue » la sort de la fiche (vendue,
+  cassée). Sinon elle serait retirée comme la tenue de naissance, ou jamais remise.
 - **Le chemin d'équipement qui en découle** (pair, 15/10) : lire dans les tables du jeu la liste des objets de chaque
   préréglage (`clothing_preset.xml`, `weapon_preset.xml`) par un outil du dépôt, et créer chaque pièce une à une ; les
   choix de JoVenGer (préréglages par grade et par famille) restent valables tels quels.
