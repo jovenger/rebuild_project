@@ -152,6 +152,8 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   et l'homme frappe ; compétences posables par `soul:AdvanceToSkillLevel` (relu, hors `-devmode`). Le brigand du jeu
   `kopa_man_16` (armure complète) n'est jamais blessé : mesures suivantes contre une âme ennemie plus légère. Le
   tirage des compétences selon le caractère est une règle nouvelle : fiche 11 ou 12 d'abord, validation de JoVenGer.
+  V54 : contre un brigand léger (`kkop_bandit_7`), notre homme le blesse et le met en fuite. Le combat de l'étape 1 est
+  acquis. Suite : comportements à nous joués en interruption (`SmartEntity__so_interrupt`), puis fiche 12.
   Demandes de JoVenGer (relayées le 15/10 au soir) : le plus petit coup qui déclenche encore (0 point, sinon 1) ; Henry
   tenu à distance pendant les essais. **Ouvert pour plus tard : l'attaque à vue** (une bande qui attaque d'elle-même en
   voyant le camp, pour les raids et les missions) : le brigand du jeu n'attaque pas Henry de lui-même à 8 m, même en
