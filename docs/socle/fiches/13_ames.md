@@ -440,6 +440,12 @@
 - **V71** : l'équipement de départ par le Lua (`EquipClothingPreset`, `EquipWeaponPreset`) : accepté hors `-devmode` ?
   vu à l'image ? gardé au rechargement ?
 - **V72** : la faction « la Compagnie ».
+  À prévoir dans sa fiche (conversation Scriptorium, 15/10) : (1) dans un de ses combats, un archer contre le brigand,
+  **les flèches comptées avant et après le tir** (dernier point de V71) ; (2) **les crimes d'Henry** (idée validée n° 2,
+  rattachée à la faction) : les hommes de la Compagnie ne dénoncent jamais Henry et ne l'attaquent jamais pour un crime ;
+  seuls le duel et le pugilat sont hostiles, le temps du combat ; essai : Henry commet un petit délit devant un homme
+  de la Compagnie ; (3) **la classe sociale** : vérifier que les règles d'équipement Storm ne visent pas la Compagnie
+  (piste de V71 a2).
 - Plus tard, si la question 1 b ou après : nos propres personnages (le visage à mesurer).
 
 ## Règles en données (catalogue de `reglages.lua`, règle de JoVenGer du 14/10)
