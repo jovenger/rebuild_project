@@ -115,12 +115,13 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   désigné par une variable `wuid`. Avec le sous-cerveau « switch » du jeu (`npc_basic_switch`) en plus, il tire l'épée.
 - **Ouvert** : s'asseoir à même le sol (V32, V33 : la branche bloque) ; s'asseoir sur un siège posé par script (pas de
   `this`) ; **porter des coups** (V34, V36 à V40 : épée tirée, aucun coup ; avec la chaîne de la bagarre du jeu, le
-  sous-arbre n'est plus mis à jour). 15/10 au soir (V41, V42) : un brigand **du jeu**, né par script et éveillé, tire
-  ses armes et fait face à Henry mais ne frappe pas non plus ; le marcheur ne riposte pas à un coup reçu. Le manque
-  n'est donc pas dans notre cerveau (boîtes aux lettres écartées) : il vient de la naissance par script ou de ce qui
-  précède l'attaque dans le jeu (verrou `tenseCircumstance`, escarmouche, `interrupt_attack.xml`). Prochain essai :
-  lire les variables du cerveau `npc_basic` du brigand du jeu (`attackState`, `myTarget`, `playerInSkirmishNow`…) pour
-  voir où l'arbre d'attaque s'arrête ; puis un coup donné à la main par JoVenGer.
+  sous-arbre n'est plus mis à jour). **15/10 au soir (V43) : un brigand du jeu (cerveau `npc_basic`), né par script et
+  éveillé, se bat pour de bon dès qu'Henry lui porte un vrai coup** (`g_gameRules:CreateHit`, le chemin des coups du
+  jeu) : il charge, frappe et tue Henry. Le combat du jeu marche donc sur un homme né par script ; ce qui manquait est le
+  déclencheur. `soul:DealDamage` (V42) ne déclenche sans doute rien. Essais suivants, dans l'ordre : (1) notre marcheur
+  (notre cerveau + switch du jeu) reçoit un vrai coup : riposte-t-il ? sinon, alors seulement, les boîtes aux lettres de
+  `npc_basic` (`hitData`…) dans notre cerveau ; (2) un vrai coup « de la part de » notre homme sur un brigand : le
+  brigand l'attaque-t-il, et notre homme se défend-il ? (moyen possible pour le Directeur de lancer un combat).
 - **Pour la fiche 12 (le cerveau de nos hommes)**, déjà acquis : une branche de combat ne rend jamais la main, et l'homme
   n'obéit plus à aucun ordre (compteur des tours figé, nouveau marcheur à chaque essai). Les arbres du jeu entourent
   chaque action longue d'une garde `IfGate … RunLogic="Halt"` sur leur variable d'état (`AI/npc/basic/switch/interrupt_attack.xml` :
