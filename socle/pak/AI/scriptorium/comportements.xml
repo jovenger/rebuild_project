@@ -36,6 +36,14 @@
                 <IfCondition condition="$scriptorium_activite == 9 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
                   <Parallel successMode="Any" failureMode="Any">
                     <Sequence>
+                      <SuppressFailure>
+                        <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                          <Parallel successMode="Any" failureMode="Any">
+                            <WaitAction />
+                            <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Parallel>
+                        </StanceElement>
+                      </SuppressFailure>
                       <Parallel successMode="Any" failureMode="Any">
                         <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$marche_arret" stopDistanceVariation="$marche_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
                         <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />

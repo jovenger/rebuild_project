@@ -111,10 +111,11 @@ function poste.essai_camp()
   return ok and "fonde" or "refuse", capacite.lits, capacite.sieges
 end
 
--- Camp : ce que le moteur dit du feu central, d'un banc et d'une tente (V23).
+-- Camp : ce que le moteur dit du feu central, d'un banc, d'une tente et d'un de ses lits (V23 ; le lit, V73 c 12 : un
+-- lit du plan posé hors de sa tente, à replacer d'après les vraies dimensions).
 function poste.essai_feu()
   local camp = Scriptorium.camp
-  for _, nom in ipairs({ "feu_central", "siege_1", "tente_1" }) do
+  for _, nom in ipairs({ "feu_central", "siege_1", "tente_1", "lit_1a", "lit_1b" }) do
     local identifiant = camp.objet_de(nom)
     local description = identifiant and jeu().decrire_objet and jeu().decrire_objet(identifiant) or "pas posé"
     jeu().journal("Poste : objet « " .. nom .. " » : " .. tostring(description))

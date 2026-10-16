@@ -379,6 +379,22 @@
 - Proposé par le pair, pas encore fait : un plafond de relances par homme (par exemple 3 par minute, réglable), pour que
   le gardien des hommes ne tourne jamais en boucle, quelle que soit la cause.
 
+### La levée courte après une reprise (16/10, à essayer en V73 c 12)
+- **Le constat** (V73 c 8) : un homme repris assis d'une sauvegarde, dont le but est tout près, reste à demi assis :
+  aucune posture à nous ne le tient, et une marche courte « réussit » sans le lever. Piste du pair : la posture rendue
+  par la sauvegarde vise l'ancien objet du siège, que le camp refait au chargement.
+- **Ce qui est fait, une seule chose, sans mémoire ni Lua** : la branche de marche commence par se mettre debout, par
+  une posture « debout » sans objet (`StanceElement smartObject="" stance="standing"`, forme du jeu, 21 fois, par ex.
+  `AI/quests/duels/duels.xml`) ; dedans, l'attente que la mise en posture soit jouée (`WaitAction`), bornée par le temps
+  de sortie du catalogue (`sortie_ms`) au cas où elle ne rendrait pas la main ; puis la marche. Debout déjà, rien ne
+  change (au plus `sortie_ms` de délai).
+- Autre voie relevée, gardée en réserve : lire la posture au réveil (`StanceCheck`, ou `GetStance` qui donne aussi son
+  objet : `AI/player/switch/switch.xml`), deux fois avec un anti-rebond, puis redonner la posture sur le nouvel objet.
+- **Essai V73 c 12**, critères écrits avant : (1) une levée ordinaire tient toujours (non-régression) ; (2) assis,
+  sauvegarder, reprendre : à l'ordre de la tranche, Jan (but tout près) se lève et s'écarte de son siège, qui se dit
+  libre ; (3) les dimensions de la tente et du lit, mesurées au poste, pour replacer le lit hors de sa tente (pas
+  suivant).
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
