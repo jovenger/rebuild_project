@@ -133,7 +133,23 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   (b) le compteur d'ordres n'est pas augmenté en jeu (la forme `pcall(XGenAIModule.GetBrainVariable, …)` n'est pas
   vérifiée) : à lire au poste dans le même essai ; (c) la façon d'Alex (sa propre posture, `StanceElement`, et non le
   « use » du jeu) : à demander au pair dans le détail (V60, V61 : notre `StanceElement` hébergé ailleurs n'asseyait pas).
-- **En attente de JoVenGer** (règle anti-boucle).
+- **En attente de JoVenGer** (règle anti-boucle). Il a choisi d'attendre la réponse du pair (16/10).
+- **Le principe transmis par la conversation Scriptorium (16/10, mécanisme seulement)** :
+  - une **seule interruption longue** pour toute la vie du camp, lancée une fois par le switch (priorité haute, elle
+    remplace l'interruption en cours, urgence « Fast », un drapeau empêche de la relancer à chaque tour), relancée
+    seulement au changement d'état (vie du camp, suivre Henry) ; **pas une interruption par ordre** ;
+  - quand l'ordre change, **c'est la même interruption qui continue** : sous la posture, une boucle bornée de courtes
+    attentes (environ 500 ms) relit les variables de cerveau posées par le Lua ; au changement, elle échoue, la posture
+    se défait (le jeu joue la sortie), et la boucle principale prend la nouvelle activité ; personne ne tue le
+    comportement de l'extérieur ;
+  - la posture est tenue par **notre propre `StanceElement`**, avec, dedans, l'attente que la mise en posture soit finie
+    (`WaitAction`) puis un geste assis du jeu (`UnstanceElement`) dont le `locationObject` est le siège lui-même (sans
+    lui, l'homme reste debout sur le siège) : ce qui manquait en V60 et V61.
+  - L'hypothèse (a) est donc très probablement la bonne : en remplaçant l'interruption à chaque ordre, on tue notre
+    comportement de l'extérieur, et le « use » lancé par `CallBehavior` continue seul.
+  - Deux voies, une à la fois : (a) l'essai court (« false », contextes et garde gardés, compteur lu au journal) ; (b) le
+    modèle durable : un seul comportement « vie du camp », posture tenue par notre `StanceElement` et `UnstanceElement`
+    sur le siège (changement d'architecture de la fiche 12).
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
