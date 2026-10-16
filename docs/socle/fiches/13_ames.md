@@ -548,6 +548,9 @@
   s'est dévêtu sans combat pendant ce temps : la garde en tournant n'a pas été vue rhabiller quelqu'un (elle l'est au
   banc). À regarder aux prochaines séances : un homme dévêtu sans combat, et rhabillé dans le tour qui suit.
 - La garde de la tenue est en place ; la cause du déshabillage reste à chercher, si JoVenGer le veut.
+- **Changement visible, contrepartie de « jamais au lit »** : un homme au lit (embauché la nuit, ou blessé au repos dans
+  son lit) n'est équipé, rhabillé ou changé de grade qu'à son lever ; l'accroche « après le rhabillage » de Scriptorium
+  (les armures de la forge) est différée d'autant. Avant, il était équipé couché, au battement suivant.
 
 ## Essais prévus (un changement chacun, partie d'essai `playline3`)
 - **V70** : les hommes du camp nés sur nos âmes (notre cerveau, soldats du jeu, classe 33, faction provisoire du
