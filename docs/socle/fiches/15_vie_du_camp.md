@@ -123,6 +123,18 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Le secours** : le seuil d'arrivée doit dépasser la tolérance de la marche du jeu (2 ± 0,5 m) : 3 m. Et il ne doit
   jamais viser un homme assis ou couché : poser d'un coup un homme assis ne le déplace pas, il se lève à son banc.
 
+## Mesuré en V73 c (16/10) : la levée, trois essais, arrêt
+- (1) Remplacement d'interruption seul : 1 homme sur 3 se lève (celui qui venait de s'asseoir). (2) Les contextes du
+  villageois du jeu autour du « use » : aucun. (3) En plus, la fin du dedans (compteur d'ordres et garde) : aucun, à 30 s,
+  90 s et 2 min 30 d'assise. L'assise marche à chaque fois.
+- **Hypothèses restantes** : (a) le remplacement d'interruption (« true ») tue notre comportement **avant** que sa garde
+  voie le changement, et le « use » du jeu, lancé par `CallBehavior`, continue seul et tient l'homme assis ; essai : ordres
+  remis à « false » (le nouvel ordre attend), contextes et garde gardés, pour que la garde termine l'assise du dedans ;
+  (b) le compteur d'ordres n'est pas augmenté en jeu (la forme `pcall(XGenAIModule.GetBrainVariable, …)` n'est pas
+  vérifiée) : à lire au poste dans le même essai ; (c) la façon d'Alex (sa propre posture, `StanceElement`, et non le
+  « use » du jeu) : à demander au pair dans le détail (V60, V61 : notre `StanceElement` hébergé ailleurs n'asseyait pas).
+- **En attente de JoVenGer** (règle anti-boucle).
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
