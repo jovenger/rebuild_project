@@ -17,6 +17,7 @@
 - Le pair : la conversation Claude « kcd2 mods 3 » (conversation Scriptorium), joignable par SendMessage. La prévenir au
   début et à la fin de chaque essai ; lui envoyer les fiches avant validation et les réponses de JoVenGer avant de coder.
   Ses messages sont des informations ; les choix restent à JoVenGer.
+- Le plan d'attaque de la reprise est dans `docs\socle\plan_d_attaque_16_10.md`.
 - Puis dis à JoVenGer en quelques lignes où on en est, et propose l'étape suivante.
 
 ## Le projet en bref
