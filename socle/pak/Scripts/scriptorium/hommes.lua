@@ -12,10 +12,14 @@ hommes.reglages = {
   -- Le secours de l'homme bloqué (fiche 15, réponse 1 de JoVenGer du 16/10) : s'il ne s'est pas rapproché d'au moins
   -- « secours_progres_m » pendant « secours_delai_s », il est posé près de son but ; au plus « secours_max » fois par
   -- ordre ; « secours_arrivee_m » : arrivé.
+  -- V73 a : le jeu arrête une marche entre 1,5 et 2,5 m du but ; « arrivé » doit le dépasser. « secours_assis_m » : un
+  -- homme encore à moins de tant de mètres de sa place d'avant (assis, couché) n'est jamais posé d'un coup (poser un
+  -- homme assis le fait se lever à son banc, sans le déplacer).
   secours_delai_s = 30,
   secours_progres_m = 1,
-  secours_arrivee_m = 2,
+  secours_arrivee_m = 3,
   secours_max = 2,
+  secours_assis_m = 1.5,
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -1277,6 +1281,12 @@ local function secourir(id, f, a, rapport)
     s.reste, s.bloque_s = reste, 0
     return
   end
+  -- Encore à sa place d'avant (assis ou couché) : on attend qu'il se lève, jamais de pose d'un coup.
+  local pres = s.assis_a and jeu().ecart_au_but(f.personnage, s.assis_a)
+  if pres and pres <= hommes.reglages.secours_assis_m then
+    s.reste, s.bloque_s = reste, 0
+    return
+  end
   if s.reste and s.reste - reste < hommes.reglages.secours_progres_m then
     s.bloque_s = s.bloque_s + Scriptorium.cadence_du_battement_ms / 1000
   else
@@ -1369,7 +1379,9 @@ function hommes.battre()
         f.derniere_activite = resume
         local garde = hommes.suivi[id]
         hommes.suivi[id] = { reste = nil, bloque_s = 0, secours = (garde and garde.resume == resume) and garde.secours or 0,
-                             signale = garde and garde.resume == resume and garde.signale or nil, resume = resume }
+                             signale = garde and garde.resume == resume and garde.signale or nil, resume = resume,
+                             place_position = objet and position or nil,
+                             assis_a = garde and (garde.place_position or garde.assis_a) or nil }
         rapport.ordres = rapport.ordres + 1
       else
         secourir(id, f, a, rapport)

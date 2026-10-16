@@ -107,6 +107,17 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 5. **V73 e — le rassemblement** : interrompre toute tâche, courir au point, secours au bout de 30 s.
 6. **V73 f — suivre Henry** (modèle : le chien du jeu ; recherches « Réutiliser avant de créer » à ce pas-là).
 
+## Mesuré en V73 a (16/10)
+- **Acquis** : les ordres de la vie du camp partent en gestes ; au repas, les hommes marchent jusqu'à leur banc et s'y
+  assoient (vu) ; debout, ils marchent vers leur but.
+- **Pas encore** : un homme assis ne se lève pas à l'ordre de marcher (l'interruption « aller », à la même priorité 100,
+  ne remplace pas celle qui le tient assis). C'est V73 c : nos ordres 9, 10 et 11 posent leur interruption avec
+  `IgnorePriorityOnPreviousInterrupt="true"` (forme employée par le jeu, `AI/world/sa_deterrentArea.xml`) : le dernier
+  ordre remplace le précédent, le comportement qui tient la posture se termine, et le jeu joue le geste de se lever
+  (principe transmis par la conversation Scriptorium). L'arbitre en Lua décide déjà quel ordre a le droit de partir.
+- **Le secours** : le seuil d'arrivée doit dépasser la tolérance de la marche du jeu (2 ± 0,5 m) : 3 m. Et il ne doit
+  jamais viser un homme assis ou couché : poser d'un coup un homme assis ne le déplace pas, il se lève à son banc.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

@@ -866,7 +866,9 @@ essai("vie du camp (fiche 15) : l'homme bloqué est posé près de son but, jama
   verifier(math.abs(ou.x - abord.x) < 0.01 and math.abs(ou.y - abord.y) < 0.01, "posé à l'abord de sa place")
   local siege = camp.position_de(cible.a.lieu)
   verifier(math.sqrt((ou.x - siege.x) ^ 2 + (ou.y - siege.y) ^ 2) > 2, "jamais sur le siège")
+  -- Toujours figé au loin : le secours ne l'a pas fait avancer.
   for _ = 1, 10 do
+    FauxJeu.positions[cible.personnage] = { x = cible.a.position.x + 50, y = cible.a.position.y, z = 0 }
     hommes.battre()
   end
   egal(#FauxJeu.secours, hommes.reglages.secours_max, "deux secours au plus")
@@ -890,4 +892,34 @@ essai("vie du camp (fiche 15) : un homme qui se rapproche n'est jamais secouru",
     hommes.battre()
   end
   egal(#FauxJeu.secours, 0, "il avance de 4 m par battement : aucun secours")
+end)
+
+essai("vie du camp (fiche 15, V73 c) : un homme encore assis à sa place d'avant n'est jamais posé d'un coup", function()
+  preparer(5000, 100, 12.5)
+  for _ = 1, 6 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  hommes.battre()
+  local cible = nil
+  for _, id in ipairs(hommes.liste()) do
+    local a = hommes.activite_de(id, 12.5)
+    if camp.sorte_de(a.lieu) == "siege" and not cible then
+      cible = { id = id, siege = a.position, personnage = hommes.fiche(id).personnage }
+    end
+  end
+  verifier(cible ~= nil, "un homme au siège")
+  FauxJeu.positions[cible.personnage] = { x = cible.siege.x, y = cible.siege.y, z = 0 }
+  FauxJeu.heure = 13.5
+  hommes.battre()
+  egal(hommes.activite_de(cible.id, 13.5).activite, "corvee", "à 13 h 30, la corvée")
+  FauxJeu.secours = {}
+  for _ = 1, 4 do
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 0, "encore assis à son siège : jamais posé d'un coup")
+  FauxJeu.positions[cible.personnage] = { x = cible.siege.x + 2, y = cible.siege.y, z = 0 }
+  for _ = 1, 3 do
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 1, "levé, puis figé : un secours")
 end)
