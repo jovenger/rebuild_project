@@ -99,6 +99,11 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
    l'arbitre ; ses trois appelants (bataille, discipline, patrouilles) gardent leurs fonctions, avec leur priorité.
    La journée du socle reste la règle la plus faible, par défaut, jusqu'à ce que Scriptorium la coupe (question 3).
    **Chaque geste est borné** (note des métiers) : une fin donnée ; sans fin, la borne par défaut (question 4).
+   **Garde de l'arbitre (remarque de la conversation Scriptorium, 16/10)** : depuis V73 c, un ordre du socle remplace
+   aussi une interruption du jeu plus prioritaire (l'attaque, à 160). Avant tout ordre qui n'est pas de bataille, le
+   socle vérifie donc que l'homme n'est pas en combat (`soul:HasScriptContext("crime_interruptAttack")`, ou l'état de
+   combat du jeu) ; sinon il attend le battement suivant. À mesurer : un homme qui se bat n'est jamais repris par un
+   ordre de routine ; le combat fini, il reprend sa journée.
 3. **V73 c — rompre une pose** : un homme assis ou couché qui reçoit un ordre plus fort se lève d'abord, puis part.
    C'est la mesure attendue dès V73 a : l'ordre 9 donné à un homme assis le fait-il se lever, ou faut-il un ordre
    « debout » à nous ? Si un ordre à nous est nécessaire, il devient ce pas-là.

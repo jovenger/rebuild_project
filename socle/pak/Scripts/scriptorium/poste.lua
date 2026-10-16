@@ -536,6 +536,23 @@ function poste.essai_hommes_asseoir()
   end) > 0
 end
 
+-- V73 c (fiche 15) : l'homme suivant reçoit l'ordre de marcher vers sa place d'exercice ; un seul à la fois, pour mesurer
+-- la levée selon le temps passé assis.
+local prochain_leve = 0
+function poste.essai_hommes_lever()
+  local hommes = Scriptorium.hommes
+  local liste = hommes.liste()
+  if #liste == 0 then
+    return false
+  end
+  prochain_leve = prochain_leve % #liste + 1
+  local id = liste[prochain_leve]
+  local f = hommes.fiche(id)
+  local a = hommes.activite_de(id, 10)
+  jeu().journal("Poste : levée de " .. f.nom .. " : " .. tostring(jeu().ordonner(f.personnage, "lever", a and a.position, "exercice")))
+  return true
+end
+
 function poste.essai_hommes_coucher()
   return donner_les_places(11, function(f) return f.lit end) > 0
 end
@@ -1311,6 +1328,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_hommes_asseoir", fonction = function() return poste.essai_hommes_asseoir() end, aide = "Chaque homme du camp s'assoit sur un banc du camp (ordre 10)" },
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
+  { nom = "scriptorium_essai_hommes_lever", fonction = function() return poste.essai_hommes_lever() end, aide = "L'homme suivant marche vers sa place d'exercice (V73 c : la levée)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
   { nom = "scriptorium_essai_marcheur_coucher_a_decouvert", fonction = function() return poste.essai_marcheur_coucher_a_decouvert() end, aide = "Le marcheur se couche sur le lit à découvert (ordre 11)" },

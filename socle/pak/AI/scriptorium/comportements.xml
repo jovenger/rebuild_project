@@ -19,13 +19,14 @@
     <Variables />
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
-        <Parallel successMode="Any" failureMode="Any">
-          <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110805" />
-          <Sequence>
-            <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
-            <Wait duration="&apos;120s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-          </Sequence>
-        </Parallel>
+        <Sequence>
+          <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
+          <EntityContext context="activity_disableSchedulerLooping" target="">
+            <EntityContext context="bench_disableSnooze" target="">
+              <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110805" />
+            </EntityContext>
+          </EntityContext>
+        </Sequence>
       </Behavior>
     </Root>
     <ForestContainer />
@@ -34,13 +35,12 @@
     <Variables />
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
-        <Parallel successMode="Any" failureMode="Any">
-          <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110806" />
-          <Sequence>
-            <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
-            <Wait duration="&apos;120s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-          </Sequence>
-        </Parallel>
+        <Sequence>
+          <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
+          <EntityContext context="activity_disableSchedulerLooping" target="">
+            <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110806" />
+          </EntityContext>
+        </Sequence>
       </Behavior>
     </Root>
     <ForestContainer />
