@@ -40,6 +40,7 @@ function depart()
   if Scriptorium.hommes then
     Scriptorium.hommes.suivi = {}
     Scriptorium.hommes.cerveaux_regles = {}
+    Scriptorium.hommes.arrets_vus = {}
   end
   -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
   -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().

@@ -1000,6 +1000,26 @@ def verifier_la_vie_du_camp():
     if not occupe_liaison or occupe_liaison != occupe_switch:
         erreur("vie du camp : contextes « occupé » de la liaison %s, du switch %s : ils doivent être les mêmes"
                % (sorted(occupe_liaison), sorted(occupe_switch)))
+    # Fiche 15, V73 b 2 (le plafond de relances, proposition du pair) : le switch ne lance jamais la vie du camp hors de
+    # son plafond, et il compte ses arrêts, que le battement dit au journal. Le banc ne joue pas les arbres : le
+    # « 3 relances, puis arrêt » se mesure en jeu.
+    switch = arbres.get("essai_ordres.xml", "")
+    ouverts, gardes, lancements = [], 0, 0
+    for fermant, nom, attributs, seul in re.findall(r"<(/?)(\w+)([^>]*?)(/?)>", switch):
+        if nom == "IfCondition" and not fermant and not seul:
+            condition = re.search(r'condition="([^"]*)"', attributs)
+            ouverts.append(condition.group(1) if condition else "")
+        elif nom == "IfCondition" and fermant and ouverts:
+            ouverts.pop()
+        elif nom == "AddInterrupt" and "&apos;scriptorium_vie_du_camp&apos;" in attributs:
+            lancements += 1
+            if any("$relances &lt; $relances_max" in c for c in ouverts):
+                gardes += 1
+    if lancements == 0 or gardes != lancements:
+        erreur("vie du camp : %d lancement(s) de la vie du camp dans le switch, %d sous le plafond de relances"
+               % (lancements, gardes))
+    if "$scriptorium_vie_arrets = $scriptorium_vie_arrets + 1" not in switch:
+        erreur("vie du camp : le switch ne compte pas ses arrêts (scriptorium_vie_arrets)")
     return len(donnees), len(employees)
 
 

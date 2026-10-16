@@ -55,6 +55,7 @@ function faux.remettre_a_zero()
   faux.positions = {}
   faux.secours = {}
   faux.occupations = {}
+  faux.variables_du_cerveau = {}
   faux.cerveaux = {}
   faux.ecritures_du_cerveau = 0
   faux.affichages = {}
@@ -246,6 +247,15 @@ function faux.regler_le_cerveau(identifiant, valeurs)
   end
   faux.cerveaux[identifiant] = copie
   return true, "écrit"
+end
+-- Les variables du cerveau lues par le socle (V73 b 2) : { [identifiant] = { nom = valeur } }, posées par les essais.
+function faux.lire_le_cerveau(identifiant, noms)
+  local rendu = {}
+  local variables = faux.variables_du_cerveau and faux.variables_du_cerveau[identifiant] or {}
+  for _, nom in ipairs(noms) do
+    rendu[nom] = variables[nom]
+  end
+  return rendu
 end
 -- Ce qui occupe un personnage (V73 b 1) : { [identifiant] = « combat » ou « conversation » }, posé par les essais.
 function faux.occupation_de(identifiant)

@@ -1700,6 +1700,24 @@ function liaison.regler_le_cerveau(identifiant, valeurs)
   return #refusees == 0, ecrites .. " valeur(s) écrite(s)" .. (#refusees > 0 and (", refusées : " .. table.concat(refusees, ", ")) or "")
 end
 
+-- Les variables du cerveau d'un personnage (fiche 15, V73 b 2 : les arrêts du plafond de relances) : { nom = valeur } ;
+-- un nom dont la lecture est refusée n'a pas de clé.
+function liaison.lire_le_cerveau(identifiant, noms)
+  local rendu = {}
+  local entite = entite_nommee(identifiant)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not entite or not this_lu or type(this) ~= "table" then
+    return rendu
+  end
+  for _, nom in ipairs(noms) do
+    local lu, valeur = pcall(XGenAIModule.GetBrainVariable, this.id, nom)
+    if lu then
+      rendu[nom] = valeur
+    end
+  end
+  return rendu
+end
+
 -- Fiche 12, révision du 16/10 : l'activité de la vie du camp (variable de cerveau scriptorium_activite : 0 attendre sur
 -- place, 9 marcher au point, 10 s'asseoir, 11 se coucher), puis le compteur d'ordres. La garde du comportement long voit
 -- le compteur changer : l'activité en cours finit du dedans (le jeu joue le geste de se lever), et la boucle prend la
@@ -2470,12 +2488,13 @@ function liaison.voir_sur_la_place(qui, identifiant)
   for _, nom in ipairs(noms) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s, combats %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
     variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),
-    variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"), variable("scriptorium_essai_combats"),
+    variable("scriptorium_essai_rejoint"), variable("scriptorium_vie_arrets"), variable("scriptorium_essai_arrive"),
+    variable("scriptorium_essai_combats"),
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end

@@ -54,6 +54,10 @@ hommes.cerveau = {
   siege_ecart_cm = 5,
   lit_arret_cm = 50,          -- l'approche d'un lit (posture « lying »)
   lit_ecart_cm = 5,
+  -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
+  -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
+  relances_max = 3,
+  relances_fenetre_ms = 60000,
 }
 
 -- Rôles, solde hebdomadaire de base en groschen, et réserve d'âmes où l'homme prend la sienne (fiche 13 : combattants
@@ -1385,11 +1389,45 @@ local function regler_les_cerveaux(d)
   return ecrits
 end
 
+-- Le plafond de relances (fiche 15, V73 b 2) : le compteur des arrêts du switch (scriptorium_vie_arrets) vu au dernier
+-- battement, par personnage ; en mémoire seulement, remis à zéro au réveil comme le cerveau.
+hommes.arrets_vus = {}
+
+-- Une ligne au journal par hausse du compteur des arrêts, chez chaque homme et chez le Directeur. Rend le nombre
+-- d'arrêts nouveaux.
+local function surveiller_les_relances(d)
+  local suivis = {}
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if f.personnage then
+      table.insert(suivis, { qui = f.personnage, nom = f.nom })
+    end
+  end
+  local du_directeur = Scriptorium.directeur and Scriptorium.directeur.personnage()
+  if du_directeur then
+    table.insert(suivis, { qui = du_directeur, nom = "Directeur" })
+  end
+  local nouveaux = 0
+  for _, s in ipairs(suivis) do
+    local arrets = tonumber(jeu().lire_le_cerveau(s.qui, { "scriptorium_vie_arrets" }).scriptorium_vie_arrets)
+    if arrets then
+      local vus = hommes.arrets_vus[s.qui] or 0
+      if arrets > vus then
+        nouveaux = nouveaux + (arrets - vus)
+        jeu().journal("Hommes : pouls : relances arrêtées pour « " .. s.nom .. " » (" .. arrets .. " fois depuis le chargement)")
+      end
+      hommes.arrets_vus[s.qui] = arrets
+    end
+  end
+  return nouveaux
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
-  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0 }
+  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0, arrets = 0 }
   rapport.cerveaux = regler_les_cerveaux(d)
+  rapport.arrets = surveiller_les_relances(d)
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -1498,6 +1536,7 @@ function hommes.relancer()
   local d = donnees()
   hommes.suivi = {}
   hommes.cerveaux_regles = {}
+  hommes.arrets_vus = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     f.derniere_activite = nil

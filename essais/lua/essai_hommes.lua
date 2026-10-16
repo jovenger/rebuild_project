@@ -341,6 +341,42 @@ essai("hommes : les valeurs du cerveau, écrites une fois par personnage, rééc
   egal(hommes.battre().cerveaux, 2, "réécrits au premier battement après le réveil")
 end)
 
+-- Fiche 15, V73 b 2 (le plafond de relances, proposition du pair) : le switch compte ses arrêts dans le cerveau ; le
+-- battement en dit une ligne par hausse, chez l'homme comme chez le Directeur, et aucune sinon.
+essai("vie du camp (fiche 15, V73 b 2) : une ligne au journal par arrêt du plafond de relances, aucune sinon", function()
+  preparer(100, 100, 10)
+  hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  verifier(Scriptorium.directeur.installer(), "le Directeur est installé")
+  local f = hommes.fiche(hommes.liste()[1])
+  local du_directeur = Scriptorium.directeur.personnage()
+  local function lignes(nom)
+    local n = 0
+    for _, l in ipairs(FauxJeu.journal_lignes) do
+      if string.find(l, "relances arrêtées pour « " .. nom .. " »", 1, true) then n = n + 1 end
+    end
+    return n
+  end
+  egal(hommes.battre().arrets, 0, "aucun arrêt lu")
+  egal(lignes(f.nom), 0, "aucun arrêt : aucune ligne")
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_vie_arrets = 1 }
+  egal(hommes.battre().arrets, 1, "un arrêt vu")
+  egal(lignes(f.nom), 1, "une ligne")
+  hommes.battre()
+  egal(lignes(f.nom), 1, "toujours un arrêt : aucune ligne de plus")
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_vie_arrets = 2 }
+  FauxJeu.variables_du_cerveau[du_directeur] = { scriptorium_vie_arrets = 1 }
+  egal(hommes.battre().arrets, 2, "un second arrêt chez l'homme, un premier chez le Directeur")
+  egal(lignes(f.nom), 2, "une seconde ligne pour l'homme")
+  egal(lignes("Directeur"), 1, "une ligne pour le Directeur")
+  -- Au chargement, le cerveau repart de zéro, et la mémoire du battement aussi : le premier arrêt se dit encore.
+  hommes.relancer()
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_vie_arrets = 1 }
+  FauxJeu.variables_du_cerveau[du_directeur] = { scriptorium_vie_arrets = 0 }
+  hommes.battre()
+  egal(lignes(f.nom), 3, "après un réveil, le premier arrêt se dit encore")
+  egal(lignes("Directeur"), 1, "rien de plus pour le Directeur")
+end)
+
 essai("hommes : à l'entrée en partie, l'ordre en cours est redonné à chacun (V56 : le cerveau perd ses variables)", function()
   preparer(100, 100, 10)
   hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })

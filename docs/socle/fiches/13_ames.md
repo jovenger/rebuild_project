@@ -426,6 +426,17 @@
     (`AI/item/equipItemByCategory.xml`), une lecture de ce qui est porté.
   - **Ouvert, à décider avec JoVenGer** : trouver ce qui déclenche ce rhabillage, puis le remède (remettre nos pièces
     quand il arrive, ou donner à nos âmes un préréglage de tenue qui soit le nôtre).
+  - **Décision de JoVenGer (16/10)** : finir V73 b (le plafond de relances, l'arbitre), puis la tenue, avec sa fiche.
+  - **Principe transmis par le pair (mécanisme seulement)** : Alex habille par préréglage (`EquipClothingPreset`), à
+    l'embauche et à chaque rhabillage ; pièce par pièce seulement pour une tenue faite de pièces données par le joueur.
+    Le moteur connaît le préréglage comme la tenue de l'homme : quand il rhabille de lui-même, il remet ce préréglage,
+    et l'homme reste vêtu. Deux défauts chez lui : un préréglage posé par-dessus des pièces données ne les retire pas
+    (tout se mélange) ; une tenue faite de pièces, défaite sans cesse, était remise en boucle. Scriptorium remet les
+    armures de la forge après chaque rhabillage (`armures_de_la_forge`), avec un filet : un homme revenu presque nu
+    (moins de 4 objets) est rhabillé.
+  - **Recommandation du pair, une chose à la fois** : d'abord une garde de la tenue, qui compare ce que l'homme porte à
+    sa liste et lui refait porter ce qui manque (`EquipInventoryItem`, sans rien créer), à la fin d'un combat, à la
+    sortie d'un lit, et de temps en temps, un homme par battement ; ensuite seulement, si JoVenGer le veut, la cause.
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
   des pièces comptées. À reprendre seulement si la signature se montre fragile.
