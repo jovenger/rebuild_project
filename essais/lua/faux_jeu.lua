@@ -227,9 +227,9 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
-function faux.ordonner(identifiant, activite, position, lieu, place, sorte)
+function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard)
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
-                              place = place, sorte = sorte })
+                              place = place, sorte = sorte, regard = regard })
 end
 -- Les positions des personnages (posées par les essais) et les secours (fiche 15).
 function faux.ecart_au_but(identifiant, but)

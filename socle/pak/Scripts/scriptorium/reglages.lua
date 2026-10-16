@@ -21,7 +21,7 @@ reglages.catalogue = {
   { section = "coffre", morceau = "coffre", table = "reglages" },
   { section = "camp", morceau = "camp", table = "reglages", taux = { fonder_devant = true } },
   { section = "meubles", morceau = "camp", table = "objets_du_jeu" },
-  { section = "hommes", morceau = "hommes", table = "reglages", taux = { secours_progres_m = true, secours_arrivee_m = true, secours_assis_m = true } },
+  { section = "hommes", morceau = "hommes", table = "reglages", taux = { secours_progres_m = true, secours_arrivee_m = true, secours_assis_m = true, regard_m = true } },
   { section = "cerveau", morceau = "hommes", table = "cerveau" },
   { section = "priorites", morceau = "hommes", table = "priorites" },
   { section = "soldes", morceau = "hommes", table = "roles" },

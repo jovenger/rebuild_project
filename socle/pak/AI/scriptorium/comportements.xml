@@ -15,6 +15,12 @@
       <Variable name="siege_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="lit_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="lit_ecart" type="_float" values="" isPersistent="0" form="single" />
+      <Variable name="poste_arret" type="_float" values="" isPersistent="0" form="single" />
+      <Variable name="poste_ecart" type="_float" values="" isPersistent="0" form="single" />
+      <Variable name="geste_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="geste_ecart_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="geste" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="geste_ecart" type="_string" values="" isPersistent="0" form="single" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
@@ -31,6 +37,12 @@
             <Expression expressions="$siege_ecart = ($scriptorium_cerveau_siege_ecart_cm &gt; 0 ? $scriptorium_cerveau_siege_ecart_cm : 5) * 0.01" />
             <Expression expressions="$lit_arret = ($scriptorium_cerveau_lit_arret_cm &gt; 0 ? $scriptorium_cerveau_lit_arret_cm : 50) * 0.01" />
             <Expression expressions="$lit_ecart = ($scriptorium_cerveau_lit_ecart_cm &gt; 0 ? $scriptorium_cerveau_lit_ecart_cm : 5) * 0.01" />
+            <Expression expressions="$poste_arret = ($scriptorium_cerveau_poste_arret_cm &gt; 0 ? $scriptorium_cerveau_poste_arret_cm : 50) * 0.01" />
+            <Expression expressions="$poste_ecart = ($scriptorium_cerveau_poste_ecart_cm &gt; 0 ? $scriptorium_cerveau_poste_ecart_cm : 10) * 0.01" />
+            <Expression expressions="$geste_ms = ($scriptorium_cerveau_poste_geste_ms &gt; 0 ? $scriptorium_cerveau_poste_geste_ms : 60000)" />
+            <Expression expressions="$geste = concat($geste_ms, &apos;ms&apos;)" />
+            <Expression expressions="$geste_ecart_ms = ($scriptorium_cerveau_poste_geste_ecart_ms &gt; 0 ? $scriptorium_cerveau_poste_geste_ecart_ms : 30000)" />
+            <Expression expressions="$geste_ecart = concat($geste_ecart_ms, &apos;ms&apos;)" />
             <SuppressFailure>
               <Sequence>
                 <IfCondition condition="$scriptorium_activite == 9 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
@@ -169,6 +181,79 @@
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
                         <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                       </Sequence>
+                    </IfCondition>
+                  </Sequence>
+                </IfCondition>
+                <IfCondition condition="$scriptorium_activite == 12 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Sequence>
+                    <Parallel successMode="Any" failureMode="Any">
+                      <Sequence>
+                        <SuppressFailure>
+                          <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                            <Parallel successMode="Any" failureMode="Any">
+                              <WaitAction />
+                              <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                            </Parallel>
+                          </StanceElement>
+                        </SuppressFailure>
+                        <SuppressFailure>
+                          <Sequence>
+                            <Parallel successMode="Any" failureMode="Any">
+                              <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                              <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                            </Parallel>
+                            <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                          </Sequence>
+                        </SuppressFailure>
+                        <SuppressFailure>
+                          <Sequence>
+                            <Turn target="$scriptorium_regard" align="false" />
+                            <Expression expressions="$scriptorium_en_poste = $scriptorium_en_poste + 1" />
+                          </Sequence>
+                        </SuppressFailure>
+                      </Sequence>
+                      <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                        <Sequence>
+                          <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                          <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                          <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                          <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                          <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                        </Sequence>
+                      </While>
+                    </Parallel>
+                    <IfCondition condition="$scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                      <Parallel successMode="Any" failureMode="Any">
+                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                          <Sequence>
+                            <Wait duration="$geste" timeType="GameTime" doFail="false" variation="$geste_ecart" skipInLOD="false" />
+                            <SuppressFailure>
+                              <IsNightTimeOfDay>
+                                <Then canSkip="1">
+                                  <WaitAction />
+                                </Then>
+                                <Else canSkip="1">
+                                  <Sequence>
+                                    <UnstanceAction unstance="LookingAround" locationObject="" slaveObject="" />
+                                    <SuppressFailure>
+                                      <Turn target="$scriptorium_regard" align="false" />
+                                    </SuppressFailure>
+                                  </Sequence>
+                                </Else>
+                              </IsNightTimeOfDay>
+                            </SuppressFailure>
+                          </Sequence>
+                        </While>
+                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                          <Sequence>
+                            <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                            <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                            <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                            <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                            <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Sequence>
+                        </While>
+                      </Parallel>
                     </IfCondition>
                   </Sequence>
                 </IfCondition>

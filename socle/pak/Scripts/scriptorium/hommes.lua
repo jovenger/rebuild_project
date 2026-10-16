@@ -31,6 +31,8 @@ hommes.reglages = {
   hommes_par_poste_jour = 4,
   hommes_par_poste_nuit = 2,
   duree_tour_de_garde = 3,    -- heures
+  -- Le factionnaire (fiche 15, V73 d 1) : il se tient face à un point de regard, à tant de mètres devant son poste.
+  regard_m = 10,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -82,6 +84,13 @@ hommes.cerveau = {
   siege_ecart_cm = 5,
   lit_arret_cm = 50,          -- l'approche d'un lit (posture « lying »)
   lit_ecart_cm = 5,
+  -- Le factionnaire (fiche 15, V73 d 1, réponses a et a de JoVenGer du 16/10) : l'arrêt au poste, court comme celui du
+  -- siège ; le jour, un geste « regarder autour » toutes les « poste_geste_ms », plus ou moins « poste_geste_ecart_ms »
+  -- tirés au hasard par le jeu (les gardes ne bougent pas tous ensemble).
+  poste_arret_cm = 50,
+  poste_ecart_cm = 10,
+  poste_geste_ms = 60000,
+  poste_geste_ecart_ms = 30000,
   -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
   -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
   relances_max = 3,
@@ -1196,6 +1205,33 @@ local function sieges_libres_pour(d)
   return camp().places_libres("siege")
 end
 
+-- Le factionnaire (fiche 15, V73 d 1) : le point qu'il regarde, à « regard_m » devant son poste. « cap » : cap de
+-- boussole en degrés (0 au nord, 90 à l'est, comme tout le socle) ; sans cap, du centre du camp vers le poste, donc vers
+-- le dehors. Rend nil sans position, sans cap ni camp, ou pour un poste au centre même du camp : l'ordre est alors une
+-- marche simple.
+local function regard_du_poste(position, cap)
+  local distance = tonumber(hommes.reglages.regard_m) or 0
+  if type(position) ~= "table" or distance <= 0 then
+    return nil
+  end
+  local dx, dy
+  if type(cap) == "number" then
+    dx, dy = math.sin(math.rad(cap)), math.cos(math.rad(cap))
+  else
+    local centre = camp().point(0, 0, 0)
+    if not centre then
+      return nil
+    end
+    local ex, ey = position.x - centre.x, position.y - centre.y
+    local longueur = math.sqrt(ex * ex + ey * ey)
+    if longueur < 0.1 then
+      return nil
+    end
+    dx, dy = ex / longueur, ey / longueur
+  end
+  return { x = position.x + distance * dx, y = position.y + distance * dy, z = position.z }
+end
+
 -- Retient une somme sur les prochaines soldes (amende).
 function hommes.retenir(id, montant)
   local f = donnees().liste[id]
@@ -1210,7 +1246,7 @@ function hommes.retenir(id, montant)
   return true
 end
 
--- L'activité d'un homme à une heure : { regle, activite, lieu, position, cap, fin }. L'arbitre (fiche 15, V73 b 3) : la
+-- L'activité d'un homme à une heure : { regle, activite, lieu, position, cap, fin, regard }. L'arbitre (fiche 15, V73 b 3) : la
 -- tenue posée la plus forte, contre les règles que le socle calcule lui-même (les soins d'un blessé, son tour de garde) ;
 -- à rang égal, la tenue posée l'emporte (un ordre exprès) ; sinon la journée du socle, ou l'attente si elle est coupée.
 function hommes.activite_de(id, heure)
@@ -1236,7 +1272,9 @@ function hommes.activite_de(id, heure)
       resultat.regle = est_nuit(heure_dans_le_jour(heure)) and "garde_de_nuit" or "garde"
       resultat.activite = "garde"
       resultat.lieu = "poste_" .. g.poste
-      resultat.position = camp().point(poste.x, poste.y, poste.cap)
+      -- V73 d 1 : le cap du poste n'est plus jeté ; le garde se tient face au dehors.
+      resultat.position, resultat.cap = camp().point(poste.x, poste.y, poste.cap)
+      resultat.regard = regard_du_poste(resultat.position, resultat.cap)
       return resultat
     end
   end
@@ -1244,6 +1282,10 @@ function hommes.activite_de(id, heure)
     resultat.regle, resultat.activite, resultat.lieu = regle, tenue.activite, tenue.lieu
     resultat.position, resultat.cap, resultat.fin = tenue.position, tenue.cap, tenue.fin
     resultat.ne_pas_rhabiller = tenue.ne_pas_rhabiller
+    -- V73 d 1 : une garde se tient face au dehors (le cap de la tenue, sinon du centre du camp vers le poste).
+    if tenue.activite == "garde" then
+      resultat.regard = regard_du_poste(tenue.position, tenue.cap)
+    end
     return resultat
   end
   if hommes.reglages.journee_du_socle == false then
@@ -1599,7 +1641,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours)
   local resume = a.activite .. "@" .. tostring(a.lieu)
   if f.derniere_activite ~= resume then
     local position, objet, sorte = but_de(a)
-    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte)
+    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then

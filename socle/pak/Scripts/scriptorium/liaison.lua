@@ -2367,9 +2367,16 @@ end
 -- marche jusqu'à « position » (ordre 9, point posé dans son cerveau). Rend une ligne.
 liaison.ordres_des_places = { siege = 10, lit = 11 }
 
-function liaison.ordonner(identifiant, activite, position, lieu, place, sorte)
+-- Fiche 15, V73 d 1 : le dernier point de regard posé chez chaque personnage (pour le poste d'essai, qui dit l'écart
+-- entre son cap et ce point). En mémoire seulement.
+liaison.regards = {}
+
+-- « regard » (fiche 15, V73 d 1) : un point ; l'homme tient un poste (ordre 12) : il marche jusqu'à « position », puis
+-- se tourne vers ce point et s'y tient.
+function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard)
   local entite = entite_nommee(identifiant)
   local ligne
+  liaison.regards[identifiant] = nil
   if not entite then
     ligne = "introuvable"
   else
@@ -2382,6 +2389,23 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte)
       ligne = "attendre sur place ; " .. poser_l_activite(entite, 0)
     elseif not position then
       ligne = "sans but"
+    elseif regard then
+      -- Tenir un poste : le poste et le point regardé posés d'abord, puis l'activité ; l'homme marche, et ne se tourne
+      -- qu'une fois arrivé (relecture du pair : montré trop tôt, un homme glissait).
+      local this_lu, this = pcall(function() return entite.this end)
+      local point, vers = liaison.au_sol(position), liaison.au_sol(regard)
+      local pose = this_lu and type(this) == "table"
+        and pcall(function()
+          XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point)
+          XGenAIModule.SetBrainVariable(this.id, "scriptorium_regard", vers)
+        end)
+      if pose then
+        liaison.regards[identifiant] = vers
+        ligne = string.format("poste, point posé (%.1f, %.1f), regard posé (%.1f, %.1f) ; ", point.x, point.y, vers.x, vers.y)
+          .. poser_l_activite(entite, 12)
+      else
+        ligne = "poste refusé ; " .. poser_l_activite(entite, 9)
+      end
     else
       local this_lu, this = pcall(function() return entite.this end)
       local point = liaison.au_sol(position)
@@ -2491,13 +2515,25 @@ function liaison.voir_sur_la_place(qui, identifiant)
   for _, nom in ipairs(noms) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  -- Fiche 15, V73 d 1 : son cap (ses angles dans le monde, comme cap_du_joueur) et, s'il tient un poste, l'écart entre
+  -- ce cap et la direction du point qu'il doit regarder.
+  local angles_lus, angles = pcall(function() return personnage:GetWorldAngles() end)
+  local cap = angles_lus and type(angles) == "table" and type(angles.z) == "number" and cap_depuis_moteur(angles.z) or nil
+  local regard, ecart_de_cap = liaison.regards[qui], nil
+  local ici_lu, ici = pcall(function() return personnage:GetWorldPos() end)
+  if cap and regard and ici_lu and type(ici) == "table" then
+    local vers_le_regard = math.deg(math.atan2(regard.x - ici.x, regard.y - ici.y)) % 360
+    ecart_de_cap = math.abs((cap - vers_le_regard + 180) % 360 - 180)
+  end
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
     variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),
     variable("scriptorium_essai_rejoint"), variable("scriptorium_vie_arrets"), variable("scriptorium_essai_arrive"),
     variable("scriptorium_essai_combats"), variable("scriptorium_fins_de_combat"),
+    cap and string.format("%.0f", cap) or "?", ecart_de_cap and string.format("%.0f", ecart_de_cap) or "-",
+    variable("scriptorium_en_poste"),
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end

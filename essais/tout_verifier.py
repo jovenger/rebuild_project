@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 132:
-        erreur("ordres : %d commandes lues dans poste.lua, 132 attendues" % len(connues))
+    if len(connues) != 134:
+        erreur("ordres : %d commandes lues dans poste.lua, 134 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -743,8 +743,10 @@ JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
 
 
-FORMES_ADMISES_AU_PLUS = 31   # au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+FORMES_ADMISES_AU_PLUS = 32   # au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
 # (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; 27 avec EntityContext ; revues)
+# (16/10, V73 d 1 : 32 avec « <Else canSkip="1"> », la branche « sinon » de IsNightTimeOfDay, telle quelle dans
+# AI/events/randomEventsBehaviors.xml du jeu ; revue)
 # Les attributs d'une ligne de forme : structure des tables et des arbres, jamais un nom, une valeur ni un comportement.
 ATTRIBUTS_DE_FORME = {"version", "xmlns:xsi", "xsi:noNamespaceSchemaLocation", "OneTimeOnly", "FailState", "saveVersion",
                       "canSkip", "is_function", "successMode", "failureMode"}
@@ -1032,6 +1034,19 @@ def verifier_la_vie_du_camp():
                       r'<Expression expressions="\$scriptorium_fins_de_combat = \$scriptorium_fins_de_combat \+ 1" />', switch)
     if not front or '<Expression expressions="$etait_en_combat = $en_combat" />' not in switch:
         erreur("vie du camp : le switch doit compter les fins de combat au front descendant du contexte de combat")
+    # Fiche 15, V73 d 1 (tenir un poste) : la liaison pose le point regardé avant l'ordre 12, et la branche 12 marche au
+    # poste puis se tourne vers ce point ; un nom changé d'un seul côté ne se verrait qu'en jeu.
+    if '"scriptorium_regard"' not in liaison or "poser_l_activite(entite, 12)" not in liaison:
+        erreur("vie du camp : la liaison ne pose pas le point regardé (scriptorium_regard) avec l'ordre 12")
+    branche = comportements.split("$scriptorium_activite == 12", 1)
+    tourne = r'<Turn target="\$scriptorium_regard" align="false" />'
+    if (len(branche) != 2 or 'destinationSpecification="$scriptorium_essai_point"' not in branche[1]
+            or not re.search(tourne + r'\s*<Expression expressions="\$scriptorium_en_poste = \$scriptorium_en_poste \+ 1" />',
+                             branche[1])
+            or not re.search(r'<UnstanceAction unstance="LookingAround" locationObject="" slaveObject="" />\s*'
+                             r'<SuppressFailure>\s*' + tourne, branche[1])):
+        erreur("vie du camp : la branche 12 (tenir un poste) doit marcher au poste, se tourner vers $scriptorium_regard "
+               "avant de se dire « en poste », et de nouveau après chaque geste")
     return len(donnees), len(employees)
 
 

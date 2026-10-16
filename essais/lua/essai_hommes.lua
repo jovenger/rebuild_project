@@ -1322,3 +1322,104 @@ essai("vie du camp (fiche 15, V73 b 1) : un homme en combat ou en conversation n
   end
   egal(#FauxJeu.secours, 1, "en conversation : aucun secours de plus")
 end)
+
+-- Fiche 15, V73 d 1 : le factionnaire se tient face au dehors (réponses a, a et a de JoVenGer du 16/10).
+local function pres(obtenu, attendu, message)
+  verifier(type(obtenu) == "number" and type(attendu) == "number" and math.abs(obtenu - attendu) < 0.01,
+    (message or "") .. " : obtenu « " .. tostring(obtenu) .. " », attendu « " .. tostring(attendu) .. " »")
+end
+
+essai("factionnaire (fiche 15, V73 d 1) : le tour de garde regarde vers le dehors, à regard_m devant son poste", function()
+  for _, cap_d_ancre in ipairs({ 0, 90 }) do
+    depart()
+    FauxJeu.heure = 23
+    camp.fonder({ x = 100, y = 200, z = 5 }, cap_d_ancre)
+    for _ = 1, 4 do
+      hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    end
+    local gardes = hommes.gardes(23)
+    egal(#gardes, 2, "deux postes la nuit (ancre au cap " .. cap_d_ancre .. ")")
+    local r = hommes.reglages.regard_m
+    local function au_centre(q) return math.sqrt((q.x - 100) ^ 2 + (q.y - 200) ^ 2) end
+    for _, g in ipairs(gardes) do
+      local a = hommes.activite_de(g.id, 23)
+      local p = hommes.postes_de_garde[g.poste]
+      local position, cap = camp.point(p.x, p.y, p.cap)
+      local nom = "poste " .. g.poste .. ", ancre au cap " .. cap_d_ancre
+      egal(a.activite, "garde", nom .. " : de garde")
+      pres(a.cap, cap, nom .. " : le cap du poste n'est plus jeté")
+      verifier(a.regard ~= nil, nom .. " : un point de regard")
+      if a.regard then
+        pres(a.regard.x, position.x + r * math.sin(math.rad(cap)), nom .. " : regard dans le cap du poste (x)")
+        pres(a.regard.y, position.y + r * math.cos(math.rad(cap)), nom .. " : regard dans le cap du poste (y)")
+        pres(au_centre(a.regard), au_centre(position) + r, nom .. " : tourné vers le dehors")
+      end
+    end
+    -- Le battement donne les ordres : seuls les deux gardes portent un point de regard.
+    FauxJeu.ordres = {}
+    hommes.battre()
+    local de_garde = 0
+    for _, o in ipairs(FauxJeu.ordres) do
+      if o.activite == "garde" then
+        de_garde = de_garde + 1
+        verifier(o.regard ~= nil, "l'ordre de garde porte son point de regard")
+      else
+        egal(o.regard, nil, "un ordre « " .. tostring(o.activite) .. " » ne porte pas de regard")
+      end
+    end
+    egal(de_garde, 2, "deux ordres de garde (ancre au cap " .. cap_d_ancre .. ")")
+  end
+end)
+
+essai("factionnaire (fiche 15, V73 d 1) : une tenue « garde » se tient face à son cap, sinon vers le dehors ; ni camp ni cap : une marche", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local r = hommes.reglages.regard_m
+  local poste = camp.point(3, 4, 0)   -- à 5 m du centre (ancre en 0, 0 au cap 0)
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = poste, cap = 45, fin = "liberation" }),
+    "tenu par la garde")
+  local a = hommes.activite_de(id, 10)
+  pres(a.regard and a.regard.x, poste.x + r * math.sin(math.rad(45)), "avec un cap : le regard dans ce cap (x)")
+  pres(a.regard and a.regard.y, poste.y + r * math.cos(math.rad(45)), "avec un cap : le regard dans ce cap (y)")
+  local dernier = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(dernier and dernier.activite, "garde", "l'ordre part sur-le-champ")
+  verifier(dernier ~= nil and dernier.regard ~= nil, "avec son point de regard")
+  -- Sans cap : du centre du camp vers le poste.
+  hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = poste, fin = "liberation" })
+  a = hommes.activite_de(id, 10)
+  pres(a.regard and a.regard.x, poste.x + r * 3 / 5, "sans cap : vers le dehors (x)")
+  pres(a.regard and a.regard.y, poste.y + r * 4 / 5, "sans cap : vers le dehors (y)")
+  -- Un poste au centre même du camp : pas de dehors, une marche simple.
+  hommes.tenir(id, "garde", { activite = "garde", lieu = "centre", position = camp.point(0, 0, 0), fin = "liberation" })
+  egal(hommes.activite_de(id, 10).regard, nil, "au centre du camp : aucun regard")
+  -- Une autre activité tenue n'a pas de regard, même avec un cap.
+  hommes.lacher(id, "garde")
+  hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "corvee", position = poste, cap = 45,
+    fin = "liberation" })
+  egal(hommes.activite_de(id, 10).regard, nil, "le rassemblement n'est pas une garde")
+  hommes.lacher(id, "rassemblement")
+  -- Ni camp ni cap : une marche simple ; avec un cap, le regard ne dépend pas du camp.
+  hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = poste, fin = "liberation" })
+  verifier(camp.lever(), "camp levé")
+  egal(hommes.activite_de(id, 10).regard, nil, "ni camp ni cap : aucun regard, l'ordre est une marche")
+  hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = poste, cap = 90, fin = "liberation" })
+  a = hommes.activite_de(id, 10)
+  pres(a.regard and a.regard.x, poste.x + r, "sans camp, au cap 90 : le regard à l'est (x)")
+  pres(a.regard and a.regard.y, poste.y, "sans camp, au cap 90 : le regard à l'est (y)")
+end)
+
+essai("factionnaire (fiche 15, V73 d 1) : chaque poste de garde par défaut est à l'écart des meubles et dans la palissade", function()
+  local ecart = camp.reglages.ecart_d_abord
+  local rayon = Scriptorium.enceinte.reglages.rayon
+  for i, p in ipairs(hommes.postes_de_garde) do
+    verifier(type(p.cap) == "number", "poste " .. i .. " : un cap")
+    for _, e in ipairs(camp.plan) do
+      local d = math.sqrt((p.x - e.x) ^ 2 + (p.y - e.y) ^ 2)
+      verifier(d >= ecart, "poste " .. i .. " à " .. string.format("%.1f", d) .. " m de « " .. e.nom .. " » : au moins "
+        .. ecart .. " m")
+    end
+    verifier(math.sqrt(p.x ^ 2 + p.y ^ 2) + ecart <= rayon, "poste " .. i .. " en dedans de la palissade (rayon "
+      .. rayon .. " m)")
+  end
+end)
