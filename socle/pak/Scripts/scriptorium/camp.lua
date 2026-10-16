@@ -31,7 +31,9 @@ camp.modeles = {
 -- Réglages (fiche 03, choix de JoVenGer du 15/10/2026) : à l'entrée en partie, 0 = ne reposer que les objets qui
 -- manquent ; 1 = retirer et reposer tout le camp à l'identique (ce qui se faisait depuis le 14/10, quand les objets
 -- gardés par la sauvegarde revenaient blancs).
-camp.reglages = { reposer_tout_a_l_entree = 0 }
+-- « fonder_devant » (réponse de JoVenGer du 16/10/2026, après V72 c) : le centre du camp est posé à tant de mètres
+-- devant Henry, pas sous ses pieds (V72 c : Henry debout dans le feu central).
+camp.reglages = { reposer_tout_a_l_entree = 0, fonder_devant = 4 }
 
 -- Les objets du jeu posés sur les meubles du camp pour qu'on puisse s'y asseoir ou s'y coucher (fiche 03, « Meubles
 -- utilisables », validée par JoVenGer le 15/10 ; acquis en jeu, V62). Propriétés relevées sur des objets réels du jeu
@@ -254,6 +256,17 @@ end
 
 function camp.niveau()
   return donnees().niveau
+end
+
+-- Le centre d'un camp fondé par quelqu'un qui se tient à « position » et regarde vers « cap » : à
+-- camp.reglages.fonder_devant mètres devant lui (fiche 03). C'est ce point qu'on donne à camp.fonder.
+function camp.ancre_devant(position, cap)
+  if not position_valide(position) then
+    return position
+  end
+  local devant = tonumber(camp.reglages.fonder_devant) or 0
+  local ici = camp.dans_le_monde({ x = position.x, y = position.y, z = position.z, cap = normaliser_cap(cap or 0) }, 0, devant, 0)
+  return ici
 end
 
 function camp.fonder(position, cap)

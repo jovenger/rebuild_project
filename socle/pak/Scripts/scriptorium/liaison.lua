@@ -285,8 +285,47 @@ end
 -- Les classes qui naissent avec une copie des propriétés de leur classe, plus les nôtres : les personnages.
 liaison.classes_completees = { NPC = true }
 
+-- Jamais deux personnages à moins d'un mètre (réponse de JoVenGer du 16/10/2026, après V72 c : trois hommes au même
+-- point, deux écrans noirs). Une place est prise si un personnage (classe NPC) ou Henry s'y tient.
+liaison.ecart_minimal = 1
+
+local function place_prise(position)
+  local lu, voisins = pcall(System.GetEntitiesInSphereByClass, position, liaison.ecart_minimal, "NPC")
+  if lu and type(voisins) == "table" and next(voisins) ~= nil then
+    return true
+  end
+  local vu, henry = pcall(function() return player:GetWorldPos() end)
+  return vu and type(henry) == "table"
+    and math.sqrt((henry.x - position.x) ^ 2 + (henry.y - position.y) ^ 2) < liaison.ecart_minimal
+end
+
+-- La place voulue si elle est libre ; sinon la première libre sur deux cercles autour (1,2 m puis 2,4 m, huit
+-- directions) ; sinon nil.
+local function place_libre(position)
+  if not place_prise(position) then
+    return position
+  end
+  for _, rayon in ipairs({ 1.2, 2.4 }) do
+    for k = 0, 7 do
+      local angle = k * math.pi / 4
+      local voisine = liaison.au_sol({ x = position.x + rayon * math.cos(angle), y = position.y + rayon * math.sin(angle),
+                                       z = position.z })
+      if not place_prise(voisine) then
+        return voisine
+      end
+    end
+  end
+  return nil
+end
+
 -- « brut » : sans la copie des propriétés de la classe (sonde V71 a2 seulement, fiche 13).
 local function faire_naitre(classe, nom, position, cap, proprietes, brut)
+  if classe == "NPC" then
+    position = place_libre(position)
+    if not position then
+      return nil, "place prise : un personnage à moins de " .. liaison.ecart_minimal .. " m, et aucune place libre à côté"
+    end
+  end
   local nom_unique = nom_libre((string.gsub(nom, "[^A-Za-z0-9_]", "_")))
   local angle = cap_vers_moteur(cap)
   if liaison.classes_completees[classe] and not brut then
@@ -2668,7 +2707,10 @@ function liaison.poser_devant_henry(qui)
   end
   local henry = liaison.position_du_joueur()
   local a = angles.z
-  local place = liaison.au_sol({ x = henry.x - 3 * math.sin(a), y = henry.y + 3 * math.cos(a), z = henry.z })
+  local place = place_libre(liaison.au_sol({ x = henry.x - 3 * math.sin(a), y = henry.y + 3 * math.cos(a), z = henry.z }))
+  if not place then
+    return "refusé : place prise, et aucune place libre à côté"
+  end
   local pose, erreur = pcall(function()
     entite:SetWorldPos(place)
     entite:SetWorldAngles({ x = 0, y = 0, z = a + math.pi })
@@ -2697,8 +2739,11 @@ function liaison.poser_pres_d_henry(qui, devant, a_droite, vers)
   end
   local henry = liaison.position_du_joueur()
   local a = angles.z
-  local place = liaison.au_sol({ x = henry.x - devant * math.sin(a) + a_droite * math.cos(a),
-                                y = henry.y + devant * math.cos(a) + a_droite * math.sin(a), z = henry.z })
+  local place = place_libre(liaison.au_sol({ x = henry.x - devant * math.sin(a) + a_droite * math.cos(a),
+                                           y = henry.y + devant * math.cos(a) + a_droite * math.sin(a), z = henry.z }))
+  if not place then
+    return "refusé : place prise, et aucune place libre à côté"
+  end
   local cible = vers or henry
   local regard = math.atan2(place.x - cible.x, cible.y - place.y)
   local pose, erreur = pcall(function()

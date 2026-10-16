@@ -8,6 +8,7 @@ Scriptorium.hommes = hommes
 
 hommes.reglages = {
   moral_depart = 60,
+  ecart_entre_hommes = 1.2,   -- autour d'un point d'activité, mètres entre deux places (JoVenGer, 16/10, après V72 c)
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -1081,6 +1082,17 @@ function hommes.activite_de(id, heure)
   end
   local tranche = tranche_de(heure_dans_le_jour(heure))
   local activite = tranche.activite
+  -- Une place à soi autour d'un point d'activité (fiche 04 ; V72 c : trois hommes au même point) : en rangs de quatre,
+  -- à « ecart_entre_hommes » mètres, selon le rang de l'homme au camp.
+  local function place_autour(p)
+    local rang = 1
+    for i, autre in ipairs(d.ordre) do
+      if autre == id then rang = i end
+    end
+    local ecart = tonumber(hommes.reglages.ecart_entre_hommes) or 0
+    local colonne, rangee = (rang - 1) % 4, math.floor((rang - 1) / 4)
+    return camp().point(p.x + (colonne - 1.5) * ecart, p.y - rangee * ecart, p.cap)
+  end
   -- La veillée est le temps libre : chacun y fait ce que lui dictent sa fatigue et ses envies (fiche 11) ; « le feu »
   -- garde la veillée ordinaire.
   if activite == "veillee" and Scriptorium.caractere then
@@ -1096,7 +1108,7 @@ function hommes.activite_de(id, heure)
   elseif activite == "entrainement" or activite == "des" then
     local p = hommes.points[(activite == "des") and "des" or "exercice"]
     resultat.lieu = (activite == "des") and "des" or "exercice"
-    resultat.position = camp().point(p.x, p.y, p.cap)
+    resultat.position = place_autour(p)
   elseif activite == "repas" or activite == "veillee" then
     local sieges = sieges_libres_pour(d)
     local rang = 0
@@ -1108,15 +1120,15 @@ function hommes.activite_de(id, heure)
       resultat.position = camp().position_de(sieges[rang])
     else
       resultat.lieu = "feu_central"
-      resultat.position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
+      resultat.position = place_autour(hommes.points.feu)
     end
   elseif activite == "exercice" or activite == "corvee" then
     local p = hommes.points[activite]
     resultat.lieu = activite
-    resultat.position = camp().point(p.x, p.y, p.cap)
+    resultat.position = place_autour(p)
   else
     resultat.lieu = "feu_central"
-    resultat.position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
+    resultat.position = place_autour(hommes.points.feu)
   end
   return resultat
 end

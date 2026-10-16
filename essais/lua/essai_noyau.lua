@@ -56,7 +56,7 @@ essai("poste : l'essai du coffre dépose, paie, et refuse la dépense trop gross
   egal(FauxJeu.bourse_henry, 50, "bourse d'Henry")
 end)
 
-essai("poste : l'essai du camp fonde là où se tient Henry, puis redresse", function()
+essai("poste : l'essai du camp fonde devant Henry, puis redresse", function()
   depart()
   FauxJeu.position_joueur = { x = 50, y = 60, z = 70 }
   FauxJeu.cap_joueur = 180
@@ -65,7 +65,8 @@ essai("poste : l'essai du camp fonde là où se tient Henry, puis redresse", fun
   egal(lits, 5, "cinq lits")
   egal(sieges, 4, "quatre sièges")
   local p = Scriptorium.camp.position_de("feu_central")
-  verifier(math.abs(p.x - 50) < 0.001 and math.abs(p.y - 60) < 0.001, "le feu est sous Henry")
+  local devant = Scriptorium.camp.reglages.fonder_devant
+  verifier(math.abs(p.x - 50) < 0.001 and math.abs(p.y - (60 - devant)) < 0.001, "le feu est devant Henry (cap 180 : -y), pas sous ses pieds")
   sort = Scriptorium.poste.essai_camp()
   egal(sort, "redresse", "la seconde fois, redressé")
   verifier(Scriptorium.poste.essai_camp_agrandir(), "agrandi")

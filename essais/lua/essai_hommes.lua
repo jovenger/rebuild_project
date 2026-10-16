@@ -787,4 +787,23 @@ essai("équipement : les tenues exclues ne sont jamais tirées", function()
     egal(hommes.fiche(id).equipement.tenue, "soldier_generic_6_02", "seule tenue du palier 3 hors des exclues")
   end
   hommes.equipement.tenue.exclues = exclues
+end)
+
+essai("hommes : à l'exercice, chacun sa place, jamais deux au même point", function()
+  preparer(5000, 10, 10)
+  for _ = 1, 8 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  local vus = {}
+  for _, id in ipairs(hommes.liste()) do
+    local a = hommes.activite_de(id, 10)
+    if a and a.activite == "exercice" then
+      for _, autre in ipairs(vus) do
+        local ecart = math.sqrt((a.position.x - autre.x) ^ 2 + (a.position.y - autre.y) ^ 2)
+        verifier(ecart >= hommes.reglages.ecart_entre_hommes - 0.01, "au moins l'écart réglé entre deux places")
+      end
+      table.insert(vus, a.position)
+    end
+  end
+  verifier(#vus >= 2, "au moins deux hommes à l'exercice à 10 h (" .. #vus .. ")")
 end)

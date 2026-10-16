@@ -18,7 +18,7 @@ reglages.profondeur_maximale = 8    -- un fichier plus profond est refusé (il n
 reglages.catalogue = {
   { section = "bandeau", morceau = "bandeau", table = "reglages" },
   { section = "coffre", morceau = "coffre", table = "reglages" },
-  { section = "camp", morceau = "camp", table = "reglages" },
+  { section = "camp", morceau = "camp", table = "reglages", taux = { fonder_devant = true } },
   { section = "meubles", morceau = "camp", table = "objets_du_jeu" },
   { section = "hommes", morceau = "hommes", table = "reglages" },
   { section = "soldes", morceau = "hommes", table = "roles" },

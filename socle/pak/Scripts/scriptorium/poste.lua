@@ -104,7 +104,7 @@ function poste.essai_camp()
                   .. " reposé(s), " .. manquants .. " manquant(s)")
     return "redresse", reposes, manquants
   end
-  local ok, raison = camp.fonder(jeu().position_du_joueur(), jeu().cap_du_joueur())
+  local ok, raison = camp.fonder(camp.ancre_devant(jeu().position_du_joueur(), jeu().cap_du_joueur()), jeu().cap_du_joueur())
   local capacite = camp.capacite()
   jeu().journal("Poste : camp fondé = " .. tostring(ok) .. (raison and (" (" .. raison .. ")") or "")
                 .. ", lits = " .. capacite.lits .. ", sièges = " .. capacite.sieges)

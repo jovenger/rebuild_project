@@ -20,6 +20,13 @@
 - **Positions.** `position_de(nom)` rend la position et le cap dans le monde d'un emplacement ; `point(x, y, cap)` fait de même pour un point quelconque du plan (postes de garde, lieux d'exercice).
 - **Enregistrement.** Après fondation, agrandissement, redressement et levée.
 
+## Le camp devant Henry, pas sous ses pieds (réponse de JoVenGer du 16/10/2026, après V72 c)
+- Vu en V72 c : le camp était fondé là où se tient Henry, et Henry restait debout dans le feu central (0,0 m) ; deux
+  écrans noirs intermittents, cause non prouvée (fiche 14). Désormais, le centre du camp est posé
+  `camp.reglages.fonder_devant` mètres devant Henry (4 par défaut, réglable) : `camp.ancre_devant(position, cap)` le
+  calcule, et c'est ce point qu'on donne à `camp.fonder`. `camp.fonder` garde son sens : le centre du camp est le point
+  donné. Le guichet de Scriptorium (étape 3) fondera le camp de la même façon.
+
 ## Meubles utilisables (validé par JoVenGer le 15/10/2026, questions à cocher)
 - **À revoir** (vu en V70) : dans le plan, une paillasse sur deux est à côté de la petite tente, hors de la toile
   (`lit_1a`/`lit_1b` autour de `tente_1`, et de même pour les autres tentes) ; l'homme y dort à découvert.

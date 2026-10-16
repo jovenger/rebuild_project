@@ -24,6 +24,13 @@
 - **Ordres :** à chaque battement, l'activité de chaque homme présent est calculée ; si elle change, le jeu reçoit l'ordre (activité, place, position). Jamais deux fois le même ordre. À l'entrée en partie (nouvelle ou chargée), chacun reçoit de nouveau son ordre en cours et les personnages manquants reviennent : le cerveau d'un homme ne garde pas ses variables à la sauvegarde (V56, fiche 12).
 - **Enregistrement :** après chaque événement (embauche, départ, paie, repas, promotion, blessure).
 
+## Une place à soi autour d'un point d'activité (réponse de JoVenGer du 16/10/2026, après V72 c)
+- Vu en V72 c : trois hommes à l'exercice exactement au même point (le point d'activité est unique). Désormais, autour
+  d'un point d'activité (exercice, corvée, entraînement, dés, et le feu quand il n'y a plus de siège), chacun a sa place,
+  en rangs de quatre, à `hommes.reglages.ecart_entre_hommes` mètres (1,2 par défaut, réglable), selon son rang au camp.
+- La liaison ne fait jamais naître ni ne pose deux personnages à moins d'un mètre : si la place est prise (un homme ou
+  Henry), elle cherche à côté, sur deux cercles de 1,2 et 2,4 m ; sinon elle refuse.
+
 ## Sorts rendus
 `embaucher` rend l'identifiant, ou `false` et une raison : `camp_absent`, `role_inconnu`, `duree_invalide`, `pas_de_lit`, `coffre_insuffisant`. Les autres : `homme_inconnu`, `rang_invalide`, `jours_invalides`.
 

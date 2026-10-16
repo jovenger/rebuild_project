@@ -186,6 +186,11 @@
   endroit, comme l'hypothèse ; à éprouver en les séparant, puis en surveillant l'écran sur plusieurs séances (positions
   relevées par `ecran_noir_voir`).
 
+## Suite décidée par JoVenGer (16/10, après V72 c) : séparer, puis surveiller
+- Le camp est fondé devant Henry (fiche 03), chaque homme a sa place autour d'un point d'activité (fiche 04), et la
+  liaison ne pose jamais deux personnages à moins d'un mètre. Puis, à chaque séance, l'écran est surveillé (positions
+  relevées par `ecran_noir_voir` au moindre écran noir).
+
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Les relations de la Compagnie** : (a) celles du chien et du cheval d'Henry (Recommandé : réglage du jeu déjà
    éprouvé pour les compagnons d'Henry, valable sur les deux cartes) ; (b) les mêmes, et ennemie de tous les ennemis du jeu (dont les bandits des
