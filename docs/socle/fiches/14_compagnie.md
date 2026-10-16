@@ -191,6 +191,23 @@
   liaison ne pose jamais deux personnages à moins d'un mètre. Puis, à chaque séance, l'écran est surveillé (positions
   relevées par `ecran_noir_voir` au moindre écran noir).
 
+## L'écran noir, au décompte (conseil du pair : un défaut intermittent se juge sur le nombre)
+| Chargement | Séance | Écran |
+|---|---|---|
+| 473 | V72 a, 1 | **noir**, après l'archer posé devant Henry (camp sous Henry) |
+| 473, puis deux rechargements | V72 a, 2 | normal (trois fois) |
+| 473, puis un rechargement | V72 b, flèches | normal, puis **noir** au rechargement (camp sous Henry, combat en cours) |
+| 473 | V72 b, délit (deux séances) | normal (deux fois) |
+| sauvegarde noire de V72 b | V72 c | normal |
+| 473, puis un rechargement | V72 d (camp devant Henry, places séparées) | normal (deux fois) |
+- Au total : 2 écrans noirs sur 12 chargements ou poses observés ; 0 sur 2 depuis la séparation. **Rien n'est conclu** : il
+  faut plusieurs séances propres de suite.
+- Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
+  quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
+  indice, `Game.IsLoadingEngineSaveGame()` (`Scripts/Entities/Others/RuntimePrefab.lua`). Le pair conseille aussi de
+  retarder le réveil du socle à l'entrée en partie (camp redressé, hommes rhabillés, ordres redonnés) de 30 s, Henry
+  jouable, comme Scriptorium qui n'agit qu'une fois la partie vraiment prête : question à JoVenGer.
+
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Les relations de la Compagnie** : (a) celles du chien et du cheval d'Henry (Recommandé : réglage du jeu déjà
    éprouvé pour les compagnons d'Henry, valable sur les deux cartes) ; (b) les mêmes, et ennemie de tous les ennemis du jeu (dont les bandits des
