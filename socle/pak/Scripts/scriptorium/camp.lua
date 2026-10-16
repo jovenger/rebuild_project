@@ -52,7 +52,10 @@ camp.objets_du_jeu = {
     proprietes = { guidSmartObjectType = "425d4fdf-8dcd-4a2b-fdc5-cbb1b5d25b89", soclass_SmartObjectHelpers = "Bed_1Place_Tent",
                    sWH_AI_EntityCategory = "Bed", Script = { esBedTypes = "GroundBed" },
                    Bed = { esSleepQuality = "low", esReadingQuality = "bed_ground" } },
-    places = { { nom = "couche", x = 0, y = 0, cap = 0 } },
+    -- Vu en jeu (V73 c 13 et c 14) : à cap 0, l'homme se couchait en travers du lit, à moitié hors de sa tente ; un quart
+    -- de tour le couche le long du lit (principe transmis par le pair : l'objet de posture d'un lit prend son orientation
+    -- à la naissance avec un quart de tour de décalage sur le meuble ; les sièges, symétriques, ne le montrent pas).
+    places = { { nom = "couche", x = 0, y = 0, cap = 90 } },
   },
 }
 

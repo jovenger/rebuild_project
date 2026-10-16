@@ -72,10 +72,11 @@
 - Désormais : deux lits côte à côte dans chaque tente, à -0,60 et 0,46 m de son axe, 0,27 m vers l'avant, même cap
   que la tente (1,06 m entre leurs places, au-dessus de l'écart d'un mètre entre deux personnages) ; le lit du
   Directeur au milieu de la sienne.
-- Vu en jeu (V73 c 13) : dans chaque tente, un homme couché dedans, l'autre le long du côté, à moitié dehors. Mieux
-  qu'avant, pas fini. Piste : l'homme couché ne s'étend pas comme le modèle du lit (axe ou centre de la posture du jeu
-  différents de ceux du modèle) ; à mesurer en relevant la position de l'homme couché par rapport à sa tente, avant de
-  déplacer encore les lits (une seule correction, d'après une mesure).
+- Vu en jeu (V73 c 13) : dans chaque tente, un homme couché dedans, l'autre le long du côté, à moitié dehors.
+- **Le quart de tour** (principe transmis par le pair, V73 c 14) : l'objet de posture d'un lit prend son orientation à
+  la naissance avec un quart de tour de décalage sur le meuble ; à cap 0, l'homme se couchait en travers. Place du lit
+  à cap 90 (`camp.objets_du_jeu.lit`, réglable : `meubles.lit.places.couche.cap`) : vu en jeu, **les deux hommes de
+  chaque tente couchés dedans, le long du lit**.
 
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.

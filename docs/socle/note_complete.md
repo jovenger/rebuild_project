@@ -53,13 +53,13 @@
   midi, corvée à 13 h ; le comportement revient après un rechargement.
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 35 chargements, 1 sur 25 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 36 chargements, 1 sur 26 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
-1. Finir le modèle durable (choix de JoVenGer) : les lits bien dans leur tente (mesurer l'homme couché, puis une
-   correction) ; la levée courte après une reprise est couverte par la tranche (voie lourde en réserve) ; le plafond
-   de relances avec V73 b (les valeurs en données sont faites, le lever du lit est vu). Ensuite, les comportements suivants de la vie du camp (étape 1 :
+1. Le modèle durable est fini (valeurs en données, lever du lit, lits dans leur tente) ; la levée courte après une
+   reprise est couverte par la tranche (voie lourde en réserve). Suite : V73 b, l'arbitre, avec le plafond de relances
+   du pair, puis la garde, le rassemblement, suivre Henry. Ensuite, les comportements suivants de la vie du camp (étape 1 :
    arbitre, garde, rassemblement, suivre Henry), toujours après relecture de `CARTE_DES_REGLES.md` et de
    `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.
