@@ -256,12 +256,16 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   comportement long, la « vie du camp » (pouls, relance hors combat et hors conversation, « faire, puis tenir »,
   activité dans `scriptorium_activite`) ; notre propre posture pour s'asseoir et se coucher ; la tenue échoue au
   changement d'ordre ; les marches en `changeNPCState="true"`. Vu : repas assis à midi, levés et partis à la corvée à
-  13 h. **Ouvert** : un homme repris assis d'une sauvegarde, but tout près, reste à demi assis ; un lit hors de sa
-  tente ; les valeurs de l'arbre (attentes, distances d'arrêt, délais) encore écrites dans l'arbre, à passer en données
-  (règle de JoVenGer), éprouvé à part.
+  13 h. **Valeurs de l'arbre en données, acquises** (V73 c 9 à c 11) : table `hommes.cerveau` au catalogue, écrite
+  dans le cerveau par le battement, valeur par défaut du catalogue tant que rien n'est écrit (comparée au banc),
+  variables non gardées dans la sauvegarde ; seules la priorité et l'urgence de l'interruption restent dans l'arbre
+  (aucune forme du jeu). **Ouvert** (choix de JoVenGer : finir le modèle d'abord) : un homme repris assis d'une
+  sauvegarde, but tout près, reste à demi assis (piste du pair dans la fiche 12) ; un lit hors de sa tente ; le
+  plafond de relances proposé par le pair.
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 0 sur 9 chargements depuis la séparation (décompte dans la fiche 14, à poursuivre).
+- **Écran noir** : 1 sur 21 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+  décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;

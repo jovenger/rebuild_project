@@ -51,12 +51,14 @@
 - Vu en jeu (16/10, fiches 12 et 15) : un seul comportement long, la « vie du camp » ; les hommes marchent,
   s'assoient face au feu et se couchent par notre propre posture, se lèvent à l'ordre et ne sont plus rassis ; repas à
   midi, corvée à 13 h ; le comportement revient après un rechargement.
-- Ouvert : l'écran noir intermittent (2 sur 19 chargements, 0 sur 9 depuis les correctifs ; décompte dans la fiche 14,
+- Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
+  en pleine partie.
+- Ouvert : l'écran noir intermittent (3 sur 31 chargements, 1 sur 21 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
-1. Finir le modèle durable : les valeurs de l'arbre en données (règle de JoVenGer), la levée courte d'un homme repris
-   assis d'une sauvegarde, le lit hors de sa tente. Ensuite, les comportements suivants de la vie du camp (étape 1 :
+1. Finir le modèle durable (choix de JoVenGer) : la levée courte d'un homme repris assis d'une sauvegarde, le lit
+   hors de sa tente, le plafond de relances (les valeurs en données sont faites). Ensuite, les comportements suivants de la vie du camp (étape 1 :
    arbitre, garde, rassemblement, suivre Henry), toujours après relecture de `CARTE_DES_REGLES.md` et de
    `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.
