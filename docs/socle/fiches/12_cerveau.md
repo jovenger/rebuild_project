@@ -261,6 +261,16 @@
   d'ordre, et la branche continue (2 s pour la sortie). Si l'homme est encore replacé, seconde hypothèse, la marche avec
   `changeNPCState="true"` (forme du jeu) ; et si cela échoue aussi : arrêt et rapport à JoVenGer (règle anti-boucle).
 
+### Mesuré en V73 c 7 (16/10)
+- La tenue échoue bien au changement d'ordre, mais **la levée échoue encore** : Jan (but tout près) reste assis ;
+  Mikuláš se lève et marche, est replacé assis en pleine marche, se relève, puis se retrouve assis une fois la marche
+  finie. La marche et la posture due se le disputent.
+- Le pair confirme (principe d'Alex) : c'est bien l'échec de la tenue qui défait la posture, dans une branche entourée
+  d'un `SuppressFailure` ; et **toutes** ses marches sont en `changeNPCState="true"` (vie du camp 7 sur 7, suivre Henry
+  4 sur 4), aucune en « false ».
+- **Dernière tentative avant l'arrêt** (règle écrite avant V73 c 7) : la marche de l'activité 9 en
+  `changeNPCState="true"`. Si l'homme est encore replacé, ou si Jan reste assis : arrêt et rapport à JoVenGer.
+
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
    interruption ; l'attaque par la fonction du jeu).
