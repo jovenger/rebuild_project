@@ -249,6 +249,18 @@
   c'est la posture qui ne prend pas : arrêt et rapport (une seule tentative de cette voie avant de revenir à JoVenGer) ; s'il s'assoit mais dos au feu, alignement sur le feu ;
   s'il est encore replacé, arrêt et rapport.
 
+### Mesuré en V73 c 6 (16/10)
+- Critère 1 : le pouls avance de 2 par seconde. Critère 2 : chacun s'assoit sur son siège, face au feu. Critère 4 : les
+  trois se couchent (l'un à côté de sa tente : place du lit dans le plan, à revoir).
+- **Critère 3 manqué** : Jan, but tout près, reste assis ; Mikuláš se lève, marche, puis il est replacé d'un coup sur
+  son siège 2 s après l'arrivée, sans le « use ». Le replacement ne venait donc pas seulement du « use ».
+- **Diagnostic** : notre garde finit la tenue par une **réussite** ; le `StanceElement` rend la main sans quitter la
+  posture, qui reste due ; la marche (`changeNPCState="false"`) emmène l'homme sans la défaire, et le jeu l'y remet dès
+  qu'elle s'arrête. Le principe transmis dit l'inverse : la tenue **échoue**, la posture se défait, le jeu joue la sortie.
+- **Correction (une seule)** : la garde de la tenue est suivie d'un `<Fail />` ; la posture échoue au changement
+  d'ordre, et la branche continue (2 s pour la sortie). Si l'homme est encore replacé, seconde hypothèse, la marche avec
+  `changeNPCState="true"` (forme du jeu) ; et si cela échoue aussi : arrêt et rapport à JoVenGer (règle anti-boucle).
+
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
    interruption ; l'attaque par la fonction du jeu).
