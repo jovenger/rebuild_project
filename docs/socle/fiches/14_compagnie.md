@@ -220,11 +220,17 @@
 ## L'écran noir de V73 c 9 (16/10), ce qu'on en sait
 - À la reprise d'une sauvegarde faite debout, au camp, sans combat : emblème de chargement, écran noir.
 - Le socle tourne (réveil, valeurs du cerveau réécrites, ordres donnés, commandes du poste lues), **l'heure du jeu
-  avance** (temps non arrêté), mais **nos arbres ne tournent plus** : le switch et la garde restent à leur premier tour.
+  avance** (temps non arrêté), mais le switch et la garde restent à leur premier tour : **figés, cause non établie**
+  (le jeu qui ne met plus nos arbres à jour, ou des valeurs gardées revenues fausses, une attente démesurée).
 - **Le guetteur reste muet** : `Game.IsLoadingEngineSaveGame()` ne dit pas « en chargement » pendant cet écran noir.
 - Nouveau depuis les essais précédents : la sauvegarde porte les variables de cerveau `scriptorium_cerveau_*` gardées
-  (`is_persistent`). Essai suivant : reprendre la même sauvegarde (rangée) ; noire de nouveau, le soupçon se porte sur
-  son contenu ; normale, l'écran noir reste intermittent.
+  (`is_persistent`). Le pair rapporte qu'Alex n'en garde qu'une (un nombre), et le jeu 9 en tout, de types à lui.
+- **Règle de décision, écrite avant V73 c 10** (même version que V73 c 9, plus la lecture au relevé de deux valeurs du
+  cerveau, garde et tour, dans les 30 s après la reprise) : (1) reprendre la sauvegarde noire ; (2) reprendre la
+  sauvegarde de V73 c 8, qui ne porte aucune de ces valeurs. Noire deux fois et c 8 normale : c'est le contenu gardé,
+  on retire `is_persistent`. Noire puis normale : intermittent, compté. c 8 noire aussi : la déclaration ou les arbres
+  actuels sont en cause. Les valeurs lues (1000 et 2000 attendues pour la sauvegarde noire) disent si la sauvegarde les
+  rend saines. Quel que soit le résultat, le conseil du pair est de revenir ensuite à des variables non gardées.
 
 ## Réveil différé et guetteur (réponse de JoVenGer du 16/10, « les deux »)
 - **Réveil différé** : à l'entrée en partie, le noyau attend `Scriptorium.noyau.reglages.delai_du_reveil_s` (30 s,
