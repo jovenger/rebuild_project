@@ -287,7 +287,10 @@
   la corvée les fait lever et marcher jusqu'à la corvée, où ils restent debout (ce qui avait échoué en V73 a).
 - **Rechargement** : le comportement long revient, l'activité est redonnée ; un homme repris assis de la sauvegarde se
   lève à une marche lointaine, mais reste à demi assis si son but est tout près (Jan) : **point ouvert**, un geste de
-  levée avant une marche courte, à concevoir.
+  levée avant une marche courte, à concevoir. Piste du pair (hypothèse) : après le chargement, la posture rendue par la
+  sauvegarde n'est tenue par aucune posture à nous ; au réveil, un homme dont le siège ou le lit se dit pris
+  (`IsStanceAvailable` faux) reçoit d'abord sa propre posture sur cet objet (activité 10 ou 11), puis l'ordre de la
+  tranche, qui la défait proprement par la garde.
 - **Acquis** (vu en jeu) : un seul comportement long ; s'asseoir par notre propre posture et se lever à l'ordre ; la
   tenue qui échoue au changement d'ordre ; les marches qui changent l'état du personnage ; la relance au chargement ; un
   ordre par tranche (midi, 13 h).
