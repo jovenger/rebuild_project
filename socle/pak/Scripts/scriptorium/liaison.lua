@@ -1675,9 +1675,16 @@ local function poser_l_ordre(entite, ordre)
   -- Fiche 15, V73 c : le compteur d'ordres, relu par la garde des comportements qui tiennent une posture (s'asseoir, se
   -- coucher) ; un nouvel ordre fait finir la posture du dedans, et le jeu joue le geste de se lever.
   local numero_lu, numero = pcall(XGenAIModule.GetBrainVariable, this.id, "scriptorium_essai_numero")
-  pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_essai_numero", (numero_lu and tonumber(numero) or 0) + 1)
+  local suivant = (numero_lu and tonumber(numero) or 0) + 1
+  local numero_pose, refus_du_numero = pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_essai_numero", suivant)
   local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
-  return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
+  -- V73 c, essai court : le compteur tel que lu puis écrit ; s'il reste illisible ou figé, la garde ne voit jamais de
+  -- changement (hypothèse b de la fiche 15).
+  local compteur = numero_lu and ("compteur " .. tostring(numero) .. " → " .. suivant) or ("compteur illisible : " .. tostring(numero))
+  if not numero_pose then
+    compteur = compteur .. ", non écrit : " .. tostring(refus_du_numero)
+  end
+  return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur))) .. " ; " .. compteur
 end
 
 -- Un ordre au marcheur (4 = s'asseoir par terre, 0 = marcher au point). Rend une ligne.
@@ -2353,8 +2360,13 @@ function liaison.poser_en_secours(identifiant, position)
   return ok and string.format("posé en (%.1f, %.1f)", place.x, place.y) or ("refusé : " .. tostring(erreur))
 end
 
--- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, et ses compteurs « assis » et « couchés ».
--- Rend une ligne.
+-- Les contextes posés autour du « use » d'un siège ou d'un lit (comportements.xml) ; encore posés après la levée, ils
+-- diraient que l'abandon du « use » n'a pas fait le ménage (V73 c, essai court).
+local CONTEXTES_DE_LA_POSTURE = { "activity_disableSchedulerLooping", "bench_disableSnooze" }
+
+-- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, ses compteurs « assis » et « couchés », les
+-- ordres donnés par la liaison et reçus par le switch (l'interruption acceptée), l'ordre en attente, les arrivées de la
+-- marche, et les contextes de la posture. Rend une ligne.
 function liaison.voir_sur_la_place(qui, identifiant)
   local personnage = entite_nommee(qui)
   if not personnage then
@@ -2369,9 +2381,16 @@ function liaison.voir_sur_la_place(qui, identifiant)
   local objet = entite_nommee(identifiant)
   local ecart = objet and ecart_entre(personnage, objet)
   local ame_lue, ame = pcall(function() return personnage.Properties.guidSharedSoulId end)
-  return string.format("à %s m de sa place ; assis %s, couchés %s, tours %s ; âme %s", ecart and string.format("%.2f", ecart) or "?",
+  local lus = liaison.contextes_de(qui, CONTEXTES_DE_LA_POSTURE)
+  local contextes = {}
+  for _, nom in ipairs(CONTEXTES_DE_LA_POSTURE) do
+    table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
+  end
+  return string.format("à %s m de sa place ; assis %s, couchés %s, tours %s ; ordres donnés %s, reçus %s, en attente %s, arrivées %s ; %s ; âme %s",
+    ecart and string.format("%.2f", ecart) or "?",
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_vivant"),
-    ame_lue and tostring(ame) or "?")
+    variable("scriptorium_essai_numero"), variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_ordre"),
+    variable("scriptorium_essai_arrive"), table.concat(contextes, " "), ame_lue and tostring(ame) or "?")
 end
 
 -- L'écart entre le marcheur et l'objet visé, ou nil.

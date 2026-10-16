@@ -150,6 +150,27 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   - Deux voies, une à la fois : (a) l'essai court (« false », contextes et garde gardés, compteur lu au journal) ; (b) le
     modèle durable : un seul comportement « vie du camp », posture tenue par notre `StanceElement` et `UnstanceElement`
     sur le siège (changement d'architecture de la fiche 12).
+- **Choix de JoVenGer (16/10)** : « Court, puis durable » : l'essai court d'abord, puis le modèle durable avec sa fiche
+  et ses questions.
+
+## Essai court V73 c 4 : grille de lecture écrite avant la séance
+- **Ce qui change** (un seul essai) : ordres 9, 10 et 11 remis à `IgnorePriorityOnPreviousInterrupt="false"` (le 8 ne
+  bouge pas) ; contextes et garde gardés. Au journal : la ligne de chaque ordre dit le compteur lu puis écrit (ou
+  « illisible », ou « non écrit ») ; `hommes_voir` dit, par homme, l'écart au siège donné, les ordres donnés (compteur),
+  reçus (`scriptorium_essai_rejoint`, qui n'avance que si l'`AddInterrupt` est accepté), l'ordre en attente, les
+  arrivées de la marche et les deux contextes de la posture.
+- **Déroulé** : comme V73 c 3 (secours coupé, trois assis, levés un par un à environ 30 s, 90 s et 3 min, positions et
+  captures, secours remis, `fin_essai`).
+- **Lecture, une suite par issue** :
+  1. compteur figé ou illisible : hypothèse (b) ; corriger la lecture ou l'écriture du compteur, pas l'arbre ;
+  2. compteur qui bouge, « reçus » qui avance, l'homme se lève et marche : (a) confirmée, et l'ordre de même priorité est
+     mis en file ; passer au modèle durable ;
+  3. compteur qui bouge, « reçus » qui n'avance pas, l'homme se lève sans marcher : (a) confirmée pour la mort du
+     dehors, mais l'interruption de même priorité est jetée ; le modèle durable (une seule interruption) la contourne ;
+  4. compteur qui bouge et personne ne se lève : la fin du `Parallel` ne défait pas la posture du « use » ; hypothèse
+     (c) ; droit au modèle durable avec notre `StanceElement` et `UnstanceElement`.
+- Un contexte de la posture encore posé après la levée dirait que l'abandon du « use » ne fait pas le ménage.
+- Un ordre venu du battement (changement d'heure) augmente aussi le compteur : la ligne de l'ordre le montre au journal.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
