@@ -407,6 +407,10 @@
 - La posture « debout » en tête de la marche est gardée : elle ne gêne pas, et elle couvre le cas où la posture tenue
   par le jeu vise un objet encore là.
 
+### Mesuré en V73 c 13 (16/10)
+- **Le lever du lit marche avec la version finale** : couchés à l'ordre, les hommes se lèvent du lit à l'ordre suivant
+  (l'exercice, donné par le battement) et partent.
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,

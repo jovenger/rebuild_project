@@ -71,7 +71,11 @@
   0,5 m par le côté (un homme couché hors de sa tente en V73 c 6), celui du Directeur de 0,85 m par l'arrière.
 - Désormais : deux lits côte à côte dans chaque tente, à -0,60 et 0,46 m de son axe, 0,27 m vers l'avant, même cap
   que la tente (1,06 m entre leurs places, au-dessus de l'écart d'un mètre entre deux personnages) ; le lit du
-  Directeur au milieu de la sienne. Vérification à l'image : à faire en jeu (non vérifié).
+  Directeur au milieu de la sienne.
+- Vu en jeu (V73 c 13) : dans chaque tente, un homme couché dedans, l'autre le long du côté, à moitié dehors. Mieux
+  qu'avant, pas fini. Piste : l'homme couché ne s'étend pas comme le modèle du lit (axe ou centre de la posture du jeu
+  différents de ceux du modèle) ; à mesurer en relevant la position de l'homme couché par rapport à sa tente, avant de
+  déplacer encore les lits (une seule correction, d'après une mesure).
 
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.
