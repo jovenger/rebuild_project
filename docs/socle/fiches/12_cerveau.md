@@ -196,6 +196,18 @@
   Leur passage par des variables du cerveau, écrites par le Lua depuis le catalogue, est le pas suivant, éprouvé à part
   (une attente qui ne prendrait pas sa variable ferait tourner la garde sans attendre).
 
+### Mesuré en V73 c 5 (16/10)
+- **Le comportement long tient** : un lancement par homme et pour le Directeur, jamais relancé pendant l'essai ; après
+  « sauvegarder et quitter » et reprise, relancé dès l'entrée en partie, puis l'activité redonnée par le réveil différé.
+- **L'attente de la garde ne prenait pas** : « 0.5s » n'est pas une forme du jeu ; ses arbres écrivent `'500ms'`
+  (55 fois), jamais de secondes à virgule. Le pouls avançait d'environ 4 000 par seconde. Correction : `'500ms'`.
+- **Le siège reprend l'homme sous notre comportement** : levé, l'homme marche jusqu'à l'exercice, puis il est replacé
+  d'un coup, assis, sur son siège (de 1,5 à 3 s après l'arrivée, sans marcher), pendant que le pouls avance. C'est le
+  premier cas de la règle de décision : **on passe à notre propre posture (b)**, sans le « use » du jeu. Le même lien
+  semble survivre à la sauvegarde (Jan, assis avant, repris après la reprise).
+- Un homme dont le but est à moins de 2,5 m de son siège ne se lève pas : sa marche réussit sans un pas. Notre propre
+  posture devra se défaire d'elle-même quand l'activité change, avant toute marche.
+
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
    interruption ; l'attaque par la fonction du jeu).
