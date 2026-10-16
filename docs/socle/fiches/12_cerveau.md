@@ -371,6 +371,14 @@
   pouls à 2 par seconde avant comme après le réveil ; `cerveau.garde_ms=1000` : 1 par seconde ; une levée sans être
   replacé ; l'écran noir, au décompte.
 
+### Mesuré en V73 c 11 (16/10) : les valeurs en données, acquises
+- Hommes et Directeur neufs : un seul lancement, pouls à 2 par seconde avant comme après l'écriture ; reprise d'une
+  sauvegarde : valeurs par défaut jusqu'au réveil, un lancement, puis le catalogue ; `cerveau.garde_ms=1000` en pleine
+  partie : 1 par seconde ; une levée tient. **Les valeurs de l'arbre suivent le catalogue (règle de JoVenGer du 14/10),
+  sauf la priorité et l'urgence de l'interruption** (aucune forme du jeu pour les passer par variable).
+- Proposé par le pair, pas encore fait : un plafond de relances par homme (par exemple 3 par minute, réglable), pour que
+  le gardien des hommes ne tourne jamais en boucle, quelle que soit la cause.
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
