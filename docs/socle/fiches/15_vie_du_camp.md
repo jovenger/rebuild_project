@@ -369,6 +369,23 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   « travail » ; 2 (a) jusqu'à ce que leur morceau les lâche, sûreté de 24 h notée au journal ; 3 (a) l'exemption par
   règle, posée par Scriptorium.
 
+### Mesuré en V73 b 1 (16/10)
+- **Issues 1, 2 et 5 de la grille, deux fois** (Jan Kladivo, homme d'armes ; Mikuláš le Rouge, arbalétrier) : assis au
+  feu, chacun se lève de lui-même à l'ordre d'attaque et se bat ; son siège se dit libre aussitôt ; pendant le combat,
+  contexte de combat à 1, pouls figé, **aucune relance** (la lecture « en combat », vue pour la première fois) ; le
+  brigand tué (à 39 m, puis à 110 m), le contexte tombe et **une seule relance** part ; le pouls repart, et chacun
+  revient s'asseoir sur son siège.
+- **Conclusion** : chez nous, le remplacement de l'interruption suffit : notre `StanceElement`, tué du dehors, joue la
+  levée. Le dégagement d'Alex (issue 3) n'est pas nécessaire ; il reste en réserve.
+- Le secours figé en combat n'a pas été mis à l'épreuve en jeu (secours coupé pendant l'essai, comme à chaque séance) ;
+  il l'est au banc.
+- Noté, sans changement : revenant de 110 m, Mikuláš s'est d'abord éloigné (de 85 à 125 m) avant de revenir. La marche
+  vers un siège est bornée à 30 s (`marche_delai_ms`), puis la posture est tentée de loin : un long retour vers un
+  siège passerait mieux par une marche d'abord. À reprendre avec le rassemblement (V73 e).
+- **Fait nouveau, hors grille : des hommes dévêtus en pleine partie** (détail dans la fiche 13) : leurs pièces restent
+  dans leur sac, mais ne sont plus portées. Jan est revenu du combat torse nu ; Mikuláš se battait en simple tunique ;
+  Ondřej, qui ne s'est pas battu, était torse nu à 16 h 40.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

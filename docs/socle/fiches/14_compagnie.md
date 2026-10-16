@@ -214,7 +214,8 @@
 | 473, puis un rechargement | V73 c 12 (debout avant de marcher) | normal (deux fois) |
 | 473 | V73 c 12 bis (mesures des boîtes) et V73 c 13 (lits dans leur tente) | normal (deux fois) |
 | 473 | V73 c 14 (le quart de tour du lit) | normal |
-- Au total : 3 écrans noirs sur 36 chargements ou poses observés ; 1 sur 26 depuis la séparation. **Rien n'est conclu** : il
+| 473 | V73 b 1 (l'attaque sur un homme assis) | normal |
+- Au total : 3 écrans noirs sur 37 chargements ou poses observés ; 1 sur 27 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

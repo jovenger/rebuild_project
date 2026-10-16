@@ -408,6 +408,24 @@
 - **Mesuré en V71 f** (15/10) : les tenues tirées au palier 3 ne sont plus parmi les exclues ; **le pavoisier se bat avec
   son pavois au bras gauche** et son coutelas en main : réponse 3 de JoVenGer vérifiée. Pas de question à poser.
 
+- **Vu en V73 b 1 (16/10) : des hommes dévêtus en pleine partie, sans chargement.** Les trois hommes, équipés à
+  l'embauche (tenue de naissance retirée, pièces créées et portées), assis au feu :
+  - Jan Kladivo, habillé à l'ordre d'attaque (capture), revient du combat **torse nu** : ses 9 pièces sont toujours
+    dans son sac (`essai_equipement_voir`), mais plus portées ; `essai_equipement_reporter_sans_oter` les lui remet, et
+    il est rhabillé (casque, gambison, gants) ;
+  - Mikuláš le Rouge se bat **en simple tunique**, sans casque ni cape, dès le début du combat ;
+  - Ondřej de Sázava, **qui ne s'est pas battu**, est torse nu à 16 h 40 (habillé vers 16 h 35, juste après son
+    équipement) ; aucune ligne du socle ne touche à sa tenue entre les deux.
+  - Ce que cela rappelle : à chaque chargement, le moteur rhabille l'homme de sa tenue de naissance (V71 b). Ici, en
+    pleine partie, le moteur semble remettre la tenue de l'âme dans d'autres situations (au combat, et une autre, pas
+    encore connue) ; nos pièces sont alors ôtées, et la tenue de naissance, retirée à l'embauche, ne peut plus revenir :
+    l'homme reste à moitié nu. **Hypothèse, non vérifiée.**
+  - Pistes relevées dans le jeu (`Data/Scripts.pak`, lecture seule, rien d'extrait) : `EquipClothingPreset` et
+    `GetInitialClothingPreset` (`Scripts/Debug/CombatDebug.lua`) : le jeu habille ses personnages par un préréglage de
+    tenue ; le nœud d'arbre `ClothingPresetOverride` (424 emplois dans les quêtes) ; `Function_item_findEquippedItem`
+    (`AI/item/equipItemByCategory.xml`), une lecture de ce qui est porté.
+  - **Ouvert, à décider avec JoVenGer** : trouver ce qui déclenche ce rhabillage, puis le remède (remettre nos pièces
+    quand il arrive, ou donner à nos âmes un préréglage de tenue qui soit le nôtre).
 - **Levier noté, sans question** (proche de la réponse c, non retenue) : une âme sans tenue de naissance ôterait le
   problème pour les combattants (rien à retirer, tout est à lui) ; la sonde « hors règles » de V71 a2 est née sans aucune
   des pièces comptées. À reprendre seulement si la signature se montre fragile.

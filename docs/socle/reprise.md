@@ -267,11 +267,14 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   suivant. V73 b 1 : la mesure de l'attaque sur un homme assis (commande d'essai, lecture des contextes « occupé », le
   secours figé en combat ; grille écrite) ; V73 b 2 : le plafond de relances, dans le switch, ligne au journal par le
   Lua ; V73 b 3 : l'arbitre par tenues (une par règle, rangs au catalogue, ordre redonné sur-le-champ, bornes, registre
-  en version 3). **En attente** : la relecture du pair (envoyée), puis les trois questions à cocher à JoVenGer (fin de
-  la section), puis le code de V73 b 1.
+  en version 3). Relue par le pair, validée par JoVenGer (réponses a, a, a).
+- **V73 b 1, vu en jeu** (0f324f1, 6970cdd) : un homme assis se lève de lui-même à l'ordre d'attaque et se bat ; pendant
+  le combat, aucune relance ; après, une seule, et il revient s'asseoir (deux fois). Le dégagement d'Alex n'est pas
+  nécessaire. **Fait nouveau** : des hommes dévêtus en pleine partie (pièces dans le sac, plus portées ; au combat, et
+  une fois sans combat) : fiche 13, à décider avec JoVenGer avant V73 b 2 (le plafond de relances).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 26 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 27 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
