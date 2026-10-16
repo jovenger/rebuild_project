@@ -116,7 +116,9 @@
   personnage assis attaqué se lève), soit l'homme reste assis. À voir en V73 b : l'ordre 8 sur un homme assis. Si la
   posture reste, le Lua dégage l'homme d'abord (activité 0, compteur augmenté, 3 s au plus), la garde finit la posture
   du dedans, puis l'attaque part ; c'est le même principe que le signal « céder la place » transmis par le pair. Après
-  le combat, le pouls fait relancer la vie du camp.
+  le combat, le pouls fait relancer la vie du camp. **Mesure, grille et suite : fiche 15, V73 b 1** (lu dans le jeu,
+  16/10 : `interrupt_attack.xml` ne lève pas lui-même un personnage qui n'est pas debout) ; le plafond de relances du
+  pair : fiche 15, V73 b 2.
 - **Au chargement** : l'état du switch revient à 0 et le comportement long est relancé au premier tour. L'homme attend
   debout, puis le réveil différé (30 s) redonne l'activité en cours (`hommes.relancer`).
 - **Les valeurs** (attente de la garde, délai de la marche, distance d'arrêt, délai du pouls figé) passent par des

@@ -10,6 +10,8 @@
   de 60 m, retours au camp), toujours hors d'un meuble et hors de la vue d'Henry si possible (1) ; l'ordre des
   priorités proposé (2) ; la journée du socle pour l'homme qu'aucune règle ne tient (3) ; une tâche sans fin s'arrête au
   changement de tranche (4).
+- **V73 b revu le 16/10** pour le comportement long (section « V73 b » ci-dessous) : en relecture par le pair, puis
+  trois questions à cocher à JoVenGer, avant tout code.
 
 ## Le constat (relu dans le code du socle, 16/10)
 - La vie du camp **téléporte** encore : `hommes.battre` calcule l'activité (`hommes.activite_de`) et `liaison.ordonner`
@@ -197,10 +199,153 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   dans notre comportement. À vérifier aussi en V73 c 5 : qu'aucun lien ne reste entre l'homme et le siège après la
   levée.
 
+## V73 b — l'arbitre des ordres, revu pour le comportement long (16/10, en relecture par le pair)
+- **Pourquoi revoir** : le pas 2 ci-dessus date d'avant le comportement long. Depuis V73 c, un ordre n'est plus une
+  interruption : le Lua écrit l'activité et augmente le compteur, le comportement long la joue (fiche 12). Deux suites :
+  - la « garde de l'arbitre » du pas 2 (aucun ordre de routine à un homme en combat) n'a plus d'objet sous cette forme :
+    une activité écrite pendant un combat ne fait rien tant que le comportement long est arrêté, et il la lit à sa
+    relance, le combat fini ;
+  - il en reste une, nouvelle : le **secours** ne doit pas prendre un homme qui se bat ou qui parle pour un homme bloqué.
+
+### Ce que dit la carte des règles (relue le 16/10, lecture seule, par un agent de recherche)
+- Aucun classement d'ensemble ; des énoncés partiels, tous d'accord avec l'ordre validé (réponse 2 a) :
+  - l'attaque du camp passe avant tout (`permissions_de_sortie`) ; la nuit, les dormeurs ne se relèvent que pour une
+    attaque ou une alerte (`chef_du_camp`) ;
+  - assis ou couchés, tous se lèvent à l'attaque et se mettent en garde (`en_garde_du_camp`) ; un homme assis au moment
+    de l'alerte se lève d'abord, puis court à son poste (`degel_des_hommes`) ;
+  - le rassemblement arrête toute tâche : entraînement, repas, assise, tir, bain (`rassemblement_sans_retard`) ;
+  - le blessé va au bain même pendant le travail (`soins_du_service`), puis il peut reprendre son activité
+    (`soins_apres_bataille`, le seul « reprendre » de la carte).
+- **Rien dans la carte** sur : un homme « occupé » que les autres règles respectent ; Henry qui veut un poste occupé
+  (au plus près : `objets_d_henry`, ce qui est assigné à Henry, il doit pouvoir vraiment l'utiliser) ; les compagnons
+  et la garde de nuit (règle de JoVenGer du 12/10, transmise par le pair) ; une durée ou une borne d'interruption ; une
+  file d'attente. C'est la mécanique que le socle doit fournir ; Scriptorium décidera par elle.
+
+### Le constat (code relu le 16/10)
+- **Une seule affectation par homme** (`f.affectation`) : la dernière écrase la précédente sans regarder sa force (une
+  punition remplacerait une bataille), et la libération rend l'homme à sa journée : un patrouilleur appelé à la bataille
+  perd sa patrouille pour de bon. Deux lectures en dépendent : `hommes.gardes` (« valides » : sans affectation) et
+  `patrouilles.disponibles` (`affectation_de == nil`).
+- **Le secours compte un homme qui se bat comme bloqué** : il ne se rapproche pas du but de sa tranche ; au bout de
+  30 s, il serait posé d'un coup hors de son combat.
+- Les ordres partent au battement des hommes, toutes les 30 s (`Scriptorium.cadence_du_battement_ms`) : trop lent pour
+  un homme qui doit s'arrêter tout de suite (règle de JoVenGer du 16/10 : il cède le poste à Henry).
+- **La relance n'a pas de plafond** (proposition du pair après V73 c 10 : la tempête de 117 lancements montre que le
+  pouls peut s'emballer pour une autre cause qu'une valeur).
+- **L'attaque** : l'ordre 8 appelle `callInterrupt_attack` (160, priorité ignorée), qui remplace notre comportement long.
+  Lu dans le jeu (`AI/npc/basic/switch/interrupt_attack.xml`, lecture seule) : avant le combat (`CombatAction`), un
+  personnage debout finit son geste et s'arrête ; un personnage qui n'est pas debout passe tout droit (commentaire du
+  jeu : il ne peut pas bouger sans être debout). Le jeu ne le lève donc pas lui-même : il compte sur la fin de la posture
+  du comportement remplacé (chez nous, notre `StanceElement`).
+- Le Directeur n'a pas d'affectation : hors de V73 b.
+- Recherche d'un exemple existant (règle du 15/10) : deux recherches (web, dépôts de code) ; rien de propre à KCD2. Le
+  schéma général, une file de tâches par personnage rangée par priorité, est celui de
+  `gamedev.stackexchange.com/questions/96433` ; le reste vient des arbres du jeu.
+
+### Comment ce serait fait : trois pas, chacun vu en jeu avant le suivant
+**V73 b 1 — Mesure : l'attaque sur un homme assis, puis le retour après le combat.**
+- Code, petit, aucun arbre touché :
+  - une commande d'essai : l'homme suivant attaque le brigand du jeu **sans être déplacé** (`poste.essai_hommes_attaque`,
+    sur le modèle de `essai_hommes_lever`) ;
+  - `voir_sur_la_place` dit en plus les deux contextes « occupé » (combat `crime_interruptAttack`, conversation
+    `speech_switchDialogRunning`) et le compteur des combats ;
+  - **le secours se fige** pour un homme en combat ou en conversation (`liaison.contextes_de`) : son compte du temps
+    sans progrès repart de zéro ; essai au banc.
+- Séance (`playline3`) : les hommes assis (`essai_hommes_asseoir`), secours coupé ; Henry au bord du camp, tourné vers
+  l'extérieur ; le brigand léger posé à 8 m devant lui (`essai_brigand_leger`), donc jamais dans un meuble du camp ;
+  l'attaque ; une lecture toutes les 5 s environ.
+- **Grille, écrite avant la séance** :
+  1. il se lève et se bat : combats + 1, contexte de combat à 1, pouls figé, **aucune relance pendant le combat** (la
+     lecture « en combat », jamais vue en jeu) → bon ;
+  2. le combat fini : une relance (deux au plus si la suite du combat du jeu dure plus d'une minute), le pouls repart, et
+     l'homme reprend sa tranche (rassis, si c'est l'heure du repas) → rien à ajouter ; ou le pouls repart sans relance
+     (le jeu a rendu notre comportement) → rien à ajouter, c'est noté ;
+  3. il reste assis, ou se bat assis, ou ne se bat pas → **dégager d'abord** : l'activité « attendre » et le compteur,
+     puis l'attaque après le temps de sortie (`sortie_ms`) ; un seul changement, V73 b 1 bis ;
+  4. aucune relance plus d'une minute après la fin du combat (contexte resté à 1) → lire les contextes, chercher un
+     autre signe de la fin du combat ; un seul changement ;
+  5. à part : le siège se dit libre après la levée (`IsStanceAvailable`).
+- Décompte de l'écran noir (fiche 14).
+
+**V73 b 2 — Le plafond de relances (proposition du pair).**
+- **Dans le switch**, là où se fait la relance : le battement de 30 s est trop lent pour « au plus 3 par minute » (avec
+  les valeurs par défaut, 5 relances pourraient partir avant qu'il ne voie rien).
+- Deux variables locales : les lancements dans la fenêtre, et le temps écoulé dans la fenêtre (chaque tour y ajoute sa
+  durée) ; la fenêtre finie, les deux reviennent à zéro. Un lancement n'est permis que sous le plafond ; chaque
+  lancement compte, le premier aussi. Un lancement refusé par le plafond augmente, une fois par fenêtre, le compteur de
+  cerveau `scriptorium_vie_arrets`.
+- Valeurs en données (`hommes.cerveau`, défauts recopiés dans l'arbre et comparés au banc) : `relances_max` (3),
+  `relances_fenetre_ms` (60 000).
+- **La ligne au journal, par le Lua** : à chaque battement, le compteur des arrêts de chaque homme et du Directeur est
+  relu (une fonction de la liaison qui lit des variables de cerveau) ; une ligne par hausse : « Hommes : pouls :
+  relances arrêtées pour « X » ». En mémoire seulement, remise à zéro au chargement comme le cerveau.
+- **Au banc** : contrôles statiques (`tout_verifier.py` : le plafond garde les deux chemins de relance, ses valeurs sont
+  lues avec leur défaut) ; essai Lua de la ligne au journal (une par hausse, aucune sinon). Le « 3 relances, puis
+  arrêt » se mesure **en jeu** : le banc ne joue pas les arbres.
+- En jeu : non-régression (la vie du camp, un lancement par homme) ; puis une tempête provoquée par fichier
+  (`cerveau.garde_ms` très long, `relance_tours` et `file_tours` à 1) : au plus 3 lancements par minute et par homme,
+  une ligne par arrêt ; puis `regler.py --retirer`.
+
+**V73 b 3 — L'arbitre en Lua.**
+- **Une tenue par règle** : `f.tenues[regle] = { activite, lieu, position, cap, fin, depuis }`. Le rang de chaque règle
+  est au catalogue (`hommes.priorites`, nouvelle section « priorites »), d'après l'ordre validé (réponse 2 a) :
+  bataille 1 ; rassemblement 2 ; soins, bains 3 ; garde, garde de nuit, ronde 4 ; travail 5 ; repas, sommeil 6 ;
+  loisir 7. La journée du socle vient après toutes (réponse 3 a).
+- **Qui tient l'homme** : la tenue du plus petit rang ; à rang égal, la plus ancienne garde l'homme (une règle ne reprend
+  pas un homme qu'une règle aussi forte tient). Les blessures (soins, rang 3), le tour de garde du socle (garde, rang 4)
+  et la journée se calculent comme aujourd'hui, chacun à son rang.
+- **Services**, pour le guichet et pour les morceaux du socle : `hommes.tenir(id, regle, quoi)` ;
+  `hommes.lacher(id, regle)` ; `hommes.qui_tient(id)` (règle, activité, fin) ; `hommes.libre_pour(id, regle)` (aucune
+  règle aussi forte ne le tient).
+- **Tout de suite** : `tenir` et `lacher` redonnent l'ordre à cet homme sur-le-champ (le même chemin que le battement,
+  pour lui seul). C'est ce qui fait qu'un homme cède aussitôt un poste à Henry : Scriptorium lâche sa tenue (il
+  s'arrête, sa posture finit du dedans, il prend la règle d'en dessous), puis la lui redonne plus tard. **Savoir quand
+  Henry veut le poste n'est pas de V73 b** : avec les postes, à l'étape des métiers.
+- **Les bornes** (réponse 4 a, et question 2 ci-dessous) : une heure de fin → la tenue tombe à cette heure ; sans fin →
+  au prochain changement de tranche (`hommes.journee`), calculé à la pose ; les tenues des morceaux du socle (bataille,
+  patrouille) → jusqu'à ce qu'ils les lâchent, avec une borne de sûreté (`tenue_max_h`, 24 h de jeu) notée au journal.
+- **Les trois appelants convertis** : `bataille`, `patrouilles` et `discipline` passent par `tenir` et `lacher` ;
+  `patrouilles.disponibles` et `hommes.gardes`, par `libre_pour`. `affecter`, `liberer_affectation` et `affectation_de`
+  sont retirés (rien laissé en essai).
+- **Le registre** : case `hommes` en version 3 ; la montée jette l'ancien champ `affectation`, comme la 1 → 2 (les
+  affectations sont passagères).
+- **L'interrupteur de la journée** : `hommes.reglages.journee_du_socle` (vrai) ; à faux, un homme qu'aucune règle ne
+  tient attend où il est (activité 0). C'est par lui que Scriptorium coupera la journée du socle à la bascule
+  (réponse 3 a).
+- Noté, sans changement : la corvée de punition du morceau `discipline` dure 24 h et passe devant toute la journée,
+  sommeil compris, comme aujourd'hui ; c'est une décision de ce morceau, que la discipline de Scriptorium remplacera.
+- **Essais au banc** (`essai_hommes.lua`) : une règle plus faible ne reprend pas un homme tenu ; à la libération, la
+  règle d'en dessous reprend (y compris une tenue plus faible restée posée) ; à rang égal, la première garde l'homme ;
+  les trois bornes ; l'ordre redonné sur-le-champ ; la montée 2 → 3 ; la garde et la patrouille ne prennent pas un
+  homme tenu plus fort ; l'interrupteur de la journée.
+- **En jeu**, par des commandes d'essai qui jouent le guichet : assis au repas, une tenue « rassemblement » sur un point
+  → il se lève aussitôt et marche ; une tenue « loisir » en plus → rien ne change ; le rassemblement lâché → il reprend
+  le loisir, ou sa tranche si le loisir est tombé.
+
+### Les trois règles de JoVenGer qui touchent l'arbitre (le mécanisme ; qui et quand restent à Scriptorium)
+- **Les compagnons ne montent jamais la garde de nuit** : le socle ne connaît pas les compagnons (question 3).
+- **Un poste qu'Henry veut lui est cédé tout de suite** : `lacher` sur-le-champ, ci-dessus ; la détection viendra avec
+  les postes.
+- **Un homme n'est jamais retiré du monde** : la règle vise les sorties (V73 f, missions), pas le départ d'un homme qui
+  quitte la Compagnie (fin de contrat, désertion, renvoi, mort : `faire_partir`). L'arbitre ne retire jamais personne.
+
+### Questions à JoVenGer (V73 b, après relecture par le pair)
+1. **Le rang de la patrouille et de la corvée de punition** (les deux tâches du socle que l'ordre validé ne nomme pas) :
+   (a) la patrouille au rang « garde et ronde », la corvée de punition au rang « travail » (Recommandé) ; (b) les deux au
+   rang « travail » ; (c) les deux au rang « garde et ronde ».
+2. **La borne des tâches que le socle donne lui-même sans heure de fin** (bataille, patrouille) : (a) jusqu'à ce que leur
+   morceau les lâche, avec une borne de sûreté de 24 h de jeu notée au journal (Recommandé) ; (b) au changement de
+   tranche, comme les autres (une bataille à cheval sur deux tranches serait coupée).
+3. **Compagnons sans garde de nuit, le mécanisme** : (a) une exemption par règle, posée par Scriptorium sur l'homme
+   (`hommes.exempter(id, "garde_de_nuit")`), respectée par l'arbitre et par la garde du socle (Recommandé) ; (b) rien dans
+   le socle : les règles de garde de Scriptorium ne choisissent jamais un compagnon.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
-- Une table nouvelle `hommes.priorites` (nom de règle → rang), dans le catalogue.
+- Une table nouvelle `hommes.priorites` (nom de règle → rang), dans le catalogue (V73 b 3).
+- V73 b : `hommes.cerveau.relances_max` (3) et `relances_fenetre_ms` (60 000) ; `hommes.reglages.tenue_max_h` (24) et
+  `journee_du_socle` (vrai).
 
 ## Essais au banc (`essais/lua/essai_hommes.lua`)
 - Une activité de siège donne l'ordre 10 sur la bonne place ; de lit, l'ordre 11 ; de point, l'ordre 9 avec le point.
