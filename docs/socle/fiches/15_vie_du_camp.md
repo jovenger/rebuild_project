@@ -172,6 +172,24 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - Un contexte de la posture encore posé après la levée dirait que l'abandon du « use » ne fait pas le ménage.
 - Un ordre venu du battement (changement d'heure) augmente aussi le compteur : la ligne de l'ordre le montre au journal.
 
+## Mesuré en V73 c 4 (16/10) : l'essai court
+- **Le compteur** : lu puis écrit à chaque ordre (« compteur 1 → 2 » à l'assise, « 2 → 3 » à la levée) : l'hypothèse
+  (b) est écartée.
+- **Les ordres** : chacun est reçu (`scriptorium_essai_rejoint` avance) ; avec « false », l'ordre de même priorité est
+  mis en file, pas jeté.
+- **La levée** : les contextes de la posture tombent à 0 et l'homme se lève : Mikuláš est debout et en marche 5 s après
+  l'ordre, Ondřej 7 s après. La garde termine donc l'assise du dedans, et le jeu joue le geste de se lever : c'est
+  l'issue 2 de la grille, l'hypothèse (a) est confirmée.
+- **Ce qui suit, nouveau** : Jan et Mikuláš arrivent à leur place d'exercice ; Ondřej s'arrête à 2,1 m de son siège, et
+  sa marche n'arrive pas. Puis **chacun retourne s'asseoir sur son propre siège, sans nous** (le compteur « assis »
+  ne bouge pas), moins de 15 s après la fin de notre marche. Notre interruption finie, le jeu reprend la main : sa
+  propre vie, rendue par la fin du contexte `activity_disableSchedulerLooping`, ou le lien laissé entre l'homme et le
+  siège par le « use » du jeu, le ramène à ce siège.
+- **Suite, selon la grille** : le modèle durable. Une seule interruption longue, qui ne finit jamais tant que l'homme
+  vit au camp, ne laisse jamais la main au jeu entre deux activités ; entre deux ordres, l'homme attend à sa place
+  dans notre comportement. À vérifier aussi en V73 c 5 : qu'aucun lien ne reste entre l'homme et le siège après la
+  levée.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
