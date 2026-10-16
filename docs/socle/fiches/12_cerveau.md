@@ -208,6 +208,42 @@
 - Un homme dont le but est à moins de 2,5 m de son siège ne se lève pas : sa marche réussit sans un pas. Notre propre
   posture devra se défaire d'elle-même quand l'activité change, avant toute marche.
 
+### Notre propre posture (b), d'après le « use » du jeu et le principe transmis (16/10)
+- **Ce que fait le « use » du siège** (`AI/world/so_sitPlace.xml`, lecture seule) : `StanceElement` sur l'objet,
+  posture « sitting », avec dedans une attente que la mise en posture soit jouée (`WaitAction`) ; puis, après 15 s sans
+  le contexte `activity_disableSchedulerLooping`, un `InstantSynchronize` « keepInBehavior » : c'est sans doute lui qui
+  replace l'homme d'un coup sur le siège. Hébergé par l'objet, le « use » fait aussi l'approche ; hébergé par notre
+  interruption, il faut la faire nous-mêmes.
+- **Principe transmis par la conversation Scriptorium (mécanisme seulement)** : l'objet de la posture est l'objet
+  invisible `StanceSmartObject` posé sur le meuble (celui que le camp pose depuis V66) ; pour s'asseoir ou se coucher,
+  aucun geste nommé : une marche serrée, un demi-tour pour un siège, la posture avec son attente, puis la tenue. La
+  tenue finie, la posture se défait et le jeu joue lui-même la sortie. En V60 et V61, il manquait sans doute l'attente
+  intérieure et l'arrêt serré (0,57 m).
+- **Notre branche « s'asseoir »** (activité 10) :
+  1. l'approche, interrompue par la garde si un nouvel ordre arrive : marche jusqu'à l'objet du siège, arrêt à 0,1 m
+     (± 0,05), `changeNPCState="true"` (forme du jeu : 809 marches sur 854 qui le disent), délai de 30 s ; puis
+     `<Turn target="$scriptorium_essai_siege" align="true" />` : l'homme prend le cap de l'objet, posé tourné vers le
+     feu par le plan du camp (forme du jeu pour s'aligner sur un objet : `AI/quests/kutnohorskyTurnaj/kutnohorskyturnaj.xml`) ;
+  2. si aucun nouvel ordre n'est arrivé : `StanceElement` sur l'objet, « sitting », avec dedans `WaitAction` puis la
+     garde (la tenue) ;
+  3. la garde finie, la posture se défait ; 2 s d'attente laissent au jeu le temps de jouer la sortie avant l'activité
+     suivante.
+- **Notre branche « se coucher »** (activité 11) : la même, posture « lying », arrêt à 0,5 m, sans demi-tour (à vérifier
+  à l'image : si l'homme se couche en travers, on ajoutera l'alignement sur l'objet).
+- Les contextes du « use » (`activity_disableSchedulerLooping`, `bench_disableSnooze`) ne servent plus : retirés.
+- **La garde attend `'500ms'`**, la forme du jeu.
+- **Essai V73 c 6** (`playline3`, sans `-devmode`), critères écrits avant :
+  1. le pouls avance d'environ 2 par seconde ;
+  2. chacun marche jusqu'à son siège et s'assoit **face au feu** ;
+  3. levés à 30 s, 90 s et 3 min : chacun se lève (Jan compris, dont le but est tout près) et **reste debout 2 min sans
+     être replacé** ;
+  4. coucher puis lever : couché dans le bon sens, puis levé ;
+  5. sauvegarder assis, recharger : l'homme n'est pas replacé sur son siège par le jeu ; le pouls revient ;
+  6. l'écran noir, au décompte.
+- **Règle de décision** : s'il ne s'assoit pas (debout devant le siège, comme en V60 et V61), arrêt et rapport (une
+  seule tentative de cette voie avant de revenir à JoVenGer) ; s'il s'assoit mais dos au feu, alignement sur le feu ;
+  s'il est encore replacé, arrêt et rapport.
+
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
    interruption ; l'attaque par la fonction du jeu).
