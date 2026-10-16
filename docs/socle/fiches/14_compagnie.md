@@ -177,6 +177,15 @@
   à moins d'un mètre d'une autre entité et vérifie la place libre. **Le passage à l'étape suivante attend ce
   diagnostic** (« rien de perdu au rechargement »).
 
+## Mesuré en V72 c (16/10, diagnostic de l'écran noir)
+- La sauvegarde de V72 b, rechargée, **s'affiche normalement** (six minutes d'image) : l'écran noir n'est pas dans la
+  sauvegarde ; il est **intermittent** (2 séances sur 6). La phrase « sauvegarde qui le reproduit » ci-dessus est donc
+  fausse : elle a été vérifiée et ne tient pas.
+- Ce que montre le relevé autour d'Henry, présent dans chaque séance : **Henry debout sur le feu central** (le camp est
+  fondé là où il se tient) et **trois hommes au même point** (leur place d'exercice commune). Deux entités au même
+  endroit, comme l'hypothèse ; à éprouver en les séparant, puis en surveillant l'écran sur plusieurs séances (positions
+  relevées par `ecran_noir_voir`).
+
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Les relations de la Compagnie** : (a) celles du chien et du cheval d'Henry (Recommandé : réglage du jeu déjà
    éprouvé pour les compagnons d'Henry, valable sur les deux cartes) ; (b) les mêmes, et ennemie de tous les ennemis du jeu (dont les bandits des
