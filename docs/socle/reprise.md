@@ -259,12 +259,13 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   13 h. **Valeurs de l'arbre en données, acquises** (V73 c 9 à c 11) : table `hommes.cerveau` au catalogue, écrite
   dans le cerveau par le battement, valeur par défaut du catalogue tant que rien n'est écrit (comparée au banc),
   variables non gardées dans la sauvegarde ; seules la priorité et l'urgence de l'interruption restent dans l'arbre
-  (aucune forme du jeu). **Ouvert** (choix de JoVenGer : finir le modèle d'abord) : un homme repris assis d'une
-  sauvegarde, but tout près, reste à demi assis (piste du pair dans la fiche 12) ; un lit hors de sa tente ; le
-  plafond de relances proposé par le pair.
+  (aucune forme du jeu). Le lever du lit est vu (V73 c 13). **Ouvert** : les lits replacés dans leur tente, un homme
+  par tente encore à moitié dehors (à mesurer avant de corriger, fiche 03) ; la levée courte d'un homme repris assis,
+  cas de l'essai couvert par la tranche redonnée au réveil (fiche 12, voie lourde en réserve) ; le plafond de relances
+  du pair, avec V73 b.
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 21 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 25 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire

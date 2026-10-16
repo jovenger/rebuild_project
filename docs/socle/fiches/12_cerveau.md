@@ -401,9 +401,14 @@
   posture « debout » sans objet ne le relève pas (premier échec sur ce point, règle anti-boucle).
 - **Cause confirmée** : le camp repose ses 14 meubles du niveau 1 à chaque chargement, objets des sièges compris
   (« Camp : redressé, 14 objet(s) reposé(s) ») ; la posture rendue par la sauvegarde vise un objet qui n'existe plus.
-- **Voie suivante, différente** (celle du pair) : au réveil, lire la posture (`StanceCheck` ou `GetStance`) deux fois
-  avec un anti-rebond, puis redonner à l'homme sa posture sur le nouvel objet de sa place, avant l'ordre de la tranche.
-  Plus lourde (arbre, liaison, battement) ; à décider avec JoVenGer.
+- **Un cas de l'essai, déjà couvert dans la vie du camp** (relecture des relevés de V73 c 8) : l'homme échoue quand il
+  a été assis par une commande du poste pendant une tranche de marche. Dans la vie du camp, un homme n'est assis que
+  par sa tranche (repas, veillée, sommeil) ; au chargement, le réveil redonne la même tranche, donc sa posture sur le
+  **nouvel** objet, et la tranche suivante le lève par la garde. Vu en V73 c 8 : Jan, repris à demi assis à 11 h 37,
+  reçoit le repas à midi (assis face au feu, sur le nouvel objet), puis part à la corvée à 13 h.
+- **Cas résiduel** : une sauvegarde dans les dernières secondes d'une tranche assise, suivie d'une tranche de marche
+  courte. **Voie gardée en réserve** (celle du pair) : au réveil, lire la posture (`StanceCheck` ou `GetStance`) deux
+  fois avec un anti-rebond, puis redonner à l'homme sa posture sur le nouvel objet avant l'ordre de la tranche.
 - La posture « debout » en tête de la marche est gardée : elle ne gêne pas, et elle couvre le cas où la posture tenue
   par le jeu vise un objet encore là.
 
