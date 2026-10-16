@@ -5,7 +5,8 @@
 - But (étape 1 de la note de JoVenGer, fin ; règle du 16/10) : **le socle fait la mécanique, Scriptorium décide** ; le
   geste vient du jeu, l'ordre vient de nous ; nettement meilleur qu'Alex : aucun homme figé, rien de perdu au
   rechargement, tout vu en jeu.
-- État : **à relire par la conversation Scriptorium, puis questions à JoVenGer**. Rien n'est codé.
+- État : **relue par la conversation Scriptorium le 16/10** (cinq remarques, inscrites ci-dessous) ; **questions à
+  JoVenGer**. Rien n'est codé.
 
 ## Le constat (relu dans le code du socle, 16/10)
 - La vie du camp **téléporte** encore : `hommes.battre` calcule l'activité (`hommes.activite_de`) et `liaison.ordonner`
@@ -42,6 +43,23 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Qui l'emporte** : l'attaque sur tout loisir, repas et sommeil (le dormeur se relève) ; le rassemblement sur toute
   tâche ; l'urgence sur le jour de repos ; le Directeur n'est jamais déplacé pendant un dialogue ; un homme marqué
   « occupé » n'est pas repris pour un loisir.
+
+## Remarques de la conversation Scriptorium (16/10)
+- **Les cas où Scriptorium pose déjà un homme d'un coup** (liste fermée, question 1) : le secours (moins de 1 m de
+  progrès en 30 s, `rassemblement_sans_retard`) ; les archers des tours de guet, posés sur la plateforme et tenus là,
+  faute de chemin pour monter (`tours_de_guet`, prouvé le 12/10) ; suivre Henry au-delà de 60 m (`directeur_en_route`) ;
+  le retour d'une sortie, hors de vue d'Henry ; un homme pas rentré au camp en 4 min (`metiers_du_camp`). Deux
+  garde-fous toujours : **jamais dans un meuble**, et **hors de la vue d'Henry** si possible.
+- **Trois règles de JoVenGer qui touchent l'arbitre** : les compagnons nommés ne montent jamais la garde de nuit, ils
+  dorment dans leur tente (12/10) ; un poste qu'Henry veut prendre lui est cédé tout de suite (16/10) ; un homme n'est
+  jamais retiré du monde (`service_en_sortie`), seuls les gens du service peuvent l'être une fois hors de vue.
+- **L'homme qu'aucune règle ne tient** : la journée du socle par défaut ; à la bascule, c'est la journée de Scriptorium
+  (`journee_du_camp`, `nuit_du_camp`) qui la remplace, et celle du socle est coupée par son interrupteur (tableau des
+  doublons de l'étape 3).
+- **Suivre Henry (V73 f)** : l'idée validée n° 3 (voyage rapide, Henry à cheval, villes et intérieurs, changement de
+  carte) et la règle du 16/10 (sorties à cheval) : si Henry monte, l'escorte le suit à cheval. Question à ce pas-là.
+- **À chaque séance de V73** : le décompte de l'écran noir (fiche 14). Si la fin de la téléportation au réveil le fait
+  tomber à zéro, c'est la preuve de l'hypothèse.
 
 ## Comment ce serait fait (un pas à la fois, chacun vu en jeu avant le suivant)
 1. **V73 a — les gestes à la place de la téléportation.** `liaison.ordonner` traduit l'activité en geste : une place du
