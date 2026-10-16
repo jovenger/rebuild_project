@@ -540,6 +540,15 @@
   3. un homme dévêtu après « a remis ses affaires » → la remise ne rhabille pas en jeu : lire le journal et la tenue de
      l'homme, un seul changement.
 
+### Mesuré en V71 e (16/10)
+- **Issue 1** : Jan attaque le brigand ; le combat fini (moins de 17 s), le switch compte la fin de combat (0 → 1), le
+  battement marque « à rhabiller (fin de combat) » puis « a remis ses affaires (9 pièce(s)) » dans le même battement ;
+  revenu s'asseoir en 41 s, il est habillé (casque, gambison, gants, bouclier).
+- **Issue 2, en partie** : les trois, assis 6 min, une capture toutes les 90 s, sont toujours habillés. Mais aucun ne
+  s'est dévêtu sans combat pendant ce temps : la garde en tournant n'a pas été vue rhabiller quelqu'un (elle l'est au
+  banc). À regarder aux prochaines séances : un homme dévêtu sans combat, et rhabillé dans le tour qui suit.
+- La garde de la tenue est en place ; la cause du déshabillage reste à chercher, si JoVenGer le veut.
+
 ## Essais prévus (un changement chacun, partie d'essai `playline3`)
 - **V70** : les hommes du camp nés sur nos âmes (notre cerveau, soldats du jeu, classe 33, faction provisoire du
   marcheur) ; ceux d'une partie déjà en cours, nés sur une âme empruntée, renaissent sur une âme à nous à l'entrée en

@@ -218,7 +218,8 @@
 | 473 | V73 b 2 (le plafond de relances ; Henry déplacé par JoVenGer avant la pose du camp) | normal |
 | 473 | V73 b 2 bis (le plafond, corrigé) | normal |
 | 473 | V73 b 3 (l'arbitre par tenues) | normal |
-- Au total : 3 écrans noirs sur 40 chargements ou poses observés ; 1 sur 30 depuis la séparation. **Rien n'est conclu** : il
+| 473 | V71 e (la garde de la tenue) | normal |
+- Au total : 3 écrans noirs sur 41 chargements ou poses observés ; 1 sur 31 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
