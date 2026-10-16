@@ -65,6 +65,9 @@ local function emplacement(nom, sorte, x, y, cap, niveau, reserve)
   return { nom = nom, sorte = sorte, x = x, y = y, cap = cap, niveau = niveau, reserve = reserve }
 end
 
+-- Les lits (V73 c 12, mesures du jeu : tente de (-1,20 ; -1,47) à (1,19 ; 1,67), lit de (-0,44 ; -1,32) à (0,58 ; 0,98),
+-- dans le repère de chaque modèle) : deux lits côte à côte dans chaque tente, à -0,60 et 0,46 m de son axe, 0,27 m vers
+-- l'avant, même cap que la tente ; le lit du Directeur au milieu de la sienne. Avant, tous dépassaient de leur tente.
 camp.plan = {
   -- Niveau 1 : le feu, quatre sièges, la tente du Directeur, deux tentes, le coffre.
   emplacement("feu_central", "feu", 0, 0, 0, 1),
@@ -73,21 +76,21 @@ camp.plan = {
   emplacement("siege_3", "siege", 0, 1.6, 180, 1),
   emplacement("siege_4", "siege", 0, -1.6, 0, 1),
   emplacement("tente_directeur", "tente", 0, 7, 180, 1),
-  emplacement("lit_directeur", "lit", 0, 8, 180, 1, "directeur"),
+  emplacement("lit_directeur", "lit", 0.07, 6.73, 180, 1, "directeur"),
   emplacement("coffre_camp", "coffre", 1.4, 7.5, 180, 1),
   emplacement("tente_1", "tente", -6, 4, 135, 1),
-  emplacement("lit_1a", "lit", -6.6, 4.6, 135, 1),
-  emplacement("lit_1b", "lit", -5.4, 5.2, 135, 1),
+  emplacement("lit_1a", "lit", -5.38, 4.23, 135, 1),
+  emplacement("lit_1b", "lit", -6.13, 3.48, 135, 1),
   emplacement("tente_2", "tente", 6, 4, 225, 1),
-  emplacement("lit_2a", "lit", 6.6, 4.6, 225, 1),
-  emplacement("lit_2b", "lit", 5.4, 5.2, 225, 1),
+  emplacement("lit_2a", "lit", 6.23, 3.38, 225, 1),
+  emplacement("lit_2b", "lit", 5.48, 4.13, 225, 1),
   -- Niveau 2 : deux tentes de plus, quatre lits, deux sièges.
   emplacement("tente_3", "tente", -6, -3, 45, 2),
-  emplacement("lit_3a", "lit", -6.6, -3.6, 45, 2),
-  emplacement("lit_3b", "lit", -5.4, -4.2, 45, 2),
+  emplacement("lit_3a", "lit", -6.23, -2.38, 45, 2),
+  emplacement("lit_3b", "lit", -5.48, -3.13, 45, 2),
   emplacement("tente_4", "tente", 6, -3, 315, 2),
-  emplacement("lit_4a", "lit", 6.6, -3.6, 315, 2),
-  emplacement("lit_4b", "lit", 5.4, -4.2, 315, 2),
+  emplacement("lit_4a", "lit", 5.38, -3.23, 315, 2),
+  emplacement("lit_4b", "lit", 6.13, -2.48, 315, 2),
   emplacement("siege_5", "siege", 1.2, 1.2, 225, 2),
   emplacement("siege_6", "siege", -1.2, -1.2, 45, 2),
   -- Niveau 3 : un second feu avec ses sièges, deux tentes de plus, quatre lits.
@@ -95,11 +98,11 @@ camp.plan = {
   emplacement("siege_7", "siege", 1.6, -9, 270, 3),
   emplacement("siege_8", "siege", -1.6, -9, 90, 3),
   emplacement("tente_5", "tente", -7, -11, 45, 3),
-  emplacement("lit_5a", "lit", -7.6, -11.6, 45, 3),
-  emplacement("lit_5b", "lit", -6.4, -12.2, 45, 3),
+  emplacement("lit_5a", "lit", -7.23, -10.38, 45, 3),
+  emplacement("lit_5b", "lit", -6.48, -11.13, 45, 3),
   emplacement("tente_6", "tente", 7, -11, 315, 3),
-  emplacement("lit_6a", "lit", 7.6, -11.6, 315, 3),
-  emplacement("lit_6b", "lit", 6.4, -12.2, 315, 3),
+  emplacement("lit_6a", "lit", 6.38, -11.23, 315, 3),
+  emplacement("lit_6b", "lit", 7.13, -10.48, 315, 3),
 }
 
 local function jeu()

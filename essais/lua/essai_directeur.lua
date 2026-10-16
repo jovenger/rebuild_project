@@ -34,7 +34,7 @@ essai("directeur : installation, refus, personnage à sa tente", function()
   egal(camp.occupant_de("lit_directeur"), "directeur", "sa place réservée")
   egal(#FauxJeu.directeurs, 1, "personnage demandé")
   local p = FauxJeu.directeurs[1].position
-  verifier(math.abs(p.y - 8) < 0.01, "à sa tente")
+  verifier(math.abs(p.y - camp.position_de("lit_directeur").y) < 0.01, "à sa tente, sur son lit (place du plan, V73 c 12)")
   ok, raison = directeur.installer()
   egal(raison, "deja_installe", "une seule fois")
   Scriptorium.bandeau.battre()

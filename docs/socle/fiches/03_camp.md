@@ -64,6 +64,15 @@
      se relit après chaque repose.
   3. Sièges et lits du camp gardés aux hommes de la Compagnie et à Henry ; le lit d'Henry dans sa tente à lui seul.
 
+## Les lits dans leur tente (16/10/2026, V73 c 12)
+- Mesuré en jeu (boîte englobante, repère de chaque modèle) : la tente `tent_small_b` va de (-1,20 ; -1,47) à
+  (1,19 ; 1,67) ; le lit `bed_makeshift_a` de (-0,44 ; -1,32) à (0,58 ; 0,98).
+- Avant, les 13 lits du plan dépassaient de leur tente : le premier de chaque tente de 0,7 m par l'arrière, le second de
+  0,5 m par le côté (un homme couché hors de sa tente en V73 c 6), celui du Directeur de 0,85 m par l'arrière.
+- Désormais : deux lits côte à côte dans chaque tente, à -0,60 et 0,46 m de son axe, 0,27 m vers l'avant, même cap
+  que la tente (1,06 m entre leurs places, au-dessus de l'écart d'un mètre entre deux personnages) ; le lit du
+  Directeur au milieu de la sienne. Vérification à l'image : à faire en jeu (non vérifié).
+
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.
 
