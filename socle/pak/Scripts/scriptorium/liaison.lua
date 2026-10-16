@@ -1672,6 +1672,10 @@ local function poser_l_ordre(entite, ordre)
   if not entite or not this_lu or type(this) ~= "table" then
     return "ordre : personnage introuvable ou sans this"
   end
+  -- Fiche 15, V73 c : le compteur d'ordres, relu par la garde des comportements qui tiennent une posture (s'asseoir, se
+  -- coucher) ; un nouvel ordre fait finir la posture du dedans, et le jeu joue le geste de se lever.
+  local numero_lu, numero = pcall(XGenAIModule.GetBrainVariable, this.id, "scriptorium_essai_numero")
+  pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_essai_numero", (numero_lu and tonumber(numero) or 0) + 1)
   local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
   return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
 end
