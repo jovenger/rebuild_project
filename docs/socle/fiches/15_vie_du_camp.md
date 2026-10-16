@@ -251,9 +251,10 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
     `speech_switchDialogRunning`) et le compteur des combats ;
   - **le secours se fige** pour un homme en combat ou en conversation (`liaison.contextes_de`) : son compte du temps
     sans progrès repart de zéro ; essai au banc.
-- Séance (`playline3`) : les hommes assis (`essai_hommes_asseoir`), secours coupé ; Henry au bord du camp, tourné vers
-  l'extérieur ; le brigand léger posé à 8 m devant lui (`essai_brigand_leger`), donc jamais dans un meuble du camp ;
-  l'attaque ; une lecture toutes les 5 s environ.
+- Séance (`playline3`) : les hommes assis (`essai_hommes_asseoir`), secours coupé ; le brigand léger posé hors du camp,
+  10 m derrière Henry sur la ligne du centre du camp (`essai_brigand_leger_hors_du_camp` : le camp est fondé devant
+  Henry, et 8 m devant lui, le brigand naîtrait dans le camp, peut-être dans un meuble) ; l'attaque ; une lecture toutes
+  les 5 s environ.
 - **Grille, écrite avant la séance** :
   1. il se lève et se bat : combats + 1, contexte de combat à 1, pouls figé, **aucune relance pendant le combat** (la
      lecture « en combat », jamais vue en jeu) → bon ;

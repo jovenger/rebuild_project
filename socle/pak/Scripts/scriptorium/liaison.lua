@@ -1738,15 +1738,23 @@ liaison.ame_du_brigand_leger = "74aea673-42aa-4e0d-b861-cc5d56a44574"   -- kkop_
 liaison.brigand_du_jeu = nil
 
 -- « ame » : l'âme du brigand ; celle de kopa_man_16 par défaut.
-function liaison.poser_le_brigand_du_jeu(ame)
-  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_brigand_du_jeu", pres_d_henry(8, 0), liaison.cap_du_joueur() + 180,
+-- « position » (facultative, V73 b 1) : posé sur une place libre près de ce point ; sinon, 8 m devant Henry.
+function liaison.poser_le_brigand_du_jeu(ame, position)
+  local ou = pres_d_henry(8, 0)
+  if position then
+    ou = place_libre(liaison.au_sol(position))
+    if not ou then
+      return "brigand du jeu refusé : aucune place libre près du point voulu"
+    end
+  end
+  local nom, erreur = faire_naitre("NPC", "scriptorium_essai_brigand_du_jeu", ou, liaison.cap_du_joueur() + 180,
                                    { guidSharedSoulId = ame or liaison.ame_du_brigand_du_jeu, bWH_RequiresHome = false })
   if not nom then
     return "brigand du jeu refusé : " .. tostring(erreur)
   end
   liaison.brigand_du_jeu = nom
   liaison.eveiller(nom, "Brigand du jeu")
-  return "brigand du jeu posé à 8 m : " .. nom
+  return "brigand du jeu posé " .. (position and string.format("en (%.1f, %.1f)", ou.x, ou.y) or "à 8 m") .. " : " .. nom
 end
 
 function liaison.voir_le_brigand_du_jeu()

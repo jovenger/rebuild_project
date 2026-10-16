@@ -418,6 +418,26 @@ function poste.essai_brigand_leger()
   return true
 end
 
+-- V73 b 1 (fiche 15) : le brigand léger, posé hors du camp, jamais dans un meuble ni sur Henry : sur la ligne qui va du
+-- centre du camp à Henry, 10 m au-delà d'Henry (le camp est fondé devant lui : 8 m devant, il naîtrait dans le camp).
+function poste.essai_brigand_leger_hors_du_camp()
+  local centre = Scriptorium.camp.point(0, 0)
+  local henry = jeu().position_du_joueur()
+  if not centre or not henry then
+    jeu().journal("Poste : brigand, " .. (centre and "Henry introuvable" or "pas de camp"))
+    return false
+  end
+  local dx, dy = henry.x - centre.x, henry.y - centre.y
+  local ecart = math.sqrt(dx * dx + dy * dy)
+  if ecart < 1 then
+    jeu().journal("Poste : brigand, Henry au centre du camp : aucune direction pour sortir du camp")
+    return false
+  end
+  local position = { x = henry.x + dx / ecart * 10, y = henry.y + dy / ecart * 10, z = henry.z }
+  jeu().journal("Poste : brigand, " .. jeu().poser_le_brigand_du_jeu(jeu().ame_du_brigand_leger, position))
+  return true
+end
+
 function poste.essai_marcheur_aller()
   jeu().journal("Poste : marcheur, aller : " .. jeu().ordonner_d_aller("droite"))
   return true
@@ -1298,6 +1318,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_prairie", fonction = function() return poste.essai_prairie() end, aide = "Henry posé sur la prairie des essais de combat" },
   { nom = "scriptorium_essai_marcheur_competences", fonction = function() return poste.essai_marcheur_competences() end, aide = "Les compétences de combat du marcheur posées à 20, puis relues" },
   { nom = "scriptorium_essai_brigand_leger", fonction = function() return poste.essai_brigand_leger() end, aide = "Un brigand du jeu plus léger (kkop_bandit_7), éveillé, à 8 m devant Henry" },
+  { nom = "scriptorium_essai_brigand_leger_hors_du_camp", fonction = function() return poste.essai_brigand_leger_hors_du_camp() end, aide = "Le brigand léger, hors du camp : 10 m derrière Henry, sur la ligne du centre du camp (V73 b 1)" },
   { nom = "scriptorium_essai_marcheur_aller", fonction = function() return poste.essai_marcheur_aller() end, aide = "Le marcheur va au point (8 m à droite d'Henry), en interruption (ordre 9)" },
   { nom = "scriptorium_essai_marcheur_voir", fonction = function() return poste.essai_marcheur_voir() end, aide = "Où en est le marcheur" },
   { nom = "scriptorium_essai_marcheur_retrouver", fonction = function() return poste.essai_marcheur_retrouver() end, aide = "Après rechargement : le marcheur retrouvé par son nom, et ce que garde son cerveau" },
