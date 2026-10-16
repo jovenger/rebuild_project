@@ -48,14 +48,15 @@
   ordre ; équipement pièce par pièce gardé au rechargement, munitions complétées ; faction « la Compagnie » (amie
   d'Henry, ne réagit pas à ses délits) ; camp fondé devant Henry, une place par homme ; réveil différé de 30 s et
   guetteur du chargement.
-- Vu en jeu (16/10, fiche 15) : la vie du camp en gestes (marcher, s'asseoir au repas) ; un homme assis se lève et
-  marche quand notre comportement finit du dedans (V73 c 4), mais le jeu le rassoit dès que notre interruption finit.
+- Vu en jeu (16/10, fiches 12 et 15) : un seul comportement long, la « vie du camp » ; les hommes marchent,
+  s'assoient face au feu et se couchent par notre propre posture, se lèvent à l'ordre et ne sont plus rassis ; repas à
+  midi, corvée à 13 h ; le comportement revient après un rechargement.
 - Ouvert : l'écran noir intermittent (2 sur 19 chargements, 0 sur 9 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
-1. Le modèle durable de la vie du camp (fiche 12 revue, section « Révision du 16/10/2026 ») : un seul comportement
-   long. En attente : relecture du pair, puis questions à cocher à JoVenGer, puis code, banc et essai V73 c 5. Ensuite,
-   les comportements suivants de la vie du camp (étape 1 : arbitre, garde, rassemblement, suivre Henry), toujours
-   après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`.
+1. Finir le modèle durable : les valeurs de l'arbre en données (règle de JoVenGer), la levée courte d'un homme repris
+   assis d'une sauvegarde, le lit hors de sa tente. Ensuite, les comportements suivants de la vie du camp (étape 1 :
+   arbitre, garde, rassemblement, suivre Henry), toujours après relecture de `CARTE_DES_REGLES.md` et de
+   `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.

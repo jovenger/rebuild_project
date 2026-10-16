@@ -252,11 +252,13 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **Vie du camp (fiche 15)** : V73 a, les gestes (marcher, s'asseoir au repas) ; V73 c 1 à 3, la levée d'un homme assis
   échoue ; V73 c 4, l'essai court (choix de JoVenGer « court, puis durable ») : la garde fait lever l'homme du dedans,
   il marche, puis **le jeu le rassoit dès que notre interruption finit**. Grille de lecture et mesures dans la fiche 15.
-- **Le modèle durable** : fiche 12 revue (section « Révision du 16/10/2026 ») : un seul comportement long, la « vie du
-  camp », avec son pouls, « faire, puis tenir », l'activité dans une variable à part ; critères et règle de décision de
-  V73 c 5 écrits avant l'essai. **En attente** : la relecture du pair, puis les questions à cocher à JoVenGer (la
-  posture : le « use » du jeu d'abord, ou notre propre posture ; le retour par le pouls), puis le code, le banc et
-  V73 c 5.
+- **Le modèle durable, fait et vu en jeu** (fiche 12, révision validée par JoVenGer ; V73 c 5 à V73 c 8) : un seul
+  comportement long, la « vie du camp » (pouls, relance hors combat et hors conversation, « faire, puis tenir »,
+  activité dans `scriptorium_activite`) ; notre propre posture pour s'asseoir et se coucher ; la tenue échoue au
+  changement d'ordre ; les marches en `changeNPCState="true"`. Vu : repas assis à midi, levés et partis à la corvée à
+  13 h. **Ouvert** : un homme repris assis d'une sauvegarde, but tout près, reste à demi assis ; un lit hors de sa
+  tente ; les valeurs de l'arbre (attentes, distances d'arrêt, délais) encore écrites dans l'arbre, à passer en données
+  (règle de JoVenGer), éprouvé à part.
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
 - **Écran noir** : 0 sur 9 chargements depuis la séparation (décompte dans la fiche 14, à poursuivre).
