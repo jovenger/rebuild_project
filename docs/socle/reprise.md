@@ -1,4 +1,4 @@
-# Fiche de reprise — socle de Scriptorium (état au 15/10/2026)
+# Fiche de reprise — socle de Scriptorium (état au 16/10/2026, vers 3 h)
 
 Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer. La note courte à coller est
 `docs/socle/note_complete.md` ; ce fichier-ci donne le détail.
@@ -226,6 +226,27 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - Acquis revus sans `-devmode` le 15/10 : mêmes résultats (`essai_en_jeu.md`, « Avec ou sans `-devmode` »).
 - Contrôle d'absence : les lignes XML identiques au jeu de base qui portent un réglage s'écrivent à notre façon (choix de
   JoVenGer du 15/10) ; seules les lignes de forme (structure) sont excusées, listées, au plus 31.
+
+## 6 ter. Où reprendre (pause du 16/10/2026, vers 3 h, demandée par JoVenGer, ordinateur éteint)
+- **Fait dans la nuit du 15 au 16/10** (détail dans `essai_en_jeu.md`, V71 et V72 a à e, et les fiches 13 et 14) :
+  - V71 : l'équipement pièce par pièce, gardé au rechargement avec son usure ; munitions complétées à l'entrée en partie.
+  - V72 : la faction « la Compagnie » (`FactionTree__scriptorium_socle.xml`, écrite par `outils/ames.py`, relations du
+    chien et du cheval d'Henry) ; nos hommes ne réagissent pas à un délit d'Henry ; flèches usées puis complétées.
+  - Écran noir intermittent (emblème de chargement, jeu actif) : correctifs décidés par JoVenGer : camp fondé à 4 m
+    devant Henry, une place à soi par homme, jamais deux personnages à moins d'un mètre, réveil différé de 30 s à
+    l'entrée en partie, guetteur du chargement. Décompte dans la fiche 14 : **à poursuivre à chaque séance** (ajouter une
+    ligne au tableau ; rien n'est conclu avant plusieurs séances propres de suite).
+- **Règles nouvelles du 16/10** (dans `plan_d_action.md`) : le socle fait la mécanique et Scriptorium décide ; nettement
+  meilleur qu'Alex ; toute sortie du camp à cheval (missions et métiers) ; la note des métiers à relire avant chaque
+  fiche de la vie du camp ; les postes d'Henry (fumoir, séchoir, prie-Dieu, table de tri) partagés avec tout le camp,
+  l'homme cède la place à Henry ; questions toujours en choix à cocher.
+- **Outils** : captures dans `D:\socle_captures\captures` ; garde du disque C (1 Go) dans `debut_essai.ps1` et
+  `sauvegarder_et_quitter.ps1` ; commandes d'essai `scriptorium_essai_compagnie_*` et `scriptorium_essai_ecran_noir_*`
+  (positions autour d'Henry) ; une sauvegarde d'essai rangée qui a donné l'écran noir une fois (non reproduit) :
+  `C:\Users\maste\Saved Games\kingdomcome2\essais_du_socle_rangees\playline3\2026-10-16_012417_exit.whs`.
+- **Prochaine étape** : la fiche des comportements suivants de la vie du camp (étape 1 : repas, veillée, sommeil par les
+  places du camp ; garde, rassemblement, suivre Henry), après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`
+  (Scriptorium, lecture seule) ; fiche envoyée au pair, questions à cocher à JoVenGer, puis code et essais.
 
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
