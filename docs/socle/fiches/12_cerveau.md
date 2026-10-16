@@ -410,6 +410,8 @@
 - **Cas résiduel** : une sauvegarde dans les dernières secondes d'une tranche assise, suivie d'une tranche de marche
   courte. **Voie gardée en réserve** (celle du pair) : au réveil, lire la posture (`StanceCheck` ou `GetStance`) deux
   fois avec un anti-rebond, puis redonner à l'homme sa posture sur le nouvel objet avant l'ordre de la tranche.
+- **Décision de JoVenGer (16/10)** : « Rien pour l'instant » ; le cas résiduel est accepté, la voie du pair reste en
+  réserve.
 - La posture « debout » en tête de la marche est gardée : elle ne gêne pas, et elle couvre le cas où la posture tenue
   par le jeu vise un objet encore là.
 

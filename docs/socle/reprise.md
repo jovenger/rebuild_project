@@ -260,9 +260,9 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   dans le cerveau par le battement, valeur par défaut du catalogue tant que rien n'est écrit (comparée au banc),
   variables non gardées dans la sauvegarde ; seules la priorité et l'urgence de l'interruption restent dans l'arbre
   (aucune forme du jeu). Le lever du lit est vu (V73 c 13) ; les lits dans leur tente, les hommes couchés le long du
-  lit grâce au quart de tour (V73 c 14, fiche 03). **Ouvert** : la levée courte d'un homme repris assis, cas de l'essai
-  couvert par la tranche redonnée au réveil (fiche 12, voie lourde en réserve) ; le plafond de relances du pair, avec
-  V73 b.
+  lit grâce au quart de tour (V73 c 14, fiche 03). La levée courte d'un homme repris assis : cas résiduel accepté par
+  JoVenGer (« rien pour l'instant », voie du pair en réserve, fiche 12). **Suite** : V73 b, l'arbitre des priorités, avec
+  le plafond de relances du pair ; la première mesure : un ordre d'attaque donné à un homme assis.
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
 - **Écran noir** : 1 sur 26 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
