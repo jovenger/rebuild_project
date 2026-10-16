@@ -35,6 +35,31 @@ hommes.reglages = {
   semaines_min = 1,
   semaines_max = 52,
   palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
+  -- L'arbitre (fiche 15, V73 b 3) : une tenue « jusqu'à libération » (bataille, patrouille) tombe par sûreté au bout de
+  -- tant d'heures du jeu, notée au journal (réponse 2 a de JoVenGer) ; la journée du socle tient l'homme qu'aucune règle
+  -- ne tient (réponse 3 a) : à faux, il attend où il est (Scriptorium la coupera à la bascule).
+  tenue_max_h = 24,
+  journee_du_socle = true,
+}
+
+-- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
+-- JoVenGer le 16/10 (bataille, rassemblement, soins et bains, garde et ronde, travail, repas et sommeil, loisir) ; la
+-- patrouille au rang de la garde, la corvée de punition au rang du travail (réponse 1 a du V73 b). La journée du socle
+-- vient après toutes. Une règle absente de cette table ne tient personne.
+hommes.priorites = {
+  bataille = 1,
+  rassemblement = 2,
+  soins = 3,
+  bains = 3,
+  garde = 4,
+  garde_de_nuit = 4,
+  ronde = 4,
+  patrouille = 4,
+  travail = 5,
+  punition = 5,
+  repas = 6,
+  sommeil = 6,
+  loisir = 7,
 }
 
 -- Fiche 12 (les valeurs de l'arbre en données, règle de JoVenGer du 14/10) : les valeurs du comportement long et du
@@ -199,21 +224,26 @@ end
 -- Montées de version de la case « hommes ».
 -- 1 -> 2 (14/10) : le lieu d'une affectation change de nom de champ. Les affectations sont passagères
 -- (elles ont une fin) : on les oublie, et chacun reprend sa journée.
-local migrations = {
-  [1] = function(d)
-    for _, f in pairs(d.liste or {}) do
-      if type(f) == "table" then
-        f.affectation = nil
-      end
+-- 2 -> 3 (16/10, fiche 15, V73 b 3) : l'affectation unique devient une tenue par règle (« tenues ») ; l'ancienne,
+-- passagère elle aussi, est oubliée de même.
+local function oublier_les_affectations(d)
+  for _, f in pairs(d.liste or {}) do
+    if type(f) == "table" then
+      f.affectation = nil
     end
-    return d
-  end,
+  end
+  return d
+end
+
+local migrations = {
+  [1] = oublier_les_affectations,
+  [2] = oublier_les_affectations,
 }
 
 local function donnees()
   local registre = Scriptorium.registre
   if not registre.etat_de("hommes") then
-    registre.declarer_case("hommes", 2, donnees_neuves, migrations)
+    registre.declarer_case("hommes", 3, donnees_neuves, migrations)
   end
   return registre.lire("hommes")
 end
@@ -1011,16 +1041,76 @@ local function est_nuit(heure_du_jour)
   return heure_du_jour >= 22 or heure_du_jour < hommes.reglages.heure_lever
 end
 
--- Les hommes de garde à cette heure, en rotation par tour de veille, jamais plus que d'hommes valides.
+-- ---------------------------------------------------------------- l'arbitre des ordres (fiche 15, V73 b 3)
+
+-- Le rang d'une règle au catalogue (1 le plus fort), ou nil : une règle inconnue ne tient personne.
+local function rang_de(regle)
+  return hommes.priorites[regle]
+end
+
+-- Le prochain changement de tranche de la journée après « heure » (heure du jeu, absolue) : la borne d'une tenue posée
+-- sans fin (réponse 4 a de JoVenGer, 16/10). La tranche de la nuit passe minuit (22 h → 5 h).
+local function prochain_changement_de_tranche(heure)
+  local h = heure_dans_le_jour(heure)
+  local debut_du_jour = heure - h
+  local t = tranche_de(h)
+  if t.de < t.a or h < t.a then
+    return debut_du_jour + t.a
+  end
+  return debut_du_jour + 24 + t.a
+end
+
+-- La tenue posée la plus forte d'un homme : (règle, tenue, rang). À rang égal, la plus ancienne garde l'homme, puis le nom
+-- de la règle (l'ordre de « pairs » n'est pas sûr).
+local function tenue_la_plus_forte(f)
+  local regle_choisie, tenue_choisie, rang_choisi = nil, nil, nil
+  for regle, t in pairs(f.tenues or {}) do
+    local rang = rang_de(regle)
+    if rang then
+      local depuis, depuis_choisi = t.depuis or 0, tenue_choisie and (tenue_choisie.depuis or 0)
+      if rang_choisi == nil or rang < rang_choisi
+          or (rang == rang_choisi and (depuis < depuis_choisi or (depuis == depuis_choisi and regle < regle_choisie))) then
+        regle_choisie, tenue_choisie, rang_choisi = regle, t, rang
+      end
+    end
+  end
+  return regle_choisie, tenue_choisie, rang_choisi
+end
+
+-- Service pour le guichet et pour les morceaux du socle : l'homme est-il libre pour cette règle ? Il n'en est pas exempté,
+-- et aucune règle aussi forte ne le tient (une tenue posée, ou ses blessures : les soins). Une tenue de la même règle ne
+-- compte pas : la reposer la met à jour.
+function hommes.libre_pour(id, regle)
+  local f = donnees().liste[id]
+  local rang = rang_de(regle)
+  if not f or not rang or (f.exemptions and f.exemptions[regle]) then
+    return false
+  end
+  local soins = rang_de("soins")
+  if f.blessure > 0 and soins and soins <= rang then
+    return false
+  end
+  for autre in pairs(f.tenues or {}) do
+    local r = rang_de(autre)
+    if autre ~= regle and r and r <= rang then
+      return false
+    end
+  end
+  return true
+end
+
+-- Les hommes de garde à cette heure, en rotation par tour de veille, jamais plus que d'hommes valides. Valide : libre
+-- pour la garde de cette heure (« garde_de_nuit » la nuit, dont Scriptorium exempte les compagnons, réponse 3 a du V73 b).
 function hommes.gardes(heure)
   local d = donnees()
+  local h = heure_dans_le_jour(heure)
+  local regle = est_nuit(h) and "garde_de_nuit" or "garde"
   local valides = {}
   for _, id in ipairs(d.ordre) do
-    if d.liste[id].blessure == 0 and d.liste[id].affectation == nil then
+    if hommes.libre_pour(id, regle) then
       table.insert(valides, id)
     end
   end
-  local h = heure_dans_le_jour(heure)
   local postes
   if est_nuit(h) then
     postes = math.min(hommes.reglages.postes_garde_nuit, math.floor(#valides / hommes.reglages.hommes_par_poste_nuit))
@@ -1045,17 +1135,6 @@ local function sieges_libres_pour(d)
   return camp().places_libres("siege")
 end
 
--- Affecte un homme à une tâche qui passe devant sa journée (bataille, patrouille, corvée de punition).
--- « fin » (heure du jeu) : l'affectation tombe d'elle-même à cette heure.
-function hommes.affecter(id, activite, lieu, position, cap, fin)
-  local f = donnees().liste[id]
-  if not f then
-    return refuser("homme_inconnu", tostring(id))
-  end
-  f.affectation = { activite = activite, lieu = lieu, position = position, cap = cap, fin = fin }
-  return true
-end
-
 -- Retient une somme sur les prochaines soldes (amende).
 function hommes.retenir(id, montant)
   local f = donnees().liste[id]
@@ -1070,21 +1149,9 @@ function hommes.retenir(id, montant)
   return true
 end
 
-function hommes.liberer_affectation(id)
-  local f = donnees().liste[id]
-  if not f then
-    return refuser("homme_inconnu", tostring(id))
-  end
-  f.affectation = nil
-  return true
-end
-
-function hommes.affectation_de(id)
-  local f = donnees().liste[id]
-  return f and f.affectation or nil
-end
-
--- L'activité d'un homme à une heure : { activite, lieu, position }.
+-- L'activité d'un homme à une heure : { regle, activite, lieu, position, cap, fin }. L'arbitre (fiche 15, V73 b 3) : la
+-- tenue posée la plus forte, contre les règles que le socle calcule lui-même (les soins d'un blessé, son tour de garde) ;
+-- à rang égal, la tenue posée l'emporte (un ordre exprès) ; sinon la journée du socle, ou l'attente si elle est coupée.
 function hommes.activite_de(id, heure)
   local d = donnees()
   local f = d.liste[id]
@@ -1092,28 +1159,36 @@ function hommes.activite_de(id, heure)
     return nil
   end
   local resultat = { activite = nil, lieu = nil, position = nil }
-  if f.affectation then
-    resultat.activite = f.affectation.activite
-    resultat.lieu = f.affectation.lieu
-    resultat.position = f.affectation.position
-    resultat.cap = f.affectation.cap
-    return resultat
-  end
-  if f.blessure > 0 then
-    resultat.activite = "repos"
+  local regle, tenue, rang = tenue_la_plus_forte(f)
+  local soins = rang_de("soins")
+  if f.blessure > 0 and soins and (not rang or soins < rang) then
+    resultat.regle, resultat.activite = "soins", "repos"
     resultat.lieu = f.lit
     resultat.position = f.lit and camp().position_de(f.lit) or nil
     return resultat
   end
+  -- Le tour de garde ne prend que des hommes libres pour la garde (aucune tenue aussi forte) : il passe donc devant
+  -- leurs tenues, toutes plus faibles.
   for _, g in ipairs(hommes.gardes(heure)) do
     if g.id == id then
       local poste = hommes.postes_de_garde[g.poste]
+      resultat.regle = est_nuit(heure_dans_le_jour(heure)) and "garde_de_nuit" or "garde"
       resultat.activite = "garde"
       resultat.lieu = "poste_" .. g.poste
       resultat.position = camp().point(poste.x, poste.y, poste.cap)
       return resultat
     end
   end
+  if tenue then
+    resultat.regle, resultat.activite, resultat.lieu = regle, tenue.activite, tenue.lieu
+    resultat.position, resultat.cap, resultat.fin = tenue.position, tenue.cap, tenue.fin
+    return resultat
+  end
+  if hommes.reglages.journee_du_socle == false then
+    resultat.regle, resultat.activite = "aucune", "attendre"
+    return resultat
+  end
+  resultat.regle = "journee"
   local tranche = tranche_de(heure_dans_le_jour(heure))
   local activite = tranche.activite
   -- Une place à soi autour d'un point d'activité (fiche 04 ; V72 c : trois hommes au même point) : en rangs de quatre,
@@ -1422,6 +1497,33 @@ local function surveiller_les_relances(d)
   return nouveaux
 end
 
+-- L'ordre d'un homme, seulement quand son activité change : un geste (fiche 15, V73 a), plus de téléportation ; sinon,
+-- au battement, le secours de l'homme bloqué. « sans_secours » : l'ordre redonné sur-le-champ par l'arbitre, hors
+-- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel).
+local function ordonner_un_homme(d, id, heure, rapport, sans_secours)
+  local f = d.liste[id]
+  if not f or not f.personnage then
+    return
+  end
+  local a = hommes.activite_de(id, heure)
+  local resume = a.activite .. "@" .. tostring(a.lieu)
+  if f.derniere_activite ~= resume then
+    local position, objet, sorte = but_de(a)
+    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte)
+    f.derniere_activite = resume
+    local garde = hommes.suivi[id]
+    hommes.suivi[id] = { reste = nil, bloque_s = 0, secours = (garde and garde.resume == resume) and garde.secours or 0,
+                         signale = garde and garde.resume == resume and garde.signale or nil, resume = resume,
+                         place_position = objet and position or nil,
+                         assis_a = garde and (garde.place_position or garde.assis_a) or nil }
+    if rapport then
+      rapport.ordres = rapport.ordres + 1
+    end
+  elseif not sans_secours then
+    secourir(id, f, a, rapport)
+  end
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
@@ -1469,35 +1571,27 @@ function hommes.battre()
   if rapport.changements > 0 then
     verifier_rangs(d, rapport)
   end
-  -- Les affectations à durée tombent d'elles-mêmes.
+  -- Les tenues tombent à leur fin ; une tenue « jusqu'à libération » tombe par sûreté au bout de « tenue_max_h »
+  -- (réponse 2 a de JoVenGer, V73 b), notée au journal : sa règle l'avait oubliée (fiche 15, V73 b 3).
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
-    if f.affectation and f.affectation.fin and heure >= f.affectation.fin then
-      f.affectation = nil
-      rapport.changements = rapport.changements + 1
-    end
-  end
-  -- Ordres, seulement quand l'activité change : un geste (fiche 15, V73 a), plus de téléportation ; sinon, le secours
-  -- de l'homme bloqué.
-  for _, id in ipairs(d.ordre) do
-    local f = d.liste[id]
-    if f.personnage then
-      local a = hommes.activite_de(id, heure)
-      local resume = a.activite .. "@" .. tostring(a.lieu)
-      if f.derniere_activite ~= resume then
-        local position, objet, sorte = but_de(a)
-        jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte)
-        f.derniere_activite = resume
-        local garde = hommes.suivi[id]
-        hommes.suivi[id] = { reste = nil, bloque_s = 0, secours = (garde and garde.resume == resume) and garde.secours or 0,
-                             signale = garde and garde.resume == resume and garde.signale or nil, resume = resume,
-                             place_position = objet and position or nil,
-                             assis_a = garde and (garde.place_position or garde.assis_a) or nil }
-        rapport.ordres = rapport.ordres + 1
-      else
-        secourir(id, f, a, rapport)
+    for regle, t in pairs(f.tenues or {}) do
+      local tombee = false
+      if type(t.fin) == "number" then
+        tombee = heure >= t.fin
+      elseif heure >= (t.depuis or heure) + hommes.reglages.tenue_max_h then
+        tombee = true
+        jeu().journal("Hommes : tenue « " .. regle .. " » de « " .. f.nom .. " » tombée au bout de "
+                      .. string.format("%g", hommes.reglages.tenue_max_h) .. " h, jamais lâchée")
+      end
+      if tombee then
+        f.tenues[regle] = nil
+        rapport.changements = rapport.changements + 1
       end
     end
+  end
+  for _, id in ipairs(d.ordre) do
+    ordonner_un_homme(d, id, heure, rapport, false)
   end
   if equiper_un_homme(d) then
     rapport.equipes = rapport.equipes + 1
@@ -1508,6 +1602,112 @@ function hommes.battre()
     enregistrer()
   end
   return rapport
+end
+
+-- ---------------------------------------------------------------- l'arbitre : services (fiche 15, V73 b 3)
+
+local function memes_points(a, b)
+  if a == nil or b == nil then
+    return a == b
+  end
+  return a.x == b.x and a.y == b.y and a.z == b.z
+end
+
+local function memes_tenues(a, b)
+  return a.activite == b.activite and a.lieu == b.lieu and a.cap == b.cap and a.fin == b.fin
+    and memes_points(a.position, b.position)
+end
+
+-- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
+-- « quoi » : activite, lieu, position, cap, et sa fin : une heure du jeu ; « liberation » (jusqu'à ce que la règle le
+-- lâche, borné par sûreté à « tenue_max_h ») ; rien (jusqu'au prochain changement de tranche, réponse 4 a). Une règle
+-- plus faible ne reprend pas un homme qu'une plus forte tient : sa tenue reste posée, et prend effet quand la plus forte
+-- le lâche. Reposer la même règle la met à jour sans la rajeunir. L'ordre est redonné sur-le-champ si l'activité de
+-- l'homme change. Rend vrai, ou (faux, raison).
+function hommes.tenir(id, regle, quoi)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if not rang_de(regle) then
+    return refuser("regle_inconnue", tostring(regle))
+  end
+  if f.exemptions and f.exemptions[regle] then
+    return refuser("homme_exempte", f.nom .. " : " .. regle)
+  end
+  quoi = quoi or {}
+  local heure = jeu().heure_du_jeu()
+  local fin = quoi.fin
+  if fin == nil then
+    fin = prochain_changement_de_tranche(heure)
+  elseif fin ~= "liberation" and type(fin) ~= "number" then
+    return refuser("fin_invalide", tostring(fin))
+  end
+  f.tenues = f.tenues or {}
+  local avant = f.tenues[regle]
+  local tenue = { activite = quoi.activite, lieu = quoi.lieu, position = quoi.position, cap = quoi.cap, fin = fin,
+                  depuis = avant and avant.depuis or heure }
+  f.tenues[regle] = tenue
+  if not avant or not memes_tenues(avant, tenue) then
+    enregistrer()
+  end
+  ordonner_un_homme(d, id, heure, nil, true)
+  return true
+end
+
+-- Service : lâcher la tenue d'une règle ; l'homme prend aussitôt ce que dit la règle d'en dessous. Une tenue déjà tombée
+-- (fin, sûreté, montée de version) n'a rien à lâcher : rien n'est dit.
+function hommes.lacher(id, regle)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if not (f.tenues and f.tenues[regle]) then
+    return true
+  end
+  f.tenues[regle] = nil
+  enregistrer()
+  ordonner_un_homme(d, id, jeu().heure_du_jeu(), nil, true)
+  return true
+end
+
+-- Service (réponse 3 a de JoVenGer, V73 b) : exempter un homme d'une règle, par exemple un compagnon de la garde de nuit
+-- (« garde_de_nuit ») ; l'arbitre et la garde du socle ne la lui donnent plus, et sa tenue de cette règle tombe. « oui »
+-- à faux lève l'exemption. Qui est compagnon, c'est Scriptorium qui le décide.
+function hommes.exempter(id, regle, oui)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if not rang_de(regle) then
+    return refuser("regle_inconnue", tostring(regle))
+  end
+  f.exemptions = f.exemptions or {}
+  if oui == false then
+    f.exemptions[regle] = nil
+  else
+    f.exemptions[regle] = true
+    if f.tenues then
+      f.tenues[regle] = nil
+    end
+  end
+  enregistrer()
+  ordonner_un_homme(d, id, jeu().heure_du_jeu(), nil, true)
+  return true
+end
+
+-- Service : la règle qui tient l'homme à cette heure (une règle du catalogue, « journee », ou « aucune » quand la
+-- journée du socle est coupée), et son activité ({ regle, activite, lieu, position, cap, fin }). Rend nil si l'homme est
+-- inconnu.
+function hommes.qui_tient(id, heure)
+  local a = hommes.activite_de(id, heure or jeu().heure_du_jeu())
+  if not a then
+    return nil
+  end
+  return a.regle, a
 end
 
 -- Après un chargement : fait revenir les personnages manquants. Rend (revenus, manquants).

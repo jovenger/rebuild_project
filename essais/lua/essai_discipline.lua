@@ -123,7 +123,8 @@ essai("discipline : les peines", function()
   verifier(f2 ~= nil, "deuxième rixe")
   verifier(discipline.juger(f2.id, "corvee"), "corvée")
   egal(hommes.activite_de(f2.coupable, FauxJeu.heure).activite, "corvee", "en corvée")
-  hommes.liberer_affectation(f2.coupable)
+  egal(hommes.qui_tient(f2.coupable), "punition", "tenu par la punition (fiche 15, V73 b 3)")
+  hommes.lacher(f2.coupable, "punition")
 
   local f3 = provoquer("rixe")
   verifier(f3 ~= nil, "troisième rixe")
@@ -169,8 +170,7 @@ essai("discipline : la corvée de punition est levée après vingt-quatre heures
   egal(hommes.activite_de(coupable, FauxJeu.heure).activite, "corvee", "encore en corvée")
   FauxJeu.heure = heure + 24
   hommes.battre()
-  verifier(hommes.activite_de(coupable, FauxJeu.heure).activite ~= "corvee" or hommes.affectation_de(coupable) == nil, "libéré")
-  egal(hommes.affectation_de(coupable), nil, "affectation levée")
+  verifier(hommes.qui_tient(coupable) ~= "punition", "libéré : la tenue de punition est tombée")
 end)
 
 essai("discipline : une faute non jugée deux jours est prescrite, les hommes murmurent", function()

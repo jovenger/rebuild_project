@@ -32,6 +32,13 @@ essai("registre : un camp plein (80 hommes) se mesure, s'écrit et se relit à l
   local donnees_hommes = registre.lire("hommes")
   local donnees_caractere = registre.lire("caractere")
   local modele = donnees_hommes.liste[donnees_hommes.ordre[1]]
+  -- Fiche 15, V73 b 3 : chacun porte deux tenues (une bataille et une punition, avec leur point) et une exemption, pour
+  -- peser la vraie taille d'un camp plein.
+  hommes.tenir(modele.id, "bataille", { activite = "bataille", lieu = "rang_avant", cap = 90, fin = "liberation",
+                                        position = { x = 3301.25, y = 1012.75, z = 112.5 } })
+  hommes.tenir(modele.id, "punition", { activite = "corvee", lieu = "corvee_punition", cap = 0, fin = 2420.5,
+                                        position = { x = 3298.5, y = 1015.25, z = 112.5 } })
+  hommes.exempter(modele.id, "garde_de_nuit")
   local modele_caractere = Scriptorium.caractere.de(modele.id) and donnees_caractere.hommes[modele.id]
   for i = 13, 80 do
     local id = "homme_" .. i

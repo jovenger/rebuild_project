@@ -595,6 +595,64 @@ function poste.essai_hommes_attaque()
   return true
 end
 
+-- V73 b 3 (fiche 15) : l'arbitre en jeu, par des commandes qui jouent le guichet sur le premier homme du camp.
+local function premier_du_camp()
+  local id = Scriptorium.hommes.liste()[1]
+  return id, id and Scriptorium.hommes.fiche(id)
+end
+
+local function point_du_camp(nom)
+  local p = Scriptorium.hommes.points[nom]
+  return p and Scriptorium.camp.point(p.x, p.y, p.cap)
+end
+
+-- Une tenue « rassemblement » (rang 2) au point de la corvée, jusqu'à ce qu'elle soit lâchée.
+function poste.essai_tenir_rassemblement()
+  local id, f = premier_du_camp()
+  if not f then
+    return false
+  end
+  local ok, raison = Scriptorium.hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "rassemblement",
+    position = point_du_camp("corvee"), fin = "liberation" })
+  jeu().journal("Poste : " .. f.nom .. ", tenu par le rassemblement : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok == true
+end
+
+-- Une tenue « loisir » (rang 7) au coin des dés, pour une heure du jeu : plus faible, elle attend sous le rassemblement.
+function poste.essai_tenir_loisir()
+  local id, f = premier_du_camp()
+  if not f then
+    return false
+  end
+  local ok, raison = Scriptorium.hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_du_camp("des"),
+    fin = jeu().heure_du_jeu() + 1 })
+  jeu().journal("Poste : " .. f.nom .. ", tenu par le loisir : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok == true
+end
+
+function poste.essai_lacher_rassemblement()
+  local id, f = premier_du_camp()
+  if not f then
+    return false
+  end
+  local ok = Scriptorium.hommes.lacher(id, "rassemblement")
+  jeu().journal("Poste : " .. f.nom .. ", rassemblement lâché : " .. tostring(ok))
+  return ok == true
+end
+
+-- Qui tient chaque homme : la règle, l'activité, le lieu, la fin.
+function poste.essai_qui_tient()
+  local hommes = Scriptorium.hommes
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    local regle, a = hommes.qui_tient(id)
+    jeu().journal("Poste : " .. f.nom .. " tenu par « " .. tostring(regle) .. " » : " .. tostring(a and a.activite) .. " ("
+      .. tostring(a and a.lieu) .. "), fin " .. ((a and type(a.fin) == "number") and string.format("%.2f", a.fin)
+      or tostring(a and a.fin)))
+  end
+  return true
+end
+
 function poste.essai_hommes_coucher()
   return donner_les_places(11, function(f) return f.lit end) > 0
 end
@@ -1373,6 +1431,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
   { nom = "scriptorium_essai_hommes_lever", fonction = function() return poste.essai_hommes_lever() end, aide = "L'homme suivant marche vers sa place d'exercice (V73 c : la levée)" },
   { nom = "scriptorium_essai_hommes_attaque", fonction = function() return poste.essai_hommes_attaque() end, aide = "L'homme suivant attaque le brigand du jeu, sans être déplacé (V73 b 1 : l'attaque sur un homme assis)" },
+  { nom = "scriptorium_essai_tenir_rassemblement", fonction = function() return poste.essai_tenir_rassemblement() end, aide = "Le premier homme tenu par le rassemblement, au point de la corvée (V73 b 3 : l'arbitre)" },
+  { nom = "scriptorium_essai_tenir_loisir", fonction = function() return poste.essai_tenir_loisir() end, aide = "Le premier homme tenu par le loisir, aux dés, pour une heure (V73 b 3)" },
+  { nom = "scriptorium_essai_lacher_rassemblement", fonction = function() return poste.essai_lacher_rassemblement() end, aide = "Le rassemblement du premier homme lâché (V73 b 3)" },
+  { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
   { nom = "scriptorium_essai_marcheur_coucher_a_decouvert", fonction = function() return poste.essai_marcheur_coucher_a_decouvert() end, aide = "Le marcheur se couche sur le lit à découvert (ordre 11)" },

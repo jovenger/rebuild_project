@@ -96,14 +96,14 @@ function patrouilles.en_cours()
   return copie
 end
 
--- Les hommes disponibles : valides, sans affectation, pas de garde à cette heure.
+-- Les hommes disponibles : libres pour la patrouille (ni blessés, ni tenus par une règle aussi forte : fiche 15, V73 b 3),
+-- pas de garde à cette heure.
 local function disponibles(heure)
   local de_garde = {}
   for _, g in ipairs(hommes().gardes(heure)) do de_garde[g.id] = true end
   local liste = {}
   for _, id in ipairs(hommes().liste()) do
-    local f = hommes().fiche(id)
-    if f.blessure == 0 and hommes().affectation_de(id) == nil and not de_garde[id] then
+    if hommes().libre_pour(id, "patrouille") and not de_garde[id] then
       table.insert(liste, id)
     end
   end
@@ -119,7 +119,8 @@ local function ordonner_le_point(p)
   local position = point_du_chemin(p.chemin, p.point)
   for _, id in ipairs(p.hommes) do
     if hommes().fiche(id) then
-      hommes().affecter(id, "patrouille", p.chemin .. "_" .. p.point, position, 0)
+      hommes().tenir(id, "patrouille", { activite = "patrouille", lieu = p.chemin .. "_" .. p.point, position = position,
+                                         cap = 0, fin = "liberation" })
     end
   end
   p.dernier_point_ordonne = p.point
@@ -202,7 +203,7 @@ local function rentrer(d, p)
   end
   for _, id in ipairs(p.hommes) do
     if hommes().fiche(id) then
-      hommes().liberer_affectation(id)
+      hommes().lacher(id, "patrouille")
     end
   end
   d.en_cours = nil

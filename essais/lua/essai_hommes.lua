@@ -559,6 +559,182 @@ essai("hommes : montée de version 1 -> 2 du registre, les affectations passagè
   egal(Scriptorium.registre.etat_de("hommes"), "migree", "case montée de version")
 end)
 
+essai("hommes : montée de version 2 -> 3 du registre (fiche 15, V73 b 3), l'affectation unique est oubliée", function()
+  depart()
+  local ancien = { prochain = 2, prochain_nom = 2, ordre = { "homme_1" }, anciens = {},
+                   liste = { homme_1 = { id = "homme_1", nom = "Essai", blessure = 0,
+                                         affectation = { activite = "bataille", lieu = "rang_avant", fin = 99 } } } }
+  FauxJeu.registre_stocke = Scriptorium.registre.serialiser({ format = Scriptorium.registre.format,
+                                                              cases = { hommes = { version = 2, donnees = ancien } } })
+  local f = hommes.fiche("homme_1")
+  verifier(f ~= nil, "fiche relue")
+  egal(f and f.affectation, nil, "l'affectation de la version 2 est oubliée")
+  egal(Scriptorium.registre.etat_de("hommes"), "migree", "case montée de version")
+  egal(hommes.qui_tient("homme_1", 10), "journee", "il reprend sa journée")
+end)
+
+-- Fiche 15, V73 b 3 (l'arbitre des ordres, validé par JoVenGer le 16/10) : une tenue par règle, la plus forte gagne.
+local function point_d_essai(x, y)
+  return camp.point(x or 5, y or 5, 0)
+end
+
+essai("arbitre (fiche 15, V73 b 3) : une règle plus faible ne reprend pas un homme tenu ; libéré, il prend celle d'en dessous", function()
+  preparer(5000, 100, 10)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  local id = hommes.liste()[1]
+  verifier(hommes.tenir(id, "travail", { activite = "corvee", lieu = "travail_essai", position = point_d_essai(), fin = 11 }),
+           "travail posé")
+  egal(hommes.qui_tient(id), "travail", "tenu par le travail")
+  verifier(hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_d_essai(), fin = 11.5 }), "loisir posé")
+  egal(hommes.qui_tient(id), "travail", "le loisir, plus faible, ne le reprend pas")
+  hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "rassemblement", position = point_d_essai(0, 8),
+                                      fin = "liberation" })
+  egal(hommes.qui_tient(id), "rassemblement", "le rassemblement, plus fort, le prend")
+  hommes.lacher(id, "rassemblement")
+  egal(hommes.qui_tient(id), "travail", "le rassemblement lâché : le travail reprend")
+  hommes.lacher(id, "travail")
+  egal(hommes.qui_tient(id), "loisir", "puis le loisir, resté posé")
+  hommes.lacher(id, "loisir")
+  egal(hommes.qui_tient(id), "journee", "puis sa journée")
+  verifier(hommes.lacher(id, "loisir"), "lâcher une tenue déjà tombée : sans erreur")
+  local refus = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "Hommes : refus", 1, true) then refus = refus + 1 end
+  end
+  egal(refus, 0, "et sans ligne de refus au journal")
+  verifier(not hommes.tenir(id, "inconnue", {}), "une règle hors du catalogue est refusée")
+  verifier(not hommes.tenir(id, "travail", { fin = "demain" }), "une fin qui n'est ni une heure ni « liberation » est refusée")
+end)
+
+essai("arbitre : à rang égal, la première tenue garde l'homme, même reposée ; une tenue posée bat la règle calculée", function()
+  preparer(5000, 100, 10)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  local id = hommes.liste()[1]
+  hommes.tenir(id, "sommeil", { activite = "sommeil", lieu = "lit_essai", position = point_d_essai(), fin = 12 })
+  FauxJeu.heure = 10.2
+  hommes.tenir(id, "repas", { activite = "repas", lieu = "feu_essai", position = point_d_essai(), fin = 12 })
+  egal(hommes.qui_tient(id), "sommeil", "à rang égal, la première posée")
+  FauxJeu.heure = 10.4
+  hommes.tenir(id, "sommeil", { activite = "sommeil", lieu = "lit_essai", position = point_d_essai(6, 5), fin = 12 })
+  egal(hommes.qui_tient(id), "sommeil", "reposée, elle n'est pas rajeunie")
+  -- Blessé : les soins (rang 3) passent devant ; une tenue « bains » (rang 3, un ordre exprès) passe devant les soins.
+  hommes.blesser(id, 2)
+  egal(hommes.qui_tient(id), "soins", "blessé : les soins")
+  hommes.tenir(id, "bains", { activite = "bain", lieu = "bains_essai", position = point_d_essai(), fin = 12 })
+  egal(hommes.qui_tient(id), "bains", "à rang égal, la tenue posée bat la règle calculée")
+  hommes.tenir(id, "bataille", { activite = "bataille", lieu = "rang_avant", position = point_d_essai(), fin = "liberation" })
+  egal(hommes.qui_tient(id), "bataille", "la bataille passe devant tout")
+end)
+
+essai("arbitre : les trois bornes d'une tenue (une heure ; le changement de tranche, minuit compris ; la libération et sa sûreté)", function()
+  preparer(5000, 100, 10)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 8, palier = 1 })
+  local id = hommes.liste()[1]
+  hommes.tenir(id, "travail", { activite = "corvee", lieu = "travail_essai", position = point_d_essai(), fin = 10.5 })
+  FauxJeu.heure = 10.4
+  hommes.battre()
+  egal(hommes.qui_tient(id), "travail", "avant sa fin")
+  FauxJeu.heure = 10.5
+  hommes.battre()
+  egal(hommes.qui_tient(id), "journee", "tombée à son heure")
+  -- Sans fin : jusqu'au prochain changement de tranche (exercice de 8 à 12 h ; nuit de 22 à 5 h, des deux côtés de minuit).
+  hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_d_essai() })
+  egal(select(2, hommes.qui_tient(id)).fin, 12, "à 10 h 30, jusqu'à midi")
+  hommes.lacher(id, "loisir")
+  FauxJeu.heure = 23
+  hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_d_essai() })
+  egal(select(2, hommes.qui_tient(id)).fin, 29, "à 23 h, jusqu'à 5 h le lendemain")
+  hommes.lacher(id, "loisir")
+  FauxJeu.heure = 27
+  hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_d_essai() })
+  egal(select(2, hommes.qui_tient(id)).fin, 29, "à 3 h, jusqu'à 5 h")
+  hommes.lacher(id, "loisir")
+  -- Jusqu'à libération : tenue, puis tombée par sûreté au bout de tenue_max_h, notée au journal.
+  FauxJeu.heure = 30
+  hommes.tenir(id, "bataille", { activite = "bataille", lieu = "rang_avant", position = point_d_essai(), fin = "liberation" })
+  FauxJeu.heure = 30 + hommes.reglages.tenue_max_h - 0.1
+  hommes.battre()
+  egal(hommes.qui_tient(id), "bataille", "tenue jusqu'à sa libération")
+  FauxJeu.heure = 30 + hommes.reglages.tenue_max_h
+  hommes.battre()
+  verifier(hommes.qui_tient(id) ~= "bataille", "tombée par sûreté au bout de " .. hommes.reglages.tenue_max_h .. " h")
+  local dite = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "tenue « bataille »", 1, true) and string.find(l, "jamais lâchée", 1, true) then dite = dite + 1 end
+  end
+  egal(dite, 1, "notée une fois au journal")
+end)
+
+essai("arbitre : tenir et lâcher redonnent l'ordre sur-le-champ, jamais le secours hors battement", function()
+  preparer(5000, 100, 10)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  hommes.battre()
+  local id = hommes.liste()[1]
+  local f = hommes.fiche(id)
+  FauxJeu.ordres = {}
+  hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "rassemblement", position = point_d_essai(0, 8),
+                                      fin = "liberation" })
+  egal(#FauxJeu.ordres, 1, "un ordre sur-le-champ")
+  egal(FauxJeu.ordres[1].activite, "rassemblement", "le rassemblement")
+  hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_d_essai(), fin = 11 })
+  egal(#FauxJeu.ordres, 1, "une tenue plus faible : aucun ordre")
+  hommes.lacher(id, "rassemblement")
+  egal(#FauxJeu.ordres, 2, "lâché : un ordre sur-le-champ")
+  egal(FauxJeu.ordres[2].activite, "des", "le loisir resté posé")
+  -- Figé loin de son but : ni tenir ni lâcher ne comptent le temps du secours, qui n'avance qu'au battement.
+  FauxJeu.positions[f.personnage] = { x = 500, y = 500, z = 0 }
+  FauxJeu.secours = {}
+  for _ = 1, 6 do
+    hommes.tenir(id, "loisir", { activite = "des", lieu = "des", position = point_d_essai(), fin = 11 })
+    hommes.lacher(id, "travail")
+  end
+  egal(#FauxJeu.secours, 0, "aucun secours hors battement")
+end)
+
+essai("arbitre : la garde et la patrouille ne prennent pas un homme tenu plus fort ; l'exemption de la garde de nuit", function()
+  preparer(5000, 100, 23)
+  for _ = 1, 4 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  local ids = hommes.liste()
+  local function de_garde(id, heure)
+    for _, g in ipairs(hommes.gardes(heure)) do
+      if g.id == id then return true end
+    end
+    return false
+  end
+  hommes.tenir(ids[1], "bataille", { activite = "bataille", lieu = "rang_avant", position = point_d_essai(), fin = "liberation" })
+  verifier(not hommes.libre_pour(ids[1], "garde_de_nuit"), "tenu par la bataille : pas libre pour la garde")
+  verifier(not hommes.libre_pour(ids[1], "patrouille"), "ni pour la patrouille")
+  hommes.exempter(ids[2], "garde_de_nuit")
+  verifier(not hommes.tenir(ids[2], "garde_de_nuit", { activite = "garde", position = point_d_essai(), fin = 26 }),
+           "une tenue de la règle dont il est exempté est refusée")
+  for heure = 22.5, 28.5, 1 do
+    verifier(not de_garde(ids[1], heure), "jamais de garde pour l'homme tenu par la bataille, à " .. heure .. " h")
+    verifier(not de_garde(ids[2], heure), "jamais de garde de nuit pour l'exempté, à " .. heure .. " h")
+  end
+  verifier(hommes.libre_pour(ids[2], "garde"), "de jour, l'exempté de la nuit peut garder")
+  hommes.tenir(ids[3], "punition", { activite = "corvee", lieu = "corvee_punition", position = point_d_essai(), fin = 40 })
+  verifier(hommes.libre_pour(ids[3], "garde_de_nuit"), "puni, il reste libre pour la garde, plus forte que la punition")
+  hommes.exempter(ids[2], "garde_de_nuit", false)
+  verifier(hommes.libre_pour(ids[2], "garde_de_nuit"), "l'exemption levée")
+end)
+
+essai("arbitre : la journée du socle coupée, l'homme qu'aucune règle ne tient attend où il est", function()
+  preparer(5000, 100, 10)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  local id = hommes.liste()[1]
+  local avant = hommes.reglages.journee_du_socle
+  hommes.reglages.journee_du_socle = false
+  FauxJeu.ordres = {}
+  hommes.battre()
+  egal(hommes.qui_tient(id), "aucune", "aucune règle ne le tient")
+  egal(FauxJeu.ordres[#FauxJeu.ordres] and FauxJeu.ordres[#FauxJeu.ordres].activite, "attendre", "il attend où il est")
+  hommes.reglages.journee_du_socle = avant
+  hommes.battre()
+  egal(hommes.qui_tient(id), "journee", "la journée revenue")
+end)
+
 -- Fiche 13 (validée par JoVenGer le 15/10/2026) : une âme à nous par homme vivant, jamais partagée.
 
 essai("hommes : une âme par homme, tirée à l'embauche dans la réserve de son rôle, gardée au retour", function()

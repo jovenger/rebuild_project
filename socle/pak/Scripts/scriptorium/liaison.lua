@@ -2377,6 +2377,9 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte)
     local ordre = sorte and liaison.ordres_des_places[sorte]
     if objet and ordre then
       ligne = donner_la_place(entite, objet, tostring(lieu), ordre)
+    elseif activite == "attendre" then
+      -- Fiche 15, V73 b 3 : la journée du socle coupée, l'homme qu'aucune règle ne tient attend où il est (activité 0).
+      ligne = "attendre sur place ; " .. poser_l_activite(entite, 0)
     elseif not position then
       ligne = "sans but"
     else

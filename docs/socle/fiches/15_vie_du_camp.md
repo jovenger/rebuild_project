@@ -405,6 +405,31 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Corrigé, un seul changement** : un pouls qui avance remet le switch « en marche », quel que soit son état (contrôlé
   au banc). À revoir en jeu : la même tempête, puis plus aucun lancement une fois les valeurs retirées.
 
+### V73 b 3, fait (16/10) : l'arbitre par tenues
+- `hommes.priorites` au catalogue (section « priorites », 26 sections) ; `hommes.reglages.tenue_max_h` (24) et
+  `journee_du_socle` (vrai). Services : `tenir`, `lacher`, `qui_tient`, `libre_pour`, `exempter`. Case `hommes` en
+  version 3 (l'affectation unique oubliée). `bataille`, `discipline` et `patrouilles` passent par l'arbitre ; la garde
+  du socle nomme sa règle selon l'heure (« garde_de_nuit » la nuit) et ne prend que des hommes libres pour elle.
+- Précisions de mise en œuvre (relecture du 16/10) : à rang égal entre une tenue posée et une règle que le socle calcule
+  (les soins d'un blessé), la tenue posée l'emporte (un ordre exprès) ; à rang égal entre deux tenues, la plus ancienne,
+  puis le nom de la règle ; reposer une règle ne la rajeunit pas ; lâcher une tenue déjà tombée ne dit rien ; l'ordre
+  sur-le-champ ne compte jamais le temps du secours ; le registre n'est réécrit que si la tenue change ; l'activité
+  « attendre » (0) n'a pas de branche, c'est la garde seule.
+- **Changement visible, voulu par l'ordre validé** : avant, une affectation passait toujours devant la blessure ;
+  maintenant, un puni blessé se repose (soins, rang 3, avant la punition, rang 5), et l'ordre d'une patrouille part
+  sur-le-champ, à chaque point, sans attendre le battement.
+- Banc : 2 473 vérifications ; le registre d'un camp plein, deux tenues et une exemption par homme : 142 403 octets en
+  5 tranches. Garde-fous éprouvés par erreurs injectées (l'ordre à rang égal, le secours hors battement).
+- **Grille de l'essai en jeu, écrite avant la séance** (premier homme assis au feu, secours coupé) :
+  1. `essai_tenir_rassemblement` : la ligne « Ordre à … : rassemblement » vient au journal **juste avant** la ligne du
+     poste (l'ordre est donné dans `tenir`, sans attendre le battement) ; il se lève et marche au point de la corvée ;
+     `essai_qui_tient` dit « rassemblement » → bon ;
+  2. `essai_tenir_loisir` (fin dans une heure) : aucun ordre pour lui ; toujours « rassemblement » → bon ;
+  3. `essai_lacher_rassemblement` : un ordre « des » aussitôt, il va au coin des dés ; « loisir » → bon ;
+  4. les autres hommes suivent leur journée, un lancement chacun ;
+  5. un ordre qui n'arrive qu'au battement → le chemin « sur-le-champ » ne marche pas en jeu : lire `tenir` et
+     `ordonner_un_homme`, un seul changement.
+
 ### Mesuré en V73 b 2 bis (16/10) : le plafond, acquis
 - Non-régression : un lancement par homme et pour le Directeur, arrêts à 0.
 - La même tempête : au plus 3 lancements par fenêtre et par personnage (la fenêtre de chacun part de sa naissance, d'où

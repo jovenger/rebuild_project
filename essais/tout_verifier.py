@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 128:
-        erreur("ordres : %d commandes lues dans poste.lua, 128 attendues" % len(connues))
+    if len(connues) != 132:
+        erreur("ordres : %d commandes lues dans poste.lua, 132 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -940,6 +940,8 @@ def verifier_la_vie_du_camp():
         donnees |= set(re.findall(r"=\s*(\d+)", places.group(1)))
     if not donnees:
         erreur("vie du camp : aucune activité trouvée dans liaison.lua (poser_l_activite, ordres_des_places)")
+    # L'activité 0 (attendre sur place, fiche 15, V73 b 3) n'a pas de branche : c'est la garde seule, au bas de la boucle.
+    donnees.discard("0")
     branches = set(re.findall(r"\$scriptorium_activite == (\d+)", comportements))
     for activite in sorted(donnees - branches, key=int):
         erreur("vie du camp : l'activité %s est donnée par la liaison mais n'a pas de branche dans comportements.xml" % activite)

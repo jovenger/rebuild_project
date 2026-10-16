@@ -287,7 +287,9 @@ local function mettre_en_bataille(d, b)
   b.combattants = {}
   for _, rang in ipairs({ "avant", "arriere" }) do
     for _, entree in ipairs(ordre[rang]) do
-      hommes().affecter(entree.id, "bataille", "rang_" .. rang, entree.position, entree.cap)
+      -- L'arbitre (fiche 15, V73 b 3) : la bataille, la règle la plus forte, jusqu'à la fin de la bataille.
+      hommes().tenir(entree.id, "bataille", { activite = "bataille", lieu = "rang_" .. rang, position = entree.position,
+                                             cap = entree.cap, fin = "liberation" })
       table.insert(b.combattants, entree.id)
     end
   end
@@ -296,7 +298,7 @@ end
 local function liberer_les_hommes(b)
   for _, id in ipairs(b.combattants or {}) do
     if hommes().fiche(id) then
-      hommes().liberer_affectation(id)
+      hommes().lacher(id, "bataille")
     end
   end
 end
@@ -372,7 +374,7 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
   if Scriptorium.atelier and Scriptorium.atelier.user_apres_bataille then
     Scriptorium.atelier.user_apres_bataille(vivants)
   end
-  -- Libérer les affectations avant de toucher aux fiches.
+  -- Lâcher les tenues de bataille avant de toucher aux fiches.
   liberer_les_hommes(b)
   for _, id in ipairs(resultat.morts) do
     hommes().retirer(id, "mort")

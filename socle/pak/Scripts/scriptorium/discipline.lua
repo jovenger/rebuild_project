@@ -302,7 +302,9 @@ function discipline.juger(id_incident, peine)
     hommes().changer_moral(incident.coupable, -5)
   elseif peine == "corvee" then
     local position = Scriptorium.camp.point(Scriptorium.hommes.points.corvee.x, Scriptorium.hommes.points.corvee.y, 0)
-    hommes().affecter(incident.coupable, "corvee", "corvee_punition", position, 0, jeu().heure_du_jeu() + 24)
+    -- L'arbitre (fiche 15, V73 b 3) : la punition au rang du travail (réponse 1 a de JoVenGer, V73 b).
+    hommes().tenir(incident.coupable, "punition", { activite = "corvee", lieu = "corvee_punition", position = position,
+                                                    cap = 0, fin = jeu().heure_du_jeu() + 24 })
     hommes().changer_moral(incident.coupable, -3)
   elseif peine == "pilori" then
     hommes().blesser(incident.coupable, 1)
