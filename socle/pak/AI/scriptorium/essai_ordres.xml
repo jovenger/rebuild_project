@@ -92,7 +92,7 @@
                 </IfCondition>
               </Sequence>
             </IfCondition>
-            <IfCondition condition="$etat_de_la_vie &gt; 0 &amp; $scriptorium_vie_pouls ~= $pouls_vu" failOnCondition="false">
+            <IfCondition condition="$scriptorium_vie_pouls ~= $pouls_vu" failOnCondition="false">
               <Sequence>
                 <Expression expressions="$pouls_vu = $scriptorium_vie_pouls" />
                 <Expression expressions="$tours_figes = 0" />

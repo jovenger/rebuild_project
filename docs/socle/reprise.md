@@ -271,10 +271,18 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **V73 b 1, vu en jeu** (0f324f1, 6970cdd) : un homme assis se lève de lui-même à l'ordre d'attaque et se bat ; pendant
   le combat, aucune relance ; après, une seule, et il revient s'asseoir (deux fois). Le dégagement d'Alex n'est pas
   nécessaire. **Fait nouveau** : des hommes dévêtus en pleine partie (pièces dans le sac, plus portées ; au combat, et
-  une fois sans combat) : fiche 13, à décider avec JoVenGer avant V73 b 2 (le plafond de relances).
+  une fois sans combat) : fiche 13. Décision de JoVenGer : finir V73 b, puis la tenue (garde de la tenue d'abord,
+  principe du pair).
+- **V73 b 2, vu en jeu** (3183209) : le plafond tient (3 lancements par fenêtre, puis une fenêtre d'arrêt, une ligne au
+  journal par arrêt) ; un lancement de trop après la tempête, corrigé (un pouls qui avance remet le switch en marche),
+  **à revoir en jeu**. Puis V73 b 3, l'arbitre.
+- **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
+  fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
+  jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
+  La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 27 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 28 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire

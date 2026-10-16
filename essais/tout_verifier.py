@@ -1020,6 +1020,10 @@ def verifier_la_vie_du_camp():
                % (lancements, gardes))
     if "$scriptorium_vie_arrets = $scriptorium_vie_arrets + 1" not in switch:
         erreur("vie du camp : le switch ne compte pas ses arrêts (scriptorium_vie_arrets)")
+    # V73 b 2, vu en jeu : retenu par le plafond, le switch restait « à lancer » alors que le pouls repartait, et relançait
+    # à la fin de la fenêtre un comportement vivant. Un pouls qui avance le remet « en marche », quel que soit son état.
+    if '<IfCondition condition="$scriptorium_vie_pouls ~= $pouls_vu"' not in switch:
+        erreur("vie du camp : le pouls qui avance doit remettre le switch en marche quel que soit son état")
     return len(donnees), len(employees)
 
 

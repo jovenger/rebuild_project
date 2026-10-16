@@ -291,6 +291,14 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - En jeu : non-régression (la vie du camp, un lancement par homme) ; puis une tempête provoquée par fichier
   (`cerveau.garde_ms` très long, `relance_tours` et `file_tours` à 1) : au plus 3 lancements par minute et par homme,
   une ligne par arrêt ; puis `regler.py --retirer`.
+- **Grille, écrite avant la séance** (tempête : `cerveau.garde_ms=20000`, le pouls ne bat plus que toutes les 20 s ;
+  `relance_tours` et `file_tours` à 1, une relance possible à chaque tour de 2 s) :
+  1. avant la tempête : un lancement par homme et pour le Directeur, arrêts à 0, pouls à 2 par seconde → bon ;
+  2. pendant 2 min de tempête : au plus 3 lancements par fenêtre et par homme (6 à 9 en 2 min, au lieu d'une
+     soixantaine sans plafond), le compteur des arrêts monte, une ligne au journal par arrêt → le plafond tient ;
+  3. plus de 3 lancements dans une fenêtre → le plafond ne tient pas : lire le switch (la condition `&lt;`, la
+     fenêtre), un seul changement ;
+  4. les valeurs retirées : en 20 s au plus, le pouls revient à 2 par seconde, et plus aucun lancement.
 
 **V73 b 3 — L'arbitre en Lua.**
 - **Une tenue par règle** : `f.tenues[regle] = { activite, lieu, position, cap, fin, depuis }`. Le rang de chaque règle
@@ -385,6 +393,17 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Fait nouveau, hors grille : des hommes dévêtus en pleine partie** (détail dans la fiche 13) : leurs pièces restent
   dans leur sac, mais ne sont plus portées. Jan est revenu du combat torse nu ; Mikuláš se battait en simple tunique ;
   Ondřej, qui ne s'est pas battu, était torse nu à 16 h 40.
+
+### Mesuré en V73 b 2 (16/10)
+- **Issues 1 et 2 de la grille** : avant la tempête, un lancement par homme et pour le Directeur, arrêts à 0, pouls à
+  2 par seconde ; pendant la tempête, **3 lancements par fenêtre, puis une fenêtre entière sans relance** (lancements
+  1 → 4 → 7 → 10 en 3 min, au lieu de près de 90 sans plafond) ; une ligne au journal par arrêt, chez chacun.
+- **Issue 4, presque** : les valeurs retirées, la garde revient à 500 ms au battement suivant et le pouls à 2 par
+  seconde ; mais **un lancement de trop** vers 70 s. Retenu par le plafond, le switch restait à l'état « à lancer »
+  (seul cet état lance, et le pouls n'était relu qu'aux autres états) : à la fin de la fenêtre, il a relancé un
+  comportement vivant (mis en file derrière lui, sans dommage, mais inutile).
+- **Corrigé, un seul changement** : un pouls qui avance remet le switch « en marche », quel que soit son état (contrôlé
+  au banc). À revoir en jeu : la même tempête, puis plus aucun lancement une fois les valeurs retirées.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
