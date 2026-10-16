@@ -793,8 +793,8 @@ essai("équipement : un homme d'avant l'équipement (fiche sans équipement) est
   egal(e.etat, "pret", "équipé")
   egal(string.match(e.armes, "^scriptorium_arbaletrier_1_[ab]$") ~= nil, true, "arbalète du palier 1")
   egal(a_dans_le_sac(id, "naissance_tunique"), 0, "tenue de naissance retirée")
-end)
-
+end)
+
 essai("équipement : un personnage refait est rééquipé, sa tenue de naissance retirée de nouveau, ses pièces données recréées avec leur dernier état", function()
   preparer(200, 10, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
@@ -821,8 +821,8 @@ essai("équipement : un personnage refait est rééquipé, sa tenue de naissance
   egal(a_dans_le_sac(id, piece), 1, "pièce donnée recréée")
   egal(FauxJeu.etat_objet(personnage_de(id), piece), 0.25, "avec son dernier état")
   egal(hommes.ce_qu_il_porte(id)[#hommes.ce_qu_il_porte(id)], piece, "et portée après sa tenue")
-end)
-
+end)
+
 essai("équipement : les tenues exclues ne sont jamais tirées", function()
   preparer(300, 10, 10)
   local exclues = hommes.equipement.tenue.exclues
@@ -832,8 +832,8 @@ essai("équipement : les tenues exclues ne sont jamais tirées", function()
     egal(hommes.fiche(id).equipement.tenue, "soldier_generic_6_02", "seule tenue du palier 3 hors des exclues")
   end
   hommes.equipement.tenue.exclues = exclues
-end)
-
+end)
+
 essai("hommes : à l'exercice, chacun sa place, jamais deux au même point", function()
   preparer(5000, 10, 10)
   for _ = 1, 8 do
@@ -851,8 +851,8 @@ essai("hommes : à l'exercice, chacun sa place, jamais deux au même point", fun
     end
   end
   verifier(#vus >= 2, "au moins deux hommes à l'exercice à 10 h (" .. #vus .. ")")
-end)
-
+end)
+
 essai("vie du camp (fiche 15) : une place se prend par son objet du jeu, un point se rejoint en marchant", function()
   preparer(5000, 100, 12.5)
   for _ = 1, 6 do
@@ -937,8 +937,8 @@ essai("vie du camp (fiche 15) : un homme qui se rapproche n'est jamais secouru",
     hommes.battre()
   end
   egal(#FauxJeu.secours, 0, "il avance de 4 m par battement : aucun secours")
-end)
-
+end)
+
 essai("vie du camp (fiche 15, V73 c) : un homme encore assis à sa place d'avant n'est jamais posé d'un coup", function()
   preparer(5000, 100, 12.5)
   for _ = 1, 6 do
@@ -967,4 +967,41 @@ essai("vie du camp (fiche 15, V73 c) : un homme encore assis à sa place d'avant
     hommes.battre()
   end
   egal(#FauxJeu.secours, 1, "levé, puis figé : un secours")
+end)
+
+essai("vie du camp (fiche 15, V73 b 1) : un homme en combat ou en conversation n'est jamais secouru ; son compte repart de zéro", function()
+  preparer(5000, 100, 12.5)
+  for _ = 1, 6 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  hommes.battre()
+  local cible = nil
+  for _, id in ipairs(hommes.liste()) do
+    local a = hommes.activite_de(id, 12.5)
+    if camp.sorte_de(a.lieu) == "siege" and not cible then
+      cible = { id = id, a = a, personnage = hommes.fiche(id).personnage }
+    end
+  end
+  verifier(cible ~= nil, "un homme au siège")
+  -- Figé à 50 m de son siège, mais en combat : jamais posé d'un coup hors de son combat.
+  FauxJeu.positions[cible.personnage] = { x = cible.a.position.x + 50, y = cible.a.position.y, z = 0 }
+  FauxJeu.secours = {}
+  FauxJeu.occupations[cible.personnage] = "combat"
+  for _ = 1, 5 do
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 0, "en combat, 2 min 30 sans se rapprocher : aucun secours")
+  -- Le combat fini, le compte repart de zéro : un relevé, puis 30 s sans progrès avant le premier secours.
+  FauxJeu.occupations[cible.personnage] = nil
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "le combat fini : le compte repart de zéro")
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "puis 30 s sans se rapprocher : un secours")
+  -- De même en conversation.
+  FauxJeu.positions[cible.personnage] = { x = cible.a.position.x + 50, y = cible.a.position.y, z = 0 }
+  FauxJeu.occupations[cible.personnage] = "conversation"
+  for _ = 1, 4 do
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 1, "en conversation : aucun secours de plus")
 end)

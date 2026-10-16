@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 126:
-        erreur("ordres : %d commandes lues dans poste.lua, 126 attendues" % len(connues))
+    if len(connues) != 127:
+        erreur("ordres : %d commandes lues dans poste.lua, 127 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -992,6 +992,14 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : hommes.cerveau.%s n'est lue par aucun arbre" % cle)
     for cle in sorted(lues - cles):
         erreur("vie du camp : scriptorium_cerveau_%s est lue par un arbre mais n'est pas dans hommes.cerveau" % cle)
+    # Fiche 15, V73 b 1 : la liaison (le secours, la lecture au poste) et le switch (la relance) disent « occupé » par
+    # les mêmes contextes ; un nom changé d'un seul côté ne se verrait qu'en jeu.
+    ligne = re.search(r"^local CONTEXTES_OCCUPE = (.*)$", liaison, re.M)
+    occupe_liaison = set(re.findall(r'"([A-Za-z_]+)" \}', ligne.group(1))) if ligne else set()
+    occupe_switch = set(re.findall(r'<EntityContextCheck context="([^"]+)"', arbres.get("essai_ordres.xml", "")))
+    if not occupe_liaison or occupe_liaison != occupe_switch:
+        erreur("vie du camp : contextes « occupé » de la liaison %s, du switch %s : ils doivent être les mêmes"
+               % (sorted(occupe_liaison), sorted(occupe_switch)))
     return len(donnees), len(employees)
 
 

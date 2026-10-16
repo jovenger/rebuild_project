@@ -10,8 +10,8 @@
   de 60 m, retours au camp), toujours hors d'un meuble et hors de la vue d'Henry si possible (1) ; l'ordre des
   priorités proposé (2) ; la journée du socle pour l'homme qu'aucune règle ne tient (3) ; une tâche sans fin s'arrête au
   changement de tranche (4).
-- **V73 b revu le 16/10** pour le comportement long (section « V73 b » ci-dessous) : en relecture par le pair, puis
-  trois questions à cocher à JoVenGer, avant tout code.
+- **V73 b revu le 16/10** pour le comportement long (section « V73 b » ci-dessous) : relu par le pair, **validé par
+  JoVenGer le jour même** (trois questions à cocher, réponses a, a, a).
 
 ## Le constat (relu dans le code du socle, 16/10)
 - La vie du camp **téléporte** encore : `hommes.battre` calcule l'activité (`hommes.activite_de`) et `liaison.ordonner`
@@ -260,8 +260,12 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   2. le combat fini : une relance (deux au plus si la suite du combat du jeu dure plus d'une minute), le pouls repart, et
      l'homme reprend sa tranche (rassis, si c'est l'heure du repas) → rien à ajouter ; ou le pouls repart sans relance
      (le jeu a rendu notre comportement) → rien à ajouter, c'est noté ;
-  3. il reste assis, ou se bat assis, ou ne se bat pas → **dégager d'abord** : l'activité « attendre » et le compteur,
-     puis l'attaque après le temps de sortie (`sortie_ms`) ; un seul changement, V73 b 1 bis ;
+  3. il reste assis, ou se bat assis, ou ne se bat pas → **dégager d'abord** (principe d'Alex, transmis par le pair) :
+     l'activité « attendre » et le compteur font finir la posture du dedans, et le switch **retient** l'attaque tant que
+     le comportement long dit l'homme encore en posture, au plus quelques secondes (environ 4 s, réglable) ; passé ce
+     délai, l'attaque part quand même. L'horloge de la retenue ne tourne **que lorsqu'une attaque attend vraiment
+     l'homme** (chez Alex, une première version la faisait tourner pour tout homme assis : 341 lignes au journal en une
+     séance, et la retenue était épuisée quand un vrai combat arrivait). Un seul changement, V73 b 1 bis ;
   4. aucune relance plus d'une minute après la fin du combat (contexte resté à 1) → lire les contextes, chercher un
      autre signe de la fin du combat ; un seul changement ;
   5. à part : le siège se dit libre après la levée (`IsStanceAvailable`).
@@ -281,7 +285,8 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   relances arrêtées pour « X » ». En mémoire seulement, remise à zéro au chargement comme le cerveau.
 - **Au banc** : contrôles statiques (`tout_verifier.py` : le plafond garde les deux chemins de relance, ses valeurs sont
   lues avec leur défaut) ; essai Lua de la ligne au journal (une par hausse, aucune sinon). Le « 3 relances, puis
-  arrêt » se mesure **en jeu** : le banc ne joue pas les arbres.
+  arrêt » se mesure **en jeu** : le banc ne joue pas les arbres. Accepté par le pair (16/10) ; un lecteur de nos arbres
+  au banc reste une idée pour plus tard, si les arbres grossissent (un outil de plus à entretenir).
 - En jeu : non-régression (la vie du camp, un lancement par homme) ; puis une tempête provoquée par fichier
   (`cerveau.garde_ms` très long, `relance_tours` et `file_tours` à 1) : au plus 3 lancements par minute et par homme,
   une ligne par arrêt ; puis `regler.py --retirer`.
@@ -329,16 +334,39 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Un homme n'est jamais retiré du monde** : la règle vise les sorties (V73 f, missions), pas le départ d'un homme qui
   quitte la Compagnie (fin de contrat, désertion, renvoi, mort : `faire_partir`). L'arbitre ne retire jamais personne.
 
+### Relecture du pair (16/10)
+- **L'attaque sur un homme assis, chez Alex (mécanisme seulement)** : il défait la posture **avant** de lancer le combat ;
+  il ne compte pas sur le remplacement de l'interruption. Le Lua pose « céder la place », la tenue de la posture échoue,
+  le jeu lève l'homme ; le switch retient le combat tant qu'un drapeau dit l'homme encore en posture, borné à environ
+  4 s. Notre repli de V73 b 1 (issue 3) est ce schéma.
+- **Deux signaux, à garder distincts** : « céder la place » fait quitter la vie du camp pour le combat ; l'alerte de
+  Scriptorium (`en_garde_du_camp`) rompt la pose **sans** quitter la vie du camp. Chez Alex, « céder » seul, hors combat,
+  laissait l'homme figé, faute de relance ; notre pouls couvre ce piège, mais les deux sens restent séparés (chez nous :
+  l'attaque d'un côté, un changement d'activité de l'autre).
+- **Henry qui veut un poste** : chez Alex, « céder la place » ne sert qu'au combat (les postes d'Henry étaient à lui
+  seul ; la règle du 16/10 est nouvelle). Pour savoir qu'Henry veut le poste, se fier à **l'interaction**, pas à la
+  distance : Scriptorium donne déjà à ces postes un déclencheur qu'Henry utilise (`objets_d_henry`) ; quand Henry
+  l'utilise alors qu'un homme l'occupe, la tenue de l'homme est lâchée, il cède et se lève, puis Henry prend le poste.
+  À l'étape des postes.
+- **Le banc** : la vérification statique et la tempête provoquée en jeu suffisent (V73 b 2).
+- **Rappels de Scriptorium pour les questions** : les punis restaient pris par leur loisir, et Scriptorium a dû les
+  tirer de force (`pilori_du_directeur`) : la punition doit passer au moins avant les loisirs. Compagnons : le pair
+  recommande l'exemption par règle, posée par Scriptorium (c'est lui qui décide).
+
 ### Questions à JoVenGer (V73 b, après relecture par le pair)
 1. **Le rang de la patrouille et de la corvée de punition** (les deux tâches du socle que l'ordre validé ne nomme pas) :
-   (a) la patrouille au rang « garde et ronde », la corvée de punition au rang « travail » (Recommandé) ; (b) les deux au
-   rang « travail » ; (c) les deux au rang « garde et ronde ».
+   (a) la patrouille au rang « garde et ronde », la corvée de punition au rang « travail », donc avant le repas, le
+   sommeil et les loisirs (Recommandé ; rappel de Scriptorium : la punition doit passer au moins avant les loisirs) ;
+   (b) les deux au rang « travail » ; (c) les deux au rang « garde et ronde ».
 2. **La borne des tâches que le socle donne lui-même sans heure de fin** (bataille, patrouille) : (a) jusqu'à ce que leur
    morceau les lâche, avec une borne de sûreté de 24 h de jeu notée au journal (Recommandé) ; (b) au changement de
    tranche, comme les autres (une bataille à cheval sur deux tranches serait coupée).
 3. **Compagnons sans garde de nuit, le mécanisme** : (a) une exemption par règle, posée par Scriptorium sur l'homme
    (`hommes.exempter(id, "garde_de_nuit")`), respectée par l'arbitre et par la garde du socle (Recommandé) ; (b) rien dans
    le socle : les règles de garde de Scriptorium ne choisissent jamais un compagnon.
+- **Réponses de JoVenGer (16/10)** : 1 (a) la patrouille au rang « garde et ronde », la corvée de punition au rang
+  « travail » ; 2 (a) jusqu'à ce que leur morceau les lâche, sûreté de 24 h notée au journal ; 3 (a) l'exemption par
+  règle, posée par Scriptorium.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

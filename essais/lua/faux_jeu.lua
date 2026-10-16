@@ -54,6 +54,7 @@ function faux.remettre_a_zero()
   faux.temps = 0
   faux.positions = {}
   faux.secours = {}
+  faux.occupations = {}
   faux.cerveaux = {}
   faux.ecritures_du_cerveau = 0
   faux.affichages = {}
@@ -245,6 +246,10 @@ function faux.regler_le_cerveau(identifiant, valeurs)
   end
   faux.cerveaux[identifiant] = copie
   return true, "écrit"
+end
+-- Ce qui occupe un personnage (V73 b 1) : { [identifiant] = « combat » ou « conversation » }, posé par les essais.
+function faux.occupation_de(identifiant)
+  return faux.occupations and faux.occupations[identifiant] or nil
 end
 function faux.poser_en_secours(identifiant, position)
   faux.secours = faux.secours or {}

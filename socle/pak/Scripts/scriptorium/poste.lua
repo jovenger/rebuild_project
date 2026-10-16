@@ -554,6 +554,27 @@ function poste.essai_hommes_lever()
   return true
 end
 
+-- V73 b 1 (fiche 15) : l'homme suivant attaque le brigand du jeu (ordre 8), sans être déplacé : assis, il doit se lever
+-- de lui-même. Il devient le dernier vu.
+local prochain_attaquant = 0
+function poste.essai_hommes_attaque()
+  local hommes = Scriptorium.hommes
+  local liste = hommes.liste()
+  if #liste == 0 then
+    return false
+  end
+  prochain_attaquant = prochain_attaquant % #liste + 1
+  local id = liste[prochain_attaquant]
+  local f = hommes.fiche(id)
+  if not f.personnage then
+    jeu().journal("Poste : attaque de " .. f.nom .. " : sans personnage")
+    return false
+  end
+  poste.dernier_vu = id
+  jeu().journal("Poste : attaque de " .. f.nom .. " : " .. jeu().ordonner_l_attaque(nil, f.personnage))
+  return true
+end
+
 function poste.essai_hommes_coucher()
   return donner_les_places(11, function(f) return f.lit end) > 0
 end
@@ -1330,7 +1351,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_hommes_coucher", fonction = function() return poste.essai_hommes_coucher() end, aide = "Chaque homme du camp se couche sur sa paillasse (ordre 11)" },
   { nom = "scriptorium_essai_directeur_coucher", fonction = function() return poste.essai_directeur_coucher() end, aide = "Le Directeur se couche sur son lit (ordre 11)" },
   { nom = "scriptorium_essai_hommes_lever", fonction = function() return poste.essai_hommes_lever() end, aide = "L'homme suivant marche vers sa place d'exercice (V73 c : la levée)" },
-  { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, âme" },
+  { nom = "scriptorium_essai_hommes_attaque", fonction = function() return poste.essai_hommes_attaque() end, aide = "L'homme suivant attaque le brigand du jeu, sans être déplacé (V73 b 1 : l'attaque sur un homme assis)" },
+  { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
   { nom = "scriptorium_essai_marcheur_coucher_a_decouvert", fonction = function() return poste.essai_marcheur_coucher_a_decouvert() end, aide = "Le marcheur se couche sur le lit à découvert (ordre 11)" },
   { nom = "scriptorium_essai_sieges_relever", fonction = function() return poste.essai_sieges_relever() end, aide = "Propriétés complètes des sièges et lits du jeu à copier ; écart des places d'un banc" },

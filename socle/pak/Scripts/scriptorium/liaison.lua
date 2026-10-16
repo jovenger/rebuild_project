@@ -2398,9 +2398,31 @@ end
 -- V73 c 6) ne les pose plus : à 1, ils diraient qu'un « use » du jeu tient encore l'homme.
 local CONTEXTES_DE_LA_POSTURE = { "activity_disableSchedulerLooping", "bench_disableSnooze" }
 
+-- Les contextes qui disent un homme pris par le jeu, les mêmes que ceux du switch (AI/scriptorium/essai_ordres.xml,
+-- comparés au banc) : en combat (posé par AI/npc/basic/switch/interrupt_attack.xml), en conversation (posé par
+-- AI/speech/switchDialog.xml). Le switch ne relance pas la vie du camp pendant ce temps (fiche 12) ; le secours ne prend
+-- pas un tel homme pour un homme bloqué (fiche 15, V73 b 1).
+local CONTEXTES_OCCUPE = { { "combat", "crime_interruptAttack" }, { "conversation", "speech_switchDialogRunning" } }
+
+-- Ce qui occupe un personnage d'après son âme : « combat », « conversation », ou nil (libre, ou rien de lisible).
+function liaison.occupation_de(qui)
+  local noms = {}
+  for _, c in ipairs(CONTEXTES_OCCUPE) do
+    table.insert(noms, c[2])
+  end
+  local lus = liaison.contextes_de(qui, noms)
+  for _, c in ipairs(CONTEXTES_OCCUPE) do
+    if lus[c[2]] then
+      return c[1]
+    end
+  end
+  return nil
+end
+
 -- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, ses compteurs « assis » et « couchés »,
 -- les approches réussies d'un siège ou d'un lit, l'activité et les ordres donnés par la liaison, le pouls du
--- comportement long, ses lancements par le switch, les arrivées de la marche, les contextes du « use », et si l'objet de
+-- comportement long, ses lancements par le switch, les arrivées de la marche, ses combats (ordre 8), les contextes du
+-- « use » et ceux qui le disent occupé (combat, conversation : V73 b 1), et si l'objet de
 -- la place se dit libre ou bloqué pour une posture (XGenAIModule.IsStanceAvailable et IsStanceBlocked, comme
 -- Scripts/Entities/WH/Triggers/ActionTrigger.lua) : un siège qui ne se libère pas après le départ de l'homme le
 -- réclamerait (V73 c 8) ; et deux valeurs du cerveau (garde, tour du switch), pour savoir après un chargement si
@@ -2427,17 +2449,25 @@ function liaison.voir_sur_la_place(qui, identifiant)
     siege_libre = libre_lu and tostring(libre) or "?"
     siege_bloque = bloque_lu and tostring(bloque) or "?"
   end
-  local lus = liaison.contextes_de(qui, CONTEXTES_DE_LA_POSTURE)
-  local contextes = {}
+  -- Les contextes de la posture, puis ceux qui disent l'homme occupé (V73 b 1 : la lecture « en combat »).
+  local noms = {}
   for _, nom in ipairs(CONTEXTES_DE_LA_POSTURE) do
+    table.insert(noms, nom)
+  end
+  for _, c in ipairs(CONTEXTES_OCCUPE) do
+    table.insert(noms, c[2])
+  end
+  local lus = liaison.contextes_de(qui, noms)
+  local contextes = {}
+  for _, nom in ipairs(noms) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s, combats %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
     variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),
-    variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"),
+    variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"), variable("scriptorium_essai_combats"),
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end

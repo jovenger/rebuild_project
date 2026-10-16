@@ -1306,6 +1306,12 @@ local function secourir(id, f, a, rapport)
     s.reste, s.bloque_s = reste, 0
     return
   end
+  -- En combat ou en conversation, il ne se rapproche pas de son but sans être bloqué (fiche 15, V73 b 1) : jamais posé
+  -- d'un coup hors de son combat ; son compte repart de zéro quand le jeu le rend.
+  if jeu().occupation_de(f.personnage) then
+    s.reste, s.bloque_s = nil, 0
+    return
+  end
   if s.reste and s.reste - reste < hommes.reglages.secours_progres_m then
     s.bloque_s = s.bloque_s + Scriptorium.cadence_du_battement_ms / 1000
   else
