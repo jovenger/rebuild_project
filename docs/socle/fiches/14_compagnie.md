@@ -207,7 +207,8 @@
 | 473, puis un rechargement | V73 c 5 (le comportement long) | normal (deux fois) |
 | 473 | V73 c 6 (notre propre posture) | normal |
 | 473 | V73 c 7 (la tenue échoue) | normal |
-- Au total : 2 écrans noirs sur 23 chargements ou poses observés ; 0 sur 13 depuis la séparation. **Rien n'est conclu** : il
+| 473, puis un rechargement | V73 c 8 (la levée, enfin) | normal (deux fois) |
+- Au total : 2 écrans noirs sur 25 chargements ou poses observés ; 0 sur 15 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

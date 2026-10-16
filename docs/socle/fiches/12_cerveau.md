@@ -279,7 +279,19 @@
     modèle ;
   - Mikuláš replacé assis : **arrêt et rapport à JoVenGer** (ci-dessous), aucune autre tentative.
 
-### Rapport à JoVenGer, prêt si V73 c 8 échoue (règle anti-boucle)
+### Mesuré en V73 c 8 (16/10) : la levée marche
+- **La marche en `changeNPCState="true"` était la pièce manquante.** Levés, les trois se lèvent, marchent et restent
+  debout plus de 2 min, Jan compris (but tout près) ; leurs sièges se disent libres (`IsStanceAvailable` vrai), alors
+  qu'ils se disaient pris pendant l'assise.
+- **Par la vraie vie du camp** : à midi, l'ordre du repas les fait marcher et s'asseoir face au feu ; à 13 h, l'ordre de
+  la corvée les fait lever et marcher jusqu'à la corvée, où ils restent debout (ce qui avait échoué en V73 a).
+- **Rechargement** : le comportement long revient, l'activité est redonnée ; un homme repris assis de la sauvegarde se
+  lève à une marche lointaine, mais reste à demi assis si son but est tout près (Jan) : **point ouvert**, un geste de
+  levée avant une marche courte, à concevoir.
+- **Acquis** : un seul comportement long ; s'asseoir et se coucher par notre propre posture ; la tenue qui échoue au
+  changement d'ordre ; les marches qui changent l'état du personnage ; la relance au chargement ; un ordre par tranche.
+
+### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
   notre propre posture sans le « use » (assis face au feu et couchés : acquis ; la levée échoue) ; V73 c 7, la tenue

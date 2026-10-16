@@ -153,6 +153,13 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Choix de JoVenGer (16/10)** : « Court, puis durable » : l'essai court d'abord, puis le modèle durable avec sa fiche
   et ses questions.
 
+## La levée, résolue (16/10, V73 c 5 à V73 c 8 ; détail dans la fiche 12)
+- Un seul comportement long, la « vie du camp » ; notre propre posture pour s'asseoir et se coucher ; la tenue échoue au
+  changement d'ordre ; les marches changent l'état du personnage (`changeNPCState="true"`).
+- Vu en jeu (V73 c 8) : à midi, repas assis face au feu ; à 13 h, levés et partis à la corvée, debout plus de 2 min.
+- Ouvert : un homme repris assis d'une sauvegarde, dont le but est tout près, reste à demi assis ; un lit du plan placé
+  hors de sa tente.
+
 ## Essai court V73 c 4 : grille de lecture écrite avant la séance
 - **Ce qui change** (un seul essai) : ordres 9, 10 et 11 remis à `IgnorePriorityOnPreviousInterrupt="false"` (le 8 ne
   bouge pas) ; contextes et garde gardés. Au journal : la ligne de chaque ordre dit le compteur lu puis écrit (ou
