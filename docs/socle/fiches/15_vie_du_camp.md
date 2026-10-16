@@ -199,6 +199,9 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - Une activité de siège donne l'ordre 10 sur la bonne place ; de lit, l'ordre 11 ; de point, l'ordre 9 avec le point.
 - Le secours ne pose l'homme qu'après le délai sans progrès, et sur une place libre.
 - L'arbitre : une règle plus faible ne reprend pas un homme tenu ; à la libération, la règle d'en dessous reprend.
+- La tranche (règle de JoVenGer : une tâche sans fin s'arrête au changement de tranche ; rappel du pair, 16/10) : la
+  journée n'a pas de trou, deux tranches qui se suivent n'ont jamais la même activité, et chaque changement de tranche
+  donne un nouvel ordre, donc un nouveau compteur, qui fait finir la tenue du comportement long (fiche 12).
 
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Quand le socle peut-il encore poser un homme d'un coup (téléportation) ?** (a) seulement en secours : l'homme ne

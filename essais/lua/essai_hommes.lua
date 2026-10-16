@@ -296,6 +296,28 @@ essai("hommes : les ordres ne partent qu'au changement d'activité", function()
   verifier(FauxJeu.ordres[2].position ~= nil, "avec une position")
 end)
 
+-- Règle de JoVenGer (fiche 15, 16/10) : une tâche sans fin s'arrête au changement de tranche. La garde du comportement
+-- long (fiche 12) ne finit qu'au changement du compteur d'ordres : chaque changement de tranche doit donc donner un
+-- nouvel ordre, ce que garantit une journée sans trou dont deux tranches qui se suivent n'ont jamais la même activité.
+essai("hommes : chaque changement de tranche de la journée donne un nouvel ordre", function()
+  local journee = hommes.journee
+  for i, tranche in ipairs(journee) do
+    local suivante = journee[i % #journee + 1]
+    local nom = tranche.de .. " h - " .. tranche.a .. " h"
+    verifier(tranche.activite ~= suivante.activite, nom .. " : la tranche suivante change d'activité")
+    egal(tranche.a, suivante.de, nom .. " : la tranche suivante commence à sa fin (pas de trou)")
+  end
+  preparer(100, 100, journee[1].de)
+  hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  FauxJeu.ordres = {}
+  local donnes = 0
+  for _, tranche in ipairs(journee) do
+    FauxJeu.heure = tranche.de + 0.5
+    donnes = donnes + hommes.battre().ordres
+  end
+  egal(donnes, #journee, "un ordre par tranche, sur toute la journée")
+end)
+
 essai("hommes : à l'entrée en partie, l'ordre en cours est redonné à chacun (V56 : le cerveau perd ses variables)", function()
   preparer(100, 100, 10)
   hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
