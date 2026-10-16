@@ -133,3 +133,22 @@ Pas maintenant : on finit d'abord s'asseoir et dormir, puis la vie du camp. Chac
    des métiers, pas maintenant. Chez Scriptorium, le coursier restait figé dès qu'on essayait de le faire monter. D'abord
    chercher comment les arbres du jeu font monter, chevaucher et descendre ses cavaliers (messagers, soldats montés ;
    « Réutiliser avant de créer »), puis un seul homme, prouvé à l'image.
+
+## La note des métiers et de la vie du camp (JoVenGer, 16/10/2026, écrite par la conversation Scriptorium, commit 4383e067)
+- À relire avant chaque fiche de la vie du camp et des métiers, avec `CARTE_DES_REGLES.md` (lecture seule) :
+  `C:\Users\maste\Desktop\Scriptorium\docs\socle\NOTE_METIERS.md` et son relevé `NOTE_METIERS_RELEVE.md` (59 dossiers).
+- **Le geste vient du jeu, l'ordre vient de nous** : le jeu fournit le geste et le poste (objet intelligent du jeu, son
+  gabarit et ses points d'appui, posé sur un meuble visible de même hauteur, comme les sièges et les lits de V62 à V69) ;
+  Scriptorium décide du début, de la durée et de la fin. Service du guichet : commencer ce geste à ce poste, le tenir
+  jusqu'à l'ordre de fin ou une durée en temps du jeu, l'interrompre (attaque, nuit, appel du Directeur). Aucun poste
+  laissé tourner seul.
+- **Les postes de vie que le jeu sait jouer** (partie 2 de la note, chemins dans les paks) : garde et sentinelles,
+  soldats au repos (réparer ses flèches, dés, conteur, pugilat amical), corvées (balayer, puiser, porter), hygiène,
+  prière, blessés, entraînement.
+- **Les défauts à battre** (partie 3) : un seul arbitre des ordres par priorité (bataille, puis soins et bains, puis
+  travail, puis loisir ; une règle ne reprend pas un homme qu'une règle plus forte tient) ; interrompre et reprendre
+  proprement ; les gestes manquants par les postes du jeu et les outils en main (voie pièce par pièce de V71) ; des
+  places du jeu au sol, atteignables, vérifiées à la pose.
+- Postes posés par JoVenGer partout dans le plan du camp (Aménagement) : le socle offrira au guichet « rendre ce poste
+  fonctionnel ». Question pour l'étape des métiers : le fumoir, le séchoir, le prie-Dieu et la table de tri des herbes,
+  réservés à Henry dans Scriptorium, servent-ils aussi aux gens du camp quand Henry ne s'en sert pas ?
