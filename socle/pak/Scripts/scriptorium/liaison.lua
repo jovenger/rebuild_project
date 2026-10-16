@@ -2369,13 +2369,13 @@ function liaison.poser_en_secours(identifiant, position)
   return ok and string.format("posé en (%.1f, %.1f)", place.x, place.y) or ("refusé : " .. tostring(erreur))
 end
 
--- Les contextes posés autour du « use » d'un siège ou d'un lit (comportements.xml) ; encore posés après la levée, ils
--- diraient que l'abandon du « use » n'a pas fait le ménage (V73 c).
+-- Les contextes que posait le « use » du jeu autour d'un siège ou d'un lit (V73 c) ; notre propre posture (fiche 12,
+-- V73 c 6) ne les pose plus : à 1, ils diraient qu'un « use » du jeu tient encore l'homme.
 local CONTEXTES_DE_LA_POSTURE = { "activity_disableSchedulerLooping", "bench_disableSnooze" }
 
 -- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, ses compteurs « assis » et « couchés »,
--- l'activité et les ordres donnés par la liaison, le pouls du comportement long, ses lancements par le switch, les
--- arrivées de la marche, et les contextes de la posture. Rend une ligne.
+-- les approches réussies d'un siège ou d'un lit, l'activité et les ordres donnés par la liaison, le pouls du
+-- comportement long, ses lancements par le switch, les arrivées de la marche, et les contextes du « use ». Rend une ligne.
 function liaison.voir_sur_la_place(qui, identifiant)
   local personnage = entite_nommee(qui)
   if not personnage then
@@ -2395,9 +2395,10 @@ function liaison.voir_sur_la_place(qui, identifiant)
   for _, nom in ipairs(CONTEXTES_DE_LA_POSTURE) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place ; assis %s, couchés %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; %s ; âme %s",
+  return string.format("à %s m de sa place ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?",
-    variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_vivant"),
+    variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
+    variable("scriptorium_essai_vivant"),
     variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),
     variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")

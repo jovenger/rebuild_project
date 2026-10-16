@@ -224,24 +224,29 @@
      (± 0,05), `changeNPCState="true"` (forme du jeu : 809 marches sur 854 qui le disent), délai de 30 s ; puis
      `<Turn target="$scriptorium_essai_siege" align="true" />` : l'homme prend le cap de l'objet, posé tourné vers le
      feu par le plan du camp (forme du jeu pour s'aligner sur un objet : `AI/quests/kutnohorskyTurnaj/kutnohorskyturnaj.xml`) ;
-  2. si aucun nouvel ordre n'est arrivé : `StanceElement` sur l'objet, « sitting », avec dedans `WaitAction` puis la
-     garde (la tenue) ;
+  2. si aucun nouvel ordre n'est arrivé : `StanceElement` sur l'objet, « sitting », avec dedans, en parallèle, la mise
+     en posture (`WaitAction`, puis l'attente sans fin) et la garde : le pouls bat aussi pendant la mise en posture, et
+     la garde finit la tenue (relecture du conseiller : sans elle, un pouls figé ferait relancer une copie) ;
+     l'approche est tentée même si la marche n'arrive pas à 0,1 m (le principe transmis dit que la posture marche le
+     petit reste) ; un compteur à part, `scriptorium_essai_approche`, dit les approches réussies ;
   3. la garde finie, la posture se défait ; 2 s d'attente laissent au jeu le temps de jouer la sortie avant l'activité
      suivante.
 - **Notre branche « se coucher »** (activité 11) : la même, posture « lying », arrêt à 0,5 m, sans demi-tour (à vérifier
   à l'image : si l'homme se couche en travers, on ajoutera l'alignement sur l'objet).
 - Les contextes du « use » (`activity_disableSchedulerLooping`, `bench_disableSnooze`) ne servent plus : retirés.
 - **La garde attend `'500ms'`**, la forme du jeu.
-- **Essai V73 c 6** (`playline3`, sans `-devmode`), critères écrits avant :
-  1. le pouls avance d'environ 2 par seconde ;
+- **Essai V73 c 6** (`playline3`, sans `-devmode`), critères écrits avant. Deux changements arrivent ensemble (l'attente
+  `'500ms'` et la posture) : le critère 1 se lit au premier relevé et conditionne les autres.
+  1. le pouls avance d'environ 2 par seconde (sinon, tout le reste est suspendu) ;
   2. chacun marche jusqu'à son siège et s'assoit **face au feu** ;
   3. levés à 30 s, 90 s et 3 min : chacun se lève (Jan compris, dont le but est tout près) et **reste debout 2 min sans
      être replacé** ;
   4. coucher puis lever : couché dans le bon sens, puis levé ;
   5. sauvegarder assis, recharger : l'homme n'est pas replacé sur son siège par le jeu ; le pouls revient ;
   6. l'écran noir, au décompte.
-- **Règle de décision** : s'il ne s'assoit pas (debout devant le siège, comme en V60 et V61), arrêt et rapport (une
-  seule tentative de cette voie avant de revenir à JoVenGer) ; s'il s'assoit mais dos au feu, alignement sur le feu ;
+- **Règle de décision** : s'il ne s'assoit pas (debout devant le siège, comme en V60 et V61) : avec « approches 0 »,
+  c'est la marche qui n'arrive pas, on essaie l'arrêt à 0,2 m (forme du jeu, 639 marches sur 809) ; avec « approches 1 »,
+  c'est la posture qui ne prend pas : arrêt et rapport (une seule tentative de cette voie avant de revenir à JoVenGer) ; s'il s'assoit mais dos au feu, alignement sur le feu ;
   s'il est encore replacé, arrêt et rapport.
 
 ## Ce qu'il faut décider (questions à JoVenGer)

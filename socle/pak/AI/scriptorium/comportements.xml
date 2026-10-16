@@ -23,7 +23,7 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                        <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                        <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                       </Sequence>
                     </While>
                   </Parallel>
@@ -31,35 +31,90 @@
                 <IfCondition condition="$scriptorium_activite == 10 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
                   <Sequence>
                     <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
-                    <EntityContext context="activity_disableSchedulerLooping" target="">
-                      <EntityContext context="bench_disableSnooze" target="">
-                        <Parallel successMode="Any" failureMode="Any">
-                          <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110805" />
-                          <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                    <Parallel successMode="Any" failureMode="Any">
+                      <Sequence>
+                        <SuppressFailure>
+                          <Sequence>
+                            <Parallel successMode="Any" failureMode="Any">
+                              <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="0.100000" stopDistanceVariation="0.050000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                              <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                            </Parallel>
+                            <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                          </Sequence>
+                        </SuppressFailure>
+                        <SuppressFailure>
+                          <Turn target="$scriptorium_essai_siege" align="true" />
+                        </SuppressFailure>
+                      </Sequence>
+                      <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                        <Sequence>
+                          <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                          <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                        </Sequence>
+                      </While>
+                    </Parallel>
+                    <IfCondition condition="$scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                      <Sequence>
+                        <StanceElement smartObject="$scriptorium_essai_siege" stance="sitting" allowAny="false" enabled="true">
+                          <Parallel successMode="Any" failureMode="Any">
                             <Sequence>
-                              <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                              <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              <WaitAction />
+                              <Wait duration="&apos;-1&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                             </Sequence>
-                          </While>
-                        </Parallel>
-                      </EntityContext>
-                    </EntityContext>
+                            <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                              <Sequence>
+                                <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                                <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Sequence>
+                            </While>
+                          </Parallel>
+                        </StanceElement>
+                        <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <Wait duration="&apos;2s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </IfCondition>
                   </Sequence>
                 </IfCondition>
                 <IfCondition condition="$scriptorium_activite == 11 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
                   <Sequence>
                     <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
-                    <EntityContext context="activity_disableSchedulerLooping" target="">
-                      <Parallel successMode="Any" failureMode="Any">
-                        <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110806" />
-                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
-                          <Sequence>
-                            <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                            <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-                          </Sequence>
-                        </While>
-                      </Parallel>
-                    </EntityContext>
+                    <Parallel successMode="Any" failureMode="Any">
+                      <SuppressFailure>
+                        <Sequence>
+                          <Parallel successMode="Any" failureMode="Any">
+                            <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="0.500000" stopDistanceVariation="0.050000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                            <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                          </Parallel>
+                          <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                        </Sequence>
+                      </SuppressFailure>
+                      <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                        <Sequence>
+                          <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                          <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                        </Sequence>
+                      </While>
+                    </Parallel>
+                    <IfCondition condition="$scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                      <Sequence>
+                        <StanceElement smartObject="$scriptorium_essai_siege" stance="lying" allowAny="false" enabled="true">
+                          <Parallel successMode="Any" failureMode="Any">
+                            <Sequence>
+                              <WaitAction />
+                              <Wait duration="&apos;-1&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                            </Sequence>
+                            <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                              <Sequence>
+                                <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                                <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Sequence>
+                            </While>
+                          </Parallel>
+                        </StanceElement>
+                        <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <Wait duration="&apos;2s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </IfCondition>
                   </Sequence>
                 </IfCondition>
               </Sequence>
@@ -67,7 +122,7 @@
             <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
               <Sequence>
                 <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
               </Sequence>
             </While>
           </Sequence>

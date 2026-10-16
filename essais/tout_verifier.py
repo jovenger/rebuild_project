@@ -958,6 +958,12 @@ def verifier_la_vie_du_camp():
         employees |= set(re.findall(r"\$(scriptorium_[a-z_]+)", texte))
     for variable in sorted(employees - variables):
         erreur("vie du camp : la variable du cerveau « %s » est employée par nos arbres mais pas déclarée" % variable)
+    # V73 c 5 : « 0.5s » ne prend pas (la garde tournait sans attendre) ; les arbres du jeu n'écrivent que des nombres
+    # entiers suivis de ms, s ou m, ou -1 (relevé du 16/10 dans Data/Scripts.pak).
+    for nom, texte in arbres.items():
+        for duree in re.findall(r'duration="&apos;([^&]*)&apos;"', texte):
+            if not re.fullmatch(r"-1|\d+(ms|s|m)", duree):
+                erreur("vie du camp : %s : durée « %s » hors des formes du jeu (entier suivi de ms, s ou m, ou -1)" % (nom, duree))
     return len(donnees), len(employees)
 
 
