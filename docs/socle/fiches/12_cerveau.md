@@ -306,6 +306,37 @@
   trouve en posture, et l'attaque (160, priorité ignorée) tue le comportement long du dehors, comme en V73 c 1 à 3. À
   mesurer en premier en V73 b, avec le signal « céder la place » prévu plus haut.
 
+### Les valeurs de l'arbre en données (choix de JoVenGer du 16/10 : « finir le modèle d'abord » ; sa règle du 14/10)
+- **Le catalogue** : une table `hommes.cerveau` (section « cerveau » de `reglages.lua`), en entiers : `garde_ms` (la
+  garde relit l'ordre et fait battre le pouls), `tour_ms` (un tour du switch), `sortie_ms` (le temps laissé au jeu pour
+  jouer la sortie d'une posture), `relance_tours` (pouls figé, comportement en marche), `file_tours` (lancé, jamais
+  commencé), `marche_delai_ms` (une marche abandonnée), et les distances d'arrêt en centimètres, avec leur écart :
+  marche (`marche_arret_cm`, `marche_ecart_cm`), siège, lit.
+- **L'écriture** : `liaison.regler_le_cerveau(identifiant, valeurs)` écrit chaque valeur dans la variable de cerveau
+  `scriptorium_cerveau_<nom>`. Le battement des hommes l'appelle pour chaque homme et pour le Directeur quand leur
+  personnage est nouveau ou quand les valeurs ont changé (signature des valeurs) : à la naissance, au premier battement
+  après le réveil différé (rien n'est écrit pendant l'attente, décision de JoVenGer), et après un réglage par fichier.
+  L'écriture d'un ordre et celle des réglages restent deux choses distinctes.
+- **La lecture, d'après des formes du jeu** : une durée par `concat($nombre,'ms')` dans une variable texte
+  (`AI/crime/estimatePlayersPosition.xml`) ; une distance par `$cm * 0.01` dans une variable `_float`
+  (`stopWithinDistance` et `stopDistanceVariation` par variable : `AI/crime/continuouslyfollowplayer.xml`,
+  `AI/move/moveUtils.xml`) ; un plancher par l'expression conditionnelle `(a &gt;= b ? a : b)`
+  (`AI/crime/isPlayerSuspicious.xml`).
+- **Les planchers de sécurité**, seules valeurs restées dans l'arbre : la garde au moins 100 ms, le tour du switch au
+  moins 500 ms, les seuils de relance au moins 1 tour. Ils ne servent qu'avant la première écriture (après un
+  chargement, pendant le réveil différé) et empêchent la garde de tourner sans attendre. Le plancher de la garde (100 ms)
+  diffère de la valeur du catalogue (500 ms) pour que le relevé dise laquelle est en place : pouls à 10 par seconde
+  avant l'écriture, à 2 après.
+- **Restent écrites dans l'arbre, faute de forme du jeu** : la priorité de l'interruption (100) et son urgence ; le
+  jeu ne passe jamais une priorité d'`AddInterrupt` par variable (relevé du 16/10). Au rapport à JoVenGer.
+- **Banc** : chaque valeur de `hommes.cerveau` a sa variable de cerveau déclarée et lue par un arbre, et l'inverse ;
+  chaque durée de nos arbres est une forme du jeu ou une variable ; le battement écrit les valeurs une fois par
+  personnage, les réécrit après un changement, et n'oublie pas le Directeur.
+- **Essai V73 c 9**, critères écrits avant : (1) le jeu ne se plaint pas de nos arbres au journal ; (2) pouls à 2 par
+  seconde ; (3) `regler.py cerveau.garde_ms=1000` en pleine partie : pouls à 1 par seconde ; `--retirer` : 2 ; (4)
+  `cerveau.marche_arret_cm=50` : levé, l'homme s'arrête à moins de 1 m de son but (2 m avant) ; (5) une levée sans être
+  replacé (non-régression) ; (6) recharger : pouls à 10 par seconde avant le réveil, à 2 après ; (7) l'écran noir.
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
