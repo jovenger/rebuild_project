@@ -2375,7 +2375,10 @@ local CONTEXTES_DE_LA_POSTURE = { "activity_disableSchedulerLooping", "bench_dis
 
 -- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, ses compteurs « assis » et « couchés »,
 -- les approches réussies d'un siège ou d'un lit, l'activité et les ordres donnés par la liaison, le pouls du
--- comportement long, ses lancements par le switch, les arrivées de la marche, et les contextes du « use ». Rend une ligne.
+-- comportement long, ses lancements par le switch, les arrivées de la marche, les contextes du « use », et si l'objet de
+-- la place se dit libre ou bloqué pour une posture (XGenAIModule.IsStanceAvailable et IsStanceBlocked, comme
+-- Scripts/Entities/WH/Triggers/ActionTrigger.lua) : un siège qui ne se libère pas après le départ de l'homme le
+-- réclamerait (V73 c 8). Rend une ligne.
 function liaison.voir_sur_la_place(qui, identifiant)
   local personnage = entite_nommee(qui)
   if not personnage then
@@ -2390,13 +2393,21 @@ function liaison.voir_sur_la_place(qui, identifiant)
   local objet = entite_nommee(identifiant)
   local ecart = objet and ecart_entre(personnage, objet)
   local ame_lue, ame = pcall(function() return personnage.Properties.guidSharedSoulId end)
+  local siege_libre, siege_bloque = "?", "?"
+  local wuid_lu, wuid = pcall(XGenAIModule.GetMyWUID, objet)
+  if objet and wuid_lu and wuid then
+    local libre_lu, libre = pcall(XGenAIModule.IsStanceAvailable, wuid)
+    local bloque_lu, bloque = pcall(XGenAIModule.IsStanceBlocked, wuid)
+    siege_libre = libre_lu and tostring(libre) or "?"
+    siege_bloque = bloque_lu and tostring(bloque) or "?"
+  end
   local lus = liaison.contextes_de(qui, CONTEXTES_DE_LA_POSTURE)
   local contextes = {}
   for _, nom in ipairs(CONTEXTES_DE_LA_POSTURE) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; %s ; âme %s",
-    ecart and string.format("%.2f", ecart) or "?",
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; %s ; âme %s",
+    ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
     variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),

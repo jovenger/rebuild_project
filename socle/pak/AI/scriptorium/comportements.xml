@@ -15,7 +15,7 @@
                   <Parallel successMode="Any" failureMode="Any">
                     <Sequence>
                       <Parallel successMode="Any" failureMode="Any">
-                        <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="2.000000" stopDistanceVariation="0.500000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="false" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                        <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="2.000000" stopDistanceVariation="0.500000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
                         <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                       </Parallel>
                       <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />

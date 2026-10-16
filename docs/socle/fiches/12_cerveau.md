@@ -269,7 +269,30 @@
   d'un `SuppressFailure` ; et **toutes** ses marches sont en `changeNPCState="true"` (vie du camp 7 sur 7, suivre Henry
   4 sur 4), aucune en « false ».
 - **Dernière tentative avant l'arrêt** (règle écrite avant V73 c 7) : la marche de l'activité 9 en
-  `changeNPCState="true"`. Si l'homme est encore replacé, ou si Jan reste assis : arrêt et rapport à JoVenGer.
+  `changeNPCState="true"`, seul changement (V73 c 8).
+- **Mesure ajoutée au relevé** (pas une variante) : l'objet de la place se dit-il libre pour une posture
+  (`XGenAIModule.IsStanceAvailable`, et `IsStanceBlocked`, comme `Scripts/Entities/WH/Triggers/ActionTrigger.lua`) ?
+  Un siège qui reste « pris » après le départ de l'homme serait celui qui le réclame.
+- **Règle de décision de V73 c 8, écrite avant** :
+  - Mikuláš (but loin) se lève, marche et reste debout 2 min sans être replacé : l'hypothèse tient ; Jan (but tout
+    près) encore assis devient un point à part (un geste de levée avant une marche courte, à concevoir), pas un échec du
+    modèle ;
+  - Mikuláš replacé assis : **arrêt et rapport à JoVenGer** (ci-dessous), aucune autre tentative.
+
+### Rapport à JoVenGer, prêt si V73 c 8 échoue (règle anti-boucle)
+- **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
+  notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
+  notre propre posture sans le « use » (assis face au feu et couchés : acquis ; la levée échoue) ; V73 c 7, la tenue
+  échoue au changement d'ordre (la levée échoue encore) ; V73 c 8, la marche change l'état du personnage.
+- **Observé, à chaque essai** : dès que la marche s'arrête (et en V73 c 7 en pleine marche), l'homme est remis assis
+  sur le siège qu'il occupait, d'un coup, que le « use » du jeu soit employé ou non ; un homme dont le but est à moins
+  de 2,5 m ne se lève pas du tout.
+- **Hypothèses restantes** : (1) quitter la posture par le Lua (`AI.SetStance(id, E_ACTORSTANCE_NORMAL)`, vu dans
+  `Scripts/Entities/AI/Shared/BasicAI.lua`) avant toute marche ; (2) la sortie de posture jouée trop tard (2 s laissées,
+  le principe transmis en laisse jusqu'à 3) ; (3) l'objet du siège qui garde son utilisateur (la mesure de V73 c 8 le
+  dira).
+- **Ce qu'il faut de JoVenGer** : un choix à cocher entre ces pistes, ou l'aide de la conversation Scriptorium sur la
+  façon exacte dont le mod d'Alex quitte un siège (principe seulement).
 
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
