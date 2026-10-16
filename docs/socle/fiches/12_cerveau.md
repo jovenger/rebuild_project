@@ -295,9 +295,10 @@
   tenue qui échoue au changement d'ordre ; les marches qui changent l'état du personnage ; la relance au chargement ; un
   ordre par tranche (midi, 13 h).
 - **Non testé en jeu** :
-  - se coucher avec la version finale (vu en V73 c 6, avant l'échec de la tenue et les marches en « true ») ; le lever
-    du lit n'a jamais été vu (le prochain réveil de 5 h le dira) ;
-  - la relance par le pouls : elle n'a jamais eu à servir (« lancements 1 » à chaque relevé), et les deux lectures
+  - le Directeur couché dans son lit replacé (même quart de tour que les hommes) : pas encore vu ; le coucher et le
+    lever du lit des hommes sont vus avec la version finale (V73 c 13 et c 14) ;
+  - la relance par le pouls : vue tirer (V73 c 10, avec des valeurs absentes), jamais vue remettre d'aplomb un
+    comportement tué par le jeu ; et les deux lectures
     « en combat » et « en conversation » n'ont jamais été exercées ; V73 b (une attaque) sera leur premier essai ;
   - Henry qui parle à un homme (critère 6 de V73 c 5, condition du choix « priorité 100, à mesurer ») : nos hommes n'ont
     pas encore de dialogue (étape 3) ;

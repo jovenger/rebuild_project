@@ -75,8 +75,9 @@
 - Vu en jeu (V73 c 13) : dans chaque tente, un homme couché dedans, l'autre le long du côté, à moitié dehors.
 - **Le quart de tour** (principe transmis par le pair, V73 c 14) : l'objet de posture d'un lit prend son orientation à
   la naissance avec un quart de tour de décalage sur le meuble ; à cap 0, l'homme se couchait en travers. Place du lit
-  à cap 90 (`camp.objets_du_jeu.lit`, réglable : `meubles.lit.places.couche.cap`) : vu en jeu, **les deux hommes de
-  chaque tente couchés dedans, le long du lit**.
+  à cap 90 (`camp.objets_du_jeu.lit`, réglable : `meubles.lit.places.couche.cap`) : vu en jeu, **les trois hommes
+  couchés dedans, le long du lit** (les deux de la tente 1, le troisième dans la tente 2). Le lit du Directeur, replacé
+  et tourné de même, n'a pas encore été vu occupé.
 
 ## Sorts rendus
 `fonder`, `agrandir`, `lever`, `reserver`, `liberer` rendent `true`, ou `false` et une raison : `deja_fonde`, `pas_fonde`, `niveau_maximal`, `place_inconnue`, `place_prise`, `place_libre`, `position_invalide`.
