@@ -150,5 +150,8 @@ Pas maintenant : on finit d'abord s'asseoir et dormir, puis la vie du camp. Chac
   proprement ; les gestes manquants par les postes du jeu et les outils en main (voie pièce par pièce de V71) ; des
   places du jeu au sol, atteignables, vérifiées à la pose.
 - Postes posés par JoVenGer partout dans le plan du camp (Aménagement) : le socle offrira au guichet « rendre ce poste
-  fonctionnel ». Question pour l'étape des métiers : le fumoir, le séchoir, le prie-Dieu et la table de tri des herbes,
-  réservés à Henry dans Scriptorium, servent-ils aussi aux gens du camp quand Henry ne s'en sert pas ?
+  fonctionnel ».
+- **Les postes d'Henry partagés** (réponses de JoVenGer du 16/10/2026, questions à cocher) : le fumoir, le séchoir, le
+  prie-Dieu et la table de tri des herbes, réservés à Henry dans Scriptorium, servent aussi aux gens du camp quand Henry
+  ne s'en sert pas ; **tout le monde** peut s'en servir, sur son temps libre ; si Henry veut s'en servir alors qu'un homme
+  l'occupe, **l'homme s'arrête tout de suite et lui cède la place**, puis reprend plus tard.
