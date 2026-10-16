@@ -12,6 +12,7 @@
   changement de tranche (4).
 - **V73 b revu le 16/10** pour le comportement long (section « V73 b » ci-dessous) : relu par le pair, **validé par
   JoVenGer le jour même** (trois questions à cocher, réponses a, a, a).
+- **V73 d écrit le 16/10** (section « V73 d » ci-dessous) : en relecture par le pair, puis questions à JoVenGer.
 
 ## Le constat (relu dans le code du socle, 16/10)
 - La vie du camp **téléporte** encore : `hommes.battre` calcule l'activité (`hommes.activite_de`) et `liaison.ordonner`
@@ -447,12 +448,142 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Les valeurs retirées : plus aucun lancement en 173 s** (près de trois fenêtres), pouls à 2 par seconde. Le plafond
   et sa correction sont acquis.
 
+## V73 d — monter la garde (16/10, en relecture par le pair)
+
+### Le périmètre
+- **V73 d 1, ce pas-ci : le geste du factionnaire.** L'homme va à un poste précis, s'y tient **face au dehors**, et n'y
+  reste pas planté sans bouger. **Qui, quand et où** restent à la règle : aujourd'hui le tour de garde du socle
+  (`hommes.gardes`), demain Scriptorium par `hommes.tenir(id, "garde", { position, cap, fin })`. Les quatre postes à 12 m
+  sont des valeurs par défaut du socle ; ceux de Scriptorium (2 m en dedans de chaque porte, face au dehors ; 3 m devant
+  la cabane d'Henry) viendront par la tenue.
+- **Plus tard, chacun à son pas** :
+  - la ronde, de point en point avec de courtes pauses (V73 d 2, question 3) ;
+  - l'arme tirée au calme, si JoVenGer la veut (V73 d 1 bis, question 1) ;
+  - l'alerte et l'anneau, arme tirée face à l'ennemi ;
+  - le veilleur de tour, posé sur le plancher (un des quatre cas de pose accordés) ;
+  - les postes du jeu (`guard/so_guardspot` et les autres de la note des métiers), posés sur un meuble, avec les postes.
+
+### Ce que Scriptorium attend (relu le 16/10, lecture seule, par un agent de recherche : carte des règles, note des métiers et son relevé, LISEZMOI)
+- **Le factionnaire** (`garde_du_directeur`, 28/09) marche jusqu'à son point et s'y tient **face au dehors** ; devant la
+  cabane, la porte dans le dos. Il ne poursuit pas un ennemi à plus de 20 m de son poste (`en_garde_du_camp`, 4/10).
+- **La ronde** : un cercle de 24 points, ou une ronde tracée par JoVenGer ; de point en point, de courtes pauses ; six
+  hommes espacés ; « un garde n'est jamais assis » (`sentinelles_du_camp`, 3/10).
+- **Le veilleur de tour** : sur le plancher, tourné vers l'extérieur, **arme rangée la nuit, tirée à l'alerte**
+  (`tours_de_guet`, 10/10).
+- **L'arme d'un garde au calme n'est écrite nulle part** : « arme prête » n'apparaît dans aucun document, aucun geste
+  « en garde » arme tirée n'y est prouvé. Pour se tenir aux aguets, `en_garde_du_camp` propose le geste
+  `waiting_nervous_lookingAround_noObject`. **Aucun document ne parle de torche la nuit.**
+- **À éviter** : l'homme planté sans bouger (note des métiers) ; la glissade ; le garde recouché par une autre règle
+  (`chef_du_camp`, 12/10 ; réglé par l'arbitre : la garde, rang 4, passe avant le sommeil, rang 6).
+- **La relève** : quarts de 3 h (22 h, 1 h, 4 h, 7 h), jamais de trou dans la ronde, « qu'un garde ne reste pas 24 heures
+  debout » (`garde_du_directeur`) ; les compagnons sans garde de nuit (exemption, V73 b 3). La règle décide ; le socle
+  tient et lâche.
+- **Ce que le socle doit savoir** (note des métiers, 16/10) : commencer le geste à ce poste, le tenir jusqu'à l'ordre de
+  fin ou une durée, l'interrompre ; aucun poste laissé tourner seul.
+
+### Le constat (code relu le 16/10)
+- Le tour de garde existe (`hommes.gardes`), mais en jeu la garde n'est qu'une marche (ordre 9) vers le poste : l'homme
+  s'arrête à 2 ± 0,5 m du point (tolérance de la marche), tourné comme il est arrivé, et reste planté là.
+- **Le cap du poste est jeté** : `camp.point` rend la position et le cap, `activite_de` ne garde que la position
+  (`resultat.position = camp().point(...)`) ; `liaison.ordonner` et `faux_jeu.ordonner` n'ont aucun paramètre de cap ;
+  le champ `cap` des tenues n'est lu par personne.
+- Les postes par défaut, (0 ; 12), (12 ; 0), (0 ; −12), (−12 ; 0), chacun tourné vers l'extérieur, ne tombent dans
+  aucun meuble du plan (le plus proche : le second feu du niveau 3, à 3 m du poste sud) et sont à 8 m en dedans de la
+  palissade (rayon 20). Mais rien ne le vérifie : un plan ou un réglage changé pourrait y mettre un meuble.
+- Noté, sans changement : la nuit, les deux postes pris sont les deux premiers de la table (nord et est, deux côtés
+  voisins) ; la table des postes n'est pas au catalogue des réglages. Ce sont des défauts du socle, que les postes de
+  Scriptorium remplaceront.
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule, rien d'extrait)
+- **Le poste de garde du jeu** (`AI/profession/guard/so_guardspot.xml`) : un déplacement exact jusqu'à l'objet du
+  poste, aligné sur lui, puis une attente dont l'objet donne la durée ; une place assise ou d'appui liée au poste, il
+  s'y met. Les postes de Kuttenberg (`so_kzik_guardSpot.xml`) jouent en plus la posture de garde du jeu (« unstance »
+  `guard`) sur l'objet. Les deux ont besoin d'un objet du jeu : à l'étape des postes.
+- **Se tourner vers un point** : `Turn` vers une position (vec3), 8 emplois (`AI/crime/sharePlayersLastSeenPosition.xml`,
+  `AI/npc/basic/switch/interrupt_lookAround.xml`) ; nous l'employons déjà vers un siège (un objet). Repli : un
+  déplacement exact vers un point avec une direction en vecteur (`ExactMove`, `directionType="FromVariable"`,
+  `AI/situation/helpers/helpers.xml`), jamais employé chez nous.
+- **Regarder autour, sans objet** : `UnstanceAction` `LookingAround` le jour, une simple attente la nuit
+  (`AI/events/randomEventsBehaviors.xml`, sous `IsNightTimeOfDay`) ; aussi `AlertedLookingAround` et `standingNervous`
+  sans objet. `waiting_nervous_lookingAround` n'est employé qu'avec un objet.
+- **L'arme tirée au repos** (`AI/quests/nebakovObrana/nebakovObrana.xml`, arbre `guardIdleNotification`) : si l'arme
+  principale n'est pas en main (`IsWeaponDrawn`), `DrawAction` (jeu d'armes « Primary ») ; puis tenir sous le décorateur
+  qui garde l'état et les objets en main (`AnyDecorator`, préréglage `crime_keepStateAndItems`). Le choix de l'arme d'un
+  soldat (`AI/battles/battlegroupcontroller.xml`, `move_SwitchWeapons`) : le tir d'abord (« Secondary »), sinon la mêlée
+  (« Primary »). La torche la nuit : la fonction du jeu `drawWeapon_withTorchAtNight`.
+- **Pas connu** : la durée d'un `UnstanceAction` (un geste qui finit seul, ou une pose tenue jusqu'au geste suivant) ;
+  le rengainage d'un habitant (aucun nœud trouvé ; `holsterWeapon` est au joueur seul).
+- Recherche d'un exemple existant (règle du 15/10) : deux recherches sur le web, rien de propre à KCD2 ; le seul
+  principe proche vient d'un autre moteur (un marqueur orienté donne au garde la direction à regarder), c'est notre point
+  de regard. Le reste vient des arbres du jeu ci-dessus.
+
+### Comment ce serait fait (V73 d 1, un seul pas, vu en jeu)
+1. **Le regard** (`hommes`) : le garde reçoit, en plus de son poste, un point de regard à `regard_m` (10 m) devant le
+   poste, dans son cap. Une tenue « garde » de Scriptorium donne son `cap` (cap de boussole en degrés, comme tout le
+   socle : 0 au nord, 90 à l'est) ; sans cap, le regard part du centre du camp vers le poste (vers le dehors) ; ni camp
+   ni cap : une marche simple (ordre 9), notée au journal.
+2. **L'ordre 12, « tenir un poste »** (`liaison.ordonner`, un paramètre de plus, et `faux_jeu`) : le poste dans
+   `scriptorium_essai_point`, le regard dans une nouvelle variable de cerveau `scriptorium_regard` (vec3), puis
+   l'activité 12 et le compteur ; la ligne au journal dit le poste et le regard.
+3. **La branche 12 du comportement long** (`comportements.xml`) : debout d'abord (comme la marche) ; marcher jusqu'au
+   poste avec un arrêt court, comme le siège (`poste_arret_cm` 50, ± `poste_ecart_cm` 10, au lieu de 2 m) ; se tourner
+   vers le regard (`Turn`, position) ; compter « en poste » (`scriptorium_en_poste`, entier, pour le poste d'essai) ;
+   puis tenir avec le pouls jusqu'au changement d'ordre, et, le jour, un geste « regarder autour » (`UnstanceAction`
+   `LookingAround`, sans objet) toutes les `poste_geste_ms` (60 000 ; zéro le coupe), suivi d'un nouveau `Turn` vers le
+   regard ; la nuit, rien, comme le jeu. Deux variables de cerveau de plus (32).
+4. **L'arme** : selon la question 1 ; par défaut rangée au calme, comme le veilleur de Scriptorium (rien à faire : le
+   jeu la fait tirer au combat, vu en V73 b 1).
+5. **Le garde-fou des postes** (banc) : chaque poste par défaut à plus de 2 m de tout meuble du plan, tous niveaux, et en
+   dedans de la palissade. Aucun choix de lieu, une vérification.
+- **Valeurs en données** : `hommes.reglages.regard_m` (10) ; `hommes.cerveau.poste_arret_cm` (50), `poste_ecart_cm`
+  (10), `poste_geste_ms` (60 000), défauts recopiés dans l'arbre et comparés au banc.
+- **Rien au registre** : la garde du socle est calculée, le cap des tenues y est déjà.
+- **Le secours ne change pas** : il vise le poste, arrivé à moins de 3 m.
+- **La relève** : un nouvel ordre fait finir la tenue du dedans, et l'homme part, comme à chaque changement de tranche.
+
+### Essais au banc
+- Le tour de garde donne « garde », le poste et un regard à 10 m devant lui, vers le dehors (les quatre postes, deux caps
+  d'ancre) ; une tenue « garde » avec un cap : le regard dans ce cap ; sans cap : vers le dehors ; sans camp : marche.
+- La liaison pose le poste, le regard et l'activité 12.
+- Contrôles statiques (`tout_verifier.py`) : la branche 12 existe et lit le poste et le regard ; les nouvelles valeurs ont
+  leur défaut dans l'arbre ; les deux nouvelles variables sont déclarées et employées.
+- Le garde-fou des postes.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé, trois hommes assis au feu ; `essai_tenir_garde` (le premier homme tenu par la garde au
+poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_la_place` dit en plus le cap de l'homme
+(ses angles dans le monde, comme `cap_du_joueur`) et son écart au cap du regard.
+1. Il se lève, marche au poste, s'arrête à moins de 1 m, se tourne vers le dehors (écart de cap sous 25°), « en poste »
+   à 1 → bon.
+2. Il s'arrête à 2 m ou plus → l'arrêt court ne tient pas : lire la ligne de l'ordre et l'écart ; un seul changement.
+3. Il ne se tourne pas (écart de cap au-dessus de 25°) → le repli `ExactMove` vers une direction ; un seul changement.
+4. Pendant 3 min : des gestes « regarder autour », et après chacun il fait de nouveau face au dehors → bon ; une pose qui
+   ne finit pas, ou un homme qui reste tourné ailleurs → lire, un seul changement.
+5. `essai_lacher_garde` : il rejoint sa tranche (rassis, si c'est l'heure du repas), un seul ordre → bon.
+6. Les deux autres suivent leur journée, un lancement chacun.
+- Décompte de l'écran noir (fiche 14).
+
+### Questions à JoVenGer (après relecture par le pair)
+1. **L'arme du garde au calme** (rien chez Scriptorium ; le veilleur de tour l'a rangée la nuit, tirée à l'alerte) :
+   (a) rangée au calme, tirée seulement au combat ou à l'alerte, comme le veilleur de Scriptorium (Recommandé) ;
+   (b) rangée par défaut, tirée quand la tenue le demande (`arme = "tiree"`), dans un pas à part (V73 d 1 bis), mesuré,
+   le rengainage étant encore à trouver ; (c) tirée toute la garde.
+2. **Le garde au calme** : (a) le jour, il regarde autour de lui de temps en temps (geste du jeu sans objet, toutes les
+   minutes, réglable), la nuit il se tient immobile, comme le jeu (Recommandé : la note des métiers ne veut pas d'homme
+   planté) ; (b) immobile, face au dehors ; (c) le geste aux aguets proposé par `en_garde_du_camp` (jamais employé sans
+   objet dans le jeu).
+3. **La ronde** (de point en point, courtes pauses) : (a) un pas à part, V73 d 2, juste après le factionnaire : le socle
+   mène l'homme d'un point au suivant, la liste des points et la pause venant de la tenue (Recommandé : Scriptorium n'aura
+   qu'à poser la tenue) ; (b) laissée à Scriptorium, une tenue par point ; (c) plus tard, après le rassemblement.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
 - Une table nouvelle `hommes.priorites` (nom de règle → rang), dans le catalogue (V73 b 3).
 - V73 b : `hommes.cerveau.relances_max` (3) et `relances_fenetre_ms` (60 000) ; `hommes.reglages.tenue_max_h` (24) et
   `journee_du_socle` (vrai).
+- V73 d 1 : `hommes.reglages.regard_m` (10) ; `hommes.cerveau.poste_arret_cm` (50), `poste_ecart_cm` (10),
+  `poste_geste_ms` (60 000).
 
 ## Essais au banc (`essais/lua/essai_hommes.lua`)
 - Une activité de siège donne l'ordre 10 sur la bonne place ; de lit, l'ordre 11 ; de point, l'ordre 9 avec le point.
@@ -480,3 +611,8 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   `AI/scriptorium/essai_ordres.xml` (ordres 8 à 11), `comportements.xml`.
 - Scriptorium (lecture seule) : `NOTE_POUR_LE_SOCLE.md` (étape 1), `NOTE_METIERS.md` (parties 1 à 3),
   `CARTE_DES_REGLES.md` et les 16 `LISEZMOI.md` ci-dessus.
+- V73 d, jeu (lecture seule, `Scripts.pak`) : `AI/profession/guard/so_guardspot.xml`, `so_kzik_guardSpot.xml`,
+  `AI/npc/basic/switch/interrupt_lookAround.xml`, `AI/situation/helpers/helpers.xml`, `AI/events/randomEventsBehaviors.xml`,
+  `AI/quests/nebakovObrana/nebakovObrana.xml`, `AI/battles/battlegroupcontroller.xml` ; Scriptorium (lecture seule) :
+  `NOTE_METIERS_RELEVE.md`, les LISEZMOI de `garde_du_directeur`, `sentinelles_du_camp`, `en_garde_du_camp`,
+  `tours_de_guet`, `nuit_du_camp`, `journee_du_camp`, `chef_du_camp`, `paye_des_postes`.
