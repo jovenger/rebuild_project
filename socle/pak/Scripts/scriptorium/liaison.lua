@@ -2781,6 +2781,54 @@ function liaison.frapper_un_vrai_habitant(devant, points)
     tostring(liaison.faction_de(nom)), pose, coup, tostring(avant), tostring(liaison.sante_de(nom)))
 end
 
+-- V72 c (fiche 14) : l'écran noir. Après un rechargement, la cible de l'archer retrouvée par son nom d'entité.
+function liaison.retrouver_la_cible()
+  if not liaison.cible_de_l_archer and entite_nommee("scriptorium_essai_cible") then
+    liaison.cible_de_l_archer = "scriptorium_essai_cible"
+  end
+  return liaison.cible_de_l_archer
+end
+
+-- Ce qui entoure Henry dans « rayon » m (System.GetEntitiesInSphere) : nom, classe, position x, y, z et distance, du
+-- plus proche au plus loin, au plus « nombre » lignes. Pour voir une entité posée dans une autre.
+function liaison.voisins_d_henry(rayon, nombre)
+  local lignes = {}
+  local lu, erreur = pcall(function()
+    local henry = player:GetWorldPos()
+    local liste = {}
+    for _, entite in pairs(System.GetEntitiesInSphere(henry, rayon) or {}) do
+      local ou = entite:GetWorldPos()
+      table.insert(liste, { nom = entite:GetName(), classe = entite.class, x = ou.x, y = ou.y, z = ou.z,
+                            d = math.sqrt((ou.x - henry.x) ^ 2 + (ou.y - henry.y) ^ 2) })
+    end
+    table.sort(liste, function(a, b) return a.d < b.d end)
+    table.insert(lignes, string.format("Henry (%.1f, %.1f, %.1f) ; %d entité(s) à moins de %d m", henry.x, henry.y, henry.z,
+      #liste, rayon))
+    for i = 1, math.min(#liste, nombre) do
+      local v = liste[i]
+      table.insert(lignes, string.format("%s [%s] (%.1f, %.1f, %.1f) à %.1f m", tostring(v.nom), tostring(v.classe), v.x, v.y,
+        v.z, v.d))
+    end
+  end)
+  if not lu then
+    table.insert(lignes, "voisins illisibles : " .. tostring(erreur))
+  end
+  return lignes
+end
+
+-- Retire la cible de l'archer, entité d'essai (System.RemoveEntity).
+function liaison.retirer_la_cible()
+  local entite = entite_nommee(liaison.cible_de_l_archer)
+  if not entite then
+    return "cible introuvable"
+  end
+  local ok, erreur = pcall(function() System.RemoveEntity(entite.id) end)
+  if ok then
+    liaison.cible_de_l_archer = nil
+  end
+  return ok and "cible retirée" or ("retrait refusé : " .. tostring(erreur))
+end
+
 -- La cible de l'archer (V72 b) : une âme du brigand d'essai (notre cerveau, faction ennemie publique de Kuttenberg ; il
 -- ne réagit pas, V48), née directement à « devant » m devant Henry (repère de poser_devant_henry), sur une place
 -- regardée libre à l'image avant l'ordre (V72 a : personne dans un meuble du camp), et qui y reste.

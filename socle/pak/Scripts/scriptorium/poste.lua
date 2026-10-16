@@ -809,6 +809,39 @@ function poste.essai_compagnie_frapper()
   return true
 end
 
+-- V72 c (fiche 14) : l'écran noir. Ce qui entoure Henry dans 15 m, puis le relevé de la Compagnie (cible comprise).
+function poste.essai_ecran_noir_voir()
+  jeu().retrouver_la_cible()
+  for _, ligne in ipairs(jeu().voisins_d_henry(15, 40)) do
+    jeu().journal("Poste : autour d'Henry, " .. ligne)
+  end
+  return poste.essai_compagnie_voir()
+end
+
+-- Un seul changement : la cible retirée.
+function poste.essai_ecran_noir_retirer_la_cible()
+  jeu().retrouver_la_cible()
+  jeu().journal("Poste : écran noir, " .. jeu().retirer_la_cible())
+  return true
+end
+
+-- Un seul changement : le dernier archer posé à 4 m derrière Henry.
+function poste.essai_ecran_noir_archer_derriere()
+  local hommes = Scriptorium.hommes
+  local archer = nil
+  for _, id in ipairs(hommes.liste()) do
+    if hommes.fiche(id).role == "archer" then
+      archer = id
+    end
+  end
+  if not archer then
+    return false
+  end
+  local f = hommes.fiche(archer)
+  jeu().journal("Poste : écran noir, " .. f.nom .. " " .. jeu().poser_pres_d_henry(f.personnage, -4, 0))
+  return true
+end
+
 -- V72 b : qui serait frappé (le vrai habitant le plus proche), sans le toucher.
 function poste.essai_compagnie_qui()
   jeu().journal("Poste : victime possible, " .. jeu().qui_serait_frappe())
@@ -1269,6 +1302,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_compagnie_archer_ici", fonction = function() return poste.essai_compagnie_archer_ici() end, aide = "Pose le dernier archer à 3 m devant Henry (V72)" },
   { nom = "scriptorium_essai_compagnie_temoins", fonction = function() return poste.essai_compagnie_temoins() end, aide = "Deux hommes en témoins, de part et d'autre de la place de la victime (V72)" },
   { nom = "scriptorium_essai_compagnie_frapper", fonction = function() return poste.essai_compagnie_frapper() end, aide = "Un vrai habitant posé devant Henry et frappé par les règles du jeu, 5 points (V72 b)" },
+  { nom = "scriptorium_essai_ecran_noir_voir", fonction = function() return poste.essai_ecran_noir_voir() end, aide = "Ce qui entoure Henry dans 15 m, et le relevé de la Compagnie (V72 c)" },
+  { nom = "scriptorium_essai_ecran_noir_retirer_la_cible", fonction = function() return poste.essai_ecran_noir_retirer_la_cible() end, aide = "Retire la cible de l'archer (V72 c)" },
+  { nom = "scriptorium_essai_ecran_noir_archer_derriere", fonction = function() return poste.essai_ecran_noir_archer_derriere() end, aide = "Pose le dernier archer à 4 m derrière Henry (V72 c)" },
   { nom = "scriptorium_essai_compagnie_qui", fonction = function() return poste.essai_compagnie_qui() end, aide = "Nomme le vrai habitant qui serait frappé, sans le toucher (V72 b)" },
   { nom = "scriptorium_essai_compagnie_cible", fonction = function() return poste.essai_compagnie_cible() end, aide = "La cible de l'archer, née à 12 m devant Henry (V72 b)" },
   { nom = "scriptorium_essai_compagnie_archer_tire", fonction = function() return poste.essai_compagnie_archer_tire() end, aide = "Le dernier archer attaque la cible (V72 b)" },
