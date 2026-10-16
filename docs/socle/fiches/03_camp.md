@@ -40,8 +40,9 @@
 - **Au banc** (`essai_camp.lua`) : fondé, Henry éloigné de 50 m et tourné, la partie relue : chaque objet du niveau 1
   est reposé exactement à sa place d'avant, dans les deux façons de reposer (ce qui manque, ou tout), et le camp n'est
   jamais refondé.
-- **En jeu, à faire** (à la prochaine séance qui s'y prête) : fonder, éloigner Henry de 50 m, sauvegarder, recharger :
-  le camp à sa place.
+- **Vu en jeu** (16/10, sans changement de code) : camp fondé, Henry éloigné au clavier à 44 m et tourné, sauvegardé
+  puis repris : « Camp : redressé, 14 objet(s) reposé(s) », le feu, un siège, une tente et deux lits exactement à leur
+  place d'avant, au dixième de mètre ; le camp vu de loin, là où il avait été fondé. **Acquis.**
 - À la bascule, le point de fondation viendra de Scriptorium (la fondation, le terrain, l'éditeur) ; « devant Henry »
   ne vaut que pour la commande d'essai.
 

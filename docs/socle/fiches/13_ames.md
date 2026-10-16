@@ -540,7 +540,7 @@
   3. un homme dévêtu après « a remis ses affaires » → la remise ne rhabille pas en jeu : lire le journal et la tenue de
      l'homme, un seul changement.
 
-### Mesuré en V71 e (16/10)
+### Mesuré en V71 g (16/10)
 - **Issue 1** : Jan attaque le brigand ; le combat fini (moins de 17 s), le switch compte la fin de combat (0 → 1), le
   battement marque « à rhabiller (fin de combat) » puis « a remis ses affaires (9 pièce(s)) » dans le même battement ;
   revenu s'asseoir en 41 s, il est habillé (casque, gambison, gants, bouclier).
