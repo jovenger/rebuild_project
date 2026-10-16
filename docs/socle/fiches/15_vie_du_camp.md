@@ -12,10 +12,16 @@
   pose l'homme à sa place (`SetWorldPos`) s'il en est à plus de 2 m. Aucun geste.
 - Les gestes prouvés en jeu ne servent qu'aux commandes d'essai : marcher à un point (ordre 9, V55), s'asseoir et se
   coucher sur une place du camp (ordres 10 et 11, `liaison.ordonner_sur_la_place`, V60 à V70), attaquer (ordre 8, V54).
-- Au réveil, chaque homme reçoit de nouveau son ordre, donc **est téléporté** vers sa place (banc, lit) : un homme posé
-  dans un meuble, c'est l'hypothèse de l'écran noir (fiche 14).
+- Au réveil, chaque homme reçoit de nouveau son ordre, donc **est téléporté** vers sa place (banc, lit) s'il en est à
+  plus de 2 m (V72 d et e : positions identiques après rechargement, quand il y était déjà). Un homme posé dans un
+  meuble, c'est l'hypothèse de l'écran noir (fiche 14).
+- **Une preuve à l'image** : en V72 c, trois hommes à l'exercice étaient au même point au dixième de mètre près. C'est la
+  signature d'une téléportation : des hommes qui marchent se poussent.
 - L'ordre de priorité existe sans être dit : une affectation (bataille, patrouille, punition) passe devant la blessure
   (repos), puis la garde, puis la journée. Aucune marque « occupé », ni interruption puis reprise.
+- L'affectation a trois appelants : `bataille` (rang de bataille), `discipline` (corvée de punition, 24 h) et
+  `patrouilles` (la patrouille). Une nouvelle affectation **écrase** la précédente sans regarder sa force : une punition
+  pourrait remplacer une bataille.
 
 ## Ce que Scriptorium attend de la mécanique (15 fiches `LISEZMOI.md` relues, 16/10)
 Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_camp`, `repas_du_camp`, `repas_a_table`,
@@ -42,16 +48,22 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
    camp (siège, lit) → s'asseoir ou se coucher (ordres 10, 11) ; un point (exercice, corvée, feu, poste de garde) →
    marcher jusqu'au point (ordre 9). **La téléportation ne reste qu'en secours** (question 1) : l'homme ne s'est pas
    rapproché d'au moins 1 m en 30 s, ou il est trop loin (au-delà de 150 m) ; et alors seulement sur une place libre
-   (fiche 04 : jamais deux personnages à moins d'un mètre). Valeurs réglables (`hommes.reglages`).
+   (fiche 04 : jamais deux personnages à moins d'un mètre). Valeurs réglables (`hommes.reglages`). La dernière
+   position de chaque homme, pour mesurer son progrès, est gardée **en mémoire**, pas au registre (limite de 65 535
+   octets ; une position perdue au rechargement ne coûte rien).
+   L'essai V73 a contient forcément le pas 3 : à chaque changement de tranche (repas → exercice, veillée → sommeil), un
+   homme assis par l'ordre 10 reçoit l'ordre 9. L'essai s'en sert : embaucher juste avant un changement de tranche, ou
+   le forcer par une affectation, et regarder si l'homme se lève puis part.
 2. **V73 b — l'arbitre des ordres.** Chaque homme est « tenu » par une règle, avec sa priorité (question 2). Services
    pour le guichet : imposer une activité (règle, priorité, lieu ou point, fin), la libérer, lire qui tient l'homme.
    Une règle plus faible ne reprend pas un homme tenu par une plus forte ; quand la plus forte le libère, l'homme
-   reprend ce que dit la règle d'en dessous, au battement suivant. L'actuelle affectation devient un cas de l'arbitre.
+   reprend ce que dit la règle d'en dessous, au battement suivant. L'actuelle affectation devient une règle de
+   l'arbitre ; ses trois appelants (bataille, discipline, patrouilles) gardent leurs fonctions, avec leur priorité.
    La journée du socle reste la règle la plus faible, par défaut, jusqu'à ce que Scriptorium la coupe (question 3).
-   **Chaque geste est borné** (note des métiers) : une fin donnée ; sans fin, jusqu'au changement de tranche de la
-   journée.
-3. **V73 c — rompre une pose** : un homme assis ou couché qui reçoit un ordre plus fort se lève d'abord, puis part. À
-   mesurer en jeu : l'ordre 9 donné à un homme assis le fait-il se lever, ou faut-il un ordre « debout » à nous ?
+   **Chaque geste est borné** (note des métiers) : une fin donnée ; sans fin, la borne par défaut (question 4).
+3. **V73 c — rompre une pose** : un homme assis ou couché qui reçoit un ordre plus fort se lève d'abord, puis part.
+   C'est la mesure attendue dès V73 a : l'ordre 9 donné à un homme assis le fait-il se lever, ou faut-il un ordre
+   « debout » à nous ? Si un ordre à nous est nécessaire, il devient ce pas-là.
 4. **V73 d — monter la garde** au poste (marcher, puis rester tourné vers l'extérieur ; arme prête ; poste du jeu
    `guard/so_guardspot` plus tard, note des métiers).
 5. **V73 e — le rassemblement** : interrompre toute tâche, courir au point, secours au bout de 30 s.
@@ -68,9 +80,17 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - L'arbitre : une règle plus faible ne reprend pas un homme tenu ; à la libération, la règle d'en dessous reprend.
 
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
-1. Quand le socle peut-il encore poser un homme d'un coup (téléportation) ?
-2. L'ordre des priorités de l'arbitre.
-3. Ce que fait un homme qu'aucune règle de Scriptorium ne tient.
+1. **Quand le socle peut-il encore poser un homme d'un coup (téléportation) ?** (a) seulement en secours : l'homme ne
+   s'est pas rapproché d'au moins 1 m en 30 s, ou il est à plus de 150 m (Recommandé : `rassemblement_sans_retard`) ;
+   (b) jamais ; (c) aussi au réveil, pour remettre chacun à sa place.
+2. **L'ordre des priorités de l'arbitre** : (a) bataille, puis rassemblement, puis soins et bains, puis garde et ronde,
+   puis travail, puis repas et sommeil, puis loisir (Recommandé : l'ordre de la note des métiers, avec le rassemblement
+   de `rassemblement_sans_retard` et la garde) ; (b) le même, mais la garde avant les soins et bains ; (c) un autre
+   ordre, à dire.
+3. **Un homme qu'aucune règle de Scriptorium ne tient** : (a) il suit la journée du socle (repas, exercice, corvée,
+   veillée, sommeil), la règle la plus faible (Recommandé) ; (b) il reste où il est, debout ; (c) il va s'asseoir au feu.
+4. **La borne d'un geste sans fin donnée** : (a) jusqu'au changement de tranche de la journée (Recommandé) ; (b) une durée
+   réglable, par exemple une heure de jeu ; (c) refusé : Scriptorium doit toujours donner une fin.
 
 ## Sources
 - Socle : `hommes.lua` (`battre`, `activite_de`, `affecter`), `liaison.lua` (`ordonner`, `ordonner_sur_la_place`),
