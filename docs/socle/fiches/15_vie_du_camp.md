@@ -430,6 +430,16 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
   5. un ordre qui n'arrive qu'au battement → le chemin « sur-le-champ » ne marche pas en jeu : lire `tenir` et
      `ordonner_un_homme`, un seul changement.
 
+### Mesuré en V73 b 3 (16/10) : l'arbitre, acquis
+- **Issues 1 à 4 de la grille** : la tenue « rassemblement » donne l'ordre dans `tenir`, juste avant la ligne du poste
+  au journal ; Jan se lève (siège libre) et marche au point de la corvée ; la tenue « loisir », plus faible, ne donne
+  aucun ordre ; le rassemblement lâché, l'ordre « dés » part aussitôt et Jan va au coin des dés, tenu par le loisir pour
+  une heure ; les deux autres restent assis, un lancement chacun.
+- À savoir pour les essais : un ordre du poste donné moins de 30 s après la naissance des hommes est remplacé par le
+  premier ordre de leur journée, qui arrive au battement suivant (vu en début de séance ; redonné, il tient).
+- **V73 b est fini** : l'attaque sur un homme assis (b 1), le plafond de relances (b 2), l'arbitre (b 3). Suite décidée
+  par JoVenGer : la tenue (fiche 13), puis l'ancre du camp (fiche 03), puis V73 d, la garde.
+
 ### Mesuré en V73 b 2 bis (16/10) : le plafond, acquis
 - Non-régression : un lancement par homme et pour le Directeur, arrêts à 0.
 - La même tempête : au plus 3 lancements par fenêtre et par personnage (la fenêtre de chacun part de sa naissance, d'où

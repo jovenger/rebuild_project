@@ -275,15 +275,20 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   principe du pair).
 - **V73 b 2, vu en jeu** (3183209) : le plafond tient (3 lancements par fenêtre, puis une fenêtre d'arrêt, une ligne au
   journal par arrêt) ; un lancement de trop après la tempête, corrigé (un pouls qui avance remet le switch en marche),
-  vu en jeu en V73 b 2 bis (plus aucun lancement en 173 s une fois les valeurs retirées) : **acquis**. **Suite** :
-  V73 b 3, l'arbitre par tenues.
+  vu en jeu en V73 b 2 bis (plus aucun lancement en 173 s une fois les valeurs retirées) : **acquis**.
+- **V73 b 3, vu en jeu** (d506a0e) : l'arbitre par tenues (une par règle, rangs au catalogue `hommes.priorites`, ordre
+  redonné sur-le-champ, bornes, exemptions, interrupteur de la journée, registre en version 3) ; bataille, discipline
+  et patrouilles converties. En jeu : la tenue forte donne l'ordre aussitôt, la faible attend dessous, la forte lâchée
+  rend la faible aussitôt. **V73 b est fini.**
+- **Suite, décidée par JoVenGer** : la tenue des hommes (fiche 13 : la garde de la tenue d'abord, principe du pair),
+  avec sa fiche, la relecture du pair et les questions ; puis l'ancre du camp (ci-dessous) ; puis V73 d (la garde).
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 29 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 30 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
