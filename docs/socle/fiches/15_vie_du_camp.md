@@ -79,10 +79,16 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 1. **V73 a — les gestes à la place de la téléportation.** `liaison.ordonner` traduit l'activité en geste : une place du
    camp (siège, lit) → s'asseoir ou se coucher (ordres 10, 11) ; un point (exercice, corvée, feu, poste de garde) →
    marcher jusqu'au point (ordre 9). **La téléportation ne reste qu'en secours** (question 1) : l'homme ne s'est pas
-   rapproché d'au moins 1 m en 30 s, ou il est trop loin (au-delà de 150 m) ; et alors seulement sur une place libre
-   (fiche 04 : jamais deux personnages à moins d'un mètre). Valeurs réglables (`hommes.reglages`). La dernière
-   position de chaque homme, pour mesurer son progrès, est gardée **en mémoire**, pas au registre (limite de 65 535
-   octets ; une position perdue au rechargement ne coûte rien).
+   rapproché d'au moins 1 m en 30 s ; alors il est posé sur une place libre (fiche 04 : jamais deux personnages à moins
+   d'un mètre), à l'**abord** de son but, jamais sur un meuble (`camp.abord_de` : une place s'aborde du côté opposé au
+   centre du camp, un autre meuble devant lui, à `camp.reglages.ecart_d_abord` = 2,4 m), deux fois au plus par ordre,
+   puis il est laissé là et c'est noté au journal (le gardien des hommes reprendra ce cas). Valeurs réglables
+   (`hommes.reglages` : `secours_delai_s`, `secours_progres_m`, `secours_arrivee_m`, `secours_max`). L'écart restant
+   jusqu'au but, pour mesurer son progrès, est gardé **en mémoire**, pas au registre (limite de 65 535 octets ; perdu au
+   rechargement, il ne coûte rien). Les trois autres cas accordés (archers des tours, suivre Henry, retours au camp)
+   viendront à leur pas.
+   **Le Directeur aussi** : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart (avant, à la
+   veillée, il était posé dans le feu).
    L'essai V73 a contient forcément le pas 3 : à chaque changement de tranche (repas → exercice, veillée → sommeil), un
    homme assis par l'ordre 10 reçoit l'ordre 9. L'essai s'en sert : embaucher juste avant un changement de tranche, ou
    le forcer par une affectation, et regarder si l'homme se lève puis part.
@@ -102,8 +108,8 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 6. **V73 f — suivre Henry** (modèle : le chien du jeu ; recherches « Réutiliser avant de créer » à ce pas-là).
 
 ## Règles en données (catalogue de `reglages.lua`)
-- `hommes.reglages` : délai et progrès du secours (30 s, 1 m), distance au-delà de laquelle on pose au lieu de faire
-  marcher (150 m).
+- `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
+  `camp.reglages.ecart_d_abord` (2,4 m).
 - Une table nouvelle `hommes.priorites` (nom de règle → rang), dans le catalogue.
 
 ## Essais au banc (`essais/lua/essai_hommes.lua`)

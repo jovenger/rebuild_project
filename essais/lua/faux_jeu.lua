@@ -52,6 +52,8 @@ local faux = {
 
 function faux.remettre_a_zero()
   faux.temps = 0
+  faux.positions = {}
+  faux.secours = {}
   faux.affichages = {}
   faux.en_ecran = nil
   faux.journal_lignes = {}
@@ -221,8 +223,22 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
-function faux.ordonner(identifiant, activite, position, lieu)
-  table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu })
+function faux.ordonner(identifiant, activite, position, lieu, place, sorte)
+  table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
+                              place = place, sorte = sorte })
+end
+-- Les positions des personnages (posées par les essais) et les secours (fiche 15).
+function faux.ecart_au_but(identifiant, but)
+  local ici = faux.positions and faux.positions[identifiant]
+  if not ici or not but then return nil end
+  return math.sqrt((ici.x - but.x) ^ 2 + (ici.y - but.y) ^ 2)
+end
+function faux.poser_en_secours(identifiant, position)
+  faux.secours = faux.secours or {}
+  table.insert(faux.secours, { identifiant = identifiant, position = position })
+  faux.positions = faux.positions or {}
+  faux.positions[identifiant] = position
+  return "posé"
 end
 function faux.faire_venir_ennemis(sorte, effectif, position, cap)
   if faux.refuser_ennemis then return nil end

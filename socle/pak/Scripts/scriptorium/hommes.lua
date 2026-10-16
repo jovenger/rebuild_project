@@ -9,6 +9,13 @@ Scriptorium.hommes = hommes
 hommes.reglages = {
   moral_depart = 60,
   ecart_entre_hommes = 1.2,   -- autour d'un point d'activité, mètres entre deux places (JoVenGer, 16/10, après V72 c)
+  -- Le secours de l'homme bloqué (fiche 15, réponse 1 de JoVenGer du 16/10) : s'il ne s'est pas rapproché d'au moins
+  -- « secours_progres_m » pendant « secours_delai_s », il est posé près de son but ; au plus « secours_max » fois par
+  -- ordre ; « secours_arrivee_m » : arrivé.
+  secours_delai_s = 30,
+  secours_progres_m = 1,
+  secours_arrivee_m = 2,
+  secours_max = 2,
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -1239,6 +1246,63 @@ end
 -- ---------------------------------------------------------------- battement
 
 -- Fait avancer les hommes jusqu'à l'heure du jeu : aubes, repas, paies, puis les ordres.
+-- Le suivi des marches, en mémoire seulement (fiche 15 : une position perdue au rechargement ne coûte rien, et le
+-- registre reste sous 65 535 octets) : id -> { reste, bloque_s, secours, signale, resume }.
+hommes.suivi = {}
+
+-- Ce que l'ordre vise (fiche 15, V73 a) : une place du camp (siège, lit) se prend par son objet du jeu ; tout le reste est
+-- un point où marcher. Rend (position, objet de la place, sorte de la place).
+local function but_de(a)
+  local sorte = a.lieu and camp().sorte_de(a.lieu)
+  if sorte and camp().sortes_places[sorte] then
+    local objet = camp().objet_du_jeu_de(a.lieu)
+    if objet then
+      return a.position, objet, sorte
+    end
+  end
+  return a.position, nil, nil
+end
+
+-- Le secours de l'homme bloqué (réponse 1 de JoVenGer du 16/10) : posé près de son but, jamais dans un meuble (une
+-- place s'aborde à l'écart, camp.abord_de), sur une place libre (la liaison), puis son ordre est redonné.
+local function secourir(id, f, a, rapport)
+  -- « Rapproché » : l'écart restant jusqu'au but a baissé (règle de JoVenGer : au moins 1 m en 30 s).
+  local but = a.position
+  local reste = but and jeu().ecart_au_but(f.personnage, but)
+  local s = hommes.suivi[id]
+  if not reste or not s then
+    return
+  end
+  if reste <= hommes.reglages.secours_arrivee_m then
+    s.reste, s.bloque_s = reste, 0
+    return
+  end
+  if s.reste and s.reste - reste < hommes.reglages.secours_progres_m then
+    s.bloque_s = s.bloque_s + Scriptorium.cadence_du_battement_ms / 1000
+  else
+    s.bloque_s = 0
+  end
+  s.reste = reste
+  if s.bloque_s < hommes.reglages.secours_delai_s then
+    return
+  end
+  if s.secours >= hommes.reglages.secours_max then
+    if not s.signale then
+      s.signale = true
+      jeu().journal("Hommes : « " .. f.nom .. " » ne rejoint pas « " .. tostring(a.lieu) .. " » malgré " .. s.secours
+                    .. " secours ; laissé où il est")
+    end
+    return
+  end
+  s.secours, s.bloque_s = s.secours + 1, 0
+  local _, objet = but_de(a)
+  local ou = objet and camp().abord_de(a.lieu) or but
+  jeu().journal("Hommes : « " .. f.nom .. " » bloqué vers « " .. tostring(a.lieu) .. " », secours "
+                .. s.secours .. " : " .. tostring(jeu().poser_en_secours(f.personnage, ou)))
+  f.derniere_activite = nil
+  rapport.secours = (rapport.secours or 0) + 1
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
@@ -1292,16 +1356,23 @@ function hommes.battre()
       rapport.changements = rapport.changements + 1
     end
   end
-  -- Ordres, seulement quand l'activité change.
+  -- Ordres, seulement quand l'activité change : un geste (fiche 15, V73 a), plus de téléportation ; sinon, le secours
+  -- de l'homme bloqué.
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     if f.personnage then
       local a = hommes.activite_de(id, heure)
       local resume = a.activite .. "@" .. tostring(a.lieu)
       if f.derniere_activite ~= resume then
-        jeu().ordonner(f.personnage, a.activite, a.position, a.lieu)
+        local position, objet, sorte = but_de(a)
+        jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte)
         f.derniere_activite = resume
+        local garde = hommes.suivi[id]
+        hommes.suivi[id] = { reste = nil, bloque_s = 0, secours = (garde and garde.resume == resume) and garde.secours or 0,
+                             signale = garde and garde.resume == resume and garde.signale or nil, resume = resume }
         rapport.ordres = rapport.ordres + 1
+      else
+        secourir(id, f, a, rapport)
       end
     end
   end
@@ -1340,6 +1411,7 @@ end
 -- suivant, et les personnages manquants reviennent. Rend (revenus, manquants).
 function hommes.relancer()
   local d = donnees()
+  hommes.suivi = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     f.derniere_activite = nil

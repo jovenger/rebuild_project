@@ -314,4 +314,20 @@ essai("camp : le centre est posé devant celui qui fonde, pas sous ses pieds", f
   local feu = camp.position_de("feu_central")
   verifier(math.sqrt(feu.x ^ 2 + feu.y ^ 2) >= devant - 0.01, "le feu n'est pas sous les pieds de celui qui fonde")
   egal(camp.ancre_devant("ici", 0), "ici", "position invalide rendue telle quelle")
+end)
+
+essai("camp (fiche 15) : on aborde un meuble à l'écart, jamais dessus", function()
+  depart()
+  verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")
+  local ecart = camp.reglages.ecart_d_abord
+  for _, nom in ipairs({ "siege_1", "lit_1a", "coffre_camp", "feu_central" }) do
+    local ici, abord = camp.position_de(nom), camp.abord_de(nom)
+    local d = math.sqrt((ici.x - abord.x) ^ 2 + (ici.y - abord.y) ^ 2)
+    verifier(math.abs(d - ecart) < 0.01, nom .. " : à l'écart réglé (" .. string.format("%.2f", d) .. ")")
+  end
+  -- Une place s'aborde du côté opposé au centre : hors du cercle des bancs.
+  local abord = camp.abord_de("siege_1")
+  verifier(math.sqrt(abord.x ^ 2 + abord.y ^ 2) > 1.6 + ecart - 0.01, "le siège s'aborde par l'extérieur")
+  egal(camp.sorte_de("lit_1a"), "lit", "sorte d'une place")
+  egal(camp.abord_de("inconnu"), nil, "emplacement inconnu")
 end)

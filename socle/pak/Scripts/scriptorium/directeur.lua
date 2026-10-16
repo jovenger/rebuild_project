@@ -168,7 +168,12 @@ function directeur.battre()
   end
   local a = directeur.activite(jeu().heure_du_jeu())
   if a and d.derniere_activite ~= a.activite then
-    jeu().ordonner(d.personnage, a.activite, a.position, a.lieu)
+    -- Fiche 15, V73 a : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart, jamais dessus
+    -- (avant, il était posé dans le feu à la veillée).
+    local sorte = camp().sorte_de(a.lieu)
+    local objet = sorte and camp().sortes_places[sorte] and camp().objet_du_jeu_de(a.lieu) or nil
+    local position = objet and a.position or camp().abord_de(a.lieu) or a.position
+    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil)
     d.derniere_activite = a.activite
     rapport.ordres = 1
   end

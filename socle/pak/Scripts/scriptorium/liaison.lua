@@ -1162,20 +1162,6 @@ end
 -- Vu le 14/10 (V17) : le jeu de base n'a pas d'ordre générique « marcher, s'asseoir, dormir » ; ses personnages
 -- obéissent à des cerveaux propres à chaque quête. Ces ordres attendent un cerveau à nous (tables du jeu).
 -- En attendant, « se tenir là » : le personnage est posé au lieu s'il en est à plus de deux mètres.
-function liaison.ordonner(identifiant, activite, position, lieu)
-  liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ")")
-  local entite = entite_nommee(identifiant)
-  if not entite or not position then
-    return
-  end
-  local ok, ici = pcall(function() return entite:GetWorldPos() end)
-  if ok and type(ici) == "table" and ((ici.x - position.x) ^ 2 + (ici.y - position.y) ^ 2) > 4 then
-    local pose, erreur = pcall(function() entite:SetWorldPos({ x = position.x, y = position.y, z = position.z }) end)
-    if not pose then
-      liaison.journal("Ordre à " .. tostring(identifiant) .. " : déplacement impossible : " .. tostring(erreur))
-    end
-  end
-end
 
 -- Âmes des ennemis par sorte de bande, prises dans le jeu de base.
 -- Premier essai (V18, 14/10) : une seule âme, un brigand générique d'une quête de Trosecko
@@ -2304,6 +2290,63 @@ function liaison.ordonner_sur_la_place(identifiant, ordre, qui)
     return "place du camp : « " .. tostring(identifiant) .. " » introuvable"
   end
   return donner_la_place(personnage, objet, "place du camp", ordre)
+end
+
+-- La vie du camp (fiche 15, V73 a) : l'ordre devient un geste, plus de téléportation. Une place du camp (« place » :
+-- l'identifiant de son objet du jeu, « sorte » : « siege » ou « lit ») se prend par l'ordre 10 ou 11 ; sinon l'homme
+-- marche jusqu'à « position » (ordre 9, point posé dans son cerveau). Rend une ligne.
+liaison.ordres_des_places = { siege = 10, lit = 11 }
+
+function liaison.ordonner(identifiant, activite, position, lieu, place, sorte)
+  local entite = entite_nommee(identifiant)
+  local ligne
+  if not entite then
+    ligne = "introuvable"
+  else
+    local objet = place and entite_nommee(place)
+    local ordre = sorte and liaison.ordres_des_places[sorte]
+    if objet and ordre then
+      ligne = donner_la_place(entite, objet, tostring(lieu), ordre)
+    elseif not position then
+      ligne = "sans but"
+    else
+      local this_lu, this = pcall(function() return entite.this end)
+      local point = liaison.au_sol(position)
+      local pose = this_lu and type(this) == "table"
+        and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+      ligne = "marche, point " .. (pose and "posé" or "refusé") .. " ; " .. poser_l_ordre(entite, 9)
+    end
+  end
+  liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ") : " .. ligne)
+  return ligne
+end
+
+-- L'écart, au sol, entre un personnage et le but de son ordre (fiche 15 : le secours de l'homme bloqué), ou nil.
+function liaison.ecart_au_but(identifiant, but)
+  local entite = entite_nommee(identifiant)
+  if not entite or type(but) ~= "table" then
+    return nil
+  end
+  local lu, ecart = pcall(function()
+    local ici = entite:GetWorldPos()
+    return math.sqrt((ici.x - but.x) ^ 2 + (ici.y - but.y) ^ 2)
+  end)
+  return lu and ecart or nil
+end
+
+-- Le secours d'un homme bloqué (fiche 15, réponse 1 de JoVenGer) : posé sur une place libre près de « position » (jamais
+-- à moins d'un mètre d'un autre personnage). Rend une ligne.
+function liaison.poser_en_secours(identifiant, position)
+  local entite = entite_nommee(identifiant)
+  if not entite or not position then
+    return "introuvable ou sans but"
+  end
+  local place = place_libre(liaison.au_sol(position))
+  if not place then
+    return "aucune place libre près du but"
+  end
+  local ok, erreur = pcall(function() entite:SetWorldPos(place) end)
+  return ok and string.format("posé en (%.1f, %.1f)", place.x, place.y) or ("refusé : " .. tostring(erreur))
 end
 
 -- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, et ses compteurs « assis » et « couchés ».

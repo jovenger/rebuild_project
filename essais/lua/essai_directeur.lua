@@ -255,4 +255,20 @@ essai("directeur : il vient sur son âme ; né sur une âme empruntée, il rena�
   egal(FauxJeu.directeurs[2].ame, "ame_directeur_1_1", "sur son âme")
   verifier(directeur.relancer(), "toujours là")
   egal(#FauxJeu.directeurs, 2, "une seule fois")
+end)
+
+essai("directeur (fiche 15) : à la veillée, à l'écart du feu ; la nuit, à son lit par l'objet du jeu", function()
+  preparer(0, 21)
+  FauxJeu.ordres = {}
+  egal(directeur.battre().ordres, 1, "ordre de veillée")
+  local o = FauxJeu.ordres[1]
+  egal(o.place, nil, "le feu n'est pas une place")
+  local feu, abord = camp.position_de("feu_central"), camp.abord_de("feu_central")
+  verifier(math.abs(o.position.x - abord.x) < 0.01 and math.abs(o.position.y - abord.y) < 0.01, "à l'abord du feu")
+  verifier(math.sqrt((o.position.x - feu.x) ^ 2 + (o.position.y - feu.y) ^ 2) > 2, "jamais dans le feu")
+  FauxJeu.heure = 23
+  egal(directeur.battre().ordres, 1, "ordre de nuit")
+  o = FauxJeu.ordres[2]
+  egal(o.sorte, "lit", "au lit")
+  egal(o.place, camp.objet_du_jeu_de("lit_directeur"), "par l'objet du jeu de son lit")
 end)

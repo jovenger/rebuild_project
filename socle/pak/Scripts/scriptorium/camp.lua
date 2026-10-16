@@ -33,7 +33,8 @@ camp.modeles = {
 -- gardés par la sauvegarde revenaient blancs).
 -- « fonder_devant » (réponse de JoVenGer du 16/10/2026, après V72 c) : le centre du camp est posé à tant de mètres
 -- devant Henry, pas sous ses pieds (V72 c : Henry debout dans le feu central).
-camp.reglages = { reposer_tout_a_l_entree = 0, fonder_devant = 4 }
+-- « ecart_d_abord » (fiche 15, V73 a) : on ne marche jamais sur un meuble ; on s'arrête à tant de mètres de lui.
+camp.reglages = { reposer_tout_a_l_entree = 0, fonder_devant = 4, ecart_d_abord = 2.4 }
 
 -- Les objets du jeu posés sur les meubles du camp pour qu'on puisse s'y asseoir ou s'y coucher (fiche 03, « Meubles
 -- utilisables », validée par JoVenGer le 15/10 ; acquis en jeu, V62). Propriétés relevées sur des objets réels du jeu
@@ -386,6 +387,33 @@ function camp.objet_du_jeu_de(nom)
     return nil
   end
   return objet.du_jeu[du_jeu.places[1].nom]
+end
+
+-- La sorte d'un emplacement du plan (« siege », « lit », « coffre »…), ou nil.
+function camp.sorte_de(nom)
+  local e = emplacement_par_nom(nom)
+  return e and e.sorte or nil
+end
+
+-- Où s'arrêter près d'un emplacement sans marcher dessus (fiche 15, V73 a) : à camp.reglages.ecart_d_abord mètres.
+-- Une place (siège, lit) s'aborde du côté opposé au centre du camp (hors du cercle des bancs, hors de la tente) ; un
+-- autre meuble (coffre, feu) s'aborde devant lui. Rend une position du monde, ou nil.
+function camp.abord_de(nom)
+  local d = donnees()
+  local e = emplacement_par_nom(nom)
+  if not d.fonde or not e or e.niveau > d.niveau then
+    return nil
+  end
+  local ecart = tonumber(camp.reglages.ecart_d_abord) or 0
+  local x, y
+  local loin = math.sqrt(e.x * e.x + e.y * e.y)
+  if camp.sortes_places[e.sorte] and loin > 0.01 then
+    x, y = e.x + ecart * e.x / loin, e.y + ecart * e.y / loin
+  else
+    local radians = math.rad(e.cap or 0)
+    x, y = e.x + ecart * math.sin(radians), e.y + ecart * math.cos(radians)
+  end
+  return (camp.dans_le_monde(d.ancre, x, y, 0))
 end
 
 function camp.position_de(nom)

@@ -806,4 +806,88 @@ essai("hommes : à l'exercice, chacun sa place, jamais deux au même point", fun
     end
   end
   verifier(#vus >= 2, "au moins deux hommes à l'exercice à 10 h (" .. #vus .. ")")
+end)
+
+essai("vie du camp (fiche 15) : une place se prend par son objet du jeu, un point se rejoint en marchant", function()
+  preparer(5000, 100, 12.5)
+  for _ = 1, 6 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  FauxJeu.ordres = {}
+  hommes.battre()
+  local sieges, points = 0, 0
+  for _, o in ipairs(FauxJeu.ordres) do
+    if camp.sorte_de(o.lieu) == "siege" then
+      sieges = sieges + 1
+      egal(o.sorte, "siege", "un siège se prend assis")
+      egal(o.place, camp.objet_du_jeu_de(o.lieu), "par l'objet du jeu de sa place")
+    else
+      points = points + 1
+      egal(o.place, nil, "un point : pas de place")
+      verifier(o.position ~= nil, "un point où marcher")
+    end
+  end
+  verifier(sieges >= 1 and points >= 1, "au repas, des sièges et des points (" .. sieges .. ", " .. points .. ")")
+  FauxJeu.ordres = {}
+  FauxJeu.heure = 23
+  hommes.battre()
+  local lits = 0
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.activite == "sommeil" and o.sorte == "lit" then
+      lits = lits + 1
+      egal(o.place, camp.objet_du_jeu_de(o.lieu), "le lit par son objet du jeu")
+    end
+  end
+  verifier(lits >= 1, "la nuit, au lit (" .. lits .. ")")
+end)
+
+essai("vie du camp (fiche 15) : l'homme bloqué est posé près de son but, jamais sur un meuble, deux fois au plus", function()
+  preparer(5000, 100, 12.5)
+  for _ = 1, 6 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  hommes.battre()
+  -- Un homme assis au repas, figé à 50 m de son siège.
+  local cible = nil
+  for _, id in ipairs(hommes.liste()) do
+    local a = hommes.activite_de(id, 12.5)
+    if camp.sorte_de(a.lieu) == "siege" and not cible then
+      cible = { id = id, a = a, personnage = hommes.fiche(id).personnage }
+    end
+  end
+  verifier(cible ~= nil, "un homme au siège")
+  FauxJeu.positions[cible.personnage] = { x = cible.a.position.x + 50, y = cible.a.position.y, z = 0 }
+  FauxJeu.secours = {}
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "premier relevé : pas encore de secours")
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "30 s sans se rapprocher : un secours")
+  local ou, abord = FauxJeu.secours[1].position, camp.abord_de(cible.a.lieu)
+  verifier(math.abs(ou.x - abord.x) < 0.01 and math.abs(ou.y - abord.y) < 0.01, "posé à l'abord de sa place")
+  local siege = camp.position_de(cible.a.lieu)
+  verifier(math.sqrt((ou.x - siege.x) ^ 2 + (ou.y - siege.y) ^ 2) > 2, "jamais sur le siège")
+  for _ = 1, 10 do
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, hommes.reglages.secours_max, "deux secours au plus")
+  local signale = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "malgré 2 secours", 1, true) then signale = signale + 1 end
+  end
+  egal(signale, 1, "laissé où il est, noté une seule fois au journal")
+end)
+
+essai("vie du camp (fiche 15) : un homme qui se rapproche n'est jamais secouru", function()
+  preparer(5000, 100, 15)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  local id = hommes.liste()[1]
+  local f = hommes.fiche(id)
+  hommes.battre()
+  local a = hommes.activite_de(id, 15)
+  FauxJeu.secours = {}
+  for pas = 1, 6 do
+    FauxJeu.positions[f.personnage] = { x = a.position.x + 30 - pas * 4, y = a.position.y, z = 0 }
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 0, "il avance de 4 m par battement : aucun secours")
 end)
