@@ -91,6 +91,11 @@
   garde (toutes les 0,5 s). Le switch le voit avancer (état 2). S'il reste figé plus longtemps que le délai du
   catalogue alors qu'il avançait, le switch relance le comportement, une seule fois par arrêt. C'est une amélioration
   sur le principe transmis, qui ne relance qu'au changement d'état : rien n'est perdu si le jeu tue notre comportement.
+  C'est aussi le début du gardien des hommes (idée validée n° 1).
+  - **Pas de relance en plein combat ni en pleine conversation** (relecture du pair) : pendant ce temps, le pouls est
+    figé normalement. Le switch ne relance que si l'homme n'est ni en combat (contexte `crime_interruptAttack`, déjà
+    relu au poste en V72) ni en conversation (le signe est à trouver dans les arbres du jeu). Sinon, il attend la fin,
+    puis relance une fois.
 - **Le comportement long** (`scriptorium_vie_du_camp`, déclaré comme les autres dans
   `SmartEntity__so_interrupt__scriptorium_socle.xml`) : une boucle sans fin. À chaque tour, il retient le compteur
   d'ordres, lit l'activité, puis la joue. Chaque activité a la même forme, **faire, puis tenir** :
@@ -109,8 +114,9 @@
 - **L'attaque : à mesurer, pas acquise.** `callInterrupt_attack` (160, priorité ignorée) tue le comportement long du
   dehors, comme le « true » des ordres de V73 c 1 à 3. Soit l'attaque du jeu défait la posture d'elle-même (un
   personnage assis attaqué se lève), soit l'homme reste assis. À voir en V73 b : l'ordre 8 sur un homme assis. Si la
-  posture reste, le Lua dégage l'homme d'abord (activité 0, compteur augmenté, 3 s au plus), puis pose l'attaque. Après
-  le combat, le pouls figé fait relancer la vie du camp.
+  posture reste, le Lua dégage l'homme d'abord (activité 0, compteur augmenté, 3 s au plus), la garde finit la posture
+  du dedans, puis l'attaque part ; c'est le même principe que le signal « céder la place » transmis par le pair. Après
+  le combat, le pouls fait relancer la vie du camp.
 - **Au chargement** : l'état du switch revient à 0 et le comportement long est relancé au premier tour. L'homme attend
   debout, puis le réveil différé (30 s) redonne l'activité en cours (`hommes.relancer`).
 - **Les valeurs** (attente de la garde, délai de la marche, distance d'arrêt, délai du pouls figé) passent par des
@@ -157,6 +163,18 @@
   qui ne finit pas. Pour les hommes du camp, cela peut être voulu ; pour un homme qui cède sa place à Henry, ou pour le
   dialogue du Directeur (étape 3), non. À mesurer en V73 c 5 : Henry peut-il encore parler à un homme, et quelles
   réactions du jeu disparaissent.
+- Indice transmis par le pair : Alex lance sa vie du camp à 160, avec remplacement et l'urgence « Fast », et son
+  combat aussi à 160 ; son dialogue forcé vers Henry passe à 170. Le dialogue ordinaire (Henry qui parle au Directeur
+  ou à un homme) marche pourtant chaque jour dans la partie de JoVenGer : il passe sans doute par la boîte aux lettres
+  de dialogue du cerveau (`npc_basic`), pas par une interruption. C'est rassurant pour notre 100 ; V73 c 5 tranchera.
+
+### Questions à JoVenGer (révision du 16/10, relue par le pair)
+1. **La posture** : (a) le « use » du jeu d'abord, notre propre posture si l'essai des 2 min le demande (Recommandé) ;
+   (b) notre propre posture tout de suite.
+2. **Le retour de la vie du camp** quand le jeu la tue : (a) relance par le pouls, hors combat et hors conversation
+   (Recommandé) ; (b) au prochain ordre seulement.
+3. **La priorité de la vie du camp** : (a) 100 sans remplacement, mesurée en V73 c 5 (Recommandé) ; (b) 160 avec
+   remplacement, comme Alex.
 
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
