@@ -15,17 +15,17 @@
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_activite" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_vie_pouls" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_essai_approche" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_garde_ms" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_tour_ms" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_sortie_ms" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_relance_tours" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_file_tours" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_marche_delai_ms" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_marche_arret_cm" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_marche_ecart_cm" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_siege_arret_cm" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_siege_ecart_cm" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_lit_arret_cm" is_persistent="true" type="int" />
-    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_lit_ecart_cm" is_persistent="true" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_garde_ms" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_tour_ms" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_sortie_ms" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_relance_tours" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_file_tours" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_marche_delai_ms" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_marche_arret_cm" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_marche_ecart_cm" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_siege_arret_cm" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_siege_ecart_cm" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_lit_arret_cm" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_lit_ecart_cm" type="int" />
   </brain_variables>
 </database>

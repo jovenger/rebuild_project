@@ -38,8 +38,9 @@ hommes.reglages = {
 }
 
 -- Fiche 12 (les valeurs de l'arbre en données, règle de JoVenGer du 14/10) : les valeurs du comportement long et du
--- switch, en entiers, écrites dans le cerveau de chaque homme et du Directeur (variables scriptorium_cerveau_<nom>,
--- gardées dans la sauvegarde) ; l'arbre ne garde que des planchers de sécurité.
+-- switch, en entiers, écrites dans le cerveau de chaque homme et du Directeur (variables scriptorium_cerveau_<nom>) au
+-- premier battement après le réveil, à la naissance et à chaque changement. Tant que rien n'est écrit (zéro), l'arbre
+-- prend ces mêmes valeurs par défaut, recopiées dans l'arbre et comparées au banc ; zéro vaut donc « par défaut ».
 hommes.cerveau = {
   garde_ms = 500,             -- la garde relit l'ordre et fait battre le pouls
   tour_ms = 2000,             -- un tour du switch

@@ -4,6 +4,8 @@
     <Variables>
       <Variable name="numero_tenu" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="garde_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="sortie_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="delai_ms" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="garde" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="sortie" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="delai" type="_string" values="" isPersistent="0" form="single" />
@@ -19,14 +21,16 @@
         <While doFail="false" propagateChildFail="false" condition="true">
           <Sequence>
             <Expression expressions="$numero_tenu = $scriptorium_essai_numero" />
-            <Expression expressions="$sortie = concat($scriptorium_cerveau_sortie_ms, &apos;ms&apos;)" />
-            <Expression expressions="$delai = concat($scriptorium_cerveau_marche_delai_ms, &apos;ms&apos;)" />
-            <Expression expressions="$marche_arret = $scriptorium_cerveau_marche_arret_cm * 0.01" />
-            <Expression expressions="$marche_ecart = $scriptorium_cerveau_marche_ecart_cm * 0.01" />
-            <Expression expressions="$siege_arret = $scriptorium_cerveau_siege_arret_cm * 0.01" />
-            <Expression expressions="$siege_ecart = $scriptorium_cerveau_siege_ecart_cm * 0.01" />
-            <Expression expressions="$lit_arret = $scriptorium_cerveau_lit_arret_cm * 0.01" />
-            <Expression expressions="$lit_ecart = $scriptorium_cerveau_lit_ecart_cm * 0.01" />
+            <Expression expressions="$sortie_ms = ($scriptorium_cerveau_sortie_ms &gt; 0 ? $scriptorium_cerveau_sortie_ms : 2000)" />
+            <Expression expressions="$sortie = concat($sortie_ms, &apos;ms&apos;)" />
+            <Expression expressions="$delai_ms = ($scriptorium_cerveau_marche_delai_ms &gt; 0 ? $scriptorium_cerveau_marche_delai_ms : 30000)" />
+            <Expression expressions="$delai = concat($delai_ms, &apos;ms&apos;)" />
+            <Expression expressions="$marche_arret = ($scriptorium_cerveau_marche_arret_cm &gt; 0 ? $scriptorium_cerveau_marche_arret_cm : 200) * 0.01" />
+            <Expression expressions="$marche_ecart = ($scriptorium_cerveau_marche_ecart_cm &gt; 0 ? $scriptorium_cerveau_marche_ecart_cm : 50) * 0.01" />
+            <Expression expressions="$siege_arret = ($scriptorium_cerveau_siege_arret_cm &gt; 0 ? $scriptorium_cerveau_siege_arret_cm : 10) * 0.01" />
+            <Expression expressions="$siege_ecart = ($scriptorium_cerveau_siege_ecart_cm &gt; 0 ? $scriptorium_cerveau_siege_ecart_cm : 5) * 0.01" />
+            <Expression expressions="$lit_arret = ($scriptorium_cerveau_lit_arret_cm &gt; 0 ? $scriptorium_cerveau_lit_arret_cm : 50) * 0.01" />
+            <Expression expressions="$lit_ecart = ($scriptorium_cerveau_lit_ecart_cm &gt; 0 ? $scriptorium_cerveau_lit_ecart_cm : 5) * 0.01" />
             <SuppressFailure>
               <Sequence>
                 <IfCondition condition="$scriptorium_activite == 9 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
@@ -41,7 +45,8 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                        <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt;= 100 ? $scriptorium_cerveau_garde_ms : 100)" />
+                        <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                        <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
                         <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                       </Sequence>
@@ -69,7 +74,8 @@
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
                           <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                          <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt;= 100 ? $scriptorium_cerveau_garde_ms : 100)" />
+                          <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                          <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                           <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
                           <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                         </Sequence>
@@ -88,7 +94,8 @@
                                 <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                                   <Sequence>
                                     <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                                    <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt;= 100 ? $scriptorium_cerveau_garde_ms : 100)" />
+                                    <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                                    <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                                     <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
                                     <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                                   </Sequence>
@@ -120,7 +127,8 @@
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
                           <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                          <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt;= 100 ? $scriptorium_cerveau_garde_ms : 100)" />
+                          <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                          <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                           <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
                           <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                         </Sequence>
@@ -139,7 +147,8 @@
                                 <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                                   <Sequence>
                                     <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                                    <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt;= 100 ? $scriptorium_cerveau_garde_ms : 100)" />
+                                    <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                                    <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                                     <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
                                     <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                                   </Sequence>
@@ -160,7 +169,8 @@
             <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
               <Sequence>
                 <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt;= 100 ? $scriptorium_cerveau_garde_ms : 100)" />
+                <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                 <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
                 <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
               </Sequence>

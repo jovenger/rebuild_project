@@ -18,10 +18,11 @@
         <While condition="true" doFail="false" propagateChildFail="false">
           <Sequence>
             <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
-            <Expression expressions="$tour_ms = ($scriptorium_cerveau_tour_ms &gt;= 500 ? $scriptorium_cerveau_tour_ms : 500)" />
+            <Expression expressions="$tour_ms = ($scriptorium_cerveau_tour_ms &gt; 0 ? $scriptorium_cerveau_tour_ms : 2000)" />
+            <Expression expressions="$tour_ms = ($tour_ms &gt;= 500 ? $tour_ms : 500)" />
             <Expression expressions="$tour = concat($tour_ms, &apos;ms&apos;)" />
-            <Expression expressions="$relance_tours = ($scriptorium_cerveau_relance_tours &gt;= 1 ? $scriptorium_cerveau_relance_tours : 1)" />
-            <Expression expressions="$file_tours = ($scriptorium_cerveau_file_tours &gt;= 1 ? $scriptorium_cerveau_file_tours : 1)" />
+            <Expression expressions="$relance_tours = ($scriptorium_cerveau_relance_tours &gt; 0 ? $scriptorium_cerveau_relance_tours : 3)" />
+            <Expression expressions="$file_tours = ($scriptorium_cerveau_file_tours &gt; 0 ? $scriptorium_cerveau_file_tours : 30)" />
             <IfCondition condition="$scriptorium_essai_ordre == 8" failOnCondition="false">
               <Sequence>
                 <SuppressFailure>
