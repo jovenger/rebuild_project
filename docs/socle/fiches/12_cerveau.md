@@ -288,8 +288,20 @@
 - **Rechargement** : le comportement long revient, l'activité est redonnée ; un homme repris assis de la sauvegarde se
   lève à une marche lointaine, mais reste à demi assis si son but est tout près (Jan) : **point ouvert**, un geste de
   levée avant une marche courte, à concevoir.
-- **Acquis** : un seul comportement long ; s'asseoir et se coucher par notre propre posture ; la tenue qui échoue au
-  changement d'ordre ; les marches qui changent l'état du personnage ; la relance au chargement ; un ordre par tranche.
+- **Acquis** (vu en jeu) : un seul comportement long ; s'asseoir par notre propre posture et se lever à l'ordre ; la
+  tenue qui échoue au changement d'ordre ; les marches qui changent l'état du personnage ; la relance au chargement ; un
+  ordre par tranche (midi, 13 h).
+- **Non testé en jeu** :
+  - se coucher avec la version finale (vu en V73 c 6, avant l'échec de la tenue et les marches en « true ») ; le lever
+    du lit n'a jamais été vu (le prochain réveil de 5 h le dira) ;
+  - la relance par le pouls : elle n'a jamais eu à servir (« lancements 1 » à chaque relevé), et les deux lectures
+    « en combat » et « en conversation » n'ont jamais été exercées ; V73 b (une attaque) sera leur premier essai ;
+  - Henry qui parle à un homme (critère 6 de V73 c 5, condition du choix « priorité 100, à mesurer ») : nos hommes n'ont
+    pas encore de dialogue (étape 3) ;
+  - le secours (`secours_max`), coupé à chaque séance : son jeu avec le comportement long n'a pas été vu.
+- **Régression possible** : la pose d'un ordre d'attaque n'augmente plus le compteur ; un ordre 8 sur un homme assis le
+  trouve en posture, et l'attaque (160, priorité ignorée) tue le comportement long du dehors, comme en V73 c 1 à 3. À
+  mesurer en premier en V73 b, avec le signal « céder la place » prévu plus haut.
 
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
