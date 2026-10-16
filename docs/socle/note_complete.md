@@ -53,7 +53,7 @@
   midi, corvée à 13 h ; le comportement revient après un rechargement.
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 43 chargements, 1 sur 33 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 44 chargements, 1 sur 34 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)

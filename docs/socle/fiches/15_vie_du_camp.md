@@ -637,7 +637,28 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
   attrapées : le regard inversé, l'ordre sans regard, le `Turn` retiré après l'arrivée, le `Turn` retiré après le geste.
 - **Contrôle d'absence** : une ligne de structure de plus en commun avec Alex et présente telle quelle dans le jeu,
   `<Else canSkip="1">` (la branche « sinon » de `IsNightTimeOfDay`, `AI/events/randomEventsBehaviors.xml`) : la borne des
-  lignes de forme passe de 31 à 32, revue.
+  lignes de forme passe de 31 à 32, revue. Chaque ligne admise est relue dans les fichiers du jeu à chaque passage du banc
+  (rappel du pair : c'est à JoVenGer de dire si cette tolérance lui va).
+
+### Mesuré en V73 d 1 (16/10) : tenir un poste, acquis
+- **Issue 1 de la grille** : Jan, assis au feu, tenu par la garde au poste 1 ; l'ordre 12 part dans `tenir` (poste et
+  regard posés) ; il se lève vers 13 s (la tenue de la posture finit du dedans), marche, et arrive vers 26 s : « en
+  poste » 1, cap à 18° du regard, à environ 0,5 m du poste (estimé : la lecture du poste dit l'écart au siège, 11,55 m,
+  et le poste est à 12,1 m du siège). **Aucune glissade** : position fixe sur 77 s puis 2 min de film.
+- **Issue 3, le `Turn`** : à 18°, il ne tourne pas (sa tolérance, environ 20°). Prouvé à part : une tenue de rassemblement
+  (rang 2) l'envoie à la corvée (le regard effacé), puis on la lâche : la garde reprend aussitôt (ordre redonné) ; il
+  revient en biais (cap 155°, 27° d'écart en marche) et **se tourne à l'arrivée jusqu'à 0°** (« en poste » 2), sans
+  glisser.
+- **Issue 4, le geste** : `LookingAround` sans objet vu une fois dans 2 min de film (une image toutes les 1,25 s) : il
+  regarde d'un côté puis de l'autre, environ 15 s, puis reprend seul sa pose de garde ; le cap n'a pas bougé (le geste
+  tourne le buste, pas le corps). Le geste finit donc seul.
+- **Issue 5** : la garde lâchée, un seul ordre, sur-le-champ (la corvée, 13 h) ; il rejoint sa tranche.
+- **Issue 6** : les deux autres suivent leur journée (la corvée à 13 h), un lancement chacun, aucun arrêt ; 18 valeurs
+  écrites dans chaque cerveau ; aucune erreur au journal ; arme rangée ; écran normal.
+- **Pas vu en jeu** : le tour de garde du socle (avec trois hommes, aucun poste le jour ; prouvé au banc), la nuit (aucun
+  geste), plusieurs gardes ensemble (gestes à des moments différents), l'écart au poste lui-même (à lire au poste
+  d'essai avec V73 d 2 : l'écart au but de l'ordre, pas seulement au siège).
+- **Suite** : V73 d 2, la ronde (mécanique seulement : suivre un chemin de points avec des pauses).
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

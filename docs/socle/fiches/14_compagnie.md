@@ -220,7 +220,8 @@
 | 473 | V73 b 3 (l'arbitre par tenues) | normal |
 | 473 | V71 g (la garde de la tenue) | normal |
 | 473, puis un rechargement | V73 ancre (le camp ne suit jamais Henry) | normal (deux fois) |
-- Au total : 3 écrans noirs sur 43 chargements ou poses observés ; 1 sur 33 depuis la séparation. **Rien n'est conclu** : il
+| 473 | V73 d 1 (tenir un poste) | normal |
+- Au total : 3 écrans noirs sur 44 chargements ou poses observés ; 1 sur 34 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
