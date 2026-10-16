@@ -429,6 +429,9 @@ function liaison.decrire_objet(identifiant)
     local mini, maxi = entite:GetLocalBBox()
     if mini and maxi then
       table.insert(morceaux, string.format("taille %.1f × %.1f × %.1f m (x, y, z)", maxi.x - mini.x, maxi.y - mini.y, maxi.z - mini.z))
+      -- V73 c 12 : les coins de la boîte, dans le repère du modèle, pour savoir où est son origine (placer un lit dans sa
+      -- tente demande le centre de la tente, pas seulement sa taille).
+      table.insert(morceaux, string.format("boîte de (%.2f, %.2f) à (%.2f, %.2f)", mini.x, mini.y, maxi.x, maxi.y))
     end
     local n = (entite:GetSlotCount()) or 0
     table.insert(morceaux, n .. " emplacement(s)")
