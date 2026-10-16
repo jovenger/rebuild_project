@@ -8,8 +8,8 @@
   architecture adoptée ; faction « la Compagnie », à nous ; compétences selon le niveau acheté puis le caractère ;
   comportements dans l'ordre de la vie du camp, après le réveil au chargement. Tout ce qui est marqué « acquis » a été vu
   en jeu (`essai_en_jeu.md`, V29 à V55, sans `-devmode`) ; le reste est marqué « non vérifié ».
-- **Révision du 16/10/2026, à valider** : un seul comportement long, la « vie du camp », au lieu d'un comportement par
-  ordre (section ci-dessous, après les essais V73 c de la fiche 15).
+- **Révision du 16/10/2026, validée par JoVenGer le jour même** (après relecture par la conversation Scriptorium) : un
+  seul comportement long, la « vie du camp », au lieu d'un comportement par ordre (section ci-dessous).
 
 ## Ce que le joueur voit
 - Sur ordre, un homme va au point que le Directeur lui donne et y reste (acquis : « aller au point », V55). Les autres
@@ -58,7 +58,7 @@
 - **Compétences de combat** : posables par `soul:AdvanceToSkillLevel` (relu, V53 ; l'appel ne fait que monter, comme
   l'aguerrissement de la fiche 11). À 0, un homme frappe déjà (V52).
 
-## Révision du 16/10/2026 : un seul comportement long, la « vie du camp » (à relire par le pair, puis à valider)
+## Révision du 16/10/2026 : un seul comportement long, la « vie du camp » (validée)
 ### Pourquoi (fiche 15, V73 a à V73 c 4)
 - Un comportement par ordre, posé en interruption, est tué de l'extérieur quand l'ordre suivant le remplace
   (`IgnorePriorityOnPreviousInterrupt="true"`) : l'homme assis ne se lève pas (V73 c 1 à 3).
@@ -175,6 +175,26 @@
    (Recommandé) ; (b) au prochain ordre seulement.
 3. **La priorité de la vie du camp** : (a) 100 sans remplacement, mesurée en V73 c 5 (Recommandé) ; (b) 160 avec
    remplacement, comme Alex.
+- **Réponses de JoVenGer (16/10)** : 1 (a) le geste du jeu d'abord ; 2 (a) la relance automatique par le pouls ;
+  3 (a) la priorité 100, à mesurer.
+
+### Mise en œuvre (d'après des structures réelles du jeu, `Data/Scripts.pak`, lecture seule)
+- **En combat, en conversation** : le switch lit deux contextes de l'homme par `EntityContextCheck` (forme du jeu :
+  `AI/animal/basic/switch/animal_affectFeelings.xml`, une branche `Then` qui pose une variable locale `_bool`) :
+  `crime_interruptAttack` (posé par `AI/npc/basic/switch/interrupt_attack.xml`) et `speech_switchDialogRunning` (posé
+  par `AI/speech/switchDialog.xml`). Conditions écrites comme celles du jeu : « et » `&amp;`, « non » `~$`, `&gt;=`.
+- **Le switch** : à lancer (0) → `AddInterrupt` ; lancé (1) → en marche (2) dès que le pouls avance ; en marche et
+  pouls figé 3 tours de suite (6 s), hors combat et hors conversation → à lancer ; lancé depuis 30 tours (60 s) sans
+  pouls, hors combat et hors conversation → à lancer (une file perdue ne laisse pas l'homme sans vie du camp). Le
+  compteur `scriptorium_essai_rejoint` compte les lancements.
+- **Le comportement long** : chaque branche d'activité vérifie aussi que le compteur n'a pas changé depuis le début du
+  tour, pour ne jamais commencer une activité déjà remplacée.
+- **Le Lua** : une fonction de la liaison pose l'activité puis augmente le compteur ; la pose d'un ordre (l'attaque,
+  les essais du marcheur) ne touche plus au compteur.
+- **Les valeurs de l'arbre** (garde 0,5 s, tour du switch 2 s, marche 30 s, arrêt à 2 ± 0,5 m, 3 et 30 tours) restent
+  d'abord écrites dans l'arbre, comme celles des comportements d'un ordre vus en jeu : un seul changement à la fois.
+  Leur passage par des variables du cerveau, écrites par le Lua depuis le catalogue, est le pas suivant, éprouvé à part
+  (une attente qui ne prendrait pas sa variable ferait tourner la garde sans attendre).
 
 ## Ce qu'il faut décider (questions à JoVenGer)
 1. **L'architecture** ci-dessus (switch à nous + horaires du jeu ; un ordre = un comportement à nous joué en
