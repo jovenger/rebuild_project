@@ -395,6 +395,18 @@
   libre ; (3) les dimensions de la tente et du lit, mesurées au poste, pour replacer le lit hors de sa tente (pas
   suivant).
 
+### Mesuré en V73 c 12 (16/10)
+- La levée ordinaire tient avec la posture « debout » en tête de la marche (non-régression).
+- **La levée courte après une reprise échoue encore** : Jan, repris assis, reste à demi assis sur son rondin ; la
+  posture « debout » sans objet ne le relève pas (premier échec sur ce point, règle anti-boucle).
+- **Cause confirmée** : le camp repose ses 14 meubles du niveau 1 à chaque chargement, objets des sièges compris
+  (« Camp : redressé, 14 objet(s) reposé(s) ») ; la posture rendue par la sauvegarde vise un objet qui n'existe plus.
+- **Voie suivante, différente** (celle du pair) : au réveil, lire la posture (`StanceCheck` ou `GetStance`) deux fois
+  avec un anti-rebond, puis redonner à l'homme sa posture sur le nouvel objet de sa place, avant l'ordre de la tranche.
+  Plus lourde (arbre, liaison, battement) ; à décider avec JoVenGer.
+- La posture « debout » en tête de la marche est gardée : elle ne gêne pas, et elle couvre le cas où la posture tenue
+  par le jeu vise un objet encore là.
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
