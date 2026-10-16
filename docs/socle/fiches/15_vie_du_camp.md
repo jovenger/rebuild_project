@@ -405,6 +405,13 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
 - **Corrigé, un seul changement** : un pouls qui avance remet le switch « en marche », quel que soit son état (contrôlé
   au banc). À revoir en jeu : la même tempête, puis plus aucun lancement une fois les valeurs retirées.
 
+### Mesuré en V73 b 2 bis (16/10) : le plafond, acquis
+- Non-régression : un lancement par homme et pour le Directeur, arrêts à 0.
+- La même tempête : au plus 3 lancements par fenêtre et par personnage (la fenêtre de chacun part de sa naissance, d'où
+  des rythmes un peu différents entre les hommes et le Directeur), une ligne au journal par arrêt.
+- **Les valeurs retirées : plus aucun lancement en 173 s** (près de trois fenêtres), pouls à 2 par seconde. Le plafond
+  et sa correction sont acquis.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
