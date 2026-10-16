@@ -1026,6 +1026,12 @@ def verifier_la_vie_du_camp():
     # à la fin de la fenêtre un comportement vivant. Un pouls qui avance le remet « en marche », quel que soit son état.
     if '<IfCondition condition="$scriptorium_vie_pouls ~= $pouls_vu"' not in switch:
         erreur("vie du camp : le pouls qui avance doit remettre le switch en marche quel que soit son état")
+    # Fiche 13, la garde de la tenue (relecture du pair, principe d'Alex) : le switch compte les fins de combat au front
+    # descendant du contexte de combat, lu à chaque tour ; le battement les relit pour rhabiller l'homme.
+    front = re.search(r'<IfCondition condition="\$etait_en_combat &amp; ~\$en_combat"[^>]*>\s*'
+                      r'<Expression expressions="\$scriptorium_fins_de_combat = \$scriptorium_fins_de_combat \+ 1" />', switch)
+    if not front or '<Expression expressions="$etait_en_combat = $en_combat" />' not in switch:
+        erreur("vie du camp : le switch doit compter les fins de combat au front descendant du contexte de combat")
     return len(donnees), len(employees)
 
 

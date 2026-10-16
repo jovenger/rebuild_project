@@ -40,6 +40,9 @@ hommes.reglages = {
   -- ne tient (réponse 3 a) : à faux, il attend où il est (Scriptorium la coupera à la bascule).
   tenue_max_h = 24,
   journee_du_socle = true,
+  -- La garde de la tenue (fiche 13, après V73 b, réponses a et a de JoVenGer du 16/10) : tant d'hommes par battement, en
+  -- tournant, remettent leurs propres pièces (le moteur leur ôte parfois leur tenue en pleine partie).
+  tenue_garde_par_battement = 1,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -793,6 +796,17 @@ local function rhabiller(d, f)
     .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s) ou refusée(s)") or "") .. ")")
 end
 
+-- La garde de la tenue (fiche 13) : marque un homme équipé « à rhabiller » ; le battement lui fera remettre ses pièces,
+-- par le chemin du chargement (journal, second passage, accroche). Rend vrai s'il est marqué.
+local function marquer_a_rhabiller(f)
+  local e = f.equipement
+  if e and (e.etat == "pret" or e.etat == "a_completer") then
+    e.etat = "a_rhabiller"
+    return true
+  end
+  return false
+end
+
 -- Second passage, au battement suivant (V71 c : un seul passage juste après la création ou la remise ne fait pas tout
 -- porter ; un second complète la tenue, un troisième ne change rien). Puis l'accroche « après le rhabillage ».
 local function completer(d, f)
@@ -807,7 +821,26 @@ local function en_bataille()
   return Scriptorium.bataille ~= nil and #Scriptorium.bataille.bandes() > 0
 end
 
--- Un homme par battement, jamais en bataille. Rend vrai si un homme a été équipé ou rhabillé.
+-- La garde de la tenue ne touche pas un homme (fiche 13, réponse 2 a de JoVenGer) : au lit (sa place est un lit ; la
+-- sortie du lit le rhabillera), sous une tenue qui le veut dévêtu (le bain : « ne_pas_rhabiller »), en combat ou en
+-- conversation. Rend la raison, ou nil.
+local function garde_suspendue(id, f)
+  local a = hommes.activite_de(id, jeu().heure_du_jeu())
+  if a and a.lieu and camp().sorte_de(a.lieu) == "lit" then
+    return "au lit"
+  end
+  if a and a.ne_pas_rhabiller then
+    return "tenu dévêtu (" .. tostring(a.regle) .. ")"
+  end
+  local occupe = f.personnage and jeu().occupation_de(f.personnage)
+  if occupe then
+    return "en " .. occupe
+  end
+  return nil
+end
+
+-- Un homme par battement, jamais en bataille ; un homme que la garde ne doit pas toucher attend son tour (fiche 13).
+-- Rend l'identifiant de l'homme équipé ou rhabillé, ou faux.
 local function equiper_un_homme(d)
   if en_bataille() then
     return false
@@ -819,19 +852,47 @@ local function equiper_un_homme(d)
         choisir_l_equipement(d, f)
       end
       local etat = f.equipement and f.equipement.etat
-      if etat == "a_equiper" then
-        equiper(d, f)
-        return true
-      elseif etat == "a_rhabiller" then
-        rhabiller(d, f)
-        return true
-      elseif etat == "a_completer" then
-        completer(d, f)
-        return true
+      -- La garde n'est lue que pour un homme qui a quelque chose à faire (elle interroge l'arbitre).
+      local a_faire = etat == "a_equiper" or etat == "a_rhabiller" or etat == "a_completer"
+      if a_faire and not garde_suspendue(id, f) then
+        if etat == "a_equiper" then
+          equiper(d, f)
+        elseif etat == "a_rhabiller" then
+          rhabiller(d, f)
+        else
+          completer(d, f)
+        end
+        return id
       end
     end
   end
   return false
+end
+
+-- La garde de la tenue, en tournant (fiche 13, réponse 2 a de JoVenGer) : « tenue_garde_par_battement » hommes prêts,
+-- chacun à son tour, remettent leurs propres pièces, sans rien créer ni rien ôter (remettre une pièce portée ne l'ôte pas,
+-- V71 c), en silence : compté au rapport, pas au journal. Jamais en bataille ; un homme que la garde ne doit pas toucher
+-- est sauté, comme celui que le rhabillage vient de traiter dans ce battement (« deja »). Rend le nombre d'hommes repassés.
+hommes.garde_de_la_tenue_rang = 0
+
+local function garder_les_tenues(d, deja)
+  if en_bataille() or #d.ordre == 0 then
+    return 0
+  end
+  local repasses, vus = 0, 0
+  local voulus = math.max(0, math.floor(tonumber(hommes.reglages.tenue_garde_par_battement) or 0))
+  while repasses < voulus and vus < #d.ordre do
+    hommes.garde_de_la_tenue_rang = hommes.garde_de_la_tenue_rang % #d.ordre + 1
+    vus = vus + 1
+    local id = d.ordre[hommes.garde_de_la_tenue_rang]
+    local f = d.liste[id]
+    if id ~= deja and f.personnage and f.equipement and f.equipement.etat == "pret" and jeu().personnage_existe(f.personnage)
+        and not garde_suspendue(id, f) then
+      jeu().faire_porter(f.personnage, liste_portee(f))
+      repasses = repasses + 1
+    end
+  end
+  return repasses
 end
 
 -- ---------------------------------------------------------------- embauche
@@ -1182,6 +1243,7 @@ function hommes.activite_de(id, heure)
   if tenue then
     resultat.regle, resultat.activite, resultat.lieu = regle, tenue.activite, tenue.lieu
     resultat.position, resultat.cap, resultat.fin = tenue.position, tenue.cap, tenue.fin
+    resultat.ne_pas_rhabiller = tenue.ne_pas_rhabiller
     return resultat
   end
   if hommes.reglages.journee_du_socle == false then
@@ -1464,27 +1526,35 @@ local function regler_les_cerveaux(d)
   return ecrits
 end
 
--- Le plafond de relances (fiche 15, V73 b 2) : le compteur des arrêts du switch (scriptorium_vie_arrets) vu au dernier
--- battement, par personnage ; en mémoire seulement, remis à zéro au réveil comme le cerveau.
+-- Les compteurs du switch vus au dernier battement, par personnage (en mémoire seulement, remis à zéro au réveil comme
+-- le cerveau) : les arrêts du plafond de relances (fiche 15, V73 b 2) ; les fins de combat et les lancements de la vie
+-- du camp (la garde de la tenue, fiche 13).
 hommes.arrets_vus = {}
+hommes.fins_de_combat_vues = {}
+hommes.lancements_vus = {}
 
--- Une ligne au journal par hausse du compteur des arrêts, chez chaque homme et chez le Directeur. Rend le nombre
--- d'arrêts nouveaux.
-local function surveiller_les_relances(d)
+local COMPTEURS_DU_SWITCH = { "scriptorium_vie_arrets", "scriptorium_fins_de_combat", "scriptorium_essai_rejoint" }
+
+-- Une ligne au journal par hausse du compteur des arrêts, chez chaque homme et chez le Directeur ; un homme équipé dont
+-- un combat vient de finir (le signal direct du switch), ou dont la vie du camp a été relancée (le filet), est marqué
+-- « à rhabiller » (la garde de la tenue). Le premier relevé après le réveil ne marque personne : le réveil rhabille déjà.
+-- Rend (arrêts nouveaux, hommes marqués).
+local function surveiller_les_cerveaux(d)
   local suivis = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     if f.personnage then
-      table.insert(suivis, { qui = f.personnage, nom = f.nom })
+      table.insert(suivis, { qui = f.personnage, nom = f.nom, fiche = f })
     end
   end
   local du_directeur = Scriptorium.directeur and Scriptorium.directeur.personnage()
   if du_directeur then
     table.insert(suivis, { qui = du_directeur, nom = "Directeur" })
   end
-  local nouveaux = 0
+  local nouveaux, marques = 0, 0
   for _, s in ipairs(suivis) do
-    local arrets = tonumber(jeu().lire_le_cerveau(s.qui, { "scriptorium_vie_arrets" }).scriptorium_vie_arrets)
+    local lus = jeu().lire_le_cerveau(s.qui, COMPTEURS_DU_SWITCH)
+    local arrets = tonumber(lus.scriptorium_vie_arrets)
     if arrets then
       local vus = hommes.arrets_vus[s.qui] or 0
       if arrets > vus then
@@ -1493,8 +1563,28 @@ local function surveiller_les_relances(d)
       end
       hommes.arrets_vus[s.qui] = arrets
     end
+    local fins, lancements = tonumber(lus.scriptorium_fins_de_combat), tonumber(lus.scriptorium_essai_rejoint)
+    local raison = nil
+    if fins then
+      local vues = hommes.fins_de_combat_vues[s.qui]
+      if vues and fins > vues then
+        raison = "fin de combat"
+      end
+      hommes.fins_de_combat_vues[s.qui] = fins
+    end
+    if lancements then
+      local vus = hommes.lancements_vus[s.qui]
+      if vus and lancements > vus then
+        raison = raison or "vie du camp relancée"
+      end
+      hommes.lancements_vus[s.qui] = lancements
+    end
+    if raison and s.fiche and marquer_a_rhabiller(s.fiche) then
+      marques = marques + 1
+      jeu().journal("Hommes : « " .. s.nom .. " » à rhabiller (" .. raison .. ")")
+    end
   end
-  return nouveaux
+  return nouveaux, marques
 end
 
 -- L'ordre d'un homme, seulement quand son activité change : un geste (fiche 15, V73 a), plus de téléportation ; sinon,
@@ -1510,6 +1600,11 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours)
   if f.derniere_activite ~= resume then
     local position, objet, sorte = but_de(a)
     jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte)
+    -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
+    local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
+    if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
+      marquer_a_rhabiller(f)
+    end
     f.derniere_activite = resume
     local garde = hommes.suivi[id]
     hommes.suivi[id] = { reste = nil, bloque_s = 0, secours = (garde and garde.resume == resume) and garde.secours or 0,
@@ -1527,9 +1622,10 @@ end
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
-  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0, arrets = 0 }
+  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0, arrets = 0,
+                    a_rhabiller = 0, tenues = 0 }
   rapport.cerveaux = regler_les_cerveaux(d)
-  rapport.arrets = surveiller_les_relances(d)
+  rapport.arrets, rapport.a_rhabiller = surveiller_les_cerveaux(d)
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -1593,12 +1689,14 @@ function hommes.battre()
   for _, id in ipairs(d.ordre) do
     ordonner_un_homme(d, id, heure, rapport, false)
   end
-  if equiper_un_homme(d) then
+  local equipe = equiper_un_homme(d)
+  if equipe then
     rapport.equipes = rapport.equipes + 1
     rapport.changements = rapport.changements + 1
   end
+  rapport.tenues = garder_les_tenues(d, equipe)
   d.derniere_heure = heure
-  if rapport.changements > 0 then
+  if rapport.changements > 0 or rapport.a_rhabiller > 0 then
     enregistrer()
   end
   return rapport
@@ -1615,7 +1713,7 @@ end
 
 local function memes_tenues(a, b)
   return a.activite == b.activite and a.lieu == b.lieu and a.cap == b.cap and a.fin == b.fin
-    and memes_points(a.position, b.position)
+    and a.ne_pas_rhabiller == b.ne_pas_rhabiller and memes_points(a.position, b.position)
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -1646,8 +1744,9 @@ function hommes.tenir(id, regle, quoi)
   end
   f.tenues = f.tenues or {}
   local avant = f.tenues[regle]
+  -- « ne_pas_rhabiller » : une règle qui veut l'homme dévêtu (le bain) ; la garde de la tenue le saute (fiche 13).
   local tenue = { activite = quoi.activite, lieu = quoi.lieu, position = quoi.position, cap = quoi.cap, fin = fin,
-                  depuis = avant and avant.depuis or heure }
+                  depuis = avant and avant.depuis or heure, ne_pas_rhabiller = (quoi.ne_pas_rhabiller == true) or nil }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
@@ -1699,6 +1798,29 @@ function hommes.exempter(id, regle, oui)
   return true
 end
 
+-- Service pour le guichet (fiche 13, proposé par le pair) : rhabiller cet homme maintenant (sortie du bain, achat à la
+-- forge, changement de grade) : il remet ses propres pièces aussitôt (le second passage et l'accroche suivent au
+-- battement) ; au lit, au bain ou en combat, il est seulement marqué, pour quand la garde pourra le toucher.
+function hommes.rhabiller(id)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if not (f.equipement and f.personnage) then
+    return refuser("sans_equipement", f.nom)
+  end
+  local raison = garde_suspendue(id, f)
+  if raison then
+    f.equipement.etat = "a_rhabiller"
+    jeu().journal("Hommes : « " .. f.nom .. " » sera rhabillé plus tard (" .. raison .. ")")
+  else
+    rhabiller(d, f)
+  end
+  enregistrer()
+  return true
+end
+
 -- Service : la règle qui tient l'homme à cette heure (une règle du catalogue, « journee », ou « aucune » quand la
 -- journée du socle est coupée), et son activité ({ regle, activite, lieu, position, cap, fin }). Rend nil si l'homme est
 -- inconnu.
@@ -1737,6 +1859,8 @@ function hommes.relancer()
   hommes.suivi = {}
   hommes.cerveaux_regles = {}
   hommes.arrets_vus = {}
+  hommes.fins_de_combat_vues = {}
+  hommes.lancements_vus = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     f.derniere_activite = nil

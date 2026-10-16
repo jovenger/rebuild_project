@@ -17,6 +17,8 @@
       <Variable form="single" isPersistent="0" name="fenetre_ms" type="_int" values="" />
       <Variable form="single" isPersistent="0" name="fenetre_max_ms" type="_int" values="" />
       <Variable form="single" isPersistent="0" name="arret_dit" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="en_combat" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="etait_en_combat" type="_bool" values="" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
@@ -99,6 +101,16 @@
                 <Expression expressions="$etat_de_la_vie = 2" />
               </Sequence>
             </IfCondition>
+            <Expression expressions="$en_combat = false" />
+            <EntityContextCheck context="crime_interruptAttack" target="" saveVersion="2">
+              <Then canSkip="1">
+                <Expression expressions="$en_combat = true" />
+              </Then>
+            </EntityContextCheck>
+            <IfCondition condition="$etait_en_combat &amp; ~$en_combat" failOnCondition="false">
+              <Expression expressions="$scriptorium_fins_de_combat = $scriptorium_fins_de_combat + 1" />
+            </IfCondition>
+            <Expression expressions="$etait_en_combat = $en_combat" />
             <Wait timeType="GameTime" duration="$tour" doFail="false" variation="" skipInLOD="false" />
           </Sequence>
         </While>

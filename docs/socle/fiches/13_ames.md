@@ -514,6 +514,31 @@
    battement en tournant ; jamais au lit, au bain ni en combat (Recommandé) ; (b) seulement en tournant, un homme par
    battement ; (c) seulement à la fin d'un combat.
 - Relu par le pair le 16/10 : la garde est la bonne recommandation ; ses apports sont dans la section ci-dessus.
+- **Réponses de JoVenGer (16/10)** : 1 (a) la garde de la tenue ; 2 (a) à la fin d'un combat (la relance en filet), à la
+  sortie du lit, et un homme par battement en tournant ; jamais au lit, au bain ni en combat.
+
+### La garde de la tenue, faite (16/10)
+- **Le switch** compte les fins de combat (`scriptorium_fins_de_combat`) au front descendant du contexte de combat, lu à
+  chaque tour (contrôlé au banc statique).
+- **Le battement** relit, par homme, les arrêts, les fins de combat et les lancements (un seul appel) ; une fin de combat,
+  ou une relance en filet, marque l'homme « à rhabiller » (une ligne au journal) ; le premier relevé après le réveil ne
+  marque personne. **La sortie du lit** marque de même. Le rhabillage du chargement fait le reste, dans le même
+  battement si l'homme est libre (la ligne « a remis ses affaires », le second passage, l'accroche).
+- **En tournant** : `tenue_garde_par_battement` (1) homme prêt par battement remet ses pièces en silence (compté au
+  rapport du battement) ; l'homme que le rhabillage vient de traiter est sauté.
+- **Jamais** : au lit (sa place est un lit), sous une tenue « ne pas rhabiller » (le bain), en combat ou en conversation ;
+  l'homme attend son tour, et un homme embauché la nuit, déjà au lit, est équipé à son lever. La garde n'est lue que
+  pour un homme qui a quelque chose à faire (elle interroge l'arbitre).
+- **Service du guichet** : `hommes.rhabiller(id)`, aussitôt si l'homme est libre, sinon marqué pour plus tard.
+- Banc : 2 544 vérifications ; garde-fous éprouvés par erreurs injectées (la sortie du lit, l'exception du lit).
+- **Grille de l'essai en jeu, écrite avant la séance** (`playline3`, secours coupé ; les trois hommes équipés, ce qui
+  prend environ 3 min, un homme par battement et deux passages chacun ; puis assis au feu) :
+  1. le premier attaque le brigand posé hors du camp ; le combat fini, au journal « à rhabiller (fin de combat) » puis
+     « a remis ses affaires », et à l'image il est habillé dans la minute → bon ;
+  2. les autres, laissés assis 5 min, captures toutes les 90 s : jamais dévêtus plus d'un tour (un tour de 3 hommes,
+     90 s) → bon ;
+  3. un homme dévêtu après « a remis ses affaires » → la remise ne rhabille pas en jeu : lire le journal et la tenue de
+     l'homme, un seul changement.
 
 ## Essais prévus (un changement chacun, partie d'essai `playline3`)
 - **V70** : les hommes du camp nés sur nos âmes (notre cerveau, soldats du jeu, classe 33, faction provisoire du

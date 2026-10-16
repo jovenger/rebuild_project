@@ -855,6 +855,111 @@ essai("équipement : famille inconnue refusée ; sans famille, une des six est t
   egal(hommes.equipement.familles[famille] ~= nil, true, "une des six familles")
 end)
 
+-- Fiche 13, la garde de la tenue (réponses a et a de JoVenGer du 16/10) : le moteur ôte parfois sa tenue à un homme en
+-- pleine partie ; le socle lui fait remettre ses propres pièces.
+local function lignes_contenant(texte)
+  local n = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, texte, 1, true) then n = n + 1 end
+  end
+  return n
+end
+
+local function etat_de(id)
+  return hommes.fiche(id).equipement.etat
+end
+
+-- Des hommes équipés de jour (un homme embauché la nuit est au lit : la garde attend qu'il se lève pour l'équiper),
+-- puis l'heure voulue.
+local function homme_equipe(heure, n)
+  preparer(800, 10, 10)
+  local ids = {}
+  for _ = 1, n or 1 do
+    table.insert(ids, hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 }))
+  end
+  for _ = 1, 2 * #ids do
+    hommes.battre()
+  end
+  for _, id in ipairs(ids) do
+    egal(etat_de(id), "pret", "équipé : " .. id)
+  end
+  FauxJeu.heure = heure
+  return ids
+end
+
+essai("garde de la tenue (fiche 13) : une fin de combat, ou une relance en filet, fait remettre ses pièces à l'homme", function()
+  local id = homme_equipe(10)[1]
+  local f = hommes.fiche(id)
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_fins_de_combat = 0, scriptorium_essai_rejoint = 1 }
+  egal(hommes.battre().a_rhabiller, 0, "premier relevé : personne n'est marqué")
+  local remis = lignes_contenant("« " .. f.nom .. " » a remis ses affaires")
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_fins_de_combat = 1, scriptorium_essai_rejoint = 1 }
+  egal(hommes.battre().a_rhabiller, 1, "une fin de combat : marqué")
+  egal(lignes_contenant("à rhabiller (fin de combat)"), 1, "dit au journal")
+  egal(lignes_contenant("« " .. f.nom .. " » a remis ses affaires"), remis + 1, "ses pièces remises dans le même battement")
+  egal(etat_de(id), "a_completer", "le second passage suivra")
+  hommes.battre()
+  egal(etat_de(id), "pret", "prêt de nouveau")
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_fins_de_combat = 1, scriptorium_essai_rejoint = 2 }
+  egal(hommes.battre().a_rhabiller, 1, "une relance de sa vie du camp, en filet : marqué")
+  egal(lignes_contenant("à rhabiller (vie du camp relancée)"), 1, "dit au journal")
+end)
+
+essai("garde de la tenue : jamais au lit ; la sortie du lit fait remettre ses pièces", function()
+  local id = homme_equipe(23)[1]
+  local f = hommes.fiche(id)
+  hommes.battre()
+  egal(camp.sorte_de(hommes.activite_de(id, 23).lieu), "lit", "la nuit, dans son lit")
+  local remis = lignes_contenant("« " .. f.nom .. " » a remis ses affaires")
+  for _ = 1, 3 do
+    egal(hommes.battre().tenues, 0, "au lit, la garde ne le touche pas")
+  end
+  egal(etat_de(id), "pret", "au lit, rien n'est marqué")
+  FauxJeu.heure = 29.5
+  hommes.battre()
+  egal(lignes_contenant("« " .. f.nom .. " » a remis ses affaires"), remis + 1, "levé : ses pièces remises (la sortie du lit)")
+  hommes.battre()
+  egal(etat_de(id), "pret", "prêt")
+  -- La nuit suivante, le service du guichet : au lit, l'homme est seulement marqué, puis rhabillé à son lever.
+  FauxJeu.heure = 47
+  hommes.battre()
+  verifier(hommes.rhabiller(id), "le service du guichet répond")
+  egal(lignes_contenant("sera rhabillé plus tard (au lit)"), 1, "au lit, il est seulement marqué")
+  egal(etat_de(id), "a_rhabiller", "marqué")
+  hommes.battre()
+  egal(lignes_contenant("« " .. f.nom .. " » a remis ses affaires"), remis + 1, "toujours au lit : rien de remis")
+end)
+
+essai("garde de la tenue : en tournant, un homme par battement, en silence ; ni au bain, ni en combat", function()
+  local ids = homme_equipe(10, 3)
+  local remis = lignes_contenant("a remis ses affaires")
+  local vus = {}
+  for _ = 1, 3 do
+    egal(hommes.battre().tenues, 1, "un homme repassé par battement")
+    vus[FauxJeu.dernier_porter.personnage] = true
+  end
+  local n = 0
+  for _ in pairs(vus) do n = n + 1 end
+  egal(n, 3, "chacun à son tour")
+  egal(lignes_contenant("a remis ses affaires"), remis, "rien n'est dit au journal")
+  -- Au bain (une tenue qui le veut dévêtu) ou en combat : sauté, jusqu'à la fin de la tenue ou du combat.
+  hommes.tenir(ids[1], "bains", { activite = "bain", lieu = "bains_essai", position = camp.point(5, 5, 0), fin = 11,
+                                  ne_pas_rhabiller = true })
+  FauxJeu.occupations[hommes.fiche(ids[2]).personnage] = "combat"
+  for _ = 1, 3 do
+    hommes.battre()
+    egal(FauxJeu.dernier_porter.personnage, hommes.fiche(ids[3]).personnage, "seul le troisième est repassé")
+  end
+  verifier(hommes.rhabiller(ids[1]), "le service répond au bain")
+  egal(lignes_contenant("sera rhabillé plus tard (tenu dévêtu (bains))"), 1, "au bain, seulement marqué")
+  hommes.lacher(ids[1], "bains")
+  FauxJeu.occupations[hommes.fiche(ids[2]).personnage] = nil
+  hommes.battre()
+  egal(lignes_contenant("« " .. hommes.fiche(ids[1]).nom .. " » a remis ses affaires"), 1, "sorti du bain : ses pièces remises")
+  verifier(hommes.rhabiller(ids[2]), "le service rhabille aussitôt un homme libre")
+  egal(lignes_contenant("« " .. hommes.fiche(ids[2]).nom .. " » a remis ses affaires"), 1, "aussitôt")
+end)
+
 essai("équipement : archer, pavoisier et arbalétrier selon leur palier ; gens de métier sans rien", function()
   preparer(300, 10, 10)
   local archer = hommes.embaucher({ role = "archer", semaines = 4, palier = 3 })
