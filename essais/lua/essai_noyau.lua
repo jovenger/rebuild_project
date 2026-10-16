@@ -196,20 +196,20 @@ essai("socle : l'entrée en partie repose les minuteries, éteint les anciennes,
   Scriptorium.registre.enregistrer()
   Scriptorium.registre.lire("essai_partie").n = 5
   FauxJeu.entrer_en_partie()
-  egal(#FauxJeu.minuteries, 8, "quatre minuteries reposées")
+  egal(#FauxJeu.minuteries, 9, "quatre minuteries reposées, et le guetteur")
   egal(Scriptorium.registre.lire("essai_partie").n, 1, "registre relu depuis la sauvegarde (V5) : la modification non enregistrée a disparu")
-  for _ = 1, 8 do
+  for _ = 1, 9 do
     FauxJeu.tic_minuterie()
   end
-  egal(#FauxJeu.minuteries, 4, "les quatre anciennes se sont éteintes, les quatre neuves tournent")
+  egal(#FauxJeu.minuteries, 5, "les quatre anciennes se sont éteintes, les quatre neuves et le guetteur tournent")
   egal(lignes_avec("entrée en partie, minuteries reposées"), 1, "noté au journal")
   FauxJeu.sortir_de_partie()
-  for _ = 1, 4 do
+  for _ = 1, 5 do
     FauxJeu.tic_minuterie()
   end
   egal(#FauxJeu.minuteries, 0, "hors partie, plus rien ne tourne")
   FauxJeu.entrer_en_partie()
-  egal(#FauxJeu.minuteries, 4, "une nouvelle entrée repose les quatre")
+  egal(#FauxJeu.minuteries, 5, "une nouvelle entrée repose les quatre, et le guetteur")
   Scriptorium.arreter_le_battement()
 end)
 
@@ -246,4 +246,39 @@ essai("noyau : le hasard reste juste en simple précision et prend toute graine 
   local u = Scriptorium.bataille.tirage()
   verifier(u >= 0 and u < 1, "tirage depuis une ancienne graine")
   verifier(Scriptorium.hasard_en_ordre(Scriptorium.registre.lire("bataille").graine), "ancienne graine convertie")
+end)
+
+essai("socle : le réveil attend, la partie d'abord prête ; le guetteur note un chargement qui ne finit pas", function()
+  depart()
+  Scriptorium.demarrer()
+  Scriptorium.noyau.reglages.delai_du_reveil_s = 30
+  FauxJeu.entrer_en_partie()
+  Scriptorium.bandeau.battre()
+  egal(FauxJeu.en_ecran, nil, "rien d'annoncé pendant l'attente")
+  egal(Scriptorium.reveil_en_attente, true, "réveil en attente")
+  verifier(Scriptorium.battre().saute, "le battement ne fait rien pendant l'attente")
+  egal(lignes_avec("réveil dans 30 s"), 1, "attente notée au journal")
+  -- Les minuteries tournent dans l'ordre : celles du démarrage, puis battement, guetteur et réveil.
+  local reveille = false
+  for _ = 1, 12 do
+    FauxJeu.tic_minuterie()
+    if not Scriptorium.reveil_en_attente then reveille = true break end
+  end
+  verifier(reveille, "le réveil vient à sa minuterie")
+  Scriptorium.bandeau.battre()
+  egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "socle annoncé prêt après le réveil")
+  -- Le guetteur : un chargement qui ne finit pas, noté une fois au-delà de 10 s (cinq secondes par tour).
+  FauxJeu.chargement = true
+  for _ = 1, 30 do
+    FauxJeu.tic_minuterie()
+  end
+  egal(lignes_avec("GUET, le jeu charge encore"), 1, "noté une seule fois")
+  verifier(lignes_avec("GUET, Henry") >= 1, "ce qui entoure Henry, noté")
+  FauxJeu.chargement = false
+  for _ = 1, 10 do
+    FauxJeu.tic_minuterie()
+  end
+  egal(lignes_avec("GUET, le chargement a fini"), 1, "fin du chargement notée")
+  Scriptorium.arreter_le_battement()
+  FauxJeu.sortir_de_partie()
 end)

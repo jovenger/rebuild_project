@@ -208,6 +208,16 @@
   retarder le réveil du socle à l'entrée en partie (camp redressé, hommes rhabillés, ordres redonnés) de 30 s, Henry
   jouable, comme Scriptorium qui n'agit qu'une fois la partie vraiment prête : question à JoVenGer.
 
+## Réveil différé et guetteur (réponse de JoVenGer du 16/10, « les deux »)
+- **Réveil différé** : à l'entrée en partie, le noyau attend `Scriptorium.noyau.reglages.delai_du_reveil_s` (30 s,
+  réglable, section « socle » du catalogue) avant de relancer les morceaux (camp redressé, hommes rhabillés, ordres
+  redonnés, socle annoncé prêt) ; pendant l'attente, le battement ne fait rien. Au banc, 0 s (posé par le faux jeu),
+  et un essai dédié vérifie l'attente.
+- **Guetteur** : toutes les 5 s, `Game.IsLoadingEngineSaveGame()` ; vrai depuis plus de `guet_du_chargement_s` (10 s,
+  réglable) : une note « Socle : GUET » au journal (depuis quand, génération, réveil en attente, heure du jeu, ce qui
+  entoure Henry dans 15 m), puis une note quand le chargement finit. On ne sait pas encore si cet indice est vrai
+  pendant nos écrans noirs : le guetteur le dira.
+
 ## Questions à JoVenGer (après relecture par la conversation Scriptorium)
 1. **Les relations de la Compagnie** : (a) celles du chien et du cheval d'Henry (Recommandé : réglage du jeu déjà
    éprouvé pour les compagnons d'Henry, valable sur les deux cartes) ; (b) les mêmes, et ennemie de tous les ennemis du jeu (dont les bandits des

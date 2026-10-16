@@ -17,6 +17,15 @@ Scriptorium.demarre = Scriptorium.demarre or false
 Scriptorium.cadence_du_battement_ms = 30000
 Scriptorium.generation = Scriptorium.generation or 0   -- change à chaque entrée et sortie de partie
 Scriptorium.en_partie = Scriptorium.en_partie or false
+-- Les valeurs du noyau, réglables (section « socle » du catalogue de reglages.lua). Réponse de JoVenGer du 16/10/2026,
+-- sur le conseil de la conversation Scriptorium après les écrans noirs de V72 : « delai_du_reveil_s », à l'entrée en
+-- partie, le socle attend tant de secondes, Henry jouable, avant de relancer ses morceaux (camp redressé, hommes
+-- rhabillés, ordres redonnés ; 0 = tout de suite) ; « guet_du_chargement_s », au-delà, un chargement qui ne finit pas
+-- est noté au journal avec les positions autour d'Henry.
+Scriptorium.noyau = Scriptorium.noyau or {}
+Scriptorium.noyau.reglages = Scriptorium.noyau.reglages or { delai_du_reveil_s = 30, guet_du_chargement_s = 10 }
+Scriptorium.cadence_du_guet_ms = 5000
+Scriptorium.reveil_en_attente = false
 -- L'ordre dans lequel les morceaux battent (ceux qui ont une fonction battre).
 Scriptorium.ordre_du_battement = { "bataille", "hommes", "discipline", "directeur", "enceinte", "atelier", "patrouilles" }
 
@@ -86,6 +95,26 @@ function Scriptorium.entrer_en_partie()
   end
   Scriptorium.battement_lance = false
   Scriptorium.lancer_le_battement()
+  Scriptorium.lancer_le_guet()
+  local delai = tonumber(Scriptorium.noyau.reglages.delai_du_reveil_s) or 0
+  if delai > 0 then
+    Scriptorium.reveil_en_attente = true
+    local generation = Scriptorium.generation
+    journal("Socle : réveil dans " .. delai .. " s, la partie d'abord prête")
+    jeu().minuterie(delai * 1000, function()
+      if generation == Scriptorium.generation then
+        Scriptorium.reveiller()
+      end
+    end)
+  else
+    Scriptorium.reveiller()
+  end
+end
+
+-- Le réveil : chaque morceau relancé (camp redressé, hommes rhabillés, ordres redonnés…), puis le joueur apprend que
+-- le socle est prêt.
+function Scriptorium.reveiller()
+  Scriptorium.reveil_en_attente = false
   for _, morceau in ipairs(Scriptorium.morceaux) do
     local table_du_morceau = Scriptorium[morceau.nom]
     if morceau.pret and type(table_du_morceau) == "table" and type(table_du_morceau.relancer) == "function" then
@@ -109,6 +138,7 @@ end
 function Scriptorium.sortir_de_partie()
   Scriptorium.generation = Scriptorium.generation + 1
   Scriptorium.en_partie = false
+  Scriptorium.reveil_en_attente = false
   Scriptorium.battement_lance = false
   for _, morceau in ipairs(Scriptorium.morceaux) do
     local table_du_morceau = Scriptorium[morceau.nom]
@@ -132,7 +162,7 @@ end
 -- Un morceau qui casse ne bloque pas les autres.
 function Scriptorium.battre()
   local rapport = { morceaux = {}, erreurs = 0 }
-  if jeu().partie_en_cours and not jeu().partie_en_cours() then
+  if (jeu().partie_en_cours and not jeu().partie_en_cours()) or Scriptorium.reveil_en_attente then
     rapport.saute = true
     return rapport
   end
@@ -169,6 +199,40 @@ end
 
 function Scriptorium.arreter_le_battement()
   Scriptorium.battement_lance = false
+end
+
+-- Le guetteur (réponse de JoVenGer du 16/10/2026) : toutes les cinq secondes, le jeu croit-il encore charger une
+-- sauvegarde ? Au-delà de « guet_du_chargement_s », une seule note au journal : depuis quand, la génération, si le
+-- réveil attend, l'heure du jeu, et ce qui entoure Henry. Les dernières actions du socle sont juste au-dessus.
+function Scriptorium.lancer_le_guet()
+  local generation = Scriptorium.generation
+  local tours, note = 0, false
+  local function guet()
+    if generation ~= Scriptorium.generation or not Scriptorium.en_partie then
+      return
+    end
+    local charge = jeu().chargement_en_cours and jeu().chargement_en_cours()
+    if charge then
+      tours = tours + 1
+      local secondes = tours * Scriptorium.cadence_du_guet_ms / 1000
+      if not note and secondes >= (tonumber(Scriptorium.noyau.reglages.guet_du_chargement_s) or 10) then
+        note = true
+        journal("Socle : GUET, le jeu charge encore depuis " .. secondes .. " s ; génération " .. generation
+                .. ", réveil en attente = " .. tostring(Scriptorium.reveil_en_attente) .. ", heure du jeu "
+                .. tostring(jeu().heure_du_jeu and jeu().heure_du_jeu()))
+        for _, ligne in ipairs(jeu().voisins_d_henry and jeu().voisins_d_henry(15, 20) or {}) do
+          journal("Socle : GUET, " .. ligne)
+        end
+      end
+    else
+      if note then
+        journal("Socle : GUET, le chargement a fini")
+      end
+      tours, note = 0, false
+    end
+    jeu().minuterie(Scriptorium.cadence_du_guet_ms, guet)
+  end
+  jeu().minuterie(Scriptorium.cadence_du_guet_ms, guet)
 end
 
 -- Le hasard du socle, gardé au registre par chaque morceau qui en a besoin (Wichmann et Hill, 1982 : trois suites

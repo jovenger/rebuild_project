@@ -140,6 +140,9 @@ function faux.lire_reglages()
   return nil
 end
 function faux.ecouter_la_partie(entree, sortie) faux.ecoute_partie = { entree = entree, sortie = sortie } end
+-- Le guetteur du noyau : un chargement qui ne finit pas (faux.chargement), et ce qui entoure Henry.
+function faux.chargement_en_cours() return faux.chargement == true end
+function faux.voisins_d_henry() return { "Henry (0, 0, 0) ; 0 entité(s)" } end
 -- Ce que ferait le jeu : l'événement d'entrée en partie, puis celui de sortie.
 function faux.entrer_en_partie()
   faux.partie = true
@@ -388,5 +391,8 @@ end
 
 Scriptorium = Scriptorium or {}
 Scriptorium.jeu = faux
+-- Au banc, le réveil se fait tout de suite à l'entrée en partie (le noyau garde une table déjà posée) ; l'attente de
+-- 30 s du jeu a son propre essai (essai_noyau.lua).
+Scriptorium.noyau = { reglages = { delai_du_reveil_s = 0, guet_du_chargement_s = 10 } }
 FauxJeu = faux
 return faux

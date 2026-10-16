@@ -2826,6 +2826,16 @@ function liaison.frapper_un_vrai_habitant(devant, points)
     tostring(liaison.faction_de(nom)), pose, coup, tostring(avant), tostring(liaison.sante_de(nom)))
 end
 
+-- Le jeu croit-il encore charger une sauvegarde ? (Game.IsLoadingEngineSaveGame, Scripts/Entities/Others/RuntimePrefab.lua :
+-- seul indice du Lua du jeu, V72) ; nil si l'appel manque. Pour le guetteur du noyau.
+function liaison.chargement_en_cours()
+  local ok, oui = pcall(function() return Game.IsLoadingEngineSaveGame() end)
+  if not ok then
+    return nil
+  end
+  return oui == true or oui == 1
+end
+
 -- V72 c (fiche 14) : l'écran noir. Après un rechargement, la cible de l'archer retrouvée par son nom d'entité.
 function liaison.retrouver_la_cible()
   if not liaison.cible_de_l_archer and entite_nommee("scriptorium_essai_cible") then
