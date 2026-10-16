@@ -263,6 +263,12 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   lit grâce au quart de tour (V73 c 14, fiche 03). La levée courte d'un homme repris assis : cas résiduel accepté par
   JoVenGer (« rien pour l'instant », voie du pair en réserve, fiche 12). **Suite** : V73 b, l'arbitre des priorités, avec
   le plafond de relances du pair ; la première mesure : un ordre d'attaque donné à un homme assis.
+- **V73 b, fiche revue le 16/10** (fiche 15, section « V73 b », commit 7ac7a62) : trois pas, chacun vu en jeu avant le
+  suivant. V73 b 1 : la mesure de l'attaque sur un homme assis (commande d'essai, lecture des contextes « occupé », le
+  secours figé en combat ; grille écrite) ; V73 b 2 : le plafond de relances, dans le switch, ligne au journal par le
+  Lua ; V73 b 3 : l'arbitre par tenues (une par règle, rangs au catalogue, ordre redonné sur-le-champ, bornes, registre
+  en version 3). **En attente** : la relecture du pair (envoyée), puis les trois questions à cocher à JoVenGer (fin de
+  la section), puis le code de V73 b 1.
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
 - **Écran noir** : 1 sur 26 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
