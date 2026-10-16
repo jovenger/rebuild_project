@@ -1676,6 +1676,27 @@ local function poser_l_ordre(entite, ordre)
   return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
 end
 
+-- Fiche 12 (les valeurs de l'arbre en données) : chaque valeur (nom → entier) dans la variable de cerveau
+-- scriptorium_cerveau_<nom> du personnage, gardée dans la sauvegarde. Rend (vrai si tout est écrit, ligne).
+function liaison.regler_le_cerveau(identifiant, valeurs)
+  local entite = entite_nommee(identifiant)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not entite or not this_lu or type(this) ~= "table" then
+    return false, "cerveau : personnage introuvable ou sans this"
+  end
+  local ecrites, refusees = 0, {}
+  for nom, valeur in pairs(valeurs) do
+    local ecrite, refus = pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_cerveau_" .. nom, valeur)
+    if ecrite then
+      ecrites = ecrites + 1
+    else
+      table.insert(refusees, nom .. " (" .. tostring(refus) .. ")")
+    end
+  end
+  table.sort(refusees)
+  return #refusees == 0, ecrites .. " valeur(s) écrite(s)" .. (#refusees > 0 and (", refusées : " .. table.concat(refusees, ", ")) or "")
+end
+
 -- Fiche 12, révision du 16/10 : l'activité de la vie du camp (variable de cerveau scriptorium_activite : 0 attendre sur
 -- place, 9 marcher au point, 10 s'asseoir, 11 se coucher), puis le compteur d'ordres. La garde du comportement long voit
 -- le compteur changer : l'activité en cours finit du dedans (le jeu joue le geste de se lever), et la boucle prend la
@@ -2334,7 +2355,8 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte)
       local point = liaison.au_sol(position)
       local pose = this_lu and type(this) == "table"
         and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
-      ligne = "marche, point " .. (pose and "posé" or "refusé") .. " ; " .. poser_l_activite(entite, 9)
+      ligne = "marche, point " .. (pose and string.format("posé (%.1f, %.1f)", point.x, point.y) or "refusé") .. " ; "
+        .. poser_l_activite(entite, 9)
     end
   end
   liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ") : " .. ligne)

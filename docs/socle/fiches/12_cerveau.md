@@ -322,11 +322,14 @@
   (`stopWithinDistance` et `stopDistanceVariation` par variable : `AI/crime/continuouslyfollowplayer.xml`,
   `AI/move/moveUtils.xml`) ; un plancher par l'expression conditionnelle `(a &gt;= b ? a : b)`
   (`AI/crime/isPlayerSuspicious.xml`).
+- **Gardées dans la sauvegarde** (précaution du pair : ni trou ni saut au chargement) : la table des variables du jeu
+  n'a pas de valeur de départ, mais elle a `is_persistent="true"` (forme du jeu, jusque sur une variable entière d'essai,
+  `testSaveLoadVar`, `Libs/Tables/ai/brain_variable.xml`). Les variables `scriptorium_cerveau_*` le sont : après un
+  chargement, les valeurs du catalogue sont déjà là, avant même le réveil.
 - **Les planchers de sécurité**, seules valeurs restées dans l'arbre : la garde au moins 100 ms, le tour du switch au
-  moins 500 ms, les seuils de relance au moins 1 tour. Ils ne servent qu'avant la première écriture (après un
-  chargement, pendant le réveil différé) et empêchent la garde de tourner sans attendre. Le plancher de la garde (100 ms)
-  diffère de la valeur du catalogue (500 ms) pour que le relevé dise laquelle est en place : pouls à 10 par seconde
-  avant l'écriture, à 2 après.
+  moins 500 ms, les seuils de relance au moins 1 tour. Ils ne servent qu'en cas d'erreur ou chez un homme né avant le
+  premier battement, et empêchent la garde de tourner sans attendre. Le plancher de la garde (100 ms) diffère de la
+  valeur du catalogue (500 ms) : un pouls à 10 par seconde dirait qu'un plancher est en place.
 - **Restent écrites dans l'arbre, faute de forme du jeu** : la priorité de l'interruption (100) et son urgence ; le
   jeu ne passe jamais une priorité d'`AddInterrupt` par variable (relevé du 16/10). Au rapport à JoVenGer.
 - **Banc** : chaque valeur de `hommes.cerveau` a sa variable de cerveau déclarée et lue par un arbre, et l'inverse ;
@@ -335,7 +338,8 @@
 - **Essai V73 c 9**, critères écrits avant : (1) le jeu ne se plaint pas de nos arbres au journal ; (2) pouls à 2 par
   seconde ; (3) `regler.py cerveau.garde_ms=1000` en pleine partie : pouls à 1 par seconde ; `--retirer` : 2 ; (4)
   `cerveau.marche_arret_cm=50` : levé, l'homme s'arrête à moins de 1 m de son but (2 m avant) ; (5) une levée sans être
-  replacé (non-régression) ; (6) recharger : pouls à 10 par seconde avant le réveil, à 2 après ; (7) l'écran noir.
+  replacé (non-régression) ; (6) sauvegarder avec `garde_ms=1000`, recharger : pouls à 1 par seconde dès l'entrée en
+  partie, avant le réveil (la valeur gardée par la sauvegarde) ; puis `--retirer` : 2 ; (7) l'écran noir.
 
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de

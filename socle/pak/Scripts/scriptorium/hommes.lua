@@ -37,6 +37,24 @@ hommes.reglages = {
   palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
 }
 
+-- Fiche 12 (les valeurs de l'arbre en données, règle de JoVenGer du 14/10) : les valeurs du comportement long et du
+-- switch, en entiers, écrites dans le cerveau de chaque homme et du Directeur (variables scriptorium_cerveau_<nom>,
+-- gardées dans la sauvegarde) ; l'arbre ne garde que des planchers de sécurité.
+hommes.cerveau = {
+  garde_ms = 500,             -- la garde relit l'ordre et fait battre le pouls
+  tour_ms = 2000,             -- un tour du switch
+  sortie_ms = 2000,           -- après une posture, le temps laissé au jeu pour jouer la sortie
+  relance_tours = 3,          -- pouls figé tant de tours, le comportement en marche : relancé
+  file_tours = 30,            -- lancé, jamais commencé depuis tant de tours : relancé
+  marche_delai_ms = 30000,    -- une marche abandonnée au-delà
+  marche_arret_cm = 200,      -- une marche s'arrête à tant du but, plus ou moins l'écart
+  marche_ecart_cm = 50,
+  siege_arret_cm = 10,        -- l'approche d'un siège (posture « sitting »)
+  siege_ecart_cm = 5,
+  lit_arret_cm = 50,          -- l'approche d'un lit (posture « lying »)
+  lit_ecart_cm = 5,
+}
+
 -- Rôles, solde hebdomadaire de base en groschen, et réserve d'âmes où l'homme prend la sienne (fiche 13 : combattants
 -- par palier, gens de métier).
 hommes.roles = {
@@ -1313,10 +1331,58 @@ local function secourir(id, f, a, rapport)
   rapport.secours = (rapport.secours or 0) + 1
 end
 
+-- Les cerveaux réglés depuis le dernier réveil : { [personnage] = signature des valeurs écrites, ou « refus: » suivi de
+-- la signature si l'écriture a échoué (dit une fois au journal, retentée au prochain réveil ou au prochain changement).
+hommes.cerveaux_regles = {}
+
+local function signature_du_cerveau()
+  local cles = {}
+  for cle in pairs(hommes.cerveau) do
+    table.insert(cles, cle)
+  end
+  table.sort(cles)
+  local morceaux = {}
+  for _, cle in ipairs(cles) do
+    table.insert(morceaux, cle .. "=" .. tostring(hommes.cerveau[cle]))
+  end
+  return table.concat(morceaux, ";")
+end
+
+-- Fiche 12 : écrit les valeurs du cerveau chez chaque homme et chez le Directeur dont le personnage est nouveau, ou dont
+-- les valeurs ont changé (réglage par fichier). Rend le nombre de cerveaux écrits.
+local function regler_les_cerveaux(d)
+  local signature = signature_du_cerveau()
+  local personnages = {}
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if f.personnage then
+      table.insert(personnages, f.personnage)
+    end
+  end
+  local du_directeur = Scriptorium.directeur and Scriptorium.directeur.personnage()
+  if du_directeur then
+    table.insert(personnages, du_directeur)
+  end
+  local ecrits = 0
+  for _, qui in ipairs(personnages) do
+    local deja = hommes.cerveaux_regles[qui]
+    if deja ~= signature and deja ~= "refus:" .. signature then
+      local ok, ligne = jeu().regler_le_cerveau(qui, hommes.cerveau)
+      jeu().journal("Hommes : cerveau de « " .. tostring(qui) .. " » : " .. tostring(ligne))
+      hommes.cerveaux_regles[qui] = ok and signature or ("refus:" .. signature)
+      if ok then
+        ecrits = ecrits + 1
+      end
+    end
+  end
+  return ecrits
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
-  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0 }
+  local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0 }
+  rapport.cerveaux = regler_les_cerveaux(d)
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -1424,6 +1490,7 @@ end
 function hommes.relancer()
   local d = donnees()
   hommes.suivi = {}
+  hommes.cerveaux_regles = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     f.derniere_activite = nil

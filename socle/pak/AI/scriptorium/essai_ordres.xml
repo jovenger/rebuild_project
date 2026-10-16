@@ -8,12 +8,20 @@
       <Variable form="single" isPersistent="0" name="pouls_vu" type="_int" values="" />
       <Variable form="single" isPersistent="0" name="tours_figes" type="_int" values="" />
       <Variable form="single" isPersistent="0" name="occupe" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="tour_ms" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="tour" type="_string" values="" />
+      <Variable form="single" isPersistent="0" name="relance_tours" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="file_tours" type="_int" values="" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
         <While condition="true" doFail="false" propagateChildFail="false">
           <Sequence>
             <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
+            <Expression expressions="$tour_ms = ($scriptorium_cerveau_tour_ms &gt;= 500 ? $scriptorium_cerveau_tour_ms : 500)" />
+            <Expression expressions="$tour = concat($tour_ms, &apos;ms&apos;)" />
+            <Expression expressions="$relance_tours = ($scriptorium_cerveau_relance_tours &gt;= 1 ? $scriptorium_cerveau_relance_tours : 1)" />
+            <Expression expressions="$file_tours = ($scriptorium_cerveau_file_tours &gt;= 1 ? $scriptorium_cerveau_file_tours : 1)" />
             <IfCondition condition="$scriptorium_essai_ordre == 8" failOnCondition="false">
               <Sequence>
                 <SuppressFailure>
@@ -51,10 +59,10 @@
                     <Expression expressions="$occupe = true" />
                   </Then>
                 </EntityContextCheck>
-                <IfCondition condition="$etat_de_la_vie == 2 &amp; $tours_figes &gt;= 3 &amp; ~$occupe" failOnCondition="false">
+                <IfCondition condition="$etat_de_la_vie == 2 &amp; $tours_figes &gt;= $relance_tours &amp; ~$occupe" failOnCondition="false">
                   <Expression expressions="$etat_de_la_vie = 0" />
                 </IfCondition>
-                <IfCondition condition="$etat_de_la_vie == 1 &amp; $tours_figes &gt;= 30 &amp; ~$occupe" failOnCondition="false">
+                <IfCondition condition="$etat_de_la_vie == 1 &amp; $tours_figes &gt;= $file_tours &amp; ~$occupe" failOnCondition="false">
                   <Expression expressions="$etat_de_la_vie = 0" />
                 </IfCondition>
               </Sequence>
@@ -66,7 +74,7 @@
                 <Expression expressions="$etat_de_la_vie = 2" />
               </Sequence>
             </IfCondition>
-            <Wait timeType="GameTime" duration="&apos;2s&apos;" doFail="false" variation="" skipInLOD="false" />
+            <Wait timeType="GameTime" duration="$tour" doFail="false" variation="" skipInLOD="false" />
           </Sequence>
         </While>
       </Behavior>

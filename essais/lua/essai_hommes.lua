@@ -318,6 +318,29 @@ essai("hommes : chaque changement de tranche de la journée donne un nouvel ordr
   egal(donnes, #journee, "un ordre par tranche, sur toute la journée")
 end)
 
+-- Fiche 12 (les valeurs de l'arbre en données) : le battement écrit hommes.cerveau dans le cerveau de chaque homme et du
+-- Directeur, une fois, puis seulement après un changement de valeur ou un réveil.
+essai("hommes : les valeurs du cerveau, écrites une fois par personnage, réécrites après un changement ou un réveil", function()
+  preparer(100, 100, 10)
+  hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  verifier(Scriptorium.directeur.installer(), "le Directeur est installé")
+  local homme = hommes.fiche(hommes.liste()[1]).personnage
+  local du_directeur = Scriptorium.directeur.personnage()
+  FauxJeu.cerveaux, FauxJeu.ecritures_du_cerveau = {}, 0
+  egal(hommes.battre().cerveaux, 2, "deux cerveaux écrits : l'homme et le Directeur")
+  egal(FauxJeu.cerveaux[homme] and FauxJeu.cerveaux[homme].garde_ms, hommes.cerveau.garde_ms, "chez l'homme")
+  egal(FauxJeu.cerveaux[du_directeur] and FauxJeu.cerveaux[du_directeur].tour_ms, hommes.cerveau.tour_ms, "chez le Directeur")
+  egal(hommes.battre().cerveaux, 0, "rien de réécrit sans changement")
+  local avant = hommes.cerveau.garde_ms
+  hommes.cerveau.garde_ms = 1000
+  egal(hommes.battre().cerveaux, 2, "réécrits après un changement de réglage")
+  egal(FauxJeu.cerveaux[homme].garde_ms, 1000, "la nouvelle valeur")
+  hommes.cerveau.garde_ms = avant
+  hommes.battre()
+  hommes.relancer()
+  egal(hommes.battre().cerveaux, 2, "réécrits au premier battement après le réveil")
+end)
+
 essai("hommes : à l'entrée en partie, l'ordre en cours est redonné à chacun (V56 : le cerveau perd ses variables)", function()
   preparer(100, 100, 10)
   hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })

@@ -959,11 +959,29 @@ def verifier_la_vie_du_camp():
     for variable in sorted(employees - variables):
         erreur("vie du camp : la variable du cerveau « %s » est employée par nos arbres mais pas déclarée" % variable)
     # V73 c 5 : « 0.5s » ne prend pas (la garde tournait sans attendre) ; les arbres du jeu n'écrivent que des nombres
-    # entiers suivis de ms, s ou m, ou -1 (relevé du 16/10 dans Data/Scripts.pak).
+    # entiers suivis de ms, s ou m, ou -1 (relevé du 16/10 dans Data/Scripts.pak), ou une variable (76 fois).
     for nom, texte in arbres.items():
-        for duree in re.findall(r'duration="&apos;([^&]*)&apos;"', texte):
-            if not re.fullmatch(r"-1|\d+(ms|s|m)", duree):
-                erreur("vie du camp : %s : durée « %s » hors des formes du jeu (entier suivi de ms, s ou m, ou -1)" % (nom, duree))
+        for duree in re.findall(r'duration="([^"]*)"', texte):
+            litterale = re.fullmatch(r"&apos;(-1|\d+(ms|s|m))&apos;", duree)
+            if not litterale and not re.fullmatch(r"\$[a-z_]+", duree):
+                erreur("vie du camp : %s : durée « %s » hors des formes du jeu (entier suivi de ms, s ou m, ou -1, ou une variable)" % (nom, duree))
+    # Fiche 12 (les valeurs de l'arbre en données) : chaque valeur de hommes.cerveau a sa variable de cerveau, déclarée et
+    # gardée dans la sauvegarde, lue par un arbre ; et chaque variable du cerveau lue par un arbre a sa valeur au catalogue.
+    hommes_lua = lire(os.path.join(PAK, "Scripts", "scriptorium", "hommes.lua"))
+    bloc = re.search(r"hommes\.cerveau = \{(.*?)\n\}", hommes_lua, re.S)
+    cles = set(re.findall(r"^\s*([a-z_]+) = \d+", bloc.group(1), re.M)) if bloc else set()
+    if not cles:
+        erreur("vie du camp : la table hommes.cerveau est introuvable ou vide dans hommes.lua")
+    persistantes = set(re.findall(r'brain_variable_name="scriptorium_cerveau_([a-z_]+)" is_persistent="true" type="int"', lire(TABLE_DES_VARIABLES)))
+    lues = set()
+    for texte in arbres.values():
+        lues |= set(re.findall(r"\$scriptorium_cerveau_([a-z_]+)", texte))
+    for cle in sorted(cles - persistantes):
+        erreur("vie du camp : hommes.cerveau.%s n'a pas sa variable scriptorium_cerveau_%s gardée dans la sauvegarde" % (cle, cle))
+    for cle in sorted(cles - lues):
+        erreur("vie du camp : hommes.cerveau.%s n'est lue par aucun arbre" % cle)
+    for cle in sorted(lues - cles):
+        erreur("vie du camp : scriptorium_cerveau_%s est lue par un arbre mais n'est pas dans hommes.cerveau" % cle)
     return len(donnees), len(employees)
 
 

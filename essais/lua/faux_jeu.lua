@@ -54,6 +54,8 @@ function faux.remettre_a_zero()
   faux.temps = 0
   faux.positions = {}
   faux.secours = {}
+  faux.cerveaux = {}
+  faux.ecritures_du_cerveau = 0
   faux.affichages = {}
   faux.en_ecran = nil
   faux.journal_lignes = {}
@@ -232,6 +234,17 @@ function faux.ecart_au_but(identifiant, but)
   local ici = faux.positions and faux.positions[identifiant]
   if not ici or not but then return nil end
   return math.sqrt((ici.x - but.x) ^ 2 + (ici.y - but.y) ^ 2)
+end
+-- Les valeurs du cerveau écrites (fiche 12) : { [identifiant] = copie des valeurs }, et le nombre d'écritures.
+function faux.regler_le_cerveau(identifiant, valeurs)
+  faux.cerveaux = faux.cerveaux or {}
+  faux.ecritures_du_cerveau = (faux.ecritures_du_cerveau or 0) + 1
+  local copie = {}
+  for nom, valeur in pairs(valeurs) do
+    copie[nom] = valeur
+  end
+  faux.cerveaux[identifiant] = copie
+  return true, "écrit"
 end
 function faux.poser_en_secours(identifiant, position)
   faux.secours = faux.secours or {}
