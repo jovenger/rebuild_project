@@ -353,6 +353,24 @@
   lien avec ces variables gardées n'est ni établi ni écarté : c'est le premier rechargement qui en porte, et le premier
   écran noir depuis la séparation.
 
+### Mesuré en V73 c 10 (16/10), et la correction qui en sort
+- Les valeurs gardées par la sauvegarde reviennent saines (garde 1000 ms, tour 2000 ms, lues dans les 30 s après la
+  reprise) ; l'écran noir de V73 c 9 ne revient pas : intermittent (fiche 14).
+- **Tempête de relances avec les planchers** : avec une sauvegarde faite avant ces valeurs (valeurs à zéro jusqu'au
+  réveil), 117 lancements chez trois personnages sur quatre, arrêtés net dès l'écriture des valeurs. Même défaut qu'à la
+  naissance en V73 c 9 : les planchers (1 tour, 500 ms) sont trop bas.
+- **Correction (une seule idée : la valeur par défaut quand rien n'est écrit)** :
+  - l'arbre lit chaque valeur comme « la valeur écrite, ou, si rien n'est écrit (zéro), la valeur par défaut du
+    catalogue » (`(a &gt; 0 ? a : défaut)`) ; le banc vérifie que chaque valeur par défaut écrite dans l'arbre est
+    exactement celle de `hommes.cerveau` (proposition du pair) ; zéro au catalogue vaut donc « par défaut » ;
+  - restent deux planchers contre l'emballement, sur les cadences seulement : la garde au moins 100 ms, le tour du
+    switch au moins 500 ms ;
+  - les variables ne sont plus gardées dans la sauvegarde (conseil du pair, modèle d'Alex) : après un chargement,
+    l'arbre tourne aux valeurs par défaut jusqu'au premier battement après le réveil, qui écrit le catalogue.
+- **Essai V73 c 11**, critères écrits avant : des hommes neufs et une vieille sauvegarde gardent « lancements » à 1 ou 2 ;
+  pouls à 2 par seconde avant comme après le réveil ; `cerveau.garde_ms=1000` : 1 par seconde ; une levée sans être
+  replacé ; l'écran noir, au décompte.
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,

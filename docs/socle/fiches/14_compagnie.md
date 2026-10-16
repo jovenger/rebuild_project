@@ -209,7 +209,8 @@
 | 473 | V73 c 7 (la tenue échoue) | normal |
 | 473, puis un rechargement | V73 c 8 (la levée, enfin) | normal (deux fois) |
 | 473, puis un rechargement | V73 c 9 (variables de cerveau gardées dans la sauvegarde) | normal, puis **noir** à la reprise |
-- Au total : 3 écrans noirs sur 27 chargements ou poses observés ; 1 sur 17 depuis la séparation. **Rien n'est conclu** : il
+| sauvegarde noire de V73 c 9, puis sauvegarde de V73 c 8 | V73 c 10 (même version) | normal (deux fois) |
+- Au total : 3 écrans noirs sur 29 chargements ou poses observés ; 1 sur 19 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
@@ -231,6 +232,11 @@
   on retire `is_persistent`. Noire puis normale : intermittent, compté. c 8 noire aussi : la déclaration ou les arbres
   actuels sont en cause. Les valeurs lues (1000 et 2000 attendues pour la sauvegarde noire) disent si la sauvegarde les
   rend saines. Quel que soit le résultat, le conseil du pair est de revenir ensuite à des variables non gardées.
+- **Mesuré en V73 c 10** : la sauvegarde noire, reprise, donne un écran normal, et les valeurs gardées reviennent saines ;
+  la sauvegarde de V73 c 8 aussi. Selon la règle : **intermittent, compté** (1 sur 19 depuis la séparation). Les
+  variables gardées ne sont pas mises en cause ; elles sont quand même retirées, par prudence (conseil du pair : Alex
+  n'en garde qu'une, le jeu 9 en tout, de types à lui) et parce que la valeur par défaut du catalogue couvre le
+  chargement (fiche 12).
 
 ## Réveil différé et guetteur (réponse de JoVenGer du 16/10, « les deux »)
 - **Réveil différé** : à l'entrée en partie, le noyau attend `Scriptorium.noyau.reglages.delai_du_reveil_s` (30 s,
