@@ -12,5 +12,7 @@
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_essai_siege" type="wuid" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_essai_couche" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_essai_numero" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_activite" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_vie_pouls" type="int" />
   </brain_variables>
 </database>

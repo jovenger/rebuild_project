@@ -1,62 +1,77 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <BehaviorTrees>
-  <BehaviorTree name="scriptorium_aller" is_function="0">
-    <Variables />
-    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
-      <Behavior canSkip="1">
-        <Sequence>
-          <Parallel successMode="Any" failureMode="Any">
-            <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="2.000000" stopDistanceVariation="0.500000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="false" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
-            <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
-          </Parallel>
-          <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
-        </Sequence>
-      </Behavior>
-    </Root>
-    <ForestContainer />
-  </BehaviorTree>
-  <BehaviorTree name="scriptorium_s_asseoir" is_function="0">
+  <BehaviorTree name="scriptorium_vie_du_camp" is_function="0">
     <Variables>
       <Variable name="numero_tenu" type="_int" values="" isPersistent="0" form="single" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
-        <Sequence>
-          <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
-          <Expression expressions="$numero_tenu = $scriptorium_essai_numero" />
-          <EntityContext context="activity_disableSchedulerLooping" target="">
-            <EntityContext context="bench_disableSnooze" target="">
-              <Parallel successMode="Any" failureMode="Any">
-                <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110805" />
-                <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
-                  <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-                </While>
-              </Parallel>
-            </EntityContext>
-          </EntityContext>
-        </Sequence>
-      </Behavior>
-    </Root>
-    <ForestContainer />
-  </BehaviorTree>
-  <BehaviorTree name="scriptorium_se_coucher" is_function="0">
-    <Variables>
-      <Variable name="numero_tenu" type="_int" values="" isPersistent="0" form="single" />
-    </Variables>
-    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
-      <Behavior canSkip="1">
-        <Sequence>
-          <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
-          <Expression expressions="$numero_tenu = $scriptorium_essai_numero" />
-          <EntityContext context="activity_disableSchedulerLooping" target="">
-            <Parallel successMode="Any" failureMode="Any">
-              <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110806" />
-              <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+        <While doFail="false" propagateChildFail="false" condition="true">
+          <Sequence>
+            <Expression expressions="$numero_tenu = $scriptorium_essai_numero" />
+            <SuppressFailure>
+              <Sequence>
+                <IfCondition condition="$scriptorium_activite == 9 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Parallel successMode="Any" failureMode="Any">
+                    <Sequence>
+                      <Parallel successMode="Any" failureMode="Any">
+                        <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="2.000000" stopDistanceVariation="0.500000" successDistance="0.000000" rayCasteFlee="false" changeNPCState="false" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                        <Wait duration="&apos;30s&apos;" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                      </Parallel>
+                      <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                    </Sequence>
+                    <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                      <Sequence>
+                        <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </While>
+                  </Parallel>
+                </IfCondition>
+                <IfCondition condition="$scriptorium_activite == 10 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Sequence>
+                    <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
+                    <EntityContext context="activity_disableSchedulerLooping" target="">
+                      <EntityContext context="bench_disableSnooze" target="">
+                        <Parallel successMode="Any" failureMode="Any">
+                          <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110805" />
+                          <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                            <Sequence>
+                              <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                              <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                            </Sequence>
+                          </While>
+                        </Parallel>
+                      </EntityContext>
+                    </EntityContext>
+                  </Sequence>
+                </IfCondition>
+                <IfCondition condition="$scriptorium_activite == 11 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Sequence>
+                    <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
+                    <EntityContext context="activity_disableSchedulerLooping" target="">
+                      <Parallel successMode="Any" failureMode="Any">
+                        <CallBehavior Target="$scriptorium_essai_siege" BehaviorName="&apos;use&apos;" ignoreDropUnloading="false" nodeLabel="73110806" />
+                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                          <Sequence>
+                            <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                            <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Sequence>
+                        </While>
+                      </Parallel>
+                    </EntityContext>
+                  </Sequence>
+                </IfCondition>
+              </Sequence>
+            </SuppressFailure>
+            <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+              <Sequence>
+                <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
                 <Wait duration="&apos;0.5s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-              </While>
-            </Parallel>
-          </EntityContext>
-        </Sequence>
+              </Sequence>
+            </While>
+          </Sequence>
+        </While>
       </Behavior>
     </Root>
     <ForestContainer />

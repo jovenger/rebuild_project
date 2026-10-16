@@ -4,6 +4,10 @@
     <Variables>
       <Variable form="single" isPersistent="0" name="renseignement" type="information" values="" />
       <Variable form="single" isPersistent="0" name="hote" type="_wuid" values="" />
+      <Variable form="single" isPersistent="0" name="etat_de_la_vie" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="pouls_vu" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="tours_figes" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="occupe" type="_bool" values="" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
@@ -21,40 +25,45 @@
                 <Expression expressions="$scriptorium_essai_ordre = 0" />
               </Sequence>
             </IfCondition>
-            <IfCondition condition="$scriptorium_essai_ordre == 9" failOnCondition="false">
+            <IfCondition condition="$etat_de_la_vie == 0" failOnCondition="false">
+              <SuppressFailure>
+                <Sequence>
+                  <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110802" />
+                  <AddInterrupt Behavior="&apos;scriptorium_vie_du_camp&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
+                  <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
+                  <Expression expressions="$pouls_vu = $scriptorium_vie_pouls" />
+                  <Expression expressions="$tours_figes = 0" />
+                  <Expression expressions="$etat_de_la_vie = 1" />
+                </Sequence>
+              </SuppressFailure>
+            </IfCondition>
+            <IfCondition condition="$etat_de_la_vie &gt; 0 &amp; $scriptorium_vie_pouls == $pouls_vu" failOnCondition="false">
               <Sequence>
-                <SuppressFailure>
-                  <Sequence>
-                    <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110802" />
-                    <AddInterrupt Behavior="&apos;scriptorium_aller&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
-                    <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
-                  </Sequence>
-                </SuppressFailure>
-                <Expression expressions="$scriptorium_essai_ordre = 0" />
+                <Expression expressions="$tours_figes = $tours_figes + 1" />
+                <Expression expressions="$occupe = false" />
+                <EntityContextCheck context="crime_interruptAttack" target="" saveVersion="2">
+                  <Then canSkip="1">
+                    <Expression expressions="$occupe = true" />
+                  </Then>
+                </EntityContextCheck>
+                <EntityContextCheck context="speech_switchDialogRunning" target="" saveVersion="2">
+                  <Then canSkip="1">
+                    <Expression expressions="$occupe = true" />
+                  </Then>
+                </EntityContextCheck>
+                <IfCondition condition="$etat_de_la_vie == 2 &amp; $tours_figes &gt;= 3 &amp; ~$occupe" failOnCondition="false">
+                  <Expression expressions="$etat_de_la_vie = 0" />
+                </IfCondition>
+                <IfCondition condition="$etat_de_la_vie == 1 &amp; $tours_figes &gt;= 30 &amp; ~$occupe" failOnCondition="false">
+                  <Expression expressions="$etat_de_la_vie = 0" />
+                </IfCondition>
               </Sequence>
             </IfCondition>
-            <IfCondition condition="$scriptorium_essai_ordre == 10" failOnCondition="false">
+            <IfCondition condition="$etat_de_la_vie &gt; 0 &amp; $scriptorium_vie_pouls ~= $pouls_vu" failOnCondition="false">
               <Sequence>
-                <SuppressFailure>
-                  <Sequence>
-                    <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110803" />
-                    <AddInterrupt Behavior="&apos;scriptorium_s_asseoir&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
-                    <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
-                  </Sequence>
-                </SuppressFailure>
-                <Expression expressions="$scriptorium_essai_ordre = 0" />
-              </Sequence>
-            </IfCondition>
-            <IfCondition condition="$scriptorium_essai_ordre == 11" failOnCondition="false">
-              <Sequence>
-                <SuppressFailure>
-                  <Sequence>
-                    <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110804" />
-                    <AddInterrupt Behavior="&apos;scriptorium_se_coucher&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
-                    <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
-                  </Sequence>
-                </SuppressFailure>
-                <Expression expressions="$scriptorium_essai_ordre = 0" />
+                <Expression expressions="$pouls_vu = $scriptorium_vie_pouls" />
+                <Expression expressions="$tours_figes = 0" />
+                <Expression expressions="$etat_de_la_vie = 2" />
               </Sequence>
             </IfCondition>
             <Wait timeType="GameTime" duration="&apos;2s&apos;" doFail="false" variation="" skipInLOD="false" />

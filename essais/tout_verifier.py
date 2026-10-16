@@ -922,6 +922,45 @@ def controle_absence(strict):
 
 # ------------------------------------------------------------------ principal
 
+ARBRES = os.path.join(PAK, "AI", "scriptorium")
+TABLE_DES_VARIABLES = os.path.join(PAK, "Libs", "Tables", "ai", "brain_variable__scriptorium_socle.xml")
+TABLE_DES_COMPORTEMENTS = os.path.join(PAK, "Libs", "Tables", "ai", "smartEntity", "SmartEntity__so_interrupt__scriptorium_socle.xml")
+
+
+def verifier_la_vie_du_camp():
+    """Fiche 12, révision du 16/10 : un oubli ici ne se verrait qu'en jeu, en silence. Chaque activité que la liaison
+    donne a sa branche dans le comportement long ; chaque comportement lancé par le switch est déclaré auprès du jeu,
+    et son arbre existe ; chaque variable du cerveau employée par nos arbres est déclarée. Rend (activités, variables)."""
+    liaison = lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua"))
+    arbres = {nom: lire(os.path.join(ARBRES, nom)) for nom in sorted(os.listdir(ARBRES)) if nom.endswith(".xml")}
+    comportements = arbres.get("comportements.xml", "")
+    donnees = set(re.findall(r"poser_l_activite\([^,()]*(?:\([^()]*\))?[^,()]*,\s*(\d+)\)", liaison))
+    places = re.search(r"ordres_des_places\s*=\s*\{([^}]*)\}", liaison)
+    if places:
+        donnees |= set(re.findall(r"=\s*(\d+)", places.group(1)))
+    if not donnees:
+        erreur("vie du camp : aucune activité trouvée dans liaison.lua (poser_l_activite, ordres_des_places)")
+    branches = set(re.findall(r"\$scriptorium_activite == (\d+)", comportements))
+    for activite in sorted(donnees - branches, key=int):
+        erreur("vie du camp : l'activité %s est donnée par la liaison mais n'a pas de branche dans comportements.xml" % activite)
+    declares = dict(re.findall(r'<SmartBehaviorTemplate Name="([^"]+)"[^>]*>\s*<TreeLocation TreeName="([^"]+)"', lire(TABLE_DES_COMPORTEMENTS)))
+    noms_d_arbres = set(re.findall(r'<BehaviorTree name="([^"]+)"', comportements))
+    for nom, texte in arbres.items():
+        for lance in re.findall(r"<AddInterrupt Behavior=\"&apos;([^&]+)&apos;\"", texte):
+            if lance not in declares:
+                erreur("vie du camp : %s lance « %s », absent de %s" % (nom, lance, os.path.basename(TABLE_DES_COMPORTEMENTS)))
+    for nom, arbre in declares.items():
+        if arbre not in noms_d_arbres:
+            erreur("vie du camp : « %s » est déclaré, mais son arbre « %s » n'est pas dans comportements.xml" % (nom, arbre))
+    variables = set(re.findall(r'brain_variable_name="([^"]+)"', lire(TABLE_DES_VARIABLES)))
+    employees = set()
+    for texte in arbres.values():
+        employees |= set(re.findall(r"\$(scriptorium_[a-z_]+)", texte))
+    for variable in sorted(employees - variables):
+        erreur("vie du camp : la variable du cerveau « %s » est employée par nos arbres mais pas déclarée" % variable)
+    return len(donnees), len(employees)
+
+
 def principal(arguments):
     strict = "--strict" in arguments
     print("Vérification complète du socle (%s)" % ("mode strict" if strict else "mode suivi"))
@@ -946,6 +985,8 @@ def principal(arguments):
 
     print("2 quinquies. âmes : %d âmes des réserves, table et liaison accordées, notre cerveau et la Compagnie partout" % verifier_ames())
     print("2 sexies. équipement : %d préréglages dans la liaison, chaque règle trouve les siens" % verifier_equipement())
+    print("2 septies. vie du camp : %d activités données par la liaison, chacune a sa branche ; %d variables du cerveau "
+          "employées par nos arbres, toutes déclarées ; comportements lancés déclarés" % verifier_la_vie_du_camp())
     print("3. noms interdits : %d" % verifier_noms())
     print("3 bis. un seul nom par table : %d noms relevés, table posée par le seul noyau" % verifier_un_seul_nom())
     definies, employees = verifier_textes()

@@ -1672,19 +1672,28 @@ local function poser_l_ordre(entite, ordre)
   if not entite or not this_lu or type(this) ~= "table" then
     return "ordre : personnage introuvable ou sans this"
   end
-  -- Fiche 15, V73 c : le compteur d'ordres, relu par la garde des comportements qui tiennent une posture (s'asseoir, se
-  -- coucher) ; un nouvel ordre fait finir la posture du dedans, et le jeu joue le geste de se lever.
+  local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
+  return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur)))
+end
+
+-- Fiche 12, révision du 16/10 : l'activité de la vie du camp (variable de cerveau scriptorium_activite : 0 attendre sur
+-- place, 9 marcher au point, 10 s'asseoir, 11 se coucher), puis le compteur d'ordres. La garde du comportement long voit
+-- le compteur changer : l'activité en cours finit du dedans (le jeu joue le geste de se lever), et la boucle prend la
+-- nouvelle. L'activité est posée avant le compteur. Rend une ligne, avec le compteur tel que lu puis écrit.
+local function poser_l_activite(entite, activite)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not entite or not this_lu or type(this) ~= "table" then
+    return "activité : personnage introuvable ou sans this"
+  end
+  local activite_posee, refus = pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_activite", activite)
   local numero_lu, numero = pcall(XGenAIModule.GetBrainVariable, this.id, "scriptorium_essai_numero")
   local suivant = (numero_lu and tonumber(numero) or 0) + 1
   local numero_pose, refus_du_numero = pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_essai_numero", suivant)
-  local ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
-  -- V73 c, essai court : le compteur tel que lu puis écrit ; s'il reste illisible ou figé, la garde ne voit jamais de
-  -- changement (hypothèse b de la fiche 15).
   local compteur = numero_lu and ("compteur " .. tostring(numero) .. " → " .. suivant) or ("compteur illisible : " .. tostring(numero))
   if not numero_pose then
     compteur = compteur .. ", non écrit : " .. tostring(refus_du_numero)
   end
-  return "ordre " .. ordre .. " : " .. (ok and "posé" or ("refusé : " .. tostring(erreur))) .. " ; " .. compteur
+  return "activité " .. activite .. " : " .. (activite_posee and "posée" or ("refusée : " .. tostring(refus))) .. " ; " .. compteur
 end
 
 -- Un ordre au marcheur (4 = s'asseoir par terre, 0 = marcher au point). Rend une ligne.
@@ -1956,12 +1965,12 @@ function liaison.donner_des_competences(niveau)
   return "compétences : " .. table.concat(lignes, ", ")
 end
 
--- L'ordre 9 (V55) : aller au point joué en interruption. Le point (8 m à droite d'Henry) est posé dans la variable du
--- cerveau ; le switch pose l'interruption générique « scriptorium_aller » (AI/scriptorium/comportements.xml), hébergée
--- par l'entité des interruptions du jeu. Compteurs : « rejoint » = interruption posée, « arrive » = arrivée. Rend une ligne.
+-- Aller au point (V55). Le point (8 m à droite d'Henry) est posé dans la variable du cerveau ; depuis la révision du
+-- 16/10 (fiche 12), c'est l'activité 9 du comportement long « scriptorium_vie_du_camp » (AI/scriptorium/comportements.xml),
+-- lancé par le switch. Compteurs : « rejoint » = lancements du comportement long, « arrive » = arrivées. Rend une ligne.
 function liaison.ordonner_d_aller(cote)
   local ligne = liaison.viser_un_point(cote or "droite")
-  return ligne .. " ; " .. liaison.ordonner_au_marcheur(9)
+  return ligne .. " ; " .. poser_l_activite(entite_nommee(liaison.marcheur), 9)
 end
 
 -- L'ordre 7 : le marcheur se bat contre Henry (pour savoir si un homme né par script peut frapper qui que ce soit).
@@ -2252,7 +2261,7 @@ local function ecart_entre(a, b)
   return lu and ecart or nil
 end
 
--- Donne à l'un de nos personnages le WUID de l'objet, puis l'ordre. Rend une ligne.
+-- Donne à l'un de nos personnages le WUID de l'objet, puis l'activité (10 s'asseoir, 11 se coucher). Rend une ligne.
 local function donner_la_place(entite, objet, libelle, ordre)
   local this_lu, this = pcall(function() return entite.this end)
   if not this_lu or type(this) ~= "table" then
@@ -2265,7 +2274,7 @@ local function donner_la_place(entite, objet, libelle, ordre)
   local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
   liaison.objet_vise = objet
   return string.format("place : %s, %s ; WUID posé %s ; %s", libelle, decrire_un_siege(objet, ecart_entre(entite, objet)),
-    tostring(pose), poser_l_ordre(entite, ordre))
+    tostring(pose), poser_l_activite(entite, ordre))
 end
 
 -- L'ordre 10 (s'asseoir) ou 11 (se coucher) : le marcheur reçoit le WUID de la copie posée (sauf « reel ») ou du plus
@@ -2325,7 +2334,7 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte)
       local point = liaison.au_sol(position)
       local pose = this_lu and type(this) == "table"
         and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
-      ligne = "marche, point " .. (pose and "posé" or "refusé") .. " ; " .. poser_l_ordre(entite, 9)
+      ligne = "marche, point " .. (pose and "posé" or "refusé") .. " ; " .. poser_l_activite(entite, 9)
     end
   end
   liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ") : " .. ligne)
@@ -2361,12 +2370,12 @@ function liaison.poser_en_secours(identifiant, position)
 end
 
 -- Les contextes posés autour du « use » d'un siège ou d'un lit (comportements.xml) ; encore posés après la levée, ils
--- diraient que l'abandon du « use » n'a pas fait le ménage (V73 c, essai court).
+-- diraient que l'abandon du « use » n'a pas fait le ménage (V73 c).
 local CONTEXTES_DE_LA_POSTURE = { "activity_disableSchedulerLooping", "bench_disableSnooze" }
 
--- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, ses compteurs « assis » et « couchés », les
--- ordres donnés par la liaison et reçus par le switch (l'interruption acceptée), l'ordre en attente, les arrivées de la
--- marche, et les contextes de la posture. Rend une ligne.
+-- Ce que devient l'un de nos personnages sur sa place : écart à l'objet, ses compteurs « assis » et « couchés »,
+-- l'activité et les ordres donnés par la liaison, le pouls du comportement long, ses lancements par le switch, les
+-- arrivées de la marche, et les contextes de la posture. Rend une ligne.
 function liaison.voir_sur_la_place(qui, identifiant)
   local personnage = entite_nommee(qui)
   if not personnage then
@@ -2386,11 +2395,12 @@ function liaison.voir_sur_la_place(qui, identifiant)
   for _, nom in ipairs(CONTEXTES_DE_LA_POSTURE) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place ; assis %s, couchés %s, tours %s ; ordres donnés %s, reçus %s, en attente %s, arrivées %s ; %s ; âme %s",
+  return string.format("à %s m de sa place ; assis %s, couchés %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?",
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_vivant"),
-    variable("scriptorium_essai_numero"), variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_ordre"),
-    variable("scriptorium_essai_arrive"), table.concat(contextes, " "), ame_lue and tostring(ame) or "?")
+    variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),
+    variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"), table.concat(contextes, " "),
+    ame_lue and tostring(ame) or "?")
 end
 
 -- L'écart entre le marcheur et l'objet visé, ou nil.
