@@ -300,8 +300,45 @@ essai("camp : tout est écrit dans la partie et relu tel quel", function()
   verifier(proche(p.x, 10) and proche(p.y, 20) and p.z == 30, "ancre relue")
   local reposes = camp.redresser()
   egal(reposes, 0, "rien à reposer : les objets existent encore")
-end)
-
+end)
+
+-- Règle de JoVenGer (16/10, transmise par le pair ; `camp_selon_le_terrain` chez Scriptorium) : le camp ne suit jamais
+-- Henry. Fondé une fois, son ancre est gardée ; rechargé, il se repose depuis elle, où que se tienne Henry.
+essai("camp : fondé une fois, il ne suit jamais Henry ; rechargé, il se repose depuis son ancre gardée", function()
+  depart()
+  FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 100, y = 200, z = 5 }, 30
+  verifier(camp.fonder(camp.ancre_devant(FauxJeu.position_joueur, FauxJeu.cap_joueur), FauxJeu.cap_joueur), "fondé devant Henry")
+  local avant = {}
+  for _, o in ipairs(FauxJeu.objets_poses) do
+    avant[o.nom] = o.position
+  end
+  verifier(next(avant) ~= nil, "des objets posés")
+  local chaine = FauxJeu.registre_stocke
+  local function reposes_a_leur_place(mode)
+    local n = 0
+    for _, o in ipairs(FauxJeu.objets_poses) do
+      local p = avant[o.nom]
+      verifier(p ~= nil and proche(o.position.x, p.x) and proche(o.position.y, p.y),
+               mode .. " : « " .. tostring(o.nom) .. " » reposé à sa place d'avant")
+      n = n + 1
+    end
+    return n
+  end
+  -- Henry s'éloigne de 50 m et se tourne ; la partie est sauvegardée, puis rechargée : les objets sont à reposer.
+  for _, mode in ipairs({ 0, 1 }) do
+    depart()
+    FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 150, y = 200, z = 5 }, 200
+    FauxJeu.registre_stocke = chaine
+    local reglage = camp.reglages.reposer_tout_a_l_entree
+    camp.reglages.reposer_tout_a_l_entree = mode
+    camp.relancer()
+    camp.reglages.reposer_tout_a_l_entree = reglage
+    egal(reposes_a_leur_place("repose " .. mode), compter_niveau(1), "repose " .. mode .. " : tout le niveau 1 reposé")
+    verifier(not camp.fonder(camp.ancre_devant(FauxJeu.position_joueur, FauxJeu.cap_joueur), FauxJeu.cap_joueur),
+             "repose " .. mode .. " : jamais refondé là où se tient Henry")
+  end
+end)
+
 essai("camp : le centre est posé devant celui qui fonde, pas sous ses pieds", function()
   depart()
   local devant = camp.reglages.fonder_devant
@@ -314,8 +351,8 @@ essai("camp : le centre est posé devant celui qui fonde, pas sous ses pieds", f
   local feu = camp.position_de("feu_central")
   verifier(math.sqrt(feu.x ^ 2 + feu.y ^ 2) >= devant - 0.01, "le feu n'est pas sous les pieds de celui qui fonde")
   egal(camp.ancre_devant("ici", 0), "ici", "position invalide rendue telle quelle")
-end)
-
+end)
+
 essai("camp (fiche 15) : on aborde un meuble à l'écart, jamais dessus", function()
   depart()
   verifier(camp.fonder({ x = 0, y = 0, z = 0 }, 0), "fondation")

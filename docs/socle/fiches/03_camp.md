@@ -27,23 +27,41 @@
   calcule, et c'est ce point qu'on donne à `camp.fonder`. `camp.fonder` garde son sens : le centre du camp est le point
   donné. Le guichet de Scriptorium (étape 3) fondera le camp de la même façon.
 
+## Le camp ne suit jamais Henry (JoVenGer, 16/10/2026, transmis par le pair)
+- **Ce que JoVenGer a vu** (V73 b 2) : il avait déplacé Henry avant la pose, et le camp est apparu à partir de la
+  nouvelle place d'Henry. Ce n'est pas ce qu'il veut. Chez Scriptorium (`camp_selon_le_terrain`, scellé), le camp est
+  fondé **une fois**, à un point choisi selon le terrain, puis son ancre (origine et cap) est fixée, gardée, et stable
+  aux rechargements. **Le choix du lieu est la règle de Scriptorium : le socle ne s'en mêle pas** (JoVenGer).
+- **Vérifié dans le code du socle** (16/10, sans changement) : `camp.fonder` garde l'ancre au registre une seule fois
+  (une seconde fondation est refusée) ; au chargement, `camp.redresser` et `camp.relancer` reposent chaque objet depuis
+  cette ancre gardée (`camp.dans_le_monde(d.ancre, …)`), jamais depuis Henry. Seule la commande d'essai `essai_camp`
+  fonde le camp devant Henry : chaque séance repart de la sauvegarde 473, sans camp, et le fonde là où se tient Henry.
+  Ce que JoVenGer a vu vient donc de la façon d'essayer, pas de la repose.
+- **Au banc** (`essai_camp.lua`) : fondé, Henry éloigné de 50 m et tourné, la partie relue : chaque objet du niveau 1
+  est reposé exactement à sa place d'avant, dans les deux façons de reposer (ce qui manque, ou tout), et le camp n'est
+  jamais refondé.
+- **En jeu, à faire** (à la prochaine séance qui s'y prête) : fonder, éloigner Henry de 50 m, sauvegarder, recharger :
+  le camp à sa place.
+- À la bascule, le point de fondation viendra de Scriptorium (la fondation, le terrain, l'éditeur) ; « devant Henry »
+  ne vaut que pour la commande d'essai.
+
 ## Meubles utilisables (validé par JoVenGer le 15/10/2026, questions à cocher)
 - **À revoir** (vu en V70) : dans le plan, une paillasse sur deux est à côté de la petite tente, hors de la toile
   (`lit_1a`/`lit_1b` autour de `tente_1`, et de même pour les autres tentes) ; l'homme y dort à découvert.
 - **Acquis en jeu** (V66, V68, V69) : un homme s'assoit sur un banc du camp, face au feu, et se couche sur une
   paillasse du camp, à la bonne hauteur. Données : `camp.objets_du_jeu` (propriétés relevées en V65, décalages réglables).
-- **Ce que le joueur voit** : au repas et à la veillée, les hommes s'assoient sur les bancs du camp ; la nuit, chacun se
-  couche sur SA paillasse, dans SA tente ; le Directeur dans son lit.
-- **Comment (acquis en jeu, V62)** : un meuble visible (le modèle du jeu, comme aujourd'hui) et, posé dessus, un objet du
-  jeu (`StanceSmartObject`) de la sorte qui convient, un par place. C'est la façon du jeu : sa classe `Chair` relie son
-  meuble à un objet « so_chair » à part (`Scripts/Entities/WH/Chair/chair.lua`) ; les meubles du monde sont des modèles,
-  et les places des objets à part (V60). L'homme y va et s'y assoit ou s'y couche par le comportement « use » de l'objet.
-- **Le socle offre, il ne dispose pas** (règle de Scriptorium) : « rendre ce meuble utilisable » pose les objets du jeu
-  sur un meuble et les suit là où il est. La disposition du camp est l'affaire de l'éditeur du camp de Scriptorium ;
-  pendant le chantier, `camp.plan` reste la disposition d'essai.
-- **Règles en données** (catalogue de `reglages.lua`) : pour chaque modèle de meuble, la sorte de l'objet du jeu (siège
-  bas « Chair / Sit_1Place_Bench_Low » pour le banc de rondins ; paillasse « GroundBed », voir question 1), le nombre de
-  places et le décalage de chacune (droite, devant, hauteur, cap), réglés à l'essai.
+- **Ce que le joueur voit** : au repas et à la veillée, les hommes s'assoient sur les bancs du camp ; la nuit, chacun se
+  couche sur SA paillasse, dans SA tente ; le Directeur dans son lit.
+- **Comment (acquis en jeu, V62)** : un meuble visible (le modèle du jeu, comme aujourd'hui) et, posé dessus, un objet du
+  jeu (`StanceSmartObject`) de la sorte qui convient, un par place. C'est la façon du jeu : sa classe `Chair` relie son
+  meuble à un objet « so_chair » à part (`Scripts/Entities/WH/Chair/chair.lua`) ; les meubles du monde sont des modèles,
+  et les places des objets à part (V60). L'homme y va et s'y assoit ou s'y couche par le comportement « use » de l'objet.
+- **Le socle offre, il ne dispose pas** (règle de Scriptorium) : « rendre ce meuble utilisable » pose les objets du jeu
+  sur un meuble et les suit là où il est. La disposition du camp est l'affaire de l'éditeur du camp de Scriptorium ;
+  pendant le chantier, `camp.plan` reste la disposition d'essai.
+- **Règles en données** (catalogue de `reglages.lua`) : pour chaque modèle de meuble, la sorte de l'objet du jeu (siège
+  bas « Chair / Sit_1Place_Bench_Low » pour le banc de rondins ; paillasse « GroundBed », voir question 1), le nombre de
+  places et le décalage de chacune (droite, devant, hauteur, cap), réglés à l'essai.
 - **Les ordres des hommes** (fiche 04) : « repas » et « veillée » → s'asseoir sur le siège qu'il a réservé, ou debout au
   feu s'il n'y en a plus (règle déjà validée de la fiche 04 ; jamais assis dans le vide) ; « sommeil » et « repos » → se
   coucher sur sa paillasse, à lui seul, libérée à sa mort ou à son départ ; « garde », « exercice », « corvée » → aller au
@@ -63,7 +81,7 @@
      sièges et des lits changent à chaque chargement ; la place d'un homme se garde par son nom (lit_1a…), et le WUID
      se relit après chaque repose.
   3. Sièges et lits du camp gardés aux hommes de la Compagnie et à Henry ; le lit d'Henry dans sa tente à lui seul.
-
+
 ## Les lits dans leur tente (16/10/2026, V73 c 12)
 - Mesuré en jeu (boîte englobante, repère de chaque modèle) : la tente `tent_small_b` va de (-1,20 ; -1,47) à
   (1,19 ; 1,67) ; le lit `bed_makeshift_a` de (-0,44 ; -1,32) à (0,58 ; 0,98).

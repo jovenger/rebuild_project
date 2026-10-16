@@ -477,31 +477,43 @@
 
 ### Comment ce serait fait (principe du pair : la garde d'abord, la cause ensuite)
 - **La garde de la tenue** (`hommes`) remet à un homme ses propres pièces, sans rien créer ni rien ôter :
-  1. **après une relance de sa vie du camp** : un combat ou une réaction du jeu a tué son comportement long, et c'est
-     là qu'on l'a vu dévêtu ; le battement relit le compteur des lancements (`scriptorium_essai_rejoint`, comme les
-     arrêts de V73 b 2) ; à la hausse, l'homme est marqué « à rhabiller » : le chemin du chargement, avec sa ligne au
-     journal et l'accroche ;
+  1. **à la fin d'un combat** (relecture du pair : un signal direct, comme chez Alex) : le switch retient à chaque tour
+     si l'homme est en combat (contexte `crime_interruptAttack`, qu'il lit déjà) ; le tour où il ne l'est plus, il
+     augmente un compteur de cerveau `scriptorium_fins_de_combat`, relu par le battement comme les arrêts de V73 b 2 ;
+     à la hausse, l'homme est marqué « à rhabiller » : le chemin du chargement, avec sa ligne au journal et l'accroche.
+     **En filet**, une hausse du compteur des lancements (`scriptorium_essai_rejoint` : un comportement tué, par un
+     combat ou autre chose) marque aussi l'homme ; rhabiller est sans danger ;
   2. **à la sortie du lit** : quand l'activité d'un homme passe du sommeil à autre chose (proposé par le pair), même
      marque ;
   3. **et en tournant, un homme par battement** (nombre réglable), pour les cas qu'on ne connaît pas encore (Ondřej) :
      une remise directe et silencieuse, comptée au rapport du battement (sinon une ligne par homme toutes les quelques
      minutes : la leçon des 341 lignes d'Alex).
-- Jamais en bataille ni en combat (le rhabillage du chargement attend déjà la fin de la bataille ; un homme en combat
-  ou en conversation est laissé pour le tour suivant).
+- **Jamais** : en bataille ni en combat (le rhabillage du chargement attend déjà la fin de la bataille ; un homme en
+  combat ou en conversation est laissé pour le tour suivant) ; **au lit** (un homme couché n'est pas rhabillé ; la sortie
+  du lit s'en charge) ; **au bain**, ou sous toute règle qui veut l'homme dévêtu (chez Scriptorium, l'homme se dévêt pour
+  le bain, `mercenaires_aux_bains`, `bain_et_lavoir`) : une tenue de l'arbitre peut porter la marque « ne pas
+  rhabiller » (`quoi.ne_pas_rhabiller`), et la garde saute l'homme tant que cette tenue le tient.
+- **Pour le guichet** (proposé par le pair) : un service « rhabiller cet homme maintenant » (`hommes.rhabiller(id)`),
+  pour la sortie du bain, un achat à la forge, un changement de grade.
 - **La cause** viendra ensuite, si JoVenGer le veut : trouver ce qui remet la tenue de l'âme (le préréglage de tenue de
   nos âmes, le nœud `ClothingPresetOverride`), avec une sonde et ses captures.
 - Valeur en données : `hommes.reglages.tenue_garde_par_battement` (1).
-- **Essais au banc** : une hausse des lancements marque l'homme ; la sortie du lit aussi ; la remise en tournant passe
-  par chacun à son tour, rien n'est créé, rien n'est dit au journal ; rien en bataille ni en combat.
+- **Essais au banc** : une hausse des fins de combat marque l'homme, une hausse des lancements aussi ; la sortie du lit
+  aussi ; la remise en tournant passe par chacun à son tour, rien n'est créé, rien n'est dit au journal ; rien en
+  bataille, en combat, au lit, ni sous une tenue « ne pas rhabiller » ; le service du guichet rhabille aussitôt. Au banc
+  statique : le switch compte les fins de combat au front descendant du contexte de combat.
 - **En jeu** : un homme assis à qui l'on fait attaquer le brigand : rhabillé dans la minute qui suit le combat ; les
   autres, laissés assis 10 min : jamais plus d'un tour sans tenue ; captures avant et après.
 
 ### Questions à JoVenGer (après relecture par le pair)
 1. **Le remède** : (a) la garde de la tenue : remettre à l'homme ses propres pièces, sans rien créer (Recommandé, principe
    du pair) ; (b) chercher d'abord la cause, avant tout remède (plusieurs séances, les hommes restent dévêtus d'ici là) ;
-   (c) habiller par préréglage, comme Alex (la tenue de l'homme ne serait plus faite de ses propres pièces).
-2. **Quand la garde passe** : (a) après chaque relance de sa vie du camp, à la sortie du lit, et un homme par battement
-   en tournant (Recommandé) ; (b) seulement en tournant, un homme par battement ; (c) seulement après une relance.
+   (c) habiller par préréglage, comme Alex : l'usure et les réparations de chaque pièce seraient perdues à chaque
+   chargement (V71 a), contre la règle de JoVenGer du 5/10.
+2. **Quand la garde passe** : (a) à la fin d'un combat (le lancement en filet), à la sortie du lit, et un homme par
+   battement en tournant ; jamais au lit, au bain ni en combat (Recommandé) ; (b) seulement en tournant, un homme par
+   battement ; (c) seulement à la fin d'un combat.
+- Relu par le pair le 16/10 : la garde est la bonne recommandation ; ses apports sont dans la section ci-dessus.
 
 ## Essais prévus (un changement chacun, partie d'essai `playline3`)
 - **V70** : les hommes du camp nés sur nos âmes (notre cerveau, soldats du jeu, classe 33, faction provisoire du
