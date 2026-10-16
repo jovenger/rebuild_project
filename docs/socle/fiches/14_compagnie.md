@@ -208,13 +208,23 @@
 | 473 | V73 c 6 (notre propre posture) | normal |
 | 473 | V73 c 7 (la tenue échoue) | normal |
 | 473, puis un rechargement | V73 c 8 (la levée, enfin) | normal (deux fois) |
-- Au total : 2 écrans noirs sur 25 chargements ou poses observés ; 0 sur 15 depuis la séparation. **Rien n'est conclu** : il
+| 473, puis un rechargement | V73 c 9 (variables de cerveau gardées dans la sauvegarde) | normal, puis **noir** à la reprise |
+- Au total : 3 écrans noirs sur 27 chargements ou poses observés ; 1 sur 17 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
   indice, `Game.IsLoadingEngineSaveGame()` (`Scripts/Entities/Others/RuntimePrefab.lua`). Le pair conseille aussi de
   retarder le réveil du socle à l'entrée en partie (camp redressé, hommes rhabillés, ordres redonnés) de 30 s, Henry
   jouable, comme Scriptorium qui n'agit qu'une fois la partie vraiment prête : question à JoVenGer.
+
+## L'écran noir de V73 c 9 (16/10), ce qu'on en sait
+- À la reprise d'une sauvegarde faite debout, au camp, sans combat : emblème de chargement, écran noir.
+- Le socle tourne (réveil, valeurs du cerveau réécrites, ordres donnés, commandes du poste lues), **l'heure du jeu
+  avance** (temps non arrêté), mais **nos arbres ne tournent plus** : le switch et la garde restent à leur premier tour.
+- **Le guetteur reste muet** : `Game.IsLoadingEngineSaveGame()` ne dit pas « en chargement » pendant cet écran noir.
+- Nouveau depuis les essais précédents : la sauvegarde porte les variables de cerveau `scriptorium_cerveau_*` gardées
+  (`is_persistent`). Essai suivant : reprendre la même sauvegarde (rangée) ; noire de nouveau, le soupçon se porte sur
+  son contenu ; normale, l'écran noir reste intermittent.
 
 ## Réveil différé et guetteur (réponse de JoVenGer du 16/10, « les deux »)
 - **Réveil différé** : à l'entrée en partie, le noyau attend `Scriptorium.noyau.reglages.delai_du_reveil_s` (30 s,

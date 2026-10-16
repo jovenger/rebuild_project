@@ -341,6 +341,18 @@
   replacé (non-régression) ; (6) sauvegarder avec `garde_ms=1000`, recharger : pouls à 1 par seconde dès l'entrée en
   partie, avant le réveil (la valeur gardée par la sauvegarde) ; puis `--retirer` : 2 ; (7) l'écran noir.
 
+### Mesuré en V73 c 9 (16/10) : les valeurs en données
+- **Acquis** : le jeu prend la table des variables (26) ; les valeurs sont écrites chez chaque homme et le Directeur ; le
+  pouls suit le catalogue (2 par seconde à 500 ms, **1 par seconde après `cerveau.garde_ms=1000` en pleine partie**) ;
+  l'arrêt de marche suit le catalogue (**0,64 m à 50 cm**, contre jusqu'à 2,5 m) ; la levée tient.
+- **Défaut à corriger** : chez un homme qui vient de naître, avant la première écriture, les planchers (tour 500 ms,
+  1 tour avant de relancer un comportement lancé mais pas encore commencé) font relancer le comportement à chaque tour
+  (« lancements 44 » en une vingtaine de secondes). Plancher trop bas : à relever (au moins 10 tours en file, 3 en
+  marche).
+- **Non mesuré : la valeur gardée par la sauvegarde** (critère 6), à cause d'un écran noir à la reprise (fiche 14). Le
+  lien avec ces variables gardées n'est ni établi ni écarté : c'est le premier rechargement qui en porte, et le premier
+  écran noir depuis la séparation.
+
 ### Rapport à JoVenGer, préparé avant V73 c 8 au cas où il échouerait (sans objet : V73 c 8 a réussi)
 - **Essayé** : V73 c 4, la garde fait finir l'assise du dedans (l'homme se lève, puis le jeu le rassoit à la fin de
   notre interruption) ; V73 c 5, un seul comportement long (il tient, mais le siège replace l'homme sous lui) ; V73 c 6,
