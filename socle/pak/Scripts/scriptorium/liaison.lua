@@ -2400,7 +2400,8 @@ local CONTEXTES_DE_LA_POSTURE = { "activity_disableSchedulerLooping", "bench_dis
 -- comportement long, ses lancements par le switch, les arrivées de la marche, les contextes du « use », et si l'objet de
 -- la place se dit libre ou bloqué pour une posture (XGenAIModule.IsStanceAvailable et IsStanceBlocked, comme
 -- Scripts/Entities/WH/Triggers/ActionTrigger.lua) : un siège qui ne se libère pas après le départ de l'homme le
--- réclamerait (V73 c 8). Rend une ligne.
+-- réclamerait (V73 c 8) ; et deux valeurs du cerveau (garde, tour du switch), pour savoir après un chargement si
+-- les valeurs gardées par la sauvegarde sont revenues saines (V73 c 9). Rend une ligne.
 function liaison.voir_sur_la_place(qui, identifiant)
   local personnage = entite_nommee(qui)
   if not personnage then
@@ -2428,12 +2429,13 @@ function liaison.voir_sur_la_place(qui, identifiant)
   for _, nom in ipairs(CONTEXTES_DE_LA_POSTURE) do
     table.insert(contextes, nom .. "=" .. (lus[nom] == nil and "?" or (lus[nom] and "1" or "0")))
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; %s ; âme %s",
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrivées %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
     variable("scriptorium_activite"), variable("scriptorium_essai_numero"), variable("scriptorium_vie_pouls"),
-    variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"), table.concat(contextes, " "),
+    variable("scriptorium_essai_rejoint"), variable("scriptorium_essai_arrive"),
+    variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end
 
