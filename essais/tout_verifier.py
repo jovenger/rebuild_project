@@ -902,7 +902,8 @@ def controle_absence(strict):
             for numero, ligne in enumerate(texte.splitlines(), 1):
                 normalisee = outil_empreintes.normaliser_ligne(ligne, extension)
                 marque = outil_empreintes.empreinte(normalisee)
-                if len(normalisee) >= outil_empreintes.LIGNE_MIN and marque in alex["lignes"] and marque not in formes:
+                if len(normalisee) >= outil_empreintes.LIGNE_MIN and marque in alex["lignes"] and marque not in formes \
+                        and marque not in relations:
                     erreur("  ligne d'Alex : %s:%d" % (relatif(chemin), numero))
             if extension == ".lua":
                 for identifiant in set(outil_empreintes.noms_du_lua(texte)):
