@@ -284,7 +284,7 @@
                               <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
                             </Sequence>
                           </SuppressFailure>
-                          <Expression expressions="$ronde_pause = $sortie" />
+                          <Expression expressions="$ronde_pause = concat($sortie_ms, &apos;ms&apos;)" />
                           <SuppressFailure>
                             <ExecuteLua code="pcall(function() Scriptorium.jeu.au_point_de_ronde(entity, data) end)" />
                           </SuppressFailure>

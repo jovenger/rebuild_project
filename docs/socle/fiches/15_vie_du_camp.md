@@ -789,12 +789,20 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
 `playline3`, secours coupé (le banc le prouve), trois hommes au camp ; `essai_tenir_ronde` (les deux premiers hommes
 sur la ronde « pourtour », partis de deux points opposés) ; une lecture toutes les 5 s environ (écart au but, pas,
 arrivées).
-1. **L'appel** : à la première arrivée, une ligne « pas de ronde » au journal → l'arbre appelle le Lua, bon. Aucune
-   ligne → `ExecuteLua` n'est pas joué : lire le journal, la voie (b), un seul changement.
+0. **D'abord les trois hommes** (`essai_hommes_voir`) : le troisième suit sa journée, un lancement chacun, pouls qui
+   avance ; un nœud mal reçu casserait tout l'arbre, pas la seule branche 13 (conseil reçu avant la séance).
+1. **L'appel** : à la première arrivée, une ligne « pas de ronde » au journal → l'arbre appelle le Lua, bon. Sinon, trois
+   lectures à ne pas confondre (au poste : arrivées, pas de ronde, pouls) :
+   - « arrivées » monte d'environ une toutes les 2 s, pas de ronde à 0 : `ExecuteLua` est joué, mais l'appel échoue
+     avant la liaison (table invisible, `entity` nul) → lire le code de l'appel, un seul changement ;
+   - « arrivées » reste à 1, pas de ronde à 0, pouls qui avance : `ExecuteLua` n'est pas joué → la voie (b) ;
+   - la ligne « aucun pas (homme inconnu) » : la liaison est appelée, mais le nom de l'entité n'est pas celui du
+     registre → accorder les noms, ce n'est pas la voie (b).
 2. À chaque point : arrivé à moins de 1,5 m, une pause, puis il repart seul vers le suivant ; les pauses lues aux
    heures des lignes : courtes de 2 à 10 s, une longue (12 à 28 s) environ une fois sur cinq → bon.
 3. Pendant chaque pause, il se tourne vers le dehors (écart au regard sous 25°, la tolérance du `Turn` est d'environ
-   20°), puis repart vers le point suivant → bon (réponse 3 b).
+   20°), **sans glisser alors que le point visé vient de changer** (deux lectures dans la pause, à moins de 0,3 m), puis
+   repart vers le point suivant → bon (réponse 3 b).
 4. Le tour complet (environ 3 min) : les 12 points puis le premier, aucun arrêt, aucune glissade, jamais planté plus de 30 s → bon.
 5. Les deux rondiers : chacun son pas, aucun ne bloque l'autre → bon.
 6. `essai_lacher_ronde` : un seul ordre par homme, chacun rejoint sa tranche → bon.

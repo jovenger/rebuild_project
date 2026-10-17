@@ -454,6 +454,16 @@ def verifier_identifiants():
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une erreur de la ronde n'est pas écrite" end
         l.au_point_de_ronde(nil, donnees)
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une entité absente n'est pas dite" end
+        -- La lecture du poste d'essai (voir_sur_la_place) sur ce rondier : l'écart au but et les pas de ronde, sans
+        -- erreur de format (sinon la seule lecture de la séance manquerait en jeu).
+        function XGenAIModule.GetBrainVariable(id, nom) return 0 end
+        function rondier:GetWorldPos() return { x = 0, y = 0, z = 7 } end
+        function rondier:GetWorldAngles() return { x = 0, y = 0, z = 0 } end
+        System.entites["scriptorium_rondier"] = rondier
+        local lu, vue = pcall(l.voir_sur_la_place, "scriptorium_rondier", nil)
+        System.entites["scriptorium_rondier"] = nil
+        if not lu then return "lecture du poste sur un rondier : " .. tostring(vue) end
+        if not string.find(vue, "à 5.00 m de son but, pas de ronde 1 ;", 1, true) then return "lecture du poste : " .. vue end
         XGenAIModule = nil
         l.pas_de_ronde = nil
         System.LogAlways = journal_d_origine
@@ -1109,7 +1119,7 @@ def verifier_la_vie_du_camp():
     motif = (r'destinationSpecification="\$scriptorium_essai_point"[^>]*stopWithinDistance="\$ronde_arret" '
              r'stopDistanceVariation="\$ronde_ecart"[^>]*/>[\s\S]*?'
              r'<Expression expressions="\$scriptorium_essai_arrive = \$scriptorium_essai_arrive \+ 1" />\s*'
-             r'</Sequence>\s*</SuppressFailure>\s*<Expression expressions="\$ronde_pause = \$sortie" />\s*'
+             r'</Sequence>\s*</SuppressFailure>\s*<Expression expressions="\$ronde_pause = concat\(\$sortie_ms, &apos;ms&apos;\)" />\s*'
              r'<SuppressFailure>\s*' + re.escape(appel) + r'\s*</SuppressFailure>\s*<SuppressFailure>\s*' + tourne
              + r'\s*</SuppressFailure>\s*<Wait duration="\$ronde_pause" ')
     if len(branche) != 2 or not re.search(motif, branche[1]):
