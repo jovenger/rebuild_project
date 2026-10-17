@@ -1912,7 +1912,13 @@ function hommes.activite_de(id, heure)
     -- à 5 m devant lui selon le cap.
     if tenue.geste then
       resultat.geste = tenue.geste
-      resultat.lieu = (tenue.lieu or "geste") .. "/" .. tenue.geste
+      resultat.lieu = (tenue.lieu or "geste") .. "/" .. tenue.geste .. (tenue.siege and ("@" .. tenue.siege) or "")
+        .. (tenue.arme_tiree and "/arme" or "")
+      -- Demande du pair (18/10) : le geste ancré sur un objet (« siege »), assis s'il est assis ; l'arme à la main.
+      resultat.siege, resultat.assis, resultat.arme_tiree = tenue.siege, tenue.assis, tenue.arme_tiree
+      if tenue.siege and not tenue.position then
+        resultat.position = jeu().position_d_un_objet(hommes.objet_d_ancrage(tenue.siege))
+      end
       if tenue.cap and tenue.position then
         local r = math.rad(tenue.cap)
         resultat.regard = { x = tenue.position.x + 5 * math.sin(r), y = tenue.position.y + 5 * math.cos(r), z = tenue.position.z }
@@ -2961,7 +2967,12 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
                            a.partenaire)
   end
   if a and a.geste and jeu().donner_le_geste then
-    jeu().donner_le_geste(f.personnage, a.geste)
+    local ancre = a.siege and hommes.objet_d_ancrage(a.siege) or nil
+    local assis = a.assis
+    if assis == nil and a.siege then
+      assis = camp().sorte_de(a.siege) == "siege"
+    end
+    jeu().donner_le_geste(f.personnage, a.geste, { ancre = ancre, assis = assis == true, arme = a.arme_tiree == true })
   end
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
@@ -3573,6 +3584,13 @@ local function memes_tenues(a, b)
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
     and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste and a.partage == b.partage
+    and a.siege == b.siege and a.assis == b.assis and a.arme_tiree == b.arme_tiree
+end
+
+-- L'objet du jeu d'un « siege » de geste (demande du pair, 18/10) : une place du camp (son objet où s'asseoir), un poste
+-- de travail, un objet du camp, sinon le nom tel quel (une entité du jeu).
+function hommes.objet_d_ancrage(siege)
+  return camp().objet_du_jeu_de(siege) or camp().objet_du_poste(siege) or camp().objet_de(siege) or siege
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -3672,13 +3690,22 @@ function hommes.tenir(id, regle, quoi)
   if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" and quoi.a_cheval ~= "comme_henry" then
     return refuser("escorte_invalide", "a_cheval " .. tostring(quoi.a_cheval))
   end
-  -- Fiche 18, 5 c : le geste tenu à un point (la forge de Scriptorium) : un nom de geste et un point.
+  -- Fiche 18, 5 c : le geste tenu à un point (la forge de Scriptorium) : un nom de geste et un point ; ou ancré sur un
+  -- objet du jeu (« siege » : une place, un poste ou un objet du camp, ou le nom d'une entité ; demande du pair, 18/10),
+  -- le point étant alors celui de l'objet ; « assis » et « arme_tiree » : vrai ou faux.
   if quoi.activite == "geste" then
     local p = quoi.position
+    local sans_point = quoi.siege ~= nil and p == nil
     if type(quoi.geste) ~= "string" or quoi.geste == "" or not string.match(quoi.geste, "^[%w_]+$")
-        or type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number"
-        or (quoi.cap ~= nil and type(quoi.cap) ~= "number") then
+        or (not sans_point and (type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number"))
+        or (quoi.cap ~= nil and type(quoi.cap) ~= "number")
+        or (quoi.siege ~= nil and (type(quoi.siege) ~= "string" or quoi.siege == ""))
+        or (quoi.assis ~= nil and type(quoi.assis) ~= "boolean")
+        or (quoi.arme_tiree ~= nil and type(quoi.arme_tiree) ~= "boolean") then
       return refuser("geste_invalide", tostring(quoi.geste))
+    end
+    if sans_point and not jeu().position_d_un_objet(hommes.objet_d_ancrage(quoi.siege)) then
+      return refuser("geste_invalide", "objet introuvable : " .. quoi.siege)
     end
   end
   -- Fiche 18, 5 c, tranche 4 : la station partagée avec Henry, une station surveillée.
@@ -3706,6 +3733,9 @@ function hommes.tenir(id, regle, quoi)
                   tete = (quoi.activite == "suivre") and quoi.tete or nil,
                   poste = (quoi.activite == "poste") and quoi.poste or nil,
                   geste = (quoi.activite == "geste") and quoi.geste or nil,
+                  siege = (quoi.activite == "geste") and quoi.siege or nil,
+                  assis = (quoi.activite == "geste") and quoi.assis or nil,
+                  arme_tiree = (quoi.activite == "geste" and quoi.arme_tiree == true) or nil,
                   partage = quoi.partage,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,

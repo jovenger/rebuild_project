@@ -1180,7 +1180,7 @@ JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
 
 
-FORMES_ADMISES_AU_PLUS = 32   # au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+FORMES_ADMISES_AU_PLUS = 33   # 18/10 : 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
 # (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; 27 avec EntityContext ; revues)
 # (16/10, V73 d 1 : 32 avec « <Else canSkip="1"> », la branche « sinon » de IsNightTimeOfDay, telle quelle dans
 # AI/events/randomEventsBehaviors.xml du jeu ; revue)

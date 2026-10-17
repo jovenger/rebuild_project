@@ -3538,6 +3538,43 @@ essai("geste tenu (5 c) : un geste du jeu tenu à un point (la forge de Scriptor
   hommes.lacher(id, "travail")
 end)
 
+essai("geste tenu ancré (demande du pair, 18/10) : sur une place du camp, assis par défaut, au point de l'objet ; sur un objet nommé, debout ; l'arme à la main ; un objet introuvable refusé", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local perso = hommes.fiche(id).personnage
+  hommes.battre()
+  local banc = camp.objet_du_jeu_de("siege_1")
+  verifier(banc ~= nil, "le banc du camp a son objet du jeu")
+  FauxJeu.positions_des_objets = { [banc] = { x = 3, y = 4, z = 0 }, pupitre_1 = { x = 7, y = 1, z = 0 } }
+  verifier(not hommes.tenir(id, "travail", { activite = "geste", geste = "camper_snooze", siege = "nulle_part" }), "objet introuvable : refusé")
+  verifier(not hommes.tenir(id, "travail", { activite = "geste", geste = "camper_snooze", siege = "siege_1", assis = "oui" }), "assis boiteux : refusé")
+  FauxJeu.ordres, FauxJeu.gestes, FauxJeu.options_des_gestes = {}, {}, {}
+  verifier(hommes.tenir(id, "travail", { activite = "geste", geste = "camper_snooze", siege = "siege_1", fin = "liberation" }), "tenu sur le banc")
+  egal(FauxJeu.gestes[perso], "camper_snooze", "le geste")
+  local o = FauxJeu.options_des_gestes[perso]
+  egal(o.ancre, banc, "ancré sur l'objet du banc")
+  verifier(o.assis == true, "assis : c'est une place pour s'asseoir")
+  verifier(o.arme == false, "l'arme rangée par défaut")
+  local vu = nil
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.identifiant == perso and ordre.activite == "geste" then vu = ordre end
+  end
+  verifier(vu ~= nil and vu.position.x == 3 and vu.position.y == 4, "l'ordre au point de l'objet")
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir(id, "travail", { activite = "geste", geste = "readingBookStand", siege = "pupitre_1", arme_tiree = true, fin = "liberation" }), "tenu au pupitre")
+  o = FauxJeu.options_des_gestes[perso]
+  egal(o.ancre, "pupitre_1", "une entité nommée, telle quelle")
+  verifier(o.assis == false, "debout : ce n'est pas une place")
+  verifier(o.arme == true, "l'arme à la main")
+  local nouveau = false
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.identifiant == perso and ordre.activite == "geste" then nouveau = true end
+  end
+  verifier(nouveau, "un autre objet, un nouvel ordre")
+  hommes.lacher(id, "travail")
+  FauxJeu.positions_des_objets = nil
+end)
+
 essai("postes (5 c) : avec « reposer_tout_a_l_entree », les postes sont reposés à neuf eux aussi ; un nom accentué permis", function()
   preparer(5000, 100, 10)
   FauxJeu.postes_poses = {}

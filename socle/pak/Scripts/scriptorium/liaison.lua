@@ -3208,9 +3208,19 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
           XGenAIModule.SetBrainVariable(this.id, "scriptorium_regard", vers)
           XGenAIModule.SetBrainVariable(this.id, "scriptorium_allure", 0)
         end)
+      -- L'objet d'ancrage (demande du pair, 18/10) : son WUID dans le cerveau, lu par l'arbre comme celui d'une place.
+      local o = liaison.options_des_gestes[identifiant] or {}
+      o.ancre_posee = false
+      local objet = pose and o.ancre and entite_nommee(o.ancre)
+      if objet then
+        local lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(objet) end)
+        o.ancre_posee = lu and wuid ~= nil
+          and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end) or false
+      end
       if pose then
         liaison.regards[identifiant], liaison.buts[identifiant] = vers, point
         ligne = string.format("geste « %s », point posé (%.1f, %.1f) ; ", liaison.gestes_tenus[identifiant], point.x, point.y)
+          .. (o.ancre and ("ancre « " .. tostring(o.ancre) .. " » " .. (o.ancre_posee and "posée" or "introuvable") .. " ; ") or "")
           .. poser_l_activite(entite, 22)
       else
         ligne = "geste refusé ; " .. poser_l_activite(entite, 9)
@@ -3424,16 +3434,28 @@ end
 -- pcall, écrit dans « geste_nom » ; une ligne au journal ; une erreur, au journal.
 liaison.gestes_tenus = liaison.gestes_tenus or {}
 
-function liaison.donner_le_geste(identifiant, geste)
+-- « options » (demande du pair, 18/10) : { ancre = nom de l'entité sur laquelle le geste se joue, assis = vrai pour
+-- s'asseoir dessus d'abord, arme = vrai pour tenir l'arme à la main } ; l'arme est rangée quand l'ordre change (le
+-- décorateur du jeu prend fin avec le geste).
+liaison.options_des_gestes = liaison.options_des_gestes or {}
+
+function liaison.donner_le_geste(identifiant, geste, options)
   liaison.gestes_tenus[identifiant] = geste
+  liaison.options_des_gestes[identifiant] = options or {}
 end
 
 function liaison.geste_tenu(entite, donnees)
   local fait, erreur = pcall(function()
     local nom = entite:GetName()
     local geste = liaison.gestes_tenus[nom] or "LookingAround"
+    local o = liaison.options_des_gestes[nom] or {}
     donnees.geste_nom = geste
-    liaison.journal("Geste : « " .. tostring(nom) .. " » tient le geste « " .. geste .. " »")
+    donnees.geste_ancre = o.ancre_posee and 1 or 0
+    donnees.geste_assis = (o.ancre_posee and o.assis) and 1 or 0
+    donnees.geste_arme = o.arme == true
+    liaison.journal("Geste : « " .. tostring(nom) .. " » tient le geste « " .. geste .. " »"
+                    .. (o.ancre_posee and (" sur « " .. tostring(o.ancre) .. " »" .. (o.assis and ", assis" or "")) or "")
+                    .. (o.arme and ", l'arme à la main" or ""))
   end)
   if not fait then
     liaison.journal("Geste : erreur : " .. tostring(erreur))

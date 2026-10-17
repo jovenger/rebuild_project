@@ -23,6 +23,9 @@
       <Variable name="geste_ecart" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="poste_geste" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="geste_nom" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="geste_assis" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="geste_ancre" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="geste_arme" type="_bool" values="" isPersistent="0" form="single" />
       <Variable name="parole_sorte" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="parole_alias" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="parole_metarole" type="_string" values="" isPersistent="0" form="single" />
@@ -1010,29 +1013,67 @@
                     </Parallel>
                     <IfCondition condition="$scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
                       <Sequence>
+                        <Expression expressions="$geste_assis = 0" />
+                        <Expression expressions="$geste_ancre = 0" />
+                        <Expression expressions="$geste_arme = false" />
                         <SuppressFailure>
                           <ExecuteLua code="pcall(function() Scriptorium.jeu.geste_tenu(entity, data) end)" />
                         </SuppressFailure>
-                        <Parallel successMode="Any" failureMode="Any">
-                          <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                        <!-- Fiche 18, 5 c (demande du pair, 18/10) : l'arme à la main le temps du geste (le décorateur du jeu,
+                             AI/npc/basic/switch/interrupt_attack.xml) ; le geste assis sur l'objet (StanceElement assis, puis le
+                             geste ancré sur lui : AI/profession/bailiff/so_bailiff_counting.xml), ou ancré debout, ou à un point. -->
+                        <WeaponAutomationDecorator WeaponChange="melee" active="$geste_arme">
+                          <Parallel successMode="Any" failureMode="Any">
                             <Sequence>
-                              <SuppressFailure>
-                                <UnstanceAction unstance="$geste_nom" locationObject="" slaveObject="" />
-                              </SuppressFailure>
-                              <Expression expressions="$scriptorium_geste_fini = $scriptorium_geste_fini + 1" />
-                              <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              <IfCondition condition="$geste_assis == 1" failOnCondition="false">
+                                <SuppressFailure>
+                                  <StanceElement smartObject="$scriptorium_essai_siege" stance="sitting" allowAny="false" enabled="true">
+                                    <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                                      <Sequence>
+                                        <SuppressFailure>
+                                          <UnstanceAction unstance="$geste_nom" locationObject="$scriptorium_essai_siege" slaveObject="" />
+                                        </SuppressFailure>
+                                        <Expression expressions="$scriptorium_geste_fini = $scriptorium_geste_fini + 1" />
+                                        <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                      </Sequence>
+                                    </While>
+                                  </StanceElement>
+                                </SuppressFailure>
+                              </IfCondition>
+                              <IfCondition condition="$geste_assis == 0 &amp; $geste_ancre == 1" failOnCondition="false">
+                                <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                                  <Sequence>
+                                    <SuppressFailure>
+                                      <UnstanceAction unstance="$geste_nom" locationObject="$scriptorium_essai_siege" slaveObject="" />
+                                    </SuppressFailure>
+                                    <Expression expressions="$scriptorium_geste_fini = $scriptorium_geste_fini + 1" />
+                                    <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                  </Sequence>
+                                </While>
+                              </IfCondition>
+                              <IfCondition condition="$geste_ancre == 0" failOnCondition="false">
+                                <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                                  <Sequence>
+                                    <SuppressFailure>
+                                      <UnstanceAction unstance="$geste_nom" locationObject="" slaveObject="" />
+                                    </SuppressFailure>
+                                    <Expression expressions="$scriptorium_geste_fini = $scriptorium_geste_fini + 1" />
+                                    <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                  </Sequence>
+                                </While>
+                              </IfCondition>
                             </Sequence>
-                          </While>
-                          <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
-                            <Sequence>
-                              <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
-                              <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
-                              <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
-                              <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
-                              <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
-                            </Sequence>
-                          </While>
-                        </Parallel>
+                            <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                              <Sequence>
+                                <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                                <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                                <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                                <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                                <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Sequence>
+                            </While>
+                          </Parallel>
+                        </WeaponAutomationDecorator>
                       </Sequence>
                     </IfCondition>
                   </Sequence>

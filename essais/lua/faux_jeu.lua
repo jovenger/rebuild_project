@@ -366,9 +366,11 @@ function faux.donner_la_parole(identifiant, sorte, alias, metarole, partenaire)
   faux.paroles = faux.paroles or {}
   faux.paroles[identifiant] = { sorte = sorte, alias = alias, metarole = metarole, partenaire = partenaire }
 end
-function faux.donner_le_geste(identifiant, geste)
+function faux.donner_le_geste(identifiant, geste, options)
   faux.gestes = faux.gestes or {}
   faux.gestes[identifiant] = geste
+  faux.options_des_gestes = faux.options_des_gestes or {}
+  faux.options_des_gestes[identifiant] = options
 end
 function faux.rendre_parlable(identifiant, oui)
   faux.parlables = faux.parlables or {}
