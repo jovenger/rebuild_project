@@ -504,6 +504,17 @@ def verifier_identifiants():
         System.entites["scriptorium_cheval_essai"] = nil
         l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry", { mode = "cheval", cheval = "scriptorium_cheval_essai" })
         if not string.find(lignes[#lignes], "introuvable, suit « henry » à pied", 1, true) then return "cheval absent : " .. lignes[#lignes] end
+        -- Le piège des doublures (transmis par le pair, 17/10) : pendant un dialogue, le jeu crée des doublures dont le nom
+        -- contient celui de l'original (« DialogTwin_… ») ; en retirer une fait planter le jeu. Le retrait se fait par le
+        -- nom exact : la doublure reste, même quand l'original n'est plus là.
+        local doublure = "DialogTwin_scriptorium_cheval_essai"
+        System.entites["scriptorium_cheval_essai"] = { id = newproxy() }
+        System.entites[doublure] = { id = newproxy() }
+        l.retirer_cheval("scriptorium_cheval_essai")
+        if System.entites["scriptorium_cheval_essai"] ~= nil then return "cheval d'essai non retiré" end
+        l.retirer_cheval("scriptorium_cheval_essai")
+        if System.entites[doublure] == nil then return "une doublure de dialogue retirée avec le cheval" end
+        System.entites[doublure] = nil
         System.entites["scriptorium_rondier"], System.entites["scriptorium_chef_d_essai"] = nil, nil
         XGenAIModule.GetMyWUID = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant

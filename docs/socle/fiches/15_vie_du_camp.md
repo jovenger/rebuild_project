@@ -1643,6 +1643,11 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - **Il descend** à la fin de l'escorte (la posture finie, le jeu joue la descente) et repart à pied à sa tranche ; le
   cheval reste ; `essai_retirer_cheval` le retire.
 - Pas vu : le repli à pied au bout de `monte_delai_ms` (la monte a réussi aussitôt) ; contrôlé au banc seulement.
+- **Le piège des doublures** (transmis par le pair après la séance) : pendant un dialogue, le jeu crée des doublures
+  des personnages et des chevaux proches, dont le nom contient celui de l'original (« DialogTwin_… ») ; chez Scriptorium,
+  un ménage par nom « qui contient » en a retiré une, et le jeu a planté. Relu : le socle trouve et retire par le nom
+  exact (`System.GetEntityByName`) et ne trie que par le début du nom (`scriptorium_`). Au banc : une doublure n'est
+  jamais retirée avec le cheval, même l'original parti ; un retrait « qui contient » injecté est attrapé.
 - Suite : V73 f 2 b, la troupe à cheval.
 
 ## Règles en données (catalogue de `reglages.lua`)
