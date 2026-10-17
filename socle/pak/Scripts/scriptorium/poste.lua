@@ -695,9 +695,12 @@ function poste.essai_tenir_ronde()
 end
 
 function poste.essai_lacher_ronde()
+  -- Seuls comptent les hommes qui étaient tenus par la ronde (lâcher une tenue absente rend vrai aussi).
   local lache = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
-    if Scriptorium.hommes.lacher(id, "ronde") then
+    local f = Scriptorium.hommes.fiche(id)
+    local tenu = f and f.tenues and f.tenues.ronde ~= nil
+    if Scriptorium.hommes.lacher(id, "ronde") and tenu then
       lache = lache + 1
     end
   end

@@ -892,7 +892,8 @@ arrivées).
   glissade : l'écart au but suivant reste fixe pendant toute la pause, alors que le point visé vient de changer.
 - **Issues 4 et 5** : la boucle vue (Mikuláš du point 12 au point 1) ; les deux rondiers, chacun son pas, aucun ne
   bloque l'autre.
-- **Issue 6** : la ronde lâchée, un ordre chacun (compteur 2 → 3), retour à l'exercice en environ 13 s, aucune relance.
+- **Issue 6** : la ronde lâchée, un ordre chacun (compteur 2 → 3), retour à l'exercice en environ 13 s, aucune relance ; le poste disait « ronde lâchée pour 3 homme(s) » pour deux tenus (lâcher une tenue absente rend vrai) :
+  corrigé, il ne compte plus que les hommes tenus (vérifié au banc, pas en jeu).
 - **Issue 7** : le troisième homme suit sa journée (exercice), un lancement.
 - **En passant** : l'archer, hors de la ronde, torse nu sans combat (habillé sur deux vues, dévêtu sur les deux
   suivantes du même tour de vue), puis rhabillé en moins de 90 s, sans ligne au journal (le tour de la garde de la

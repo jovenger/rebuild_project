@@ -295,8 +295,9 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   « ronde » (chemin de 2 à 32 points du monde, boucle ou aller-retour, départ) ; à chaque point, l'arbre appelle le Lua
   (`ExecuteLua`, sous `pcall`), qui pose le point suivant, le regard vers le dehors et la pause tirée par le socle ;
   branche 13. Vu : 33 pas, aucune erreur, pauses tenues, tourné vers le dehors, sans glisser, la boucle, la ronde lâchée.
-  À faire confirmer par JoVenGer : la règle du départ (après rechargement, secours ou règle plus forte, le point le plus
-  proche) et l'accroche « ronde reprise » proposée par le pair.
+  **Règle du départ à confirmer par JoVenGer** (ajoutée en codant : après rechargement, secours ou règle plus forte, le
+  point le plus proche), avec l'accroche « ronde reprise » proposée par le pair. Le poste d'essai ne compte plus que les
+  hommes vraiment tenus quand il lâche la ronde.
 - **Suite** : V73 e, le rassemblement, avec sa fiche, la relecture du pair et les questions.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
