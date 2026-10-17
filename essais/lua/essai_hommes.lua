@@ -3453,7 +3453,7 @@ essai("postes de travail (5 c, tranche 2) : rendre un poste fonctionnel, l'homme
   hommes.battre()
   FauxJeu.postes_poses = {}
   verifier(not camp.rendre_fonctionnel("autel", "inconnu", { x = 5, y = 5, z = 0 }, 0), "genre inconnu : refusé")
-  verifier(not camp.rendre_fonctionnel("mauvais nom", "priere", { x = 5, y = 5, z = 0 }, 0), "nom boiteux : refusé")
+  verifier(not camp.rendre_fonctionnel("", "priere", { x = 5, y = 5, z = 0 }, 0), "nom vide : refusé")
   verifier(not camp.rendre_fonctionnel("autel", "priere", { x = 5 }, 0), "point boiteux : refusé")
   verifier(Scriptorium.avis(camp, "rendre_fonctionnel", "autel", "priere", { x = 5, y = 5, z = 0 }, 90), "posé")
   egal(#FauxJeu.postes_poses, 1, "un objet du jeu posé")
@@ -3521,4 +3521,18 @@ essai("geste tenu (5 c) : un geste du jeu tenu à un point (la forge de Scriptor
   end
   verifier(deux >= 1, "un nouvel ordre")
   hommes.lacher(id, "travail")
+end)
+
+essai("postes (5 c) : avec « reposer_tout_a_l_entree », les postes sont reposés à neuf eux aussi ; un nom accentué permis", function()
+  preparer(5000, 100, 10)
+  FauxJeu.postes_poses = {}
+  verifier(camp.rendre_fonctionnel("prie-Dieu é", "priere", { x = 5, y = 5, z = 0 }, 0), "nom accentué : posé")
+  local avant = #FauxJeu.postes_poses
+  local ancien = camp.reglages.reposer_tout_a_l_entree
+  camp.reglages.reposer_tout_a_l_entree = 1
+  local ok, erreur = pcall(camp.relancer)
+  camp.reglages.reposer_tout_a_l_entree = ancien
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+  egal(#FauxJeu.postes_poses, avant + 1, "le poste reposé à neuf")
+  verifier(camp.poste("prie-Dieu é").pose, "posé")
 end)

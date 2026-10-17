@@ -601,7 +601,8 @@ local function finir_la_mission(d, m, heure)
   m.etat = "finie"
   m.fin = heure
   local resultat = m.resultat or {}
-  local r = { id = m.id, lieu = m.lieu.nom, niveau = m.niveau, issue = m.issue or "perdue", depart = m.depart, fin = heure,
+  local r = { id = m.id, lieu = m.lieu.nom, niveau = m.niveau or (m.sortie and "sortie") or nil, issue = m.issue or "perdue",
+              depart = m.depart, fin = heure,
               hommes = #m.hommes, morts = resultat.morts or (#m.hommes - #vivants_de(m)), blesses = resultat.blesses or 0,
               butin = resultat.butin or 0, part_coffre = resultat.part_coffre or 0 }
   m.rapport = r

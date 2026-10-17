@@ -433,7 +433,8 @@ function camp.rendre_fonctionnel(nom, genre, position, cap)
   if not d.fonde then
     return refuser("pas_fonde")
   end
-  if type(nom) ~= "string" or nom == "" or not string.match(nom, "^[%w_]+$") then
+  -- Un nom non vide (le nom de l'entité du jeu en est nettoyé à la pose : accents permis).
+  if type(nom) ~= "string" or nom == "" then
     return refuser("nom_invalide", tostring(nom))
   end
   if not camp.genres_de_postes[genre] then
@@ -514,6 +515,13 @@ function camp.relancer()
   end
   d.objets = {}
   local reposes, manquants = dresser(d)
+  -- Fiche 18, 5 c : les postes de travail reposés à neuf eux aussi.
+  for nom, poste in pairs(d.postes or {}) do
+    if poste.identifiant then
+      jeu().retirer_objet(poste.identifiant)
+    end
+    if camp.poser_le_poste(d, nom, poste) then reposes = reposes + 1 else manquants = manquants + 1 end
+  end
   enregistrer()
   jeu().journal("Camp : reposé à l'entrée en partie, " .. reposes .. " objet(s), " .. manquants .. " manquant(s)")
   return reposes, manquants
