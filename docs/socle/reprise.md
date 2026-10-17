@@ -360,16 +360,20 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   6 m ; une mesure par homme suivi ; les sauts écartés. Vu : le cavalier seul à 4,2–4,35 m d'Henry ; la perte et le retour.
 - **V73 f 3 a, la sonde de la carte, faite** (7adeaf2) : la carte se lit par `sv_map` (« kutnohorsko »), l'altitude des
   repères de Scriptorium en secours ; au chargement, seul `OnLoadingComplete`.
-- **Suite** : V73 f 3 b, la carte du camp (le camp reste sur sa carte ; l'escorte refaite près d'Henry ailleurs) et les
-  cavaliers après un grand saut (voyage rapide) ; puis le gardien des hommes ; puis les étapes 2 à 8. À vérifier par
-  JoVenGer : le passage Trosky ↔ Kuttenberg.
+- **V73 f 3 b, la carte du camp et le grand saut, faits** (ba0906c, 7a4a05f, 741346d, ded2994) : le camp note sa carte
+  (un camp ancien la prend sur preuve) et ne se repose que sur elle ; ailleurs, seule l'escorte est refaite derrière
+  Henry, l'embauche va au registre, aucune bande ne naît ; le grand saut lancé au bond d'Henry (veille d'une seconde),
+  ordre à pied tout de suite, selle lue avant tout retrait (attentes, abandon), rien sous ses yeux, pose relue avant le
+  nouveau cheval. Vu en jeu : six bonds, la colonne posée 5 à 6 s après, 0 pose perdue sur 12 avec la relecture.
+- **Suite** : le gardien des hommes ; puis les étapes 2 à 8. À vérifier par JoVenGer : le passage Trosky ↔ Kuttenberg
+  (charger d'abord la Partie 4 sur la carte du camp), la vraie monte d'Henry, et le voyage rapide par la carte.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 79 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 96 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire

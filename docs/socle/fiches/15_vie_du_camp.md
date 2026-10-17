@@ -2377,7 +2377,15 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   cette animation est perdu. **Remède** (sur la mesure, pas sur la cause) : la pose est relue `saut_verif_ms` (1500)
   après ; à plus de `saut_pose_ecart_m` (15) de sa place, il est reposé, `saut_poses_max` (3) fois au plus, puis le
   battement le rattrape ; le nouveau cheval ne naît qu'une fois la pose tenue (sinon il naissait à l'ancienne place).
-  Non vérifié en jeu (à la séance suivante).
+- **Bonds 4 à 6, même séance, pak ded2994** (relance du jeu) : à chaque bond, les quatre en saut au plus 0,8 s après ;
+  encore en selle à 3 s, à pied lus à 5 s ; posés à 5,0–5,4 s du bond ; **la relecture à 1,5 s : les douze poses ont
+  tenu** (aucune ligne « pas resté posé »), nouveaux chevaux à 7,0–7,8 s du bond ; tous remontés et « tenir » à 1,5–7 m
+  vers 15–19 s ; aucun second saut. Vu sur capture : les quatre en selle autour d'Henry. Donc **0 pose perdue sur 12**,
+  contre 4 sur 8 quand l'ordre et le nouveau cheval suivaient la pose dans la même seconde : la cause était sans doute
+  là (l'ordre redonné aussitôt) plutôt que dans l'animation. **La repose elle-même n'a pas été vue en jeu** (aucune
+  pose perdue) : éprouvée au banc seulement.
+- Séance fermée par `fin_essai` : Partie 1 identique à sa copie, liste des mods d'origine remise, veilleur relancé ;
+  écran normal à chaque chargement (2 chargements).
 - Vu aussi : le retrait de fin de sortie (V73 f 2 b) retirait un cheval au battement sans lire la selle ; il la lit
   désormais (encore monté : au battement suivant). Et `essai_directeur_a_cheval` remet l'escorte « comme Henry » : à
   pied si Henry est à pied.
