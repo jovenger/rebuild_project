@@ -1556,7 +1556,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   surnuméraires en chaîne, un autre mode que `MoveHistory`.
 - **Suite** : V73 f 2, à cheval.
 
-## V73 f 2 a — à cheval : la sonde d'un homme (17/10, relu par le pair ; réponses recommandées prises d'office)
+## V73 f 2 a — à cheval : la sonde d'un homme (17/10, relu par le pair, fait et vu en jeu ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - Règle de JoVenGer du 16/10 : « tous ceux qui sortent du camp partent à cheval et en reviennent à cheval » ; chez
@@ -1632,6 +1632,18 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    troupe montée.
 3. **Monter** : (a) la posture « horse » du jeu autour de la suite, comme `moveOnHorse` (Recommandé) ; (b)
    `HorseUsageElement`. **Prise : (a).**
+
+### Mesuré en V73 f 2 a (17/10) : la sonde à cheval, acquise
+- ad37d81, `playline3` (473), sans `-devmode`, secours coupé puis remis ; trois hommes et le Directeur.
+- **Le cheval naît** (âme Horse2) : sellé, debout, à 5 m de Jan ; il ne s'enfuit pas.
+- **Jan monte** au premier essai : « en selle 1 » ; à l'image, en selle à 6 s, jamais figé à côté du cheval (le piège
+  connu chez Scriptorium n'est pas reproduit : la posture « horse » du jeu, une âme de cheval).
+- **Il suit Henry à cheval** : 12,45 m pendant qu'Henry marche 10 s, puis à côté de lui ; 10,76 m juste après une
+  course de 5 s, 3,64 m 8 s plus tard.
+- **Il descend** à la fin de l'escorte (la posture finie, le jeu joue la descente) et repart à pied à sa tranche ; le
+  cheval reste ; `essai_retirer_cheval` le retire.
+- Pas vu : le repli à pied au bout de `monte_delai_ms` (la monte a réussi aussitôt) ; contrôlé au banc seulement.
+- Suite : V73 f 2 b, la troupe à cheval.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

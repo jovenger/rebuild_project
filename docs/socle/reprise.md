@@ -323,16 +323,22 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   sinon suivent leur chef 4 s ; la formation fermée seulement quand le chef cesse de mener ; `hommes.formations` au
   catalogue. Vu : la forme followNPC à l'image, reformée après un rattrapage. À surveiller : une formation orpheline après
   un rattrapage du chef.
-- **Suite** : V73 f 2, à cheval (le cheval d'Henry, `HorseUsageElement`, `Function_moveOnHorse`, le suiveur monté en
-  `MoveHistory` ou `Relaxed`, un `WaitAction` avant ; règle du 16/10 : tous ceux qui sortent du camp partent à cheval) ;
-  puis le gardien des hommes.
+- **V73 f 2 a, la sonde à cheval, faite et vue en jeu** (ad37d81 ; relecture du pair intégrée) : un cheval né par script
+  (classe `Horse`, âme Horse2 du jeu, hors de la sauvegarde) ; l'ordre 17 : la posture « horse » du jeu autour de la suite
+  (forme de `moveOnHorse`), un `WaitAction` avant, « en selle » compté, la monte bornée par `monte_delai_ms` (10 s, au
+  catalogue), sinon à pied. Vu : Jan monte, suit Henry à cheval au pas et à la course, descend à la fin de l'escorte.
+  Pas vu : le repli à pied au bout de 10 s.
+- **Séance** : depuis la liste « Sélectionner une partie », descendre deux fois (Partie 4), Entrée, regarder la liste des
+  sauvegardes (« 473 »), puis seulement `confirmer_sauvegarde.ps1` (sinon rien ne se charge et le script ferme le jeu).
+- **Suite** : V73 f 2 b, la troupe à cheval (le suiveur monté en `MoveHistory` ou `Relaxed`, les chevaux gardés ; règle
+  du 16/10 : tous ceux qui sortent du camp partent à cheval) ; puis le gardien des hommes.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 49 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 52 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
