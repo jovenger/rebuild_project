@@ -1227,6 +1227,86 @@ function liaison.sol_de(position, pas)
   return { pente = pente, encombre = encombre, eau_lisible = eau_lisible }
 end
 
+-- Fiche 15, V73 f 2 d : le cheval d'Henry (player.player:GetPlayerHorse rend son WUID, __null s'il n'en a pas ;
+-- XGenAIModule.GetEntityByWUID, la forme de Scripts/Utils/GameUtils.lua). Rend l'entité, ou (nil, raison).
+local function cheval_d_henry()
+  local lu, wuid = pcall(function() return player.player:GetPlayerHorse() end)
+  if not lu then
+    return nil, "illisible : " .. tostring(wuid)
+  end
+  if wuid == nil or wuid == rawget(_G, "__null") then
+    return nil, "Henry n'a pas de cheval"
+  end
+  local trouve, cheval = pcall(XGenAIModule.GetEntityByWUID, wuid)
+  if not trouve or not cheval then
+    return nil, "introuvable"
+  end
+  return cheval
+end
+
+-- Henry à cheval : son cheval a un cavalier (horse:HasRider, Scripts/Entities/AI/Horse.lua) à moins de « pres » m de
+-- lui. Rend vrai, faux (pas de cheval, ou personne dessus, ou loin), ou nil si rien n'est lisible. Limite : Henry sur
+-- un autre cheval que le sien n'est pas vu monté.
+function liaison.henry_a_cheval(pres)
+  local cheval, raison = cheval_d_henry()
+  if not cheval then
+    if raison == "Henry n'a pas de cheval" then
+      return false
+    end
+    return nil
+  end
+  local monte_lu, monte = pcall(function() return cheval.horse:HasRider() end)
+  if not monte_lu then
+    return nil
+  end
+  if not monte then
+    return false
+  end
+  local ici_lu, ici = pcall(function() return player:GetWorldPos() end)
+  local la_lu, la = pcall(function() return cheval:GetWorldPos() end)
+  if not (ici_lu and la_lu and type(ici) == "table" and type(la) == "table") then
+    return nil
+  end
+  return ((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) ^ 0.5 <= pres
+end
+
+-- Relecture du pair (V73 f 2 d) : la posture d'Henry vue par l'arbre d'un homme (StanceCheck « horse » sur Henry,
+-- n'importe quel cheval, à chaque pouls des branches de la suite) : (le compte de ses lectures, 1 s'il l'a vu à cheval,
+-- sinon 0), ou nil si son cerveau est illisible.
+function liaison.posture_d_henry_vue(identifiant)
+  local entite = entite_nommee(identifiant)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not entite or not this_lu or type(this) ~= "table" then
+    return nil
+  end
+  local lu, lectures = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_henry_lectures") end)
+  local vu, en_selle = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_henry_en_selle") end)
+  if not lu or not vu or tonumber(lectures) == nil then
+    return nil
+  end
+  return tonumber(lectures), tonumber(en_selle) or 0
+end
+
+-- Séance d'essai (V73 f 2 d) : le cheval d'Henry amené à « distance » m devant lui, au sol, sur une place que rien
+-- n'encombre (sol_de). Rend (vrai, ligne) ou (faux, raison).
+function liaison.amener_le_cheval_d_henry(distance)
+  local cheval, raison = cheval_d_henry()
+  if not cheval then
+    return false, "cheval d'Henry : " .. tostring(raison)
+  end
+  local henry, cap = liaison.position_du_joueur(), liaison.cap_du_joueur()
+  local ou = liaison.au_sol({ x = henry.x + distance * math.sin(math.rad(cap)),
+                              y = henry.y + distance * math.cos(math.rad(cap)), z = henry.z })
+  local sol = liaison.sol_de(ou, 1.5)
+  if sol and sol.encombre then
+    return false, "place encombrée devant Henry"
+  end
+  local pose, erreur = pcall(function() cheval:SetWorldPos(ou) end)
+  local nom_lu, nom = pcall(function() return cheval:GetName() end)
+  return pose, string.format("« %s » posé à %g m devant Henry : %s", nom_lu and tostring(nom) or "?", distance,
+                             pose and "oui" or tostring(erreur))
+end
+
 -- Fiche 15, V73 f 2 b : le compte des montes manquées que tient le cerveau de l'homme (l'arbre l'augmente quand le délai
 -- de la monte passe sans qu'il soit en selle) ; nil s'il est illisible.
 function liaison.montes_manquees(identifiant)

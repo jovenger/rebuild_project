@@ -894,6 +894,41 @@ function poste.essai_troupe_a_cheval()
   return n > 0
 end
 
+-- Fiche 15, V73 f 2 d : l'escorte qui monte quand Henry monte ; la lecture d'Henry forcée ou rendue au jeu ; son
+-- cheval amené devant lui pour la séance.
+function poste.essai_escorte_comme_henry()
+  local n = 0
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then
+      local ok = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers", formation = "followNPC",
+        a_cheval = "comme_henry", fin = "liberation" })
+      if ok then
+        n = n + 1
+      end
+    end
+  end
+  jeu().journal("Poste : escorte « comme Henry » de " .. n .. " homme(s)")
+  return n > 0
+end
+
+local function forcer_henry(valeur, quoi)
+  Scriptorium.hommes.henry_force = valeur
+  local lu = Scriptorium.hommes.veiller_henry()
+  jeu().journal("Poste : lecture d'Henry " .. quoi .. " ; lue " .. tostring(lu) .. ", retenu monté "
+                .. tostring(Scriptorium.hommes.henry_monte))
+  return true
+end
+
+function poste.essai_henry_a_cheval() return forcer_henry(true, "forcée à cheval") end
+function poste.essai_henry_a_pied() return forcer_henry(false, "forcée à pied") end
+function poste.essai_henry_lu() return forcer_henry(nil, "rendue au jeu") end
+
+function poste.essai_cheval_d_henry()
+  local ok, ligne = jeu().amener_le_cheval_d_henry(4)
+  jeu().journal("Poste : " .. tostring(ligne))
+  return ok == true
+end
+
 function poste.essai_fin_escorte()
   local n = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
@@ -966,6 +1001,9 @@ function poste.essai_hommes_voir()
   if personnage then
     jeu().journal("Poste : Directeur " .. jeu().voir_sur_la_place(personnage, places_donnees[personnage]))
   end
+  -- V73 f 2 d : Henry à cheval, lu et retenu.
+  jeu().journal("Poste : Henry à cheval : lu " .. tostring(hommes.henry_lu) .. ", retenu monté " .. tostring(hommes.henry_monte)
+                .. ", lectures à pied " .. tostring(hommes.henry_pied_lectures) .. ", forcé " .. tostring(hommes.henry_force))
   return true
 end
 
@@ -1734,6 +1772,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
   { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
   { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
+  { nom = "scriptorium_essai_escorte_comme_henry", fonction = function() return poste.essai_escorte_comme_henry() end, aide = "Les trois premiers hommes suivent Henry, à cheval quand il l'est (V73 f 2 d)" },
+  { nom = "scriptorium_essai_henry_a_cheval", fonction = function() return poste.essai_henry_a_cheval() end, aide = "La lecture d'Henry forcée à cheval (V73 f 2 d)" },
+  { nom = "scriptorium_essai_henry_a_pied", fonction = function() return poste.essai_henry_a_pied() end, aide = "La lecture d'Henry forcée à pied (V73 f 2 d)" },
+  { nom = "scriptorium_essai_henry_lu", fonction = function() return poste.essai_henry_lu() end, aide = "La lecture d'Henry rendue au jeu (V73 f 2 d)" },
+  { nom = "scriptorium_essai_cheval_d_henry", fonction = function() return poste.essai_cheval_d_henry() end, aide = "Le cheval d'Henry amené à 4 m devant lui (V73 f 2 d)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },

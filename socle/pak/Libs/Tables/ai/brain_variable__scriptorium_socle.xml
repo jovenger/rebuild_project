@@ -57,5 +57,7 @@
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_formation_mode_monte" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_monte_manquee" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_monte_approche_ms" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_henry_en_selle" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_henry_lectures" type="int" />
   </brain_variables>
 </database>

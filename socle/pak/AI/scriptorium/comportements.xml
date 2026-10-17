@@ -367,6 +367,15 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <StanceCheck soul="$__player" stance="horse" smartObject="" negate="true" failOnCondition="false" saveVersion="2">
+                          <Then canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 0" />
+                          </Then>
+                          <Else canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 1" />
+                          </Else>
+                        </StanceCheck>
+                        <Expression expressions="$scriptorium_henry_lectures = $scriptorium_henry_lectures + 1" />
                         <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
                         <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
@@ -406,6 +415,15 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <StanceCheck soul="$__player" stance="horse" smartObject="" negate="true" failOnCondition="false" saveVersion="2">
+                          <Then canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 0" />
+                          </Then>
+                          <Else canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 1" />
+                          </Else>
+                        </StanceCheck>
+                        <Expression expressions="$scriptorium_henry_lectures = $scriptorium_henry_lectures + 1" />
                         <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
                         <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
@@ -462,6 +480,15 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <StanceCheck soul="$__player" stance="horse" smartObject="" negate="true" failOnCondition="false" saveVersion="2">
+                          <Then canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 0" />
+                          </Then>
+                          <Else canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 1" />
+                          </Else>
+                        </StanceCheck>
+                        <Expression expressions="$scriptorium_henry_lectures = $scriptorium_henry_lectures + 1" />
                         <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
                         <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
@@ -506,6 +533,15 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <StanceCheck soul="$__player" stance="horse" smartObject="" negate="true" failOnCondition="false" saveVersion="2">
+                          <Then canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 0" />
+                          </Then>
+                          <Else canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 1" />
+                          </Else>
+                        </StanceCheck>
+                        <Expression expressions="$scriptorium_henry_lectures = $scriptorium_henry_lectures + 1" />
                         <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
                         <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
@@ -566,6 +602,15 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <StanceCheck soul="$__player" stance="horse" smartObject="" negate="true" failOnCondition="false" saveVersion="2">
+                          <Then canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 0" />
+                          </Then>
+                          <Else canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 1" />
+                          </Else>
+                        </StanceCheck>
+                        <Expression expressions="$scriptorium_henry_lectures = $scriptorium_henry_lectures + 1" />
                         <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
                         <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
@@ -635,6 +680,15 @@
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>
                         <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <StanceCheck soul="$__player" stance="horse" smartObject="" negate="true" failOnCondition="false" saveVersion="2">
+                          <Then canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 0" />
+                          </Then>
+                          <Else canSkip="1">
+                            <Expression expressions="$scriptorium_henry_en_selle = 1" />
+                          </Else>
+                        </StanceCheck>
+                        <Expression expressions="$scriptorium_henry_lectures = $scriptorium_henry_lectures + 1" />
                         <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
                         <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
                         <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />

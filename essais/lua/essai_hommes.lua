@@ -2494,3 +2494,87 @@ essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin d
   FauxJeu.manquees = nil
 end)
 
+-- Fiche 15, V73 f 2 d : l'escorte monte quand Henry monte (relue par le pair : la posture lue par l'arbre, le cheval
+-- d'Henry en filet ; l'anti-rebond).
+essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend après quatre lectures à pied ; la posture lue par l'arbre, le cheval d'Henry en filet", function()
+  preparer(5000, 100, 10)
+  local ids, perso = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+    FauxJeu.positions[perso[i]] = { x = 100 + 10 * i, y = 0, z = 0 }
+  end
+  hommes.battre()
+  FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.manquees = {}, {}, {}
+  FauxJeu.henry_cheval, FauxJeu.postures = false, {}
+  for i = 1, 3 do
+    verifier(hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "h", formation = "followNPC", a_cheval = "comme_henry", fin = "liberation" }), "escorte comme Henry " .. i)
+  end
+  -- Henry à pied : à pied, aucun cheval.
+  egal(hommes.veiller_henry(), false, "Henry lu à pied")
+  verifier(hommes.montures[ids[1]] == nil, "aucun cheval")
+  egal(hommes.activite_de(ids[1], 10).suivi.mode, "mener", "à pied, le premier mène")
+  -- Henry monte : tout de suite.
+  FauxJeu.henry_cheval = true
+  egal(hommes.veiller_henry(), true, "Henry lu à cheval")
+  verifier(hommes.henry_monte, "retenu monté tout de suite")
+  for i = 1, 3 do
+    local m = hommes.montures[ids[i]]
+    verifier(m and m.cheval and FauxJeu.chevaux[m.cheval], "l'homme " .. i .. " a son cheval")
+    local o = dernier_ordre_de(perso[i])
+    egal(o and o.suivi and o.suivi.mode, "cheval", "l'homme " .. i .. " monte")
+  end
+  verifier(journal_contient("l'escorte monte"), "la monte au journal")
+  -- L'anti-rebond : trois lectures à pied, une à cheval, trois à pied : toujours monté.
+  FauxJeu.henry_cheval = false
+  for _ = 1, 3 do hommes.veiller_henry() end
+  verifier(hommes.henry_monte, "trois lectures à pied : toujours monté")
+  FauxJeu.henry_cheval = true
+  hommes.veiller_henry()
+  FauxJeu.henry_cheval = false
+  for _ = 1, 3 do hommes.veiller_henry() end
+  verifier(hommes.henry_monte, "une lecture à cheval remet le compte à zéro")
+  -- Une lecture illisible ne change rien.
+  FauxJeu.henry_cheval = nil
+  for _ = 1, 6 do hommes.veiller_henry() end
+  verifier(hommes.henry_monte, "illisible : rien ne change")
+  -- La descente : quatre lectures à pied de suite ; l'abandon des montes manquées oublié.
+  hommes.montures[ids[2]].abandon, hommes.montures[ids[2]].essais = true, 3
+  FauxJeu.henry_cheval = false
+  for _ = 1, 4 do hommes.veiller_henry() end
+  verifier(not hommes.henry_monte, "quatre lectures à pied : descendu")
+  verifier(journal_contient("l'escorte descend"), "la descente au journal")
+  local m2 = hommes.montures[ids[2]]
+  verifier(m2 == nil or (not m2.abandon and m2.essais == 0), "l'abandon oublié")
+  local o1 = dernier_ordre_de(perso[1])
+  egal(o1 and o1.suivi and o1.suivi.mode, "mener", "à pied, il mène de nouveau")
+  -- Les chevaux retirés par la règle de la sortie (au plus tard au deuxième battement).
+  local cheval1 = hommes.montures[ids[1]] and hommes.montures[ids[1]].cheval
+  for _ = 1, 2 do hommes.battre() end
+  verifier(cheval1 ~= nil and FauxJeu.chevaux[cheval1] == nil, "son cheval retiré après la descente")
+  -- La posture lue par l'arbre (n'importe quel cheval) : fraîche, elle suffit, même si le filet ne voit rien.
+  FauxJeu.postures[perso[3]] = { lectures = 1, en_selle = 1 }
+  egal(hommes.veiller_henry(), true, "l'arbre voit Henry à cheval")
+  verifier(journal_contient("l'arbre voit Henry à cheval"), "dit au journal")
+  -- Une posture qui ne bouge plus n'est plus lue : le filet seul.
+  egal(hommes.veiller_henry(), false, "lecture de l'arbre périmée : le filet dit à pied")
+  FauxJeu.postures[perso[3]] = { lectures = 2, en_selle = 0 }
+  egal(hommes.veiller_henry(), false, "l'arbre et le filet : à pied")
+  -- Le filet seul le voit : monté quand même, dit au journal.
+  FauxJeu.henry_cheval = true
+  FauxJeu.postures[perso[3]] = { lectures = 3, en_selle = 0 }
+  egal(hommes.veiller_henry(), true, "le filet voit Henry sur son cheval")
+  verifier(journal_contient("le filet voit Henry sur son cheval, l'arbre non"), "dit au journal")
+  -- La lecture forcée par le poste.
+  hommes.henry_force = false
+  egal(hommes.veiller_henry(), false, "forcée à pied")
+  hommes.henry_force = nil
+  -- La veille : une par partie.
+  local avant = #FauxJeu.minuteries
+  hommes.veille_d_henry_generation = nil
+  verifier(hommes.lancer_la_veille_d_henry(), "la veille posée")
+  verifier(not hommes.lancer_la_veille_d_henry(), "une seule par partie")
+  egal(#FauxJeu.minuteries, avant + 1, "une minuterie")
+  egal(FauxJeu.minuteries[#FauxJeu.minuteries].ms, hommes.reglages.henry_veille_ms, "à la cadence réglée")
+  FauxJeu.henry_cheval, FauxJeu.postures, FauxJeu.manquees = nil, nil, nil
+end)

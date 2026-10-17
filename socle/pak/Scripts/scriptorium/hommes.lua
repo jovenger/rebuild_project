@@ -86,6 +86,13 @@ hommes.reglages = {
   cheval_sol_pas_m = 1.5,
   monte_approche_m_par_s = 1,
   monte_approche_max_ms = 60000,
+  -- Henry à cheval (V73 f 2 d, principe transmis par le pair) : l'escorte « comme Henry » monte quand il monte, tout de
+  -- suite, et descend quand il descend, après « henry_descente_lectures » lectures « à pied » de suite (l'anti-rebond),
+  -- une lecture toutes les « henry_veille_ms » ; Henry est lu monté quand son cheval a un cavalier à moins de
+  -- « henry_cheval_pres_m » de lui.
+  henry_veille_ms = 1000,
+  henry_descente_lectures = 4,
+  henry_cheval_pres_m = 2.5,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -1528,8 +1535,8 @@ function hommes.activite_de(id, heure)
         -- V73 f 2 a : à cheval (la sonde) ; l'homme qui a un cheval le monte et suit son chef en selle.
         if tenue.cheval then
           resultat.suivi = { mode = "cheval", cheval = tenue.cheval }
-        elseif tenue.a_cheval then
-          -- V73 f 2 b : la sortie à cheval ; l'homme qui a son cheval passager le monte, dans son rôle (mener, se ranger,
+        elseif tenue.a_cheval == true or (tenue.a_cheval == "comme_henry" and hommes.henry_monte == true) then
+          -- V73 f 2 b : la sortie à cheval (V73 f 2 d : « comme Henry », tant qu'Henry est retenu monté) ; l'homme qui a son cheval passager le monte, dans son rôle (mener, se ranger,
           -- suivre) ; sans cheval (pas encore né, ou l'abandon après les montes manquées), à pied dans ce rôle.
           local m = hommes.montures[id]
           if m and m.cheval and not m.abandon then
@@ -1750,6 +1757,17 @@ hommes.hasard_de_la_ronde = nil
 -- et le hasard de leurs angles.
 hommes.montures = {}
 hommes.hasard_des_chevaux = nil
+-- Henry à cheval (V73 f 2 d), en mémoire seulement : retenu monté ou non, les lectures « à pied » de suite, la lecture
+-- forcée par le poste d'essai (nil : la vraie), la dernière lecture, et la génération de la veille posée.
+hommes.henry_monte = false
+hommes.henry_pied_lectures = 0
+hommes.henry_force = nil
+hommes.henry_lu = nil
+hommes.veille_d_henry_generation = nil
+-- Relecture du pair : le dernier compte de lectures de la posture d'Henry vu dans le cerveau de chaque homme (une
+-- lecture est fraîche si ce compte a bougé), et ce que la veille a déjà dit une fois au journal.
+hommes.lectures_d_henry_vues = {}
+hommes.henry_deja_dit = {}
 -- Fiche 15, V73 d 2 bis : pourquoi l'ordre d'un homme est redonné (« rechargement », « secours »), pour l'accroche
 -- « ronde_reprise » ; sans raison notée, une règle plus forte l'a tenu puis lâché. En mémoire, effacée à chaque ordre.
 hommes.raisons_de_reprise = {}
@@ -2103,7 +2121,8 @@ end
 -- La sortie à cheval (fiche 15, V73 f 2 b) : la tenue la plus forte de l'homme suit quelqu'un, à cheval.
 local function en_sortie_a_cheval(f)
   local _, t = tenue_la_plus_forte(f)
-  return t ~= nil and t.activite == "suivre" and t.a_cheval == true
+  return t ~= nil and t.activite == "suivre"
+    and (t.a_cheval == true or (t.a_cheval == "comme_henry" and hommes.henry_monte == true))
 end
 
 local function compter_un_essai(f, m)
@@ -2343,6 +2362,111 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   end
 end
 
+-- Henry à cheval (fiche 15, V73 f 2 d, principe transmis par le pair) : monté, tout de suite ; à pied, après
+-- « henry_descente_lectures » lectures de suite (l'anti-rebond : une lecture « monté » remet le compte à zéro) ; une
+-- lecture illisible ne change rien. À chaque changement, une ligne au journal et l'ordre redonné aux hommes dont
+-- l'escorte suit Henry « comme Henry » ; à la descente, l'abandon des montes manquées est oublié. Rend la lecture.
+-- La lecture d'Henry : la posture vue par l'arbre des hommes de l'escorte « comme Henry » (n'importe quel cheval ;
+-- principe transmis par le pair), fraîche si son compte a bougé ; et, en filet, son propre cheval lu en Lua. Monté si
+-- l'une des deux le dit ; à pied si aucune ne le dit et qu'au moins une est lisible ; nil sinon. Une ligne au journal,
+-- une seule fois, quand l'arbre voit Henry à cheval, et quand seul le filet le voit.
+local function lire_henry()
+  if hommes.henry_force ~= nil then
+    return hommes.henry_force
+  end
+  local d = donnees()
+  local arbre = nil
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    local _, t = tenue_la_plus_forte(f)
+    if f.personnage and t and t.activite == "suivre" and t.a_cheval == "comme_henry" then
+      local lectures, en_selle = jeu().posture_d_henry_vue(f.personnage)
+      if lectures and lectures ~= hommes.lectures_d_henry_vues[id] then
+        hommes.lectures_d_henry_vues[id] = lectures
+        if en_selle == 1 then
+          arbre = true
+        elseif arbre == nil then
+          arbre = false
+        end
+      end
+    end
+  end
+  local filet = jeu().henry_a_cheval(hommes.reglages.henry_cheval_pres_m)
+  if arbre == true and not hommes.henry_deja_dit.arbre then
+    hommes.henry_deja_dit.arbre = true
+    jeu().journal("Hommes : l'arbre voit Henry à cheval (posture « horse »)")
+  elseif filet == true and arbre == false and not hommes.henry_deja_dit.filet then
+    hommes.henry_deja_dit.filet = true
+    jeu().journal("Hommes : le filet voit Henry sur son cheval, l'arbre non")
+  end
+  if arbre == true or filet == true then
+    return true
+  end
+  if arbre == false or filet == false then
+    return false
+  end
+  return nil
+end
+
+function hommes.veiller_henry()
+  local lu = lire_henry()
+  hommes.henry_lu = lu
+  local change = false
+  if lu == true then
+    hommes.henry_pied_lectures = 0
+    if not hommes.henry_monte then
+      hommes.henry_monte, change = true, true
+      jeu().journal("Hommes : Henry à cheval : l'escorte monte")
+    end
+  elseif lu == false and hommes.henry_monte then
+    hommes.henry_pied_lectures = hommes.henry_pied_lectures + 1
+    if hommes.henry_pied_lectures >= hommes.reglages.henry_descente_lectures then
+      hommes.henry_monte, change, hommes.henry_pied_lectures = false, true, 0
+      jeu().journal("Hommes : Henry à pied (" .. hommes.reglages.henry_descente_lectures
+                    .. " lectures de suite) : l'escorte descend")
+    end
+  end
+  if change then
+    local d = donnees()
+    local heure = jeu().heure_du_jeu()
+    for _, id in ipairs(d.ordre) do
+      local _, t = tenue_la_plus_forte(d.liste[id])
+      if t and t.activite == "suivre" and t.a_cheval == "comme_henry" then
+        local m = hommes.montures[id]
+        if m and not hommes.henry_monte then
+          m.abandon, m.essais = nil, 0
+        end
+        ordonner_un_homme(d, id, heure, nil, true)
+      end
+    end
+  end
+  return lu
+end
+
+-- La veille d'Henry à cheval, une par partie (comme le guet du noyau, elle s'éteint au changement de génération) ; une
+-- erreur est dite au journal, trois fois au plus. Rend vrai si elle est posée.
+function hommes.lancer_la_veille_d_henry()
+  local generation = Scriptorium.generation
+  if hommes.veille_d_henry_generation == generation then
+    return false
+  end
+  hommes.veille_d_henry_generation = generation
+  local erreurs = 0
+  local function veille()
+    if generation ~= Scriptorium.generation or not Scriptorium.en_partie then
+      return
+    end
+    local ok, erreur = pcall(hommes.veiller_henry)
+    if not ok and erreurs < 3 then
+      erreurs = erreurs + 1
+      jeu().journal("Hommes : veille d'Henry à cheval en erreur : " .. tostring(erreur))
+    end
+    jeu().minuterie(hommes.reglages.henry_veille_ms, veille)
+  end
+  jeu().minuterie(hommes.reglages.henry_veille_ms, veille)
+  return true
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
@@ -2483,7 +2607,8 @@ end
 -- pause, V73 d 2 bis). Le rassemblement (V73 e) accepte « centre » (un point du monde), et alors « cap » (le milieu de
 -- l'arc vu du centre), « rayon », « ouverture » (degrés, 360 : un cercle), « face » (« centre » ou « dehors ») et
 -- « allure » (« course » ou « marche ») ; sans centre, il reste une marche au point. Suivre (V73 f 2 b) accepte
--- « a_cheval » (un booléen) : une sortie à cheval, un cheval passager par homme. Rend vrai, ou (faux, raison).
+-- « a_cheval » (un booléen) : une sortie à cheval, un cheval passager par homme ; ou « comme_henry » (V73 f 2 d) : à
+-- cheval tant qu'Henry l'est. Rend vrai, ou (faux, raison).
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
   local f = d.liste[id]
@@ -2552,7 +2677,7 @@ function hommes.tenir(id, regle, quoi)
   if quoi.activite == "suivre" and quoi.formation ~= nil and not hommes.formations[quoi.formation] then
     return refuser("escorte_invalide", "formation " .. tostring(quoi.formation))
   end
-  if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" then
+  if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" and quoi.a_cheval ~= "comme_henry" then
     return refuser("escorte_invalide", "a_cheval " .. tostring(quoi.a_cheval))
   end
   -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
@@ -2571,7 +2696,8 @@ function hommes.tenir(id, regle, quoi)
                   chef = (quoi.activite == "suivre") and quoi.chef or nil,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
-                  a_cheval = (quoi.activite == "suivre" and quoi.a_cheval == true) or nil }
+                  a_cheval = (quoi.activite == "suivre" and (quoi.a_cheval == true or quoi.a_cheval == "comme_henry"))
+                    and quoi.a_cheval or nil }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
@@ -2686,6 +2812,9 @@ function hommes.relancer()
   hommes.suivi = {}
   hommes.en_ronde = {}
   hommes.montures = {}
+  hommes.henry_monte, hommes.henry_pied_lectures = false, 0
+  hommes.lectures_d_henry_vues = {}
+  hommes.lancer_la_veille_d_henry()
   hommes.raisons_de_reprise = {}
   hommes.cerveaux_regles = {}
   hommes.arrets_vus = {}

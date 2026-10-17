@@ -46,6 +46,8 @@ function depart()
     Scriptorium.hommes.garde_de_la_tenue_rang = 0
     Scriptorium.hommes.en_ronde = {}
     Scriptorium.hommes.montures = {}
+    Scriptorium.hommes.henry_monte, Scriptorium.hommes.henry_pied_lectures, Scriptorium.hommes.henry_force = false, 0, nil
+    Scriptorium.hommes.lectures_d_henry_vues, Scriptorium.hommes.henry_deja_dit = {}, {}
     Scriptorium.hommes.hasard_de_la_ronde = nil
     Scriptorium.hommes.raisons_de_reprise = {}
     Scriptorium.hommes.accroches.ronde_reprise = {}

@@ -1850,7 +1850,82 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   d'un autre cheval) ; tous vus d'Henry, le point de sortie étant devant lui (la règle : plutôt vu que refusé).
 - **Les hommes marchent jusqu'à eux et montent** sans monte manquée (l'approche comptée), puis rejoignent Henry à cheval.
 - Fin de sortie : chevaux retirés au battement.
-- Ouvert : l'eau ; « jamais reposé seul » et « fermer avant d'ouvrir » toujours pas éprouvés en jeu.
+- **L'eau, limite connue** (le pair, 17/10) : ni Alex ni Scriptorium ne la lisent, ni aucun script du jeu de base.
+  Deux parades : la monte manquée bornée (un cheval dans un ruisseau où l'homme ne monte pas dans le délai est retiré et
+  renaît sous un autre angle : la parade d'Alex contre la barrière) ; plus tard, faire naître les chevaux **sur le chemin
+  le plus proche** (Scriptorium sait le trouver, entre 40 et 220 m du camp : un chemin est sec et praticable, c'est là
+  qu'on attache les montures). Rien de plus pour l'instant.
+- Ouvert : « jamais reposé seul » et « fermer avant d'ouvrir » toujours pas éprouvés en jeu.
+
+## V73 f 2 d — l'escorte monte quand Henry monte (17/10, relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Relecture du pair (V73 f 2 b) : chez Alex comme chez Scriptorium, l'escorte d'Henry **monte quand Henry monte et
+  descend quand il descend**, avec un **anti-rebond** (monter tout de suite, descendre seulement après plusieurs
+  lectures de suite). La règle de JoVenGer « tous ceux qui sortent du camp partent à cheval » vaut pour les sorties sans
+  Henry (`a_cheval = true`, déjà fait).
+- **Ce pas** : le second déclencheur, pour les hommes. Le Directeur monté (chef de colonne) : au pas suivant.
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule)
+- `player.player:GetPlayerHorse()` rend le WUID du cheval d'Henry (`__null` s'il n'en a pas), puis
+  `XGenAIModule.GetEntityByWUID` donne l'entité (`Scripts/Utils/GameUtils.lua`, `HideHorseCutscene`) ;
+  `cheval.horse:HasRider()` dit si quelqu'un le monte (`Scripts/Entities/AI/Horse.lua`).
+- Les arbres du jeu lisent la monte d'Henry par `StanceCheck soul="$__player" stance="horse" smartObject="$horse"`
+  (`AI/world/sa_land.xml`) : il faut le cheval ; le Lua le donne déjà.
+
+### Comment ce serait fait
+1. **La lecture** (`liaison.henry_a_cheval(pres)`) : vrai si le cheval d'Henry a un cavalier et se tient à moins de
+   `henry_cheval_pres_m` (2,5) d'Henry ; faux s'il n'a pas de cheval ou que personne ne le monte ; nil si rien n'est
+   lisible. Limite connue : Henry sur un autre cheval que le sien n'est pas vu monté.
+2. **La veille** (`hommes`) : toutes les `henry_veille_ms` (1 000), une minuterie lancée à l'entrée en partie (comme le
+   guet du noyau, arrêtée au changement de partie) lit Henry. **Monté** : tout de suite. **À pied** : seulement après
+   `henry_descente_lectures` (4) lectures « à pied » de suite (une lecture « monté » remet le compte à zéro). Une lecture
+   illisible ne change rien. À chaque changement, une ligne au journal, et l'ordre redonné aux hommes dont l'escorte
+   suit Henry « comme Henry » ; à la descente, l'abandon des montes manquées est oublié (comme chez Alex).
+3. **La tenue** : `a_cheval = "comme_henry"` (sinon un booléen, comme avant) : l'homme est en sortie à cheval tant
+   qu'Henry est retenu monté. Henry descend : la sortie à cheval finit, le cheval est retiré par la règle de V73 f 2 b
+   (l'homme éloigné de 6 m, ou au 2e battement) ; Henry remonte avant : le cheval encore vivant resert.
+4. **Les commandes d'essai** : `essai_escorte_comme_henry` (les trois premiers hommes suivent Henry « comme Henry », en
+   formation followNPC) ; `essai_cheval_d_henry` (le cheval d'Henry amené à 4 m devant lui, sur un sol libre, pour la
+   séance) ; `essai_henry_a_cheval` et `essai_henry_a_pied` (la lecture forcée, pour éprouver la chaîne sans
+   monter) ; `essai_henry_lu` (retour à la vraie lecture). `essai_hommes_voir` dit aussi la lecture d'Henry.
+
+### Relecture du pair (17/10), qui change la lecture
+- Fiche bonne (le cheval resservi si Henry remonte vite, l'abandon oublié à la descente). **Chez Alex, Henry « monté » se
+  lit par sa posture**, pas par son cheval : un `StanceCheck` dans un arbre, `soul` = Henry, `stance="horse"`,
+  `smartObject=""` (n'importe quel cheval : un cheval volé ou emprunté compte) ; l'anti-rebond dans le Lua. Conseil :
+  garder la lecture Lua en filet, faire lire la posture par un arbre.
+- **Fait** : chaque branche de la suite (14 à 19), à chaque pouls (500 ms), lit la posture d'Henry
+  (`StanceCheck soul="$__player" stance="horse" smartObject="" negate="true"`, `Then`/`Else` ; la forme du jeu, par
+  exemple `AI/crime/mindplayer/actionsubtree.xml` ; condition inversée : notre façon d'écrire, la ligne d'Alex étant
+  écartée par le contrôle d'absence) dans `scriptorium_henry_en_selle` et compte ses lectures
+  (`scriptorium_henry_lectures`). La veille lit ces deux valeurs chez les hommes de l'escorte « comme Henry » : une
+  lecture est fraîche si le compte a bougé. **Monté si l'arbre ou le filet le dit ; à pied si aucun ne le dit et qu'au
+  moins un est lisible.** Une ligne au journal, une fois, quand l'arbre voit Henry à cheval, et quand seul le filet le
+  voit (pour savoir en jeu si la posture « horse » sans objet répond).
+- **Pour plus tard** (idée d'Alex) : un réglage « pas de chevaux » : Henry monte, la Compagnie jamais ; la formation
+  prend un modèle à pied, et le rattrapage d'un coup reste armé (des hommes à pied suivent un cavalier). Utile si
+  JoVenGer veut couper les chevaux pour la fluidité.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `henry_veille_ms` 1 000, `henry_descente_lectures` 4, `henry_cheval_pres_m` 2,5.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé, trois hommes ; `essai_escorte_comme_henry`.
+1. **Henry à pied** : la lecture dit « à pied » (ou « pas de cheval ») ; les hommes suivent à pied (ordres 15 et 16).
+2. **La chaîne forcée** : `essai_henry_a_cheval` : tout de suite, trois chevaux naissent et les hommes montent ;
+   `essai_henry_a_pied` : la descente retenue après 4 lectures (4 s), les hommes descendent, chevaux retirés au battement.
+3. **La vraie monte** (si Henry a un cheval) : `essai_henry_lu`, `essai_cheval_d_henry`, Henry monte (touche
+   « utiliser ») : la lecture dit « monté », les hommes montent ; Henry descend : ils descendent après 4 s.
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **La lecture** : (a) le cheval d'Henry a un cavalier, près d'Henry, en Lua (Recommandé : déjà lisible, aucune branche
+   d'arbre de plus) ; (b) un `StanceCheck` dans l'arbre de chaque homme. **Prise : (a).**
+2. **L'anti-rebond** : (a) 4 lectures à pied de suite, une par seconde (Recommandé : le principe du pair) ; (b) une
+   seule. **Prise : (a).**
+3. **La séance** : (a) la chaîne forcée d'abord, puis la vraie monte si Henry a un cheval (Recommandé) ; (b) la vraie
+   monte seulement. **Prise : (a).**
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
