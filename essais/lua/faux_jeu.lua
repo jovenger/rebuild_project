@@ -552,6 +552,6 @@ Scriptorium.noyau = { reglages = { delai_du_reveil_s = 0, guet_du_chargement_s =
 -- Fiche 16 : au banc, les règles du socle sont éprouvées allumées (le noyau garde cette table) ; les essais des
 -- interrupteurs les éteignent un à un.
 Scriptorium.noyau.interrupteurs = { solde_de_la_semaine = 1, aguerrissement = 1, rangs_du_socle = 1, usure_en_points = 1,
-  fautes_a_l_aube = 1, rencontres_de_patrouille = 1, contrats_a_duree = 1, exactions = 1, baisse_du_risque = 1 }
+  fautes_a_l_aube = 1, rencontres_de_patrouille = 1, contrats_a_duree = 1, exactions = 1, baisse_du_risque = 1, repas_du_socle = 1 }
 FauxJeu = faux
 return faux

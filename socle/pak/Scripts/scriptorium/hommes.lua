@@ -30,6 +30,8 @@ hommes.reglages = {
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
+  -- Le jour d'entretien (relecture du pair, 17/10) : un numéro de jour qui commence à cette heure du soir.
+  heure_d_entretien = 20,
   heure_paie = 8,             -- heure de la solde, le jour de paie
   semaines_impayees_max = 2,  -- au-delà, l'homme s'en va
   moral_desertion = 10,       -- en dessous, à l'aube, il déserte
@@ -458,6 +460,13 @@ end
 
 local function jour_de(heure)
   return math.floor(heure / 24)
+end
+
+-- Service : le numéro du jour d'entretien à cette heure du jeu (l'heure du jeu en cours sans argument) ; il change à
+-- « heure_d_entretien ».
+function hommes.jour_d_entretien(heure)
+  heure = heure or jeu().heure_du_jeu()
+  return jour_de(heure - hommes.reglages.heure_d_entretien)
 end
 
 local function heure_dans_le_jour(heure)
@@ -1831,12 +1840,15 @@ local function repas_du_jour(d, rapport, moment)
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     local ration = caractere and caractere.ration_de(id, hommes.reglages.ration) or hommes.reglages.ration
-    if coffre().prelever_reserve("vivres", ration, "repas") then
-      f.moral = borner(f.moral + 2, 0, 100)
-    else
-      f.moral = borner(f.moral - 10, 0, 100)
-      affames = affames + 1
-      affame[id] = true
+    -- Repas du socle coupés (l'entretien est à Scriptorium) : rien n'est pris aux vivres, personne n'a faim ici.
+    if Scriptorium.actif("repas_du_socle") then
+      if coffre().prelever_reserve("vivres", ration, "repas") then
+        f.moral = borner(f.moral + 2, 0, 100)
+      else
+        f.moral = borner(f.moral - 10, 0, 100)
+        affames = affames + 1
+        affame[id] = true
+      end
     end
   end
   if affames > 0 then

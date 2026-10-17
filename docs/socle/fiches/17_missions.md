@@ -10,7 +10,10 @@ Découpage, une tranche à la fois, chacune vue en jeu avant la suivante :
 1. le camp de bandits à un lieu (ci-dessous) ;
 2. la mission et sa colonne (prendre, lieu, niveau selon la force, carte, à cheval aller et retour, issue calculée
    au-delà de 300 m, rapport) ; l'accroche « une mission peut-elle partir ? » (le jour de repos de Scriptorium) ;
-3. plusieurs missions à la fois (réservation des lieux), puis les convois.
+3. plusieurs missions à la fois (réservation des lieux), puis les convois ;
+4. la fouille des corps (relecture du pair, 17/10) : après une bataille de mission **et après une bataille au camp** ;
+   un fouilleur va au point de chute, seuls certains hommes peuvent y aller (accroche, les bains l'enveloppent), et
+   « vider la fouille » (portage des corps, sentinelles).
 
 ## Tranche 1 — Le camp de bandits à un lieu
 
@@ -38,7 +41,7 @@ Accroches (fonctions publiques du morceau, que Scriptorium remplace en appelant 
 - `missions.taille_du_camp(lieu, niveau)` rend `{ sorte, effectif, coffre }` ;
 - `missions.camp_vaincu(camp)` est appelée une fois, à la victoire (par défaut : une ligne au journal et l'annonce).
 
-Services : `ajouter_un_lieu`, `lieux(carte)`, `dresser_un_camp(lieu, niveau)`, `camp(id)`, `camps()`,
+Services : `ajouter_un_lieu`, `lieux_de(carte)`, `dresser_un_camp(lieu, niveau)`, `camp(id)`, `camps()`,
 `lever_un_camp(id)`, `lieu_sur_ma_carte(lieu)`.
 
 Réglages au catalogue : `missions.reglages` (section `missions`), `missions.niveaux` (section `niveaux_des_camps`),

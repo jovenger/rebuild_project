@@ -97,3 +97,20 @@ essai("interrupteurs : les fautes à l'aube éteintes : aucun incident ; les exa
   egal(Scriptorium.discipline.facteur_de_prix(), 1, "exactions éteintes : prix neutre")
   I.exactions = 1
 end)
+
+-- Relecture du pair (17/10) : l'entretien de la compagnie ; les repas du socle coupés, Scriptorium nourrit.
+essai("interrupteurs : les repas du socle coupés ne prennent rien aux vivres ; le jour d'entretien change à 20 h", function()
+  preparer()
+  hommes.battre()
+  local vivres = coffre.reserve("vivres")
+  I.repas_du_socle = 0
+  FauxJeu.heure = 10 + 24
+  hommes.battre()
+  egal(coffre.reserve("vivres"), vivres, "coupés : rien pris aux vivres")
+  I.repas_du_socle = 1
+  FauxJeu.heure = 10 + 48
+  hommes.battre()
+  verifier(coffre.reserve("vivres") < vivres, "rallumés : la ration prise")
+  egal(hommes.jour_d_entretien(24 * 3 + 19.5), 2, "19 h 30 du jour 3 : encore le jour d'entretien 2")
+  egal(hommes.jour_d_entretien(24 * 3 + 20), 3, "à 20 h : le jour 3")
+end)

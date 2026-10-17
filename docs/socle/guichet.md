@@ -86,7 +86,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F40 | `LogiWageTotal` | 2 dossier(s) | `Scriptorium.hommes.solde_de(id)` (sommée sur `Scriptorium.hommes.liste()`) |
 | F41 | `MercDropClaim` | 2 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
 | F42 | `RequestForceTalk` | 2 dossier(s) | pas utile : les voix viennent plus tard (NOTE §8, étape 6 du plan) |
-| F43 | `UpkeepOn` | 2 dossier(s) | réglage : hommes.ration (l'entretien quotidien de la compagnie) |
+| F43 | `UpkeepOn` | 2 dossier(s) | interrupteur `repas_du_socle` (l'entretien : repas du socle allumés ou coupés ; gages : interrupteur `solde_de_la_semaine`) |
 | F44 | `WBRaidAlive` | vrai tant que la bande d'un raid a des vivants | `Scriptorium.bataille.bandes()` (les bandes non finies) |
 | F45 | `WallSetType` | 2 dossier(s) | `Scriptorium.enceinte.batir()` (une seule sorte de palissade) |
 | F46 | `AlxStripOverLayers` | 1 dossier(s) | pas utile : `Scriptorium.jeu.equiper_homme(personnage, ordre)` retire la tenue de naissance ; les tenues à cotte de dessus sont exclues |
@@ -126,7 +126,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F80 | `GatePositions` | 1 dossier(s) | `Scriptorium.enceinte.point_d_entree()` |
 | F81 | `GearOpenWardrobe` | 1 dossier(s) | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | F82 | `GearRemoveCustom` | 1 dossier(s) | `Scriptorium.hommes.piece_otee(id, objet)` |
-| F83 | `GiveMoney` | donner de l'argent a Henry | `Scriptorium.coffre.verser_a_henry(montant, motif)` |
+| F83 | `GiveMoney` | donner de l'argent a Henry | `Scriptorium.jeu.donner_groschen_a_henry(montant)` (crédit simple, sans toucher au coffre : Scriptorium a déjà débité la source, l'amende d'un duel ; relecture du pair) |
 | F84 | `HireCustomCompanion` | 1 dossier(s) | étape 5 (compagnons nommés) |
 | F85 | `HorsesSet` | 1 dossier(s) | pas utile : à cheval ou non se dit à chaque sortie (`Scriptorium.hommes.tenir(id, regle, quoi)`, « a_cheval ») |
 | F86 | `InjectInteraction` | 1 dossier(s) | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
@@ -138,7 +138,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F92 | `LoadCampOutParty` | 1 dossier(s) | pas utile : les tenues (l'escorte) sont au registre et relues à l'entrée (`Scriptorium.hommes.relancer()`) |
 | F93 | `LodBoostPin` | 1 dossier(s) | pas utile : le socle ne force pas l'affichage |
 | F94 | `LogiInfo` | 1 dossier(s) | `Scriptorium.bandeau.annoncer(cle, options)` |
-| F95 | `LogiUpkeepDay` | 1 dossier(s) | à ouvrir : `hommes.lua`, `repas_du_jour` |
+| F95 | `LogiUpkeepDay` | 1 dossier(s) | `Scriptorium.hommes.jour_d_entretien(heure)` (le jour change à `hommes.heure_d_entretien`, 20 h) |
 | F96 | `LogiWithdrawCoffer` | 1 dossier(s) | `Scriptorium.coffre.verser_a_henry(montant, motif)` |
 | F97 | `LootSweepForce` | 1 dossier(s) | étape 4 (la fouille des corps, le butin) |
 | F98 | `PruneCombatClaims` | 1 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
@@ -151,7 +151,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F105 | `SpawnTowerStation` | 1 dossier(s) | `Scriptorium.enceinte.batir()` (les tours au niveau 2) |
 | F106 | `StatusIconsSet` | 1 dossier(s) | pas utile : les icônes viennent plus tard (NOTE §8, étape 6 du plan) |
 | F107 | `TowerCacheCampBlockers` | 1 dossier(s) | pas utile : `Scriptorium.jeu.sol_de(position, pas)` lit l'encombrement à la demande |
-| F108 | `UpkeepSetByIndex` | 1 dossier(s) | réglage : hommes.ration |
+| F108 | `UpkeepSetByIndex` | 1 dossier(s) | réglage : hommes.ration (le taux des repas) et interrupteur `repas_du_socle` |
 | F109 | `WBAttackersNearCamp` | 1 dossier(s) | `Scriptorium.bataille.bande(id)` (champ `ennemis`) |
 | F110 | `WBRaid` | faire venir une bande d'ennemis qui attaque le camp (nombre, groupe, distance, angle) | `Scriptorium.bataille.lever_une_bande(ordre)` (sorte, effectif, direction, délai) |
 | F111 | `WBSetPhase` | 1 dossier(s) | `Scriptorium.bataille.resoudre_par_la_regle(id)` |
@@ -346,8 +346,8 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 146 | 22 | 58 | 55 | 11 |
-| à ouvrir | 22 | 9 | 3 | 10 | 0 |
+| service existant | 147 | 22 | 59 | 55 | 11 |
+| à ouvrir | 21 | 9 | 2 | 10 | 0 |
 | étape 4 | 43 | 3 | 13 | 27 | 0 |
 | étape 5 | 31 | 2 | 6 | 18 | 5 |
 | pas utile | 83 | 3 | 27 | 43 | 10 |
@@ -368,7 +368,6 @@ Les « à ouvrir » (décision du socle en fonction locale, à rendre enveloppab
 - A38 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
 - A40 : `bataille.lua`, `finir` (la fin de bataille)
 - F41 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- F95 : `hommes.lua`, `repas_du_jour`
 - F98 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
 - D16 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
 - D20 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
