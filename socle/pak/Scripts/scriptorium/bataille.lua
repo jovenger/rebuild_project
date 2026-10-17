@@ -37,6 +37,9 @@ bataille.reglages = {
   -- cible n'est pas figé ; « relances_par_bataille » relances au plus par personnage, puis une ligne au journal.
   relance_pres_m = 4,
   relances_par_bataille = 2,
+  -- Diagnostic (relecture du pair, 17/10 : le combat vivant figé trois fois) : 1 = à chaque relance (2 s), une ligne par
+  -- combattant au journal : sa cible, debout ou non, la distance, en combat ou non, ses relances, sa santé.
+  journal_du_combat = 0,
   -- Fiche 17 (le camp de bandits) : une bande « postée » à un lieu naît quand Henry est sur la carte du lieu et que le
   -- lieu n'est pas dans son regard à moins de « poste_vue_m » ; Henry ou un de nos hommes à moins de « poste_alerte_m »
   -- du lieu : elle attaque ; nos combattants à moins de « poste_engagement_m » s'engagent ; Henry à plus de
@@ -397,6 +400,17 @@ local function liberer_les_hommes(b)
   end
 end
 
+-- Debout : ni mort, ni assommé (vu en jeu le 17/10 : un homme assommé restait une cible « vivante » ; les brigands
+-- restaient sur lui, nos hommes visaient un brigand à terre, et le combat ne pouvait plus finir).
+local function debout(personnage)
+  return personnage ~= nil and jeu().ennemis_vivants({ personnage }) > 0 and jeu().personnage_inconscient(personnage) ~= true
+end
+
+local function des_notres_debout(f)
+  return f ~= nil and f.personnage ~= nil and not jeu().personnage_mort(f.personnage)
+    and jeu().personnage_inconscient(f.personnage) ~= true
+end
+
 -- Le personnage est-il figé (à relancer) ? Jamais s'il se bat ; il faut deux relevés de suite ; figé s'il n'a pas bougé
 -- de « relance_bouge_m » et qu'il est à plus de « relance_pres_m » de sa cible (ou sans cible lisible) ; au plus
 -- « relances_par_bataille » fois, puis une ligne « figé malgré … relances » avec sa position et celle de sa cible.
@@ -442,7 +456,7 @@ local function lancer_l_attaque(b)
   end
   local vivants = {}
   for _, e in ipairs(b.personnages) do
-    if jeu().ennemis_vivants({ e }) > 0 then
+    if debout(e) then
       table.insert(vivants, e)
     end
   end
@@ -454,9 +468,10 @@ local function lancer_l_attaque(b)
   for _, id in ipairs(b.combattants or {}) do
     local f = hommes().fiche(id)
     local cible = b.cibles[id]
-    local tombee = cible == nil or jeu().ennemis_vivants({ cible }) == 0
-    if f and f.personnage and not jeu().personnage_mort(f.personnage)
-        and (a_relancer(b, f.personnage, f.nom, cible) or (tombee and jeu().occupation_de(f.personnage) ~= "combat")) then
+    local tombee = cible == nil or not debout(cible)
+    -- Sa cible tombée : une nouvelle cible, sans user son crédit de relances (réservé à qui est figé).
+    if des_notres_debout(f)
+        and ((tombee and jeu().occupation_de(f.personnage) ~= "combat") or a_relancer(b, f.personnage, f.nom, cible)) then
       if tombee then
         k = k % #vivants + 1
         b.cibles[id] = vivants[k]
@@ -478,7 +493,7 @@ local function lancer_l_attaque_de_la_bande(b)
   local cibles = {}
   for _, id in ipairs(b.combattants or {}) do
     local f = hommes().fiche(id)
-    if f and f.personnage and not jeu().personnage_mort(f.personnage) then
+    if des_notres_debout(f) then
       table.insert(cibles, f.personnage)
     end
   end
@@ -486,7 +501,7 @@ local function lancer_l_attaque_de_la_bande(b)
   -- La bande se repère par un ennemi vivant, sinon par son point d'arrivée.
   local premier = nil
   for _, e in ipairs(b.personnages) do
-    premier = premier or (jeu().ennemis_vivants({ e }) > 0 and jeu().position_du_personnage(e)) or nil
+    premier = premier or (debout(e) and jeu().position_du_personnage(e)) or nil
   end
   premier = premier or b.point_d_arrivee
   if henry and premier and math.sqrt((henry.x - premier.x) ^ 2 + (henry.y - premier.y) ^ 2) <= bataille.reglages.bande_vise_henry_m then
@@ -503,8 +518,7 @@ local function lancer_l_attaque_de_la_bande(b)
   local donnes, k = 0, 0
   for _, e in ipairs(b.personnages) do
     local tombee = not vivantes[b.cibles_de_la_bande[e]]
-    if jeu().ennemis_vivants({ e }) > 0
-        and (a_relancer(b, e, e, b.cibles_de_la_bande[e]) or (tombee and jeu().occupation_de(e) ~= "combat")) then
+    if debout(e) and ((tombee and jeu().occupation_de(e) ~= "combat") or a_relancer(b, e, e, b.cibles_de_la_bande[e])) then
       if tombee then
         k = k % #cibles + 1
         b.cibles_de_la_bande[e] = cibles[k]
@@ -515,6 +529,29 @@ local function lancer_l_attaque_de_la_bande(b)
     end
   end
   return donnes
+end
+
+-- Diagnostic : une ligne par combattant (les nôtres, puis la bande).
+local function ligne_de_combat(nom, personnage, cible, relances)
+  local ici = jeu().position_du_personnage(personnage)
+  local la = cible and ((cible == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(cible))
+  jeu().journal(string.format("Combat : « %s » : cible %s (%s), à %s m, %s, %d relance(s), santé %s%s", tostring(nom),
+    tostring(cible), (cible == "henry" or (cible and debout(cible))) and "debout" or "à terre",
+    (ici and la) and string.format("%.1f", math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)) or "?",
+    jeu().occupation_de(personnage) == "combat" and "en combat" or "hors combat", relances or 0,
+    tostring(jeu().sante_de(personnage)), jeu().personnage_inconscient(personnage) == true and ", assommé" or ""))
+end
+
+local function journal_du_combat(b)
+  for _, id in ipairs(b.combattants or {}) do
+    local f = hommes().fiche(id)
+    if f and f.personnage then
+      ligne_de_combat(f.nom, f.personnage, b.cibles and b.cibles[id], b.relances_de and b.relances_de[f.personnage])
+    end
+  end
+  for _, e in ipairs(b.personnages or {}) do
+    ligne_de_combat(e, e, b.cibles_de_la_bande and b.cibles_de_la_bande[e], b.relances_de and b.relances_de[e])
+  end
 end
 
 -- La relance au contact : une minuterie par bande et par partie (génération).
@@ -537,6 +574,9 @@ local function assurer_la_relance(id)
     local ok, erreur = pcall(function()
       lancer_l_attaque_de_la_bande(b)
       lancer_l_attaque(b)
+      if bataille.reglages.journal_du_combat == 1 then
+        journal_du_combat(b)
+      end
     end)
     if not ok then
       jeu().journal("Bataille : relance au contact en erreur : " .. tostring(erreur))
@@ -1045,11 +1085,13 @@ end
 -- passes contre nos combattants encore debout. Rend le résultat, ou nil.
 local function trancher_si_fige(d, b, heure)
   local r = bataille.reglages
-  local leurs = jeu().ennemis_vivants(b.personnages)
+  local leurs = 0
+  for _, e in ipairs(b.personnages) do
+    if debout(e) then leurs = leurs + 1 end
+  end
   local notres = {}
   for _, id in ipairs(b.combattants or {}) do
-    local f = hommes().fiche(id)
-    if f and f.personnage and not jeu().personnage_mort(f.personnage) then table.insert(notres, id) end
+    if des_notres_debout(hommes().fiche(id)) then table.insert(notres, id) end
   end
   local compte = leurs .. "/" .. #notres
   if b.compte_vu ~= compte then
@@ -1069,16 +1111,21 @@ end
 
 -- L'issue par le jeu : les ennemis vivants et nos morts constatés.
 local function resoudre_par_le_jeu(d, b)
-  local vivants = jeu().ennemis_vivants(b.personnages)
-  local morts = {}
+  local vivants = 0
+  for _, e in ipairs(b.personnages) do
+    if debout(e) then vivants = vivants + 1 end
+  end
+  local morts, assommes = {}, {}
   local combattants_vivants = 0
   for _, id in ipairs(b.combattants) do
     local f = hommes().fiche(id)
     if f then
       if f.personnage and jeu().personnage_mort(f.personnage) then
         table.insert(morts, id)
-      else
+      elseif des_notres_debout(f) then
         combattants_vivants = combattants_vivants + 1
+      else
+        table.insert(assommes, { id = id, jours = 2 + math.floor(tirage(d) * 4) })
       end
     end
   end
@@ -1098,12 +1145,12 @@ local function resoudre_par_le_jeu(d, b)
   end
   local issue
   if vivants == 0 then
-    local part = (#b.combattants > 0) and (#morts / #b.combattants) or 0
-    issue = (part <= 0.1) and bataille.issues[1] or bataille.issues[2]
+    issue = (#morts + #assommes == 0) and bataille.issues[1] or bataille.issues[2]
   else
     issue = bataille.issues[4]
   end
-  local resultat = appliquer(d, b, issue, morts)
+  -- Ce qui s'est passé (règle « bataille_au_loin ») : nos morts sont ceux du jeu, nos blessés ses assommés.
+  local resultat = appliquer(d, b, issue, morts, assommes, vivants == 0)
   finir(d, b, resultat)
   return resultat
 end

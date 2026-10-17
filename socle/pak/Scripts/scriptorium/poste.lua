@@ -517,6 +517,14 @@ function poste.essai_lever_les_camps()
   return n
 end
 
+-- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
+function poste.essai_bataille_trois()
+  local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+  jeu().journal("Poste : bande de trois = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or ""))
+  poste.battre_les_hommes()
+  return id
+end
+
 -- Les ennemis dans le jeu de la première bande au contact, et son nom.
 local function ennemis_au_contact()
   for _, id in ipairs(Scriptorium.bataille.bandes()) do
@@ -2152,6 +2160,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_mission_loin", fonction = function() return poste.essai_mission(450) end, aide = "Mission des trois premiers hommes vers un camp de bandits à 450 m devant Henry (issue au loin)" },
   { nom = "scriptorium_essai_missions", fonction = function() return poste.essai_missions() end, aide = "Les missions en cours" },
   { nom = "scriptorium_essai_lever_les_camps", fonction = function() return poste.essai_lever_les_camps() end, aide = "Lève tous les camps de bandits" },
+  { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
   { nom = "scriptorium_essai_voir_bande", fonction = function() return poste.essai_voir_bande() end, aide = "Pose Henry à 12 m de la bande, côté camp" },

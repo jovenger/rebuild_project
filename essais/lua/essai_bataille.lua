@@ -253,7 +253,7 @@ essai("bataille : fin par le jeu, les ennemis tombent, nos morts sont ceux que l
   egal(r.issue, "victoire_couteuse", "un mort sur quatre : chèrement payée")
   egal(r.morts, 1, "le mort du jeu")
   egal(hommes.fiche(ids[1]), nil, "retiré")
-  egal(r.butin, math.floor(3 * 16 * 0.6), "butin à 60 %")
+  egal(r.butin, 3 * 16, "la bande tombée : tout le butin (ce qui s'est passé, règle « bataille_au_loin »)")
   -- Les corps restent à fouiller vingt-quatre heures de jeu, puis sont retirés.
   egal(#FauxJeu.ennemis_renvoyes, 0, "les corps restent à fouiller")
   egal(#FauxJeu.corps_couches, 4, "les trois ennemis et notre mort couchés en corps (vu le 15/10 : sinon ils restaient debout ; fiche 17 : rien ne disparaît)")
@@ -629,4 +629,87 @@ essai("bataille : nos blessés mis à terre, immortels « blesse_immortel_ms »,
   mt.fonction()
   verifier(#FauxJeu.effets_retires >= 1, "effet retiré")
   bataille.issue_au_loin, bataille.reglages.part_des_morts = ancienne, part
+end)
+
+-- Le combat vivant figé (relecture du pair, 17/10 ; la cause) : un assommé n'est plus une cible ni un combattant
+-- debout ; une nouvelle cible ne consomme pas le crédit de relances d'un figé ; tous les ennemis à terre : fini.
+essai("bataille (combat figé, la cause) : une cible assommée est remplacée des deux côtés", function()
+  preparer(1000, 10, { "homme_d_armes", "homme_d_armes" })
+  FauxJeu.attaques = {}
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  local e1, e2 = FauxJeu.ennemis[1].identifiant, FauxJeu.ennemis[2].identifiant
+  local nous = {}
+  for _, h in ipairs(hommes.liste()) do table.insert(nous, hommes.fiche(h).personnage) end
+  -- Notre premier homme est assommé : le brigand qui le visait en prend un autre.
+  local cible_de_e1 = nil
+  for _, a in ipairs(FauxJeu.attaques) do if a.attaquant == e1 then cible_de_e1 = a.cible end end
+  egal(cible_de_e1, nous[1], "le premier brigand visait notre premier homme")
+  FauxJeu.inconscients = { [nous[1]] = true }
+  FauxJeu.attaques = {}
+  FauxJeu.heure = 10.5
+  bataille.battre()
+  local nouvelle = nil
+  for _, a in ipairs(FauxJeu.attaques) do
+    verifier(a.cible ~= nous[1], "personne ne vise notre homme assommé")
+    verifier(a.attaquant ~= nous[1], "un assommé ne reçoit pas d'ordre")
+    if a.attaquant == e1 then nouvelle = a.cible end
+  end
+  verifier(nouvelle ~= nil and nouvelle ~= nous[1], "le brigand prend une autre cible")
+  -- Le premier brigand assommé à son tour : notre homme qui le visait en prend un autre.
+  FauxJeu.inconscients = { [e1] = true }
+  FauxJeu.attaques = {}
+  FauxJeu.heure = 11
+  bataille.battre()
+  local pour_nous1 = nil
+  for _, a in ipairs(FauxJeu.attaques) do
+    verifier(a.cible ~= e1, "personne ne vise le brigand assommé")
+    if a.attaquant == nous[1] then pour_nous1 = a.cible end
+  end
+  egal(pour_nous1, e2, "notre homme prend le brigand debout")
+  FauxJeu.inconscients = nil
+  FauxJeu.attaques = nil
+end)
+
+essai("bataille (combat figé, la cause) : une nouvelle cible après une victime ne consomme pas de relance", function()
+  preparer(1000, 10, { "homme_d_armes" })
+  FauxJeu.attaques = {}
+  Scriptorium.en_partie = true
+  bataille.reglages.bande_attaque = false
+  bataille.lever_une_bande({ sorte = "brigands", effectif = 4, direction = 0, delai = 0 })
+  bataille.battre()
+  local homme = FauxJeu.attaques[1].attaquant
+  FauxJeu.positions[homme] = { x = 0, y = 0, z = 0 }   -- immobile : chaque relevé le verrait « figé »
+  for k = 1, 3 do
+    FauxJeu.ennemis_vivants_par_id[FauxJeu.ennemis[k].identifiant] = false
+    FauxJeu.positions[FauxJeu.ennemis[k + 1].identifiant] = { x = 0, y = 60, z = 0 }
+    FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  end
+  local n = #FauxJeu.attaques
+  egal(n, 4, "trois victimes : trois nouvelles cibles")
+  -- Figé pour de bon devant le dernier, loin de lui : ses deux relances restent entières (le premier relevé de sa
+  -- position, puis deux relances), puis plus rien.
+  for _ = 1, 3 do FauxJeu.minuteries[#FauxJeu.minuteries].fonction() end
+  egal(#FauxJeu.attaques, n + 2, "les deux relances d'un figé, intactes")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.attaques, n + 2, "puis plus rien (le plafond tient)")
+  bataille.reglages.bande_attaque = true
+  Scriptorium.en_partie = false
+  FauxJeu.attaques = nil
+end)
+
+essai("bataille (combat figé, la cause) : tous les ennemis à terre (assommés) : le combat est fini ; nos assommés sont nos blessés", function()
+  local ids = preparer(1000, 10, { "homme_d_armes", "homme_d_armes", "archer" })
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  FauxJeu.inconscients = { [FauxJeu.ennemis[1].identifiant] = true, [FauxJeu.ennemis[2].identifiant] = true,
+                           [hommes.fiche(ids[1]).personnage] = true }
+  FauxJeu.heure = 10.5
+  bataille.battre()
+  egal(bataille.bande(id).etat, "finie", "fini")
+  local r = bataille.resultats()[1]
+  egal(r.issue, "victoire_couteuse", "un des nôtres à terre : victoire avec pertes")
+  egal(r.morts, 0, "aucun mort")
+  egal(r.blesses, 1, "l'assommé est notre blessé")
+  FauxJeu.inconscients = nil
 end)

@@ -375,6 +375,9 @@ function faux.blesser(identifiant, points)
   end
   return true
 end
+function faux.sante_de(identifiant)
+  return faux.santes and faux.santes[identifiant] or 100
+end
 function faux.personnage_inconscient(identifiant)
   return faux.inconscients ~= nil and faux.inconscients[identifiant] == true
 end

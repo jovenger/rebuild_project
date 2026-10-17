@@ -3257,6 +3257,16 @@ function liaison.mettre_a_terre(identifiant, reste)
   return ok, (not ok) and tostring(erreur) or nil
 end
 
+-- La santé d'un personnage (actor:GetHealth), ou nil : pour le journal du combat (diagnostic du combat figé, 17/10).
+function liaison.sante_de(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite or type(entite.actor) ~= "table" then
+    return nil
+  end
+  local lu, sante = pcall(function() return entite.actor:GetHealth() end)
+  return lu and tonumber(sante) or nil
+end
+
 -- Fiche 17 (vu en jeu le 17/10 : Jan, assommé au combat, ne remontait pas à cheval) : le personnage est-il inconscient ?
 -- (actor:IsUnconscious, lu par la sonde du combat.) Vrai, faux, ou nil s'il ne se lit pas.
 function liaison.personnage_inconscient(identifiant)
