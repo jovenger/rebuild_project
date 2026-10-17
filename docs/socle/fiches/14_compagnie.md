@@ -363,7 +363,12 @@
   hommes, l'ordre redonné toutes les 2 s, ne passaient jamais en combat : l'ordre coupait leur approche. Puis écran
   noir avec l'emblème qui tourne, le socle tournant encore (écran noir connu, ou mort d'Henry : non tranché).
   **Corrigé** : l'ordre n'est redonné qu'à qui ne bouge pas (moins de 0,5 m depuis le relevé précédent) ou dont la
-  cible est tombée. Non vérifié en jeu.
+  cible est tombée.
+- **Séance suivante (f55621f)** : la bande reçoit ses ordres à l'arrivée ; le brigand qui vise Henry vient jusqu'à lui
+  et l'attaque (barre de vie et indicateur de menace à l'écran) : **l'initiative de la bande est vue**. Les ordres sont
+  redonnés aux immobiles (la bande entière vers 43 s et 59 s ; Ondřej toutes les 2 s un moment). **Douteux, à voir** :
+  des hommes et des brigands restent immobiles malgré l'ordre redonné (figés ou en attente de combat, non tranché à
+  l'écran). Séance arrêtée avant la fin pour ne pas laisser mourir Henry.
 
 ### À reprendre plus tard
 - (L'initiative de la bande : réglée ci-dessus, à voir en jeu.)
