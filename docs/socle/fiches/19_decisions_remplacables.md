@@ -49,3 +49,19 @@ Les noms publics nouveaux sont écrits au guichet dans le même commit et dits a
   cible)`, `bataille.sort_des_survivants(bande, survivants)` (« fuite », « rester », « laisser » : le socle ne les touche
   plus) ; lecture : `bataille.cibles(bande)`. Le comportement par défaut est inchangé (banc entier vert) ; trois
   contournements injectés, attrapés.
+- **Grappe 3** (les hommes) : `hommes.choix_de_l_equipement(id)` → `{ tenue, armes, munitions }` (noms de préréglages
+  du jeu, éprouvés : chacun doit avoir des pièces) ou faux (aucun) ; `hommes.est_nuit(heure_du_jour)` ;
+  `hommes.regle_la_plus_forte(id)` → la règle dont la tenue l'emporte, ou faux (aucune) ; une règle que l'homme ne
+  porte pas, ou inconnue des priorités, laisse la décision du socle (sans ligne au journal : elle est demandée à chaque
+  battement). Trois contournements injectés, attrapés.
+
+## Ce qui n'est pas une décision (dit au pair)
+
+- **Les ordres** (A3 `tenir`, A4 `camp.reserver`, A11 `vider_la_fouille`, A12 `camp.fonder`, A17 `camp.lever`, A21
+  `donner_une_piece`, A25 et A27 `tenir`, A30 `payer_la_solde`, A31 `retirer`, A36 `directeur.installer`, A39
+  `directeur.suivre`) : publiques, et le socle les appelle par la table ; Scriptorium peut les remplacer, mais ce sont des
+  actions : leur valeur (fait ou non, et la raison) n'a pas de « pas d'avis ».
+- **Les observations** (A6 `missions.camp_vaincu`, `missions.rapport_de_mission`, `bataille.fouille_finie`) : appelées
+  par la table sous `pcall` ; remplacées, la remplaçante agit à la place de l'annonce du socle. La fin d'un camp vient de
+  sa bande : Scriptorium la tient ouverte par `bataille.ennemi_valable` et `missions.ajouter_un_personnage`.
+- **Pas utiles** : A20, A26, A32 ; **étape 5** : A34, A35 (les postes, pas encore écrits).

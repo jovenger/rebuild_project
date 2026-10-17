@@ -895,15 +895,17 @@ local function noms_des_familles()
   return noms
 end
 
--- Choisit la tenue et les armes d'un combattant pour son palier (sa famille tirée une fois, s'il n'en a pas), à
--- équiper au prochain battement. Rend vrai s'il en a.
-local function choisir_l_equipement(d, f)
+-- Fiche 19 (A5, A22, A23 ; décision remplaçable) : la tenue, les armes et les munitions d'un combattant pour son palier
+-- (sa famille tirée une fois, s'il n'en a pas) : { tenue, armes, munitions } (des noms de préréglages du jeu), ou faux
+-- s'il n'y en a pas.
+function hommes.choix_de_l_equipement(id)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return false
+  end
   local regles = hommes.equipement
   local cle = "palier_" .. tostring(f.palier or 1)
-  local e = f.equipement or {}
-  e.en_plus, e.otees = e.en_plus or {}, e.otees or {}
-  e.naissance_retiree = e.naissance_retiree or false
-  f.equipement = e
   local tenue = choisir(d, prereglages_de(regles.tenue.sorte, regles.tenue[cle], regles.tenue.exclues))
   local armes, munitions = nil, 0
   if f.role == "homme_d_armes" then
@@ -920,11 +922,31 @@ local function choisir_l_equipement(d, f)
     munitions = tir.munitions or 0
   end
   if not tenue or not armes then
-    e.etat = "impossible"
-    jeu().journal("Hommes : pas de préréglage pour « " .. f.nom .. " » (" .. tostring(f.role) .. ", " .. cle .. ")")
     return false
   end
-  e.tenue, e.armes, e.munitions, e.etat = tenue, armes, munitions, "a_equiper"
+  return { tenue = tenue, armes = armes, munitions = munitions }
+end
+Scriptorium.remplacable(hommes, "choix_de_l_equipement", function(rendu)
+  return rendu == false or (type(rendu) == "table" and type(rendu.tenue) == "string" and type(rendu.armes) == "string"
+    and #(jeu().pieces_de(rendu.tenue) or {}) > 0 and #(jeu().pieces_de(rendu.armes) or {}) > 0
+    and type(rendu.munitions) == "number" and rendu.munitions >= 0 and math.floor(rendu.munitions) == rendu.munitions)
+end)
+
+-- Choisit l'équipement d'un combattant (la décision remplaçable ci-dessus), à équiper au prochain battement. Rend vrai
+-- s'il en a.
+local function choisir_l_equipement(d, f)
+  local e = f.equipement or {}
+  e.en_plus, e.otees = e.en_plus or {}, e.otees or {}
+  e.naissance_retiree = e.naissance_retiree or false
+  f.equipement = e
+  local choix = Scriptorium.avis(hommes, "choix_de_l_equipement", f.id)
+  if type(choix) ~= "table" then
+    e.etat = "impossible"
+    jeu().journal("Hommes : pas de préréglage pour « " .. f.nom .. " » (" .. tostring(f.role) .. ", palier_"
+                  .. tostring(f.palier or 1) .. ")")
+    return false
+  end
+  e.tenue, e.armes, e.munitions, e.etat = choix.tenue, choix.armes, choix.munitions, "a_equiper"
   return true
 end
 
@@ -1457,14 +1479,20 @@ local function dans_la_tranche(t, heure_du_jour)
   return heure_du_jour >= t.de or heure_du_jour < t.a
 end
 
--- La nuit : la tranche du sommeil de la journée (22 h - 5 h par défaut ; fiche 16, 3 b).
-local function est_nuit(heure_du_jour)
+-- La nuit : la tranche du sommeil de la journée (22 h - 5 h par défaut ; fiche 16, 3 b). Fiche 19 (A18) : décision
+-- remplaçable.
+function hommes.est_nuit(heure_du_jour)
   for _, t in ipairs(hommes.journee) do
     if t.activite == "sommeil" and dans_la_tranche(t, heure_du_jour) then
       return true
     end
   end
   return false
+end
+Scriptorium.remplacable(hommes, "est_nuit", function(rendu) return type(rendu) == "boolean" end)
+
+local function est_nuit(heure_du_jour)
+  return Scriptorium.avis(hommes, "est_nuit", heure_du_jour)
 end
 
 function hommes.verifier_journee()
@@ -1492,7 +1520,7 @@ end
 
 -- La tenue posée la plus forte d'un homme : (règle, tenue, rang). À rang égal, la plus ancienne garde l'homme, puis le nom
 -- de la règle (l'ordre de « pairs » n'est pas sûr).
-local function tenue_la_plus_forte(f)
+local function tenue_la_plus_forte_du_socle(f)
   local regle_choisie, tenue_choisie, rang_choisi = nil, nil, nil
   for regle, t in pairs(f.tenues or {}) do
     local rang = rang_de(regle)
@@ -1505,6 +1533,27 @@ local function tenue_la_plus_forte(f)
     end
   end
   return regle_choisie, tenue_choisie, rang_choisi
+end
+
+-- Fiche 19 (A7, l'arbitre ; décision remplaçable) : la règle dont la tenue l'emporte sur l'homme, ou faux (aucune).
+-- Scriptorium peut en rendre une autre parmi les tenues posées sur l'homme ; une règle qu'il ne porte pas, ou inconnue
+-- du catalogue des priorités, laisse la décision du socle.
+function hommes.regle_la_plus_forte(id)
+  local f = donnees().liste[id]
+  return (f and tenue_la_plus_forte_du_socle(f)) or false
+end
+Scriptorium.remplacable(hommes, "regle_la_plus_forte", function(rendu) return rendu == false or type(rendu) == "string" end)
+
+local function tenue_la_plus_forte(f)
+  local regle = Scriptorium.avis(hommes, "regle_la_plus_forte", f.id)
+  local tenue = regle and f.tenues and f.tenues[regle]
+  if not regle then
+    return nil, nil, nil
+  end
+  if not tenue or not rang_de(regle) then
+    return tenue_la_plus_forte_du_socle(f)
+  end
+  return regle, tenue, rang_de(regle)
 end
 
 -- Service pour le guichet et pour les morceaux du socle : l'homme est-il libre pour cette règle ? Il n'en est pas exempté,

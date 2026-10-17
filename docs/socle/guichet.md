@@ -8,10 +8,10 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A2 | `PickCombatTarget` | enveloppée par : conspiration_du_camp, duels_judiciaires, ordres_de_combat, prisonniers_des_raids | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (remplaçable, fiche 19 ; la cible d'un brigand : `Scriptorium.bataille.cible_de_la_bande(bande, personnage, cibles, actuelle, rang)`) |
 | A3 | `ApplyCampRole` | enveloppée par : pilori_du_directeur, pugilat_du_camp, roles_du_mod | `Scriptorium.hommes.tenir(id, regle, quoi)` |
 | A4 | `ClaimSpot` | enveloppée par : amis_cote_a_cote, dialogue_des_mercenaires, nuit_du_camp | `Scriptorium.camp.reserver(nom, qui)` |
-| A5 | `GiveArcherAmmo` | enveloppée par : arbaletriers_du_camp, banque_du_camp, stocks_des_metiers | à ouvrir : `hommes.lua`, `equiper` (les munitions de `hommes.equipement.tir`) |
+| A5 | `GiveArcherAmmo` | enveloppée par : arbaletriers_du_camp, banque_du_camp, stocks_des_metiers | `Scriptorium.hommes.choix_de_l_equipement(id)` (champ `munitions` ; remplaçable, fiche 19) |
 | A6 | `BanditCampComplete` | enveloppée par : assaut_des_convois, intendant_missions | `Scriptorium.missions.camp_vaincu(c)` (accroche, fiche 17) |
-| A7 | `CampActorYield` | enveloppée par : duels_judiciaires, en_garde_du_camp | à ouvrir : `hommes.lua`, `tenue_la_plus_forte` (l'arbitre des priorités) |
-| A8 | `EquipMercenary` | enveloppée par : armures_de_la_forge, tenue_selon_le_grade | `Scriptorium.hommes.accrocher("apres_le_rhabillage", fonction)` |
+| A7 | `CampActorYield` | enveloppée par : duels_judiciaires, en_garde_du_camp | `Scriptorium.hommes.regle_la_plus_forte(id)` (l'arbitre ; remplaçable, fiche 19) et `Scriptorium.hommes.libre_pour(id, regle)` (remplaçable) |
+| A8 | `EquipMercenary` | enveloppée par : armures_de_la_forge, tenue_selon_le_grade | `Scriptorium.hommes.choix_de_l_equipement(id)` (remplaçable, fiche 19) ; après : `Scriptorium.hommes.accrocher("apres_le_rhabillage", fonction)` |
 | A9 | `FindQuartermasterTarget` | enveloppée par : directeur_en_retrait, prisonniers_des_raids | `Scriptorium.directeur.activite(heure)` ; remplaçable (fiche 19) |
 | A10 | `GetCampActivity` | enveloppée par : duels_judiciaires, en_garde_du_camp | `Scriptorium.hommes.activite_de(id, heure)` ; remplaçable (fiche 19) |
 | A11 | `LootSweepClear` | enveloppée par : portage_des_corps, sentinelles_du_camp | `Scriptorium.bataille.vider_la_fouille(id)` (le portage des corps, les sentinelles) |
@@ -21,12 +21,12 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A15 | `BanditCampScale` | enveloppée par : assaut_des_convois | `Scriptorium.missions.taille_du_camp(lieu, niveau)` (accroche, fiche 17) ; remplaçable (fiche 19) |
 | A16 | `BountyReservedSites` | enveloppée par : missions_en_parallele | `Scriptorium.missions.lieu_reserve(nom)` (accroche, fiche 17, tranche 3) ; remplaçable (fiche 19) |
 | A17 | `BreakMercCamp` | enveloppée par : montage_du_camp | `Scriptorium.camp.lever()` |
-| A18 | `CampIsNight` | enveloppée par : journee_du_camp | réglage : journee.sommeil.de (la nuit est la tranche du sommeil, fiche 16) |
+| A18 | `CampIsNight` | enveloppée par : journee_du_camp | `Scriptorium.hommes.est_nuit(heure_du_jour)` (remplaçable, fiche 19 ; par défaut la tranche du sommeil, réglage `journee`) |
 | A19 | `CampRelativeOffset` | enveloppée par : camp_en_arc | `Scriptorium.camp.dans_le_monde(ancre, x, y, cap)` ; remplaçable (fiche 19) |
 | A20 | `CampRingPos` | enveloppée par : camp_en_arc | pas utile : pas d'anneau de tentes ; le plan du socle est la table `Scriptorium.camp.plan` |
 | A21 | `ChangeMercOutfit` | enveloppée par : armures_de_la_forge | `Scriptorium.hommes.donner_une_piece(id, objet, etat, porter)` |
-| A22 | `EquipArcherWeapon` | enveloppée par : tenue_selon_le_grade | à ouvrir : `hommes.lua`, `choisir_l_equipement` |
-| A23 | `EquipMercenaryWeapon` | enveloppée par : tenue_selon_le_grade | à ouvrir : `hommes.lua`, `choisir_l_equipement` |
+| A22 | `EquipArcherWeapon` | enveloppée par : tenue_selon_le_grade | `Scriptorium.hommes.choix_de_l_equipement(id)` (champ `armes` ; remplaçable, fiche 19) |
+| A23 | `EquipMercenaryWeapon` | enveloppée par : tenue_selon_le_grade | `Scriptorium.hommes.choix_de_l_equipement(id)` (champs `tenue` et `armes` ; remplaçable, fiche 19) |
 | A24 | `FollowStalled` | enveloppée par : pantins_d_entrainement | `Scriptorium.hommes.rattraper(personnage, chef, nom)` ; remplaçable (fiche 19) |
 | A25 | `GearWantsCustom` | enveloppée par : mercenaires_aux_bains | `Scriptorium.hommes.tenir(id, "bains", quoi)` (avec `ne_pas_rhabiller`) |
 | A26 | `GetArcherStanceCode` | enveloppée par : duels_judiciaires | pas utile : le socle ne règle aucune posture de tir ; le cerveau du jeu la choisit |
@@ -346,19 +346,13 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 194 | 30 | 73 | 79 | 12 |
-| à ouvrir | 4 | 4 | 0 | 0 | 0 |
+| service existant | 199 | 35 | 73 | 79 | 12 |
+| à ouvrir | 0 | 0 | 0 | 0 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
 | étape 5 | 27 | 2 | 5 | 16 | 4 |
 | pas utile | 91 | 3 | 29 | 49 | 10 |
-| réglage | 21 | 1 | 4 | 15 | 1 |
+| réglage | 20 | 0 | 4 | 15 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |
 
 « Service existant » compte aussi les retouches que le socle fait déjà (« déjà fait », « en partie »).
 
-Les « à ouvrir » (décision du socle en fonction locale, à rendre enveloppable) :
-
-- A5 : `hommes.lua`, `equiper` (les munitions de `hommes.equipement.tir`)
-- A7 : `hommes.lua`, `tenue_la_plus_forte` (l'arbitre des priorités)
-- A22 : `hommes.lua`, `choisir_l_equipement`
-- A23 : `hommes.lua`, `choisir_l_equipement`
