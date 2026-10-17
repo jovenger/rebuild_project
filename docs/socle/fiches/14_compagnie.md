@@ -225,7 +225,8 @@
 | 473 | V73 d 2 bis (la ronde reprise, sans pause) | normal |
 | 473 | V73 e (le rassemblement) | normal |
 | 473, puis six sauts d'Henry (40 m, sur un sol dégagé) | V73 f 1 (suivre Henry) | normal (sept fois) |
-- Au total : 3 écrans noirs sur 54 chargements ou poses observés ; 1 sur 44 depuis la séparation. **Rien n'est conclu** : il
+| 473, puis quatre sauts d'Henry (40 m, sur un sol dégagé) | V73 f 1 bis (l'escorte en formation) | normal (cinq fois) |
+- Au total : 3 écrans noirs sur 59 chargements ou poses observés ; 1 sur 49 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

@@ -1534,6 +1534,24 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   `AI/FormationDefinitions.xml`). Contrôle d'absence inchangé (32). Garde-fous éprouvés par trois erreurs injectées,
   toutes attrapées : la formation fermée à chaque ordre, les places ignorées, le suiveur jamais rangé.
 
+### Mesuré en V73 f 1 bis (17/10) : l'escorte en formation, acquise
+- **Issues 1 et 2** : le Directeur mène (ordre 15) ; « Formation de Scriptorium_Directeur : « followNPC » » au journal
+  (l'appel au Lua de la branche 15) ; les trois s'y rangent (ordre 16) ; **à l'image, la forme `followNPC`** : deux côte
+  à côte derrière le Directeur, le troisième au rang suivant ; écarts au chef de 1,7 à 4,3 m, Henry marchant puis
+  courant.
+- **Issue 3, le saut de 160 m** : pendant que le Directeur court après Henry, ses suiveurs restent à 2–6 m de lui (la
+  formation suit son chef) ; au battement, « Directeur à 86 m de son chef, rattrapé 4 m derrière Henry » ; sa formation
+  rouverte (l'ordre redonné) ; les hommes, alors à 60 m de lui, courent et se rangent de nouveau (2–3,7 m) ; à l'image,
+  la formation reformée dans un champ de blé.
+- **Issue 4, la fin** : le Directeur reprend sa journée (« comptes », au coffre) et rentre à pied ; les hommes, à plus de
+  170 m, sont reposés au camp par les 150 m.
+- **À surveiller** : après un rattrapage, le chef reçoit de nouveau l'ordre 15 et ouvre une nouvelle formation sans
+  fermer l'ancienne (la fermeture ne vient qu'à un ordre qui n'est plus « mener ») ; les suiveurs retrouvent la nouvelle.
+  Une formation orpheline par rattrapage reste possible : aucune trace n'en est lisible au journal.
+- **Pas vu en jeu** : un homme en combat pendant l'escorte, la formation menée par le premier homme (derrière Henry), les
+  surnuméraires en chaîne, un autre mode que `MoveHistory`.
+- **Suite** : V73 f 2, à cheval.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
