@@ -904,6 +904,9 @@ arrivées).
   règle plus forte, le point le plus proche) ; et la proposition du pair, une accroche « ronde reprise » (l'homme, le
   point de reprise) par laquelle Scriptorium redonnerait lui-même le départ, donc l'espacement de ses six gardes de
   quart ; sans accroche prise, le défaut s'applique.
+- **Réponses de JoVenGer (17/10, après la séance)** : la règle du départ est confirmée (le point le plus proche par
+  défaut), **avec l'accroche « ronde reprise »**, dans un petit pas à part (V73 d 2 bis : fiche, pair, code, banc) ; la
+  borne des lignes de forme du jeu à 32 lui va.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
