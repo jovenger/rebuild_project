@@ -2355,6 +2355,12 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   hommes.battre()
   verifier(FauxJeu.chevaux[cheval1] ~= nil, "la sortie finie, l'homme à 1 m : son cheval reste (la descente)")
   FauxJeu.positions[perso[1]] = { x = FauxJeu.chevaux[cheval1].x + 20, y = FauxJeu.chevaux[cheval1].y, z = 0 }
+  -- V73 f 3 b : encore en selle (lu), jamais retiré.
+  FauxJeu.chevaux_montes = { [cheval1] = true }
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval1] ~= nil, "encore en selle : son cheval reste")
+  verifier(journal_contient("encore monté par"), "dit au journal")
+  FauxJeu.chevaux_montes = nil
   hommes.battre()
   verifier(FauxJeu.chevaux[cheval1] == nil, "l'homme éloigné : son cheval retiré")
   verifier(hommes.montures[ids[1]] == nil, "plus rien en mémoire pour lui")
@@ -2783,13 +2789,26 @@ essai("grand saut (fiche 15, V73 f 3 b) : au bond d'Henry, la colonne descend to
   -- Un battement avant la minuterie : le filet ne retire rien si tôt.
   hommes.battre()
   verifier(FauxJeu.chevaux[c1] ~= nil, "un battement tout de suite après : le cheval reste")
-  -- La minuterie : chevaux retirés, posés derrière Henry, saut fini, nouveaux chevaux, ordre à cheval.
+  -- La minuterie : chevaux retirés, posés derrière Henry (le jeu ignore la première pose du premier : vu en jeu le 17/10).
+  FauxJeu.poses_ignorees = { [perso[1]] = 1 }
   Scriptorium.en_partie = true
   mt.fonction()
-  Scriptorium.en_partie = false
   verifier(FauxJeu.chevaux[c1] == nil and FauxJeu.chevaux[c2] == nil, "les deux chevaux retirés")
   egal(#FauxJeu.secours, 2, "les deux posés")
   pres(FauxJeu.secours[1].position.y, 436, "4 m derrière Henry")
+  verifier(hommes.montures[ids[1]].saut and hommes.montures[ids[2]].saut, "le saut ne finit qu'à la relecture")
+  local mv = FauxJeu.minuteries[#FauxJeu.minuteries]
+  egal(mv.ms, 1500, "la pose relue 1,5 s après")
+  -- La relecture : le second est resté posé (saut fini) ; le premier non : reposé, relu ensuite.
+  mv.fonction()
+  verifier(not hommes.montures[ids[2]].saut, "le second, resté posé : saut fini")
+  verifier(hommes.montures[ids[1]].saut, "le premier, pas resté posé : toujours en saut")
+  verifier(journal_contient("pas resté posé (à 436 m de sa place) : reposé"), "le premier reposé, au journal")
+  egal(#FauxJeu.secours, 3, "une pose de plus")
+  verifier(hommes.montures[ids[1]].cheval == nil, "pas de nouveau cheval avant la pose tenue")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  Scriptorium.en_partie = false
+  FauxJeu.poses_ignorees = nil
   for i = 1, 2 do
     local m = hommes.montures[ids[i]]
     verifier(not m.saut, "l'homme " .. i .. " : saut fini")
@@ -2824,8 +2843,13 @@ essai("grand saut (fiche 15, V73 f 3 b) : au bond d'Henry, la colonne descend to
   verifier(FauxJeu.chevaux[c_second] == nil, "le second à pied à 5 s : son cheval retiré")
   verifier(journal_contient("à pied, lu à 5 s"), "la durée de la descente au journal")
   egal(#FauxJeu.secours, 1, "le second posé")
+  local relecture = FauxJeu.minuteries[#FauxJeu.minuteries - 1]
+  egal(relecture.ms, 1500, "sa pose relue")
   local n_min = #FauxJeu.minuteries
   FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.secours, 1, "pose en relecture : pas reposé par la fin des sauts")
+  relecture.fonction()
+  verifier(not hommes.montures[ids[2]].saut, "le second : saut fini")
   FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
   egal(#FauxJeu.minuteries, n_min + 1, "trois attentes au plus")
   Scriptorium.en_partie = false
@@ -2874,9 +2898,10 @@ essai("grand saut (fiche 15, V73 f 3 b) : au bond d'Henry, la colonne descend to
   egal(#FauxJeu.secours, 0, "un battement pendant sa descente : pas de pose")
   Scriptorium.en_partie = true
   FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
-  Scriptorium.en_partie = false
   verifier(FauxJeu.chevaux[cd] == nil, "son cheval retiré")
-  verifier(not hommes.montures.directeur.saut, "posé : son saut fini")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  Scriptorium.en_partie = false
+  verifier(not hommes.montures.directeur.saut, "posé et relu : son saut fini")
   verifier(hommes.montures.directeur.cheval ~= nil and hommes.montures.directeur.cheval ~= cd, "un nouveau cheval")
   o = dernier_ordre_de(dir)
   egal(o and o.suivi and o.suivi.mode, "cheval", "de nouveau à cheval")

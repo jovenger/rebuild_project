@@ -134,6 +134,11 @@ hommes.reglages = {
   saut_attente_ms = 2000,
   saut_attentes_max = 3,
   saut_vue_m = 300,
+  -- (vu en jeu le 17/10 : une pose juste après la descente est parfois ignorée par le jeu) La pose est relue
+  -- « saut_verif_ms » après : à plus de « saut_pose_ecart_m » de sa place, il est reposé, « saut_poses_max » fois au plus.
+  saut_verif_ms = 1500,
+  saut_pose_ecart_m = 15,
+  saut_poses_max = 3,
   allure_perdu_m = 13,
   allure_rang_m = 6,
   anciens_gardes = 50,
@@ -2004,7 +2009,7 @@ function hommes.poser_derriere_henry(personnage, nom, motif)
   hommes.rattrapages_en_attente[personnage] = nil
   jeu().journal("Hommes : « " .. tostring(nom) .. " » " .. motif .. ", rattrapé "
                 .. string.format("%g", recul) .. " m derrière Henry : " .. tostring(jeu().poser_en_secours(personnage, ou)))
-  return true
+  return true, ou
 end
 
 -- Le secours de l'homme bloqué (réponse 1 de JoVenGer du 16/10) : posé près de son but, jamais dans un meuble (une
@@ -2499,6 +2504,12 @@ local function veiller_aux_montures(d)
         retirer = not ici or not la
           or math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) > hommes.reglages.cheval_retrait_m
       end
+      -- V73 f 3 b (vu en séance ; la règle du pair : jamais un cheval retiré sous son cavalier) : encore en selle (lu),
+      -- le cheval attend le battement suivant.
+      if retirer and m.cheval and f and f.personnage and jeu().cheval_monte(m.cheval) == true then
+        retirer = false
+        jeu().journal("Hommes : cheval « " .. m.cheval .. " » encore monté par « " .. tostring(f.nom) .. " » : retiré plus tard")
+      end
       if retirer then
         if m.cheval then
           jeu().retirer_cheval(m.cheval)
@@ -2596,6 +2607,19 @@ local function redonner_l_ordre(d, cle, heure)
   end
 end
 
+-- La relecture des poses, après « ms » ; seulement dans la même partie.
+local function programmer_la_relecture(ms)
+  local generation = Scriptorium.generation
+  jeu().minuterie(ms, function()
+    if generation == Scriptorium.generation and Scriptorium.en_partie then
+      local ok, erreur = pcall(hommes.relire_les_poses)
+      if not ok then
+        jeu().journal("Hommes : relecture des poses en erreur : " .. tostring(erreur))
+      end
+    end
+  end)
+end
+
 -- La fin des sauts, « essai » (1 au premier passage), après « ms » ; seulement dans la même partie.
 local function programmer_la_fin(essai, ms)
   local generation = Scriptorium.generation
@@ -2677,7 +2701,7 @@ function hommes.finir_les_sauts(essai)
   local ecoule_s = (r.saut_descente_ms + (essai - 1) * r.saut_attente_ms) / 1000
   local poses, attendent = 0, 0
   for cle, m in pairs(hommes.montures) do
-    if m.saut and m.saut_ordonne then
+    if m.saut and m.saut_ordonne and not m.pose then
       local f = porteur(cle, d)
       local nom = tostring(f and f.nom or cle)
       local attente = nil
@@ -2709,18 +2733,64 @@ function hommes.finir_les_sauts(essai)
                         .. m.cheval .. " » retiré (grand saut)")
           m.cheval = nil
         end
-        if f and f.personnage and hommes.poser_derriere_henry(f.personnage, f.nom, "en grand saut") then
-          m.saut, m.saut_ordonne, m.saut_vu, m.sauts = nil, nil, nil, (m.sauts or 0) + 1
+        local pose, ou = false, nil
+        if f and f.personnage then
+          pose, ou = hommes.poser_derriere_henry(f.personnage, f.nom, "en grand saut")
+        end
+        if pose then
+          m.pose, m.poses = ou, 1
           poses = poses + 1
-          redonner_l_ordre(d, cle, heure)
         end
       end
     end
+  end
+  if poses > 0 then
+    programmer_la_relecture(r.saut_verif_ms)
   end
   if attendent > 0 then
     programmer_la_fin(essai + 1, r.saut_attente_ms)
   end
   return poses
+end
+
+-- La relecture des poses (vu en jeu le 17/10) : un cavalier posé et resté près de sa place finit son saut, son ordre est
+-- redonné (un nouveau cheval naît près de lui) ; sinon il est reposé derrière Henry, « saut_poses_max » fois au plus,
+-- puis le battement le rattrape. Rend le nombre de sauts finis.
+function hommes.relire_les_poses()
+  local d = donnees()
+  local heure = jeu().heure_du_jeu()
+  local r = hommes.reglages
+  local finis, reposes = 0, 0
+  for cle, m in pairs(hommes.montures) do
+    if m.saut and m.pose then
+      local f = porteur(cle, d)
+      local ici = f and f.personnage and jeu().position_du_personnage(f.personnage)
+      local ecart = ici and math.sqrt((ici.x - m.pose.x) ^ 2 + (ici.y - m.pose.y) ^ 2)
+      if ecart and ecart <= r.saut_pose_ecart_m then
+        m.pose, m.poses = nil, nil
+        m.saut, m.saut_ordonne, m.saut_vu, m.sauts = nil, nil, nil, (m.sauts or 0) + 1
+        finis = finis + 1
+        redonner_l_ordre(d, cle, heure)
+      elseif f and f.personnage and m.poses < r.saut_poses_max then
+        jeu().journal("Hommes : « " .. tostring(f.nom) .. " » pas resté posé (à "
+                      .. (ecart and string.format("%.0f", ecart) or "?") .. " m de sa place) : reposé")
+        local pose, ou = hommes.poser_derriere_henry(f.personnage, f.nom, "en grand saut")
+        m.poses = m.poses + 1
+        if pose then
+          m.pose = ou
+          reposes = reposes + 1
+        end
+      else
+        jeu().journal("Hommes : « " .. tostring(f and f.nom or cle) .. " » pas resté posé après " .. tostring(m.poses)
+                      .. " pose(s) : le battement le rattrapera")
+        m.pose, m.poses = nil, nil
+      end
+    end
+  end
+  if reposes > 0 then
+    programmer_la_relecture(r.saut_verif_ms)
+  end
+  return finis
 end
 
 -- Le bond d'Henry (V73 f 3 b) : sa position a bougé de plus de « henry_bond_m » depuis la veille précédente (le voyage

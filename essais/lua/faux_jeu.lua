@@ -318,6 +318,11 @@ end
 function faux.poser_en_secours(identifiant, position)
   faux.secours = faux.secours or {}
   table.insert(faux.secours, { identifiant = identifiant, position = position })
+  -- V73 f 3 b (vu en jeu) : une pose que le jeu ignore (« poses_ignorees » posé par les essais : combien de fois).
+  if faux.poses_ignorees and (faux.poses_ignorees[identifiant] or 0) > 0 then
+    faux.poses_ignorees[identifiant] = faux.poses_ignorees[identifiant] - 1
+    return "posé"
+  end
   faux.positions = faux.positions or {}
   faux.positions[identifiant] = position
   return "posé"

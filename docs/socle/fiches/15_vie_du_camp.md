@@ -2329,8 +2329,9 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 
 ### Règles en données (catalogue)
 - `hommes.reglages` : `escorte_derriere_m` 6, `cheval_saut_m` 150, `henry_bond_m` 50, `saut_descente_ms` 3000,
-  `saut_attente_ms` 2000, `saut_attentes_max` 3, `saut_vue_m` 300 (toute la table est réglable par la section `hommes` ;
-  les valeurs en mètres acceptent les décimales, `taux`).
+  `saut_attente_ms` 2000, `saut_attentes_max` 3, `saut_vue_m` 300, `saut_verif_ms` 1500, `saut_pose_ecart_m` 15,
+  `saut_poses_max` 3 (toute la table est réglable par la section `hommes` ; les valeurs en mètres acceptent les
+  décimales, `taux`).
 
 ### Essais au banc (faits, tout passe)
 - `essai_hommes.lua` : « autre carte » (le camp, l'enceinte et leurs relances ne bougent pas ; seule l'escorte est
@@ -2347,7 +2348,9 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   ailleurs, la règle tranche ; au contact, rien lu de l'autre carte.
 - Erreurs injectées : 11 sur le premier jet, toutes attrapées ; 7 sur les gardes ajoutées à la relecture ; 9 sur le
   saut rapide (une passait : le seuil du bond ignoré ; l'essai vérifie depuis qu'aucune ligne de bond ne s'écrit à
-  30 m ; refaite, attrapée).
+  30 m ; refaite, attrapée) ; 7 sur la selle et la vue ; 6 sur la relecture des poses et le retrait lu (une sans effet par
+  construction : pendant le saut, la monture refuse tout cheval ; une autre passait : la fin des sauts appelée pendant
+  une relecture, cas ajouté à l'essai, attrapée).
 
 ### Essai en jeu : grille
 1. **Le grand saut**, par `scriptorium_essai_grand_saut` (Henry posé 200 m devant lui, comme un voyage rapide ; commande
@@ -2357,6 +2360,30 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 2. Le filet : quatre `aller_nord` de 40 m (pas de bond) : le saut vu au battement.
 - **À vérifier par JoVenGer** : un vrai passage Trosky ↔ Kuttenberg avec une escorte (et charger d'abord la Partie 4
   sur la carte du camp, pour qu'il prenne sa carte).
+
+### Mesuré en jeu (17/10, 741346d, `playline3` 473, sans `-devmode`)
+- **Bond 1** (trois cavaliers en colonne, sans Directeur ; Henry posé 200 m devant lui) : bond lu par la veille
+  0,4 s après ; les trois en saut (« à 206 m de son chef », les deux autres « suit Jan Kladivo ») ; **à 3 s, les trois
+  encore en selle** (la lecture a empêché trois retraits sous leur cavalier) ; **à pied, lus à 5 s** ; chevaux retirés,
+  posés 4 m derrière Henry, nouveaux chevaux : **5,7 s du bond à la pose** ; remontés et « tenir » à 2–4 m vers 16 s.
+  Vu sur capture : les trois en selle juste derrière Henry.
+- **Bond 2** (avec le Directeur, qui mène) : mêmes temps (encore en selle à 3 s, à pied à 5 s, posés à 6,8 s) ; mais
+  **la pose du Directeur n'a pas tenu** (il est resté où il était) ; les hommes, rangés sur lui, sont repartis au galop
+  vers lui ; le battement suivant les a tous ressaisis (« à 185 m de son chef »), et la seconde pose a tenu (à pied lus
+  à 3 s, déjà descendus).
+- **Bond 3** : la pose du Directeur a tenu, **celles des trois hommes non** (exactement à 200 m : la pose ignorée, pas un
+  retour à pied) ; ressaisis au battement, seconde pose tenue.
+- **Hypothèse** : `HasRider` dit « à pied » avant la fin de l'animation de descente ; un `SetWorldPos` fait pendant
+  cette animation est perdu. **Remède** (sur la mesure, pas sur la cause) : la pose est relue `saut_verif_ms` (1500)
+  après ; à plus de `saut_pose_ecart_m` (15) de sa place, il est reposé, `saut_poses_max` (3) fois au plus, puis le
+  battement le rattrape ; le nouveau cheval ne naît qu'une fois la pose tenue (sinon il naissait à l'ancienne place).
+  Non vérifié en jeu (à la séance suivante).
+- Vu aussi : le retrait de fin de sortie (V73 f 2 b) retirait un cheval au battement sans lire la selle ; il la lit
+  désormais (encore monté : au battement suivant). Et `essai_directeur_a_cheval` remet l'escorte « comme Henry » : à
+  pied si Henry est à pied.
+- Non fait en jeu : un cavalier sous les yeux d'Henry (l'outil ne sait pas tourner Henry dans la seconde du bond) ; le
+  filet du battement sans bond (l'escorte suit les pas de 40 m au galop, jamais à 150 m) ; le voyage rapide par la carte
+  et son `OnLoadingComplete`.
 
 ### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
 1. **Distinguer un passage d'un chargement** : (a) inutile, la carte du camp et la carte lue suffisent ; (b) l'horloge à
