@@ -232,6 +232,92 @@ essai("registre (fiche 01, le pair, 17/10) : les écritures regroupées, une au 
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+-- Fiche 01 (le second canal) : ce que fait le jeu : il écrit ses jetons, PUIS appelle l'OnSave ; au rechargement, les
+-- jetons de la sauvegarde reviennent, l'OnLoad rend les cases rangées.
+local function sauver_et_recharger(retoucher)
+  local j = FauxJeu.registre_jetons
+  local jetons = { index = j.index, cases = {}, ancien = j.ancien }
+  for k, v in pairs(j.cases) do jetons.cases[k] = v end
+  local liste = FauxJeu.a_la_sauvegarde()
+  local rangees = {}
+  for _, e in ipairs(liste) do
+    local r = { nom = e.nom, chaine = e.chaine }
+    if e.base then
+      r.base_longueur, r.base_somme = FauxJeu.empreinte(e.base)
+    end
+    table.insert(rangees, r)
+  end
+  if retoucher then
+    retoucher(jetons)
+  end
+  FauxJeu.registre_jetons = jetons
+  FauxJeu.depuis_la_sauvegarde = rangees
+  Scriptorium.registre.invalider()
+  return liste
+end
+
+essai("registre (fiche 01, le second canal, demande du pair, 18/10) : ce qui n'est pas écrit voyage dans la sauvegarde et revient au rechargement ; rien en attente : rien de doublé ; une case rangée plus ancienne que la case lue : ignorée ; une case jamais écrite : reprise", function()
+  depart()
+  local registre = Scriptorium.registre
+  local ancien = Scriptorium.noyau.reglages.registre_intervalle_s
+  Scriptorium.noyau.reglages.registre_intervalle_s = 2
+  local ok, erreur = pcall(function()
+    Scriptorium.entrer_en_partie()
+    egal(FauxJeu.a_la_sauvegarde, registre.a_la_sauvegarde, "accrochée à l'entrée en partie")
+    registre.declarer_case("essai_canal", 1, function() return { n = 0 } end)
+    local function n_ecrit()
+      return registre.deserialiser(FauxJeu.registre_jetons.cases["essai_canal"]).donnees.n
+    end
+    FauxJeu.temps = 400
+    registre.lire("essai_canal").n = 1
+    verifier(registre.enregistrer("essai_canal") ~= nil, "écrite tout de suite")
+    -- 1. Nommée, en attente au moment de la sauvegarde.
+    registre.lire("essai_canal").n = 2
+    FauxJeu.temps = 400.5
+    egal(registre.enregistrer("essai_canal"), nil, "en attente")
+    egal(#sauver_et_recharger(), 1, "une case rangée dans la sauvegarde")
+    FauxJeu.temps = 410
+    egal(registre.lire("essai_canal").n, 2, "revenue au rechargement")
+    egal(n_ecrit(), 2, "réécrite dans les jetons")
+    -- 2. Changée sans être nommée (la surveillance) : rangée aussi.
+    registre.lire("essai_canal").n = 3
+    sauver_et_recharger()
+    FauxJeu.temps = 420
+    egal(registre.lire("essai_canal").n, 3, "la case changée sans être nommée revient aussi")
+    -- 3. Rien en attente : rien de rangé, rien de doublé.
+    FauxJeu.temps = 430
+    registre.lire("essai_canal")
+    local ecrites = #FauxJeu.cases_ecrites
+    egal(#sauver_et_recharger(), 0, "rien en attente : rien de rangé")
+    egal(registre.lire("essai_canal").n, 3, "la valeur inchangée")
+    egal(#FauxJeu.cases_ecrites, ecrites, "rien de réécrit")
+    -- 4. Les jetons plus récents que la case rangée (elle repose sur une autre chaîne) : ignorée.
+    FauxJeu.temps = 440
+    registre.lire("essai_canal").n = 4
+    registre.enregistrer("essai_canal")
+    registre.lire("essai_canal").n = 5
+    FauxJeu.temps = 440.5
+    egal(registre.enregistrer("essai_canal"), nil, "de nouveau en attente")
+    sauver_et_recharger(function(jetons)
+      local plus_recente = registre.serialiser({ version = 1, donnees = { n = 9 } })
+      jetons.cases["essai_canal"] = plus_recente
+    end)
+    egal(registre.lire("essai_canal").n, 9, "la case lue, plus récente, est gardée")
+    -- 5. Une case jamais écrite avant la sauvegarde : reprise.
+    registre.declarer_case("essai_canal_neuve", 1, function() return { n = 0 } end)
+    FauxJeu.temps = 450
+    registre.lire("essai_canal_neuve").n = 7
+    FauxJeu.temps = 450.1
+    sauver_et_recharger(function(jetons) jetons.cases["essai_canal_neuve"] = nil end)
+    FauxJeu.temps = 460
+    egal(registre.lire("essai_canal_neuve").n, 7, "la case jamais écrite revient")
+  end)
+  Scriptorium.noyau.reglages.registre_intervalle_s = ancien
+  registre.en_attente = false
+  registre.vidage_pose = false
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("registre (fiche 01, vu en jeu le 17/10 : le Directeur perdu à la sauvegarde) : l'attente vidée par une minuterie à la fin de l'intervalle, une seule à la fois ; rien d'écrit après une partie oubliée", function()
   depart()
   local registre = Scriptorium.registre

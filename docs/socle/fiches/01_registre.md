@@ -86,11 +86,19 @@ sauvegardée 10 s après : après rechargement, plus installé, plus d'objets. L
 `git log`) : une minuterie vide l'attente à la fin de l'intervalle (une seule à la fois ; rien d'écrit après une partie
 oubliée) ; essai qui attrape l'ancien registre. Vu en jeu : un changement fait 6 s avant la sauvegarde survit au
 rechargement. **Fenêtre restante : 2 s** (l'intervalle) : un changement suivi d'une sauvegarde dans les 2 s est perdu.
-**Essayé pour la fermer (demande du pair, 18/10), puis retiré** : vider l'attente pendant la sauvegarde par un `OnSave`.
-Posé sur l'instance d'Henry : jamais appelé. Sur une entité d'une classe à nous (`Entities/*.ent`, forme du guide
-« How-to Lua », Nexus Mods, KCD, mod 1344, et d'AISpawner du jeu) : appelé pendant la sauvegarde, l'entité revient
-avec la partie, mais l'écriture faite à ce moment manque au rechargement : le jeu a déjà écrit les GameToken quand il
-appelle les `OnSave` des entités. Aucun événement Lua de début de sauvegarde trouvé dans les fichiers du jeu. Code
-retiré (pas de second canal de sauvegarde) ; la minuterie reste. Débris : l'entité `scriptorium_sauvegarde_1` est dans
-la partie d'essai `playline3` (sa classe retirée).
+**Le second canal (demande du pair, 18/10 : une embauche puis une sauvegarde dans la seconde ne doit perdre ni
+l'argent ni les hommes).** Le jeu écrit ses GameToken AVANT d'appeler les `OnSave` des entités (vu en jeu : une écriture
+faite pendant l'`OnSave` manquait au rechargement ; un `OnSave` posé sur l'instance d'Henry n'est jamais appelé ; aucun
+événement Lua de début de sauvegarde dans les fichiers du jeu). Donc une entité de notre classe `scriptorium_sauvegarde`
+(`Entities/scriptorium_sauvegarde.ent`, `Scripts/Entities/scriptorium_sauvegarde.lua` ; forme du guide « How-to Lua »,
+Nexus Mods, KCD, mod 1344, et d'AISpawner du jeu), une seule, de nom fixe, créée à l'entrée en partie si elle manque
+(elle revient avec la partie) : son `OnSave` range dans sa propre table de sauvegarde les cases pas encore écrites (les
+marquées et les surveillées changées), en tranches, chacune avec l'empreinte (longueur, somme) de la chaîne écrite sur
+laquelle elle repose, puis les écrit pour la suite ; son `OnLoad` les relit ; au chargement du registre, une case
+rangée n'est reprise que si la case lue est celle sur laquelle elle reposait (sinon plus ancienne : ignorée, une ligne
+au journal), puis réécrite. Une autre partie : ignorées. La minuterie de 2 s reste le premier chemin.
+**Vu en jeu le 18/10** (intervalle réglé à 600 s pour l'essai) : le camp fondé, sauvegarde aussitôt (« 1 case(s) en
+attente rangée(s) ») ; rechargement : l'`OnLoad` passe avant le chargement du registre, « 1 case(s) reprise(s) : camp »,
+camp redressé (14 objets). Puis une sauvegarde sans rien en attente : rien rangé, rien repris, rien doublé. Le cas
+« plus ancienne que la case lue » : au banc seulement.
 

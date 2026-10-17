@@ -629,6 +629,104 @@ function liaison.entete_du_registre(identite, n, chaine)
   return string.format("%s|tranches|%d|%d|%d", identite, n, #chaine, somme_de(chaine))
 end
 
+-- Fiche 01 (le second canal, demande du pair, 18/10) : ce qui n'est pas encore écrit dans les GameToken voyage DANS la
+-- sauvegarde. Le jeu écrit ses GameToken avant d'appeler les OnSave des entités (vu en jeu le 18/10 : une écriture
+-- faite pendant l'OnSave manquait au rechargement) ; l'OnSave d'une entité de notre classe « scriptorium_sauvegarde »
+-- (Entities/ du pak, Scripts/Entities/scriptorium_sauvegarde.lua ; forme d'une classe déclarée par un .ent : le guide
+-- « How-to Lua », Nexus Mods, KCD, mod 1344, et AISpawner du jeu) range donc les cases en attente dans sa propre table
+-- de sauvegarde, en tranches ; son OnLoad les relit ; le registre les reprend au chargement s'il le faut. Un OnSave posé
+-- sur l'instance d'Henry n'est pas appelé (vu en jeu le 18/10). Une seule entité, de nom fixe.
+liaison.nom_de_l_entite_de_sauvegarde = "scriptorium_sauvegarde_1"
+liaison.depuis_la_sauvegarde = nil
+
+-- La longueur et la somme d'une chaîne (l'empreinte d'une case écrite).
+function liaison.empreinte(chaine)
+  return #chaine, somme_de(chaine)
+end
+
+-- « fonction » rend la liste { nom, chaine, base } des cases à ranger ; l'entité trouvée (elle revient avec la partie),
+-- sinon créée près d'Henry. Rend vrai si l'entité est là.
+function liaison.accrocher_la_sauvegarde(fonction)
+  liaison.fonction_de_sauvegarde = fonction
+  local nom = liaison.nom_de_l_entite_de_sauvegarde
+  local ok, entite = pcall(System.GetEntityByName, nom)
+  if ok and entite then
+    liaison.journal("Sauvegarde : entité « " .. nom .. " » trouvée")
+    return true
+  end
+  local cree, nouvelle = pcall(function()
+    local la = player and player:GetWorldPos() or { x = 0, y = 0, z = 0 }
+    return System.SpawnEntity({ class = "scriptorium_sauvegarde", name = nom, position = { x = la.x, y = la.y, z = la.z } })
+  end)
+  liaison.journal("Sauvegarde : entité « " .. nom .. " » créée = " .. tostring(cree and nouvelle ~= nil)
+                  .. (cree and "" or (" : " .. tostring(nouvelle))))
+  return cree and nouvelle ~= nil
+end
+
+-- L'OnSave de l'entité : les cases à ranger, dans « tableau », en tranches, avec l'identité de la partie.
+function liaison.a_la_sauvegarde(tableau)
+  if type(liaison.fonction_de_sauvegarde) ~= "function" or type(tableau) ~= "table" then
+    return
+  end
+  local ok, erreur = pcall(function()
+    local taille = liaison.taille_des_tranches
+    local rangees = {}
+    for _, e in ipairs(liaison.fonction_de_sauvegarde() or {}) do
+      local r = { nom = e.nom, tranches = {} }
+      if e.base then
+        r.base_longueur, r.base_somme = liaison.empreinte(e.base)
+      end
+      for i = 1, math.max(1, math.ceil(#e.chaine / taille)) do
+        r.tranches[i] = string.sub(e.chaine, (i - 1) * taille + 1, i * taille)
+      end
+      table.insert(rangees, r)
+    end
+    tableau.cases_en_attente = { identite = etat_du_fichier.identite_de_la_partie, cases = rangees }
+    liaison.journal("Sauvegarde : " .. #rangees .. " case(s) en attente rangée(s) dans la sauvegarde")
+  end)
+  if not ok then
+    liaison.journal("Sauvegarde : rangement en erreur : " .. tostring(erreur))
+  end
+end
+
+-- L'OnLoad de l'entité : les cases rangées, gardées jusqu'au chargement du registre.
+function liaison.a_la_relecture(tableau)
+  local ok, erreur = pcall(function()
+    liaison.depuis_la_sauvegarde = nil
+    local s = type(tableau) == "table" and tableau.cases_en_attente or nil
+    if type(s) ~= "table" or type(s.cases) ~= "table" then
+      liaison.journal("Sauvegarde : relue, rien de rangé")
+      return
+    end
+    local liste = {}
+    for _, r in ipairs(s.cases) do
+      if type(r) == "table" and type(r.nom) == "string" and type(r.tranches) == "table" then
+        table.insert(liste, { nom = r.nom, chaine = table.concat(r.tranches), base_longueur = r.base_longueur,
+                              base_somme = r.base_somme })
+      end
+    end
+    liaison.depuis_la_sauvegarde = { identite = s.identite, cases = liste }
+    liaison.journal("Sauvegarde : relue, " .. #liste .. " case(s) rangée(s)")
+  end)
+  if not ok then
+    liaison.journal("Sauvegarde : relecture en erreur : " .. tostring(erreur))
+  end
+end
+
+-- Pour le registre, une fois par chargement : les cases rangées, si elles sont de cette partie ; sinon nil.
+function liaison.cases_de_la_sauvegarde()
+  local d = liaison.depuis_la_sauvegarde
+  liaison.depuis_la_sauvegarde = nil
+  if not d then
+    return nil
+  end
+  if d.identite ~= etat_du_fichier.identite_de_la_partie then
+    liaison.journal("Sauvegarde : cases rangées d'une autre partie (" .. tostring(d.identite) .. "), ignorées")
+    return nil
+  end
+  return d.cases
+end
+
 -- Fiche 01 : un flux nommé (l'index, une case) ; les tranches en trop d'une écriture plus longue, vidées (comptées par
 -- flux).
 local function ecrire_un_flux(nom_du_flux, identite, chaine)
@@ -4772,6 +4870,10 @@ local function dire_le_chargement(evenement, ...)
     end
   end
   local sauvegarde = liaison.chargement_en_cours()
+  -- Fiche 01 (le second canal) : un nouveau chargement oublie les cases rangées d'un chargement précédent.
+  if evenement == "OnLoadingStart" then
+    liaison.depuis_la_sauvegarde = nil
+  end
   liaison.dernier_chargement = { evenement = evenement, arguments = table.concat(morceaux, ", "), sauvegarde = sauvegarde }
   liaison.journal("Chargement : " .. evenement .. " (" .. table.concat(morceaux, ", ") .. ") ; sauvegarde = "
                   .. tostring(sauvegarde))

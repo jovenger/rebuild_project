@@ -66,6 +66,7 @@ function faux.remettre_a_zero()
   faux.dialogue = false
   faux.registre_stocke = nil
   faux.cases_ecrites = {}
+  faux.depuis_la_sauvegarde = nil
   faux.minuteries = {}
   faux.commandes = {}
   faux.bourse_henry = 0
@@ -320,6 +321,18 @@ function faux.accrocher_la_parole(fonction) faux.parole = fonction end
 -- Fiche 18, 5 c : le geste tenu donné à un personnage.
 -- Fiche 18, 5 c, tranche 4 : les stations partagées ; « henry_prend » joue Henry qui emploie la station.
 function faux.accrocher_la_station(fonction) faux.station_prise = fonction end
+-- Fiche 01 (le second canal) : l'OnSave accroché ; les cases rangées rendues une fois ; une empreinte simple.
+function faux.accrocher_la_sauvegarde(fonction) faux.a_la_sauvegarde = fonction return true end
+function faux.cases_de_la_sauvegarde()
+  local d = faux.depuis_la_sauvegarde
+  faux.depuis_la_sauvegarde = nil
+  return d
+end
+function faux.empreinte(chaine)
+  local s = 0
+  for i = 1, #chaine do s = (s * 31 + string.byte(chaine, i)) % 65521 end
+  return #chaine, s
+end
 function faux.partager_avec_henry(station, oui)
   faux.stations = faux.stations or {}
   if faux.stations_absentes and faux.stations_absentes[station] then return false end

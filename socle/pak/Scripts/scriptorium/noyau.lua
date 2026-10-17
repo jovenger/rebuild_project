@@ -233,6 +233,10 @@ function Scriptorium.entrer_en_partie()
   journal("Socle : entrée en partie, minuteries reposées")
   if Scriptorium.registre then
     Scriptorium.registre.invalider()
+    -- Fiche 01 (le second canal) : ce qui n'est pas encore écrit voyage dans la sauvegarde du jeu.
+    if jeu().accrocher_la_sauvegarde then
+      jeu().accrocher_la_sauvegarde(Scriptorium.registre.a_la_sauvegarde)
+    end
   end
   Scriptorium.battement_lance = false
   Scriptorium.lancer_le_battement()

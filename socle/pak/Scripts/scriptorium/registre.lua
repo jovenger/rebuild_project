@@ -236,6 +236,46 @@ local function lire_par_case(rapport)
   return true
 end
 
+-- Fiche 01 (le second canal, demande du pair, 18/10) : les cases rangées dans la sauvegarde par son OnSave
+-- (jeu().cases_de_la_sauvegarde, une seule fois par chargement : { nom, chaine, base_longueur, base_somme }), reprises si
+-- la case lue dans les jetons est celle sur laquelle elles reposaient (même longueur, même somme ; absente si elles n'en
+-- avaient pas) ; sinon plus anciennes que la case lue : ignorées, une ligne au journal. Rend les noms repris.
+local function reprendre_de_la_sauvegarde()
+  local depuis = jeu().cases_de_la_sauvegarde and jeu().cases_de_la_sauvegarde() or nil
+  local reprises = {}
+  if type(depuis) ~= "table" then
+    return reprises
+  end
+  for _, e in ipairs(depuis) do
+    if type(e) == "table" and type(e.nom) == "string" and type(e.chaine) == "string" then
+      local lue = dernieres_chaines[e.nom]
+      local meme
+      if e.base_longueur == nil then
+        meme = lue == nil
+      elseif lue ~= nil then
+        local longueur, somme = jeu().empreinte(lue)
+        meme = longueur == e.base_longueur and somme == e.base_somme
+      end
+      local stocke, raison = nil, "plus ancienne que la case lue"
+      if meme then
+        stocke, raison = registre.deserialiser(e.chaine)
+      end
+      if stocke then
+        contenu_stocke = contenu_stocke or {}
+        contenu_stocke[e.nom] = stocke
+        noms_stockes[e.nom] = true
+        table.insert(reprises, e.nom)
+      else
+        jeu().journal("Registre : case « " .. e.nom .. " » de la sauvegarde ignorée (" .. tostring(raison) .. ")")
+      end
+    end
+  end
+  if #reprises > 0 then
+    jeu().journal("Registre : " .. #reprises .. " case(s) reprise(s) de la sauvegarde : " .. table.concat(reprises, ", "))
+  end
+  return reprises
+end
+
 -- Relit tout depuis la partie (ou depuis « chaine », un ancien flux unique, si elle est donnée). Rend un rapport.
 function registre.charger(chaine)
   local rapport = { chargees = 0, neuves = 0, migrees = 0, abimees = 0, source = "vide" }
@@ -260,11 +300,17 @@ function registre.charger(chaine)
       end
     end
   end
+  local reprises = reprendre_de_la_sauvegarde()
   for _, nom in ipairs(ordre) do
     charger_case(cases[nom], contenu_stocke and contenu_stocke[nom], rapport)
   end
   charge = true
   dernier_rapport = rapport
+  -- Les cases reprises de la sauvegarde sont réécrites dans les jetons (tout de suite, ou à la fin de l'intervalle).
+  if #reprises > 0 then
+    for _, nom in ipairs(reprises) do marquees[nom] = true end
+    registre.enregistrer(reprises[1])
+  end
   if rapport.source == "illisible" or rapport.abimees > 0 then
     annoncer("ui_scriptorium_registre_remis_a_neuf")
   elseif rapport.migrees > 0 then
@@ -454,10 +500,7 @@ end
 -- Fiche 01 (relecture, 17/10) : à la fin de chaque battement, chaque case surveillée (déjà chargée) est comparée à sa
 -- dernière chaîne écrite ; changée sans avoir été nommée (le moral, la dernière activité…), elle est marquée, puis
 -- écrite (au plus une fois par intervalle, sinon au battement suivant). Rend le nombre de cases marquées ainsi.
-function registre.surveiller()
-  if not charge then
-    return 0
-  end
+local function marquer_les_changees()
   local nouvelles = 0
   for _, nom in ipairs(ordre) do
     local case = cases[nom]
@@ -466,6 +509,14 @@ function registre.surveiller()
       nouvelles = nouvelles + 1
     end
   end
+  return nouvelles
+end
+
+function registre.surveiller()
+  if not charge then
+    return 0
+  end
+  local nouvelles = marquer_les_changees()
   if next(marquees) ~= nil then
     local intervalle = reglage("registre_intervalle_s")
     local t = jeu().maintenant and jeu().maintenant() or nil
@@ -477,6 +528,30 @@ function registre.surveiller()
     end
   end
   return nouvelles
+end
+
+-- Fiche 01 (le second canal, demande du pair, 18/10 : une embauche puis une sauvegarde dans la seconde ne doit perdre
+-- ni l'argent ni les hommes) : appelée par le jeu pendant la sauvegarde (l'OnSave de l'entité du socle), quand il a
+-- déjà écrit les GameToken. Ce qui n'y est pas (les cases marquées, et les cases surveillées changées depuis leur
+-- dernière écriture) est rendu pour voyager DANS la sauvegarde, chacune avec la chaîne écrite sur laquelle elle repose
+-- (nil : jamais écrite) ; puis écrit dans les jetons pour la suite de la partie. La minuterie reste le premier chemin.
+-- Rend la liste { nom, chaine, base }.
+function registre.a_la_sauvegarde()
+  local liste = {}
+  if not charge then
+    return liste
+  end
+  marquer_les_changees()
+  for _, nom in ipairs(ordre) do
+    local case = cases[nom]
+    if marquees[nom] and case.donnees ~= nil then
+      table.insert(liste, { nom = nom, chaine = chaine_de(case), base = dernieres_chaines[nom] })
+    end
+  end
+  if #liste > 0 then
+    ecrire_maintenant()
+  end
+  return liste
 end
 
 -- La chaîne de la case telle qu'elle serait écrite (pour le poste d'essai et les essais), ou nil.
