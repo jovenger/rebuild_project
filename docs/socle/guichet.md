@@ -127,7 +127,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F81 | `GearOpenWardrobe` | 1 dossier(s) | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | F82 | `GearRemoveCustom` | 1 dossier(s) | `Scriptorium.hommes.piece_otee(id, objet)` |
 | F83 | `GiveMoney` | donner de l'argent a Henry | `Scriptorium.jeu.donner_groschen_a_henry(montant)` (crédit simple, sans toucher au coffre : Scriptorium a déjà débité la source, l'amende d'un duel ; relecture du pair) |
-| F84 | `HireCustomCompanion` | 1 dossier(s) | étape 5 (compagnons nommés) |
+| F84 | `HireCustomCompanion` | 1 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (champs `nom` et `ame` : le compagnon nommé, né sur l'âme donnée, fiche 18) |
 | F85 | `HorsesSet` | 1 dossier(s) | pas utile : à cheval ou non se dit à chaque sortie (`Scriptorium.hommes.tenir(id, regle, quoi)`, « a_cheval ») |
 | F86 | `InjectInteraction` | 1 dossier(s) | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
 | F87 | `IsMercInSortie` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` |
@@ -178,7 +178,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D21 | `CampModels` | 5 dossier(s) | `Scriptorium.camp.modeles` |
 | D22 | `CampOutParty` | Scriptorium l'écrit aussi | `Scriptorium.hommes.qui_tient(id, heure)` (règle `escorte`) |
 | D23 | `CampStationTiles` | 5 dossier(s) | étape 5 (postes de travail) |
-| D24 | `CustomCompanionsData` | 5 dossier(s) | étape 5 (compagnons nommés) |
+| D24 | `CustomCompanionsData` | 5 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (champs `nom`, `ame`, `position` ; la liste des compagnons reste chez Scriptorium, fiche 18) |
 | D25 | `EnemyAlerted` | Scriptorium l'écrit aussi | `Scriptorium.bataille.bande(id)` (champs `annoncee`, `etat`) |
 | D26 | `ArcherAmmoClass` | 4 dossier(s) | `Scriptorium.jeu.munition_de(nom)` |
 | D27 | `CampStowed` | Scriptorium l'écrit aussi | pas utile : pas de réserve d'objets rangés |
@@ -236,7 +236,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D79 | `BanditCampForgetRange` | 1 dossier(s) | réglage : bataille.poste_vue_m (et missions.henry_loin_m) |
 | D80 | `BanditCampLayouts` | 1 dossier(s) | réglage : plan_des_camps |
 | D81 | `BanditCampSites` | 1 dossier(s) | `Scriptorium.missions.lieux_de(carte)` |
-| D82 | `CCReinject` | 1 dossier(s) | étape 5 (compagnons nommés) |
+| D82 | `CCReinject` | 1 dossier(s) | déjà fait : la fiche de l'homme garde son nom et son âme ; il renaît sur la même âme à chaque entrée en partie (`Scriptorium.hommes.embaucher(contrat)`) |
 | D83 | `CUHide` | Scriptorium l'écrit aussi | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | D84 | `CUShow` | Scriptorium l'écrit aussi | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | D85 | `CampAlchemy` | 1 dossier(s) | étape 5 (l'alchimie) |
@@ -280,7 +280,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D123 | `IsLootableCorpseName` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).a_fouiller` (les corps d'une bande, par nom) |
 | D124 | `LivePatrolsEnabled` | 1 dossier(s) | pas utile : le socle n'envoie de patrouille que sur ordre (`Scriptorium.patrouilles.envoyer(ordre)`) |
 | D125 | `LogiTrackCombat` | Scriptorium l'écrit aussi | `Scriptorium.bataille.partager_le_butin(butin, combattants)` (accroche) ; l'issue : `bataille.issue_au_loin` (accroche) |
-| D126 | `LootAdvance` | Scriptorium l'écrit aussi | le battement de la fouille (`bataille.battre`) |
+| D126 | `LootAdvance` | Scriptorium l'écrit aussi | `Scriptorium.bataille.battre()` (le battement de la fouille) |
 | D127 | `LootAssign` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).fouilleurs` |
 | D128 | `LootClaims` | 1 dossier(s) | `Scriptorium.bataille.fouille(id).fouilleurs` (un corps, un fouilleur) |
 | D129 | `LootCorpseRadius` | Scriptorium l'écrit aussi | réglage : bataille.fouille_pres_m |
@@ -317,7 +317,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | R1 | `28/09 — plus de touches U et H, ni de leurs aides à l'écran` |  | pas utile : écran de l'ancien mod, que le socle n'a jamais eu (ni ces touches) |
 | R2 | `28/09 (suite) — les écrans U et H supprimés pour de bon` |  | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | R3 | `Supprimés` |  | pas utile : aucun de ces fichiers dans le socle |
-| R4 | `28/09 — plafond d’embauche : 50 → 80` |  | étape 5 (le plafond de 80 ; aujourd'hui un lit par homme, `Scriptorium.camp.capacite()`) |
+| R4 | `28/09 — plafond d’embauche : 50 → 80` |  | `Scriptorium.hommes.plafond_de_la_compagnie()` (réglage `hommes.plafond` = 80 ; refus « plafond_atteint » ; un lit par homme en plus, fiche 18) |
 | R5 | `28/09 — les raids n'apparaissent plus dans le camp` |  | réglage : bataille.distance_arrivee (déjà fait : la bande naît à 60 m du centre, hors du camp) |
 | R6 | `28/09 — « Parle-moi un peu de toi » en tête du dialogue de chaque mercenaire` |  | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
 | R7 | `28/09 — l'arme de tir homme par homme (les arbalétriers)` |  | déjà fait : `Scriptorium.hommes.fiche(id)` (rôle `archer` ou `arbaletrier` par homme, `hommes.equipement.tir`) |
@@ -346,10 +346,10 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 174 | 25 | 70 | 68 | 11 |
+| service existant | 178 | 25 | 71 | 70 | 12 |
 | à ouvrir | 20 | 9 | 2 | 9 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
-| étape 5 | 31 | 2 | 6 | 18 | 5 |
+| étape 5 | 27 | 2 | 5 | 16 | 4 |
 | pas utile | 91 | 3 | 29 | 49 | 10 |
 | réglage | 21 | 1 | 4 | 15 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |

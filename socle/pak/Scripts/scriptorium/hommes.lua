@@ -166,6 +166,7 @@ hommes.reglages = {
   semaines_min = 1,
   semaines_max = 52,
   palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
+  plafond = 80,               -- fiche 18, 5 a : la compagnie au plus (le chiffre de JoVenGer du 28/09)
   -- L'arbitre (fiche 15, V73 b 3) : une tenue « jusqu'à libération » (bataille, patrouille) tombe par sûreté au bout de
   -- tant d'heures du jeu, notée au journal (réponse 2 a de JoVenGer) ; la journée du socle tient l'homme qu'aucune règle
   -- ne tient (réponse 3 a) : à faux, il attend où il est (Scriptorium la coupera à la bascule).
@@ -1158,11 +1159,49 @@ end
 
 -- ---------------------------------------------------------------- embauche
 
+-- Accroches de l'embauche (fiche 18, 5 a) : avant (Scriptorium refuse, ou modifie le contrat ; rend vrai, ou faux et la
+-- raison) et après (l'homme engagé).
+function hommes.avant_l_embauche(contrat)
+  return true
+end
+
+function hommes.apres_l_embauche(id, contrat)
+end
+
+-- Le plafond de la compagnie, lisible : { plafond, effectif, lits_libres }.
+function hommes.plafond_de_la_compagnie()
+  local d = donnees()
+  return { plafond = hommes.reglages.plafond, effectif = #d.ordre,
+           lits_libres = camp().est_fonde() and #camp().places_libres("lit", "hommes") or 0 }
+end
+
+-- Le contrat d'embauche : role, semaines, solde, prime, palier, famille ; et (fiche 18, 5 a) « nom » (un compagnon
+-- nommé), « ame » (son âme, un identifiant du jeu donné par Scriptorium), « position » (où il naît).
 function hommes.embaucher(contrat)
   contrat = contrat or {}
   local d = donnees()
   if not camp().est_fonde() then
     return refuser("camp_absent")
+  end
+  local lu, permis, pourquoi = pcall(hommes.avant_l_embauche, contrat)
+  if not lu then
+    return refuser("accroche_en_erreur", tostring(permis))
+  end
+  if permis ~= true then
+    return refuser("refus_de_scriptorium", tostring(pourquoi))
+  end
+  if #d.ordre >= hommes.reglages.plafond then
+    return refuser("plafond_atteint", #d.ordre .. " / " .. hommes.reglages.plafond)
+  end
+  if contrat.nom ~= nil and (type(contrat.nom) ~= "string" or contrat.nom == "") then
+    return refuser("nom_invalide", tostring(contrat.nom))
+  end
+  if contrat.ame ~= nil and (type(contrat.ame) ~= "string" or not string.match(contrat.ame, "^%x+%-%x+%-%x+%-%x+%-%x+$")) then
+    return refuser("ame_invalide", tostring(contrat.ame))
+  end
+  local p = contrat.position
+  if p ~= nil and (type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number") then
+    return refuser("position_invalide")
   end
   local role = hommes.roles[contrat.role]
   if not role then
@@ -1197,11 +1236,11 @@ function hommes.embaucher(contrat)
   d.prochain = d.prochain + 1
   local f = {
     id = id,
-    nom = nom_suivant(d),
+    nom = contrat.nom or nom_suivant(d),
     role = contrat.role,
     rang = "soudoyer",
     palier = palier,
-    ame = nil,
+    ame = contrat.ame,
     contrat = { semaines = semaines, solde = solde, prime = prime, debut = heure, fin = heure + semaines * 7 * 24 },
     moral = hommes.reglages.moral_depart,
     blessure = 0,
@@ -1234,7 +1273,7 @@ function hommes.embaucher(contrat)
   -- V73 f 3 b : embauché quand Henry est sur une autre carte que celle du camp, il rejoint le registre (sans personnage)
   -- et paraît au camp au retour d'Henry.
   if camp().sur_sa_carte == nil or camp().sur_sa_carte() then
-    faire_venir(d, f)
+    faire_venir(d, f, false, p and { x = p.x, y = p.y, z = p.z } or nil)
   else
     jeu().journal("Hommes : « " .. f.nom .. " » embauché loin du camp (autre carte) : il paraîtra au camp")
   end
@@ -1244,7 +1283,34 @@ function hommes.embaucher(contrat)
   verifier_rangs(d, {})
   enregistrer()
   annoncer("ui_scriptorium_hommes_rejoint", { complement = f.nom })
+  local apres_lu, erreur = pcall(hommes.apres_l_embauche, id, contrat)
+  if not apres_lu then
+    jeu().journal("Hommes : accroche « après l'embauche » en erreur : " .. tostring(erreur))
+  end
   return id
+end
+
+-- Fiche 18, 5 a : faire venir plusieurs hommes du même contrat (N soldats d'un rang, N archers) ; s'arrête au premier
+-- refus. Rend la liste des engagés, et la raison d'un refus.
+function hommes.faire_venir_des_hommes(ordre)
+  ordre = ordre or {}
+  local n = ordre.nombre
+  if type(n) ~= "number" or math.floor(n) ~= n or n < 1 or n > hommes.reglages.plafond then
+    return {}, "nombre_invalide"
+  end
+  local engages = {}
+  for _ = 1, n do
+    local contrat = {}
+    for cle, valeur in pairs(ordre) do
+      if cle ~= "nombre" then contrat[cle] = valeur end
+    end
+    local id, raison = hommes.embaucher(contrat)
+    if not id then
+      return engages, raison
+    end
+    table.insert(engages, id)
+  end
+  return engages, nil
 end
 
 function hommes.renouveler(id, semaines)
@@ -2431,7 +2497,8 @@ end
 -- Le cheval passager de l'homme en sortie à cheval qui n'en a pas de vivant (V73 f 2 b) : sa place (V73 f 2 c) ; une naissance refusée compte comme un essai manqué, une seule fois à la même heure
 -- du jeu (la pose d'une tenue ordonne l'homme deux fois). Une ligne au journal.
 local function preparer_la_monture(id, f, heure, en_sortie)
-  if not en_sortie then
+  -- Fiche 18, 5 a : les chevaux de la compagnie éteints, chacun sort à pied.
+  if not en_sortie or not Scriptorium.actif("chevaux_de_la_compagnie") then
     return
   end
   local m = hommes.montures[id]

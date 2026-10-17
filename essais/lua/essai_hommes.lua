@@ -3099,3 +3099,80 @@ essai("secours (fiche 17) : un homme tenu par la bataille n'est jamais secouru, 
   egal(#FauxJeu.secours, 0, "immobile à 11 m de son point, huit battements : aucun secours")
   hommes.lacher(id, "bataille")
 end)
+
+-- ---------------------------------------------------------------- fiche 18, 5 a : l'embauche que Scriptorium attend
+
+essai("embauche (5 a) : un compagnon nommé avec son âme, posé à un point ; refus d'un nom, d'une âme ou d'un point boiteux", function()
+  preparer(5000, 100, 10)
+  local AME = "0a1b2c3d-1111-2222-3333-444455556666"
+  verifier(not hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0, nom = "" }), "nom vide : refusé")
+  verifier(not hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0, ame = "pas une âme" }), "âme boiteuse : refusée")
+  verifier(not hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0, position = { x = 1 } }), "point boiteux : refusé")
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0, nom = "Zbyněk le Vieux", ame = AME,
+    position = { x = 12, y = -7, z = 3 } })
+  verifier(id, "engagé")
+  local f = hommes.fiche(id)
+  egal(f.nom, "Zbyněk le Vieux", "son nom")
+  local ne = FauxJeu.personnages[#FauxJeu.personnages]
+  egal(ne.ame, AME, "né sur l'âme donnée")
+  egal(ne.position.x, 12, "au point donné")
+  egal(ne.position.y, -7, "au point donné")
+end)
+
+essai("embauche (5 a) : plusieurs hommes d'un coup, arrêt au premier refus ; le plafond, lisible et tenu ; les accroches avant et après", function()
+  preparer(5000, 100, 10)
+  local engages, raison = hommes.faire_venir_des_hommes({ nombre = 3, role = "archer", palier = 2, semaines = 4, prime = 0 })
+  egal(#engages, 3, "trois archers")
+  egal(raison, nil, "sans refus")
+  for _, id in ipairs(engages) do
+    egal(hommes.fiche(id).palier, 2, "du rang demandé")
+  end
+  local p = hommes.plafond_de_la_compagnie()
+  egal(p.effectif, 3, "effectif lisible")
+  egal(p.plafond, 80, "plafond de 80")
+  hommes.reglages.plafond = 4
+  local id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  verifier(id, "le quatrième passe")
+  id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  verifier(not id and r == "plafond_atteint", "le cinquième : plafond atteint")
+  hommes.reglages.plafond = 80
+  camp.agrandir()
+  -- Les accroches : Scriptorium refuse, puis modifie le contrat ; après, il est prévenu.
+  local ancienne_avant, ancienne_apres = hommes.avant_l_embauche, hommes.apres_l_embauche
+  local ok, erreur = pcall(function()
+    hommes.avant_l_embauche = function() return false, "le_directeur_dit_non" end
+    id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    verifier(not id and r == "refus_de_scriptorium", "refus de Scriptorium")
+    local prevenu = nil
+    hommes.avant_l_embauche = function(c) c.palier = 3 return true end
+    hommes.apres_l_embauche = function(i) prevenu = i end
+    id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    verifier(id, "engagé, contrat modifié : " .. tostring(r))
+    egal(id and hommes.fiche(id).palier, 3, "le contrat modifié par l'accroche")
+    egal(prevenu, id, "l'accroche d'après, prévenue")
+  end)
+  hommes.avant_l_embauche, hommes.apres_l_embauche = ancienne_avant, ancienne_apres
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
+essai("embauche (5 a) : les chevaux de la compagnie éteints, une sortie à cheval part à pied", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  FauxJeu.positions[hommes.fiche(id).personnage] = { x = 110, y = 0, z = 0 }   -- hors du camp (V73 f 2 c)
+  Scriptorium.noyau.interrupteurs.chevaux_de_la_compagnie = 0
+  FauxJeu.chevaux = {}
+  local function chevaux()
+    local n = 0
+    for _ in pairs(FauxJeu.chevaux) do n = n + 1 end
+    return n
+  end
+  hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers", formation = "followNPC", a_cheval = true, fin = "liberation" })
+  hommes.battre()
+  egal(chevaux(), 0, "aucun cheval né")
+  local a = hommes.activite_de(id, 10)
+  verifier(not (a.suivi and a.suivi.mode == "cheval"), "il suit à pied")
+  Scriptorium.noyau.interrupteurs.chevaux_de_la_compagnie = 1
+  hommes.battre()
+  verifier(chevaux() >= 1, "rallumés : un cheval naît")
+  hommes.lacher(id, "escorte")
+end)

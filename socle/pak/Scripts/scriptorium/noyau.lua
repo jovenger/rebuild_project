@@ -48,6 +48,8 @@ Scriptorium.noyau.interrupteurs = Scriptorium.noyau.interrupteurs or {
   -- L'entretien de la compagnie (relecture du pair, 17/10) : les repas du socle (rations prises aux vivres) ; coupés,
   -- Scriptorium nourrit à sa place. Allumés par défaut (rien ne change tant que Scriptorium ne les coupe pas).
   repas_du_socle = 1,
+  -- Fiche 18, 5 a (la liste du pair) : les chevaux de la compagnie ; éteints, chacun sort à pied. Allumés par défaut.
+  chevaux_de_la_compagnie = 1,
 }
 
 function Scriptorium.actif(nom)
