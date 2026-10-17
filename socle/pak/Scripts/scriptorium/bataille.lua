@@ -694,7 +694,11 @@ local function arriver(d, b)
   if type(personnages) == "table" and #personnages > 0 then
     b.personnages = personnages
     jeu().journal("Bataille : « " .. b.id .. " » au contact, " .. #personnages .. " ennemi(s) dans le jeu")
-    bataille.guetter_l_alerte(b.id, guetteurs)
+    -- Une alerte en erreur ne retarde jamais l'attaque (vu en jeu le 18/10).
+    local ok, erreur = pcall(bataille.guetter_l_alerte, b.id, guetteurs)
+    if not ok then
+      jeu().journal("Bataille : alerte de « " .. b.id .. " » en erreur : " .. tostring(erreur))
+    end
     lancer_l_attaque_de_la_bande(b)
     lancer_l_attaque(b)
     assurer_la_relance(b.id)
@@ -1532,7 +1536,7 @@ function bataille.guetter_l_alerte(id, guetteurs)
   b.alerte_donnee = true
   local a, f = bataille.alerte, hommes().fiche(qui)
   local dit = hommes().dire_une_replique(qui, { metarole = a.metarole })
-  annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = f.nom })
+  annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = f.nom, qui = "ui_scriptorium_bataille_alerte_qui" })
   local ou = camp().est_fonde() and camp().objet_de("feu_central") or f.personnage
   local sonne, raison = false, "pas de son"
   if jeu().jouer_un_son then

@@ -60,13 +60,21 @@ end
 -- La bande sombre est mise le temps du message ; effacer() rend au joueur son réglage (wh_ui_EnableSubtitleBg).
 -- Le bandeau efface lui-même à la fin de la durée. Avec un complément (un nom, un montant), il est ajouté
 -- après le texte. À vérifier en jeu : que « @clé » est traduit dans cette ligne, avec ou sans complément.
-function liaison.afficher(texte, duree, complement)
+-- « qui » (l'alerte, demande de JoVenGer du 18/10 : « Alerte » à part, en couleur si possible) : le nom de celui qui
+-- parle, deuxième argument de SetSubtitles (Libs/UI/UIElements/HUD.xml : SpeakerName), affiché par
+-- SetSubtitleSpeakerNameEnable le temps du message ; effacer() rend au joueur son réglage
+-- (wh_ui_EnableSubtitleSpeakerName). Une balise de couleur dans le texte est lue mais sa couleur ignorée (vu en jeu le
+-- 18/10, premier essai de la sonde).
+function liaison.afficher(texte, duree, complement, qui)
   if complement then
     texte = texte .. " " .. complement
   end
   local ok, erreur = pcall(function()
     UIAction.CallFunction("hud", 0, "SetSubtitleBgEnable", true)
-    UIAction.CallFunction("hud", 0, "SetSubtitles", texte, "", false)
+    if qui then
+      UIAction.CallFunction("hud", 0, "SetSubtitleSpeakerNameEnable", true)
+    end
+    UIAction.CallFunction("hud", 0, "SetSubtitles", texte, qui or "", false)
   end)
   if not ok then
     liaison.journal("Affichage impossible : " .. tostring(erreur))
@@ -79,36 +87,18 @@ local function fond_des_sous_titres_du_joueur()
   return ok and (valeur == true or valeur == 1 or valeur == "1" or valeur == "true")
 end
 
--- Les alertes du camp (demande de JoVenGer du 18/10) : un déclencheur sonore du jeu joué sur une entité nommée (Henry
--- si aucune) : Sound.GetAudioTriggerID puis ExecuteAudioTrigger sur son proxy audio par défaut, comme
--- AudioUtils.PlayAudioTrigger du jeu (Scripts/Utils/AudioUtils.lua). Rend vrai, ou faux et la raison.
-function liaison.jouer_un_son(nom_du_son, identifiant)
-  local entite = identifiant and entite_nommee(identifiant) or player
-  if not entite then
-    return false, "entité introuvable"
-  end
-  local ok, resultat = pcall(function()
-    local declencheur = Sound.GetAudioTriggerID(nom_du_son)
-    if declencheur == nil then
-      return "déclencheur inconnu"
-    end
-    entite:ExecuteAudioTrigger(declencheur, entite:GetDefaultAuxAudioProxyID())
-    return true
-  end)
-  if not ok then
-    return false, tostring(resultat)
-  end
-  if resultat ~= true then
-    return false, resultat
-  end
-  return true
+-- Le nom de celui qui parle, tel que le joueur l'a réglé dans ses options.
+local function nom_dans_les_sous_titres_du_joueur()
+  local ok, valeur = pcall(System.GetCVar, "wh_ui_EnableSubtitleSpeakerName")
+  return ok and (valeur == true or valeur == 1 or valeur == "1" or valeur == "true")
 end
 
--- Efface le texte affiché et rend au joueur son réglage du fond des sous-titres.
+-- Efface le texte affiché et rend au joueur son réglage du fond des sous-titres (et du nom de celui qui parle).
 function liaison.effacer()
   local ok, erreur = pcall(function()
     UIAction.CallFunction("hud", 0, "ClearSubtitles")
     UIAction.CallFunction("hud", 0, "SetSubtitleBgEnable", fond_des_sous_titres_du_joueur())
+    UIAction.CallFunction("hud", 0, "SetSubtitleSpeakerNameEnable", nom_dans_les_sous_titres_du_joueur())
   end)
   if not ok then
     liaison.journal("Effacement impossible : " .. tostring(erreur))
@@ -327,6 +317,31 @@ local function entite_nommee(identifiant)
     return entite
   end
   return nil
+end
+
+-- Les alertes du camp (demande de JoVenGer du 18/10) : un déclencheur sonore du jeu joué sur une entité nommée (Henry
+-- si aucune) : Sound.GetAudioTriggerID puis ExecuteAudioTrigger sur son proxy audio par défaut, comme
+-- AudioUtils.PlayAudioTrigger du jeu (Scripts/Utils/AudioUtils.lua). Rend vrai, ou faux et la raison.
+function liaison.jouer_un_son(nom_du_son, identifiant)
+  local entite = identifiant and entite_nommee(identifiant) or player
+  if not entite then
+    return false, "entité introuvable"
+  end
+  local ok, resultat = pcall(function()
+    local declencheur = Sound.GetAudioTriggerID(nom_du_son)
+    if declencheur == nil then
+      return "déclencheur inconnu"
+    end
+    entite:ExecuteAudioTrigger(declencheur, entite:GetDefaultAuxAudioProxyID())
+    return true
+  end)
+  if not ok then
+    return false, tostring(resultat)
+  end
+  if resultat ~= true then
+    return false, resultat
+  end
+  return true
 end
 
 -- Les caps du socle sont ceux d'une boussole : en degrés, dans le sens des aiguilles d'une montre vu de dessus.

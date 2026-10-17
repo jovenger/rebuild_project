@@ -1382,6 +1382,30 @@ TABLE_DES_VARIABLES = os.path.join(PAK, "Libs", "Tables", "ai", "brain_variable_
 TABLE_DES_COMPORTEMENTS = os.path.join(PAK, "Libs", "Tables", "ai", "smartEntity", "SmartEntity__so_interrupt__scriptorium_socle.xml")
 
 
+def verifier_l_ordre_des_locales():
+    """Vu en jeu le 18/10 (liaison.jouer_un_son) : une fonction locale appelée plus haut que sa définition est, à cet
+    endroit, une globale vide : l'appel casse en jeu, et le faux jeu ne le voit pas. Dans chacun de nos fichiers Lua,
+    aucun nom de « local function » n'est employé avant la ligne qui le définit (commentaires ôtés)."""
+    for racine, _, noms in os.walk(os.path.join(PAK, "Scripts")):
+        for nom in sorted(noms):
+            if not nom.endswith(".lua"):
+                continue
+            chemin = os.path.join(racine, nom)
+            lignes = [re.sub(r"--.*$", "", l) for l in lire(chemin).splitlines()]
+            definies = {}
+            for n, ligne in enumerate(lignes):
+                m = re.match(r"\s*local\s+function\s+([A-Za-z_][A-Za-z0-9_]*)", ligne)
+                if m and m.group(1) not in definies:
+                    definies[m.group(1)] = n
+            for fonction, ligne_def in definies.items():
+                motif = re.compile(r"(?<![\w.:])" + re.escape(fonction) + r"\s*\(")
+                for n in range(ligne_def):
+                    if motif.search(lignes[n]) and not re.match(r"\s*local\s+" + re.escape(fonction) + r"\b", lignes[n]):
+                        erreur("ordre des locales : %s:%d emploie « %s », définie plus bas (ligne %d)"
+                               % (os.path.relpath(chemin, RACINE).replace("\\", "/"), n + 1, fonction, ligne_def + 1))
+                        break
+
+
 def verifier_la_vie_du_camp():
     """Fiche 12, révision du 16/10 : un oubli ici ne se verrait qu'en jeu, en silence. Chaque activité que la liaison
     donne a sa branche dans le comportement long ; chaque comportement lancé par le switch est déclaré auprès du jeu,
@@ -1768,6 +1792,8 @@ def principal(arguments):
     print("2 sexies. équipement : %d préréglages dans la liaison, chaque règle trouve les siens" % verifier_equipement())
     print("2 septies. vie du camp : %d activités données par la liaison, chacune a sa branche ; %d variables du cerveau "
           "employées par nos arbres, toutes déclarées ; comportements lancés déclarés" % verifier_la_vie_du_camp())
+    verifier_l_ordre_des_locales()
+    print("2 octies. ordre des locales : aucune fonction locale employée avant sa définition")
     print("3. noms interdits : %d" % verifier_noms())
     print("3 bis. un seul nom par table : %d noms relevés, table posée par le seul noyau" % verifier_un_seul_nom())
     definies, employees = verifier_textes()

@@ -33,7 +33,8 @@
   <Row><Cell>ui_scriptorium_hommes_mort</Cell><Cell>Est tombé au service de la Compagnie :</Cell><Cell>Est tombé au service de la Compagnie :</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_promu_dizainier</Cell><Cell>A été fait dizainier :</Cell><Cell>A été fait dizainier :</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_capitaine</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell></Row>
-  <Row><Cell>ui_scriptorium_bataille_alerte</Cell><Cell>&lt;font color="#FF0000"&gt;Alerte !&lt;/font&gt; Des ennemis en vue, crie</Cell><Cell>&lt;font color="#FF0000"&gt;Alerte !&lt;/font&gt; Des ennemis en vue, crie</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_alerte</Cell><Cell>Des ennemis en vue, crie</Cell><Cell>Des ennemis en vue, crie</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_alerte_qui</Cell><Cell>Alerte !</Cell><Cell>Alerte !</Cell></Row>
   <Row><Cell>ui_scriptorium_bataille_approche</Cell><Cell>Une bande approche du camp :</Cell><Cell>Une bande approche du camp :</Cell></Row>
   <Row><Cell>ui_scriptorium_bataille_victoire</Cell><Cell>Victoire : la bande est repoussée.</Cell><Cell>Victoire : la bande est repoussée.</Cell></Row>
   <Row><Cell>ui_scriptorium_bataille_victoire_couteuse</Cell><Cell>Victoire chèrement payée : la bande est repoussée, mais la Compagnie a saigné.</Cell><Cell>Victoire chèrement payée : la bande est repoussée, mais la Compagnie a saigné.</Cell></Row>

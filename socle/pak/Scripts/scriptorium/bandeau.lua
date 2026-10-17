@@ -5,7 +5,8 @@
 --   cle      : clé de texte, de la forme ui_scriptorium_<morceau>_<sujet> (sans « @ »).
 --   options  : { importance = "alerte" | "nouvelle" | "journal",
 --                duree = secondes, groupe = "nom", cle_plusieurs = "clé du message groupé",
---                complement = "texte ajouté après le message (un nom, un montant)" }
+--                complement = "texte ajouté après le message (un nom, un montant)",
+--                qui = "clé du nom affiché à part, comme celui qui parle (l'alerte)" }
 -- Scriptorium.bandeau.battre() fait avancer le bandeau ; demarrer() le fait battre tout seul.
 
 local Scriptorium = Scriptorium
@@ -89,6 +90,11 @@ function bandeau.annoncer(cle, options)
     jeu().journal("Bandeau : importance inconnue « " .. tostring(importance) .. " » pour " .. cle)
     return "refuse"
   end
+  if options.qui ~= nil and not cle_valide(options.qui) then
+    etat.comptes.refuses = etat.comptes.refuses + 1
+    jeu().journal("Bandeau : clé du nom refusée « " .. tostring(options.qui) .. " »")
+    return "refuse"
+  end
   if options.cle_plusieurs ~= nil and not cle_valide(options.cle_plusieurs) then
     etat.comptes.refuses = etat.comptes.refuses + 1
     jeu().journal("Bandeau : clé groupée refusée « " .. tostring(options.cle_plusieurs) .. " »")
@@ -101,6 +107,7 @@ function bandeau.annoncer(cle, options)
     duree = options.duree,
     groupe = options.groupe,
     cle_plusieurs = options.cle_plusieurs,
+    qui = options.qui,
     complement = (type(options.complement) == "string" or type(options.complement) == "number")
                  and tostring(options.complement) or nil,
     nombre = 1,
@@ -177,7 +184,7 @@ function bandeau.battre()
   if message.nombre > 1 and message.cle_plusieurs then
     complement = nil
   end
-  jeu().afficher(texte_du_message(message), duree, complement)
+  jeu().afficher(texte_du_message(message), duree, complement, message.qui and ("@" .. message.qui) or nil)
   etat.en_cours = { message = message, debut = maintenant, fin = maintenant + duree }
   etat.comptes.affiches = etat.comptes.affiches + 1
   inscrire_historique(message, "affiche")

@@ -120,6 +120,7 @@ essai("bataille (alertes, règle « sentinelles_du_camp ») : le guetteur qui vo
     bataille.battre()
     verifier(bataille.bande(id).alerte_donnee, "l'alerte est donnée")
     verifier(contient(messages(), "@ui_scriptorium_bataille_alerte"), "à l'écran")
+    egal(FauxJeu.affichages[#FauxJeu.affichages].qui, "@ui_scriptorium_bataille_alerte_qui", "« Alerte ! » à part, comme celui qui parle")
     egal(#FauxJeu.sons, 1, "la cloche sonne")
     egal(FauxJeu.sons[1].nom, "f_ge_bell_alarm", "la cloche d'alarme du jeu")
     verifier(FauxJeu.sons[1].ou ~= nil and FauxJeu.sons[1].ou == camp.objet_de("feu_central"), "au feu du camp")

@@ -117,8 +117,8 @@ function faux.maintenant() return faux.temps end
 function faux.chrono() return faux.temps, "faux" end
 function faux.avancer(secondes) faux.temps = faux.temps + secondes end
 function faux.journal(texte) table.insert(faux.journal_lignes, tostring(texte)) end
-function faux.afficher(texte, duree, complement)
-  table.insert(faux.affichages, { texte = texte, duree = duree, temps = faux.temps, complement = complement })
+function faux.afficher(texte, duree, complement, qui)
+  table.insert(faux.affichages, { texte = texte, duree = duree, temps = faux.temps, complement = complement, qui = qui })
   faux.en_ecran = texte
 end
 function faux.effacer() faux.en_ecran = nil end

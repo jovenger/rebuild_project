@@ -1079,7 +1079,8 @@ end
 -- Les alertes du camp (sonde, deux essais au plus) : le texte de l'alerte au bandeau (le mot « Alerte » en rouge ?) et
 -- la cloche d'alarme du jeu jouée sur Henry.
 function poste.essai_alerte_texte()
-  Scriptorium.bandeau.annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = "Jan Kladivo" })
+  Scriptorium.bandeau.annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = "Jan Kladivo",
+                                                                     qui = "ui_scriptorium_bataille_alerte_qui" })
   local ok, raison = jeu().jouer_un_son(Scriptorium.bataille.alerte.son, nil)
   jeu().journal("Poste : alerte au bandeau ; son « " .. Scriptorium.bataille.alerte.son .. " » = " .. tostring(ok or raison))
   return true
