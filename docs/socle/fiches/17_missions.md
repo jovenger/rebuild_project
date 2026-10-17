@@ -162,7 +162,12 @@ le chemin du retour, entre à cheval et descend.
   calcul) ; au bout de sa route, arrivée (retirée hors de sa vue) ; vaincue, l'accroche « camp vaincu ». La mission
   contre un convoi : `prendre_une_mission({ convoi, hommes })` (refus si la colonne n'est pas plus rapide) ; la colonne
   le vise où il est ; dehors, l'heure de la prise se calcule contre sa marche ; arrivé avant : « échappé ».
-  **Non vérifié en jeu** : qu'un brigand marche par l'ordre de poste (la fuite l'avait posé, un brigand s'est rendu).
+  **Vu en jeu (17/10, 1ca45e1)** : un premier convoi « arrivé » au premier battement : les vitesses étaient comptées
+  comme du temps réel, or une heure du jeu dure environ 4,75 minutes réelles ; corrigé (colonne 900 m, convoi 400 m par
+  heure du jeu ; au banc, accélérées dix fois). Le second : né hors du regard d'Henry, ses brigands **marchent** vers le
+  point du convoi (une vingtaine de mètres en 20 s, une vingtaine de mètres derrière le point calculé), puis arrivé au
+  bout, sa bande retirée hors de la vue d'Henry. **Non vus en jeu** : une mission contre un convoi, le combat contre un
+  convoi.
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 

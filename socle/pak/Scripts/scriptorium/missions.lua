@@ -15,7 +15,9 @@ missions.reglages = {
   -- elle renaît à « retour_naissance_m » du camp sur le chemin du lieu ; rentrée quand un de ses hommes est à moins de
   -- « arrivee_m » du centre du camp. Le niveau selon la force : le plus grand dont la force, multipliée par
   -- « marge_de_force », ne dépasse pas celle de la colonne.
-  vitesse_m_par_h = 12000,
+  -- Vu en jeu le 17/10 : une heure du jeu dure environ 4,75 minutes réelles ; une colonne au trot (3 m/s) fait donc
+  -- quelque 900 m par heure du jeu, un convoi à pied (1,3 m/s) quelque 400 m.
+  vitesse_m_par_h = 900,
   henry_loin_m = 300,
   -- (relecture) « sous les yeux d'Henry » est borné, comme partout dans le socle : dans son regard et à moins de
   -- « dehors_vue_m » ; au-delà, même regardée, la colonne peut passer dehors (le jeu ne la fait plus vivre).
@@ -30,7 +32,7 @@ missions.reglages = {
   -- Le registre ne garde que les « gardes » derniers camps levés et dernières missions finies.
   gardes = 20,
   -- Tranche 4, les convois : à pied, « convoi_m_par_h » mètres par heure du jeu (plus lent qu'une colonne à cheval).
-  convoi_m_par_h = 4000,
+  convoi_m_par_h = 400,
 }
 
 -- Les tailles d'un camp de bandits : ses hommes et la somme de son coffre (réglables, section « niveaux_des_camps »).

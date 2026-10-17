@@ -8,8 +8,12 @@ local coffre = Scriptorium.coffre
 
 local LIEU = { x = 0, y = 200, z = 0 }
 
+-- Au banc, le temps des missions est accéléré (dix fois les vitesses du jeu) : les heures des essais restent courtes.
+local VITESSES = { colonne = missions.reglages.vitesse_m_par_h, convoi = missions.reglages.convoi_m_par_h }
+
 local function preparer(roles)
   depart()
+  missions.reglages.vitesse_m_par_h, missions.reglages.convoi_m_par_h = 12000, 4000
   FauxJeu.heure = 10
   FauxJeu.carte = "trosky"
   camp.fonder({ x = 0, y = 0, z = 0 }, 0)
@@ -26,6 +30,7 @@ local function preparer(roles)
 end
 
 local function finir()
+  missions.reglages.vitesse_m_par_h, missions.reglages.convoi_m_par_h = VITESSES.colonne, VITESSES.convoi
   Scriptorium.en_partie = false
   FauxJeu.attaques = nil
   FauxJeu.carte = nil
