@@ -100,10 +100,10 @@ end
 -- pas de garde à cette heure.
 local function disponibles(heure)
   local de_garde = {}
-  for _, g in ipairs(hommes().gardes(heure)) do de_garde[g.id] = true end
+  for _, g in ipairs(Scriptorium.avis(hommes(), "gardes", heure)) do de_garde[g.id] = true end
   local liste = {}
   for _, id in ipairs(hommes().liste()) do
-    if hommes().libre_pour(id, "patrouille") and not de_garde[id] then
+    if Scriptorium.avis(hommes(), "libre_pour", id, "patrouille") and not de_garde[id] then
       table.insert(liste, id)
     end
   end

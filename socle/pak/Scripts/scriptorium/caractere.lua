@@ -515,7 +515,7 @@ function caractere.passer_la_journee(id, fin, affame)
   local heures_de_travail, heures_de_sommeil, heures_d_exercice = 0, 0, 0
   local h = debut
   while h < fin do
-    local a = hommes().activite_de(id, h + 0.5)
+    local a = Scriptorium.avis(hommes(), "activite_de", id, h + 0.5)
     local activite = a and a.activite
     if travail[activite] then heures_de_travail = heures_de_travail + 1 end
     if repos[activite] then heures_de_sommeil = heures_de_sommeil + 1 end

@@ -165,6 +165,8 @@ function camp.dans_le_monde(ancre, x, y, cap)
   local monde_y = ancre.y - x * sinus + y * cosinus
   return { x = monde_x, y = monde_y, z = ancre.z }, normaliser_cap(ancre.cap + (cap or 0))
 end
+Scriptorium.remplacable(camp, "dans_le_monde", function(rendu) return type(rendu) == "table" and type(rendu.x) == "number" and type(rendu.y) == "number"
+  and type(rendu.z) == "number" end)
 
 -- Un point du camp (x, y, cap par rapport à l'ancre) dans le monde, ou nil sans camp.
 function camp.point(x, y, cap)
@@ -172,7 +174,7 @@ function camp.point(x, y, cap)
   if not d.fonde then
     return nil
   end
-  return camp.dans_le_monde(d.ancre, x, y, cap)
+  return Scriptorium.avis(camp, "dans_le_monde", d.ancre, x, y, cap)
 end
 
 local function emplacement_par_nom(nom)
@@ -201,7 +203,7 @@ local function poser_les_objets_du_jeu(e, objet, position, cap)
   for _, p in ipairs(du_jeu.places) do
     local deja = objet.du_jeu[p.nom]
     if not (deja and jeu().objet_existe(deja)) then
-      local ici, cap_ici = camp.dans_le_monde({ x = position.x, y = position.y, z = position.z, cap = cap }, p.x, p.y, p.cap)
+      local ici, cap_ici = Scriptorium.avis(camp, "dans_le_monde", { x = position.x, y = position.y, z = position.z, cap = cap }, p.x, p.y, p.cap)
       local identifiant = jeu().poser_objet_du_jeu(e.nom .. "_" .. p.nom, ici, cap_ici, du_jeu.proprietes)
       if identifiant == nil then
         jeu().journal("Camp : le jeu n'a pas posé la place « " .. p.nom .. " » de « " .. e.nom .. " »")
@@ -225,7 +227,7 @@ end
 -- en place.
 local function poser(d, e)
   local modele = camp.modeles[e.sorte]
-  local position, cap = camp.dans_le_monde(d.ancre, e.x, e.y, e.cap)
+  local position, cap = Scriptorium.avis(camp, "dans_le_monde", d.ancre, e.x, e.y, e.cap)
   cap = (cap + (modele.decalage or 0)) % 360
   local objet = d.objets[e.nom]
   if not (objet and objet.identifiant and jeu().objet_existe(objet.identifiant)) then
@@ -272,7 +274,7 @@ function camp.ancre_devant(position, cap)
     return position
   end
   local devant = tonumber(camp.reglages.fonder_devant) or 0
-  local ici = camp.dans_le_monde({ x = position.x, y = position.y, z = position.z, cap = normaliser_cap(cap or 0) }, 0, devant, 0)
+  local ici = Scriptorium.avis(camp, "dans_le_monde", { x = position.x, y = position.y, z = position.z, cap = normaliser_cap(cap or 0) }, 0, devant, 0)
   return ici
 end
 
@@ -461,7 +463,7 @@ function camp.abord_de(nom)
     local radians = math.rad(e.cap or 0)
     x, y = e.x + ecart * math.sin(radians), e.y + ecart * math.cos(radians)
   end
-  return (camp.dans_le_monde(d.ancre, x, y, 0))
+  return (Scriptorium.avis(camp, "dans_le_monde", d.ancre, x, y, 0))
 end
 
 function camp.position_de(nom)
@@ -470,7 +472,7 @@ function camp.position_de(nom)
   if not d.fonde or not e or e.niveau > d.niveau then
     return nil
   end
-  return camp.dans_le_monde(d.ancre, e.x, e.y, e.cap)
+  return Scriptorium.avis(camp, "dans_le_monde", d.ancre, e.x, e.y, e.cap)
 end
 
 function camp.objet_de(nom)
@@ -494,6 +496,7 @@ function camp.places_libres(sorte, pour)
   end
   return libres
 end
+Scriptorium.remplacable(camp, "places_libres", function(rendu) return type(rendu) == "table" end)
 
 function camp.occupant_de(nom)
   return donnees().places[nom]

@@ -112,6 +112,69 @@ local function journal(texte)
   end
 end
 
+-- ---------------------------------------------------------------- les décisions remplaçables (fiche 19)
+
+-- La décision du socle de chaque point remplaçable, par morceau puis par nom : { fonction, valable }.
+Scriptorium.noyau.decisions = Scriptorium.noyau.decisions or setmetatable({}, { __mode = "k" })
+local deplier = unpack or table.unpack
+
+-- Déclare « morceau[nom] » décision remplaçable (juste après sa définition) : garde la fonction d'origine, et
+-- « valable » (facultatif) qui éprouve une valeur rendue par une remplaçante.
+function Scriptorium.remplacable(morceau, nom, valable)
+  assert(type(morceau) == "table" and type(morceau[nom]) == "function", "socle : décision inconnue : " .. tostring(nom))
+  local decisions = Scriptorium.noyau.decisions
+  decisions[morceau] = decisions[morceau] or {}
+  decisions[morceau][nom] = { fonction = morceau[nom], valable = valable }
+end
+
+-- La décision du socle (la fonction d'origine), ou nil.
+function Scriptorium.decision_du_socle(morceau, nom)
+  local d = Scriptorium.noyau.decisions[morceau]
+  return d and d[nom] and d[nom].fonction
+end
+
+local function nom_du_morceau(morceau)
+  for nom, valeur in pairs(Scriptorium) do
+    if valeur == morceau then
+      return nom
+    end
+  end
+  return "?"
+end
+
+-- Demande une décision remplaçable : la fonction de la table, appelée à chaque fois. Encore celle du socle : appel direct.
+-- Une remplaçante : en erreur, rendant nil (pas d'avis) ou une valeur que « valable » refuse, la décision du socle (une
+-- ligne au journal pour l'erreur et le refus) ; sinon toutes ses valeurs. Un point non déclaré : la fonction de la table.
+function Scriptorium.avis(morceau, nom, ...)
+  local d = Scriptorium.noyau.decisions[morceau]
+  d = d and d[nom]
+  local actuelle = morceau[nom]
+  if not d then
+    return actuelle(...)
+  end
+  if actuelle == d.fonction or type(actuelle) ~= "function" then
+    return d.fonction(...)
+  end
+  local rendu = { pcall(actuelle, ...) }
+  if not rendu[1] then
+    journal("Socle : décision remplacée « " .. nom_du_morceau(morceau) .. "." .. nom .. " » en erreur : "
+            .. tostring(rendu[2]) .. " ; décision du socle")
+    return d.fonction(...)
+  end
+  if rendu[2] == nil then
+    return d.fonction(...)
+  end
+  if d.valable then
+    local lu, bon = pcall(d.valable, deplier(rendu, 2, table.maxn(rendu)))
+    if not (lu and bon) then
+      journal("Socle : décision remplacée « " .. nom_du_morceau(morceau) .. "." .. nom .. " » : valeur refusée ("
+              .. tostring(rendu[2]) .. ") ; décision du socle")
+      return d.fonction(...)
+    end
+  end
+  return deplier(rendu, 2, table.maxn(rendu))
+end
+
 -- Déclare un morceau. Un morceau redéclaré (rechargement du script) remplace l'ancien.
 function Scriptorium.declarer_morceau(nom, demarrage)
   assert(type(nom) == "string" and nom ~= "", "socle : nom de morceau manquant")

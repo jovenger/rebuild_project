@@ -340,7 +340,7 @@ end
 
 -- Un point du camp dans le monde, le plan étant tourné vers la menace.
 local function point_face_a(direction, x, y)
-  local tourne = camp().dans_le_monde({ x = 0, y = 0, z = 0, cap = direction }, x, y, 0)
+  local tourne = Scriptorium.avis(camp(), "dans_le_monde", { x = 0, y = 0, z = 0, cap = direction }, x, y, 0)
   return camp().point(tourne.x, tourne.y, direction)
 end
 
@@ -714,7 +714,12 @@ local function appliquer(d, b, issue, morts_par_le_jeu, blesses_donnes, gagne)
     coffre().encaisser(butin, "butin")
     -- Le partage (accroche ; la règle de Scriptorium « partage_40_60 », « part du capitaine ») : des parts entières,
     -- positives, dont la somme ne dépasse pas le butin ; sinon refusé (une ligne au journal) et tout reste au coffre.
+    -- Fiche 19 : appelée par la table ; nil (pas d'avis), le partage du socle. L'argent garde sa règle stricte : une
+    -- remplaçante en erreur ou absurde ne retombe pas sur le partage du socle, tout reste au coffre.
     local lu, parts = pcall(bataille.partager_le_butin, butin, b.combattants or {})
+    if lu and parts == nil then
+      lu, parts = pcall(Scriptorium.decision_du_socle(bataille, "partager_le_butin"), butin, b.combattants or {})
+    end
     local part_hommes = lu and type(parts) == "table" and parts.hommes
     local part_capitaine = lu and type(parts) == "table" and parts.capitaine
     local function juste(n)
@@ -751,6 +756,7 @@ function bataille.partager_le_butin(butin, combattants)
   end
   return { hommes = math.floor(butin / 2), capitaine = part_capitaine }
 end
+Scriptorium.remplacable(bataille, "partager_le_butin", function(rendu) return type(rendu) == "table" end)
 
 -- Les personnages d'une bande (fiche 17 ; Scriptorium en ajoute et en retire : ses propres bandits à un camp) : une
 -- copie ; ajouter un personnage du monde qui n'y est pas ; le retirer de la bande (pas du monde). Vrai si fait.
@@ -792,7 +798,7 @@ end
 -- Trancher une bande par passes (bataille.issue_au_loin) contre ces combattants : morts ou blessés selon
 -- « part_des_morts », puis l'issue qui dit ce qui s'est passé. Rend le résultat d'« appliquer », avec les passes.
 local function trancher_par_passes(d, b, combattants, bonus)
-  local r = bataille.issue_au_loin(combattants, b.sorte, b.effectif, bonus)
+  local r = Scriptorium.avis(bataille, "issue_au_loin", combattants, b.sorte, b.effectif, bonus)
   local morts, blesses = {}, {}
   for _, id in ipairs(r.tombes) do
     if tirage(d) < bataille.reglages.part_des_morts then
@@ -915,8 +921,9 @@ end
 function bataille.peut_fouiller(id, bande)
   local f = hommes().fiche(id)
   return f ~= nil and bataille.roles[f.role] ~= nil and f.blessure == 0 and not f.dehors and des_notres_debout(f)
-    and hommes().libre_pour(id, "fouille")
+    and Scriptorium.avis(hommes(), "libre_pour", id, "fouille")
 end
+Scriptorium.remplacable(bataille, "peut_fouiller", function(rendu) return type(rendu) == "boolean" end)
 
 -- Accroche : la fouille d'une bande est finie (une fois). Par défaut, une ligne au journal.
 function bataille.fouille_finie(id, fouille)
@@ -1018,7 +1025,7 @@ local function avancer_la_fouille(b, heure)
         local ici = fiche.personnage and jeu().position_du_personnage(fiche.personnage)
         local ecart = ici and math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
         if not f.fouilleurs[h] and ecart and ecart <= r.fouille_rayon_m and (plus_pres == nil or ecart < plus_pres) then
-          local lu, peut = pcall(bataille.peut_fouiller, h, b.id)
+          local lu, peut = pcall(Scriptorium.avis, bataille, "peut_fouiller", h, b.id)
           if lu and peut == true then
             choisi, plus_pres = h, ecart
           end
@@ -1061,7 +1068,7 @@ function bataille.resoudre_par_la_regle(id)
   end
   local combattants = {}
   for _, h in ipairs(b.combattants or {}) do
-    if bataille.force_d_un_homme(h) > 0 then table.insert(combattants, h) end
+    if Scriptorium.avis(bataille, "force_d_un_homme", h) > 0 then table.insert(combattants, h) end
   end
   local bonus = (Scriptorium.enceinte and Scriptorium.enceinte.bonus) and Scriptorium.enceinte.bonus() or 1
   local resultat = trancher_par_passes(d, b, combattants, bonus)
@@ -1090,13 +1097,14 @@ function bataille.force_d_un_homme(id)
   end
   return role.poids * facteur * (0.7 + 0.5 * f.moral / 100)
 end
+Scriptorium.remplacable(bataille, "force_d_un_homme", function(rendu) return type(rendu) == "number" and rendu >= 0 and rendu < math.huge end)
 
 -- La force d'une liste d'hommes (une patrouille, une colonne), et ceux qui combattent : les rôles de combat, valides.
 function bataille.force_de(ids)
   local combattants = {}
   local force = 0
   for _, homme in ipairs(ids) do
-    local sienne = bataille.force_d_un_homme(homme)
+    local sienne = Scriptorium.avis(bataille, "force_d_un_homme", homme)
     if sienne > 0 then
       table.insert(combattants, homme)
       force = force + sienne
@@ -1118,7 +1126,7 @@ function bataille.issue_au_loin(nous, sorte, effectif, bonus)
   end
   local force_de_chacun = {}
   for _, id in ipairs(debout) do
-    force_de_chacun[id] = bataille.force_d_un_homme(id) * (bonus or 1)
+    force_de_chacun[id] = Scriptorium.avis(bataille, "force_d_un_homme", id) * (bonus or 1)
   end
   local poids = bataille.sortes[sorte] and bataille.sortes[sorte].poids or 1
   local eux, tombes, passes = effectif, {}, 0
@@ -1138,6 +1146,7 @@ function bataille.issue_au_loin(nous, sorte, effectif, bonus)
   return { gagne = eux == 0 and #debout > 0, tombes = tombes, debout = debout, eux_tombes = effectif - eux,
            eux_debout = eux, passes = passes }
 end
+Scriptorium.remplacable(bataille, "issue_au_loin", function(rendu) return type(rendu) == "table" end)
 
 function bataille.escarmouche(ids, sorte, effectif)
   local d = donnees()

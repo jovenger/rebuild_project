@@ -1345,6 +1345,7 @@ function liaison.sol_de(position, pas)
   end
   return { pente = pente, encombre = encombre, eau_lisible = eau_lisible }
 end
+Scriptorium.remplacable(liaison, "sol_de")
 
 -- Fiche 15, V73 f 2 d : le cheval d'Henry (player.player:GetPlayerHorse rend son WUID, __null s'il n'en a pas ;
 -- XGenAIModule.GetEntityByWUID, la forme de Scripts/Utils/GameUtils.lua). Rend l'entité, ou (nil, raison).
@@ -1481,7 +1482,7 @@ function liaison.amener_le_cheval_d_henry(distance)
   local henry, cap = liaison.position_du_joueur(), liaison.cap_du_joueur()
   local ou = liaison.au_sol({ x = henry.x + distance * math.sin(math.rad(cap)),
                               y = henry.y + distance * math.cos(math.rad(cap)), z = henry.z })
-  local sol = liaison.sol_de(ou, 1.5)
+  local sol = Scriptorium.avis(liaison, "sol_de", ou, 1.5)
   if sol and sol.encombre then
     return false, "place encombrée devant Henry"
   end

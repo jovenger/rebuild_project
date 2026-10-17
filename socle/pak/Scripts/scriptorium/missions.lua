@@ -217,19 +217,23 @@ function missions.taille_du_camp(lieu, niveau)
   end
   return { sorte = missions.reglages.sorte, effectif = n.effectif, coffre = n.coffre }
 end
+Scriptorium.remplacable(missions, "taille_du_camp", function(rendu) return type(rendu) == "table" and type(rendu.sorte) == "string"
+  and type(rendu.effectif) == "number" and rendu.effectif >= 0 and math.floor(rendu.effectif) == rendu.effectif
+  and type(rendu.coffre) == "number" and rendu.coffre >= 0 and rendu.coffre < math.huge end)
 
 -- Une mission peut-elle partir ? (Scriptorium l'enveloppe : le jour de repos, l'état d'urgence.) Rend vrai, ou faux et
 -- la raison.
 function missions.peut_partir(ordre)
   return true
 end
+Scriptorium.remplacable(missions, "peut_partir", function(rendu) return type(rendu) == "boolean" end)
 
 -- Le niveau d'un camp de bandits selon la force d'une colonne : le plus grand dont la force, multipliée par
 -- « marge_de_force », ne dépasse pas la sienne ; sinon le plus petit.
 function missions.niveau_pour(force, lieu)
   local choisi = missions.niveaux[1] and missions.niveaux[1].nom
   for _, n in ipairs(missions.niveaux) do
-    local t = missions.taille_du_camp(lieu, n.nom)
+    local t = Scriptorium.avis(missions, "taille_du_camp", lieu, n.nom)
     local sorte = t and bataille().sortes[t.sorte]
     if sorte and t.effectif * sorte.poids * missions.reglages.marge_de_force <= force then
       choisi = n.nom
@@ -237,6 +241,7 @@ function missions.niveau_pour(force, lieu)
   end
   return choisi
 end
+Scriptorium.remplacable(missions, "niveau_pour", function(rendu) return niveau_nomme(rendu) ~= nil end)
 
 -- Le rapport d'une mission rentrée (ou perdue) : une fois ; par défaut, une ligne au journal et l'annonce.
 function missions.rapport_de_mission(r)
@@ -274,6 +279,7 @@ end
 function missions.lieu_reserve(nom)
   return lieu_pris(donnees(), nom)
 end
+Scriptorium.remplacable(missions, "lieu_reserve")
 
 -- Service : un lieu libre de la carte (celle où se tient Henry si nil), le premier par nom, ou nil.
 function missions.choisir_un_lieu(carte)
@@ -281,7 +287,7 @@ function missions.choisir_un_lieu(carte)
     carte = jeu().carte_courante and (jeu().carte_courante()) or nil
   end
   for _, l in ipairs(missions.lieux_de(carte)) do
-    if missions.lieu_reserve(l.nom) == nil then
+    if not Scriptorium.avis(missions, "lieu_reserve", l.nom) then
       return l.nom
     end
   end
@@ -320,7 +326,7 @@ local function poser_les_meubles(c)
   for _, e in ipairs(missions.plan) do
     local modele = camp().modeles[e.sorte]
     if modele and not (c.meubles[e.nom] and jeu().objet_existe(c.meubles[e.nom])) then
-      local position, cap = camp().dans_le_monde(l, e.x, e.y, e.cap)
+      local position, cap = Scriptorium.avis(camp(), "dans_le_monde", l, e.x, e.y, e.cap)
       local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, (cap + (modele.decalage or 0)) % 360,
                                             "bandits_" .. c.id .. "_" .. e.nom, modele.classe)
       if identifiant then
@@ -345,11 +351,11 @@ function missions.dresser_un_camp(nom_du_lieu, niveau)
   if not l then
     return refuser("lieu_inconnu", tostring(nom_du_lieu))
   end
-  local pris = missions.lieu_reserve(nom_du_lieu)
+  local pris = Scriptorium.avis(missions, "lieu_reserve", nom_du_lieu)
   if pris then
     return refuser("lieu_pris", tostring(pris))
   end
-  local taille = missions.taille_du_camp(nom_du_lieu, niveau)
+  local taille = Scriptorium.avis(missions, "taille_du_camp", nom_du_lieu, niveau)
   if type(taille) ~= "table" then
     return refuser("niveau_inconnu", tostring(niveau))
   end
@@ -401,7 +407,7 @@ function missions.lancer_un_convoi(nom_de_la_route, niveau)
       return refuser("route_prise", id)
     end
   end
-  local taille = missions.taille_du_camp(nom_de_la_route, niveau)
+  local taille = Scriptorium.avis(missions, "taille_du_camp", nom_de_la_route, niveau)
   if type(taille) ~= "table" then
     return refuser("niveau_inconnu", tostring(niveau))
   end
@@ -612,7 +618,7 @@ function missions.prendre_une_mission(ordre)
   if not camp().est_fonde() then
     return refuser("camp_absent")
   end
-  local permis, pourquoi = missions.peut_partir(ordre)
+  local permis, pourquoi = Scriptorium.avis(missions, "peut_partir", ordre)
   if not permis then
     return refuser("ne_peut_partir", tostring(pourquoi))
   end
@@ -634,7 +640,7 @@ function missions.prendre_une_mission(ordre)
   local dans = {}
   for _, id in ipairs(ordre.hommes) do
     local f = Scriptorium.hommes.fiche(id)
-    if not f or f.dehors or f.blessure > 0 or dans[id] or not Scriptorium.hommes.libre_pour(id, "mission") then
+    if not f or f.dehors or f.blessure > 0 or dans[id] or not Scriptorium.avis(Scriptorium.hommes, "libre_pour", id, "mission") then
       return refuser("homme_indisponible", tostring(id))
     end
     dans[id] = true
@@ -642,7 +648,7 @@ function missions.prendre_une_mission(ordre)
   if ordre.chef ~= nil and not dans[ordre.chef] then
     return refuser("chef_hors_colonne", tostring(ordre.chef))
   end
-  local niveau, camp_id = cv and cv.niveau or (ordre.niveau or missions.niveau_pour((bataille().force_de(ordre.hommes)), ordre.lieu)), nil
+  local niveau, camp_id = cv and cv.niveau or (ordre.niveau or Scriptorium.avis(missions, "niveau_pour", (bataille().force_de(ordre.hommes)), ordre.lieu)), nil
   if not cv then
     local raison
     camp_id, raison = missions.dresser_un_camp(ordre.lieu, niveau)

@@ -230,6 +230,7 @@ function directeur.activite(heure)
   end
   return nil
 end
+Scriptorium.remplacable(directeur, "activite", function(rendu) return type(rendu) == "table" end)
 
 function directeur.battre()
   local d = donnees()
@@ -242,7 +243,7 @@ function directeur.battre()
   if Scriptorium.hommes then
     Scriptorium.hommes.preparer_la_monture_du_directeur(jeu().heure_du_jeu())
   end
-  local a = directeur.activite(jeu().heure_du_jeu())
+  local a = Scriptorium.avis(directeur, "activite", jeu().heure_du_jeu())
   local resume = a and (a.activite .. (a.suivi and ("/" .. tostring(a.suivi.mode) .. "/" .. tostring(a.suivi.cheval)) or ""))
   if a and d.derniere_activite ~= resume then
     -- Fiche 15, V73 a : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart, jamais dessus
@@ -264,7 +265,7 @@ function directeur.battre()
   elseif a and a.activite == "suivre" and not (a.suivi and a.suivi.mode == "cheval") and Scriptorium.hommes
       and not (Scriptorium.hommes.montures.directeur and Scriptorium.hommes.montures.directeur.saut
                and Scriptorium.hommes.montures.directeur.cheval)
-      and Scriptorium.hommes.rattraper(d.personnage, a.chef, "Directeur") then
+      and Scriptorium.avis(Scriptorium.hommes, "rattraper", d.personnage, a.chef, "Directeur") then
     -- Le rattrapage (V73 f 1) : posé derrière Henry, son ordre redonné au battement suivant.
     d.derniere_activite = nil
     rapport.rattrapages = 1
@@ -379,7 +380,7 @@ local entrees_de_base = {
     agir = function() return true, hommes().payer_la_solde() end },
   { action = "engager", cle = "ui_scriptorium_gestion_engager", parametres = { "role", "semaines" },
     disponible = function()
-      if #camp().places_libres("lit", "hommes") == 0 then return false, "pas_de_lit" end
+      if #Scriptorium.avis(camp(), "places_libres", "lit", "hommes") == 0 then return false, "pas_de_lit" end
       return true, { roles = roles_disponibles() }
     end,
     agir = function(p)

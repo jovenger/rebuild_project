@@ -4,7 +4,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | n° | entrée du contrat | ce qu'elle fait | notre service |
 |---|---|---|---|
-| A1 | `GetCampFurniture` | enveloppée par : duels_judiciaires, en_garde_du_camp, lit_par_son_cote, prisonniers_des_raids | `Scriptorium.camp.places_libres(sorte, pour)` |
+| A1 | `GetCampFurniture` | enveloppée par : duels_judiciaires, en_garde_du_camp, lit_par_son_cote, prisonniers_des_raids | `Scriptorium.camp.places_libres(sorte, pour)` ; remplaçable (fiche 19) |
 | A2 | `PickCombatTarget` | enveloppée par : conspiration_du_camp, duels_judiciaires, ordres_de_combat, prisonniers_des_raids | à ouvrir : `bataille.lua`, `lancer_l_attaque` (et `lancer_l_attaque_de_la_bande`) |
 | A3 | `ApplyCampRole` | enveloppée par : pilori_du_directeur, pugilat_du_camp, roles_du_mod | `Scriptorium.hommes.tenir(id, regle, quoi)` |
 | A4 | `ClaimSpot` | enveloppée par : amis_cote_a_cote, dialogue_des_mercenaires, nuit_du_camp | `Scriptorium.camp.reserver(nom, qui)` |
@@ -12,35 +12,35 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A6 | `BanditCampComplete` | enveloppée par : assaut_des_convois, intendant_missions | `Scriptorium.missions.camp_vaincu(c)` (accroche, fiche 17) |
 | A7 | `CampActorYield` | enveloppée par : duels_judiciaires, en_garde_du_camp | à ouvrir : `hommes.lua`, `tenue_la_plus_forte` (l'arbitre des priorités) |
 | A8 | `EquipMercenary` | enveloppée par : armures_de_la_forge, tenue_selon_le_grade | `Scriptorium.hommes.accrocher("apres_le_rhabillage", fonction)` |
-| A9 | `FindQuartermasterTarget` | enveloppée par : directeur_en_retrait, prisonniers_des_raids | `Scriptorium.directeur.activite(heure)` |
-| A10 | `GetCampActivity` | enveloppée par : duels_judiciaires, en_garde_du_camp | `Scriptorium.hommes.activite_de(id, heure)` |
+| A9 | `FindQuartermasterTarget` | enveloppée par : directeur_en_retrait, prisonniers_des_raids | `Scriptorium.directeur.activite(heure)` ; remplaçable (fiche 19) |
+| A10 | `GetCampActivity` | enveloppée par : duels_judiciaires, en_garde_du_camp | `Scriptorium.hommes.activite_de(id, heure)` ; remplaçable (fiche 19) |
 | A11 | `LootSweepClear` | enveloppée par : portage_des_corps, sentinelles_du_camp | `Scriptorium.bataille.vider_la_fouille(id)` (le portage des corps, les sentinelles) |
 | A12 | `SpawnMercCamp` | enveloppée par : montage_du_camp, troupe_chez_elle | `Scriptorium.camp.fonder(position, cap)` |
 | A13 | `UpdateMeleeCombatData` | enveloppée par : conspiration_du_camp, duels_judiciaires | à ouvrir : `bataille.lua`, `a_relancer` (le suivi au contact) |
-| A14 | `AdvancePatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.jeu.accrocher_la_ronde(fonction)` (enveloppe `Scriptorium.hommes.pas_de_ronde`) |
-| A15 | `BanditCampScale` | enveloppée par : assaut_des_convois | `Scriptorium.missions.taille_du_camp(lieu, niveau)` (accroche, fiche 17) |
-| A16 | `BountyReservedSites` | enveloppée par : missions_en_parallele | `Scriptorium.missions.lieu_reserve(nom)` (accroche, fiche 17, tranche 3) |
+| A14 | `AdvancePatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.jeu.accrocher_la_ronde(fonction)` (enveloppe `Scriptorium.hommes.pas_de_ronde`) ; remplaçable (fiche 19) |
+| A15 | `BanditCampScale` | enveloppée par : assaut_des_convois | `Scriptorium.missions.taille_du_camp(lieu, niveau)` (accroche, fiche 17) ; remplaçable (fiche 19) |
+| A16 | `BountyReservedSites` | enveloppée par : missions_en_parallele | `Scriptorium.missions.lieu_reserve(nom)` (accroche, fiche 17, tranche 3) ; remplaçable (fiche 19) |
 | A17 | `BreakMercCamp` | enveloppée par : montage_du_camp | `Scriptorium.camp.lever()` |
 | A18 | `CampIsNight` | enveloppée par : journee_du_camp | réglage : journee.sommeil.de (la nuit est la tranche du sommeil, fiche 16) |
-| A19 | `CampRelativeOffset` | enveloppée par : camp_en_arc | `Scriptorium.camp.dans_le_monde(ancre, x, y, cap)` |
+| A19 | `CampRelativeOffset` | enveloppée par : camp_en_arc | `Scriptorium.camp.dans_le_monde(ancre, x, y, cap)` ; remplaçable (fiche 19) |
 | A20 | `CampRingPos` | enveloppée par : camp_en_arc | pas utile : pas d'anneau de tentes ; le plan du socle est la table `Scriptorium.camp.plan` |
 | A21 | `ChangeMercOutfit` | enveloppée par : armures_de_la_forge | `Scriptorium.hommes.donner_une_piece(id, objet, etat, porter)` |
 | A22 | `EquipArcherWeapon` | enveloppée par : tenue_selon_le_grade | à ouvrir : `hommes.lua`, `choisir_l_equipement` |
 | A23 | `EquipMercenaryWeapon` | enveloppée par : tenue_selon_le_grade | à ouvrir : `hommes.lua`, `choisir_l_equipement` |
-| A24 | `FollowStalled` | enveloppée par : pantins_d_entrainement | `Scriptorium.hommes.rattraper(personnage, chef, nom)` |
+| A24 | `FollowStalled` | enveloppée par : pantins_d_entrainement | `Scriptorium.hommes.rattraper(personnage, chef, nom)` ; remplaçable (fiche 19) |
 | A25 | `GearWantsCustom` | enveloppée par : mercenaires_aux_bains | `Scriptorium.hommes.tenir(id, "bains", quoi)` (avec `ne_pas_rhabiller`) |
 | A26 | `GetArcherStanceCode` | enveloppée par : duels_judiciaires | pas utile : le socle ne règle aucune posture de tir ; le cerveau du jeu la choisit |
 | A27 | `GetPatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.hommes.tenir(id, "ronde", quoi)` (le `chemin` donné par Scriptorium) |
-| A28 | `IsCampGuard` | enveloppée par : sentinelles_du_camp | `Scriptorium.hommes.gardes(heure)` |
+| A28 | `IsCampGuard` | enveloppée par : sentinelles_du_camp | `Scriptorium.hommes.gardes(heure)` ; remplaçable (fiche 19) |
 | A29 | `IsValidEnemy` | enveloppée par : agent | à ouvrir : `bataille.lua`, `lancer_l_attaque` (la liste des ennemis vivants) |
 | A30 | `LogiProcessWages` | enveloppée par : banque_du_camp | `Scriptorium.hommes.payer_la_solde()` (interrupteur `solde_de_la_semaine`) |
 | A31 | `LogiRemoveOneMerc` | enveloppée par : tenir_la_compagnie | `Scriptorium.hommes.retirer(id, cause)` |
 | A32 | `LogiWealthRaidTick` | enveloppée par : tenir_la_compagnie | pas utile : le socle ne lève aucune bande de lui-même ; Scriptorium appelle `Scriptorium.bataille.lever_une_bande(ordre)` |
-| A33 | `LootEligibleMercs` | les hommes qui peuvent aller fouiller les corps | `Scriptorium.bataille.peut_fouiller(id, bande)` (accroche ; les bains l'enveloppent) |
+| A33 | `LootEligibleMercs` | les hommes qui peuvent aller fouiller les corps | `Scriptorium.bataille.peut_fouiller(id, bande)` (accroche ; les bains l'enveloppent) ; remplaçable (fiche 19) |
 | A34 | `SpawnCampHouseBed` | enveloppée par : editeur_du_camp | étape 5 (un meuble posé par JoVenGer rendu utilisable, NOTE_METIERS §0) |
 | A35 | `SpawnCampPracticeYard` | enveloppée par : pantins_d_entrainement | étape 5 (poste d'entraînement) |
 | A36 | `SpawnQuartermaster` | enveloppée par : intendant_du_camp | `Scriptorium.directeur.installer()` |
-| A37 | `TowerSpotIsValid` | enveloppée par : camp_selon_le_terrain | `Scriptorium.jeu.sol_de(position, pas)` |
+| A37 | `TowerSpotIsValid` | enveloppée par : camp_selon_le_terrain | `Scriptorium.jeu.sol_de(position, pas)` ; remplaçable (fiche 19) |
 | A38 | `TryClaimTarget` | enveloppée par : duels_judiciaires | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
 | A39 | `UpdateFormationLeader` | enveloppée par : directeur_en_route | `Scriptorium.directeur.suivre(oui, formation, a_cheval)` |
 | A40 | `WBRaidClear` | retirer la bande d'un raid | à ouvrir : `bataille.lua`, `finir` (la fin de bataille) |

@@ -488,7 +488,7 @@ function poste.essai_mission(distance)
   local hommes = {}
   for _, id in ipairs(Scriptorium.hommes.liste()) do
     local f = Scriptorium.hommes.fiche(id)
-    if #hommes < 3 and f.blessure == 0 and not f.dehors and Scriptorium.hommes.libre_pour(id, "mission")
+    if #hommes < 3 and f.blessure == 0 and not f.dehors and Scriptorium.avis(Scriptorium.hommes, "libre_pour", id, "mission")
         and Scriptorium.bataille.roles[f.role] then
       table.insert(hommes, id)
     end
@@ -912,7 +912,7 @@ function poste.essai_hommes_lever()
   prochain_leve = prochain_leve % #liste + 1
   local id = liste[prochain_leve]
   local f = hommes.fiche(id)
-  local a = hommes.activite_de(id, 10)
+  local a = Scriptorium.avis(hommes, "activite_de", id, 10)
   jeu().journal("Poste : levée de " .. f.nom .. " : " .. tostring(jeu().ordonner(f.personnage, "lever", a and a.position, "exercice")))
   return true
 end
@@ -1785,12 +1785,12 @@ local lit_d_essai = nil
 function poste.essai_lit_a_decouvert()
   local camp = Scriptorium.camp
   local henry, cap = jeu().position_du_joueur(), jeu().cap_du_joueur()
-  local position, cap_lit = camp.dans_le_monde({ x = henry.x, y = henry.y, z = henry.z, cap = cap }, 0, 5, 0)
+  local position, cap_lit = Scriptorium.avis(camp, "dans_le_monde", { x = henry.x, y = henry.y, z = henry.z, cap = cap }, 0, 5, 0)
   local modele = camp.modeles.lit
   local meuble = jeu().poser_objet("lit", modele.chemin, position, cap_lit, "essai_lit_a_decouvert", modele.classe)
   local du_jeu = camp.objets_du_jeu.lit
   local p = du_jeu.places[1]
-  local ici, cap_ici = camp.dans_le_monde({ x = position.x, y = position.y, z = position.z, cap = cap_lit }, p.x, p.y, p.cap)
+  local ici, cap_ici = Scriptorium.avis(camp, "dans_le_monde", { x = position.x, y = position.y, z = position.z, cap = cap_lit }, p.x, p.y, p.cap)
   lit_d_essai = jeu().poser_objet_du_jeu("essai_lit_a_decouvert_" .. p.nom, ici, cap_ici, du_jeu.proprietes)
   jeu().journal("Poste : lit à découvert, meuble " .. tostring(meuble) .. ", place " .. tostring(lit_d_essai))
   return lit_d_essai ~= nil

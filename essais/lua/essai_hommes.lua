@@ -1629,7 +1629,13 @@ essai("ronde (fiche 15, V73 d 2) : au rechargement, l'ordre redonné repart du p
   for _, m in ipairs(Scriptorium.morceaux) do
     if m.nom == "hommes" and m.demarrage then m.demarrage() end
   end
-  egal(FauxJeu.pas_de_ronde, hommes.pas_de_ronde, "au démarrage, les hommes confient le pas de la ronde à la liaison")
+  verifier(type(FauxJeu.pas_de_ronde) == "function", "au démarrage, les hommes confient le pas de la ronde à la liaison")
+  -- Fiche 19 : par la table, pas par une copie : une remplaçante posée après coup est celle que la liaison appelle.
+  local ancienne_ronde = hommes.pas_de_ronde
+  hommes.pas_de_ronde = function() return 7, "remplacée" end
+  local pas_remplace = FauxJeu.pas_de_ronde("personne")
+  hommes.pas_de_ronde = ancienne_ronde
+  egal(pas_remplace, 7, "la remplaçante de pas_de_ronde, appelée par la liaison")
 end)
 
 essai("ronde (fiche 15, V73 d 2) : la ronde d'essai est à l'écart des meubles, segment par segment, et dans la palissade", function()

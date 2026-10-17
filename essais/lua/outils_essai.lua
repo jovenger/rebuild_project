@@ -92,3 +92,15 @@ function depart_avec_caractere()
   Scriptorium.reglages.remettre_a_zero()
   allumer_les_interrupteurs()
 end
+
+-- Fiche 19 : remplace « morceau[nom] » le temps de « corps », et remet l'original même si « corps » échoue (l'erreur
+-- est alors relancée).
+function avec_remplacement(morceau, nom, fonction, corps)
+  local original = morceau[nom]
+  morceau[nom] = fonction
+  local ok, erreur = pcall(corps)
+  morceau[nom] = original
+  if not ok then
+    error(erreur, 0)
+  end
+end

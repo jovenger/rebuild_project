@@ -681,7 +681,7 @@ function hommes.point_pres_d_henry()
     local p = { x = henry.x + r.escorte_derriere_m * math.sin(a), y = henry.y + r.escorte_derriere_m * math.cos(a),
                 z = henry.z }
     repli = repli or p
-    local sol = jeu().sol_de and jeu().sol_de(p, r.cheval_sol_pas_m) or nil
+    local sol = jeu().sol_de and Scriptorium.avis(jeu(), "sol_de", p, r.cheval_sol_pas_m) or nil
     local mauvais_sol = sol and (sol.encombre == true or (type(sol.pente) == "number" and sol.pente > r.cheval_pente_max))
     if not mauvais_sol and jeu().henry_voit(p, r.secours_vue_cos) ~= true then
       return p
@@ -1087,7 +1087,7 @@ end
 -- sortie du lit le rhabillera), sous une tenue qui le veut dévêtu (le bain : « ne_pas_rhabiller »), en combat ou en
 -- conversation. Rend la raison, ou nil.
 local function garde_suspendue(id, f)
-  local a = hommes.activite_de(id, jeu().heure_du_jeu())
+  local a = Scriptorium.avis(hommes, "activite_de", id, jeu().heure_du_jeu())
   if a and a.lieu and camp().sorte_de(a.lieu) == "lit" then
     return "au lit"
   end
@@ -1172,7 +1172,7 @@ end
 function hommes.plafond_de_la_compagnie()
   local d = donnees()
   return { plafond = hommes.reglages.plafond, effectif = #d.ordre,
-           lits_libres = camp().est_fonde() and #camp().places_libres("lit", "hommes") or 0 }
+           lits_libres = camp().est_fonde() and #Scriptorium.avis(camp(), "places_libres", "lit", "hommes") or 0 }
 end
 
 -- Le contrat d'embauche : role, semaines, solde, prime, palier, famille ; et (fiche 18, 5 a) « nom » (un compagnon
@@ -1236,7 +1236,7 @@ function hommes.embaucher(contrat)
   if contrat.famille ~= nil and not hommes.equipement.familles[contrat.famille] then
     return refuser("famille_inconnue", tostring(contrat.famille))
   end
-  local lits = camp().places_libres("lit", "hommes")
+  local lits = Scriptorium.avis(camp(), "places_libres", "lit", "hommes")
   if #lits == 0 and Scriptorium.actif("un_lit_par_homme") then
     annoncer("ui_scriptorium_hommes_pas_de_lit")
     return refuser("pas_de_lit")
@@ -1528,6 +1528,7 @@ function hommes.libre_pour(id, regle)
   end
   return true
 end
+Scriptorium.remplacable(hommes, "libre_pour", function(rendu) return type(rendu) == "boolean" end)
 
 -- Les hommes de garde à cette heure, en rotation par tour de veille, jamais plus que d'hommes valides. Valide : libre
 -- pour la garde de cette heure (« garde_de_nuit » la nuit, dont Scriptorium exempte les compagnons, réponse 3 a du V73 b).
@@ -1537,7 +1538,7 @@ function hommes.gardes(heure)
   local regle = est_nuit(h) and "garde_de_nuit" or "garde"
   local valides = {}
   for _, id in ipairs(d.ordre) do
-    if hommes.libre_pour(id, regle) then
+    if Scriptorium.avis(hommes, "libre_pour", id, regle) then
       table.insert(valides, id)
     end
   end
@@ -1560,9 +1561,10 @@ function hommes.gardes(heure)
   end
   return resultat
 end
+Scriptorium.remplacable(hommes, "gardes", function(rendu) return type(rendu) == "table" end)
 
 local function sieges_libres_pour(d)
-  return camp().places_libres("siege")
+  return Scriptorium.avis(camp(), "places_libres", "siege")
 end
 
 -- Le factionnaire (fiche 15, V73 d 1) : le point qu'il regarde, à « regard_m » devant son poste. « cap » : cap de
@@ -1704,7 +1706,7 @@ function hommes.activite_de(id, heure)
   end
   -- Le tour de garde ne prend que des hommes libres pour la garde (aucune tenue aussi forte) : il passe donc devant
   -- leurs tenues, toutes plus faibles.
-  for _, g in ipairs(hommes.gardes(heure)) do
+  for _, g in ipairs(Scriptorium.avis(hommes, "gardes", heure)) do
     if g.id == id then
       local poste = hommes.postes_de_garde[g.poste]
       resultat.regle = est_nuit(heure_dans_le_jour(heure)) and "garde_de_nuit" or "garde"
@@ -1893,6 +1895,7 @@ function hommes.activite_de(id, heure)
   end
   return resultat
 end
+Scriptorium.remplacable(hommes, "activite_de", function(rendu) return type(rendu) == "table" end)
 
 -- ---------------------------------------------------------------- solde, repas, aube
 
@@ -2068,7 +2071,7 @@ function hommes.pas_de_ronde(personnage)
     return nil, "homme inconnu"
   end
   local r = hommes.en_ronde[id]
-  local a = hommes.activite_de(id, jeu().heure_du_jeu())
+  local a = Scriptorium.avis(hommes, "activite_de", id, jeu().heure_du_jeu())
   if not r or not a or a.activite ~= "ronde" or type(a.chemin) ~= "table" then
     return nil, "pas de ronde"
   end
@@ -2107,13 +2110,14 @@ function hommes.pas_de_ronde(personnage)
   return { point = chemin[suivant], regard = regard_du_poste(chemin[ici], nil) or chemin[suivant], pause_ms = pause,
            longue = longue, ici = ici, suivant = suivant, pas = r.pas, ecart = ecart }
 end
+Scriptorium.remplacable(hommes, "pas_de_ronde")
 
 -- Service pour le guichet (fiche 15, V73 d 2 bis, demandé par le pair : Scriptorium place un garde à égale distance des
 -- autres) : où en est la ronde de cet homme, { lieu, vise, quitte, pas, points } ; rien s'il n'est pas de ronde. En
 -- mémoire seulement, comme l'état de la ronde.
 function hommes.ronde_point(id)
   local r = hommes.en_ronde[id]
-  local a = r and hommes.activite_de(id, jeu().heure_du_jeu())
+  local a = r and Scriptorium.avis(hommes, "activite_de", id, jeu().heure_du_jeu())
   if not a or a.activite ~= "ronde" or type(a.chemin) ~= "table" or r.resume ~= "ronde@" .. tostring(a.lieu) then
     return nil
   end
@@ -2150,6 +2154,7 @@ function hommes.rattraper(personnage, chef, nom)
   end
   return hommes.poser_derriere_henry(personnage, nom, "à " .. string.format("%.0f", ecart) .. " m de son chef")
 end
+Scriptorium.remplacable(hommes, "rattraper", function(rendu) return type(rendu) == "boolean" end)
 
 -- Posé « suivi_derriere_m » derrière Henry, jamais sous ses yeux (dit une fois qu'il attend). Rend vrai s'il est posé.
 function hommes.point_derriere_henry()
@@ -2209,7 +2214,7 @@ local function secourir(id, f, a, rapport)
       f.derniere_activite = nil
       return
     end
-    if a.chef and hommes.rattraper(f.personnage, a.chef, f.nom) then
+    if a.chef and Scriptorium.avis(hommes, "rattraper", f.personnage, a.chef, f.nom) then
       f.derniere_activite = nil
       if rapport then
         rapport.rattrapages = (rapport.rattrapages or 0) + 1
@@ -2481,7 +2486,7 @@ local function place_du_cheval(id, ici)
       end
     end
     if not raison then
-      local sol = jeu().sol_de(p, r.cheval_sol_pas_m)
+      local sol = Scriptorium.avis(jeu(), "sol_de", p, r.cheval_sol_pas_m)
       if sol and type(sol.pente) == "number" and sol.pente > r.cheval_pente_max then
         raison = "pente"
       elseif sol and sol.encombre == true then
@@ -2707,7 +2712,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     return
   end
   preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
-  local a = hommes.activite_de(id, heure)
+  local a = Scriptorium.avis(hommes, "activite_de", id, heure)
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
   if f.derniere_activite ~= resume then
@@ -2817,9 +2822,9 @@ function hommes.lancer_les_sauts()
     if f and f.personnage and en_sortie and m.cheval and not m.saut and not m.abandon then
       local a
       if cle == "directeur" then
-        a = Scriptorium.directeur.activite(heure)
+        a = Scriptorium.avis(Scriptorium.directeur, "activite", heure)
       else
-        a = hommes.activite_de(cle, heure)
+        a = Scriptorium.avis(hommes, "activite_de", cle, heure)
       end
       if a and a.activite == "suivre" and a.chef and not a.vers and a.suivi and a.suivi.mode == "cheval" then
         if sous_les_yeux_d_henry(jeu().position_du_personnage(f.personnage)) then
@@ -3100,7 +3105,7 @@ function hommes.garder()
     if ici then
       local v = g.vus[id] or {}
       g.vus[id] = v
-      local a = hommes.activite_de(id, heure)
+      local a = Scriptorium.avis(hommes, "activite_de", id, heure)
       -- Sous le sol (jamais s'il suit Henry et qu'Henry est lui-même sous le sol : une grotte).
       local terrain = jeu().altitude_du_terrain(ici.x, ici.y)
       if terrain and ici.z < terrain - r.gardien_sous_sol_m then
@@ -3514,7 +3519,7 @@ end
 -- journée du socle est coupée), et son activité ({ regle, activite, lieu, position, cap, fin }). Rend nil si l'homme est
 -- inconnu.
 function hommes.qui_tient(id, heure)
-  local a = hommes.activite_de(id, heure or jeu().heure_du_jeu())
+  local a = Scriptorium.avis(hommes, "activite_de", id, heure or jeu().heure_du_jeu())
   if not a then
     return nil
   end
@@ -3786,7 +3791,7 @@ Scriptorium.declarer_morceau("hommes", function()
   -- Le battement est lancé par le poste d'essai ou par le socle une fois la partie chargée.
   -- La ronde (fiche 15, V73 d 2) : la liaison, appelée par l'arbre à chaque point, demande le pas suivant aux hommes.
   if jeu() and jeu().accrocher_la_ronde then
-    jeu().accrocher_la_ronde(hommes.pas_de_ronde)
+    jeu().accrocher_la_ronde(function(personnage) return Scriptorium.avis(hommes, "pas_de_ronde", personnage) end)
   end
   -- L'allure du chef monté (V73 f 2 f) : la liaison, appelée par l'arbre toutes les 300 ms, demande l'allure aux hommes.
   if jeu() and jeu().accrocher_l_allure then
