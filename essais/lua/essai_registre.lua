@@ -199,3 +199,35 @@ essai("registre : déclarations invalides refusées", function()
   verifier(not pcall(case_coffre_v1), "double déclaration")
   verifier(not pcall(registre.lire, "inconnue"), "case inconnue")
 end)
+
+essai("registre (fiche 01, le pair, 17/10) : les écritures regroupées, une au plus par intervalle ; le battement vide l'attente ; « forcer » écrit tout de suite", function()
+  depart()
+  local registre = Scriptorium.registre
+  local ancien = Scriptorium.noyau.reglages.registre_intervalle_s
+  Scriptorium.noyau.reglages.registre_intervalle_s = 2
+  local ok, erreur = pcall(function()
+    registre.declarer_case("essai_groupe", 1, function() return { n = 0 } end)
+    FauxJeu.temps = 100
+    verifier(registre.enregistrer() ~= nil, "la première écriture, tout de suite")
+    local premiere = FauxJeu.registre_stocke
+    local d = registre.lire("essai_groupe")
+    d.n = 1
+    FauxJeu.temps = 100.5
+    egal(registre.enregistrer(), nil, "rapprochée : en attente")
+    verifier(registre.en_attente, "notée en attente")
+    egal(FauxJeu.registre_stocke, premiere, "pas encore écrite")
+    local avant = FauxJeu.registre_stocke
+    Scriptorium.battre()
+    verifier(not registre.en_attente, "le battement vide l'attente")
+    verifier(FauxJeu.registre_stocke ~= avant, "écrite au battement")
+    d.n = 2
+    FauxJeu.temps = 100.6
+    verifier(registre.enregistrer(true) ~= nil, "forcée : écrite tout de suite")
+    d.n = 3
+    FauxJeu.temps = 103
+    verifier(registre.enregistrer() ~= nil, "l'intervalle passé : tout de suite")
+  end)
+  Scriptorium.noyau.reglages.registre_intervalle_s = ancien
+  registre.en_attente = false
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)

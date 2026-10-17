@@ -31,7 +31,7 @@ end
 -- le même registre, avec une autre graine (rien ne s'use d'un essai à l'autre : ni la réputation, ni les contrats).
 local function provoquer(sorte)
   local depart_heure = FauxJeu.heure
-  local avant = Scriptorium.registre.enregistrer()
+  local avant = Scriptorium.registre.enregistrer(true)
   for graine = 1, 2000 do
     Scriptorium.registre.charger(avant)
     bataille.fixer_la_graine(graine)

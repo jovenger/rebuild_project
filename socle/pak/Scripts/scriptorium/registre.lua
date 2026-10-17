@@ -260,8 +260,15 @@ function registre.remettre_a_neuf(nom)
   return case.donnees
 end
 
--- Écrit toutes les cases dans la partie. Les cases inconnues du contenu lu sont conservées.
-function registre.enregistrer()
+-- Fiche 01 (demande du pair, 17/10 : Scriptorium écrit plusieurs clés à chaque battement) : chaque écriture sérialise
+-- tout le registre (mesuré au banc : 10 000 clés, 1 Mo, 34 ms ; 50 000 clés, 5 Mo, 203 ms) et le réécrit en tranches.
+-- Les écritures sont donc regroupées : une écriture au plus par « registre_intervalle_s » secondes réelles (réglage du
+-- noyau) ; une demande plus rapprochée est mise en attente, et le battement commun la vide (registre.vider). « forcer »
+-- écrit tout de suite. Rend la chaîne écrite, ou nil si l'écriture attend.
+registre.en_attente = false
+local derniere_ecriture = nil
+
+local function ecrire_maintenant()
   if not charge then
     registre.charger()
   end
@@ -281,7 +288,29 @@ function registre.enregistrer()
   end
   local chaine = registre.serialiser(contenu)
   jeu().ecrire_registre(chaine)
+  registre.en_attente = false
+  derniere_ecriture = jeu().maintenant and jeu().maintenant() or nil
   return chaine
+end
+
+function registre.enregistrer(forcer)
+  local intervalle = tonumber(Scriptorium.noyau and Scriptorium.noyau.reglages
+                              and Scriptorium.noyau.reglages.registre_intervalle_s) or 0
+  local t = jeu().maintenant and jeu().maintenant() or nil
+  if forcer or intervalle <= 0 or not t or not derniere_ecriture or t < derniere_ecriture
+      or t - derniere_ecriture >= intervalle then
+    return ecrire_maintenant()
+  end
+  registre.en_attente = true
+  return nil
+end
+
+-- Vide l'écriture en attente (le battement commun). Rend la chaîne écrite, ou nil.
+function registre.vider()
+  if registre.en_attente then
+    return ecrire_maintenant()
+  end
+  return nil
 end
 
 function registre.dernier_rapport()

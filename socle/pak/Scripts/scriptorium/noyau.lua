@@ -27,8 +27,10 @@ Scriptorium.noyau = Scriptorium.noyau or {}
 -- carte à l'autre n'est cru que si l'horloge du monde a avancé, de tant de jours au plus, depuis la dernière écriture du
 -- registre.
 -- « argent_d_henry_max » (relecture du pair, 17/10) : aucun mouvement de la bourse d'Henry au-delà de ce montant.
+-- « registre_intervalle_s » (fiche 01, le pair, 17/10) : une écriture du registre au plus par tant de secondes réelles.
 Scriptorium.noyau.reglages = Scriptorium.noyau.reglages
-  or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10, argent_d_henry_max = 1000000 }
+  or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10, argent_d_henry_max = 1000000,
+       registre_intervalle_s = 2 }
 
 -- La règle du passage (V73 f 3 b), accrochée à la liaison : l'horloge (heures du jeu) a avancé, de
 -- « passage_jours_max » au plus.
@@ -315,6 +317,14 @@ function Scriptorium.battre()
         rapport.erreurs = rapport.erreurs + 1
         journal("Battement de « " .. nom .. " » en erreur : " .. tostring(erreur))
       end
+    end
+  end
+  -- Fiche 01 : l'écriture du registre mise en attente pendant ce battement.
+  if Scriptorium.registre and Scriptorium.registre.en_attente then
+    local ok, erreur = pcall(Scriptorium.registre.vider)
+    if not ok then
+      rapport.erreurs = rapport.erreurs + 1
+      journal("Registre : écriture en attente en erreur : " .. tostring(erreur))
     end
   end
   return rapport

@@ -32,7 +32,7 @@ function poste.essai_registre()
   end
   local donnees = registre.lire("essai")
   donnees.appels = donnees.appels + 1
-  local chaine = registre.enregistrer()
+  local chaine = registre.enregistrer(true)
   registre.invalider()
   local rapport = registre.charger()
   local relu = registre.lire("essai")

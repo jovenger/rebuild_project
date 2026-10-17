@@ -37,3 +37,13 @@
 
 ## Essais au banc (`essais/lua/essai_registre.lua`)
 Écrire puis relire ; registre vide ; contenu illisible ; bac à sable ; montée de version en deux pas ; montée manquante ou en échec ; version plus récente ; déclaration après chargement ; cases inconnues conservées ; enregistrer avant lecture ; sérialisation stable et refus ; déclarations invalides.
+
+## Les écritures regroupées (demande du pair, 17/10)
+
+Scriptorium gardera ses valeurs (141 fichiers, des centaines de clés, écrites souvent) dans des cases du registre
+(`registre.declarer_case(nom, version, par_defaut)`, puis `registre.lire(nom)` : une table vivante, une valeur par clé,
+de toute taille ; l'ensemble est écrit en tranches de 30 000 caractères, jamais au-delà de 65 535 octets). Chaque
+écriture sérialise tout le registre (mesuré au banc : 10 000 clés, 1 Mo, 34 ms ; 50 000 clés, 5 Mo, 203 ms). Les
+écritures sont donc regroupées : une au plus par `registre_intervalle_s` secondes réelles (réglage du noyau, 2 s) ; une
+demande plus rapprochée attend, et le battement commun la vide ; `registre.enregistrer(true)` écrit tout de suite. Au
+banc, l'intervalle vaut 0 (écritures immédiates), sauf l'essai du regroupement. Non vérifié en jeu.

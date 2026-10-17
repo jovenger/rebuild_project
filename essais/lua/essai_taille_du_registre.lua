@@ -78,7 +78,7 @@ essai("registre : un camp plein (80 hommes) se mesure, s'écrit et se relit à l
     table.insert(donnees_patrouilles.journal, { id = "patrouille_" .. i, chemin = "route_du_village", issue = "rodeurs",
                                                hommes = { "homme_10", "homme_11", "homme_12" }, butin = 21, retour = 2560.5 + i })
   end
-  local chaine = registre.enregistrer()
+  local chaine = registre.enregistrer(true)
   Essais.taille_du_registre_plein = #chaine
   verifier(#chaine > 10000, "un registre de camp plein pèse : " .. #chaine .. " octets")
   -- Relu, il se réécrit à l'identique.
