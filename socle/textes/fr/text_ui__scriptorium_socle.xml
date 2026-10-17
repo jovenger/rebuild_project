@@ -116,6 +116,7 @@
   <Row><Cell>ui_scriptorium_reglages_illisible</Cell><Cell>Le fichier de réglages est illisible : rien n'a changé.</Cell><Cell>Le fichier de réglages est illisible : rien n'a changé.</Cell></Row>
   <Row><Cell>ui_scriptorium_gestion_soigner_onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_partie</Cell><Cell>La patrouille est partie.</Cell><Cell>La patrouille est partie.</Cell></Row>
+  <Row><Cell>ui_scriptorium_missions_camp_vaincu</Cell><Cell>Le camp de bandits est vaincu.</Cell><Cell>Le camp de bandits est vaincu.</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_rien</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_rodeurs</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell></Row>
   <Row><Cell>ui_scriptorium_patrouille_embuscade</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell></Row>

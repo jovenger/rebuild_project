@@ -65,6 +65,9 @@ function depart()
     Scriptorium.bataille.relances = {}
     Scriptorium.bataille.vus = {}
   end
+  if Scriptorium.missions then
+    Scriptorium.missions.lieux = {}
+  end
   -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
   -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().
   -- À 50, chaque facteur vaut exactement 1 parce que les bornes validées sont symétriques autour de 1 (0,8 et 1,2 ;

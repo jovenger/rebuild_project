@@ -37,6 +37,14 @@ bataille.reglages = {
   -- cible n'est pas figé ; « relances_par_bataille » relances au plus par personnage, puis une ligne au journal.
   relance_pres_m = 4,
   relances_par_bataille = 2,
+  -- Fiche 17 (le camp de bandits) : une bande « postée » à un lieu naît quand Henry est sur la carte du lieu et que le
+  -- lieu n'est pas dans son regard à moins de « poste_vue_m » ; Henry ou un de nos hommes à moins de « poste_alerte_m »
+  -- du lieu : elle attaque ; nos combattants à moins de « poste_engagement_m » s'engagent ; Henry à plus de
+  -- « poste_fuite_m » sans aucun de nos combattants : elle retourne à son poste avec ses survivants.
+  poste_vue_m = 300,
+  poste_alerte_m = 35,
+  poste_engagement_m = 80,
+  poste_fuite_m = 300,
 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
@@ -169,6 +177,43 @@ function bataille.lever_une_bande(ordre)
   table.insert(d.ordre, id)
   enregistrer()
   jeu().journal("Bataille : bande « " .. id .. " » levée, " .. effectif .. " " .. ordre.sorte .. ", arrivée à " .. (heure + delai) .. " h")
+  return id
+end
+
+-- Une bande postée à un lieu (fiche 17) : { sorte, effectif, position, cap, carte, butin } ; elle ne marche pas vers le
+-- camp ; « butin » : la somme de son camp, qui remplace le butin par tête. Rend son nom, ou faux et la raison.
+function bataille.poster_une_bande(ordre)
+  ordre = ordre or {}
+  local d = donnees()
+  if not bataille.sortes[ordre.sorte] then
+    return refuser("sorte_inconnue", tostring(ordre.sorte))
+  end
+  local effectif = ordre.effectif
+  if type(effectif) ~= "number" or math.floor(effectif) ~= effectif or effectif < 1 or effectif > bataille.reglages.effectif_max then
+    return refuser("effectif_invalide", tostring(effectif))
+  end
+  local p = ordre.position
+  if type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number" then
+    return refuser("position_invalide")
+  end
+  if type(ordre.carte) ~= "string" or ordre.carte == "" then
+    return refuser("carte_invalide", tostring(ordre.carte))
+  end
+  if ordre.butin ~= nil and (type(ordre.butin) ~= "number" or ordre.butin < 0) then
+    return refuser("butin_invalide", tostring(ordre.butin))
+  end
+  local heure = jeu().heure_du_jeu()
+  local id = "bande_" .. d.prochaine
+  d.prochaine = d.prochaine + 1
+  d.bandes[id] = {
+    id = id, sorte = ordre.sorte, effectif = effectif, direction = 0, levee = heure, arrivee = heure,
+    etat = "postee", postee = true, carte = ordre.carte, cap = tonumber(ordre.cap) or 0, butin_du_camp = ordre.butin,
+    point_d_arrivee = { x = p.x, y = p.y, z = p.z }, annoncee = true, contact = nil, personnages = nil, combattants = {},
+  }
+  table.insert(d.ordre, id)
+  enregistrer()
+  jeu().journal("Bataille : bande « " .. id .. " » postée, " .. effectif .. " " .. ordre.sorte .. ", carte " .. ordre.carte
+                .. string.format(" (%.0f, %.0f)", p.x, p.y))
   return id
 end
 
@@ -571,8 +616,8 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
     end
   end
   hommes().moral_pour_tous(issue.moral)
-  -- Pillage en cas de défaite.
-  if issue.nom == "defaite" then
+  -- Pillage en cas de défaite (pas pour une bande postée : elle se bat chez elle, fiche 17).
+  if issue.nom == "defaite" and not b.postee then
     local pille = math.floor(coffre().solde() / 2)
     if pille > 0 then
       coffre().payer(pille, "pillage")
@@ -580,7 +625,7 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
     end
   end
   -- Butin, partagé selon la coutume.
-  local butin = math.floor(b.effectif * bataille.sortes[b.sorte].butin_par_tete * issue.butin)
+  local butin = math.floor((b.butin_du_camp or b.effectif * bataille.sortes[b.sorte].butin_par_tete) * issue.butin)
   if butin > 0 then
     coffre().encaisser(butin, "butin")
     local part_hommes = math.floor(butin / 2)
@@ -692,6 +737,98 @@ function bataille.escarmouche(ids, sorte, effectif)
   return resultat
 end
 
+-- Fiche 17 : Henry est-il sur la carte de cette bande ? Une bande postée a sa carte ; les autres, celle du camp.
+local function sur_la_carte_de(b)
+  if b.postee then
+    local ici = jeu().carte_courante and (jeu().carte_courante()) or nil
+    return ici == nil or ici == b.carte
+  end
+  return not (camp().sur_sa_carte and not camp().sur_sa_carte())
+end
+
+-- L'écart au sol entre Henry et le lieu d'une bande postée, ou nil s'il est illisible.
+local function henry_a(b)
+  local henry, la = jeu().position_du_joueur(), b.point_d_arrivee
+  return henry and math.sqrt((henry.x - la.x) ^ 2 + (henry.y - la.y) ^ 2) or nil
+end
+
+-- Nos hommes (fiches) à moins de « rayon » du point, et, s'il le faut, seulement les combattants valides.
+local function hommes_pres_de(point, rayon, combattants_seulement)
+  local liste = {}
+  for _, id in ipairs(hommes().liste()) do
+    local f = hommes().fiche(id)
+    local ici = f and f.personnage and not jeu().personnage_mort(f.personnage) and jeu().position_du_personnage(f.personnage)
+    if ici and math.sqrt((ici.x - point.x) ^ 2 + (ici.y - point.y) ^ 2) <= rayon
+        and (not combattants_seulement or (bataille.roles[f.role] and f.blessure == 0)) then
+      table.insert(liste, id)
+    end
+  end
+  return liste
+end
+
+-- La bande postée passe au contact : nos combattants proches s'engagent et vont au lieu ; l'attaque est donnée.
+local function engager_la_bande_postee(b)
+  local r = bataille.reglages
+  b.etat = "au_contact"
+  b.contact = jeu().heure_du_jeu()
+  b.combattants = {}
+  for _, id in ipairs(hommes_pres_de(b.point_d_arrivee, r.poste_engagement_m, true)) do
+    hommes().tenir(id, "bataille", { activite = "bataille", lieu = "camp_de_bandits", position = b.point_d_arrivee,
+                                     cap = 0, fin = "liberation" })
+    table.insert(b.combattants, id)
+  end
+  jeu().journal("Bataille : « " .. b.id .. " » postée, alerte : " .. #b.combattants .. " des nôtres engagé(s)")
+  lancer_l_attaque_de_la_bande(b)
+  lancer_l_attaque(b)
+  assurer_la_relance(b.id)
+end
+
+-- La bande postée retourne à son poste avec ses survivants (Henry parti, aucun de nos combattants).
+local function remettre_au_poste(b, vivants)
+  liberer_les_hommes(b)
+  b.etat = "postee"
+  b.effectif = vivants
+  b.contact = nil
+  b.combattants = {}
+  b.cibles, b.cibles_de_la_bande, b.relances_de = nil, nil, nil
+  jeu().journal("Bataille : « " .. b.id .. " » retourne à son poste, " .. vivants .. " debout")
+end
+
+-- Le battement d'une bande postée : naître hors de la vue d'Henry, sur la carte du lieu ; puis guetter l'alerte.
+-- Rend vrai si quelque chose a changé.
+local function garder_le_poste(b)
+  local r = bataille.reglages
+  if not sur_la_carte_de(b) then
+    return false
+  end
+  if b.personnages == nil then
+    local vu = (henry_a(b) or math.huge) <= r.poste_vue_m
+               and jeu().henry_voit(b.point_d_arrivee, hommes().reglages.secours_vue_cos) == true
+    if vu then
+      return false
+    end
+    local personnages = jeu().faire_venir_ennemis(b.sorte, b.effectif, b.point_d_arrivee, b.cap)
+    if type(personnages) ~= "table" or #personnages == 0 then
+      jeu().journal("Bataille : « " .. b.id .. " » postée : le jeu ne l'a pas fait naître")
+      return false
+    end
+    b.personnages = personnages
+    b.vivants = #personnages
+    jeu().journal("Bataille : « " .. b.id .. " » postée, née : " .. #personnages .. " ennemi(s)")
+    return true
+  end
+  local vivants = jeu().ennemis_vivants(b.personnages)
+  local change = vivants ~= b.vivants
+  b.vivants = vivants
+  local alerte = vivants == 0 or (henry_a(b) or math.huge) <= r.poste_alerte_m
+                 or #hommes_pres_de(b.point_d_arrivee, r.poste_alerte_m, false) > 0
+  if alerte then
+    engager_la_bande_postee(b)
+    return true
+  end
+  return change
+end
+
 -- L'issue par le jeu : les ennemis vivants et nos morts constatés.
 local function resoudre_par_le_jeu(d, b)
   local vivants = jeu().ennemis_vivants(b.personnages)
@@ -709,6 +846,17 @@ local function resoudre_par_le_jeu(d, b)
   end
   if vivants > 0 and combattants_vivants > 0 then
     return nil
+  end
+  -- Fiche 17 : contre une bande postée, Henry se bat seul tant qu'il reste à moins de « poste_fuite_m » ; parti sans
+  -- aucun de nos combattants engagés, la bande retourne à son poste.
+  if b.postee and vivants > 0 then
+    if (henry_a(b) or math.huge) <= bataille.reglages.poste_fuite_m then
+      return nil
+    end
+    if #b.combattants == 0 then
+      remettre_au_poste(b, vivants)
+      return nil
+    end
   end
   local issue
   if vivants == 0 then
@@ -753,18 +901,27 @@ function bataille.battre()
           rapport.finies = rapport.finies + 1
         end
       end
+    elseif b.etat == "postee" then
+      if garder_le_poste(b) then
+        rapport.changements = rapport.changements + 1
+      end
     elseif b.etat == "au_contact" then
       local resultat = nil
       -- V73 f 3 b : une bande née sur la carte du camp ne se lit pas d'une autre carte : seule la règle, à son heure.
-      if b.personnages and not (camp().sur_sa_carte and not camp().sur_sa_carte()) then
+      if b.personnages and sur_la_carte_de(b) then
         resultat = resoudre_par_le_jeu(d, b)
-        if resultat == nil then
+        if resultat == nil and b.etat == "au_contact" then
           lancer_l_attaque_de_la_bande(b)
           lancer_l_attaque(b)
           assurer_la_relance(id)
+        elseif resultat == nil then
+          rapport.changements = rapport.changements + 1
         end
       end
-      if resultat == nil and heure >= b.contact + bataille.reglages.duree_max_contact then
+      -- Fiche 17 : une bande postée n'est pas tranchée par la règle à l'heure (l'issue au loin vient avec la colonne,
+      -- tranche 2).
+      if resultat == nil and b.etat == "au_contact" and not b.postee
+          and heure >= b.contact + bataille.reglages.duree_max_contact then
         resultat = bataille.resoudre_par_la_regle(id)
       end
       if resultat then
@@ -792,6 +949,50 @@ function bataille.resultats()
                  blesses = #r.blesses, butin = r.butin, part_coffre = r.part_coffre, pillage = r.pillage, moment = r.moment }
   end
   return copie
+end
+
+-- Fiche 17 : une bande qui n'est pas finie est oubliée (son camp levé) : nos hommes lâchés, sans issue ni butin.
+function bataille.oublier_la_bande(id)
+  local d = donnees()
+  local b = d.bandes[id]
+  if not b or b.etat == "finie" then
+    return false
+  end
+  liberer_les_hommes(b)
+  b.etat = "finie"
+  b.issue = "oubliee"
+  b.fin = jeu().heure_du_jeu()
+  b.personnages = nil
+  enregistrer()
+  jeu().journal("Bataille : « " .. id .. " » oubliée")
+  return true
+end
+
+-- À l'entrée en partie (fiche 17) : les ennemis d'une bande postée sont retirés et refaits par le battement, avec ses
+-- survivants comptés au dernier battement ; une bande postée au contact retourne à son poste.
+function bataille.relancer()
+  local d = donnees()
+  local refaites = 0
+  for _, id in ipairs(d.ordre) do
+    local b = d.bandes[id]
+    -- Tous tombés avant le chargement : rien à refaire, le battement tranchera (victoire).
+    if b.postee and b.etat ~= "finie" and (b.vivants or b.effectif) > 0 then
+      if b.personnages then
+        jeu().renvoyer_ennemis(b.personnages)
+      end
+      if b.etat == "au_contact" then
+        remettre_au_poste(b, b.vivants or b.effectif)
+      end
+      b.effectif = b.vivants or b.effectif
+      b.personnages = nil
+      refaites = refaites + 1
+    end
+  end
+  if refaites > 0 then
+    jeu().journal("Bataille : " .. refaites .. " bande(s) postée(s) à refaire")
+    enregistrer()
+  end
+  return refaites
 end
 
 Scriptorium.declarer_morceau("bataille", function()

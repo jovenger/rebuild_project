@@ -96,7 +96,7 @@ def verifier_syntaxe(lua):
 
 # ------------------------------------------------------------------ 2. banc Lua
 
-ORDRE_SOCLE = ["noyau.lua", "bandeau.lua", "registre.lua", "coffre.lua", "camp.lua", "hommes.lua", "bataille.lua", "directeur.lua", "enceinte.lua", "atelier.lua", "patrouilles.lua", "discipline.lua", "caractere.lua", "reglages.lua", "poste.lua"]
+ORDRE_SOCLE = ["noyau.lua", "bandeau.lua", "registre.lua", "coffre.lua", "camp.lua", "hommes.lua", "bataille.lua", "directeur.lua", "enceinte.lua", "atelier.lua", "patrouilles.lua", "missions.lua", "discipline.lua", "caractere.lua", "reglages.lua", "poste.lua"]
 
 
 def executer_banc(lua):
@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 165:
-        erreur("ordres : %d commandes lues dans poste.lua, 165 attendues" % len(connues))
+    if len(connues) != 169:
+        erreur("ordres : %d commandes lues dans poste.lua, 169 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)

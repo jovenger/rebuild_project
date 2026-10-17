@@ -141,7 +141,8 @@ end
 -- liaison, pour ses fonctions seulement (elle garde sa table et sa mémoire), relue la première. Les chevaux passagers sont retirés d'abord ; puis la sortie et l'entrée en partie, comme un chargement :
 -- les anciennes boucles s'éteignent (génération), le réveil relance chaque morceau 30 s après.
 poste.morceaux_rechargeables = { coffre = true, camp = true, hommes = true, bataille = true, directeur = true,
-                                 enceinte = true, atelier = true, patrouilles = true, discipline = true, caractere = true }
+                                 enceinte = true, atelier = true, patrouilles = true, missions = true, discipline = true,
+                                 caractere = true }
 
 function poste.essai_recharger()
   local liste, chemin, raison = jeu().liste_du_rechargement()
@@ -396,6 +397,63 @@ function poste.essai_bataille()
                 .. ", force des nôtres = " .. Scriptorium.bataille.force_des_notres())
   poste.battre_les_hommes()
   return id
+end
+
+-- Fiche 17 : un camp de bandits d'essai, petit, à « distance » mètres devant Henry, sur sa carte ; il naît quand Henry
+-- ne regarde plus le lieu.
+poste.camps_d_essai = 0
+function poste.essai_camp_de_bandits(distance)
+  local point = jeu().point_devant_henry(distance)
+  local carte = jeu().carte_courante and (jeu().carte_courante()) or nil
+  if not point or not carte then
+    jeu().journal("Poste : camp de bandits : ni point devant Henry ni carte lisibles")
+    return false
+  end
+  poste.camps_d_essai = poste.camps_d_essai + 1
+  local nom = "essai_" .. poste.camps_d_essai
+  Scriptorium.missions.ajouter_un_lieu(nom, carte, point, 0)
+  local id, raison = Scriptorium.missions.dresser_un_camp(nom, "petit")
+  jeu().journal("Poste : camp de bandits = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or ""))
+  poste.battre_les_hommes()
+  return id
+end
+
+-- Les camps de bandits, leur bande, ses ennemis debout.
+function poste.essai_camps_de_bandits()
+  local camps = Scriptorium.missions.camps()
+  for _, c in ipairs(camps) do
+    local b = Scriptorium.bataille.bande(c.bande) or {}
+    local debout = b.personnages and jeu().ennemis_vivants(b.personnages) or 0
+    jeu().journal("Poste : « " .. c.id .. " » à « " .. c.lieu .. " » : " .. c.etat .. ", meublé " .. tostring(c.meubles)
+                  .. ", bande " .. tostring(b.etat) .. ", " .. debout .. "/" .. tostring(b.effectif) .. " debout"
+                  .. (c.issue and (", issue " .. c.issue) or ""))
+  end
+  jeu().journal("Poste : " .. #camps .. " camp(s) de bandits")
+  return #camps
+end
+
+-- Pose Henry à 50 m au sud du premier camp de bandits debout, tourné vers lui.
+function poste.essai_vers_le_camp_de_bandits()
+  for _, c in ipairs(Scriptorium.missions.camps()) do
+    for _, l in ipairs(Scriptorium.missions.lieux_de(c.carte)) do
+      if l.nom == c.lieu then
+        jeu().journal("Poste : Henry vers « " .. c.id .. " » : "
+                      .. tostring(jeu().poser_le_joueur({ x = l.x, y = l.y - 50, z = l.z })))
+        return true
+      end
+    end
+  end
+  jeu().journal("Poste : aucun camp de bandits debout dont le lieu est connu")
+  return false
+end
+
+function poste.essai_lever_les_camps()
+  local n = 0
+  for _, c in ipairs(Scriptorium.missions.camps()) do
+    if Scriptorium.missions.lever_un_camp(c.id) then n = n + 1 end
+  end
+  jeu().journal("Poste : " .. n .. " camp(s) de bandits levé(s)")
+  return n
 end
 
 -- Les ennemis dans le jeu de la première bande au contact, et son nom.
@@ -2025,6 +2083,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_tout_lever", fonction = function() return poste.essai_tout_lever() end, aide = "Renvoie les hommes, congédie le Directeur et lève le camp" },
   { nom = "scriptorium_essai_hommes", fonction = function() return poste.essai_hommes() end, aide = "Engage trois hommes et lance leur journée" },
   { nom = "scriptorium_essai_bataille", fonction = function() return poste.essai_bataille() end, aide = "Lève une bande de cinq brigands venant du nord" },
+  { nom = "scriptorium_essai_camp_de_bandits", fonction = function() return poste.essai_camp_de_bandits(120) end, aide = "Dresse un petit camp de bandits à 120 m devant Henry (il naît quand Henry ne le regarde plus)" },
+  { nom = "scriptorium_essai_camps_de_bandits", fonction = function() return poste.essai_camps_de_bandits() end, aide = "Les camps de bandits, leur bande et ses ennemis debout" },
+  { nom = "scriptorium_essai_vers_le_camp_de_bandits", fonction = function() return poste.essai_vers_le_camp_de_bandits() end, aide = "Pose Henry à 50 m au sud du premier camp de bandits" },
+  { nom = "scriptorium_essai_lever_les_camps", fonction = function() return poste.essai_lever_les_camps() end, aide = "Lève tous les camps de bandits" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
   { nom = "scriptorium_essai_voir_bande", fonction = function() return poste.essai_voir_bande() end, aide = "Pose Henry à 12 m de la bande, côté camp" },

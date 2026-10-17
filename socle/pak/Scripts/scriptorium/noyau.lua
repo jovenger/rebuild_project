@@ -90,7 +90,8 @@ end
 Scriptorium.cadence_du_guet_ms = 5000
 Scriptorium.reveil_en_attente = false
 -- L'ordre dans lequel les morceaux battent (ceux qui ont une fonction battre).
-Scriptorium.ordre_du_battement = { "bataille", "hommes", "discipline", "directeur", "enceinte", "atelier", "patrouilles" }
+Scriptorium.ordre_du_battement = { "bataille", "hommes", "discipline", "directeur", "enceinte", "atelier", "patrouilles",
+                                    "missions" }
 
 local function jeu()
   return Scriptorium.jeu

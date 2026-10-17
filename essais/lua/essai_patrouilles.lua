@@ -192,13 +192,13 @@ essai("socle : le battement commun fait avancer tous les morceaux, seulement en 
   rapport = Scriptorium.battre()
   egal(rapport.saute, nil, "en partie : battu")
   egal(patrouilles.en_cours(), nil, "la patrouille est rentrée")
-  egal(#rapport.morceaux, 7, "sept morceaux battus")
+  egal(#rapport.morceaux, 8, "huit morceaux battus (les missions, fiche 17)")
   egal(rapport.erreurs, 0, "sans erreur")
   -- Un morceau qui casse ne bloque pas les autres.
   Scriptorium.patrouilles.battre = function() error("cassé exprès") end
   rapport = Scriptorium.battre()
   egal(rapport.erreurs, 1, "une erreur comptée")
-  egal(#rapport.morceaux, 6, "les six autres ont battu")
+  egal(#rapport.morceaux, 7, "les sept autres ont battu")
   Scriptorium.patrouilles.battre = patrouilles.battre_original
 end)
 
