@@ -1034,6 +1034,23 @@ toutes les 2 à 3 s (écart au but, pas, regard).
   à la pose, la raison du secours oubliée, le point visé d'avant perdu, « sans pause » ignoré, une réponse jamais
   vérifiée. Rien dans l'arbre ni dans la liaison ; contrôle d'absence inchangé (32).
 
+### Mesuré en V73 d 2 bis (17/10) : la reprise et la ronde sans pause, acquises
+- **Issue 1, sans pause** : Mikuláš, rendu sans pause en pleine ronde, écrit « pause 0 ms » à chaque pas suivant (16
+  pas) ; il va de point en point, tourné vers le point suivant (écart au regard de 0 à 8°) ; Jan garde ses pauses.
+  **Il reste un court arrêt d'environ 2 s à certains points** (l'écart au but fixe deux lectures de suite) : la marche
+  finit à 1 m du point, l'appel au Lua et le `Turn` passent, puis la marche repart. Ce n'est pas une marche continue ;
+  pour la ronde de nuit de Scriptorium (même pas, même écart), à regarder si l'écart entre gardes s'en ressent.
+- **Issue 2, avec l'accroche** : rassemblement (rang 2) posé puis lâché ; au lâcher, l'accroche d'essai est appelée
+  pour chacun avec « regle_plus_forte », le point le plus proche (12) et le point visé d'avant (8 et 4), rend le point 6
+  (opposé au plus proche) ; le journal dit « reprend la ronde « pourtour » au point 6 (donné par l'accroche,
+  regle_plus_forte) » ; les deux marchent environ 20 m jusqu'au point 6, puis reprennent leur ronde.
+- **Issue 3, sans l'accroche** : « au point 11 (le plus proche, regle_plus_forte) », courte marche, ronde reprise.
+- **Issue 5** : la ronde lâchée (« pour 2 homme(s) » : le décompte corrigé), retour à l'exercice ; le troisième homme
+  suit sa journée ; un lancement chacun, aucun arrêt ; 30 pas, aucune erreur ni réponse refusée.
+- **La reprise d'une ronde est donc vue en jeu** (après une règle plus forte), ce qui manquait à V73 d 2.
+- **Pas vu en jeu** : les raisons « rechargement » et « secours » (prouvées au banc), `hommes.ronde_point` (banc), une
+  accroche de Scriptorium qui espace vraiment six gardes.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

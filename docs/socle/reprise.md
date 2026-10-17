@@ -297,16 +297,19 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   branche 13. Vu : 33 pas, aucune erreur, pauses tenues, tourné vers le dehors, sans glisser, la boucle, la ronde lâchée.
   Règle du départ confirmée par JoVenGer (17/10) : après rechargement, secours ou règle plus forte, le point le plus
   proche. La borne des lignes de forme du jeu à 32 lui va.
-- **Suite** : V73 d 2 bis, l'accroche « ronde reprise » (choix de JoVenGer, proposée par le pair : l'homme et son
-  point de reprise donnés à Scriptorium, qui peut redonner lui-même le départ, donc l'espacement de ses gardes ; sans
-  accroche prise, le point le plus proche) : fiche, pair, code, banc. Puis V73 e, le rassemblement.
+- **V73 d 2 bis, fait et vu en jeu** (3ca2b99 ; fiche 15, réponses a, a, a de JoVenGer) : l'accroche « ronde_reprise »
+  (appelée à chaque reprise avec le lieu, le plus proche, le nombre de points, le point visé d'avant et la raison :
+  rechargement, secours, regle_plus_forte ; première réponse valable, sinon le plus proche) ; `hommes.ronde_point(id)`
+  pour le guichet ; la ronde sans pause (`pauses = false` : 0 ms, regard vers le point suivant). Vu : la reprise après un
+  rassemblement, avec et sans l'accroche ; sans pause, un court arrêt d'environ 2 s reste à certains points.
+- **Suite** : V73 e, le rassemblement, avec sa fiche, la relecture du pair et les questions.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 35 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 36 chargements depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
