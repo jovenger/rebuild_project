@@ -694,6 +694,73 @@ function poste.essai_tenir_ronde()
   return tenus > 0
 end
 
+-- Fiche 15, V73 d 2 bis : l'accroche « ronde reprise » d'essai, qui rend le point opposé au plus proche ; posée une
+-- seule fois chez les hommes, active ou non selon la commande.
+poste.accroche_de_ronde_active = false
+
+function poste.accroche_de_ronde(id, quoi)
+  if not poste.accroche_de_ronde_active then
+    return nil
+  end
+  local point = (quoi.plus_proche + math.floor(quoi.points / 2) - 1) % quoi.points + 1
+  local f = Scriptorium.hommes.fiche(id)
+  jeu().journal("Poste : accroche d'essai, « " .. tostring(f and f.nom) .. " » : " .. tostring(quoi.raison)
+    .. ", plus proche " .. tostring(quoi.plus_proche) .. ", visé avant " .. tostring(quoi.precedent) .. " → point "
+    .. point)
+  return point
+end
+
+function poste.essai_ronde_accroche(active)
+  local posee = false
+  for _, fonction in ipairs(Scriptorium.hommes.accroches.ronde_reprise or {}) do
+    if fonction == poste.accroche_de_ronde then
+      posee = true
+    end
+  end
+  if not posee then
+    posee = Scriptorium.hommes.accrocher("ronde_reprise", poste.accroche_de_ronde) == true
+  end
+  poste.accroche_de_ronde_active = active == true
+  jeu().journal("Poste : accroche d'essai de la ronde " .. (poste.accroche_de_ronde_active and "active" or "inactive"))
+  return posee
+end
+
+-- Les deux premiers hommes tenus par un rassemblement (rang 2) au point de la corvée, puis lâchés : leur ronde reprend.
+function poste.essai_rassembler_rondiers(tenir)
+  local ids, faits = Scriptorium.hommes.liste(), 0
+  local position = point_du_camp("corvee")
+  for k = 1, math.min(2, #ids) do
+    local ok
+    if tenir then
+      ok = Scriptorium.hommes.tenir(ids[k], "rassemblement", { activite = "rassemblement", lieu = "corvee",
+        position = position, fin = "liberation" })
+    else
+      ok = Scriptorium.hommes.lacher(ids[k], "rassemblement")
+    end
+    if ok then
+      faits = faits + 1
+    end
+  end
+  jeu().journal("Poste : rassemblement des rondiers " .. (tenir and "posé" or "lâché") .. " pour " .. faits .. " homme(s)")
+  return faits > 0
+end
+
+-- Le second homme sur la même ronde d'essai, sans pause (V73 d 2 bis) : la tenue change, l'ordre en cours reste ; le
+-- pas suivant n'a plus de pause.
+function poste.essai_ronde_sans_pause()
+  local ids = Scriptorium.hommes.liste()
+  local f = ids[2] and Scriptorium.hommes.fiche(ids[2])
+  local tenue = f and f.tenues and f.tenues.ronde
+  if not tenue then
+    jeu().journal("Poste : pas de second rondier")
+    return false
+  end
+  local ok, raison = Scriptorium.hommes.tenir(ids[2], "ronde", { activite = "ronde", lieu = tenue.lieu,
+    chemin = tenue.chemin, depart = tenue.depart, pauses = false, fin = tenue.fin })
+  jeu().journal("Poste : " .. f.nom .. ", ronde sans pause : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok == true
+end
+
 function poste.essai_lacher_ronde()
   -- Seuls comptent les hommes qui étaient tenus par la ronde (lâcher une tenue absente rend vrai aussi).
   local lache = 0
@@ -1506,6 +1573,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_lacher_garde", fonction = function() return poste.essai_lacher_garde() end, aide = "La garde du premier homme lâchée (V73 d 1)" },
   { nom = "scriptorium_essai_tenir_ronde", fonction = function() return poste.essai_tenir_ronde() end, aide = "Les deux premiers hommes sur la ronde d'essai, partis de deux points opposés (V73 d 2)" },
   { nom = "scriptorium_essai_lacher_ronde", fonction = function() return poste.essai_lacher_ronde() end, aide = "La ronde lâchée pour tous (V73 d 2)" },
+  { nom = "scriptorium_essai_ronde_accroche_poser", fonction = function() return poste.essai_ronde_accroche(true) end, aide = "L'accroche d'essai « ronde reprise » active : le point opposé au plus proche (V73 d 2 bis)" },
+  { nom = "scriptorium_essai_ronde_accroche_retirer", fonction = function() return poste.essai_ronde_accroche(false) end, aide = "L'accroche d'essai « ronde reprise » inactive : le point le plus proche (V73 d 2 bis)" },
+  { nom = "scriptorium_essai_rassembler_rondiers", fonction = function() return poste.essai_rassembler_rondiers(true) end, aide = "Les deux premiers hommes tenus par un rassemblement à la corvée (V73 d 2 bis)" },
+  { nom = "scriptorium_essai_lacher_rondiers", fonction = function() return poste.essai_rassembler_rondiers(false) end, aide = "Le rassemblement des deux premiers hommes lâché : leur ronde reprend (V73 d 2 bis)" },
+  { nom = "scriptorium_essai_ronde_sans_pause", fonction = function() return poste.essai_ronde_sans_pause() end, aide = "Le second rondier sans pause (V73 d 2 bis)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },

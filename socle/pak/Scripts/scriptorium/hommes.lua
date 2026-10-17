@@ -525,6 +525,9 @@ local function faire_venir(d, f)
   end
   f.personnage = personnage
   f.derniere_activite = nil
+  -- Fiche 15, V73 d 2 bis : un personnage refait a un cerveau neuf ; s'il était de ronde, il la reprend comme après un
+  -- rechargement.
+  hommes.raisons_de_reprise[f.id] = hommes.raisons_de_reprise[f.id] or "rechargement"
   -- Fiche 13, V71 b : un personnage refait naît avec une tenue de naissance et sans les pièces de l'ancien, parties avec
   -- lui : il est rééquipé (tenue de naissance retirée de nouveau) ; les pièces données ensuite sont perdues.
   local e = f.equipement
@@ -581,7 +584,9 @@ end
 -- après qu'un homme a été équipé ou a remis ses affaires ; « piece_otee » (identifiant, objet) : une pièce de son ancien
 -- grade, rendue au camp (réponse a de JoVenGer, 15/10) : la fonction rend vrai si elle la prend, et la pièce sort alors
 -- du sac de l'homme ; si personne ne la prend, elle y reste, rien n'est détruit.
-hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {} }
+-- « ronde_reprise » (fiche 15, V73 d 2 bis, choix de JoVenGer du 17/10, proposée par le pair) : un rondier reprend sa
+-- ronde ; l'accroche rend le numéro du point d'où il repart, ou rien (le point le plus proche).
+hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {}, ronde_reprise = {} }
 
 function hommes.accrocher(nom, fonction)
   local liste = hommes.accroches[nom]
@@ -603,6 +608,23 @@ local function appeler(nom, ...)
     end
   end
   return pris
+end
+
+-- Une accroche qui répond (fiche 15, V73 d 2 bis) : la première réponse que « valable » accepte, dans l'ordre où les
+-- accroches ont été posées ; une réponse refusée ou une accroche en panne est dite au journal. Rend la réponse, ou nil.
+local function demander(nom, valable, ...)
+  for _, fonction in ipairs(hommes.accroches[nom] or {}) do
+    local ok, rendu = pcall(fonction, ...)
+    if not ok then
+      jeu().journal("Hommes : accroche « " .. nom .. " » en panne : " .. tostring(rendu))
+    elseif rendu ~= nil then
+      if valable(rendu) then
+        return rendu
+      end
+      jeu().journal("Hommes : accroche « " .. nom .. " » : réponse refusée (" .. tostring(rendu) .. ")")
+    end
+  end
+  return nil
 end
 
 local function est_combattant(f)
@@ -1325,6 +1347,7 @@ function hommes.activite_de(id, heure)
     resultat.ne_pas_rhabiller = tenue.ne_pas_rhabiller
     -- V73 d 2 : une ronde suit son chemin, en boucle ou en aller-retour, depuis son point de départ s'il est donné.
     resultat.chemin, resultat.aller_retour, resultat.depart = tenue.chemin, tenue.aller_retour, tenue.depart
+    resultat.pauses = tenue.pauses
     -- V73 d 1 : une garde se tient face au dehors (le cap de la tenue, sinon du centre du camp vers le poste).
     if tenue.activite == "garde" then
       resultat.regard = regard_du_poste(tenue.position, tenue.cap)
@@ -1504,6 +1527,9 @@ hommes.suivi = {}
 -- pauses (aucune règle ne dépend de sa suite).
 hommes.en_ronde = {}
 hommes.hasard_de_la_ronde = nil
+-- Fiche 15, V73 d 2 bis : pourquoi l'ordre d'un homme est redonné (« rechargement », « secours »), pour l'accroche
+-- « ronde_reprise » ; sans raison notée, une règle plus forte l'a tenu puis lâché. En mémoire, effacée à chaque ordre.
+hommes.raisons_de_reprise = {}
 
 local function tirer_la_pause()
   if not Scriptorium.hasard_en_ordre(hommes.hasard_de_la_ronde) then
@@ -1564,6 +1590,12 @@ function hommes.pas_de_ronde(personnage)
     r.arrivees = (r.arrivees or 0) + 1
   end
   r.quitte, r.vise, r.pas = ici, suivant, (r.pas or 0) + 1
+  -- La ronde sans pause (fiche 15, V73 d 2 bis, relecture du pair : la ronde de nuit de Scriptorium, six gardes à
+  -- égale distance) : aucun arrêt, aucun demi-tour vers le dehors, le regard vers le point suivant.
+  if a.pauses == false then
+    return { point = chemin[suivant], regard = chemin[suivant], pause_ms = 0, longue = false, ici = ici,
+             suivant = suivant, pas = r.pas, ecart = ecart }
+  end
   local reglages = hommes.reglages
   local sur = tonumber(reglages.ronde_longue_sur) or 0
   local longue = sur >= 1 and tirer_la_pause() * sur < 1
@@ -1573,6 +1605,18 @@ function hommes.pas_de_ronde(personnage)
   pause = math.max(tonumber(reglages.ronde_pause_min_ms) or 0, pause)
   return { point = chemin[suivant], regard = regard_du_poste(chemin[ici], nil) or chemin[suivant], pause_ms = pause,
            longue = longue, ici = ici, suivant = suivant, pas = r.pas, ecart = ecart }
+end
+
+-- Service pour le guichet (fiche 15, V73 d 2 bis, demandé par le pair : Scriptorium place un garde à égale distance des
+-- autres) : où en est la ronde de cet homme, { lieu, vise, quitte, pas, points } ; rien s'il n'est pas de ronde. En
+-- mémoire seulement, comme l'état de la ronde.
+function hommes.ronde_point(id)
+  local r = hommes.en_ronde[id]
+  local a = r and hommes.activite_de(id, jeu().heure_du_jeu())
+  if not a or a.activite ~= "ronde" or type(a.chemin) ~= "table" or r.resume ~= "ronde@" .. tostring(a.lieu) then
+    return nil
+  end
+  return { lieu = a.lieu, vise = r.vise, quitte = r.quitte, pas = r.pas, points = #a.chemin }
 end
 
 -- Ce que l'ordre vise (fiche 15, V73 a) : une place du camp (siège, lit) se prend par son objet du jeu ; tout le reste est
@@ -1654,6 +1698,7 @@ local function secourir(id, f, a, rapport)
   jeu().journal("Hommes : « " .. f.nom .. " » bloqué vers « " .. tostring(a.lieu) .. " », secours "
                 .. s.secours .. " : " .. tostring(jeu().poser_en_secours(f.personnage, ou)))
   f.derniere_activite = nil
+  hommes.raisons_de_reprise[id] = "secours"
   rapport.secours = (rapport.secours or 0) + 1
 end
 
@@ -1781,13 +1826,33 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     -- La ronde (fiche 15, V73 d 2) : à la pose de la tenue, le point de départ (Scriptorium espace ses gardes, réponse
     -- 2 a de JoVenGer) ; sinon, et ensuite (rechargement, secours, reprise après une règle plus forte), le point le plus
     -- proche de l'homme : les gardes restent espacés, aucun ne retraverse le camp.
+    -- La reprise (V73 d 2 bis, réponse 1 a de JoVenGer) : tout ordre de ronde qui n'est pas donné à la pose de sa tenue
+    -- demande le point à l'accroche « ronde_reprise », avec le point le plus proche (le défaut), le point visé avant la
+    -- reprise (rien après un rechargement) et la raison ; une ligne au journal.
     if a.activite == "ronde" and type(a.chemin) == "table" then
-      local premier = (a_la_pose and a.depart) or point_le_plus_proche(f.personnage, a.chemin)
+      local avant = hommes.en_ronde[id]
+      local premier
+      if a_la_pose and a.depart then
+        premier = a.depart
+      else
+        premier = point_le_plus_proche(f.personnage, a.chemin)
+        if not a_la_pose then
+          local n = #a.chemin
+          local raison = hommes.raisons_de_reprise[id] or "regle_plus_forte"
+          local precedent = (avant and avant.resume == resume) and avant.vise or nil
+          local donne = demander("ronde_reprise", function(k)
+            return type(k) == "number" and k == math.floor(k) and k >= 1 and k <= n
+          end, id, { lieu = a.lieu, plus_proche = premier, points = n, precedent = precedent, raison = raison })
+          jeu().journal("Hommes : « " .. f.nom .. " » reprend la ronde « " .. tostring(a.lieu) .. " » au point "
+                        .. (donne or premier) .. " (" .. (donne and "donné par l'accroche" or "le plus proche") .. ", "
+                        .. raison .. ")")
+          premier = donne or premier
+        end
+      end
       hommes.en_ronde[id] = { resume = resume, vise = premier, sens = 1, pas = 0, arrivees = 0 }
       position = a.chemin[premier]
-    else
-      hommes.en_ronde[id] = nil
     end
+    hommes.raisons_de_reprise[id] = nil
     jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
@@ -1918,7 +1983,8 @@ end
 local function memes_tenues(a, b)
   return a.activite == b.activite and a.lieu == b.lieu and a.cap == b.cap and a.fin == b.fin
     and a.ne_pas_rhabiller == b.ne_pas_rhabiller and memes_points(a.position, b.position)
-    and a.aller_retour == b.aller_retour and a.depart == b.depart and memes_chemins(a.chemin, b.chemin)
+    and a.aller_retour == b.aller_retour and a.depart == b.depart and a.pauses == b.pauses
+    and memes_chemins(a.chemin, b.chemin)
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -1928,7 +1994,8 @@ end
 -- le lâche. Reposer la même règle la met à jour sans la rajeunir. L'ordre est redonné sur-le-champ si l'activité de
 -- l'homme change. L'activité « ronde » (fiche 15, V73 d 2) veut aussi « chemin » (2 à « ronde_points_max » points du
 -- monde ; Scriptorium, qui garde ses rondes dans le repère du camp, les redonne à chaque fondation), et accepte
--- « aller_retour » (sinon en boucle) et « depart » (le numéro du premier point). Rend vrai, ou (faux, raison).
+-- « aller_retour » (sinon en boucle), « depart » (le numéro du premier point, à la pose) et « pauses » (à faux : sans
+-- pause, V73 d 2 bis). Rend vrai, ou (faux, raison).
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
   local f = d.liste[id]
@@ -1960,13 +2027,22 @@ function hommes.tenir(id, regle, quoi)
     if depart ~= nil and (type(depart) ~= "number" or depart ~= math.floor(depart) or depart < 1 or depart > #chemin) then
       return refuser("chemin_invalide", "départ " .. tostring(depart))
     end
+    if quoi.pauses ~= nil and type(quoi.pauses) ~= "boolean" then
+      return refuser("chemin_invalide", "pauses " .. tostring(quoi.pauses))
+    end
+  end
+  -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
+  local pauses = nil
+  if chemin and quoi.pauses == false then
+    pauses = false
   end
   f.tenues = f.tenues or {}
   local avant = f.tenues[regle]
   -- « ne_pas_rhabiller » : une règle qui veut l'homme dévêtu (le bain) ; la garde de la tenue le saute (fiche 13).
   local tenue = { activite = quoi.activite, lieu = quoi.lieu, position = quoi.position, cap = quoi.cap, fin = fin,
                   depuis = avant and avant.depuis or heure, ne_pas_rhabiller = (quoi.ne_pas_rhabiller == true) or nil,
-                  chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart }
+                  chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart,
+                  pauses = pauses }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
@@ -2078,6 +2154,7 @@ function hommes.relancer()
   local d = donnees()
   hommes.suivi = {}
   hommes.en_ronde = {}
+  hommes.raisons_de_reprise = {}
   hommes.cerveaux_regles = {}
   hommes.arrets_vus = {}
   hommes.fins_de_combat_vues = {}
@@ -2085,6 +2162,7 @@ function hommes.relancer()
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     f.derniere_activite = nil
+    hommes.raisons_de_reprise[id] = "rechargement"
     -- Fiche 13, V71 b : chacun remettra ses propres affaires, un par battement.
     if f.equipement and (f.equipement.etat == "pret" or f.equipement.etat == "a_completer") then
       f.equipement.etat = "a_rhabiller"

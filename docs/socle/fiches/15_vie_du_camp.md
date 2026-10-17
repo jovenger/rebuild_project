@@ -908,7 +908,7 @@ arrivées).
   défaut), **avec l'accroche « ronde reprise »**, dans un petit pas à part (V73 d 2 bis : fiche, pair, code, banc) ; la
   borne des lignes de forme du jeu à 32 lui va.
 
-## V73 d 2 bis — l'accroche « ronde reprise » (17/10, à relire par le pair)
+## V73 d 2 bis — l'accroche « ronde reprise » (17/10, relu par le pair)
 
 ### Le périmètre
 - Choix de JoVenGer (17/10, proposé par le pair) : quand un rondier **reprend** sa ronde (après un rechargement, un
@@ -951,22 +951,88 @@ arrivées).
   n'est pas de ronde ne l'appelle jamais.
 
 ### Essai en jeu (question 2) : grille écrite avant la séance
-`playline3`, secours coupé, deux rondiers sur la ronde d'essai (partis des points 1 et 7). Une commande d'essai pose une
-accroche d'essai, qui rend pour chaque homme le point opposé au plus proche (plus proche + 6, modulo 12) et l'écrit au
-journal ; puis une tenue de rassemblement (rang 2) posée sur les deux, et lâchée 20 s plus tard.
-1. Au lâcher, une ligne « reprend la ronde … au point k (donné par l'accroche) » par homme, k opposé au plus proche ; et
-   chacun marche vers ce point, puis reprend sa ronde → bon.
-2. L'accroche d'essai retirée, même manœuvre : « (le plus proche) », chacun repart du point le plus proche → bon.
-3. Aucune ligne « reprend » : la reprise ne passe pas par l'ordre de ronde → lire le journal, un seul changement.
+`playline3`, secours coupé, trois hommes ; `essai_tenir_ronde` (Jan et Mikuláš, partis des points 1 et 7) ; une lecture
+toutes les 2 à 3 s (écart au but, pas, regard).
+1. **Sans pause** (`essai_ronde_sans_pause`, sur Mikuláš) : ses lignes de pas disent « pause 0 ms », et il repart aussitôt
+   vers le point suivant (l'écart au but ne reste jamais fixe deux lectures de suite) ; Jan garde ses pauses → bon. Un
+   arrêt à chaque point, ou une attente « 0ms » qui ne finit pas → lire, un seul changement.
+2. **Avec l'accroche** (`essai_ronde_accroche_poser`, puis `essai_rassembler_rondiers`, 20 s, puis
+   `essai_lacher_rondiers`) : au lâcher, par homme, une ligne de l'accroche d'essai (« regle_plus_forte, plus proche k,
+   visé avant j → point opposé ») et une ligne « reprend la ronde « pourtour » au point … (donné par l'accroche,
+   regle_plus_forte) » ; chacun marche vers ce point, puis reprend sa ronde → bon.
+3. **Sans l'accroche** (`essai_ronde_accroche_retirer`, même manœuvre) : « (le plus proche, regle_plus_forte) », chacun
+   repart du point le plus proche → bon.
+4. Aucune ligne « reprend » : la reprise ne passe pas par l'ordre de ronde → lire le journal, un seul changement.
+5. `essai_lacher_ronde` : un ordre chacun, retour à sa tranche ; le troisième homme suit sa journée.
 - Décompte de l'écran noir (fiche 14).
+
+### Relecture du pair (17/10)
+- La forme de l'accroche lui va, et les recommandations des questions 1 et 2 aussi ; « la première réponse valable,
+  sinon le plus proche », une ligne par reprise, rien au registre : bon.
+- **Ce que fera Scriptorium** (`nuit_du_camp`) : six gardes de quart sur un seul tour de 24 points, partis à 60° l'un de
+  l'autre, **sans pause** : même pas, même écart (règle de JoVenGer du 22/09 : « pas tous collés, à distance égale l'un
+  de l'autre » ; les pauses au hasard les regroupaient ; Alex avait un drapeau « pas de pause » par homme). **Il manque
+  donc à la ronde elle-même** une ronde sans pause : `hommes.tenir(id, "ronde", { …, pauses = false })`, sans arrêt, et
+  donc sans demi-tour vers le dehors (la réponse 3 b ne vaut que là où il y a des pauses). À combler avant la nuit.
+- **L'accroche a besoin de deux choses de plus** : `precedent`, le point que l'homme visait avant la reprise ; et
+  `raison` (rechargement, secours, règle plus forte), pour le journal et pour Scriptorium. Et d'une **lecture au
+  guichet** du point courant de chaque rondier (`hommes.ronde_point(id)`) : pour placer un garde à 60° des autres, il
+  faut savoir où ils sont.
+
+### Ce qui s'ajoute, d'après la relecture
+6. **L'appel reçoit aussi** `precedent` (le point visé avant la reprise ; rien après un rechargement : le cerveau repart
+   de zéro, et la mémoire d'avant ne vaut pas pour une autre sauvegarde) et `raison` : « rechargement » (l'ordre
+   redonné par `hommes.relancer`), « secours » (l'homme posé près de son but), « regle_plus_forte » (sinon : une règle
+   plus forte l'a tenu, puis lâché). La ligne du journal dit la raison.
+7. **La lecture** `hommes.ronde_point(id)` : pour un rondier, { lieu, vise, quitte, pas, points } ; sinon rien. En
+   mémoire seulement, comme l'état de la ronde.
+8. **La ronde sans pause** (question 3) : `pauses = false` dans la tenue (vrai par défaut), comparé par
+   `memes_tenues`, gardé au registre avec la tenue. Le pas rend alors une pause de 0 (« 0ms », forme du jeu : 2 emplois,
+   et « 0s » 18 fois, `AI/quests/utokNaNebakov/utokNaNebakov.xml`, `AI/crime/playstartleanimation.xml`), sans le
+   plancher de 500 ms, et un regard vers le point suivant (aucun demi-tour) ; le hasard des pauses n'est pas tiré. Rien
+   ne change dans l'arbre : il attend 0 ms et se tourne vers où il va.
+- L'essai en jeu (si la question 2 le veut) montre en plus une ronde sans pause : les deux rondiers repartis, l'un des
+  deux tenu sans pause.
 
 ### Questions à JoVenGer (après relecture par le pair)
 1. **Quand l'accroche est-elle appelée ?** (a) à chaque reprise seulement : rechargement, secours, règle plus forte
-   (Recommandé : à la pose, Scriptorium donne déjà le départ) ; (b) aussi à la pose quand Scriptorium n'a pas donné de
+   (Recommandé, avec le pair : à la pose, Scriptorium donne déjà le départ) ; (b) aussi à la pose quand Scriptorium n'a pas donné de
    départ ; (c) seulement après un rechargement.
 2. **L'essai** : (a) au banc, puis un court essai en jeu (rassemblement posé puis lâché, avec et sans l'accroche
-   d'essai), qui montre aussi la reprise d'une ronde, pas encore vue (Recommandé) ; (b) au banc seulement (aucun
-   changement du côté du jeu).
+   d'essai), qui montre aussi la reprise d'une ronde, pas encore vue (Recommandé, avec le pair) ; (b) au banc seulement
+   (aucun changement du côté du jeu).
+3. **La ronde sans pause** (le manque relevé par le pair, pour la nuit de Scriptorium) : (a) dans ce pas, l'option
+   `pauses = false` : aucun arrêt, aucun demi-tour vers le dehors, le regard vers le point suivant (Recommandé : la nuit
+   de Scriptorium en a besoin, et l'essai en jeu la montrera) ; (b) dans un pas à part, juste après ; (c) non, toujours
+   des pauses.
+
+- **Réponses de JoVenGer (17/10)** : 1 (a) à chaque reprise seulement ; 2 (a) banc, puis un court essai en jeu ; 3 (a) la
+  ronde sans pause dans ce pas.
+
+### V73 d 2 bis, fait (17/10)
+- **L'accroche `ronde_reprise`** (`hommes.accrocher`) : appelée à chaque ordre de ronde qui n'est pas donné à la pose de
+  sa tenue, `f(id, { lieu, plus_proche, points, precedent, raison })` ; elle rend un point (entier de 1 à `points`) ou
+  rien. Une fonction nouvelle, `demander`, prend la première réponse valable dans l'ordre des accroches ; une réponse
+  refusée ou une panne : une ligne au journal, le point le plus proche. Une ligne par reprise : « reprend la ronde « … »
+  au point k (le plus proche | donné par l'accroche, raison) ».
+- **La raison** : « rechargement » (posée par `relancer`, et pour un personnage refait, dont le cerveau est neuf),
+  « secours » (posée par le secours), sinon « regle_plus_forte » ; en mémoire, effacée à chaque ordre. **Le point visé
+  d'avant** : l'état de la ronde n'est plus effacé quand l'homme passe à une autre activité ; s'il reprend la même ronde
+  (même lieu), son ancien point visé est donné ; rien après un rechargement.
+- **La lecture** `hommes.ronde_point(id)` : { lieu, vise, quitte, pas, points }, ou rien (pas de ronde, ou une autre
+  activité).
+- **La ronde sans pause** : `pauses = false` dans la tenue (vérifié : vrai ou faux seulement ; écrit seulement à faux ;
+  comparé par `memes_tenues`, gardé au registre) ; le pas rend 0 ms, le regard vers le point suivant, sans tirer le
+  hasard des pauses.
+- **Poste d'essai** : `essai_ronde_accroche_poser` et `essai_ronde_accroche_retirer` (l'accroche d'essai, posée une fois
+  chez les hommes, qui rend le point opposé au plus proche quand elle est active), `essai_rassembler_rondiers` et
+  `essai_lacher_rondiers` (les deux premiers hommes, rang 2, à la corvée), `essai_ronde_sans_pause` (le second
+  rondier) : 141 commandes.
+- **Banc** : 7 638 vérifications, cinq essais de plus (l'accroche à la pose et au rechargement ; les réponses rien,
+  refusées, en panne, plusieurs accroches ; la règle plus forte et le secours, la raison et le point d'avant ; la
+  lecture ; la ronde sans pause). Garde-fous éprouvés par cinq erreurs injectées, toutes attrapées : l'accroche appelée
+  à la pose, la raison du secours oubliée, le point visé d'avant perdu, « sans pause » ignoré, une réponse jamais
+  vérifiée. Rien dans l'arbre ni dans la liaison ; contrôle d'absence inchangé (32).
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

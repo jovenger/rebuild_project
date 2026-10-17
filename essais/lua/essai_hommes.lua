@@ -1662,3 +1662,168 @@ essai("ronde (fiche 15, V73 d 2) : la ronde d'essai est à l'écart des meubles,
   verifier(plus_pres >= 2.6, "le meuble le plus proche à " .. string.format("%.2f", plus_pres) .. " m (fiche : 2,7 m)")
 end)
 
+-- Fiche 15, V73 d 2 bis : l'accroche « ronde reprise », la lecture du point courant, la ronde sans pause (réponses a, a
+-- et a de JoVenGer du 17/10, relecture du pair).
+local function lignes_contenant(texte)
+  local n = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, texte, 1, true) then n = n + 1 end
+  end
+  return n
+end
+
+local function dernier_ordre_de_ronde()
+  local o = nil
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.activite == "ronde" then o = ordre end
+  end
+  return o
+end
+
+essai("ronde reprise (fiche 15, V73 d 2 bis) : l'accroche n'est pas appelée à la pose ; à la reprise après un rechargement, une fois, avec le lieu, le plus proche, le nombre de points, la raison", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  local appels = {}
+  verifier(hommes.accrocher("ronde_reprise", function(qui, quoi)
+    table.insert(appels, { id = qui, quoi = quoi })
+    return 3
+  end), "l'accroche se pose")
+  local ok, raison = hommes.accrocher("ronde_inconnue", function() end)
+  verifier(not ok and raison == "accroche_inconnue", "une accroche d'un nom inconnu reste refusée")
+  FauxJeu.positions[f.personnage] = { x = 0, y = 7.5, z = 0 }
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, fin = "liberation" })
+  egal(#appels, 0, "à la pose : l'accroche n'est pas appelée")
+  egal(hommes.en_ronde[id].vise, 1, "à la pose sans départ : le plus proche")
+  hommes.pas_de_ronde(f.personnage)
+  -- Le rechargement : l'accroche donne le point 3.
+  FauxJeu.positions[f.personnage] = { x = 7.5, y = 0, z = 0 }
+  FauxJeu.ordres, FauxJeu.journal_lignes = {}, {}
+  hommes.relancer()
+  hommes.battre()
+  egal(#appels, 1, "au rechargement : une fois")
+  local q = appels[1] and appels[1].quoi or {}
+  egal(appels[1] and appels[1].id, id, "l'homme")
+  egal(q.lieu, "r", "le lieu de la ronde")
+  egal(q.plus_proche, 2, "le point le plus proche")
+  egal(q.points, 4, "le nombre de points")
+  egal(q.raison, "rechargement", "la raison")
+  egal(q.precedent, nil, "après un rechargement, aucun point visé d'avant")
+  local o = dernier_ordre_de_ronde()
+  pres(o and o.position.x, 0, "l'ordre part vers le point donné par l'accroche (x)")
+  pres(o and o.position.y, -8, "l'ordre part vers le point donné par l'accroche (y)")
+  egal(hommes.en_ronde[id].vise, 3, "le point visé est celui de l'accroche")
+  egal(lignes_contenant("reprend la ronde « r » au point 3 (donné par l'accroche, rechargement)"), 1, "une ligne au journal")
+  -- Un homme qui n'est pas de ronde ne l'appelle jamais.
+  local autre = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  hommes.relancer()
+  hommes.battre()
+  egal(#appels, 2, "un second rechargement : un appel de plus, pour le seul rondier")
+  verifier(hommes.ronde_point(autre) == nil, "pas de ronde : aucune lecture")
+end)
+
+essai("ronde reprise (fiche 15, V73 d 2 bis) : rien rendu, une réponse refusée, une panne : le plus proche ; deux accroches : la première réponse valable", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  local reponse = nil
+  hommes.accrocher("ronde_reprise", function() return reponse end)
+  local function reprise()
+    FauxJeu.positions[f.personnage] = { x = -7.5, y = 0, z = 0 }   -- près du point 4
+    FauxJeu.journal_lignes = {}
+    hommes.relancer()
+    hommes.battre()
+    return hommes.en_ronde[id].vise
+  end
+  egal(reprise(), 4, "rien rendu : le plus proche")
+  egal(lignes_contenant("au point 4 (le plus proche, rechargement)"), 1, "dit au journal")
+  for _, mauvaise in ipairs({ 0, 5, 2.5, "3", true }) do
+    reponse = mauvaise
+    egal(reprise(), 4, "réponse « " .. tostring(mauvaise) .. " » : le plus proche")
+    egal(lignes_contenant("réponse refusée"), 1, "réponse « " .. tostring(mauvaise) .. " » refusée, dite au journal")
+  end
+  reponse = nil
+  hommes.accroches.ronde_reprise = {}
+  hommes.accrocher("ronde_reprise", function() error("panne") end)
+  egal(reprise(), 4, "une accroche en panne : le plus proche")
+  egal(lignes_contenant("accroche « ronde_reprise » en panne"), 1, "la panne dite au journal")
+  hommes.accroches.ronde_reprise = {}
+  hommes.accrocher("ronde_reprise", function() return nil end)
+  hommes.accrocher("ronde_reprise", function() return 2 end)
+  hommes.accrocher("ronde_reprise", function() return 3 end)
+  egal(reprise(), 2, "trois accroches, la première sans réponse : la seconde l'emporte")
+end)
+
+essai("ronde reprise (fiche 15, V73 d 2 bis) : après une règle plus forte et après un secours, la raison et le point visé d'avant", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  local appels = {}
+  hommes.accrocher("ronde_reprise", function(qui, quoi) table.insert(appels, quoi) end)
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  FauxJeu.positions[f.personnage] = { x = 0, y = 8.4, z = 0 }
+  hommes.pas_de_ronde(f.personnage)                          -- au point 1, vers le point 2
+  -- Une bataille le prend, puis le lâche.
+  hommes.tenir(id, "bataille", { activite = "bataille", lieu = "rang", position = point_d_essai(), fin = "liberation" })
+  egal(#appels, 0, "pris par la bataille : aucun appel")
+  verifier(hommes.ronde_point(id) == nil, "en bataille, aucune lecture de ronde")
+  hommes.lacher(id, "bataille")
+  egal(#appels, 1, "la bataille lâchée : un appel")
+  egal(appels[1] and appels[1].raison, "regle_plus_forte", "raison : une règle plus forte")
+  egal(appels[1] and appels[1].precedent, 2, "le point qu'il visait avant la reprise")
+  -- Le secours : posé d'un coup, puis l'ordre redonné.
+  FauxJeu.positions[f.personnage] = { x = 40, y = 40, z = 0 }
+  hommes.battre()
+  hommes.battre()
+  hommes.battre()
+  verifier(#appels >= 2, "après le secours : un appel")
+  local dernier = appels[#appels] or {}
+  egal(dernier.raison, "secours", "raison : le secours")
+  verifier(type(dernier.precedent) == "number", "le point visé avant le secours")
+  -- Une reprise sans raison notée (la raison est effacée à chaque ordre).
+  egal(hommes.raisons_de_reprise[id], nil, "la raison est effacée une fois l'ordre donné")
+end)
+
+essai("ronde (fiche 15, V73 d 2 bis) : la lecture du point courant, pour le guichet", function()
+  local id, f = rondier(10)
+  verifier(hommes.ronde_point(id) == nil, "avant la ronde : rien")
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin_carre(8), depart = 2, fin = "liberation" })
+  local p = hommes.ronde_point(id)
+  egal(p and p.lieu, "r", "le lieu")
+  egal(p and p.vise, 2, "le point visé")
+  egal(p and p.quitte, nil, "aucun point quitté")
+  egal(p and p.pas, 0, "aucun pas")
+  egal(p and p.points, 4, "le nombre de points")
+  hommes.pas_de_ronde(f.personnage)
+  p = hommes.ronde_point(id)
+  egal(p and p.vise, 3, "après un pas : le point visé")
+  egal(p and p.quitte, 2, "après un pas : le point quitté")
+  egal(p and p.pas, 1, "un pas")
+  hommes.lacher(id, "ronde")
+  verifier(hommes.ronde_point(id) == nil, "la ronde lâchée : rien")
+end)
+
+essai("ronde (fiche 15, V73 d 2 bis) : sans pause, ni arrêt ni demi-tour ; l'option se garde, se compare, se refuse si elle n'est pas vrai ou faux", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  local ok, raison = hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, pauses = "non", fin = "liberation" })
+  verifier(not ok and raison == "chemin_invalide", "pauses = « non » : refusé")
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  egal(hommes.fiche(id).tenues.ronde.pauses, nil, "par défaut, avec pauses (rien d'écrit)")
+  local ecrit = FauxJeu.registre_stocke
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, pauses = false, fin = "liberation" })
+  verifier(FauxJeu.registre_stocke ~= ecrit, "sans pause : la tenue change, écrite")
+  egal(hommes.fiche(id).tenues.ronde.pauses, false, "sans pause, gardé")
+  local avant = Scriptorium.hasard_en_ordre(hommes.hasard_de_la_ronde) and table.concat(hommes.hasard_de_la_ronde, ",") or "aucun"
+  for _ = 1, 6 do
+    local pas = hommes.pas_de_ronde(f.personnage)
+    egal(pas.pause_ms, 0, "sans pause : 0 ms")
+    egal(pas.longue, false, "jamais longue")
+    pres(pas.regard.x, pas.point.x, "le regard vers le point suivant (x)")
+    pres(pas.regard.y, pas.point.y, "le regard vers le point suivant (y)")
+  end
+  local apres = Scriptorium.hasard_en_ordre(hommes.hasard_de_la_ronde) and table.concat(hommes.hasard_de_la_ronde, ",") or "aucun"
+  egal(apres, avant, "le hasard des pauses n'est pas tiré")
+  -- Reposée avec les pauses : elles reviennent au pas suivant.
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  verifier(hommes.pas_de_ronde(f.personnage).pause_ms >= hommes.reglages.ronde_pause_min_ms, "les pauses reviennent")
+end)
+
