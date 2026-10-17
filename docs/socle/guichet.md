@@ -100,7 +100,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F54 | `BountyReport` | 1 dossier(s) | `Scriptorium.missions.rapport_de_mission(r)` (accroche) et `missions.rapport(id)` |
 | F55 | `BountyTierFor` | 1 dossier(s) | `Scriptorium.missions.niveau_pour(force, lieu)` (accroche) |
 | F56 | `CampActiveStations` | 1 dossier(s) | étape 5 (postes de travail) |
-| F57 | `CampAdmitToCamp` | 1 dossier(s) | étape 5 (faire entrer au camp un personnage déjà né) |
+| F57 | `CampAdmitToCamp` | 1 dossier(s) | `Scriptorium.hommes.admettre(personnage, contrat)` (un personnage déjà né, jamais refait, renvoyé, équipé ni mis dehors par le socle ; fiche 18, 5 c) |
 | F58 | `CampFormationDirty` | 1 dossier(s) | pas utile : l'ordre est redonné dès que l'activité change (`Scriptorium.hommes.tenir(id, regle, quoi)`) |
 | F59 | `CampOnMercJoined` | 1 dossier(s) | pas utile : `Scriptorium.hommes.embaucher(contrat)` inscrit l'homme au camp d'un seul coup |
 | F60 | `CampReturnAll` | 1 dossier(s) | `Scriptorium.hommes.lacher(id, regle)` (l'escorte, pour chacun) |
@@ -191,7 +191,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D34 | `CachedEnemies` | Scriptorium l'écrit aussi | `Scriptorium.bataille.bande(id)` (champ `personnages`) |
 | D35 | `CampBedSO` | 3 dossier(s) | `Scriptorium.camp.objets_du_jeu` (« lit ») |
 | D36 | `CampChairSO` | 3 dossier(s) | `Scriptorium.camp.objets_du_jeu` (« siege ») |
-| D37 | `CampForgeSmithWuid` | 3 dossier(s) | étape 5 (la forge et son forgeron) |
+| D37 | `CampForgeSmithWuid` | 3 dossier(s) | `Scriptorium.hommes.homme_du_personnage(personnage)` (le forgeron connu par son personnage ; admis par `Scriptorium.hommes.admettre`, rôle `forgeron`, exempté de garde et de ronde : `hommes.exemptions_des_metiers`) |
 | D38 | `CampPracticeYard` | 3 dossier(s) | étape 5 (poste d'entraînement) |
 | D39 | `CampRoster` | 3 dossier(s) | `Scriptorium.hommes.liste()` |
 | D40 | `CampSitSOOffset` | 3 dossier(s) | réglage : meubles.siege.places.assise.x (et .y) |
@@ -346,10 +346,10 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 200 | 35 | 74 | 79 | 12 |
+| service existant | 202 | 35 | 75 | 80 | 12 |
 | à ouvrir | 0 | 0 | 0 | 0 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
-| étape 5 | 27 | 2 | 5 | 16 | 4 |
+| étape 5 | 25 | 2 | 4 | 15 | 4 |
 | pas utile | 90 | 3 | 28 | 49 | 10 |
 | réglage | 20 | 0 | 4 | 15 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |

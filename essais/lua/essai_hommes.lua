@@ -3352,3 +3352,55 @@ essai("parlable (5 b) : « Parler » posé sur l'homme désigné, reposé au bat
   local ok, r = hommes.rendre_parlable("homme_inconnu", true)
   verifier(not ok and r == "homme_inconnu", "un inconnu : refusé")
 end)
+
+-- ---------------------------------------------------------------- fiche 18, 5 c : les gens de métier
+
+essai("métiers (5 c) : les gens de métier exemptés de garde, de ronde et de patrouille, en données", function()
+  preparer(5000, 100, 14)
+  camp.agrandir()
+  local soldats = {}
+  for i = 1, 4 do soldats[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 }) end
+  local forgeron = hommes.embaucher({ role = "forgeron", semaines = 4, prime = 0 })
+  local cuisinier = hommes.embaucher({ role = "cuisinier", semaines = 4, prime = 0 })
+  verifier(forgeron and cuisinier, "engagés")
+  for h = 0, 23 do
+    for _, g in ipairs(hommes.gardes(100 + h)) do
+      verifier(g.id ~= forgeron and g.id ~= cuisinier, "jamais de garde (" .. h .. " h)")
+    end
+  end
+  local ok, r = hommes.tenir(forgeron, "ronde", { activite = "ronde", lieu = "ronde", chemin = { { x = 0, y = 0, z = 0 }, { x = 5, y = 0, z = 0 } }, fin = "liberation" })
+  verifier(not ok and r == "homme_exempte", "pas de ronde")
+  egal(hommes.libre_pour(forgeron, "patrouille"), false, "pas de patrouille")
+  egal(hommes.libre_pour(forgeron, "mission"), true, "mais une mission, oui")
+  hommes.exemptions_des_metiers.garde = 0
+  egal(hommes.libre_pour(forgeron, "garde"), true, "réglé à 0 : de garde possible")
+  hommes.exemptions_des_metiers.garde = 1
+end)
+
+essai("métiers (5 c) : admettre un personnage déjà né (le forgeron de Scriptorium) ; jamais refait, renvoyé, équipé ni mis dehors", function()
+  preparer(5000, 100, 10)
+  local perso = FauxJeu.faire_venir_homme("ame-de-scriptorium", "Forgeron de Scriptorium", { x = 3, y = 3, z = 0 })
+  local nes = #FauxJeu.personnages
+  local id, r = hommes.admettre(perso, { role = "forgeron", semaines = 4, prime = 0, nom = "Mikuláš" })
+  verifier(id, "admis (" .. tostring(r) .. ")")
+  egal(#FauxJeu.personnages, nes, "aucun personnage né")
+  local f = hommes.fiche(id)
+  egal(f.personnage, perso, "son personnage")
+  egal(hommes.homme_du_personnage(perso), id, "connu par son personnage")
+  egal(f.equipement, nil, "pas équipé")
+  local ok2, r2 = hommes.admettre(perso, { role = "forgeron", semaines = 4, prime = 0 })
+  verifier(not ok2 and r2 == "deja_de_la_compagnie", "pas deux fois")
+  local ok3, r3 = hommes.admettre("personnage_inconnu", { role = "forgeron", semaines = 4, prime = 0 })
+  verifier(not ok3 and r3 == "personnage_introuvable", "un personnage introuvable : refusé")
+  local ok4, r4 = hommes.mettre_dehors(id, "essai")
+  verifier(not ok4 and r4 == "personnage_admis", "jamais mis dehors")
+  -- Absent (une autre carte) : il attend, rien n'est refait.
+  FauxJeu.personnages_existants[perso] = nil
+  hommes.redresser()
+  egal(#FauxJeu.personnages, nes, "absent : rien de refait")
+  FauxJeu.personnages_existants[perso] = true
+  local renvoyes = #FauxJeu.personnages_renvoyes
+  verifier(hommes.retirer(id, "renvoye"), "retiré de la Compagnie")
+  egal(#FauxJeu.personnages_renvoyes, renvoyes, "son personnage reste dans le monde")
+  verifier(FauxJeu.personnage_existe(perso), "toujours là")
+end)

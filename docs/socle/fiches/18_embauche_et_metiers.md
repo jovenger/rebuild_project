@@ -61,3 +61,20 @@ Comportement :
   s'il est défini comme fonction dans `Data/Scripts.pak` du jeu de base (vérifié à chaque passage ; refusé sans le jeu),
   au plus un (`GetActions`), affiché au rapport. Un nom de plus se demande à JoVenGer.
 - Au banc : posé, reposé au battement, l'accroche reçoit l'homme, ôté, inconnu refusé. Non vérifié en jeu.
+
+## 5 c — Les métiers
+
+### Tranche 1 : les gens de métier à part, et admettre un personnage déjà né
+
+Réponses prises d'office :
+- **Exemptions en données** : `hommes.exemptions_des_metiers = { garde = 1, garde_de_nuit = 1, ronde = 1,
+  patrouille = 1 }` (section de réglages `exemptions_des_metiers`) ; tout rôle de réserve « metier » (barbier,
+  cuisinier, armurier, forgeron) en est exempté. Avant, les gens de métier prenaient la garde. Les missions restent
+  permises (les sorties de 5 d).
+- **Le rôle `forgeron`** (solde 16, métier).
+- **Admettre un personnage déjà né** : `hommes.admettre(personnage, contrat)` (le contrat de l'embauche, sans âme ni
+  point) ; `hommes.homme_du_personnage(personnage)`. Un admis n'est jamais refait (absent, il attend au registre),
+  jamais renvoyé (retiré, son personnage reste dans le monde : il est à Scriptorium), jamais équipé, jamais mis dehors
+  (refus `personnage_admis`). Pour les gens que Scriptorium fait naître lui-même (le forgeron, le service) ; les hommes
+  de la partie de JoVenGer, eux, seront refaits sur nos âmes à la bascule (le pair, 17/10).
+- Au banc ; non vérifié en jeu.

@@ -90,7 +90,7 @@ essai("directeur : le menu dit ce qui est possible et pourquoi pas", function()
   egal(entree(menu, "acheter").raison, "coffre_vide", "raison")
   egal(entree(menu, "agrandir_le_camp").raison, "bois_insuffisant", "pas de bois")
   egal(entree(menu, "engager").disponible, true, "on peut engager")
-  egal(#entree(menu, "engager").detail.roles, 7, "sept rôles")
+  egal(#entree(menu, "engager").detail.roles, 8, "huit rôles (le forgeron, fiche 18, 5 c)")
   egal(entree(menu, "deposer").raison, "henry_sans_le_sou", "Henry n'a rien")
   for _, e in ipairs(menu) do
     verifier(string.find(e.cle, "^ui_scriptorium_gestion_") ~= nil, "clé de texte pour " .. e.action)
@@ -258,8 +258,8 @@ essai("directeur : il vient sur son âme ; né sur une âme empruntée, il rena�
   egal(FauxJeu.directeurs[2].ame, "ame_directeur_1_1", "sur son âme")
   verifier(directeur.relancer(), "toujours là")
   egal(#FauxJeu.directeurs, 2, "une seule fois")
-end)
-
+end)
+
 essai("directeur (fiche 15) : à la veillée, à l'écart du feu ; la nuit, à son lit par l'objet du jeu", function()
   preparer(0, 21)
   FauxJeu.ordres = {}

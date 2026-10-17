@@ -37,6 +37,7 @@ reglages.catalogue = {
   { section = "rondes", morceau = "hommes", table = "rondes", taux = { rayon_m = true } },
   { section = "formations", morceau = "hommes", table = "formations" },
   { section = "soldes", morceau = "hommes", table = "roles" },
+  { section = "exemptions_des_metiers", morceau = "hommes", table = "exemptions_des_metiers" },
   { section = "rangs", morceau = "hommes", table = "rangs", taux = { soudoyer = true, dizainier = true, capitaine = true } },
   { section = "equipement", morceau = "hommes", table = "equipement", parts = { etat_neuf = true } },
   { section = "paliers", morceau = "bataille", table = "paliers", taux = { palier_1 = true, palier_2 = true, palier_3 = true } },

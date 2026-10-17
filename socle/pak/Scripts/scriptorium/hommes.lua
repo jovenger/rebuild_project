@@ -272,7 +272,13 @@ hommes.roles = {
   barbier       = { solde = 15, reserve = "metier" },
   cuisinier     = { solde = 8, reserve = "metier" },
   armurier      = { solde = 16, reserve = "metier" },
+  -- Fiche 18, 5 c : le forgeron du camp (souvent le personnage de Scriptorium, admis par « hommes.admettre »).
+  forgeron      = { solde = 16, reserve = "metier" },
 }
+
+-- Fiche 18, 5 c (la liste du pair : le forgeron exclu de la garde et des rondes) : les règles dont les gens de métier
+-- sont exemptés (1 exempté, 0 non), en données.
+hommes.exemptions_des_metiers = { garde = 1, garde_de_nuit = 1, ronde = 1, patrouille = 1 }
 
 -- Rangs et multiplicateur de solde.
 hommes.rangs = { soudoyer = 1, dizainier = 1.5, capitaine = 2 }
@@ -692,6 +698,10 @@ end
 
 local function faire_venir(d, f, pres_d_henry, ici)
   local present = f.personnage and jeu().personnage_existe(f.personnage)
+  -- Fiche 18, 5 c : un personnage admis (né ailleurs, celui de Scriptorium) n'est jamais refait par le socle.
+  if f.admis then
+    return present and true or false
+  end
   if present and f.ame then
     return true
   end
@@ -756,6 +766,9 @@ local function faire_partir(d, f, cause, cle, garder_le_corps)
     -- Fiche 17 (relecture du pair) : un mort reste à terre, rien ne disparaît sous les yeux d'Henry ; qui l'a tué retire
     -- le corps plus tard, hors de sa vue.
     corps = f.personnage
+    f.personnage = nil
+  elseif f.personnage and f.admis then
+    -- Fiche 18, 5 c : un personnage admis reste dans le monde (il est à Scriptorium) ; le socle cesse seulement de le mener.
     f.personnage = nil
   elseif f.personnage then
     jeu().renvoyer_homme(f.personnage)
@@ -1227,6 +1240,21 @@ function hommes.embaucher(contrat)
   if p ~= nil and (type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number") then
     return refuser("position_invalide")
   end
+  -- Fiche 18, 5 c : « personnage » (hommes.admettre) : un personnage déjà né, pas encore de la Compagnie.
+  local deja_ne = contrat.personnage
+  if deja_ne ~= nil then
+    if type(deja_ne) ~= "string" or not jeu().personnage_existe(deja_ne) then
+      return refuser("personnage_introuvable", tostring(deja_ne))
+    end
+    for _, autre in ipairs(d.ordre) do
+      if d.liste[autre].personnage == deja_ne then
+        return refuser("deja_de_la_compagnie", autre)
+      end
+    end
+    if contrat.ame ~= nil or p ~= nil then
+      return refuser("personnage_avec_ame_ou_point")
+    end
+  end
   local role = hommes.roles[contrat.role]
   if not role then
     return refuser("role_inconnu", tostring(contrat.role))
@@ -1312,12 +1340,15 @@ function hommes.embaucher(contrat)
   end
   -- V73 f 3 b : embauché quand Henry est sur une autre carte que celle du camp, il rejoint le registre (sans personnage)
   -- et paraît au camp au retour d'Henry.
-  if camp().sur_sa_carte == nil or camp().sur_sa_carte() then
+  if deja_ne then
+    f.personnage, f.admis = deja_ne, true
+    jeu().journal("Hommes : « " .. f.nom .. " » admis (personnage « " .. deja_ne .. " », déjà né)")
+  elseif camp().sur_sa_carte == nil or camp().sur_sa_carte() then
     faire_venir(d, f, false, p and { x = p.x, y = p.y, z = p.z } or nil)
   else
     jeu().journal("Hommes : « " .. f.nom .. " » embauché loin du camp (autre carte) : il paraîtra au camp")
   end
-  if est_combattant(f) then
+  if est_combattant(f) and not f.admis then
     choisir_l_equipement(d, f)
   end
   verifier_rangs(d, {})
@@ -1328,6 +1359,30 @@ function hommes.embaucher(contrat)
     jeu().journal("Hommes : accroche « après l'embauche » en erreur : " .. tostring(erreur))
   end
   return id
+end
+
+-- Fiche 18, 5 c : admettre dans la Compagnie un personnage déjà né (le forgeron de Scriptorium, connu par son
+-- personnage) : le contrat de l'embauche, sans âme ni point ; il n'est jamais refait ni renvoyé par le socle, ni équipé ;
+-- absent (une autre carte, pas encore chargé), il attend au registre. Rend son identifiant, ou faux et la raison.
+function hommes.admettre(personnage, contrat)
+  local c = {}
+  for cle, valeur in pairs(contrat or {}) do c[cle] = valeur end
+  c.personnage = personnage
+  if c.personnage == nil then
+    return refuser("personnage_introuvable", "nil")
+  end
+  return hommes.embaucher(c)
+end
+
+-- L'homme dont le personnage est celui-ci, ou nil (le forgeron connu par son personnage).
+function hommes.homme_du_personnage(personnage)
+  local d = donnees()
+  for _, id in ipairs(d.ordre) do
+    if d.liste[id].personnage == personnage then
+      return id
+    end
+  end
+  return nil
 end
 
 -- Fiche 18, 5 b : rendre un homme parlable (Henry peut lui parler ; le dialogue de Scriptorium s'y greffe par l'accroche
@@ -1582,13 +1637,22 @@ local function tenue_la_plus_forte(f)
   return regle, tenue, rang_de(regle)
 end
 
+-- Exempté de cette règle : par sa fiche (hommes.exempter), ou parce qu'il est de métier (fiche 18, 5 c).
+local function exempte(f, regle)
+  if f.exemptions and f.exemptions[regle] then
+    return true
+  end
+  local role = hommes.roles[f.role]
+  return role ~= nil and role.reserve == "metier" and hommes.exemptions_des_metiers[regle] == 1
+end
+
 -- Service pour le guichet et pour les morceaux du socle : l'homme est-il libre pour cette règle ? Il n'en est pas exempté,
 -- et aucune règle aussi forte ne le tient (une tenue posée, ou ses blessures : les soins). Une tenue de la même règle ne
 -- compte pas : la reposer la met à jour.
 function hommes.libre_pour(id, regle)
   local f = donnees().liste[id]
   local rang = rang_de(regle)
-  if not f or not rang or (f.exemptions and f.exemptions[regle]) then
+  if not f or not rang or exempte(f, regle) then
     return false
   end
   local soins = rang_de("soins")
@@ -3424,7 +3488,7 @@ function hommes.tenir(id, regle, quoi)
   if not rang_de(regle) then
     return refuser("regle_inconnue", tostring(regle))
   end
-  if f.exemptions and f.exemptions[regle] then
+  if exempte(f, regle) then
     return refuser("homme_exempte", f.nom .. " : " .. regle)
   end
   quoi = quoi or {}
@@ -3625,6 +3689,11 @@ function hommes.redresser()
     if f.dehors then
       -- Fiche 17 : en mission, hors du monde ; il rentre par sa mission.
       laisses = laisses + 1
+    elseif f.admis then
+      -- Fiche 18, 5 c : un personnage admis n'est jamais refait ; absent, il attend.
+      if not present then
+        laisses = laisses + 1
+      end
     elseif not present or not f.ame then
       if sur_place or en_escorte(f) then
         if faire_venir(d, f, not sur_place) then revenus = revenus + 1 else manquants = manquants + 1 end
@@ -3651,6 +3720,9 @@ function hommes.mettre_dehors(id, motif)
   local f = d.liste[id]
   if not f then
     return refuser("homme_inconnu", tostring(id))
+  end
+  if f.admis then
+    return refuser("personnage_admis", f.nom)
   end
   local m = hommes.montures[id]
   if m and m.cheval then
