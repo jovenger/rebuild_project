@@ -53,6 +53,7 @@ local faux = {
 function faux.remettre_a_zero()
   faux.temps = 0
   faux.carte = nil
+  faux.inconscients = nil
   faux.positions = {}
   faux.vue_d_henry = nil
   faux.secours = {}
@@ -373,6 +374,9 @@ function faux.blesser(identifiant, points)
     faux.ennemis_vivants_par_id[identifiant] = nil
   end
   return true
+end
+function faux.personnage_inconscient(identifiant)
+  return faux.inconscients ~= nil and faux.inconscients[identifiant] == true
 end
 function faux.mettre_a_terre(identifiant, reste)
   faux.a_terre = faux.a_terre or {}

@@ -484,9 +484,14 @@ function poste.essai_mission(distance)
   poste.camps_d_essai = poste.camps_d_essai + 1
   local nom = "essai_" .. poste.camps_d_essai
   Scriptorium.missions.ajouter_un_lieu(nom, carte, point, 0)
+  -- Trois hommes libres (pas déjà en mission, ni dehors, ni blessés) : une seconde mission peut suivre la première.
   local hommes = {}
-  for k, id in ipairs(Scriptorium.hommes.liste()) do
-    if k <= 3 then table.insert(hommes, id) end
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    local f = Scriptorium.hommes.fiche(id)
+    if #hommes < 3 and f.blessure == 0 and not f.dehors and Scriptorium.hommes.libre_pour(id, "mission")
+        and Scriptorium.bataille.roles[f.role] then
+      table.insert(hommes, id)
+    end
   end
   local id, raison = Scriptorium.missions.prendre_une_mission({ lieu = nom, hommes = hommes, chef = hommes[1] })
   jeu().journal("Poste : mission = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or ""))

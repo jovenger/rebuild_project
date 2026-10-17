@@ -3257,6 +3257,20 @@ function liaison.mettre_a_terre(identifiant, reste)
   return ok, (not ok) and tostring(erreur) or nil
 end
 
+-- Fiche 17 (vu en jeu le 17/10 : Jan, assommé au combat, ne remontait pas à cheval) : le personnage est-il inconscient ?
+-- (actor:IsUnconscious, lu par la sonde du combat.) Vrai, faux, ou nil s'il ne se lit pas.
+function liaison.personnage_inconscient(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite or type(entite.actor) ~= "table" then
+    return nil
+  end
+  local lu, inconscient = pcall(function() return entite.actor:IsUnconscious() end)
+  if lu then
+    return inconscient == true
+  end
+  return nil
+end
+
 -- V71 a (fiche 13) : l'équipement par le Lua, mesuré avant d'écrire les tables. Les appels de l'outil de combat du jeu
 -- (Scripts/Debug/CombatDebug.lua : actor:EquipClothingPreset, actor:EquipWeaponPreset) sur l'un de nos hommes, hors
 -- -devmode ; et ce qu'ils donnent, compté par inventory:GetCountOfClass (Scripts/Utils/ItemUtils.lua). Préréglages et

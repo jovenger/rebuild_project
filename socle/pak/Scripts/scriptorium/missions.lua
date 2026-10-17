@@ -352,10 +352,35 @@ local function vivants_de(m)
 end
 
 -- La colonne va à un point, à cheval, son chef en tête.
+-- Un homme hors d'état (assommé) ne monte pas à cheval (vu en jeu le 17/10) : la colonne le porte.
+local function hors_d_etat(id)
+  local f = Scriptorium.hommes.fiche(id)
+  return f ~= nil and f.personnage ~= nil and jeu().personnage_inconscient(f.personnage) == true
+end
+
+-- La tête de la colonne : son chef s'il tient debout, sinon le premier homme debout (dans le monde, pas hors d'état).
+local function tete_de(m)
+  local debout = {}
+  for _, id in ipairs(vivants_de(m)) do
+    if not Scriptorium.hommes.est_dehors(id) and not hors_d_etat(id) then
+      table.insert(debout, id)
+    end
+  end
+  for _, id in ipairs(debout) do
+    if id == m.chef then
+      return id
+    end
+  end
+  return debout[1]
+end
+
+-- La colonne va à un point, à cheval, sa tête en avant.
 local function envoyer(m, vers)
+  m.tete = tete_de(m)
+  m.vers = vers and { x = vers.x, y = vers.y, z = vers.z } or nil
   for _, id in ipairs(vivants_de(m)) do
     Scriptorium.hommes.tenir(id, "mission", { activite = "suivre", lieu = m.id, vers = vers, a_cheval = true,
-      formation = "followNPC", tete = m.chef, fin = "liberation" })
+      formation = "followNPC", tete = m.tete, fin = "liberation" })
   end
 end
 
@@ -396,6 +421,13 @@ local function copie_de_la_mission(m)
 end
 
 local function finir_la_mission(d, m, heure)
+  -- Les portés rentrent avec la colonne, au bord du camp (sans camp, près d'Henry).
+  local retour = centre_du_camp() and point_de_retour(m) or nil
+  for i, id in ipairs(vivants_de(m)) do
+    if Scriptorium.hommes.est_dehors(id) then
+      Scriptorium.hommes.faire_rentrer(id, retour and { x = retour.x + i * 1.5, y = retour.y, z = retour.z } or nil)
+    end
+  end
   for _, id in ipairs(vivants_de(m)) do
     Scriptorium.hommes.lacher(id, "mission")
   end
@@ -557,7 +589,9 @@ local function avancer(d, m, heure)
       return false
     end
     for i, id in ipairs(vivants) do
-      Scriptorium.hommes.faire_rentrer(id, { x = point.x + (i - 1) * 2, y = point.y, z = point.z })
+      if Scriptorium.hommes.est_dehors(id) then
+        Scriptorium.hommes.faire_rentrer(id, { x = point.x + (i - 1) * 2, y = point.y, z = point.z })
+      end
     end
     m.etat = "retour"
     envoyer(m, point_de_retour(m))
@@ -565,6 +599,37 @@ local function avancer(d, m, heure)
     return true
   elseif m.etat == "retour" then
     local retour = point_de_retour(m)
+    -- Les hommes hors d'état sont portés : mis dehors hors de la vue d'Henry, ils rentrent avec la colonne ; si personne
+    -- ne tient debout, toute la colonne rentre « dehors », à l'heure calculée.
+    local change = false
+    for _, id in ipairs(vivants) do
+      local f = Scriptorium.hommes.fiche(id)
+      local ici = f.personnage and jeu().position_du_personnage(f.personnage)
+      if not Scriptorium.hommes.est_dehors(id) and hors_d_etat(id) and ici and not lieu_sous_les_yeux(ici) then
+        Scriptorium.hommes.mettre_dehors(id, m.id)
+        jeu().journal("Missions : « " .. m.id .. " » : « " .. f.nom .. " » hors d'état, porté par la colonne")
+        change = true
+      end
+    end
+    local tete = tete_de(m)
+    if not tete then
+      local fini = true
+      for _, id in ipairs(vivants) do
+        if not Scriptorium.hommes.est_dehors(id) then fini = false end
+      end
+      if fini then
+        local depuis, la = centre_du_camp() or m.lieu, m.lieu
+        m.etat = "dehors_retour"
+        m.retour = heure + math.sqrt((la.x - depuis.x) ^ 2 + (la.y - depuis.y) ^ 2) / missions.reglages.vitesse_m_par_h
+        jeu().journal("Missions : « " .. m.id .. " » : personne debout, la colonne rentre au loin")
+        return true
+      end
+      return change
+    end
+    if tete ~= m.tete and retour then
+      envoyer(m, retour)
+      change = true
+    end
     for _, id in ipairs(vivants) do
       local f = Scriptorium.hommes.fiche(id)
       local ici = f.personnage and jeu().position_du_personnage(f.personnage)
@@ -573,6 +638,7 @@ local function avancer(d, m, heure)
         return true
       end
     end
+    return change
   end
   return false
 end

@@ -126,6 +126,12 @@ le chemin du retour, entre à cheval et descend.
   retirés que hors de la vue d'Henry ; le camp de bandits n'est levé que hors de sa vue. Un mort, partout (même au combat
   vu dans le jeu), laisse son corps (`hommes.retirer` rend le corps). Une bande venue au camp : ses survivants s'en
   vont aussitôt, comme avant (choix de JoVenGer du 14/10).
+- **Séance suivante (7b66ead, puis rechargée avec 67fdb96)** : le combat figé tranché par passes (« défaite, 0 mort, 3
+  blessés ») ; « défaite au lieu, retour au camp ». Deux défauts vus, corrigés : au retour, aucun ordre (le point changé
+  n'entrait pas dans la signature de la tête ; corrigé, rechargé dans le jeu ouvert : l'ordre vers le bord du camp est
+  donné) ; puis la tête, Jan, assommé au combat, ne remonte pas : la colonne l'attend. **Corrigé** : un homme hors
+  d'état (`liaison.personnage_inconscient`) est porté (mis dehors hors de la vue d'Henry, il rentre avec la colonne) ; la
+  tête passe au premier homme debout ; personne debout : la colonne entière rentre au loin. Non vérifié en jeu.
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 

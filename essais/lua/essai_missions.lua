@@ -532,3 +532,66 @@ essai("missions (4 b) : le point de la colonne changé redonne l'ordre à sa tê
   verifier(vers_le_camp ~= nil, "la tête reçoit l'ordre vers le nouveau point")
   finir()
 end)
+
+-- Vu en jeu le 17/10 : Jan, assommé au combat, tête de la colonne, ne remontait pas à cheval ; la colonne l'attendait.
+essai("missions (4 b) : au retour, un homme hors d'état est porté ; la tête passe au premier debout ; personne debout : retour au loin", function()
+  local ids = preparer_la_mission()
+  local id = missions.prendre_une_mission({ lieu = "gue", hommes = ids, chef = ids[1] })
+  FauxJeu.position_joueur = { x = 0, y = 100, z = 0 }
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  local c = missions.camp(missions.mission(id).camp)
+  for _, e in ipairs(bataille.bande(c.bande).personnages) do
+    FauxJeu.ennemis_vivants_par_id[e] = nil
+  end
+  FauxJeu.inconscients = { [hommes.fiche(ids[1]).personnage] = true }
+  FauxJeu.vue_d_henry = function() return true end
+  battre()
+  battre()
+  egal(missions.mission(id).etat, "retour", "vaincu : retour")
+  egal(hommes.activite_de(ids[2], 10).suivi.vers, true, "le chef assommé : le deuxième mène")
+  verifier(not hommes.est_dehors(ids[1]), "sous les yeux d'Henry : l'assommé reste là")
+  FauxJeu.vue_d_henry = function() return false end
+  battre()
+  verifier(hommes.est_dehors(ids[1]), "hors de sa vue : porté (dehors)")
+  -- Les deux autres arrivent au bord du camp : la mission finit, le porté rentre.
+  for k = 2, 3 do
+    FauxJeu.positions[hommes.fiche(ids[k]).personnage] = { x = 0, y = 14, z = 0 }
+  end
+  battre()
+  egal(#missions.en_cours(), 0, "rentrée")
+  verifier(not hommes.est_dehors(ids[1]) and hommes.fiche(ids[1]).personnage ~= nil, "le porté rentré au camp")
+  -- Tous hors d'état : la colonne rentre au loin.
+  FauxJeu.inconscients = nil
+  finir()
+end)
+
+essai("missions (4 b) : tous hors d'état au retour : la colonne entière rentre au loin, puis renaît au bord du camp", function()
+  local ids = preparer_la_mission()
+  local id = missions.prendre_une_mission({ lieu = "gue", hommes = ids })
+  FauxJeu.position_joueur = { x = 0, y = 100, z = 0 }
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  local c = missions.camp(missions.mission(id).camp)
+  for _, e in ipairs(bataille.bande(c.bande).personnages) do
+    FauxJeu.ennemis_vivants_par_id[e] = nil
+  end
+  FauxJeu.inconscients = {}
+  for _, h in ipairs(ids) do FauxJeu.inconscients[hommes.fiche(h).personnage] = true end
+  FauxJeu.vue_d_henry = function() return false end
+  battre()
+  battre()
+  battre()
+  egal(missions.mission(id).etat, "dehors_retour", "personne debout : rentre au loin")
+  FauxJeu.inconscients = nil
+  FauxJeu.heure = 13
+  battre()
+  egal(missions.mission(id).etat, "retour", "renaît au bord du camp")
+  finir()
+end)
