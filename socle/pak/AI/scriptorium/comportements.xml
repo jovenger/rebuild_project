@@ -23,6 +23,10 @@
       <Variable name="geste_ecart" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="poste_geste" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="geste_nom" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="parole_sorte" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="parole_alias" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="parole_metarole" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="parole_participants" type="_wuid" values="" isPersistent="0" form="array" />
       <Variable name="ronde_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="ronde_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="ronde_pause" type="_string" values="" isPersistent="0" form="single" />
@@ -938,6 +942,44 @@
                       </Sequence>
                     </While>
                   </Parallel>
+                </IfCondition>
+                <IfCondition condition="$scriptorium_activite == 23 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Sequence>
+                    <SuppressFailure>
+                      <ExecuteLua code="pcall(function() Scriptorium.jeu.parole_de(entity, data) end)" />
+                    </SuppressFailure>
+                    <SuppressFailure>
+                      <Sequence>
+                        <IfCondition condition="$parole_sorte == 1" failOnCondition="false">
+                          <Function_speech_schedulerMonolog alias="$parole_alias" animationApproach="$enum:animationApproach.dontPlayDialogAnimations" context="" lookAtId="" metarole="$parole_metarole" skipInLod="false" subtitlesDown="false" nodeLabel="73110831" />
+                        </IfCondition>
+                        <IfCondition condition="$parole_sorte == 4" failOnCondition="false">
+                          <Function_speech_schedulerMonolog alias="$parole_alias" animationApproach="$enum:animationApproach.dontPlayDialogAnimations" context="" lookAtId="$__player" metarole="$parole_metarole" skipInLod="false" subtitlesDown="false" nodeLabel="73110834" />
+                        </IfCondition>
+                        <IfCondition condition="$parole_sorte == 2" failOnCondition="false">
+                          <Sequence>
+                            <ReinitVariable variable="$parole_participants" />
+                            <PushToArray array="$parole_participants" value="$this.id" direction="Front" />
+                            <PushToArray array="$parole_participants" value="$scriptorium_parole_partenaire" direction="Back" />
+                            <Function_speech_schedulerPolylog_initiator alias="$parole_alias" animationApproach="$enum:animationApproach.dontPlayDialogAnimations" context="" customParameters="" metarole="$parole_metarole" participants="$parole_participants" participantsMetaroles="" preset="$enum:dialogPreset.chat" nodeLabel="73110832" />
+                          </Sequence>
+                        </IfCondition>
+                        <IfCondition condition="$parole_sorte == 3" failOnCondition="false">
+                          <Function_speech_dialogInitiator alias="$parole_alias" animationApproach="$enum:animationApproach.dontPlayDialogAnimations" context="" customParameters="" metarole="" preset="$enum:dialogPreset.chat" recipient="$__player" recipientMetaroles="" nodeLabel="73110833" />
+                        </IfCondition>
+                      </Sequence>
+                    </SuppressFailure>
+                    <Expression expressions="$scriptorium_parole_jouee = $scriptorium_parole_jouee + 1" />
+                    <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                      <Sequence>
+                        <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                        <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                        <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                        <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </While>
+                  </Sequence>
                 </IfCondition>
                 <IfCondition condition="$scriptorium_activite == 22 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
                   <Sequence>

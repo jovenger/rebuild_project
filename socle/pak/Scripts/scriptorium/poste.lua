@@ -973,6 +973,32 @@ function poste.essai_registre_gros_relire()
   return intact
 end
 
+-- Fiche 20 : le premier homme dit une réplique du jeu (metarole « GOSSIP », relevé dans AI/carts/carts.xml) en regardant
+-- Henry ; puis il converse avec le deuxième.
+function poste.essai_replique()
+  local hommes = Scriptorium.hommes
+  local id = hommes.liste()[1]
+  if not id then
+    return false
+  end
+  local ok, raison = hommes.dire_une_replique(id, { metarole = "GOSSIP", regard_henry = true })
+  jeu().journal("Poste : réplique demandée = " .. tostring(ok or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
+function poste.essai_conversation()
+  local hommes = Scriptorium.hommes
+  local ids = hommes.liste()
+  if #ids < 2 then
+    return false
+  end
+  local ok, raison = hommes.conversation(ids[1], ids[2], { metarole = "GOSSIP" })
+  jeu().journal("Poste : conversation demandée = " .. tostring(ok or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2647,6 +2673,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_directeur_objets", fonction = function() return poste.essai_directeur_objets() end, aide = "Le Directeur habillé des pièces d'un homme équipé (D67, D69)" },
   { nom = "scriptorium_essai_registre_gros", fonction = function() return poste.essai_registre_gros() end, aide = "Une case d'essai de 500 Ko écrite, le temps mesuré ; puis une petite case (fiche 01)" },
   { nom = "scriptorium_essai_registre_gros_relire", fonction = function() return poste.essai_registre_gros_relire() end, aide = "La case d'essai de 500 Ko relue après rechargement, intacte ou non" },
+  { nom = "scriptorium_essai_replique", fonction = function() return poste.essai_replique() end, aide = "Le premier homme dit une réplique du jeu en regardant Henry (fiche 20)" },
+  { nom = "scriptorium_essai_conversation", fonction = function() return poste.essai_conversation() end, aide = "Les deux premiers hommes conversent (fiche 20)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

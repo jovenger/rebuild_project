@@ -3033,6 +3033,9 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       else
         ligne = "ronde refusée ; " .. poser_l_activite(entite, 9)
       end
+    elseif activite == "parole" and liaison.paroles[identifiant] then
+      -- Fiche 20 : la parole, sur place (ordre 23) : l'arbre la joue une fois.
+      ligne = "parole ; " .. poser_l_activite(entite, 23)
     elseif activite == "geste" and liaison.gestes_tenus[identifiant] then
       -- Fiche 18, 5 c (la forge « pareil », principe transmis par le pair) : le geste tenu à un point : l'homme marche au
       -- point, se tourne vers le point regardé, puis tient le geste (une posture « unstance » du jeu ou de Scriptorium,
@@ -3211,6 +3214,39 @@ function liaison.ordonner_au_poste_du_monde(qui, gabarit, geste, rayon)
   end
   liaison.gestes_des_postes[choisi:GetName()] = geste
   return donner_la_place(personnage, choisi, "poste du monde (" .. string.format("%.1f", plus_pres) .. " m)", 21)
+end
+
+-- Fiche 20 : la parole donnée à un personnage (avant son ordre « parole ») : sa sorte (1 réplique, 2 conversation,
+-- 3 dialogue vers Henry, 4 réplique en regardant Henry), son alias ou son metarole ; le partenaire d'une conversation,
+-- par son WUID dans le cerveau (scriptorium_parole_partenaire). Lue par l'arbre (branche 23) sous pcall.
+liaison.paroles = liaison.paroles or {}
+
+function liaison.donner_la_parole(identifiant, sorte, alias, metarole, partenaire)
+  liaison.paroles[identifiant] = { sorte = sorte, alias = alias or "", metarole = metarole or "" }
+  if partenaire then
+    local entite, autre = entite_nommee(identifiant), entite_nommee(partenaire)
+    local ok, erreur = pcall(function()
+      XGenAIModule.SetBrainVariable(entite.this.id, "scriptorium_parole_partenaire", XGenAIModule.GetMyWUID(autre))
+    end)
+    if not ok then
+      liaison.journal("Parole : le partenaire de « " .. identifiant .. " » non posé : " .. tostring(erreur))
+    end
+  end
+end
+
+function liaison.parole_de(entite, donnees)
+  local fait, erreur = pcall(function()
+    local nom = entite:GetName()
+    local p = liaison.paroles[nom]
+    if p then
+      donnees.parole_sorte, donnees.parole_alias, donnees.parole_metarole = p.sorte, p.alias, p.metarole
+      liaison.journal("Parole : « " .. tostring(nom) .. " » dit « " .. (p.alias ~= "" and p.alias or p.metarole) .. " » (sorte "
+                      .. tostring(p.sorte) .. ")")
+    end
+  end)
+  if not fait then
+    liaison.journal("Parole : erreur : " .. tostring(erreur))
+  end
 end
 
 -- Fiche 18, 5 c : le geste tenu donné à un personnage (avant son ordre « geste ») ; lu par l'arbre (branche 22) sous

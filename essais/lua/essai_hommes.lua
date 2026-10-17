@@ -3536,3 +3536,67 @@ essai("postes (5 c) : avec « reposer_tout_a_l_entree », les postes sont repos�
   egal(#FauxJeu.postes_poses, avant + 1, "le poste reposé à neuf")
   verifier(camp.poste("prie-Dieu é").pose, "posé")
 end)
+
+-- ---------------------------------------------------------------- fiche 20 : les paroles
+
+essai("paroles (fiche 20) : une réplique jouée une fois puis oubliée ; une conversation avec son partenaire ; jamais au lit ni en combat ; oubliée après l'attente", function()
+  preparer(5000, 100, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local b = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  hommes.battre()
+  local pa, pb = hommes.fiche(a).personnage, hommes.fiche(b).personnage
+  verifier(not hommes.dire_une_replique(a, {}), "sans alias ni metarole : refusée")
+  verifier(not hommes.dire_une_replique(a, { alias = "pas un alias !" }), "alias boiteux : refusée")
+  verifier(not hommes.conversation(a, a, { metarole = "GOSSIP" }), "partenaire lui-même : refusée")
+  FauxJeu.ordres, FauxJeu.paroles = {}, {}
+  verifier(hommes.dire_une_replique(a, { alias = "scr_bonjour", regard_henry = true }), "demandée")
+  local vu = nil
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == pa and o.activite == "parole" then vu = o end
+  end
+  verifier(vu ~= nil, "l'ordre de parole donné")
+  egal(FauxJeu.paroles[pa] and FauxJeu.paroles[pa].sorte, 4, "réplique en regardant Henry")
+  egal(FauxJeu.paroles[pa] and FauxJeu.paroles[pa].alias, "scr_bonjour", "son alias")
+  -- L'arbre l'a jouée : le compteur du cerveau avance ; au battement, la parole est oubliée, la journée reprend.
+  FauxJeu.variables_du_cerveau = FauxJeu.variables_du_cerveau or {}
+  FauxJeu.variables_du_cerveau[pa] = { scriptorium_parole_jouee = 1 }
+  hommes.battre()
+  egal(hommes.parole_de(a), nil, "jouée : oubliée")
+  verifier(lignes_contenant("a dit « scr_bonjour »") >= 1, "dite au journal")
+  -- La conversation : le partenaire donné à la liaison.
+  verifier(hommes.conversation(a, b, { metarole = "GOSSIP" }), "conversation demandée")
+  egal(FauxJeu.paroles[pa].sorte, 2, "conversation")
+  egal(FauxJeu.paroles[pa].partenaire, pb, "avec son partenaire")
+  FauxJeu.variables_du_cerveau[pa] = { scriptorium_parole_jouee = 2 }
+  hommes.battre()
+  egal(hommes.parole_de(a), nil, "jouée")
+  -- En combat : elle attend ; trop longtemps : oubliée.
+  FauxJeu.occupations[pb] = "combat"
+  FauxJeu.ordres = {}
+  verifier(hommes.dire_une_replique(b, { metarole = "GOSSIP" }), "demandée en combat")
+  local en_combat = false
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == pb and o.activite == "parole" then en_combat = true end
+  end
+  verifier(not en_combat, "en combat : pas d'ordre de parole")
+  FauxJeu.heure = FauxJeu.heure + hommes.reglages.parole_attente_max_h + 0.1
+  hommes.battre()
+  egal(hommes.parole_de(b), nil, "trop attendu : oubliée")
+  FauxJeu.occupations[pb] = nil
+  -- Au lit (la nuit) : elle attend.
+  FauxJeu.heure = 24 * 3 + 23
+  hommes.battre()
+  verifier(hommes.dire_une_replique(a, { metarole = "GOSSIP" }), "demandée la nuit")
+  egal(Scriptorium.avis(hommes, "peut_parler", a, hommes.parole_de(a), Scriptorium.avis(hommes, "activite_de", a, FauxJeu.heure)), false, "au sommeil : pas maintenant")
+  -- Remplaçable : Scriptorium l'autorise quand même.
+  avec_remplacement(hommes, "peut_parler", function() return true end, function()
+    FauxJeu.ordres = {}
+    hommes.battre()
+  end)
+  local nuit = false
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == pa and o.activite == "parole" then nuit = true end
+  end
+  verifier(nuit, "remplacée : la parole passe")
+  FauxJeu.variables_du_cerveau = {}
+end)

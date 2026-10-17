@@ -165,6 +165,8 @@ hommes.reglages = {
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
+  -- Fiche 20 : une demande de parole qui attend plus de tant d'heures du jeu (en combat, au lit) est oubliée.
+  parole_attente_max_h = 2,
   palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
   plafond = 80,               -- fiche 18, 5 a : la compagnie au plus (le chiffre de JoVenGer du 28/09)
   -- L'arbitre (fiche 15, V73 b 3) : une tenue « jusqu'à libération » (bataille, patrouille) tombe par sûreté au bout de
@@ -2910,7 +2912,31 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   end
   preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
   local a = Scriptorium.avis(hommes, "activite_de", id, heure)
+  -- Fiche 20 : une parole demandée : jouée (au plus une fois), puis oubliée ; elle attend en combat, en bataille, au lit.
+  local parole = hommes.paroles[id]
+  if parole then
+    local lus = jeu().lire_le_cerveau(f.personnage, { "scriptorium_parole_jouee" })
+    local jouees = tonumber(lus.scriptorium_parole_jouee) or 0
+    if parole.ordonnee and jouees > parole.jouees_avant then
+      jeu().journal("Hommes : « " .. f.nom .. " » a dit « " .. tostring(parole.alias or parole.metarole) .. " »")
+      hommes.paroles[id] = nil
+      parole = nil
+    elseif heure > parole.depuis + (tonumber(hommes.reglages.parole_attente_max_h) or 0) then
+      jeu().journal("Hommes : « " .. f.nom .. " » n'a pas pu dire « " .. tostring(parole.alias or parole.metarole) .. " » : oubliée")
+      hommes.paroles[id] = nil
+      parole = nil
+    elseif Scriptorium.avis(hommes, "peut_parler", id, hommes.parole_de(id), a) then
+      local partenaire = parole.partenaire and d.liste[parole.partenaire]
+      a = { activite = "parole", lieu = "parole_" .. parole.numero, regle = "parole", parole = parole,
+            partenaire = partenaire and partenaire.personnage or nil }
+      parole.ordonnee = true
+    end
+  end
   -- Fiche 18, 5 c : le geste tenu, donné avant l'ordre.
+  if a and a.parole and jeu().donner_la_parole then
+    jeu().donner_la_parole(f.personnage, hommes.sortes_de_paroles[a.parole.sorte], a.parole.alias, a.parole.metarole,
+                           a.partenaire)
+  end
   if a and a.geste and jeu().donner_le_geste then
     jeu().donner_le_geste(f.personnage, a.geste)
   end
@@ -3680,6 +3706,79 @@ function hommes.lacher(id, regle)
   ordonner_un_homme(d, id, jeu().heure_du_jeu(), nil, true)
   redonner_au_rassemblement(d, jeu().heure_du_jeu())
   return true
+end
+
+-- ---------------------------------------------------------------- les paroles (fiche 20)
+
+-- Les demandes de parole en cours, en mémoire (une parole n'a de sens que sur le moment) : id -> { sorte, alias,
+-- metarole, partenaire, numero, depuis, jouees_avant }.
+hommes.paroles = hommes.paroles or {}
+hommes.prochaine_parole = hommes.prochaine_parole or 1
+hommes.sortes_de_paroles = { replique = 1, conversation = 2, dialogue = 3, replique_vers_henry = 4 }
+
+-- Décision remplaçable (fiche 19) : cet homme peut-il dire sa parole maintenant ? Par défaut : ni occupé en combat, ni
+-- tenu par la bataille, ni au sommeil.
+function hommes.peut_parler(id, parole, activite)
+  local f = donnees().liste[id]
+  if not f or not f.personnage or jeu().occupation_de(f.personnage) == "combat" then
+    return false
+  end
+  return not (activite and (activite.regle == "bataille" or activite.activite == "sommeil"))
+end
+Scriptorium.remplacable(hommes, "peut_parler", function(rendu) return type(rendu) == "boolean" end)
+
+local function demander_la_parole(id, parole)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  local function nom_valable(n)
+    return n == nil or (type(n) == "string" and n ~= "" and string.match(n, "^[%w_]+$") ~= nil)
+  end
+  if not nom_valable(parole.alias) or not nom_valable(parole.metarole) or (parole.alias == nil and parole.metarole == nil) then
+    return refuser("parole_invalide", tostring(parole.alias or parole.metarole))
+  end
+  local lus = f.personnage and jeu().lire_le_cerveau(f.personnage, { "scriptorium_parole_jouee" }) or {}
+  parole.jouees_avant = tonumber(lus.scriptorium_parole_jouee) or 0
+  parole.numero = hommes.prochaine_parole
+  hommes.prochaine_parole = hommes.prochaine_parole + 1
+  parole.depuis = jeu().heure_du_jeu()
+  hommes.paroles[id] = parole
+  jeu().journal("Hommes : « " .. f.nom .. " » doit dire « " .. tostring(parole.alias or parole.metarole) .. " » (" .. parole.sorte .. ")")
+  ordonner_un_homme(d, id, parole.depuis, nil, true)
+  return true
+end
+
+-- Fiche 20 : une réplique de Scriptorium (un alias, sinon un metarole) ; « regard_henry » : en regardant Henry.
+function hommes.dire_une_replique(id, quoi)
+  quoi = quoi or {}
+  return demander_la_parole(id, { sorte = quoi.regard_henry and "replique_vers_henry" or "replique", alias = quoi.alias,
+                                  metarole = quoi.metarole })
+end
+
+-- Fiche 20 : une conversation à deux, depuis l'initiateur, avec son partenaire (un autre homme de la Compagnie).
+function hommes.conversation(id, partenaire, quoi)
+  quoi = quoi or {}
+  local p = donnees().liste[partenaire]
+  if not p or partenaire == id then
+    return refuser("partenaire_invalide", tostring(partenaire))
+  end
+  return demander_la_parole(id, { sorte = "conversation", alias = quoi.alias, metarole = quoi.metarole, partenaire = partenaire })
+end
+
+-- Fiche 20 : un dialogue du jeu vers Henry, par son alias.
+function hommes.dialogue_force(id, alias)
+  return demander_la_parole(id, { sorte = "dialogue", alias = alias })
+end
+
+-- La parole qui se joue (ou attend) pour cet homme : une copie, ou nil.
+function hommes.parole_de(id)
+  local p = hommes.paroles[id]
+  if not p then
+    return nil
+  end
+  return { sorte = p.sorte, alias = p.alias, metarole = p.metarole, partenaire = p.partenaire, numero = p.numero }
 end
 
 -- Service (réponse 3 a de JoVenGer, V73 b) : exempter un homme d'une règle, par exemple un compagnon de la garde de nuit
