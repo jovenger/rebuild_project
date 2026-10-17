@@ -1050,6 +1050,13 @@ toutes les 2 à 3 s (écart au but, pas, regard).
 - **La reprise d'une ronde est donc vue en jeu** (après une règle plus forte), ce qui manquait à V73 d 2.
 - **Pas vu en jeu** : les raisons « rechargement » et « secours » (prouvées au banc), `hommes.ronde_point` (banc), une
   accroche de Scriptorium qui espace vraiment six gardes.
+- **Gardé pour l'essai de nuit** (le pair, 17/10) : ce qui compte la nuit, c'est que les gardes restent espacés ; des
+  arrêts irréguliers d'un homme à l'autre feraient dériver l'écart. **La mesure qui tranchera** : trois rondiers sans
+  pause partis à 120° l'un de l'autre, 10 min, l'écart entre eux relevé chaque minute ; s'il reste à peu près égal, les
+  arrêts ne gênent pas. Sinon, une piste à la fois : (1) pour une ronde sans pause, un arrêt de marche plus large (2 à
+  3 m au lieu de 1 m), pour que l'appel au Lua et la marche suivante partent avant l'arrêt ; (2) les marches du jeu le
+  long d'un chemin de points (`AI/move/moveinformation_tagpointroute.xml`, à lire d'abord), qui suivent des points du
+  niveau : il faudrait poser des points à nous, plus lourd.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

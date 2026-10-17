@@ -302,6 +302,9 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   rechargement, secours, regle_plus_forte ; première réponse valable, sinon le plus proche) ; `hommes.ronde_point(id)`
   pour le guichet ; la ronde sans pause (`pauses = false` : 0 ms, regard vers le point suivant). Vu : la reprise après un
   rassemblement, avec et sans l'accroche ; sans pause, un court arrêt d'environ 2 s reste à certains points.
+- **Gardé pour l'essai de nuit** (fiche 15, « Mesuré en V73 d 2 bis ») : l'arrêt d'environ 2 s de la ronde sans pause ;
+  mesure : trois rondiers sans pause à 120°, 10 min, l'écart relevé chaque minute ; pistes : arrêt de marche plus large,
+  puis les marches du jeu le long d'un chemin de points.
 - **Suite** : V73 e, le rassemblement, avec sa fiche, la relecture du pair et les questions.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
