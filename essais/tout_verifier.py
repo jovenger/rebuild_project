@@ -1533,13 +1533,13 @@ def verifier_la_vie_du_camp():
     # chez Alex, cela défaisait toute la troupe) ; et « fermer avant d'ouvrir » : la branche 15 ferme l'ancienne formation
     # du même chef juste avant d'en ouvrir une (après un rattrapage, l'ordre redonné rouvrait sans fermer).
     fermer = re.search(r'<IfCondition condition="\$scriptorium_activite ~= 15 &amp; \$scriptorium_activite ~= 18 &amp; '
-                       r'\$formation_menee ~= \$__null"[^>]*>\s*'
+                       r'\$scriptorium_activite ~= 20 &amp; \$formation_menee ~= \$__null"[^>]*>\s*'
                        r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />', comportements)
     avant_d_ouvrir = re.findall(r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />\s*</SuppressFailure>\s*'
                                 r'<SuppressFailure>\s*<MakeFormation FormationName="\$formation_nom"', comportements)
-    if not fermer or len(avant_d_ouvrir) != 2 or comportements.count("<EndFormation") != 3 or "<FuseBox" in comportements:
-        erreur("vie du camp : la formation se ferme quand le chef cesse de mener (ni 15 ni 18), et juste avant d'en rouvrir "
-               "une, à pied comme à cheval (trois EndFormation, aucun FuseBox)")
+    if not fermer or len(avant_d_ouvrir) != 3 or comportements.count("<EndFormation") != 4 or "<FuseBox" in comportements:
+        erreur("vie du camp : la formation se ferme quand le chef cesse de mener (ni 15, ni 18, ni 20), et juste avant d'en "
+               "rouvrir une, à pied, à cheval et vers un point (quatre EndFormation, aucun FuseBox)")
     if "poser_l_activite(entite, 15)" not in liaison or "poser_l_activite(entite, 16)" not in liaison:
         erreur("vie du camp : la liaison doit donner les ordres 15 et 16")
     bloc_formations = re.search(r"hommes\.formations = \{(.*?)\n\}", hommes_lua, re.S)
@@ -1577,7 +1577,11 @@ def verifier_la_vie_du_camp():
     branche18 = comportements.split("$scriptorium_activite == 18", 1)
     branche19 = comportements.split("$scriptorium_activite == 19", 1)
     corps18 = branche18[1].split("$scriptorium_activite == 19")[0] if len(branche18) == 2 else ""
-    corps19 = branche19[1] if len(branche19) == 2 else ""
+    corps19 = branche19[1].split("$scriptorium_activite == 20")[0] if len(branche19) == 2 else ""
+    # Fiche 17, 4 b (la sonde du 17/10 : l'ordre 18 ne mène pas vers un objet du monde) : la branche 20, la 18 vers un
+    # point (scriptorium_essai_point) ; la monte manquée : à pied vers le point.
+    branche20 = comportements.split("$scriptorium_activite == 20", 1)
+    corps20 = branche20[1] if len(branche20) == 2 else ""
     manquee = '<Expression expressions="$scriptorium_monte_manquee = $scriptorium_monte_manquee + 1" />'
     mener_a_cheval = (r'<Parallel successMode="Any" failureMode="Any">\s*<Sequence>\s*<SuppressFailure>\s*'
                       r'<EndFormation FormationHandle="\$formation_menee" />\s*</SuppressFailure>\s*<SuppressFailure>\s*'
@@ -1627,8 +1631,19 @@ def verifier_la_vie_du_camp():
             or manquee not in corps19 or '<Wait duration="$monte_delai"' not in corps19):
         erreur("vie du camp : la branche 19 doit se ranger à cheval dans la formation de son chef (MoveHistory ou Relaxed, "
                "un nœud par mode), se mener vers lui quand il est perdu, la monte bornée et la monte manquée comptée")
-    if comportements.count(manquee) != 3:
-        erreur("vie du camp : les branches 17, 18 et 19 comptent chacune la monte manquée")
+    allures20 = re.findall(r'<IfCondition condition="\$allure_tenue == (\d)" failOnCondition="false">\s*'
+                           r'<Expression expressions="\$allure = \$enum:movementSpeed\.(\w+)" />', corps20)
+    if (not corps20 or not re.search(mener_a_cheval, corps20) or appel15 not in corps20 or manquee not in corps20
+            or '<Wait duration="$monte_delai"' not in corps20
+            or sorted(allures20) != [("0", "walk"), ("1", "run"), ("2", "dash"), ("3", "sprint")]
+            or not re.search(r'<Move destinationSpecification="\$scriptorium_essai_point"[^>]*speed="\$allure" '
+                             r'stopWithinDistance="\$allure_arret"', corps20)
+            or not re.search(r'<Move destinationSpecification="\$scriptorium_essai_point"[^>]*speed="Run"', corps20)
+            or "$scriptorium_chef" in corps20 or corps20.count('allure_vers_chef(entity, data)') != 2):
+        erreur("vie du camp : la branche 20 doit ouvrir la formation et mener à cheval vers le point (quatre allures, un Move "
+               "vers scriptorium_essai_point), la monte bornée, la monte manquée comptée et finie à pied vers le point")
+    if comportements.count(manquee) != 4:
+        erreur("vie du camp : les branches 17, 18, 19 et 20 comptent chacune la monte manquée")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '

@@ -2768,6 +2768,7 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
   liaison.regards[identifiant] = nil
   liaison.buts[identifiant] = nil
   liaison.chefs[identifiant] = nil
+  liaison.points_menes[identifiant] = nil
   liaison.formations_menees[identifiant] = nil
   liaison.allures_relevees[identifiant] = nil
   if not entite then
@@ -2780,6 +2781,30 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
     elseif activite == "attendre" then
       -- Fiche 15, V73 b 3 : la journée du socle coupée, l'homme qu'aucune règle ne tient attend où il est (activité 0).
       ligne = "attendre sur place ; " .. poser_l_activite(entite, 0)
+    elseif activite == "suivre" and suivi and suivi.vers and position then
+      -- Fiche 17, 4 b (la sonde du 17/10 : l'ordre 18 ne mène pas vers un objet du monde) : le chef de colonne mène vers
+      -- un point. Le point posé dans le cerveau, la formation ouverte, puis l'ordre 20 (à cheval) ; sans cheval, il
+      -- marche au point (ordre 9).
+      local this_lu, this = pcall(function() return entite.this end)
+      local point = liaison.au_sol(position)
+      local pose = this_lu and type(this) == "table"
+        and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+      local monture = suivi.mode == "cheval" and entite_nommee(suivi.cheval)
+      local monture_lue, wuid_monture = pcall(function() return XGenAIModule.GetMyWUID(monture) end)
+      local en_selle = pose and monture and monture_lue and wuid_monture ~= nil
+        and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_cheval", wuid_monture) end)
+      if not pose then
+        ligne = "colonne : point refusé, sans but"
+      elseif en_selle then
+        pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_monte_approche_ms",
+          math.floor(tonumber(suivi.approche_ms) or 0))
+        liaison.points_menes[identifiant] = point
+        liaison.formations_menees[identifiant] = suivi.formation
+        ligne = string.format("monte « %s » et mène la formation « %s » vers (%.1f, %.1f) ; ", tostring(suivi.cheval),
+          tostring(suivi.formation), point.x, point.y) .. poser_l_activite(entite, 20)
+      else
+        ligne = string.format("colonne à pied vers (%.1f, %.1f) ; ", point.x, point.y) .. poser_l_activite(entite, 9)
+      end
     elseif activite == "suivre" and chef then
       -- Suivre (V73 f 1) : le WUID du chef dans le cerveau, puis l'ordre 14 (la fonction de suivi du jeu) ; un chef
       -- introuvable : une marche simple vers « position », s'il y en a une.
@@ -2938,6 +2963,9 @@ end
 liaison.allure_choisie = liaison.allure_choisie
 liaison.vitesse_filtree = liaison.vitesse_filtree
 liaison.allures_relevees = liaison.allures_relevees or {}
+-- Fiche 17, 4 b : le point vers lequel un chef de colonne mène (ordre 20), par homme ; l'allure s'y règle comme sur un
+-- chef immobile.
+liaison.points_menes = liaison.points_menes or {}
 -- V73 f 2 g (relecture du pair) : une mesure par homme suivi, partagée par tous ceux qui le suivent.
 liaison.vitesses_des_chefs = liaison.vitesses_des_chefs or {}
 liaison.noms_des_allures = { [-1] = "tenir", [0] = "pas", [1] = "course", [2] = "trot rapide", [3] = "galop" }
@@ -2968,7 +2996,8 @@ function liaison.allure_vers_chef(entite, donnees)
   local fait, erreur = pcall(function()
     local nom = entite:GetName()
     local chef = liaison.chefs[nom]
-    local la = chef and ((chef == "henry") and liaison.position_du_joueur() or liaison.position_du_personnage(chef))
+    local point = liaison.points_menes[nom]
+    local la = point or (chef and ((chef == "henry") and liaison.position_du_joueur() or liaison.position_du_personnage(chef)))
     local ici_lu, ici = pcall(function() return entite:GetWorldPos() end)
     if not la or not ici_lu or type(ici) ~= "table" or not liaison.allure_choisie then
       return
@@ -2976,7 +3005,7 @@ function liaison.allure_vers_chef(entite, donnees)
     local horloge_lue, maintenant = pcall(function() return System.GetCurrTime() end)
     maintenant = horloge_lue and tonumber(maintenant) or nil
     local cadence = (tonumber(donnees and donnees.allure_cadence_ms) or 300) / 1000
-    local vitesse = vitesse_du_chef(chef, la, maintenant, cadence)
+    local vitesse = point and 0 or vitesse_du_chef(chef, la, maintenant, cadence)
     local memo = liaison.allures_relevees[nom] or {}
     liaison.allures_relevees[nom] = memo
     local ecart = ((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) ^ 0.5

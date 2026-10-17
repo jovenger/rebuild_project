@@ -178,7 +178,7 @@ local function poser_les_meubles(c)
     if modele and not (c.meubles[e.nom] and jeu().objet_existe(c.meubles[e.nom])) then
       local position, cap = camp().dans_le_monde(l, e.x, e.y, e.cap)
       local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, (cap + (modele.decalage or 0)) % 360,
-                                            "scriptorium_bandits_" .. c.id .. "_" .. e.nom, modele.classe)
+                                            "bandits_" .. c.id .. "_" .. e.nom, modele.classe)
       if identifiant then
         c.meubles[e.nom] = identifiant
         if modele.allume then
@@ -192,16 +192,6 @@ local function poser_les_meubles(c)
   c.meubles_poses = true
   jeu().journal("Missions : camp « " .. c.id .. " » meublé" .. (manquants > 0 and (", " .. manquants .. " manquant(s)") or ""))
   return true
-end
-
--- Le jalon d'un camp de bandits (son feu, posé) : la destination d'une colonne ; nil tant que ses meubles ne sont pas nés.
-function missions.jalon_du_camp(id)
-  local c = donnees().camps[id]
-  local feu = c and c.meubles and c.meubles.feu
-  if feu and jeu().objet_existe(feu) then
-    return feu
-  end
-  return nil
 end
 
 -- Dresse un camp de bandits à un lieu connu, à un niveau. Rend son nom, ou faux et la raison.

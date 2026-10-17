@@ -321,12 +321,6 @@ hommes.niveaux_de_moral = {
   { seuil = 0, nom = "abattu" },
 }
 
--- Un jalon (fiche 17, la colonne d'une mission) : un objet du monde, par son nom, qui existe ; une colonne peut le
--- prendre pour chef (le feu d'un camp de bandits à l'aller, notre feu au retour).
-local function est_un_jalon(nom)
-  return type(nom) == "string" and Scriptorium.jeu.objet_existe(nom) == true
-end
-
 -- La journée, par tranches d'heures (de inclus, a exclu ; la dernière passe minuit). Réglable par le fichier (section
 -- « journee », fiche 16, 3 b : l'horloge de Scriptorium) ; chaque tranche a un nom pour son chemin ; la nuit est la
 -- tranche du sommeil.
@@ -1665,7 +1659,7 @@ function hommes.activite_de(id, heure)
         -- formation (chef « henry » ou rien) se range dans sa formation.
         local dir = Scriptorium.directeur
         local du_directeur = tenue.chef == "directeur"
-          or (hommes.reglages.directeur_mene_l_escorte == true and tenue.formation ~= nil
+          or (hommes.reglages.directeur_mene_l_escorte == true and tenue.formation ~= nil and tenue.vers == nil
               and (tenue.chef == nil or tenue.chef == "henry") and dir ~= nil and dir.mene_une_formation() == true)
         local premier = du_directeur and 0 or 1
         if places and rang > premier and rang - premier <= places then
@@ -1691,10 +1685,19 @@ function hommes.activite_de(id, heure)
           elseif du_directeur then
             chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
           elseif tenue.chef ~= nil and tenue.chef ~= "henry" then
-            chef = (d.liste[tenue.chef] and d.liste[tenue.chef].personnage) or (est_un_jalon(tenue.chef) and tenue.chef) or nil
+            chef = d.liste[tenue.chef] and d.liste[tenue.chef].personnage
           end
         end
         resultat.chef = chef or "henry"
+        -- Fiche 17, 4 b : une colonne qui va à un point ; sa tête mène vers le point, sans chef ; tous en sont marqués
+        -- (ni grand saut derrière Henry, ni refaits près de lui).
+        if tenue.vers then
+          resultat.vers = true
+          if chef == nil then
+            resultat.chef = nil
+            resultat.suivi = resultat.suivi or { mode = "mener", formation = tenue.formation }
+          end
+        end
         -- V73 f 2 a : à cheval (la sonde) ; l'homme qui a un cheval le monte et suit son chef en selle.
         if tenue.cheval then
           resultat.suivi = { mode = "cheval", cheval = tenue.cheval }
@@ -1709,8 +1712,15 @@ function hommes.activite_de(id, heure)
         resultat.signature = rang .. "/" .. nombre .. (resultat.suivi and ("/" .. resultat.suivi.mode) or "")
           .. (resultat.suivi and resultat.suivi.role and ("/" .. resultat.suivi.role) or "")
           .. (resultat.suivi and resultat.suivi.cheval and ("/" .. resultat.suivi.cheval) or "")
-        resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
-          or jeu().position_du_personnage(resultat.chef)
+        if resultat.suivi then
+          resultat.suivi.vers = (resultat.vers and resultat.chef == nil) or nil
+        end
+        if resultat.vers and resultat.chef == nil then
+          resultat.position = { x = tenue.vers.x, y = tenue.vers.y, z = tenue.vers.z }
+        else
+          resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
+            or jeu().position_du_personnage(resultat.chef)
+        end
       end
     end
     if tenue.activite == "rassemblement" and tenue.centre then
@@ -2710,7 +2720,7 @@ function hommes.lancer_les_sauts()
       else
         a = hommes.activite_de(cle, heure)
       end
-      if a and a.activite == "suivre" and a.chef and a.suivi and a.suivi.mode == "cheval" then
+      if a and a.activite == "suivre" and a.chef and not a.vers and a.suivi and a.suivi.mode == "cheval" then
         if sous_les_yeux_d_henry(jeu().position_du_personnage(f.personnage)) then
           jeu().journal("Hommes : « " .. tostring(f.nom) .. " » sous les yeux d'Henry : pas de saut, il rejoint à cheval")
         else
@@ -3201,6 +3211,7 @@ local function memes_tenues(a, b)
     and memes_chemins(a.chemin, b.chemin) and memes_points(a.centre, b.centre) and a.rayon == b.rayon
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
+    and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -3276,14 +3287,23 @@ function hommes.tenir(id, regle, quoi)
     arc = { centre = { x = c.x, y = c.y, z = c.z }, rayon = quoi.rayon, ouverture = quoi.ouverture, face = quoi.face,
             allure = quoi.allure }
   end
-  -- Suivre (V73 f 1) : le chef de la colonne, « henry » (défaut), « directeur », un autre homme du camp, ou un jalon
-  -- (fiche 17 : un objet posé par le socle, la destination d'une colonne).
+  -- Suivre (V73 f 1) : le chef de la colonne, « henry » (défaut), « directeur », ou un autre homme du camp. Fiche 17,
+  -- 4 b : « vers » (un point du monde) : la colonne va à ce point, menée par son premier homme, sans chef.
   if quoi.activite == "suivre" and quoi.chef ~= nil and quoi.chef ~= "henry" and quoi.chef ~= "directeur"
-      and (not d.liste[quoi.chef] or quoi.chef == id) and not est_un_jalon(quoi.chef) then
+      and (not d.liste[quoi.chef] or quoi.chef == id) then
     return refuser("escorte_invalide", "chef " .. tostring(quoi.chef))
   end
   if quoi.activite == "suivre" and quoi.formation ~= nil and not hommes.formations[quoi.formation] then
     return refuser("escorte_invalide", "formation " .. tostring(quoi.formation))
+  end
+  local vers = nil
+  if quoi.vers ~= nil then
+    local v = quoi.vers
+    if quoi.activite ~= "suivre" or quoi.chef ~= nil or type(v) ~= "table" or type(v.x) ~= "number" or type(v.y) ~= "number"
+        or (v.z ~= nil and type(v.z) ~= "number") then
+      return refuser("colonne_invalide", "vers")
+    end
+    vers = { x = v.x, y = v.y, z = v.z or 0 }
   end
   if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" and quoi.a_cheval ~= "comme_henry" then
     return refuser("escorte_invalide", "a_cheval " .. tostring(quoi.a_cheval))
@@ -3301,7 +3321,7 @@ function hommes.tenir(id, regle, quoi)
                   chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart,
                   pauses = pauses, centre = arc and arc.centre, rayon = arc and arc.rayon,
                   ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
-                  chef = (quoi.activite == "suivre") and quoi.chef or nil,
+                  chef = (quoi.activite == "suivre") and quoi.chef or nil, vers = vers,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
                   a_cheval = (quoi.activite == "suivre" and (quoi.a_cheval == true or quoi.a_cheval == "comme_henry"))
@@ -3398,7 +3418,7 @@ end
 -- suit) ; elle passe d'une carte à l'autre avec lui.
 local function en_escorte(f)
   local _, t = tenue_la_plus_forte(f)
-  return t ~= nil and t.activite == "suivre"
+  return t ~= nil and t.activite == "suivre" and t.vers == nil
 end
 
 function hommes.redresser()

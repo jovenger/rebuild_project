@@ -53,4 +53,20 @@ viennent l'attaquer (atout « Envers et contre tous » à l'écran) ; abattus pa
 « camp vaincu » une fois, l'annonce au bandeau ; puis levé. **Non vus en jeu** : la fuite d'Henry (retour au poste), un
 de nos hommes qui donne l'alerte, la réfection au chargement, la levée 24 h après (vus au banc).
 
+## Tranche 2 — La mission et sa colonne (en cours)
+
+Déroulé (le pair, 17/10) : la troupe monte à cheval au camp et sort en colonne ; **avec Henry**, elle va jusqu'au camp de
+bandits et s'y bat (tranche 1) ; **sans Henry**, hors de sa vue, elle passe « dehors » (retirée du monde, gardée au
+registre), l'issue se calcule (force de la colonne contre celle du camp), puis elle renaît hors de la vue d'Henry sur
+le chemin du retour, entre à cheval et descend.
+
+- **La colonne va à un point** : `hommes.tenir(id, regle, { activite = "suivre", vers = { x, y, z }, a_cheval = true,
+  formation })` ; sa tête mène vers le point (ordre 20 : la branche 18 vers `scriptorium_essai_point`), les autres se
+  rangent (ordre 19). Une colonne vers un point ne fait pas le grand saut derrière Henry, n'est pas refaite près de lui,
+  et le Directeur ne la prend pas.
+- **Sonde du 17/10 (b56d855)** : l'ordre 18 avec pour chef un objet du monde (le feu du camp de bandits) : la monte et la
+  formation se font (« Formation de Jan : followNPC », allure « course » à 142 m), mais **Jan n'a pas bougé** en deux
+  minutes (même position à deux relevés) : le `Move` vers une entité qui n'est pas un personnage échoue en silence.
+  D'où l'ordre 20 vers un point (le jalon invisible n'aurait pas mieux marché). **Non vérifié en jeu** : l'ordre 20.
+
 À reprendre plus tard : le lieu d'essai pris devant Henry peut tomber dans une ferme (vu : derrière un mur) ; un vrai coffre du jeu à fouiller au milieu du camp ; les bandits assis au feu ou couchés.

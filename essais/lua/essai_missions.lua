@@ -98,7 +98,7 @@ essai("missions : rien ne naît sur une autre carte ni sous les yeux d'Henry ; i
   verifier(missions.camp(id).meubles, "et les meubles")
   local feu = nil
   for _, o in ipairs(FauxJeu.objets_poses) do
-    if o.nom == "scriptorium_bandits_" .. id .. "_feu" then feu = o.identifiant end
+    if o.nom == "bandits_" .. id .. "_feu" then feu = o.identifiant end
   end
   verifier(feu and FauxJeu.feux_allumes[feu], "le feu du camp de bandits allumé")
   egal(la_bande(id).etat, "postee", "à 200 m : ils restent à leur poste")
@@ -226,22 +226,28 @@ essai("missions : les accroches se remplacent ; lever un camp oublie sa bande", 
   finir()
 end)
 
-essai("missions (4 b) : une colonne prend le feu d'un camp de bandits pour chef ; le premier mène à cheval, les autres se rangent", function()
+essai("missions (4 b) : une colonne va à un point ; sa tête mène vers le point, les autres se rangent ; ni saut ni Directeur", function()
   local ids = preparer({ "homme_d_armes", "homme_d_armes", "archer" })
-  local id = missions.dresser_un_camp("gue", "petit")
-  local jalon = missions.jalon_du_camp(id)
-  verifier(jalon, "le feu du camp sert de jalon")
-  verifier(not hommes.tenir(ids[1], "escorte", { activite = "suivre", chef = "scriptorium_rien", fin = "liberation" }),
-    "un jalon qui n'existe pas : refusé")
+  local vers = { x = 0, y = 200, z = 0 }
+  verifier(not hommes.tenir(ids[1], "escorte", { activite = "suivre", vers = { x = 1 }, fin = "liberation" }), "point boiteux : refusé")
+  verifier(not hommes.tenir(ids[1], "escorte", { activite = "suivre", vers = vers, chef = "henry", fin = "liberation" }),
+    "un point et un chef : refusé")
+  verifier(not hommes.tenir(ids[1], "escorte", { activite = "garde", vers = vers, fin = "liberation" }), "un point hors d'une colonne : refusé")
   for _, h in ipairs(ids) do
-    verifier(hommes.tenir(h, "escorte", { activite = "suivre", lieu = "colonne", chef = jalon, formation = "followNPC",
-      a_cheval = true, fin = "liberation" }), "tenu vers le jalon")
+    verifier(hommes.tenir(h, "escorte", { activite = "suivre", lieu = "colonne", vers = vers, formation = "followNPC",
+      a_cheval = true, fin = "liberation" }), "tenu vers le point")
   end
   local a1, a2 = hommes.activite_de(ids[1], 10), hommes.activite_de(ids[2], 10)
-  egal(a1.chef, jalon, "le premier suit le jalon")
-  egal(a1.suivi and a1.suivi.role or (a1.suivi and a1.suivi.mode), "mener", "et mène")
-  egal(a2.chef, hommes.fiche(ids[1]).personnage, "le deuxième suit le premier")
-  missions.lever_un_camp(id)
-  egal(hommes.activite_de(ids[1], 10).chef, "henry", "le jalon retiré : plus de chef lu (Henry par défaut)")
+  egal(a1.chef, nil, "la tête n'a pas de chef")
+  egal(a1.position and a1.position.y, 200, "elle va au point")
+  verifier(a1.suivi and a1.suivi.vers == true, "elle mène vers le point")
+  egal(a2.chef, hommes.fiche(ids[1]).personnage, "le deuxième suit la tête")
+  verifier(a2.vers == true and not (a2.suivi and a2.suivi.vers), "le deuxième est de la colonne, sans point à lui")
+  -- L'ordre donné à la tête : vers le point.
+  local ordre = nil
+  for _, o in ipairs(FauxJeu.ordres or {}) do
+    if o.identifiant == hommes.fiche(ids[1]).personnage then ordre = o end
+  end
+  verifier(ordre and ordre.suivi and ordre.suivi.vers == true, "l'ordre de la tête porte le point")
   finir()
 end)
