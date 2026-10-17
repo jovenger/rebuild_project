@@ -825,6 +825,15 @@ function poste.essai_prefab_priere()
   return poste.forge_d_essai ~= nil
 end
 
+-- Second essai de la forge (17/10 : la petite forge, préfabriqué imbriqué, ne naît pas ; celui de la prière naît) :
+-- le préfabriqué de base (Prefabs/profession/blacksmith/smithy_workshop_base.xml, Prefab Id bad22e6e-…-0724) : le
+-- poste du forgeron, la station de forge, les emplacements, l'enclume ; le sac de forge lui vient d'un port extérieur.
+function poste.essai_forge_base()
+  local point, cap = devant_henry(6)
+  poste.forge_d_essai = jeu().faire_naitre_un_prefabrique("forge_base", "bad22e6e-32ed-4c2a-9597-668243bb0724", point, cap or 0)
+  return poste.forge_d_essai ~= nil
+end
+
 function poste.essai_forge_tenir()
   local hommes = Scriptorium.hommes
   local id = hommes.liste()[1]
@@ -2511,6 +2520,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_postes_fin", fonction = function() return poste.essai_postes_fin() end, aide = "Hommes lâchés des postes, postes retirés" },
   { nom = "scriptorium_essai_forge_naitre", fonction = function() return poste.essai_forge_naitre() end, aide = "Sonde : la petite forge du jeu née entière (RuntimePrefab) devant Henry" },
   { nom = "scriptorium_essai_prefab_priere", fonction = function() return poste.essai_prefab_priere() end, aide = "Sonde : le préfabriqué de la prière né entier (RuntimePrefab) devant Henry" },
+  { nom = "scriptorium_essai_forge_base", fonction = function() return poste.essai_forge_base() end, aide = "Sonde : le préfabriqué de base de la forge né entier devant Henry" },
   { nom = "scriptorium_essai_forge_tenir", fonction = function() return poste.essai_forge_tenir() end, aide = "Sonde : le premier homme au poste du forgeron le plus proche" },
   { nom = "scriptorium_essai_forge_retirer", fonction = function() return poste.essai_forge_retirer() end, aide = "Sonde : la forge d'essai retirée" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
