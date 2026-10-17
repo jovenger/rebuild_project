@@ -701,11 +701,18 @@ local function appliquer(d, b, issue, morts_par_le_jeu, blesses_donnes, gagne)
   local butin = math.floor((b.butin_du_camp or b.effectif * bataille.sortes[b.sorte].butin_par_tete) * part)
   if butin > 0 then
     coffre().encaisser(butin, "butin")
-    local part_hommes = math.floor(butin / 2)
-    local part_capitaine = 0
-    local effectif = hommes().effectif()
-    if effectif.par_rang.capitaine and effectif.par_rang.capitaine > 0 then
-      part_capitaine = math.floor(butin / 6)
+    -- Le partage (accroche ; la règle de Scriptorium « partage_40_60 », « part du capitaine ») : des parts entières,
+    -- positives, dont la somme ne dépasse pas le butin ; sinon refusé (une ligne au journal) et tout reste au coffre.
+    local lu, parts = pcall(bataille.partager_le_butin, butin, b.combattants or {})
+    local part_hommes = lu and type(parts) == "table" and parts.hommes
+    local part_capitaine = lu and type(parts) == "table" and parts.capitaine
+    local function juste(n)
+      return type(n) == "number" and n == n and n >= 0 and n < math.huge and math.floor(n) == n
+    end
+    if not (juste(part_hommes) and juste(part_capitaine) and part_hommes + part_capitaine <= butin) then
+      jeu().journal("Bataille : partage du butin refusé (" .. tostring(lu and type(parts) == "table" and
+        (tostring(parts.hommes) .. " / " .. tostring(parts.capitaine)) or parts) .. ") : tout reste au coffre")
+      part_hommes, part_capitaine = 0, 0
     end
     if part_hommes > 0 then coffre().payer(part_hommes, "part_hommes") end
     if part_capitaine > 0 then coffre().payer(part_capitaine, "part_capitaine") end
@@ -721,6 +728,54 @@ local function appliquer(d, b, issue, morts_par_le_jeu, blesses_donnes, gagne)
     table.remove(d.resultats, 1)
   end
   return resultat
+end
+
+-- Le partage du butin (accroche : la règle de Scriptorium le remplace) : la moitié aux hommes, un sixième au capitaine
+-- s'il y en a un. Rend { hommes, capitaine } en groschen entiers.
+function bataille.partager_le_butin(butin, combattants)
+  local part_capitaine = 0
+  local effectif = hommes().effectif()
+  if effectif.par_rang.capitaine and effectif.par_rang.capitaine > 0 then
+    part_capitaine = math.floor(butin / 6)
+  end
+  return { hommes = math.floor(butin / 2), capitaine = part_capitaine }
+end
+
+-- Les personnages d'une bande (fiche 17 ; Scriptorium en ajoute et en retire : ses propres bandits à un camp) : une
+-- copie ; ajouter un personnage du monde qui n'y est pas ; le retirer de la bande (pas du monde). Vrai si fait.
+function bataille.personnages_de(id)
+  local b = donnees().bandes[id]
+  local copie = {}
+  for i, p in ipairs(b and b.personnages or {}) do copie[i] = p end
+  return copie
+end
+
+function bataille.ajouter_a_la_bande(id, personnage)
+  local b = donnees().bandes[id]
+  if not b or b.etat == "finie" or type(personnage) ~= "string" or not jeu().personnage_existe(personnage) then
+    return refuser("ajout_refuse", tostring(personnage))
+  end
+  b.personnages = b.personnages or {}
+  for _, p in ipairs(b.personnages) do
+    if p == personnage then return false end
+  end
+  table.insert(b.personnages, personnage)
+  b.effectif = b.effectif + 1
+  enregistrer()
+  return true
+end
+
+function bataille.retirer_de_la_bande(id, personnage)
+  local b = donnees().bandes[id]
+  for i, p in ipairs(b and b.personnages or {}) do
+    if p == personnage then
+      table.remove(b.personnages, i)
+      b.effectif = math.max(0, b.effectif - 1)
+      enregistrer()
+      return true
+    end
+  end
+  return false
 end
 
 -- Trancher une bande par passes (bataille.issue_au_loin) contre ces combattants : morts ou blessés selon

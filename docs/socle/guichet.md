@@ -19,7 +19,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A13 | `UpdateMeleeCombatData` | enveloppée par : conspiration_du_camp, duels_judiciaires | à ouvrir : `bataille.lua`, `a_relancer` (le suivi au contact) |
 | A14 | `AdvancePatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.jeu.accrocher_la_ronde(fonction)` (enveloppe `Scriptorium.hommes.pas_de_ronde`) |
 | A15 | `BanditCampScale` | enveloppée par : assaut_des_convois | `Scriptorium.missions.taille_du_camp(lieu, niveau)` (accroche, fiche 17) |
-| A16 | `BountyReservedSites` | enveloppée par : missions_en_parallele | étape 4 (camps de bandits, missions) |
+| A16 | `BountyReservedSites` | enveloppée par : missions_en_parallele | `Scriptorium.missions.lieu_reserve(nom)` (accroche, fiche 17, tranche 3) |
 | A17 | `BreakMercCamp` | enveloppée par : montage_du_camp | `Scriptorium.camp.lever()` |
 | A18 | `CampIsNight` | enveloppée par : journee_du_camp | réglage : journee.sommeil.de (la nuit est la tranche du sommeil, fiche 16) |
 | A19 | `CampRelativeOffset` | enveloppée par : camp_en_arc | `Scriptorium.camp.dans_le_monde(ancre, x, y, cap)` |
@@ -64,7 +64,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F18 | `LogiAddMorale` | changer le moral de la compagnie, avec une raison | `Scriptorium.hommes.moral_pour_tous(delta)` |
 | F19 | `LogiAliveCount` | 4 dossier(s) | `Scriptorium.hommes.effectif()` |
 | F20 | `NoteAttacker` | 4 dossier(s) | pas utile : l'ennemi est la bande levée (`Scriptorium.bataille.bande(id)`), pas un attaquant noté |
-| F21 | `BanditCampSiteAnchor` | 3 dossier(s) | étape 4 (camps de bandits, missions) |
+| F21 | `BanditCampSiteAnchor` | 3 dossier(s) | `Scriptorium.missions.lieux_de(carte)` et `ajouter_un_lieu(nom, carte, position, cap)` |
 | F22 | `BeginFollowVerify` | 3 dossier(s) | `Scriptorium.hommes.tenir(id, "escorte", quoi)` |
 | F23 | `CUCount` | 3 dossier(s) | étape 5 (postes posés par JoVenGer ; l'enceinte : `Scriptorium.enceinte.niveau()`) |
 | F24 | `CUStatus` | 3 dossier(s) | étape 5 (postes posés par JoVenGer ; l'enceinte : `Scriptorium.enceinte.est_batie()`) |
@@ -74,7 +74,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F28 | `IsHeroName` | 3 dossier(s) | pas utile : Henry n'est jamais dans les listes du socle (`Scriptorium.hommes.liste()`) |
 | F29 | `Recount` | 3 dossier(s) | `Scriptorium.hommes.effectif()` |
 | F30 | `AlxWear` | 2 dossier(s) | `Scriptorium.jeu.faire_porter(personnage, objets)` |
-| F31 | `BanditCampWith` | 2 dossier(s) | étape 4 (camps de bandits, missions) |
+| F31 | `BanditCampWith` | 2 dossier(s) | `Scriptorium.missions.dresser_un_camp(lieu, niveau)` (le plan : réglage `plan_des_camps`) |
 | F32 | `CampEnsureSpot` | 2 dossier(s) | `Scriptorium.camp.reserver(nom, qui)` |
 | F33 | `CampMercKeys` | 2 dossier(s) | `Scriptorium.hommes.fiche(id)` (`id`, `nom`, `personnage`) |
 | F34 | `EndPlacement` | 2 dossier(s) | pas utile : pas de mode de pose dans le socle (la pose est à Scriptorium) |
@@ -90,15 +90,15 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F44 | `WBRaidAlive` | vrai tant que la bande d'un raid a des vivants | `Scriptorium.bataille.bandes()` (les bandes non finies) |
 | F45 | `WallSetType` | 2 dossier(s) | `Scriptorium.enceinte.batir()` (une seule sorte de palissade) |
 | F46 | `AlxStripOverLayers` | 1 dossier(s) | pas utile : `Scriptorium.jeu.equiper_homme(personnage, ordre)` retire la tenue de naissance ; les tenues à cotte de dessus sont exclues |
-| F47 | `BanditCampDressUp` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F48 | `BanditCampPlaceRow` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F49 | `BanditCampSiteByName` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F50 | `BanditCampSlots` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F51 | `BountyAccept` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F52 | `BountyLevelOK` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F53 | `BountyPickSite` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F54 | `BountyReport` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| F55 | `BountyTierFor` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
+| F47 | `BanditCampDressUp` | 1 dossier(s) | pas utile : les bandits naissent équipés par leur âme (fiche 13) |
+| F48 | `BanditCampPlaceRow` | 1 dossier(s) | `Scriptorium.missions.dresser_un_camp(lieu, niveau)` (le plan : réglage `plan_des_camps`) |
+| F49 | `BanditCampSiteByName` | 1 dossier(s) | `Scriptorium.missions.lieux_de(carte)` (par nom) |
+| F50 | `BanditCampSlots` | 1 dossier(s) | `Scriptorium.missions.camps()` |
+| F51 | `BountyAccept` | 1 dossier(s) | `Scriptorium.missions.prendre_une_mission({ lieu, hommes, chef, niveau })` |
+| F52 | `BountyLevelOK` | 1 dossier(s) | `Scriptorium.missions.peut_partir(ordre)` (accroche) |
+| F53 | `BountyPickSite` | 1 dossier(s) | `Scriptorium.missions.choisir_un_lieu(carte)` |
+| F54 | `BountyReport` | 1 dossier(s) | `Scriptorium.missions.rapport_de_mission(r)` (accroche) et `missions.rapport(id)` |
+| F55 | `BountyTierFor` | 1 dossier(s) | `Scriptorium.missions.niveau_pour(force, lieu)` (accroche) |
 | F56 | `CampActiveStations` | 1 dossier(s) | étape 5 (postes de travail) |
 | F57 | `CampAdmitToCamp` | 1 dossier(s) | étape 5 (faire entrer au camp un personnage déjà né) |
 | F58 | `CampFormationDirty` | 1 dossier(s) | pas utile : l'ordre est redonné dès que l'activité change (`Scriptorium.hommes.tenir(id, regle, quoi)`) |
@@ -120,7 +120,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F74 | `DifficultyCount` | 1 dossier(s) | pas utile : la taille de la bande est l'effectif que Scriptorium donne à `Scriptorium.bataille.lever_une_bande(ordre)` |
 | F75 | `DifficultySetByIndex` | 1 dossier(s) | pas utile : pas de niveau de difficulté dans le socle |
 | F76 | `EncountersSet` | 1 dossier(s) | réglage : interrupteurs.rencontres_de_patrouille |
-| F77 | `EquipEnemy` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
+| F77 | `EquipEnemy` | 1 dossier(s) | pas utile : les bandits naissent équipés par leur âme (fiche 13) |
 | F78 | `FollowStaggerSquad` | 1 dossier(s) | pas utile : l'escorte suit en formation du moteur (`Scriptorium.hommes.formations`) |
 | F79 | `FollowStalledWuid` | 1 dossier(s) | `Scriptorium.hommes.rattraper(personnage, chef, nom)` |
 | F80 | `GatePositions` | 1 dossier(s) | `Scriptorium.enceinte.point_d_entree()` |
@@ -164,7 +164,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D7 | `CampPatrollers` | les hommes de la ronde de garde | `Scriptorium.hommes.gardes(heure)` |
 | D8 | `CampBuildOrigin` | le point d'origine et le sens du camp (la ou il a ete fonde) | `Scriptorium.camp.point(x, y, cap)` (en 0, 0 : l'origine et le cap) |
 | D9 | `CampSeats` | les sieges du camp (ou les hommes s'assoient) | `Scriptorium.camp.places_libres(sorte, pour)` (« siege ») |
-| D10 | `BanditCampActors` | les personnages d'un camp de bandits (missions) | étape 4 (camps de bandits, missions) |
+| D10 | `BanditCampActors` | les personnages d'un camp de bandits (missions) | `Scriptorium.missions.personnages_du_camp(id)`, `ajouter_un_personnage`, `retirer_un_personnage` |
 | D11 | `CampNextRotate` | le prochain changement d'activite des hommes | `Scriptorium.hommes.tenir(id, regle, quoi)` (champ `fin`) |
 | D12 | `CampBeds` | les lits du camp | `Scriptorium.camp.places_libres(sorte, pour)` (« lit ») |
 | D13 | `CampMercSpots` | les places des hommes au camp | `Scriptorium.camp.occupant_de(nom)` |
@@ -186,8 +186,8 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D29 | `ArcherArrowClasses` | 3 dossier(s) | `Scriptorium.jeu.munition_de(nom)` |
 | D30 | `ArcherBoltClasses` | 3 dossier(s) | `Scriptorium.jeu.munition_de(nom)` |
 | D31 | `ArcherWeaponOf` | Scriptorium l'écrit aussi | `Scriptorium.hommes.fiche(id)` (champ `role`) |
-| D32 | `BanditCampChestShare` | 3 dossier(s) | étape 4 (camps de bandits, missions) |
-| D33 | `BanditCampColumn` | Scriptorium l'écrit aussi | étape 4 (camps de bandits, missions) |
+| D32 | `BanditCampChestShare` | 3 dossier(s) | `Scriptorium.bataille.partager_le_butin(butin, combattants)` (accroche) ; la part du coffre dans `bataille.resultats()` |
+| D33 | `BanditCampColumn` | Scriptorium l'écrit aussi | `Scriptorium.missions.mission(id).hommes` |
 | D34 | `CachedEnemies` | Scriptorium l'écrit aussi | `Scriptorium.bataille.bande(id)` (champ `personnages`) |
 | D35 | `CampBedSO` | 3 dossier(s) | `Scriptorium.camp.objets_du_jeu` (« lit ») |
 | D36 | `CampChairSO` | 3 dossier(s) | `Scriptorium.camp.objets_du_jeu` (« siege ») |
@@ -205,8 +205,8 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D48 | `ActivePlacement` | 2 dossier(s) | pas utile : pas de mode de pose dans le socle |
 | D49 | `AlxKnightHarness` | 2 dossier(s) | étape 5 (tenues selon le grade) |
 | D50 | `AlxSilver` | 2 dossier(s) | pas utile : donnée interne de l'ancien mod ; l'argent passe par `Scriptorium.jeu.donner_groschen_a_henry(montant)` |
-| D51 | `BCQ_BO` | 2 dossier(s) | étape 4 (camps de bandits, missions) |
-| D52 | `BanditCampMoneyItem` | 2 dossier(s) | étape 4 (camps de bandits, missions) |
+| D51 | `BCQ_BO` | 2 dossier(s) | pas utile : état interne de l'ancien mod (le dernier lieu par carte) ; Scriptorium garde le sien |
+| D52 | `BanditCampMoneyItem` | 2 dossier(s) | pas utile : le coffre d'un camp de bandits est une somme (fiche 17) |
 | D53 | `CampClusterSize` | 2 dossier(s) | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D54 | `CampClusterSpacing` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D55 | `CampFoodCart` | 2 dossier(s) | étape 5 (la charrette de vivres) |
@@ -230,12 +230,12 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D73 | `WallBuildActive` | 2 dossier(s) | pas utile : pas de chantier en cours ; `Scriptorium.enceinte.batir()` bâtit d'un coup |
 | D74 | `WallTypePalisade` | 2 dossier(s) | pas utile : une seule sorte de palissade |
 | D75 | `ArcherPrice` | 1 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (champ `prime`) |
-| D76 | `BCQ` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| D77 | `BCQ_KK` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| D78 | `BanditCampChestLoot` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| D79 | `BanditCampForgetRange` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| D80 | `BanditCampLayouts` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
-| D81 | `BanditCampSites` | 1 dossier(s) | étape 4 (camps de bandits, missions) |
+| D76 | `BCQ` | 1 dossier(s) | pas utile : état interne de l'ancien mod (le dernier lieu par carte) ; Scriptorium garde le sien |
+| D77 | `BCQ_KK` | 1 dossier(s) | pas utile : état interne de l'ancien mod (le dernier lieu par carte) ; Scriptorium garde le sien |
+| D78 | `BanditCampChestLoot` | 1 dossier(s) | réglage : niveaux_des_camps.<niveau>.coffre |
+| D79 | `BanditCampForgetRange` | 1 dossier(s) | réglage : bataille.poste_vue_m (et missions.henry_loin_m) |
+| D80 | `BanditCampLayouts` | 1 dossier(s) | réglage : plan_des_camps |
+| D81 | `BanditCampSites` | 1 dossier(s) | `Scriptorium.missions.lieux_de(carte)` |
 | D82 | `CCReinject` | 1 dossier(s) | étape 5 (compagnons nommés) |
 | D83 | `CUHide` | Scriptorium l'écrit aussi | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | D84 | `CUShow` | Scriptorium l'écrit aussi | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
@@ -279,7 +279,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D122 | `InnStationLayout` | 1 dossier(s) | étape 5 (la taverne) |
 | D123 | `IsLootableCorpseName` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
 | D124 | `LivePatrolsEnabled` | 1 dossier(s) | pas utile : le socle n'envoie de patrouille que sur ordre (`Scriptorium.patrouilles.envoyer(ordre)`) |
-| D125 | `LogiTrackCombat` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `appliquer` (morts, blessés, butin d'une bataille) |
+| D125 | `LogiTrackCombat` | Scriptorium l'écrit aussi | `Scriptorium.bataille.partager_le_butin(butin, combattants)` (accroche) ; l'issue : `bataille.issue_au_loin` (accroche) |
 | D126 | `LootAdvance` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
 | D127 | `LootAssign` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
 | D128 | `LootClaims` | 1 dossier(s) | étape 4 (la fouille des corps, le butin) |
@@ -346,12 +346,12 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 147 | 22 | 59 | 55 | 11 |
-| à ouvrir | 21 | 9 | 2 | 10 | 0 |
-| étape 4 | 43 | 3 | 13 | 27 | 0 |
+| service existant | 163 | 23 | 69 | 60 | 11 |
+| à ouvrir | 20 | 9 | 2 | 9 | 0 |
+| étape 4 | 19 | 2 | 1 | 16 | 0 |
 | étape 5 | 31 | 2 | 6 | 18 | 5 |
-| pas utile | 83 | 3 | 27 | 43 | 10 |
-| réglage | 12 | 1 | 4 | 6 | 1 |
+| pas utile | 89 | 3 | 29 | 47 | 10 |
+| réglage | 15 | 1 | 4 | 9 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |
 
 « Service existant » compte aussi les retouches que le socle fait déjà (« déjà fait », « en partie »).
@@ -374,7 +374,6 @@ Les « à ouvrir » (décision du socle en fonction locale, à rendre enveloppab
 - D59 : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`)
 - D66 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
 - D117 : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`)
-- D125 : `bataille.lua`, `appliquer` (morts, blessés, butin d'une bataille)
 - D153 : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles)
 - D154 : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles)
 - D155 : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles)

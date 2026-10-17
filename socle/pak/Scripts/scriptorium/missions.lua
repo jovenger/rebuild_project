@@ -304,6 +304,23 @@ function missions.dresser_un_camp(nom_du_lieu, niveau)
   return id
 end
 
+-- Les personnages d'un camp de bandits (Scriptorium en ajoute et en retire, ses propres bandits) : ils entrent dans sa
+-- bande, et rien d'autre.
+function missions.personnages_du_camp(id)
+  local c = donnees().camps[id]
+  return c and bataille().personnages_de(c.bande) or {}
+end
+
+function missions.ajouter_un_personnage(id, personnage)
+  local c = donnees().camps[id]
+  return c ~= nil and bataille().ajouter_a_la_bande(c.bande, personnage) == true
+end
+
+function missions.retirer_un_personnage(id, personnage)
+  local c = donnees().camps[id]
+  return c ~= nil and bataille().retirer_de_la_bande(c.bande, personnage) == true
+end
+
 function missions.camp(id)
   local c = donnees().camps[id]
   return c and copie_du_camp(c) or nil

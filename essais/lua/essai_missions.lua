@@ -624,3 +624,30 @@ essai("missions (tranche 3) : deux missions à la fois, chacune son lieu ; un li
   missions.lieu_reserve = ancienne
   finir()
 end)
+
+-- La liste du pair (17/10) : les personnages d'un camp de bandits connus de Scriptorium, qui en ajoute et en retire.
+essai("missions : Scriptorium ajoute et retire des personnages d'un camp de bandits ; ils entrent dans sa bande", function()
+  preparer()
+  local id = missions.dresser_un_camp("gue", "petit")
+  battre()
+  egal(#missions.personnages_du_camp(id), 4, "les quatre nés")
+  FauxJeu.personnages_existants["chef_de_scriptorium"] = true
+  FauxJeu.ennemis_vivants_par_id["chef_de_scriptorium"] = true
+  verifier(missions.ajouter_un_personnage(id, "chef_de_scriptorium"), "ajouté")
+  verifier(not missions.ajouter_un_personnage(id, "chef_de_scriptorium"), "pas deux fois")
+  verifier(not missions.ajouter_un_personnage(id, "inconnu"), "un personnage qui n'existe pas : refusé")
+  egal(#missions.personnages_du_camp(id), 5, "cinq dans la bande")
+  -- Il est visé et compté debout : tous les autres tombés, la bande tient encore.
+  for _, e in ipairs(missions.personnages_du_camp(id)) do
+    if e ~= "chef_de_scriptorium" then FauxJeu.ennemis_vivants_par_id[e] = nil end
+  end
+  FauxJeu.position_joueur = { x = 0, y = 190, z = 0 }
+  battre()
+  battre()
+  egal(la_bande(id).etat, "au_contact", "le chef ajouté tient encore la bande")
+  verifier(missions.retirer_un_personnage(id, "chef_de_scriptorium"), "retiré")
+  egal(#missions.personnages_du_camp(id), 4, "quatre")
+  battre()
+  egal(la_bande(id).etat, "finie", "plus personne debout dans la bande : finie")
+  finir()
+end)

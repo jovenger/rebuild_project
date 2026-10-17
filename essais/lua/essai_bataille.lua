@@ -713,3 +713,39 @@ essai("bataille (combat figé, la cause) : tous les ennemis à terre (assommés)
   egal(r.blesses, 1, "l'assommé est notre blessé")
   FauxJeu.inconscients = nil
 end)
+
+-- L'accroche du partage du butin (la règle de Scriptorium) ; c'est de l'argent : une part absurde est refusée, tout
+-- reste au coffre.
+essai("bataille : le partage du butin est une accroche ; des parts absurdes sont refusées, tout reste au coffre", function()
+  local ancienne, issue_d_origine = bataille.partager_le_butin, bataille.issue_au_loin
+  local cas = {
+    { parts = { hommes = 10, capitaine = 5 }, coffre = 48 - 15, refuse = false },
+    { parts = { hommes = -1, capitaine = 0 }, coffre = 48, refuse = true },
+    { parts = { hommes = 2.5, capitaine = 0 }, coffre = 48, refuse = true },
+    { parts = { hommes = 40, capitaine = 9 }, coffre = 48, refuse = true },
+    { parts = { hommes = 0 / 0, capitaine = 0 }, coffre = 48, refuse = true },
+    { parts = "rien", coffre = 48, refuse = true },
+    { erreur = true, coffre = 48, refuse = true },
+  }
+  for _, c in ipairs(cas) do
+    preparer(1000, 10, { "homme_d_armes", "homme_d_armes", "pavoisier", "arbaletrier", "archer", "archer" })
+    bataille.partager_le_butin = function()
+      if c.erreur then error("cassé") end
+      return c.parts
+    end
+    bataille.issue_au_loin = function(nous)
+      return { gagne = true, tombes = {}, debout = nous, eux_tombes = 2, eux_debout = 0, passes = 2 }
+    end
+    FauxJeu.refuser_ennemis = true
+    FauxJeu.journal_lignes = {}
+    bataille.lever_une_bande({ sorte = "coumans", effectif = 2, direction = 0, delai = 0 })
+    bataille.battre()
+    egal(coffre.solde(), 1000 + c.coffre, "au coffre : " .. c.coffre)
+    local refus = 0
+    for _, l in ipairs(FauxJeu.journal_lignes) do
+      if string.find(l, "partage du butin refusé", 1, true) then refus = refus + 1 end
+    end
+    egal(refus > 0, c.refuse, "refus au journal")
+  end
+  bataille.partager_le_butin, bataille.issue_au_loin = ancienne, issue_d_origine
+end)
