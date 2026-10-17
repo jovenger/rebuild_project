@@ -79,3 +79,4 @@ image : « 0,0 ms ») ; `liaison.chrono` (os.clock) est ajoutée pour la mesure 
 **Relecture (17/10)** : le détecteur d'oublis à chaque écriture dénonçait surtout des cases en cours de modification ;
 il est remplacé par la surveillance à la fin du battement (sûre par construction). Un vrai défaut attrapé au banc : à
 la migration de l'ancien flux, une case connue non nommée n'était pas réécrite alors que le flux était vidé ; corrigé.
+**Mesuré en jeu le 17/10** (horloge `os.clock`) : la case de 644 372 octets (22 tranches) s'écrit en 30 à 33 ms ; une petite case en 1 ms au plus. Une case de quelques dizaines de Ko coûte donc environ 1 à 3 ms.
