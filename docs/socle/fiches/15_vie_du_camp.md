@@ -1556,6 +1556,64 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   surnuméraires en chaîne, un autre mode que `MoveHistory`.
 - **Suite** : V73 f 2, à cheval.
 
+## V73 f 2 a — à cheval : la sonde d'un homme (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Règle de JoVenGer du 16/10 : « tous ceux qui sortent du camp partent à cheval et en reviennent à cheval » ; chez
+  Scriptorium, la monte a figé un homme (24/09) et le coursier « restait figé dès qu'on essayait de le faire monter » ;
+  aucune fonction Lua ne fait monter un personnage. Le plan (règle du 16/10) : **d'abord lire comment les arbres du jeu
+  font monter, chevaucher et descendre, puis un seul homme, prouvé à l'image**.
+- **Ce pas, une sonde** : un cheval né par script près d'un homme ; l'homme monte, suit Henry à cheval, puis descend.
+  La troupe montée, la formation montée, le cheval gardé au registre, les montures du camp (l'écurie), Henry à cheval :
+  à leurs pas, après la sonde.
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule)
+- **Monter, c'est une posture** : la fonction du jeu `moveOnHorse` (`AI/move/moveOnHorse.xml`, paramètres `horse` en WUID,
+  `moveData`, `speed`) entoure sa marche d'un `StanceElement smartObject="$horse" stance="horse"` ; dedans, un
+  `WaitAction` puis le `Move` ; à la fin de la posture, le jeu joue la descente (comme pour s'asseoir : V73 c). La
+  posture « horse » a 57 emplois dans le jeu.
+- `HorseUsageElement horse=…` (56 emplois ; `AI/autotest/horse/test_so_horseAction.xml`) : l'usage du cheval comme objet ;
+  `GetPlayerHorse` (66) : le cheval d'Henry.
+- **La classe `Horse`** (`Scripts/Entities/AI/Horse.lua`) : modèle `Objects/Characters/animals/horse/horse.cdf`,
+  `defaultSoulArchetype = "Horse"`, `defaultSoulClass = "horse"` (une âme par défaut), `bWH_RequiresHome = true`,
+  `bNotPlayerMountable = false`, `bMountIsLegal = false`. Aucun script Lua du jeu ne fait naître de cheval (ils sont posés
+  dans le niveau ou par les quêtes).
+- Relecture du pair (V73 f 1 bis) : chez Alex, le suiveur monté passe par la formation (`MoveHistory`, un `WaitAction`
+  avant, pour que la monture se stabilise) ; tous les suiveurs montés du jeu sont en `MoveHistory` ou `Relaxed`.
+
+### Comment ce serait fait (la sonde)
+1. **Le cheval** : `liaison.faire_venir_cheval(position, nom)` : `System.SpawnEntity` de la classe `Horse`, propriétés
+   copiées de la classe (comme pour nos hommes), sans âme donnée (l'âme par défaut de la classe), au sol, à l'écart
+   (place libre, jamais à moins de 1 m d'un personnage), éveillé comme nos hommes ; rend son identifiant.
+2. **Monter et suivre** : l'activité « suivre » à cheval : une tenue « escorte » avec `cheval` (l'identifiant du cheval) ;
+   la liaison écrit son WUID dans `scriptorium_cheval`, puis l'ordre 17 : debout ; la posture
+   `StanceElement smartObject="$scriptorium_cheval" stance="horse"` ; dedans, un `WaitAction` (la monture se stabilise),
+   puis `Function_followNpc` vers son chef (Henry) ; le pouls à côté. Au changement d'ordre, la posture finit : le jeu
+   joue la descente.
+3. **Les commandes d'essai** : `essai_cheval` (un cheval né à 4 m du premier homme) ; `essai_escorte_a_cheval` (le premier
+   homme suit Henry sur ce cheval) ; `essai_fin_escorte` (il descend, il reprend sa tranche) ; `essai_retirer_cheval`.
+- Rien au registre pour la sonde (le cheval d'essai n'est pas gardé : retiré en fin de séance).
+- La forme du jeu (une posture « horse » autour d'une marche) est celle de `moveOnHorse` ; aucune ligne de forme nouvelle
+  attendue (nos noms de variables).
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé, trois hommes ; `essai_cheval` puis `essai_escorte_a_cheval`.
+1. **Le cheval naît** : visible à l'image, debout, près de Jan ; il ne s'enfuit pas (`bWH_RequiresHome`) ; sinon lire
+   le journal, un seul changement.
+2. **Jan monte** (à l'image : en selle) → bon ; s'il reste figé à côté (le piège de Scriptorium) : lire le pouls et les
+   contextes, un seul changement (par exemple `HorseUsageElement` à la place de la posture seule).
+3. **Il suit Henry à cheval** quand Henry marche et court ; l'écart à son chef se tient.
+4. `essai_fin_escorte` : **il descend**, reprend sa tranche ; le cheval reste là, puis `essai_retirer_cheval`.
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **La sonde** : (a) un cheval né par script et un seul homme, avant toute troupe montée (Recommandé : la règle du
+   16/10, « un seul homme, prouvé à l'image ») ; (b) la troupe d'emblée. **Prise : (a).**
+2. **Le cheval** : (a) de la classe `Horse` avec l'âme par défaut, le temps de la sonde (Recommandé : rien à écrire dans
+   les tables) ; (b) des âmes de chevaux à nous (une table, comme nos hommes). **Prise : (a).**
+3. **Monter** : (a) la posture « horse » du jeu autour de la suite, comme `moveOnHorse` (Recommandé) ; (b)
+   `HorseUsageElement`. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
