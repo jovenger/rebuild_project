@@ -3018,6 +3018,9 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       else
         ligne = "chef « " .. tostring(chef) .. " » introuvable, sans but"
       end
+    elseif activite == "parole" and liaison.paroles[identifiant] then
+      -- Fiche 20 : la parole, sur place (ordre 23) : l'arbre la joue une fois.
+      ligne = "parole ; " .. poser_l_activite(entite, 23)
     elseif not position then
       ligne = "sans but"
     elseif activite == "ronde" then
@@ -3033,9 +3036,6 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       else
         ligne = "ronde refusée ; " .. poser_l_activite(entite, 9)
       end
-    elseif activite == "parole" and liaison.paroles[identifiant] then
-      -- Fiche 20 : la parole, sur place (ordre 23) : l'arbre la joue une fois.
-      ligne = "parole ; " .. poser_l_activite(entite, 23)
     elseif activite == "geste" and liaison.gestes_tenus[identifiant] then
       -- Fiche 18, 5 c (la forge « pareil », principe transmis par le pair) : le geste tenu à un point : l'homme marche au
       -- point, se tourne vers le point regardé, puis tient le geste (une posture « unstance » du jeu ou de Scriptorium,
