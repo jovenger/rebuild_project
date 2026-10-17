@@ -219,7 +219,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D62 | `LootBodies` | 2 dossier(s) | `Scriptorium.bataille.fouille(id).a_fouiller` |
 | D63 | `LootPerKillWages` | 2 dossier(s) | pas utile : la paye par ennemi tué est une règle de Scriptorium (le guichet donne les tombés : `bataille.resultats()`) |
 | D64 | `LootVisited` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).vus` |
-| D65 | `MaxCompanions` | 2 dossier(s) | `Scriptorium.camp.capacite()` (pas de plafond chiffré : un lit par homme) |
+| D65 | `MaxCompanions` | 2 dossier(s) | `Scriptorium.hommes.plafond_de_la_compagnie()` (plafond, effectif, lits libres ; réglage `hommes.plafond` = 80 ; le lit exigé : interrupteur `un_lit_par_homme`, fiche 18) |
 | D66 | `MercClaimAt` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
 | D67 | `QuartermasterClothing` | 2 dossier(s) | étape 5 (tenue du Directeur) |
 | D68 | `QuartermasterPost` | Scriptorium l'écrit aussi | `Scriptorium.directeur.activite(heure)` (lieu et position) |
@@ -317,7 +317,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | R1 | `28/09 — plus de touches U et H, ni de leurs aides à l'écran` |  | pas utile : écran de l'ancien mod, que le socle n'a jamais eu (ni ces touches) |
 | R2 | `28/09 (suite) — les écrans U et H supprimés pour de bon` |  | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | R3 | `Supprimés` |  | pas utile : aucun de ces fichiers dans le socle |
-| R4 | `28/09 — plafond d’embauche : 50 → 80` |  | `Scriptorium.hommes.plafond_de_la_compagnie()` (réglage `hommes.plafond` = 80 ; refus « plafond_atteint » ; un lit par homme en plus, fiche 18) |
+| R4 | `28/09 — plafond d’embauche : 50 → 80` |  | `Scriptorium.hommes.plafond_de_la_compagnie()` (réglage `hommes.plafond` = 80 ; refus « plafond_atteint » ; un lit par homme si l'interrupteur `un_lit_par_homme` est allumé, fiche 18) |
 | R5 | `28/09 — les raids n'apparaissent plus dans le camp` |  | réglage : bataille.distance_arrivee (déjà fait : la bande naît à 60 m du centre, hors du camp) |
 | R6 | `28/09 — « Parle-moi un peu de toi » en tête du dialogue de chaque mercenaire` |  | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
 | R7 | `28/09 — l'arme de tir homme par homme (les arbalétriers)` |  | déjà fait : `Scriptorium.hommes.fiche(id)` (rôle `archer` ou `arbaletrier` par homme, `hommes.equipement.tir`) |

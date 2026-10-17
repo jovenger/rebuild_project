@@ -50,6 +50,9 @@ Scriptorium.noyau.interrupteurs = Scriptorium.noyau.interrupteurs or {
   repas_du_socle = 1,
   -- Fiche 18, 5 a (la liste du pair) : les chevaux de la compagnie ; éteints, chacun sort à pied. Allumés par défaut.
   chevaux_de_la_compagnie = 1,
+  -- Fiche 18, 5 a (relecture du pair, 17/10) : un lit libre exigé à chaque embauche. Éteint, l'homme est engagé sans
+  -- lit s'il n'en reste pas (chez Scriptorium, les hommes dorment en relève). Allumé par défaut.
+  un_lit_par_homme = 1,
 }
 
 function Scriptorium.actif(nom)

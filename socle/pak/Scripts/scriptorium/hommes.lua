@@ -1176,7 +1176,9 @@ function hommes.plafond_de_la_compagnie()
 end
 
 -- Le contrat d'embauche : role, semaines, solde, prime, palier, famille ; et (fiche 18, 5 a) « nom » (un compagnon
--- nommé), « ame » (son âme, un identifiant du jeu donné par Scriptorium), « position » (où il naît).
+-- nommé), « ame » (son âme, un identifiant du jeu donné par Scriptorium), « position » (où il naît). Une prime de 0 :
+-- rien à payer, aucun appel au coffre (Scriptorium paie lui-même l'embauche ; le 10/10, un retrait de 0 avait vidé la
+-- bourse d'Henry). Les contrats à durée éteints, « semaines » est facultatif (le plus long contrat).
 function hommes.embaucher(contrat)
   contrat = contrat or {}
   local d = donnees()
@@ -1208,12 +1210,24 @@ function hommes.embaucher(contrat)
     return refuser("role_inconnu", tostring(contrat.role))
   end
   local semaines = contrat.semaines
+  if semaines == nil and not Scriptorium.actif("contrats_a_duree") then
+    semaines = hommes.reglages.semaines_max
+  end
   if type(semaines) ~= "number" or math.floor(semaines) ~= semaines
      or semaines < hommes.reglages.semaines_min or semaines > hommes.reglages.semaines_max then
     return refuser("duree_invalide", tostring(semaines))
   end
+  local function somme_juste(n)
+    return type(n) == "number" and n == n and n >= 0 and n < math.huge and math.floor(n) == n
+  end
   local solde = contrat.solde or role.solde
+  if not somme_juste(solde) then
+    return refuser("solde_invalide", tostring(solde))
+  end
   local prime = contrat.prime or solde * 2
+  if not somme_juste(prime) then
+    return refuser("prime_invalide", tostring(prime))
+  end
   local palier = contrat.palier or hommes.reglages.palier_par_defaut
   local nb_paliers = #jeu().paliers_de(role.reserve)
   if type(palier) ~= "number" or math.floor(palier) ~= palier or palier < 1 or palier > math.max(nb_paliers, 1) then
@@ -1223,11 +1237,11 @@ function hommes.embaucher(contrat)
     return refuser("famille_inconnue", tostring(contrat.famille))
   end
   local lits = camp().places_libres("lit", "hommes")
-  if #lits == 0 then
+  if #lits == 0 and Scriptorium.actif("un_lit_par_homme") then
     annoncer("ui_scriptorium_hommes_pas_de_lit")
     return refuser("pas_de_lit")
   end
-  if coffre().solde() < prime then
+  if prime > 0 and coffre().solde() < prime then
     annoncer("ui_scriptorium_coffre_manque", { groupe = "coffre_manque" })
     return refuser("coffre_insuffisant", "prime " .. prime .. " > " .. coffre().solde())
   end
@@ -1260,7 +1274,11 @@ function hommes.embaucher(contrat)
   end
   d.liste[id] = f
   table.insert(d.ordre, id)
-  camp().reserver(f.lit, id)
+  if f.lit then
+    camp().reserver(f.lit, id)
+  else
+    jeu().journal("Hommes : « " .. f.nom .. " » engagé sans lit (interrupteur un_lit_par_homme éteint)")
+  end
   if Scriptorium.caractere then
     Scriptorium.caractere.naitre(id)
   end

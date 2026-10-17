@@ -3176,3 +3176,72 @@ essai("embauche (5 a) : les chevaux de la compagnie éteints, une sortie à chev
   verifier(chevaux() >= 1, "rallumés : un cheval naît")
   hommes.lacher(id, "escorte")
 end)
+
+essai("embauche (5 a) : une prime de 0, rien à payer : aucun appel au coffre ni à la bourse d'Henry, même coffre vide ; sommes boiteuses refusées", function()
+  preparer(0, 100, 10)
+  local appels = {}
+  local gardes = {}
+  local function espionner(table_, nom)
+    local original = table_[nom]
+    gardes[#gardes + 1] = { table_, nom, original }
+    table_[nom] = function(...)
+      appels[#appels + 1] = nom
+      return original(...)
+    end
+  end
+  local ok, erreur = pcall(function()
+    for _, nom in ipairs({ "solde", "encaisser", "payer", "verser_a_henry", "deposer_par_henry" }) do
+      espionner(Scriptorium.coffre, nom)
+    end
+    for _, nom in ipairs({ "groschen_d_henry", "retirer_groschen_a_henry", "donner_groschen_a_henry" }) do
+      espionner(FauxJeu, nom)
+    end
+    local bourse = FauxJeu.bourse_henry
+    local id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    verifier(id, "coffre vide, prime 0 : engagé (" .. tostring(r) .. ")")
+    egal(#appels, 0, "aucun appel au coffre ni à la bourse (" .. table.concat(appels, ", ") .. ")")
+    egal(FauxJeu.bourse_henry, bourse, "la bourse d'Henry intacte")
+    egal(Scriptorium.coffre.solde(), 0, "le coffre intact")
+  end)
+  for i = #gardes, 1, -1 do
+    gardes[i][1][gardes[i][2]] = gardes[i][3]
+  end
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+  for _, mauvaise in ipairs({ -1, 0.5, 0 / 0, math.huge, "10" }) do
+    local id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = mauvaise })
+    verifier(not id and r == "prime_invalide", "prime " .. tostring(mauvaise) .. " : refusée")
+    id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0, solde = mauvaise })
+    verifier(not id and r == "solde_invalide", "solde " .. tostring(mauvaise) .. " : refusée")
+  end
+end)
+
+essai("embauche (5 a) : un lit par homme, un interrupteur (éteint : engagé sans lit, chez Scriptorium on dort en relève) ; semaines facultatives sans contrats à durée", function()
+  preparer(5000, 100, 10)
+  local libres = #camp.places_libres("lit", "hommes")
+  for i = 1, libres do
+    verifier(hommes.embaucher({ role = "archer", semaines = 4, prime = 0 }), "lit " .. i)
+  end
+  local id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  verifier(not id and r == "pas_de_lit", "allumé : plus de lit, refusé")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    id, r = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    verifier(id, "éteint : engagé sans lit (" .. tostring(r) .. ")")
+    egal(hommes.fiche(id).lit, nil, "sans lit")
+    for h = 0, 30 do
+      FauxJeu.heure = 10 + h
+      hommes.battre()
+    end
+    verifier(hommes.fiche(id), "toujours là après une journée et une nuit")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+  camp.agrandir()
+  id, r = hommes.embaucher({ role = "archer", prime = 0 })
+  verifier(not id and r == "duree_invalide", "contrats à durée allumés : semaines exigées")
+  Scriptorium.noyau.interrupteurs.contrats_a_duree = 0
+  id, r = hommes.embaucher({ role = "archer", prime = 0 })
+  Scriptorium.noyau.interrupteurs.contrats_a_duree = 1
+  verifier(id, "éteints : semaines facultatives (" .. tostring(r) .. ")")
+  egal(id and hommes.fiche(id).contrat.semaines, hommes.reglages.semaines_max, "le plus long contrat")
+end)
