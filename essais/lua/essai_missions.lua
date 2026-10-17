@@ -361,10 +361,10 @@ essai("missions (4 b) : loin d'Henry, dehors ; l'issue au loin à l'heure d'arri
   egal(m.etat, "retour", "de retour : il renaît")
   for _, h in ipairs(m.hommes) do
     verifier(not hommes.est_dehors(h) and hommes.fiche(h).personnage ~= nil, "rentré dans le monde")
-    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 5, z = 0 }
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = -2, z = 0 }
   end
   battre()
-  egal(#missions.en_cours(), 1, "au feu, à 10 m du bord : pas encore rentrée (on ne vise pas le milieu du camp)")
+  egal(#missions.en_cours(), 1, "de l'autre côté du feu, à 17 m du bord : pas encore rentrée (on ne vise pas le milieu du camp)")
   for _, h in ipairs(m.hommes) do
     FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 14, z = 0 }
   end

@@ -24,7 +24,8 @@ missions.reglages = {
   -- « retour_m » du centre du côté du lieu, et se dit rentrée à moins de « arrivee_m » de ce point.
   retour_m = 15,
   retour_naissance_m = 150,
-  arrivee_m = 6,
+  -- Vu en jeu le 17/10 : la tête s'arrête à 6,4–6,7 m de son point (l'arrêt de l'allure, avec son écart).
+  arrivee_m = 10,
   marge_de_force = 1.5,
   -- Le registre ne garde que les « gardes » derniers camps levés et dernières missions finies.
   gardes = 20,
