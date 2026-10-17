@@ -2970,6 +2970,10 @@ function liaison.rendre_parlable(identifiant, oui)
   entite.scriptorium_actions_d_origine = d_origine
   entite.scriptorium_parlable = true
   entite.GetActions = function(soi, utilisateur, premier_seul)
+    if not soi.scriptorium_parole_appelee then
+      soi.scriptorium_parole_appelee = true
+      liaison.journal("Parole : « " .. identifiant .. " » : le jeu demande ses actions (premier_seul = " .. tostring(premier_seul) .. ")")
+    end
     local sortie = (type(origine) == "function" and origine(soi, utilisateur, premier_seul)) or {}
     local ok, erreur = pcall(function()
       if type(sortie) ~= "table" or (premier_seul and #sortie > 0) or not peut_parler(soi) then

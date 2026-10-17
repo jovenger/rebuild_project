@@ -86,3 +86,6 @@ Réponses prises d'office :
   si le personnage est refait. Avec `nom`, `role`, `palier` et `position` : l'homme repris. Le point est choisi par qui
   appelle (hors de la vue d'Henry : à lui d'y veiller, comme pour `faire_rentrer`). Objets boiteux : refus.
 - Au banc ; non vérifié en jeu.
+- Relecture (17/10), réponses prises d'office : un admis combattant n'est jamais équipé (les deux boucles de
+  l'équipement l'ignorent) ; sans prime donnée, un admis ne coûte rien (Scriptorium paie les siens) ; mort, il ne rend
+  aucun corps (son entité est à Scriptorium : personne ne la retire).

@@ -762,13 +762,14 @@ end
 
 local function faire_partir(d, f, cause, cle, garder_le_corps)
   local corps = nil
-  if f.personnage and garder_le_corps then
+  if f.personnage and f.admis then
+    -- Fiche 18, 5 c : un personnage admis reste dans le monde (il est à Scriptorium), mort ou vif : le socle ne rend pas
+    -- son corps (personne ne le retire) et cesse seulement de le mener.
+    f.personnage = nil
+  elseif f.personnage and garder_le_corps then
     -- Fiche 17 (relecture du pair) : un mort reste à terre, rien ne disparaît sous les yeux d'Henry ; qui l'a tué retire
     -- le corps plus tard, hors de sa vue.
     corps = f.personnage
-    f.personnage = nil
-  elseif f.personnage and f.admis then
-    -- Fiche 18, 5 c : un personnage admis reste dans le monde (il est à Scriptorium) ; le socle cesse seulement de le mener.
     f.personnage = nil
   elseif f.personnage then
     jeu().renvoyer_homme(f.personnage)
@@ -1145,7 +1146,7 @@ local function equiper_un_homme(d)
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     if f.personnage and jeu().personnage_existe(f.personnage) then
-      if not f.equipement and est_combattant(f) then
+      if not f.equipement and est_combattant(f) and not f.admis then
         choisir_l_equipement(d, f)
       end
       local etat = f.equipement and f.equipement.etat
@@ -1274,7 +1275,8 @@ function hommes.embaucher(contrat)
   if not somme_juste(solde) then
     return refuser("solde_invalide", tostring(solde))
   end
-  local prime = contrat.prime or solde * 2
+  -- Fiche 18, 5 c : un personnage admis est à Scriptorium : sans prime donnée, rien à payer.
+  local prime = contrat.prime or (contrat.personnage ~= nil and 0) or solde * 2
   if not somme_juste(prime) then
     return refuser("prime_invalide", tostring(prime))
   end
@@ -3876,7 +3878,7 @@ function hommes.donner_une_piece(id, objet, etat, porter)
     return refuser("objet_refuse", objet)
   end
   if porter then
-    if not f.equipement and est_combattant(f) then
+    if not f.equipement and est_combattant(f) and not f.admis then
       choisir_l_equipement(d, f)
     end
     f.equipement = f.equipement or { en_plus = {}, otees = {}, naissance_retiree = false, etat = "pret" }

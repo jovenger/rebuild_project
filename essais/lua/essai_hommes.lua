@@ -3428,3 +3428,21 @@ essai("embauche (5 a bis) : un homme refait avec son équipement donné (une lis
     verifier(not i2 and (r2 == "objets_invalides" or r2 == "objet_invalide"), "objets boiteux : refusés")
   end
 end)
+
+essai("métiers (5 c) : un admis combattant jamais équipé, sans prime payée par défaut ; mort, aucun corps rendu", function()
+  preparer(5000, 100, 10)
+  local perso = FauxJeu.faire_venir_homme("ame-de-scriptorium-2", "Garde de Scriptorium", { x = 4, y = 4, z = 0 })
+  local avant = coffre.solde()
+  local id = hommes.admettre(perso, { role = "homme_d_armes", semaines = 4 })
+  verifier(id, "admis")
+  egal(coffre.solde(), avant, "aucune prime payée")
+  FauxJeu.equipements = {}
+  for _ = 1, 3 do hommes.battre() end
+  egal(hommes.fiche(id).equipement, nil, "jamais équipé")
+  egal(#FauxJeu.equipements, 0, "aucun ordre d'équipement")
+  local renvoyes = #FauxJeu.personnages_renvoyes
+  local ok, corps = hommes.retirer(id, "mort")
+  verifier(ok, "mort")
+  egal(corps, nil, "aucun corps rendu (il est à Scriptorium)")
+  egal(#FauxJeu.personnages_renvoyes, renvoyes, "jamais renvoyé")
+end)
