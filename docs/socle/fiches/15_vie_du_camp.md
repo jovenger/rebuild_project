@@ -2136,6 +2136,56 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 1. **La marge de la distance** : (a) tenue jusqu'au retour à la place (Recommandé : aucune valeur de plus) ; (b) une
    valeur de marge à part. **Prise : (a).**
 
+## V73 f 2 g — l'allure de tous les cavaliers (17/10, principe relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Relecture du pair (V73 f 2 f) : chez Alex, l'allure est calculée pour **chaque** homme, pas seulement pour le chef :
+  un suiveur monté qui perd un instant sa place dans la formation retombe sur les mêmes nœuds d'allure, sinon il resterait
+  au pas et sortirait de la colonne.
+- **Ce pas** : la même boucle d'allure que le chef monté (V73 f 2 f bis), pour le cavalier seul (ordre 17, à la place de
+  `followNpc` en selle) et pour le suiveur monté qui n'a pas (ou plus) sa formation (ordre 19, le repli de 4 s, à la place
+  de `followNpc`). Les replis à pied après une monte manquée gardent `followNpc` (à pied, il ne traîne pas).
+
+### Le principe d'Alex pour le suiveur (transmis par le pair, avec ses corrections)
+- Un suiveur monté qui a sa formation n'a aucune allure à lui (le suiveur du moteur règle sa vitesse). S'il la perd, il
+  retombe sur les mêmes `Move` que le chef. Chez Alex, une seule mesure (la vitesse d'Henry, lissée), la correction sur
+  la distance à Henry, même quand il vise son chef : une incohérence à ne pas reprendre.
+- **À faire mieux** (le pair) : 1. il se mène vers son **chef de formation**, pas vers sa place (qui bouge avec le chef) ;
+  deux seuils : **perdu au-delà de 12 à 15 m** du chef, **de retour dans le rang en deçà de 6 m** ; 2. la vitesse
+  mesurée est celle de **celui qu'il vise** (son chef : quand le chef rattrape Henry, il va plus vite qu'Henry), et la
+  correction sur **sa** distance à son chef ; 3. **une mesure par homme suivi**, partagée par tous ceux qui le suivent ;
+  4. **les sauts d'Henry ignorés** : un relevé au-delà de 20 m/s n'est pas une course.
+
+### Comment ce serait fait
+1. **La règle** (`hommes.allure_du_chef`) rend aussi « perdu » : au-delà de `allure_perdu_m` (13) de son chef, ou déjà
+   perdu et encore au-delà de `allure_rang_m` (6). **Le filtre des sauts** (`hommes.vitesse_retenue`) : un relevé
+   au-delà de `allure_saut_m_s` (20) garde la vitesse d'avant. Les deux accrochés à la liaison avec la règle.
+2. **La mesure** (`liaison.allure_vers_chef`) : la vitesse **par homme suivi** (`liaison.vitesses_des_chefs`, une seule
+   pour tous ses suiveurs) ; le reste (allure, correction, perdu) par cavalier ; « allure_perdu » écrit pour l'arbre ;
+   une ligne au journal quand l'allure change, et quand un suiveur perd ou reprend sa place.
+3. **Branche 17** (le cavalier seul) : la boucle d'allure de la branche 18 à la place de `followNpc` en selle.
+4. **Branche 19** (le suiveur monté), dans la posture : une mesure, puis **perdu** : la boucle d'allure vers son chef,
+   tant qu'il est perdu ; **sinon** : son suivi de formation comme avant (et son repli sans formation, 4 s, par la boucle
+   d'allure au lieu de `followNpc`), avec, en parallèle, une mesure toutes les `$reessai` (4 s) pour voir s'il s'est
+   perdu.
+5. Les replis à pied après une monte manquée gardent `followNpc` (à pied, la suite ne traîne pas).
+6. **Latence ajoutée** : un appel au Lua toutes les 300 ms par cavalier qui se mène lui-même (le chef, le cavalier seul,
+   un suiveur perdu) ; une mesure toutes les 4 s par suiveur rangé.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `allure_saut_m_s` 20, `allure_perdu_m` 13, `allure_rang_m` 6.
+
+### Essai en jeu : grille
+`playline3`, secours coupé ; le Directeur et trois hommes « comme Henry », lecture forcée à cheval ; Henry marche et court.
+1. Le journal : des lignes d'allure pour le Directeur ; pour un suiveur, seulement s'il perd sa place.
+2. Un cavalier seul (`essai_escorte_a_cheval`, la sonde, sur le cheval d'essai) : l'écart à Henry au pas et à la course,
+   comme le chef (sous 6 à 8 m).
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Les replis à pied** : (a) garder `followNpc` à pied (Recommandé : à pied, la suite ne traîne pas, vu en V73 f 1) ;
+   (b) la boucle d'allure partout. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

@@ -114,6 +114,12 @@ hommes.reglages = {
   -- « allure_plus_m » ; « une de plus » est gardée jusqu'à la place plus « allure_freinage_m » (à cheval, il faut de
   -- la distance pour freiner) ; « une de moins », jusqu'à la place.
   allure_freinage_m = 1,
+  -- V73 f 2 g (relecture du pair) : un relevé au-delà de « allure_saut_m_s » est un saut, pas une course (la vitesse
+  -- d'avant reste) ; un suiveur est perdu au-delà de « allure_perdu_m » de son chef, et rentre dans le rang en deçà de
+  -- « allure_rang_m ».
+  allure_saut_m_s = 20,
+  allure_perdu_m = 13,
+  allure_rang_m = 6,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -2965,9 +2971,10 @@ end
 
 -- L'allure du chef monté (fiche 15, V73 f 2 f) : la règle, en données (voir « allure_* »). « vitesse » : celle de celui
 -- qu'il suit (m/s) ; « ecart » : la distance qui les sépare (m) ; « fond_avant », « correction_avant », « code_avant » :
--- l'allure de fond, la correction et le code du relevé précédent (les tenues). Rend (le code : 3 galop, 2 trot rapide,
--- 1 course, 0 pas, -1 tenir ; l'allure de fond, sans correction ; la correction par la distance : 1, 0 ou -1).
-function hommes.allure_du_chef(vitesse, ecart, fond_avant, correction_avant, code_avant)
+-- l'allure de fond, la correction et le code du relevé précédent (les tenues) ; « perdu_avant » : le cavalier était
+-- perdu (V73 f 2 g). Rend (le code : 3 galop, 2 trot rapide, 1 course, 0 pas, -1 tenir ; l'allure de fond, sans
+-- correction ; la correction par la distance : 1, 0 ou -1 ; perdu : loin de son chef, avec sa tenue).
+function hommes.allure_du_chef(vitesse, ecart, fond_avant, correction_avant, code_avant, perdu_avant)
   local r = hommes.reglages
   local fond = 0
   for k, seuil in ipairs({ r.allure_pas_m_s, r.allure_course_m_s, r.allure_galop_m_s }) do
@@ -2988,16 +2995,26 @@ function hommes.allure_du_chef(vitesse, ecart, fond_avant, correction_avant, cod
   elseif ecart < place - r.allure_moins_m or (correction_avant == -1 and ecart < place) then
     correction = -1
   end
+  local perdu = ecart > r.allure_perdu_m or (perdu_avant == true and ecart > r.allure_rang_m)
   local code = fond
   if vitesse < r.allure_arret_m_s then
     -- Arrêté : il s'arrête à sa place, et ne repart qu'au-delà de la place + plus (la tenue de l'arrêt).
     if ecart <= place or (code_avant == -1 and ecart <= place + r.allure_plus_m) then
-      return -1, fond, 0
+      return -1, fond, 0, perdu
     end
     code = 0
   end
   code = math.max(-1, math.min(3, code + correction))
-  return code, fond, correction
+  return code, fond, correction, perdu
+end
+
+-- Le filtre des sauts (V73 f 2 g, relecture du pair) : un relevé au-delà de « allure_saut_m_s » (un saut d'Henry, une
+-- pose) garde la vitesse d'avant. Rend la vitesse retenue.
+function hommes.vitesse_retenue(mesuree, avant)
+  if mesuree > hommes.reglages.allure_saut_m_s then
+    return avant or 0
+  end
+  return mesuree
 end
 
 Scriptorium.declarer_morceau("hommes", function()
@@ -3008,6 +3025,6 @@ Scriptorium.declarer_morceau("hommes", function()
   end
   -- L'allure du chef monté (V73 f 2 f) : la liaison, appelée par l'arbre toutes les 300 ms, demande l'allure aux hommes.
   if jeu() and jeu().accrocher_l_allure then
-    jeu().accrocher_l_allure(hommes.allure_du_chef)
+    jeu().accrocher_l_allure(hommes.allure_du_chef, hommes.vitesse_retenue)
   end
 end)

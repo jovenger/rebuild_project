@@ -589,6 +589,24 @@ def verifier_identifiants():
           if string.find(lignes[i], "Allure de scriptorium_cavalier", 1, true) then dites = dites + 1 end
         end
         if dites ~= 3 then return "allure : " .. dites .. " lignes au journal pour trois changements" end
+        -- V73 f 2 g : une mesure par homme suivi, partagée par ses suiveurs ; un saut d'Henry écarté par le filtre des hommes.
+        l.vitesses_des_chefs = {}
+        l.accrocher_l_allure(function(v, e) table.insert(vus_allure, { v = v, e = e }); return 0, 0, 0, e > 13 end,
+          function(m, avant) if m > 20 then return avant or 0 end return m end)
+        local second = { GetName = function() return "scriptorium_second" end, GetWorldPos = function() return { x = 0, y = -20, z = 0 } end }
+        l.chefs["scriptorium_second"] = "henry"
+        t_h, pos_h = 200, { x = 0, y = 0, z = 0 }
+        l.allure_vers_chef(cavalier, donnees_a)
+        t_h, pos_h = 201, { x = 0, y = 3, z = 0 }
+        l.allure_vers_chef(cavalier, donnees_a)
+        local n_avant = #vus_allure
+        l.allure_vers_chef(second, donnees_a)
+        if math.abs(vus_allure[n_avant + 1].v - 3) > 1e-6 then return "allure : mesure non partagée " .. tostring(vus_allure[n_avant + 1].v) end
+        if donnees_a.allure_perdu ~= 1 then return "allure : le second, à 23 m de son chef, n'est pas perdu" end
+        t_h, pos_h = 202, { x = 0, y = 43, z = 0 }
+        l.allure_vers_chef(cavalier, donnees_a)
+        if math.abs(vus_allure[#vus_allure].v - 3) > 1e-6 then return "allure : un saut d'Henry pris pour une course" end
+        l.chefs["scriptorium_second"] = nil
         System.GetCurrTime, player = horloge_avant, nil
         l.chefs["scriptorium_cavalier"] = nil
         l.accrocher_l_allure(nil)
@@ -1388,12 +1406,15 @@ def verifier_la_vie_du_camp():
              r'<SuppressFailure>\s*'
              r'<StanceElement smartObject="\$scriptorium_cheval" stance="horse"[^>]*>\s*<Sequence>\s*<WaitAction />\s*'
              r'<Expression expressions="\$scriptorium_en_selle = \$scriptorium_en_selle \+ 1" />\s*'
-             r'<Function_followNpc leader="\$scriptorium_chef"[^>]*/>\s*</Sequence>\s*</StanceElement>\s*</SuppressFailure>\s*'
+             r'<While [^>]*>\s*<Sequence>\s*<SuppressFailure>\s*'
+             r'<ExecuteLua code="pcall\(function\(\) [A-Za-z_.]+\.jeu\.allure_vers_chef\(entity, data\) end\)" />[\s\S]*?'
+             r'</While>\s*</Sequence>\s*</StanceElement>\s*</SuppressFailure>\s*'
              r'<Sequence>\s*<Wait duration="\$monte_delai"[^>]*/>\s*'
              r'<While doFail="false" propagateChildFail="false" condition="\$scriptorium_en_selle &gt; \$selle_avant">[\s\S]*?</Parallel>\s*'
              r'<Function_followNpc leader="\$scriptorium_chef"')
     if len(branche17) != 2 or not re.search(selle, branche17[1]):
-        erreur("vie du camp : la branche 17 doit monter le cheval par la posture horse, suivre en selle, et à pied si la monte échoue")
+        erreur("vie du camp : la branche 17 doit monter le cheval par la posture horse, le mener à l'allure de son chef (V73 f 2 g), "
+               "et à pied si la monte échoue")
     if "poser_l_activite(entite, 17)" not in liaison or '"scriptorium_cheval", wuid_monture' not in liaison:
         erreur("vie du camp : la liaison doit écrire scriptorium_cheval avant l'ordre 17")
     # Fiche 15, V73 f 2 b (la troupe à cheval, relue par le pair) : la branche 18 mène à cheval, la formation ouverte
@@ -1432,13 +1453,26 @@ def verifier_la_vie_du_camp():
                "et la monte manquée comptée")
     ranger_a_cheval = (r'<StanceElement smartObject="\$scriptorium_cheval" stance="horse"[^>]*>\s*<Sequence>\s*<WaitAction />\s*'
                        r'<Expression expressions="\$scriptorium_en_selle = \$scriptorium_en_selle \+ 1" />\s*'
-                       r'<While [^>]*>\s*<Sequence>\s*<Expression expressions="\$en_formation = 0" />\s*<SuppressFailure>\s*<Sequence>\s*'
+                       r'<While [^>]*>\s*<Sequence>\s*<SuppressFailure>\s*'
+                       r'<ExecuteLua code="pcall\(function\(\) [A-Za-z_.]+\.jeu\.allure_vers_chef\(entity, data\) end\)" />\s*</SuppressFailure>\s*'
+                       r'<IfCondition condition="\$allure_perdu == 1" failOnCondition="false">\s*'
+                       r'<While doFail="false" propagateChildFail="false" condition="\$scriptorium_essai_numero == \$numero_tenu &amp; \$allure_perdu == 1">'
+                       r'[\s\S]*?</IfCondition>\s*<IfCondition condition="\$allure_perdu == 0" failOnCondition="false">\s*'
+                       r'<Parallel successMode="Any" failureMode="Any">\s*<Sequence>\s*<Expression expressions="\$en_formation = 0" />\s*'
+                       r'<SuppressFailure>\s*<Sequence>\s*'
                        r'<GetMemberFormation MemberWUID="\$scriptorium_chef" FormationHandleOut="\$formation_suivie" />')
+    # V73 f 2 g : perdu, la boucle d'allure vers son chef ; rangé, une mesure toutes les « reessai » ; sans formation, la
+    # boucle d'allure bornée par le réessai (plus de followNpc en selle).
+    rang19 = corps19.split('stance="horse"', 1)[-1].split("</StanceElement>")[0]
+    if ('<While doFail="false" propagateChildFail="false" condition="$allure_perdu == 0">' not in rang19
+            or rang19.count("allure_vers_chef(entity, data)") != 6 or 'nodeLabel="73110810"' in comportements):
+        erreur("vie du camp : la branche 19 doit mener un suiveur perdu à l'allure de son chef, mesurer le suiveur rangé, et "
+               "ne plus suivre en selle par followNpc")
     modes19 = re.findall(r'FormationMode="(\w+)"', corps19.split('stance="horse"', 1)[-1].split("</StanceElement>")[0])
     if (not corps19 or not re.search(ranger_a_cheval, corps19) or sorted(modes19) != ["MoveHistory", "Relaxed"]
             or manquee not in corps19 or '<Wait duration="$monte_delai"' not in corps19):
         erreur("vie du camp : la branche 19 doit se ranger à cheval dans la formation de son chef (MoveHistory ou Relaxed, "
-               "un nœud par mode), la monte bornée et la monte manquée comptée")
+               "un nœud par mode), se mener vers lui quand il est perdu, la monte bornée et la monte manquée comptée")
     if comportements.count(manquee) != 3:
         erreur("vie du camp : les branches 17, 18 et 19 comptent chacune la monte manquée")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.

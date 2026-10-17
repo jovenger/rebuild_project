@@ -2728,11 +2728,32 @@ end
 -- gardent la vitesse d'avant. L'écart du cavalier à son chef corrige ; la règle est celle des hommes (accrochée). Écrit
 -- « allure_code » pour l'arbre ; une ligne au journal seulement quand l'allure change.
 liaison.allure_choisie = nil
+liaison.vitesse_filtree = nil
 liaison.allures_relevees = {}
+-- V73 f 2 g (relecture du pair) : une mesure par homme suivi, partagée par tous ceux qui le suivent.
+liaison.vitesses_des_chefs = {}
 liaison.noms_des_allures = { [-1] = "tenir", [0] = "pas", [1] = "course", [2] = "trot rapide", [3] = "galop" }
 
-function liaison.accrocher_l_allure(fonction)
+function liaison.accrocher_l_allure(fonction, filtre)
   liaison.allure_choisie = fonction
+  liaison.vitesse_filtree = filtre
+end
+
+-- La vitesse d'un homme suivi (« chef » : « henry » ou un identifiant), à « la » maintenant : relevée au plus une fois
+-- par 0,15 s, partagée ; le filtre des hommes écarte les sauts.
+local function vitesse_du_chef(chef, la, maintenant, cadence)
+  local v = liaison.vitesses_des_chefs[chef]
+  if not v then
+    liaison.vitesses_des_chefs[chef] = { t = maintenant, la = { x = la.x, y = la.y }, vitesse = 0 }
+    return 0
+  end
+  local ecoule = (maintenant and v.t) and (maintenant - v.t) or cadence
+  if ecoule >= 0.15 then
+    local mesuree = ((la.x - v.la.x) ^ 2 + (la.y - v.la.y) ^ 2) ^ 0.5 / ecoule
+    v.vitesse = liaison.vitesse_filtree and liaison.vitesse_filtree(mesuree, v.vitesse) or mesuree
+    v.t, v.la = maintenant, { x = la.x, y = la.y }
+  end
+  return v.vitesse
 end
 
 function liaison.allure_vers_chef(entite, donnees)
@@ -2746,26 +2767,24 @@ function liaison.allure_vers_chef(entite, donnees)
     end
     local horloge_lue, maintenant = pcall(function() return System.GetCurrTime() end)
     maintenant = horloge_lue and tonumber(maintenant) or nil
-    local memo = liaison.allures_relevees[nom]
-    local vitesse = memo and memo.vitesse or 0
     local cadence = (tonumber(donnees and donnees.allure_cadence_ms) or 300) / 1000
-    local ecoule = (memo and maintenant and memo.t) and (maintenant - memo.t) or cadence
-    if memo and ecoule >= 0.15 then
-      vitesse = ((la.x - memo.la.x) ^ 2 + (la.y - memo.la.y) ^ 2) ^ 0.5 / ecoule
-    end
-    if not memo or ecoule >= 0.15 then
-      memo = { t = maintenant, la = { x = la.x, y = la.y }, vitesse = vitesse, code = memo and memo.code,
-               fond = memo and memo.fond, correction = memo and memo.correction }
-      liaison.allures_relevees[nom] = memo
-    end
+    local vitesse = vitesse_du_chef(chef, la, maintenant, cadence)
+    local memo = liaison.allures_relevees[nom] or {}
+    liaison.allures_relevees[nom] = memo
     local ecart = ((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) ^ 0.5
-    local code, fond, correction = liaison.allure_choisie(vitesse, ecart, memo.fond, memo.correction, memo.code)
+    local code, fond, correction, perdu = liaison.allure_choisie(vitesse, ecart, memo.fond, memo.correction, memo.code,
+      memo.perdu)
     donnees.allure_code = code
+    donnees.allure_perdu = perdu and 1 or 0
     if memo.code ~= code then
       liaison.journal(string.format("Allure de %s : %s (son chef à %.1f m/s, à %.1f m)", tostring(nom),
         liaison.noms_des_allures[code] or tostring(code), vitesse, ecart))
     end
-    memo.code, memo.fond, memo.correction = code, fond, correction
+    if (memo.perdu == true) ~= (perdu == true) and memo.code ~= nil then
+      liaison.journal(string.format("Allure de %s : %s (à %.1f m de son chef)", tostring(nom),
+        perdu and "sa place perdue" or "de retour dans le rang", ecart))
+    end
+    memo.code, memo.fond, memo.correction, memo.perdu = code, fond, correction, perdu == true
   end)
   if not fait then
     liaison.journal("Allure : erreur : " .. tostring(erreur))

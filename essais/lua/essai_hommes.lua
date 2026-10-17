@@ -2681,4 +2681,19 @@ essai("allure du chef monté (fiche 15, V73 f 2 f) : la vitesse de celui qu'il s
     local code = hommes.allure_du_chef(c[1], c[2], c[3], c[4], c[5])
     egal(code, c[6], c[7])
   end
+  -- V73 f 2 g (relecture du pair) : perdu au-delà de 13 m de son chef, de retour dans le rang en deçà de 6 m (la tenue) ;
+  -- le filtre des sauts.
+  local _, _, _, perdu = hommes.allure_du_chef(1.5, 14)
+  verifier(perdu == true, "à 14 m de son chef : perdu")
+  _, _, _, perdu = hommes.allure_du_chef(1.5, 10, nil, nil, nil, true)
+  verifier(perdu == true, "perdu, à 10 m : encore perdu")
+  _, _, _, perdu = hommes.allure_du_chef(1.5, 5, nil, nil, nil, true)
+  verifier(perdu == false, "perdu, à 5 m : de retour dans le rang")
+  _, _, _, perdu = hommes.allure_du_chef(1.5, 10, nil, nil, nil, false)
+  verifier(perdu == false, "rangé, à 10 m : pas perdu")
+  _, _, _, perdu = hommes.allure_du_chef(0, 5)
+  verifier(perdu == false, "arrêté à sa place : pas perdu")
+  egal(hommes.vitesse_retenue(25, 3), 3, "un saut : la vitesse d'avant")
+  egal(hommes.vitesse_retenue(5, 3), 5, "une course : retenue")
+  egal(hommes.vitesse_retenue(25, nil), 0, "un saut sans vitesse d'avant : 0")
 end)
