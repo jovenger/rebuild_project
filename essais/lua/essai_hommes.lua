@@ -2263,3 +2263,113 @@ essai("à cheval (fiche 15, V73 f 2 a) : l'homme qui a un cheval le monte et sui
   egal(hommes.activite_de(id, 10).suivi, nil, "un cheval illisible : à pied")
 end)
 
+-- Fiche 15, V73 f 2 b : la troupe à cheval (relue par le pair, réponses recommandées prises d'office le 17/10).
+local function journal_contient(morceau)
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, morceau, 1, true) then return true end
+  end
+  return false
+end
+
+essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le premier mène monté, les autres se rangent montés ; la monte manquée, le plafond, le retrait après la sortie", function()
+  preparer(5000, 100, 10)
+  local ids, perso = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+    FauxJeu.positions[perso[i]] = { x = 10 * i, y = 0, z = 0 }
+  end
+  hommes.battre()
+  FauxJeu.manquees, FauxJeu.chevaux, FauxJeu.chevaux_retires = {}, {}, {}
+  local ok, raison = hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = "oui", fin = "liberation" })
+  verifier(not ok and raison == "escorte_invalide", "a_cheval n'est pas un booléen : refusé")
+  for i = 1, 3 do
+    verifier(hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" }), "sortie à cheval " .. i)
+  end
+  -- Un cheval par homme, à 5 m de lui.
+  local nes = 0
+  for i = 1, 3 do
+    local m = hommes.montures[ids[i]]
+    verifier(m ~= nil and m.cheval ~= nil and FauxJeu.chevaux[m.cheval] ~= nil, "l'homme " .. i .. " a son cheval")
+    local c, p = FauxJeu.chevaux[m.cheval], FauxJeu.positions[perso[i]]
+    verifier(math.abs(math.sqrt((c.x - p.x) ^ 2 + (c.y - p.y) ^ 2) - hommes.reglages.cheval_distance_m) < 0.01, "à 5 m de l'homme " .. i)
+    nes = nes + 1
+  end
+  egal(nes, 3, "trois chevaux")
+  -- Les rôles à cheval : le premier mène, les autres se rangent dans sa formation.
+  local a1 = hommes.activite_de(ids[1], 10)
+  egal(a1.suivi and a1.suivi.mode, "cheval", "le premier est à cheval")
+  egal(a1.suivi and a1.suivi.role, "mener", "le premier mène")
+  egal(a1.suivi and a1.suivi.formation, "followNPC", "le modèle mené")
+  for i = 2, 3 do
+    local a = hommes.activite_de(ids[i], 10)
+    egal(a.suivi and a.suivi.role, "formation", "l'homme " .. i .. " se range à cheval")
+    egal(a.chef, perso[1], "dans la formation du premier")
+  end
+  local o = dernier_ordre_de(perso[1])
+  verifier(o and o.suivi and o.suivi.role == "mener" and o.suivi.cheval == hommes.montures[ids[1]].cheval, "l'ordre du premier : mener à cheval")
+  -- Un homme à cheval loin de son chef n'est jamais posé seul : son cheval le ramène.
+  local ici3 = FauxJeu.positions[perso[3]]
+  FauxJeu.positions[perso[3]] = { x = ici3.x, y = ici3.y + 200, z = 0 }
+  FauxJeu.secours = {}
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "un homme à cheval à 200 m de son chef : pas de pose")
+  FauxJeu.positions[perso[3]] = ici3
+  -- La monte manquée du deuxième : son cheval retiré, un autre né sous un autre nom, l'ordre redonné avec lui.
+  local premier_cheval = hommes.montures[ids[2]].cheval
+  FauxJeu.manquees[perso[2]] = 1
+  hommes.battre()
+  verifier(FauxJeu.chevaux_retires[#FauxJeu.chevaux_retires] == premier_cheval, "le cheval de la monte manquée est retiré")
+  local m2 = hommes.montures[ids[2]]
+  egal(m2.essais, 1, "un essai compté")
+  verifier(m2.cheval ~= nil and m2.cheval ~= premier_cheval, "un autre cheval est né")
+  o = dernier_ordre_de(perso[2])
+  verifier(o and o.suivi and o.suivi.cheval == m2.cheval, "l'ordre redonné avec le nouveau cheval")
+  verifier(journal_contient("n'a pas pu monter"), "la monte manquée au journal")
+  -- Le plafond : deux montes manquées de plus, puis à pied, toujours rangé dans la formation.
+  FauxJeu.manquees[perso[2]] = 2
+  hommes.battre()
+  FauxJeu.manquees[perso[2]] = 3
+  hommes.battre()
+  verifier(m2.abandon == true and m2.cheval == nil, "au plafond : plus de cheval")
+  local a2 = hommes.activite_de(ids[2], 10)
+  egal(a2.suivi and a2.suivi.mode, "formation", "au plafond : à pied, rangé dans la formation")
+  verifier(journal_contient("suit à pied jusqu'à la fin de sa sortie"), "l'abandon au journal")
+  -- Une naissance refusée compte comme un essai.
+  hommes.lacher(ids[3], "escorte")
+  hommes.battre()
+  hommes.battre()
+  FauxJeu.refuser_les_chevaux = true
+  hommes.tenir(ids[3], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
+  FauxJeu.refuser_les_chevaux = nil
+  egal(hommes.montures[ids[3]] and hommes.montures[ids[3]].essais, 1, "une naissance refusée : un essai")
+  verifier(journal_contient("naissance refusée"), "le refus au journal")
+  -- La sortie finie : pas de retrait pendant la descente (l'homme près de son cheval) ; retiré quand il s'en éloigne.
+  local cheval1 = hommes.montures[ids[1]].cheval
+  FauxJeu.positions[perso[1]] = { x = FauxJeu.chevaux[cheval1].x + 1, y = FauxJeu.chevaux[cheval1].y, z = 0 }
+  for i = 1, 3 do hommes.lacher(ids[i], "escorte") end
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval1] ~= nil, "la sortie finie, l'homme à 1 m : son cheval reste (la descente)")
+  FauxJeu.positions[perso[1]] = { x = FauxJeu.chevaux[cheval1].x + 20, y = FauxJeu.chevaux[cheval1].y, z = 0 }
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval1] == nil, "l'homme éloigné : son cheval retiré")
+  verifier(hommes.montures[ids[1]] == nil, "plus rien en mémoire pour lui")
+  verifier(journal_contient("retiré, la sortie de"), "le retrait au journal")
+  -- Au plus tard au deuxième battement hors de sortie, même l'homme resté près de son cheval.
+  hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
+  local cheval_b = hommes.montures[ids[1]].cheval
+  FauxJeu.positions[perso[1]] = { x = FauxJeu.chevaux[cheval_b].x, y = FauxJeu.chevaux[cheval_b].y, z = 0 }
+  hommes.lacher(ids[1], "escorte")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval_b] ~= nil, "premier battement : le cheval reste")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval_b] == nil, "deuxième battement : le cheval retiré")
+  -- Un homme renvoyé : son cheval retiré au battement.
+  hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
+  local cheval_c = hommes.montures[ids[1]].cheval
+  verifier(hommes.renvoyer(ids[1]), "l'homme renvoyé")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval_c] == nil, "l'homme renvoyé : son cheval retiré")
+  FauxJeu.manquees = nil
+end)
+

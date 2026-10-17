@@ -1181,6 +1181,18 @@ function liaison.retirer_cheval(identifiant)
   liaison.retirer_objet(identifiant)
 end
 
+-- Fiche 15, V73 f 2 b : le compte des montes manquées que tient le cerveau de l'homme (l'arbre l'augmente quand le délai
+-- de la monte passe sans qu'il soit en selle) ; nil s'il est illisible.
+function liaison.montes_manquees(identifiant)
+  local entite = entite_nommee(identifiant)
+  local this_lu, this = pcall(function() return entite.this end)
+  if not entite or not this_lu or type(this) ~= "table" then
+    return nil
+  end
+  local lu, valeur = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_monte_manquee") end)
+  return lu and tonumber(valeur) or nil
+end
+
 -- Donne un ordre simple à un personnage : dormir ici, s'asseoir là, se tenir là.
 -- À vérifier en jeu : l'appel du moteur. En attendant, l'ordre est noté au journal.
 -- Vu le 14/10 (V17) : le jeu de base n'a pas d'ordre générique « marcher, s'asseoir, dormir » ; ses personnages
@@ -2424,6 +2436,9 @@ end
 -- { mode = "mener", formation } : il ouvre la formation du moteur et suit son chef (ordre 15) ; { mode = "formation" } :
 -- il se range dans la formation de son chef (ordre 16) ; { mode = "cheval", cheval } (V73 f 2 a) : il monte ce cheval
 -- (son WUID dans scriptorium_cheval) et suit son chef en selle (ordre 17) ; un cheval introuvable : à pied (ordre 14).
+-- V73 f 2 b : { mode = "cheval", cheval, role = "mener", formation } : il monte et mène la formation (ordre 18) ;
+-- { mode = "cheval", cheval, role = "formation" } : il monte et se range dans la formation de son chef (ordre 19) ; un
+-- cheval introuvable : le même rôle à pied (ordres 15, 16).
 function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi)
   local entite = entite_nommee(identifiant)
   local ligne
@@ -2462,8 +2477,24 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
           local monture_lue, wuid_monture = pcall(function() return XGenAIModule.GetMyWUID(monture) end)
           local en_selle = monture ~= nil and monture_lue and wuid_monture ~= nil
             and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_cheval", wuid_monture) end)
-          if en_selle then
+          local menee = suivi.role == "mener" and suivi.formation or nil
+          if menee then
+            liaison.formations_menees[identifiant] = menee
+          end
+          if en_selle and menee then
+            ligne = "monte « " .. tostring(suivi.cheval) .. " » et mène la formation « " .. menee .. " » derrière « "
+              .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 18)
+          elseif en_selle and suivi.role == "formation" then
+            ligne = "monte « " .. tostring(suivi.cheval) .. " » et se range dans la formation de « " .. tostring(chef)
+              .. " » ; " .. poser_l_activite(entite, 19)
+          elseif en_selle then
             ligne = "monte « " .. tostring(suivi.cheval) .. " » et suit « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 17)
+          elseif menee then
+            ligne = "cheval « " .. tostring(suivi.cheval) .. " » introuvable, mène la formation « " .. menee .. " » à pied ; "
+              .. poser_l_activite(entite, 15)
+          elseif suivi.role == "formation" then
+            ligne = "cheval « " .. tostring(suivi.cheval) .. " » introuvable, se range dans la formation de « "
+              .. tostring(chef) .. " » à pied ; " .. poser_l_activite(entite, 16)
           else
             ligne = "cheval « " .. tostring(suivi.cheval) .. " » introuvable, suit « " .. tostring(chef) .. " » à pied ; "
               .. poser_l_activite(entite, 14)
@@ -2706,7 +2737,7 @@ function liaison.voir_sur_la_place(qui, identifiant)
   if la and ici_lu and type(ici) == "table" then
     ecart_au_chef = math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s, à %s m de son chef, en selle %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s, à %s m de son chef, en selle %s, montes manquées %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
@@ -2716,7 +2747,7 @@ function liaison.voir_sur_la_place(qui, identifiant)
     cap and string.format("%.0f", cap) or "?", ecart_de_cap and string.format("%.0f", ecart_de_cap) or "-",
     variable("scriptorium_en_poste"),
     ecart_au_but and string.format("%.2f", ecart_au_but) or "-", tostring(liaison.pas_de_ronde_vus[qui] or 0),
-    ecart_au_chef and string.format("%.2f", ecart_au_chef) or "-", variable("scriptorium_en_selle"),
+    ecart_au_chef and string.format("%.2f", ecart_au_chef) or "-", variable("scriptorium_en_selle"), variable("scriptorium_monte_manquee"),
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end

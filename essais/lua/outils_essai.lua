@@ -45,6 +45,7 @@ function depart()
     Scriptorium.hommes.lancements_vus = {}
     Scriptorium.hommes.garde_de_la_tenue_rang = 0
     Scriptorium.hommes.en_ronde = {}
+    Scriptorium.hommes.montures = {}
     Scriptorium.hommes.hasard_de_la_ronde = nil
     Scriptorium.hommes.raisons_de_reprise = {}
     Scriptorium.hommes.accroches.ronde_reprise = {}

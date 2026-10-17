@@ -1650,6 +1650,113 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   jamais retirée avec le cheval, même l'original parti ; un retrait « qui contient » injecté est attrapé.
 - Suite : V73 f 2 b, la troupe à cheval.
 
+## V73 f 2 b — la troupe à cheval (17/10, relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Après la sonde (V73 f 2 a, vue en jeu) : **les hommes d'une escorte partent à cheval**, chacun sur un cheval né pour la
+  sortie, en formation derrière Henry (le premier mène, les autres s'y rangent), et descendent à la fin de la sortie.
+- **Ce pas** : les hommes seuls derrière Henry. Le Directeur monté (il mène la troupe), l'allure du chef réglée sur
+  Henry, la descente au combat, Henry à cheval, les chevaux gardés au camp : à leurs pas, plus tard.
+
+### Ce que le pair a transmis (principes seulement, sans le code d'Alex ni celui de Scriptorium)
+1. **La formation montée** : le suiveur monté en `MoveHistory` (tous les suiveurs montés du jeu sont en `MoveHistory` ou
+   `Relaxed`, aucun en `KeepShape`) ; un `WaitAction` avant le suiveur monté, pour que la monture se pose ; la formation
+   tenue par la branche à part sans marche (notre montage de V73 f 1 bis), qui survit à la monte du chef.
+2. **L'allure du chef réglée sur Henry** (toutes les 300 ms environ, la vitesse d'Henry mesurée, l'allure du chef
+   choisie). Pas dans ce pas : `followNpc` en selle a déjà tenu 3,64 m après une course (V73 f 2 a) ; la grille regarde
+   si le chef monté distance ou traîne la colonne. S'il le faut, au pas suivant (un appel au Lua toutes les 300 ms par
+   chef : latence ajoutée, à signaler).
+3. **Qui monte** : seuls les hommes en sortie ; ceux du camp restent à pied ; l'homme descend quand un combat est assez
+   proche (à son pas, plus tard ; l'interruption de combat du jeu finit sans doute la posture d'elle-même).
+4. **La vie du cheval** : un cheval par homme, né à 5 m ; **une monte qui n'aboutit pas dans le délai** (10 s) : le
+   cheval est retiré et un autre naît sous un autre angle tiré au hasard (réessayer le même cheval échoue pareil) ; les
+   essais comptés, un plafond (2 ou 3, réglable), puis l'homme suit à pied le reste de la sortie ; une ligne au journal
+   par essai. Le cheval n'est retiré qu'une fois l'homme sûrement descendu (chez Alex : plusieurs lectures de suite
+   « plus en selle » ; une seule lecture manquée tuait un cheval vers lequel l'homme marchait encore).
+5. **Le piège des doublures** (« DialogTwin_… ») : retrait par le nom exact seulement (fait et contrôlé au banc).
+
+### Comment ce serait fait
+1. **La tenue** : `hommes.tenir(id, "escorte", { activite = "suivre", lieu, formation, a_cheval = true, fin })` ;
+   `a_cheval` doit être un booléen (sinon `escorte_invalide`). La sonde (`cheval = <identifiant>`) reste.
+2. **Le cheval de chacun** (passager, en mémoire seulement, jamais au registre ; un rechargement le perd et il en
+   renaît un) : à l'ordre de l'homme (`ordonner_un_homme`), si sa tenue la plus forte est une sortie à cheval et qu'il
+   n'a pas de cheval vivant (`objet_existe`), un cheval naît à `cheval_distance_m` (5 m) de lui, sous un angle tiré au
+   hasard du socle (`faire_venir_cheval`, sa recherche de place libre) ; journal à chaque naissance et à chaque refus.
+3. **Monter et mener, monter et se ranger** : deux branches neuves de l'arbre, sur la coque de la branche 17 (debout,
+   la posture « horse » du jeu, le `WaitAction`, « en selle » compté, la monte bornée par `monte_delai_ms`) :
+   - **18, mener à cheval** : le montage de la branche 15 (le modèle lu par le Lua ; la formation fermée puis rouverte
+     dans une branche à part, sans marche) ; dans la branche sœur, la marche : monter, puis `followNpc` vers Henry en
+     selle ; la monte manquée : `followNpc` à pied, la formation toujours ouverte (il mène toujours). La formation est
+     **hors de la posture** : changer de posture ne la touche pas (notre lecture du point 1 du pair, à confirmer).
+   - **19, se ranger à cheval** : monter, puis dans la posture la boucle de la branche 16 (`GetMemberFormation`, le
+     suiveur du moteur, repli `followNpc` pendant `$reessai`), mode lu dans `formation_mode_monte` (1 `MoveHistory`,
+     par défaut ; 4 `Relaxed`), un nœud par mode ; la monte manquée : `followNpc` à pied.
+   - **La fermeture** de la formation menée (le bloc avant l'aiguillage) épargne les ordres 15 **et 18** ; sinon un chef
+     monté verrait sa formation fermée à chaque tour.
+4. **La monte manquée** : quand le délai finit sans « en selle », l'arbre compte `scriptorium_monte_manquee` (+ 1) ; au
+   battement, le Lua lit ce compte (`liaison.montes_manquees`) : s'il a bougé, l'essai est compté et écrit au journal,
+   le cheval retiré, et, sous le plafond `monte_essais_max` (3), un autre naît sous un autre angle, l'ordre redonné
+   (le nom du cheval entre dans la signature) ; au plafond, l'homme suit à pied jusqu'à la fin de sa sortie (l'abandon
+   est oublié quand la sortie finit). Latence : jusqu'à un battement (30 s) à pied entre deux essais ; acceptée pour ce
+   pas (pas d'appel au Lua en plus).
+5. **Le retrait du cheval après la sortie** : au battement, un cheval dont l'homme n'est plus en sortie à cheval **et**
+   dont l'homme est à plus de `cheval_retrait_m` (6 m) est retiré (la descente est finie : il s'en est éloigné) ;
+   jamais pendant la sortie, jamais pendant la descente ; aussi quand l'homme n'est plus au camp (renvoyé, mort).
+6. **Le rattrapage** (V73 f 1 : au-delà de 60 m, le suiveur posé 4 m derrière Henry) : **jamais pour un homme à cheval**
+   (posé seul, il serait séparé de son cheval) ; son cheval le ramène au galop. Le rattrapage d'un cavalier (le cheval
+   avec lui) viendra avec le changement de carte. Réponse recommandée prise d'office (consigne du 17/10).
+7. **Les commandes d'essai** : `essai_troupe_a_cheval` (les trois premiers hommes suivent Henry à cheval, en formation
+   followNPC ; le premier mène) ; `essai_fin_escorte` (déjà là : la sortie finie). La monte manquée s'éprouve par le
+   fichier de réglages (`hommes.cerveau.monte_delai_ms` très court), sans commande de plus.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `cheval_distance_m` 5, `cheval_retrait_m` 6, `monte_essais_max` 3.
+- `hommes.cerveau` : `formation_mode_monte` 1.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé, trois hommes ; `essai_troupe_a_cheval`.
+1. **Trois chevaux naissent** près des hommes, à au moins 1 m de tout personnage ; journal : trois naissances.
+2. **Les trois montent** (« en selle » à 1 chacun) ; le premier ouvre la formation (« Formation de … : « followNPC » »).
+3. **La troupe suit Henry** à pied puis à la course, en forme followNPC à l'image (chef devant, deux derrière) ; le chef
+   monté distance-t-il ou traîne-t-il la colonne ? (l'allure du point 2, à décider sur l'image).
+4. **Henry s'éloigne par deux sauts de 40 m** : aucun cavalier n'est posé ; la troupe le rejoint d'elle-même au galop,
+   et la formation tient (« fermer avant d'ouvrir » reste à revoir en jeu, avec un chef à pied).
+5. `essai_fin_escorte` : **ils descendent**, reprennent leur tranche ; **les chevaux retirés** au battement où chaque
+   homme est à plus de 6 m du sien (journal).
+6. **La monte manquée** : `monte_delai_ms` à 300 par le fichier de réglages, `essai_troupe_a_cheval` : trois essais par
+   homme au journal (retrait, renaissance sous un autre angle), puis à pied ; réglage retiré.
+- Décompte de l'écran noir (fiche 14).
+
+### Relecture du pair (17/10)
+- **Fiche bonne ; la lecture du point 1 est juste** : la formation tenue par la branche à part, sans marche, hors de la
+  posture ; c'est pourquoi, chez Alex, elle survit quand le chef monte.
+- **La barrière** : aucune mesure chez Alex ; c'est la monte qui n'aboutit pas dans le délai (10 s) qui fait retirer le
+  cheval et en faire naître un autre sous un autre angle (réessayer le même échoue pareil) ; plafond de 2 ou 3 essais,
+  réglable, puis à pied ; une ligne au journal par essai. Chez Alex, l'abandon n'est oublié que quand Henry descend de
+  cheval ; ici, à la fin de la sortie (Henry à cheval viendra à son pas).
+- **Pour les pas suivants** (pas pour celui-ci) :
+  - **Quand monter** : ici la tenue le dit (`a_cheval`), bon pour la sonde. Mais l'escorte d'Henry monte **quand Henry
+    monte** et descend quand il descend (chez Scriptorium, le Directeur suit Henry « à cheval quand Henry l'est ») : à
+    lire par un `StanceCheck` « horse » sur Henry, avec un **anti-rebond** (monter tout de suite, descendre seulement
+    après plusieurs lectures de suite). La règle de JoVenGer, « tous ceux qui sortent du camp partent à cheval », vaut
+    pour les sorties **sans** Henry (missions, métiers, coursier). Deux déclencheurs, chacun à son pas.
+  - **Le Directeur monté** : chez Scriptorium, c'est lui le chef de la colonne ; quand il viendra, il reprend la tête,
+    et « le premier homme mène » ne sert qu'en son absence.
+  - **La fluidité** (idée n° 6, 80 hommes) : un cheval par homme, jusqu'à 80 chevaux ; à mesurer à l'essai du camp plein.
+- Fait en plus au code : une naissance refusée ne compte qu'une fois à la même heure du jeu (la pose d'une tenue ordonne
+  l'homme deux fois : la tenue, puis l'escorte redonnée).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Les chevaux de la Compagnie** (question du pair pour JoVenGer) : (a) **passagers**, nés à la monte et retirés après
+   la descente, rien au registre (Recommandé : comme chez Alex ; aucun soin, aucun fourrage à tenir) ; (b) **gardés**,
+   des chevaux de la Compagnie, au piquet du camp, nourris au fourrage (idée n° 13 de la liste pour plus tard ;
+   Scriptorium a déjà un cheval de coursier qui mange et s'entretient). **Prise : (a)**, à redire en tête du bilan :
+   c'est la réponse qui engage la suite.
+2. **Qui mène** : (a) les hommes seuls derrière Henry, le premier mène (Recommandé : la sonde la plus légère) ; (b) le
+   Directeur monté d'emblée. **Prise : (a)**.
+3. **L'allure du chef réglée sur Henry** : (a) pas dans ce pas, à décider sur l'image (Recommandé) ; (b) tout de suite.
+   **Prise : (a)**.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

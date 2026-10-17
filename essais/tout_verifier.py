@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 149:
-        erreur("ordres : %d commandes lues dans poste.lua, 149 attendues" % len(connues))
+    if len(connues) != 150:
+        erreur("ordres : %d commandes lues dans poste.lua, 150 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -501,9 +501,34 @@ def verifier_identifiants():
         l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry", { mode = "cheval", cheval = "scriptorium_cheval_essai" })
         if XGenAIModule.variables.scriptorium_cheval ~= "wuid_cheval" then return "à cheval : WUID " .. tostring(XGenAIModule.variables.scriptorium_cheval) end
         if not string.find(lignes[#lignes], "monte « scriptorium_cheval_essai »", 1, true) then return "à cheval : " .. lignes[#lignes] end
+        -- V73 f 2 b : monter et mener (ordre 18, le modèle retenu), monter et se ranger (ordre 19) ; le compte des montes
+        -- manquées lu dans le cerveau.
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry",
+          { mode = "cheval", cheval = "scriptorium_cheval_essai", role = "mener", formation = "followNPC" })
+        if not string.find(lignes[#lignes], "et mène la formation « followNPC »", 1, true)
+            or not string.find(lignes[#lignes], "activité 18", 1, true) then return "mener à cheval : " .. lignes[#lignes] end
+        if l.formations_menees["scriptorium_rondier"] ~= "followNPC" then return "mener à cheval : le modèle n'est pas retenu" end
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry",
+          { mode = "cheval", cheval = "scriptorium_cheval_essai", role = "formation" })
+        if not string.find(lignes[#lignes], "et se range dans la formation", 1, true)
+            or not string.find(lignes[#lignes], "activité 19", 1, true) then return "se ranger à cheval : " .. lignes[#lignes] end
+        local lire_avant = XGenAIModule.GetBrainVariable
+        XGenAIModule.GetBrainVariable = function(id, nom) return nom == "scriptorium_monte_manquee" and 2 or 0 end
+        if l.montes_manquees("scriptorium_rondier") ~= 2 then return "les montes manquées ne sont pas lues" end
+        if l.montes_manquees("personne") ~= nil then return "un homme absent : un compte rendu" end
+        XGenAIModule.GetBrainVariable = lire_avant
         System.entites["scriptorium_cheval_essai"] = nil
         l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry", { mode = "cheval", cheval = "scriptorium_cheval_essai" })
         if not string.find(lignes[#lignes], "introuvable, suit « henry » à pied", 1, true) then return "cheval absent : " .. lignes[#lignes] end
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry",
+          { mode = "cheval", cheval = "scriptorium_cheval_essai", role = "mener", formation = "followNPC" })
+        if not string.find(lignes[#lignes], "mène la formation « followNPC » à pied", 1, true)
+            or not string.find(lignes[#lignes], "activité 15", 1, true) then return "mener, cheval absent : " .. lignes[#lignes] end
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry",
+          { mode = "cheval", cheval = "scriptorium_cheval_essai", role = "formation" })
+        if not string.find(lignes[#lignes], "à pied", 1, true)
+            or not string.find(lignes[#lignes], "activité 16", 1, true) then return "se ranger, cheval absent : " .. lignes[#lignes] end
+        l.formations_menees["scriptorium_rondier"] = nil
         -- Le piège des doublures (transmis par le pair, 17/10) : pendant un dialogue, le jeu crée des doublures dont le nom
         -- contient celui de l'original (« DialogTwin_… ») ; en retirer une fait planter le jeu. Le retrait se fait par le
         -- nom exact : la doublure reste, même quand l'original n'est plus là.
@@ -1246,20 +1271,21 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : la branche 15 doit lire le modèle par le Lua, ouvrir la formation et suivre son chef")
     if (len(branche16) != 2
             or '<GetMemberFormation MemberWUID="$scriptorium_chef" FormationHandleOut="$formation_suivie" />' not in branche16[1]
-            or branche16[1].count('<FormationFollower FormationHandle="$formation_suivie"') != 4
+            or branche16[1].split("$scriptorium_activite == 17")[0].count('<FormationFollower FormationHandle="$formation_suivie"') != 4
             or '<Function_followNpc leader="$scriptorium_chef"' not in branche16[1]):
         erreur("vie du camp : la branche 16 doit retrouver la formation de son chef, s'y ranger (un nœud par mode), et le "
                "suivre normalement tant qu'elle n'est pas ouverte")
     # Relecture du pair : la formation n'est fermée que quand le chef cesse de mener (jamais au premier échec de sa marche :
     # chez Alex, cela défaisait toute la troupe) ; et « fermer avant d'ouvrir » : la branche 15 ferme l'ancienne formation
     # du même chef juste avant d'en ouvrir une (après un rattrapage, l'ordre redonné rouvrait sans fermer).
-    fermer = re.search(r'<IfCondition condition="\$scriptorium_activite ~= 15 &amp; \$formation_menee ~= \$__null"[^>]*>\s*'
+    fermer = re.search(r'<IfCondition condition="\$scriptorium_activite ~= 15 &amp; \$scriptorium_activite ~= 18 &amp; '
+                       r'\$formation_menee ~= \$__null"[^>]*>\s*'
                        r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />', comportements)
-    avant_d_ouvrir = re.search(r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />\s*</SuppressFailure>\s*'
-                               r'<SuppressFailure>\s*<MakeFormation FormationName="\$formation_nom"', comportements)
-    if not fermer or not avant_d_ouvrir or comportements.count("<EndFormation") != 2 or "<FuseBox" in comportements:
-        erreur("vie du camp : la formation se ferme quand le chef cesse de mener, et juste avant d'en rouvrir une (deux "
-               "EndFormation, aucun FuseBox)")
+    avant_d_ouvrir = re.findall(r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />\s*</SuppressFailure>\s*'
+                                r'<SuppressFailure>\s*<MakeFormation FormationName="\$formation_nom"', comportements)
+    if not fermer or len(avant_d_ouvrir) != 2 or comportements.count("<EndFormation") != 3 or "<FuseBox" in comportements:
+        erreur("vie du camp : la formation se ferme quand le chef cesse de mener (ni 15 ni 18), et juste avant d'en rouvrir "
+               "une, à pied comme à cheval (trois EndFormation, aucun FuseBox)")
     if "poser_l_activite(entite, 15)" not in liaison or "poser_l_activite(entite, 16)" not in liaison:
         erreur("vie du camp : la liaison doit donner les ordres 15 et 16")
     bloc_formations = re.search(r"hommes\.formations = \{(.*?)\n\}", hommes_lua, re.S)
@@ -1288,6 +1314,40 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : la branche 17 doit monter le cheval par la posture horse, suivre en selle, et à pied si la monte échoue")
     if "poser_l_activite(entite, 17)" not in liaison or '"scriptorium_cheval", wuid_monture' not in liaison:
         erreur("vie du camp : la liaison doit écrire scriptorium_cheval avant l'ordre 17")
+    # Fiche 15, V73 f 2 b (la troupe à cheval, relue par le pair) : la branche 18 mène à cheval, la formation ouverte
+    # HORS de la posture (dans la branche à part sans marche) ; la branche 19 se range à cheval, en MoveHistory ou
+    # Relaxed, dans la posture ; les deux bornent la monte et comptent la monte manquée ; la liaison donne 18 et 19.
+    branche18 = comportements.split("$scriptorium_activite == 18", 1)
+    branche19 = comportements.split("$scriptorium_activite == 19", 1)
+    corps18 = branche18[1].split("$scriptorium_activite == 19")[0] if len(branche18) == 2 else ""
+    corps19 = branche19[1] if len(branche19) == 2 else ""
+    manquee = '<Expression expressions="$scriptorium_monte_manquee = $scriptorium_monte_manquee + 1" />'
+    mener_a_cheval = (r'<Parallel successMode="Any" failureMode="Any">\s*<Sequence>\s*<SuppressFailure>\s*'
+                      r'<EndFormation FormationHandle="\$formation_menee" />\s*</SuppressFailure>\s*<SuppressFailure>\s*'
+                      r'<MakeFormation FormationName="\$formation_nom" HandleVariable="\$formation_menee" />\s*</SuppressFailure>\s*'
+                      r'<Wait duration="&apos;-1&apos;"[^>]*/>\s*</Sequence>\s*<Sequence>\s*'
+                      r'<Expression expressions="\$selle_avant = \$scriptorium_en_selle" />\s*<Parallel successMode="Any" failureMode="Any">\s*'
+                      r'<SuppressFailure>\s*<StanceElement smartObject="\$scriptorium_cheval" stance="horse"[^>]*>\s*<Sequence>\s*'
+                      r'<WaitAction />\s*<Expression expressions="\$scriptorium_en_selle = \$scriptorium_en_selle \+ 1" />\s*'
+                      r'<Function_followNpc leader="\$scriptorium_chef"[^>]*/>\s*</Sequence>\s*</StanceElement>')
+    if (not corps18 or not re.search(mener_a_cheval, corps18) or appel15 not in corps18 or manquee not in corps18
+            or '<Wait duration="$monte_delai"' not in corps18):
+        erreur("vie du camp : la branche 18 doit ouvrir la formation hors de la posture et mener à cheval, la monte bornée "
+               "et la monte manquée comptée")
+    ranger_a_cheval = (r'<StanceElement smartObject="\$scriptorium_cheval" stance="horse"[^>]*>\s*<Sequence>\s*<WaitAction />\s*'
+                       r'<Expression expressions="\$scriptorium_en_selle = \$scriptorium_en_selle \+ 1" />\s*'
+                       r'<While [^>]*>\s*<Sequence>\s*<Expression expressions="\$en_formation = 0" />\s*<SuppressFailure>\s*<Sequence>\s*'
+                       r'<GetMemberFormation MemberWUID="\$scriptorium_chef" FormationHandleOut="\$formation_suivie" />')
+    modes19 = re.findall(r'FormationMode="(\w+)"', corps19.split('stance="horse"', 1)[-1].split("</StanceElement>")[0])
+    if (not corps19 or not re.search(ranger_a_cheval, corps19) or sorted(modes19) != ["MoveHistory", "Relaxed"]
+            or manquee not in corps19 or '<Wait duration="$monte_delai"' not in corps19):
+        erreur("vie du camp : la branche 19 doit se ranger à cheval dans la formation de son chef (MoveHistory ou Relaxed, "
+               "un nœud par mode), la monte bornée et la monte manquée comptée")
+    if comportements.count(manquee) != 3:
+        erreur("vie du camp : les branches 17, 18 et 19 comptent chacune la monte manquée")
+    if ("poser_l_activite(entite, 18)" not in liaison or "poser_l_activite(entite, 19)" not in liaison
+            or '"scriptorium_monte_manquee"' not in liaison):
+        erreur("vie du camp : la liaison doit donner les ordres 18 et 19 et lire les montes manquées")
     # Relecture du pair (V73 f 2 a) : le cheval naît sur une âme de cheval du jeu (archétype 3, classe 7, relue dans
     # Tables.pak, lecture seule), hors de la sauvegarde.
     ame = re.search(r'liaison\.ame_de_cheval = "([0-9a-f-]{36})"', liaison)

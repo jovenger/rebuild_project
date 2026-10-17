@@ -877,6 +877,23 @@ function poste.essai_retirer_cheval()
   return true
 end
 
+-- Fiche 15, V73 f 2 b (la troupe à cheval) : les trois premiers hommes suivent Henry à cheval, en formation followNPC
+-- (le premier mène) ; chacun reçoit son cheval passager.
+function poste.essai_troupe_a_cheval()
+  local n = 0
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then
+      local ok = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers", formation = "followNPC",
+        a_cheval = true, fin = "liberation" })
+      if ok then
+        n = n + 1
+      end
+    end
+  end
+  jeu().journal("Poste : troupe à cheval de " .. n .. " homme(s)")
+  return n > 0
+end
+
 function poste.essai_fin_escorte()
   local n = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
@@ -1716,6 +1733,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_cheval", fonction = function() return poste.essai_cheval() end, aide = "Un cheval né à 5 m du premier homme, angle au hasard (V73 f 2 a)" },
   { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
   { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
+  { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },

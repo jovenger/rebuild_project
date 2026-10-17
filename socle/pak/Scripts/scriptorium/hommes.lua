@@ -60,6 +60,16 @@ hommes.reglages = {
   -- son chef est posé « suivi_derriere_m » derrière Henry, hors de sa vue ; à 0, jamais.
   suivi_loin_m = 60,
   suivi_derriere_m = 4,
+  -- À cheval (fiche 15, V73 f 2 b, principes transmis par le pair) : une sortie à cheval donne à chaque homme un cheval
+  -- passager, né à « cheval_distance_m » de lui sous un angle tiré au hasard ; une monte manquée (le délai du cerveau
+  -- passé sans être en selle) retire le cheval et en fait naître un autre, au plus « monte_essais_max » essais, puis
+  -- l'homme suit à pied jusqu'à la fin de sa sortie. La sortie finie, le cheval est retiré quand l'homme s'en est éloigné
+  -- de plus de « cheval_retrait_m », ou au plus tard au « cheval_retrait_battements »-ième battement (jamais pendant la
+  -- descente).
+  cheval_distance_m = 5,
+  cheval_retrait_m = 6,
+  cheval_retrait_battements = 2,
+  monte_essais_max = 3,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -143,6 +153,9 @@ hommes.cerveau = {
   -- À cheval (fiche 15, V73 f 2 a, relecture du pair) : la monte est bornée ; pas en selle au bout de « monte_delai_ms »,
   -- l'homme suit à pied (jamais figé à côté de son cheval).
   monte_delai_ms = 10000,
+  -- La formation montée (V73 f 2 b, relecture du pair : tous les suiveurs montés du jeu sont en « MoveHistory » ou
+  -- « Relaxed », aucun en « KeepShape ») : 1 « MoveHistory » ; 4 « Relaxed ».
+  formation_mode_monte = 1,
   -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
   -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
   relances_max = 3,
@@ -1499,8 +1512,20 @@ function hommes.activite_de(id, heure)
         -- V73 f 2 a : à cheval (la sonde) ; l'homme qui a un cheval le monte et suit son chef en selle.
         if tenue.cheval then
           resultat.suivi = { mode = "cheval", cheval = tenue.cheval }
+        elseif tenue.a_cheval then
+          -- V73 f 2 b : la sortie à cheval ; l'homme qui a son cheval passager le monte, dans son rôle (mener, se ranger,
+          -- suivre) ; sans cheval (pas encore né, ou l'abandon après les montes manquées), à pied dans ce rôle.
+          local m = hommes.montures[id]
+          if m and m.cheval and not m.abandon then
+            local role = resultat.suivi
+            resultat.suivi = { mode = "cheval", cheval = m.cheval, role = role and role.mode or nil,
+                               formation = role and role.formation or nil }
+          end
         end
+        -- Le rôle à cheval et le nom du cheval entrent dans la signature : un cheval né de nouveau redonne l'ordre.
         resultat.signature = rang .. "/" .. nombre .. (resultat.suivi and ("/" .. resultat.suivi.mode) or "")
+          .. (resultat.suivi and resultat.suivi.role and ("/" .. resultat.suivi.role) or "")
+          .. (resultat.suivi and resultat.suivi.cheval and ("/" .. resultat.suivi.cheval) or "")
         resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
           or jeu().position_du_personnage(resultat.chef)
       end
@@ -1697,6 +1722,11 @@ hommes.suivi = {}
 -- pauses (aucune règle ne dépend de sa suite).
 hommes.en_ronde = {}
 hommes.hasard_de_la_ronde = nil
+-- Les chevaux des sorties (fiche 15, V73 f 2 b), passagers, en mémoire seulement (un rechargement les perd : ils ne sont
+-- pas gardés par le jeu, et il en renaît un à l'ordre suivant) : id -> { cheval, essais, abandon, manquees, hors_sortie } ;
+-- et le hasard de leurs angles.
+hommes.montures = {}
+hommes.hasard_des_chevaux = nil
 -- Fiche 15, V73 d 2 bis : pourquoi l'ordre d'un homme est redonné (« rechargement », « secours »), pour l'accroche
 -- « ronde_reprise » ; sans raison notée, une règle plus forte l'a tenu puis lâché. En mémoire, effacée à chaque ordre.
 hommes.raisons_de_reprise = {}
@@ -1839,6 +1869,10 @@ local function secourir(id, f, a, rapport)
   -- Suivre (V73 f 1) : pas de secours ordinaire (un suiveur garde un écart constant, il ne « se rapproche » jamais) ;
   -- seulement le rattrapage au-delà de « suivi_loin_m ».
   if a.activite == "suivre" then
+    -- V73 f 2 b : un homme à cheval n'est jamais posé seul (il serait séparé de son cheval) ; son cheval le ramène.
+    if a.suivi and a.suivi.mode == "cheval" then
+      return
+    end
     if a.chef and hommes.rattraper(f.personnage, a.chef, f.nom) then
       f.derniere_activite = nil
       if rapport then
@@ -2043,6 +2077,102 @@ local function surveiller_les_cerveaux(d)
   return nouveaux, marques
 end
 
+-- La sortie à cheval (fiche 15, V73 f 2 b) : la tenue la plus forte de l'homme suit quelqu'un, à cheval.
+local function en_sortie_a_cheval(f)
+  local _, t = tenue_la_plus_forte(f)
+  return t ~= nil and t.activite == "suivre" and t.a_cheval == true
+end
+
+local function compter_un_essai(f, m)
+  m.essais = m.essais + 1
+  if m.essais >= hommes.reglages.monte_essais_max then
+    m.abandon = true
+    jeu().journal("Hommes : « " .. f.nom .. " » suit à pied jusqu'à la fin de sa sortie (" .. m.essais
+                  .. " essai(s) de monte manqué(s))")
+  end
+end
+
+-- Le cheval passager de l'homme en sortie à cheval qui n'en a pas de vivant (V73 f 2 b) : à « cheval_distance_m » de
+-- lui, sous un angle tiré au hasard ; une naissance refusée compte comme un essai manqué, une seule fois à la même heure
+-- du jeu (la pose d'une tenue ordonne l'homme deux fois). Une ligne au journal.
+local function preparer_la_monture(id, f, heure)
+  if not en_sortie_a_cheval(f) then
+    return
+  end
+  local m = hommes.montures[id]
+  if not m then
+    m = { essais = 0 }
+    hommes.montures[id] = m
+  end
+  m.hors_sortie = 0
+  if m.abandon or (m.cheval and jeu().objet_existe(m.cheval)) or m.refus_a == heure then
+    return
+  end
+  m.cheval = nil
+  local ici = jeu().position_du_personnage(f.personnage)
+  if not ici then
+    return
+  end
+  if not Scriptorium.hasard_en_ordre(hommes.hasard_des_chevaux) then
+    hommes.hasard_des_chevaux = Scriptorium.hasard_depuis(5171)
+  end
+  local angle = Scriptorium.tirer(hommes.hasard_des_chevaux) * 2 * math.pi
+  local r = hommes.reglages.cheval_distance_m
+  -- Un nom par essai : le cheval né de nouveau change la signature de l'ordre.
+  local cheval = jeu().faire_venir_cheval(id .. "_" .. (m.essais + 1),
+    { x = ici.x + r * math.cos(angle), y = ici.y + r * math.sin(angle), z = ici.z })
+  if cheval then
+    m.cheval = cheval
+    m.manquees = jeu().montes_manquees(f.personnage)
+    jeu().journal("Hommes : « " .. f.nom .. " » part à cheval sur « " .. cheval .. " » (essai " .. (m.essais + 1) .. ")")
+  else
+    jeu().journal("Hommes : pas de cheval pour « " .. f.nom .. " » (naissance refusée, essai " .. (m.essais + 1) .. ")")
+    m.refus_a = heure
+    compter_un_essai(f, m)
+  end
+end
+
+-- Au battement (V73 f 2 b) : la monte manquée d'un homme en sortie (le compte de son cerveau a bougé depuis la naissance
+-- du cheval) retire ce cheval ; l'ordre suivant en fait naître un autre, sous le plafond d'essais. Un cheval dont l'homme
+-- n'est plus en sortie à cheval est retiré quand l'homme s'en est éloigné, ou au plus tard au
+-- « cheval_retrait_battements »-ième battement ; tout de suite si l'homme n'est plus au camp.
+local function veiller_aux_montures(d)
+  for id, m in pairs(hommes.montures) do
+    local f = d.liste[id]
+    if f and f.personnage and en_sortie_a_cheval(f) then
+      local n = jeu().montes_manquees(f.personnage)
+      if m.cheval and n and m.manquees and n > m.manquees then
+        jeu().retirer_cheval(m.cheval)
+        jeu().journal("Hommes : « " .. f.nom .. " » n'a pas pu monter « " .. m.cheval .. " » (essai " .. (m.essais + 1)
+                      .. " sur " .. hommes.reglages.monte_essais_max .. ") : cheval retiré")
+        m.cheval = nil
+        compter_un_essai(f, m)
+      end
+      if n then
+        m.manquees = n
+      end
+    else
+      m.hors_sortie = (m.hors_sortie or 0) + 1
+      local retirer = not f or not f.personnage or not m.cheval
+        or m.hors_sortie >= hommes.reglages.cheval_retrait_battements
+      if not retirer then
+        local ici = jeu().position_du_personnage(f.personnage)
+        local la = jeu().position_du_personnage(m.cheval)
+        retirer = not ici or not la
+          or math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) > hommes.reglages.cheval_retrait_m
+      end
+      if retirer then
+        if m.cheval then
+          jeu().retirer_cheval(m.cheval)
+          jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré, la sortie de « " .. (f and f.nom or tostring(id))
+                        .. " » finie")
+        end
+        hommes.montures[id] = nil
+      end
+    end
+  end
+end
+
 -- L'ordre d'un homme, seulement quand son activité change : un geste (fiche 15, V73 a), plus de téléportation ; sinon,
 -- au battement, le secours de l'homme bloqué. « sans_secours » : l'ordre redonné sur-le-champ par l'arbitre, hors
 -- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel). « a_la_pose » :
@@ -2052,6 +2182,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   if not f or not f.personnage then
     return
   end
+  preparer_la_monture(id, f, heure)
   local a = hommes.activite_de(id, heure)
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
@@ -2114,6 +2245,7 @@ function hommes.battre()
                     a_rhabiller = 0, tenues = 0 }
   rapport.cerveaux = regler_les_cerveaux(d)
   rapport.arrets, rapport.a_rhabiller = surveiller_les_cerveaux(d)
+  veiller_aux_montures(d)
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -2232,7 +2364,7 @@ local function memes_tenues(a, b)
     and a.aller_retour == b.aller_retour and a.depart == b.depart and a.pauses == b.pauses
     and memes_chemins(a.chemin, b.chemin) and memes_points(a.centre, b.centre) and a.rayon == b.rayon
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
-    and a.formation == b.formation and a.cheval == b.cheval
+    and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -2245,7 +2377,8 @@ end
 -- « aller_retour » (sinon en boucle), « depart » (le numéro du premier point, à la pose) et « pauses » (à faux : sans
 -- pause, V73 d 2 bis). Le rassemblement (V73 e) accepte « centre » (un point du monde), et alors « cap » (le milieu de
 -- l'arc vu du centre), « rayon », « ouverture » (degrés, 360 : un cercle), « face » (« centre » ou « dehors ») et
--- « allure » (« course » ou « marche ») ; sans centre, il reste une marche au point. Rend vrai, ou (faux, raison).
+-- « allure » (« course » ou « marche ») ; sans centre, il reste une marche au point. Suivre (V73 f 2 b) accepte
+-- « a_cheval » (un booléen) : une sortie à cheval, un cheval passager par homme. Rend vrai, ou (faux, raison).
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
   local f = d.liste[id]
@@ -2314,6 +2447,9 @@ function hommes.tenir(id, regle, quoi)
   if quoi.activite == "suivre" and quoi.formation ~= nil and not hommes.formations[quoi.formation] then
     return refuser("escorte_invalide", "formation " .. tostring(quoi.formation))
   end
+  if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" then
+    return refuser("escorte_invalide", "a_cheval " .. tostring(quoi.a_cheval))
+  end
   -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
   local pauses = nil
   if chemin and quoi.pauses == false then
@@ -2329,7 +2465,8 @@ function hommes.tenir(id, regle, quoi)
                   ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
                   chef = (quoi.activite == "suivre") and quoi.chef or nil,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
-                  cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil }
+                  cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
+                  a_cheval = (quoi.activite == "suivre" and quoi.a_cheval == true) or nil }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
@@ -2443,6 +2580,7 @@ function hommes.relancer()
   local d = donnees()
   hommes.suivi = {}
   hommes.en_ronde = {}
+  hommes.montures = {}
   hommes.raisons_de_reprise = {}
   hommes.cerveaux_regles = {}
   hommes.arrets_vus = {}

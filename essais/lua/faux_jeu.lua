@@ -233,14 +233,27 @@ function faux.ordonner(identifiant, activite, position, lieu, place, sorte, rega
                               place = place, sorte = sorte, regard = regard, allure = allure, chef = chef, suivi = suivi })
 end
 -- Fiche 15, V73 f 2 a : un cheval né (son identifiant), ou retiré.
+-- V73 f 2 b : un cheval né existe et a sa place ; « refuser_les_chevaux » : aucune naissance ; les chevaux retirés.
 function faux.faire_venir_cheval(nom, position)
   faux.chevaux = faux.chevaux or {}
+  if faux.refuser_les_chevaux then return nil end
   local identifiant = "cheval_" .. nom
   faux.chevaux[identifiant] = position
+  faux.objets_existants[identifiant] = true
+  faux.positions = faux.positions or {}
+  faux.positions[identifiant] = position
   return identifiant
 end
 function faux.retirer_cheval(identifiant)
   if faux.chevaux then faux.chevaux[identifiant] = nil end
+  faux.objets_existants[identifiant] = nil
+  if faux.positions then faux.positions[identifiant] = nil end
+  faux.chevaux_retires = faux.chevaux_retires or {}
+  table.insert(faux.chevaux_retires, identifiant)
+end
+-- V73 f 2 b : le compte des montes manquées du cerveau d'un homme (posé par les essais), 0 sinon.
+function faux.montes_manquees(identifiant)
+  return faux.manquees and faux.manquees[identifiant] or 0
 end
 -- La position d'un personnage (fiche 15, V73 f 1), posée par les essais, ou nil.
 function faux.position_du_personnage(identifiant)
