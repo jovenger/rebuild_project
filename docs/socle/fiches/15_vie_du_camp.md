@@ -660,6 +660,153 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
   d'essai avec V73 d 2 : l'écart au but de l'ordre, pas seulement au siège).
 - **Suite** : V73 d 2, la ronde (mécanique seulement : suivre un chemin de points avec des pauses).
 
+## V73 d 2 — la ronde (17/10, à relire par le pair)
+
+### Le périmètre
+- **Mécanique seulement** (réponse 3 a de JoVenGer, 16/10) : l'homme suit un chemin de points, avec une pause à chaque
+  point. **Qui, quand et où** restent à Scriptorium (`sentinelles_du_camp` : un cercle de 24 points, ou la ronde tracée
+  par JoVenGer, six hommes espacés ; la relève par quarts de 3 h). Le service : `hommes.tenir(id, "ronde", { chemin,
+  aller_retour, depart, fin })` ; la règle « ronde » est déjà au catalogue des rangs (4, comme la garde).
+- Aucune règle du socle ne donne de ronde (ni la journée, ni le tour de garde) : seulement la tenue, et la commande
+  d'essai.
+- **Plus tard, chacun à son pas** : un geste aux pauses (question 3) ; l'alerte ; la relève tenue sans trou.
+
+### Ce que Scriptorium attend (relu en V73 d, 16/10)
+- De point en point, de courtes pauses ; « un garde n'est jamais assis » ; jamais de trou dans la ronde (la règle
+  décide de la relève ; le socle tient et lâche).
+- Le principe d'Alex, transmis par le pair (mécanisme seulement) : marcher d'un point au suivant, arrêt à 1 m (± 0,5),
+  l'état du personnage changé par la marche ; puis une pause, courte la plupart du temps (environ 6 s ± 4), longue une
+  fois sur cinq (environ 20 s ± 8). Ni `Turn` ni geste : la pause variable est le geste vivant.
+
+### Le constat (code relu le 17/10)
+- **Le battement du socle tourne toutes les 30 s** (`Scriptorium.cadence_du_battement_ms`), une pause dure de 2 à 28 s :
+  le Lua ne peut pas donner chaque point au battement. Les patrouilles le font (`patrouilles.battre`, un point par
+  tenue, `lieu = chemin_point`), mais d'heure en heure.
+- `activite_de` n'a pas de branche « ronde » ; une tenue n'a pas de chemin ; `memes_tenues` ne comparerait pas un
+  chemin (chaque repose réenregistrerait, ou ne serait jamais mise à jour).
+- **Le secours** mesure le progrès vers `a.position` : un rondier qui quitte un point s'en éloigne ; au bout d'un
+  battement sans progrès (30 s), il serait posé d'un coup. À changer pour la ronde.
+- `patrouilles.chemins.ronde_proche` est à 30 m du centre, hors de l'enceinte (20 m) : pas réutilisée.
+- Le poste d'essai dit l'écart au siège, pas au but de l'ordre (relevé en V73 d 1) : à ajouter.
+- La liaison n'appelle aucun morceau ; les morceaux lui confient leurs fonctions (la minuterie du noyau).
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule, rien d'extrait)
+- **Un arbre qui appelle le Lua** : `ExecuteLua code="…"`, 784 emplois dans 174 fichiers, dont 7 interruptions du
+  switch du jeu (`AI/npc/basic/switch/interrupt_attack.xml`). Le code voit `entity` (le personnage qui joue l'arbre),
+  `data` (les variables de l'arbre, et `data.this`), et les modules Lua globaux (`ShootingContest.…`,
+  `AI/quests/lukostreleckaSoutez/shootingRange.xml`). **La forme exacte du besoin existe** :
+  `AI/quests/kutnohorskyTurnaj/kutnohorskyturnaj.xml` écrit une durée tirée au hasard dans une variable `_string` de
+  l'arbre (`data.waitTimeString = math.random(…) .. 's'`), puis `Wait duration="$waitTimeString"`.
+- **Le hasard dans l'arbre** : `RandomGate opensWithChance`, 376 emplois, la chance littérale ou en variable
+  (`$chance`, `$clampedChance`) ; et `Wait` avec `variation`.
+- **Les tableaux** : `ForEach array=… value=…`, 734 emplois, avec un `Move` dans la boucle
+  (`AI/_lukas/test_lukas_helper.xml`, sur des `_wuid`) ; 9 tableaux de `vec3` déclarés
+  (`AI/animal/basic/switch/animal_getPointOutsideLabelFromBuffer.xml`), aucun rempli depuis le Lua, et la table des
+  variables de cerveau du jeu n'en déclare aucun.
+- **Les patrouilles du jeu** (`Function_npc_patroling path=… startPath=…`, `Function_guard_patroling pathStart=…
+  patrolType=Loop`) suivent un chemin du niveau, une entité posée dans l'éditeur (`_wuid`) : pas pour nos points
+  calculés.
+- Recherche d'un exemple existant (règle du 15/10) : une recherche, rien de propre à KCD2 ; une vidéo de Warhorse pour
+  KCD 1 (« Guard's Behavior, Loops »), illisible ici. Les arbres du jeu ci-dessus suffisent.
+
+### Comment ce serait fait : trois voies (question 1)
+- **(a) L'arbre appelle le Lua à chaque point (recommandé)** : arrivé au point, l'arbre appelle
+  `Scriptorium.jeu.au_point_de_ronde(entity, data)` ; la liaison demande à `hommes` le point suivant et la pause, pose
+  le point dans le cerveau, écrit la pause dans une variable de l'arbre ; l'arbre attend cette pause, puis marche au
+  point suivant. Aucune attente du battement, aucun relevé de plus ; le hasard est celui du socle, comparé au banc.
+  Coût : un appel Lua par point et par rondier (environ toutes les 10 s). Risque : `ExecuteLua` jamais employé chez
+  nous, vérifié en premier dans l'essai (issue 1). À la bascule, le nom de la table écrit dans l'arbre change avec elle
+  (le banc vérifie que l'arbre nomme `Scriptorium.chemin`).
+- **(b) Le Lua relève les arrivées par le guet de 5 s** : l'arbre pause seul (`RandomGate` une fois sur cinq, `Wait`
+  avec `variation`) et compte ses étapes ; le guet relit le compte et pose le point suivant. Jusqu'à 5 s de plus à
+  chaque point, une lecture de cerveau par rondier toutes les 5 s, et le hasard du jeu (pas comparable au banc). Le
+  repli si (a) échoue.
+- **(c) L'arbre tient tout le chemin** : un tableau de points dans le cerveau, parcouru par `ForEach`. Aucun exemple
+  dans le jeu d'un tableau de cerveau rempli par le Lua : à sonder d'abord ; sinon autant de variables et de branches
+  que de points (lourd).
+
+### Le détail de la voie (a)
+1. **La tenue « ronde »** (`hommes.tenir`) : `chemin`, une liste de 2 à `ronde_points_max` (32) points du monde
+   ({ x, y, z }, comme la `position` d'une garde) ; `aller_retour` (faux par défaut : boucle) ; `depart`, le numéro du
+   premier point (facultatif). Refus `chemin_invalide` sinon. Gardée au registre comme toute tenue (24 points font
+   environ 1 Ko par homme, loin des 65 535 octets d'un jeton ; mesuré au banc). `memes_tenues` compare le chemin point
+   par point et les deux options.
+2. **`activite_de`** : la tenue « ronde » rend l'activité « ronde », son chemin et ses options ; aucun regard (ni `Turn`
+   ni geste aux pauses dans ce pas, question 3).
+3. **L'ordre** (`ordonner_un_homme`) : le premier point est `depart`, sinon le point du chemin le plus proche de
+   l'homme ; l'état de sa ronde est gardé en mémoire (`hommes.en_ronde` : point visé, point quitté, sens) ; l'ordre 13
+   part avec ce premier point. Au rechargement, le cerveau repart de zéro ; l'ordre redonné repart du point le plus
+   proche.
+4. **Le pas** (`hommes.pas_de_ronde`, que `hommes` confie à la liaison au démarrage) : le point suivant (en boucle,
+   après le dernier, le premier ; en aller-retour, demi-tour aux deux bouts) ; la pause, longue une fois sur
+   `ronde_longue_sur` (5), sinon courte, sa durée tirée au hasard du socle : `ronde_pause_ms` (6 000) ±
+   `ronde_pause_ecart_ms` (4 000), ou `ronde_longue_ms` (20 000) ± `ronde_longue_ecart_ms` (8 000), jamais moins de
+   500 ms. Un homme qui n'est plus de ronde : rien (l'arbre garde sa pause par défaut, et finit au changement d'ordre).
+5. **La liaison** : `liaison.ordonner` avec l'activité « ronde » pose le point, puis l'activité 13 ;
+   `liaison.au_point_de_ronde(entite, donnees)` retrouve l'homme par le nom de l'entité, demande le pas, pose le point,
+   écrit la pause (« 6000ms ») ; tout sous `pcall` ; une ligne au journal par pas (le point, la pause, l'écart au point
+   quitté).
+6. **Le secours** : pour un rondier, le but est le point visé ; il est « arrivé » s'il est à moins de
+   `secours_arrivee_m` du point visé ou du point quitté (il y fait sa pause) ; posé d'un coup seulement s'il ne se
+   rapproche d'aucun des deux pendant `secours_delai_s`, et alors près du point visé.
+7. **La branche 13 du comportement long** : debout d'abord (comme la marche) ; puis, tant que l'ordre tient : la marche
+   au point (arrêt `ronde_arret_cm` 100 ± `ronde_ecart_cm` 50, délai de la marche), « arrivées » + 1 ; la pause par
+   défaut (celle de la sortie, 2 s) ; l'appel au Lua ; l'attente de la pause ; le pouls en parallèle. Une marche
+   abandonnée (délai) ne compte pas d'arrivée, mais le Lua donne quand même le point suivant : un point inaccessible
+   est sauté, et le journal le dit (l'écart au point quitté).
+8. **La mesure promise en V73 d 1** : le dernier point posé chez chaque homme, par l'ordre ou par le pas
+   (`liaison.buts`) ; le poste d'essai dit l'écart à ce but, et le nombre de pas.
+9. **Le contrôle d'absence** : aucune ligne de forme du jeu de plus n'est attendue (nos propres noms de variables) ;
+   vérifié au banc. La borne reste à 32, en attendant la décision de JoVenGer.
+- **Valeurs en données** : `hommes.reglages` : `ronde_points_max` (32), `ronde_pause_ms` (6 000),
+  `ronde_pause_ecart_ms` (4 000), `ronde_longue_ms` (20 000), `ronde_longue_ecart_ms` (8 000), `ronde_longue_sur` (5) ;
+  `hommes.cerveau` : `ronde_arret_cm` (100), `ronde_ecart_cm` (50), lus par l'arbre avec leur défaut (38 variables de
+  cerveau). Une table nouvelle au catalogue, `hommes.rondes`, avec la ronde d'essai « pourtour » (12 points à 16 m du
+  centre, par rapport à l'ancre), pour la commande d'essai seulement. À 12 m, deux segments passeraient à moins de
+  2,4 m de la tente 6 (1,8 m) et d'un banc du second feu (2,2 m), au niveau 3 ; à 16 m, le plus proche est à 2,7 m,
+  et la palissade à 4 m.
+
+### Essais au banc
+- La tenue : refusée avec un seul point, plus de 32, un point sans `x` ; acceptée sinon, gardée au registre et relue ;
+  reposée à l'identique, rien d'enregistré ; le chemin changé, enregistré.
+- Le départ au point le plus proche, ou au point `depart`.
+- Le pas : la boucle (après le dernier, le premier), l'aller-retour (demi-tour aux bouts, deux points compris) ; les
+  pauses dans leurs bornes ; sur 1 000 pas, entre 15 et 25 % de longues ; le même hasard donne les mêmes pauses.
+- Le secours : un rondier en pause au point quitté n'est jamais posé ; bloqué entre deux points, posé près du point
+  visé.
+- La liaison, sur un faux moteur : le pas pose le point et écrit la pause ; un homme inconnu, rien, sans erreur.
+- Contrôles statiques : la branche 13 (la marche, l'arrivée, l'appel au nom de `Scriptorium.chemin`, l'attente de
+  `$ronde_pause`) ; la fonction appelée existe dans la liaison ; les deux variables de cerveau, déclarées, avec leur
+  défaut dans l'arbre.
+- Le garde-fou de la ronde d'essai : chaque segment à au moins `ecart_d_abord` (2,4 m) de tout meuble du plan, tous
+  niveaux, et en dedans de la palissade.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé (le banc le prouve), trois hommes au camp ; `essai_tenir_ronde` (les deux premiers hommes
+sur la ronde « pourtour », partis de deux points opposés) ; une lecture toutes les 5 s environ (écart au but, pas,
+arrivées).
+1. **L'appel** : à la première arrivée, une ligne « pas de ronde » au journal → l'arbre appelle le Lua, bon. Aucune
+   ligne → `ExecuteLua` n'est pas joué : lire le journal, la voie (b), un seul changement.
+2. À chaque point : arrivé à moins de 1,5 m, une pause, puis il repart seul vers le suivant ; les pauses lues aux
+   heures des lignes : courtes de 2 à 10 s, une longue (12 à 28 s) environ une fois sur cinq → bon.
+3. Le tour complet (environ 3 min) : les 12 points puis le premier, aucun arrêt, aucune glissade, jamais planté plus de 30 s → bon.
+4. Les deux rondiers : chacun son pas, aucun ne bloque l'autre → bon.
+5. `essai_lacher_ronde` : un seul ordre par homme, chacun rejoint sa tranche → bon.
+6. Le troisième homme suit sa journée, un lancement.
+- Décompte de l'écran noir (fiche 14).
+
+### Questions à JoVenGer (après relecture par le pair)
+1. **La voie** : (a) l'arbre appelle le Lua à chaque point, la pause tirée par le socle (Recommandé : aucune attente, le
+   hasard vérifié au banc, la forme du jeu existe) ; (b) le guet de 5 s relit les arrivées (jusqu'à 5 s de plus à chaque
+   point) ; (c) tout le chemin dans le cerveau (aucun exemple dans le jeu, à sonder d'abord).
+2. **Plusieurs hommes sur une ronde** : (a) chacun part du point le plus proche de lui, et Scriptorium peut donner le
+   point de départ pour les espacer (Recommandé : le socle fait la mécanique, Scriptorium décide) ; (b) le socle les
+   espace lui-même, à égale distance le long du chemin ; (c) ensemble, l'un derrière l'autre.
+3. **La pause** : (a) debout, rien d'autre, comme le principe d'Alex (Recommandé pour ce pas ; un geste pourra venir
+   après l'avoir vu) ; (b) se tourner vers le dehors à chaque pause ; (c) le jour, regarder autour aux pauses longues.
+4. **La forme du chemin** : (a) en boucle par défaut, en aller-retour si la tenue le demande (Recommandé : un cercle
+   autour du camp, ou un chemin le long d'un mur) ; (b) en boucle seulement ; (c) en aller-retour seulement.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
@@ -668,6 +815,9 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
   `journee_du_socle` (vrai).
 - V73 d 1 : `hommes.reglages.regard_m` (10) ; `hommes.cerveau.poste_arret_cm` (50), `poste_ecart_cm` (10),
   `poste_geste_ms` (60 000), `poste_geste_ecart_ms` (30 000).
+- V73 d 2 (proposé) : `hommes.reglages.ronde_points_max` (32), `ronde_pause_ms` (6 000), `ronde_pause_ecart_ms`
+  (4 000), `ronde_longue_ms` (20 000), `ronde_longue_ecart_ms` (8 000), `ronde_longue_sur` (5) ;
+  `hommes.cerveau.ronde_arret_cm` (100), `ronde_ecart_cm` (50) ; la table `hommes.rondes` (la ronde d'essai).
 
 ## Essais au banc (`essais/lua/essai_hommes.lua`)
 - Une activité de siège donne l'ordre 10 sur la bonne place ; de lit, l'ordre 11 ; de point, l'ordre 9 avec le point.
@@ -700,3 +850,9 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
   `AI/quests/nebakovObrana/nebakovObrana.xml`, `AI/battles/battlegroupcontroller.xml` ; Scriptorium (lecture seule) :
   `NOTE_METIERS_RELEVE.md`, les LISEZMOI de `garde_du_directeur`, `sentinelles_du_camp`, `en_garde_du_camp`,
   `tours_de_guet`, `nuit_du_camp`, `journee_du_camp`, `chef_du_camp`, `paye_des_postes`.
+- V73 d 2, jeu (lecture seule, `Scripts.pak`) : `AI/quests/kutnohorskyTurnaj/kutnohorskyturnaj.xml` (une durée écrite
+  par `ExecuteLua` dans une variable de l'arbre, puis `Wait`), `AI/quests/lukostreleckaSoutez/shootingRange.xml` (un
+  module Lua global appelé), `AI/npc/basic/switch/interrupt_attack.xml`, `AI/_lukas/test_lukas_helper.xml`,
+  `AI/animal/basic/switch/animal_getPointOutsideLabelFromBuffer.xml`, `AI/situation/helpers/helpers.xml`,
+  `AI/quests/prepadeni/prepadeni.xml`, `AI/quests/stealthMiseZaJindru/stealthMiseZaJindru.xml` ; socle :
+  `noyau.lua` (la cadence du battement), `patrouilles.lua`, `hommes.lua` (`secourir`, `memes_tenues`, `tenir`).
