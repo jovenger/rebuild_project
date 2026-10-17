@@ -366,7 +366,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   ordre à pied tout de suite, selle lue avant tout retrait (attentes, abandon), rien sous ses yeux, pose relue avant le
   nouveau cheval. Vu en jeu : six bonds, la colonne posée 5 à 6 s après, 0 pose perdue sur 12 avec la relecture.
 - **Suite** : le gardien des hommes ; puis les étapes 2 à 8. À vérifier par JoVenGer : le passage Trosky ↔ Kuttenberg
-  (avec une sauvegarde portant un camp du socle d'avant ba0906c : la charger d'abord sur la carte du camp), la vraie monte d'Henry, et le voyage rapide par la carte.
+  (avec une sauvegarde portant un camp du socle d'avant ba0906c : la charger d'abord sur la carte du camp), la vraie monte d'Henry, le voyage rapide par la carte, et les intérieurs (l'escorte à pied dans une auberge : porte, escalier, étage).
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.

@@ -2390,6 +2390,12 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   debout près de son cheval tant qu'Henry regarde (ni retrait ni rattrapage : « rien sous ses yeux ») ; un homme qui ne
   descendrait jamais écrit « encore monté : retiré plus tard » à chaque battement. « Charger d'abord sur la carte du
   camp » ne vaut que pour une sauvegarde portant un camp du socle fondé avant ba0906c (la 473 n'en porte pas).
+- **Les intérieurs** (demandés par le pair après la séance) : **non vérifiés**. Les maisons sont sur la même carte, le
+  rattrapage à pied les couvre en principe. L'essai seul n'est pas faisable : les auberges les plus proches de la 473
+  (calques de `level.pak`, lecture seule) sont à Přítoky (1,2 km), Stará Kutná (1,8 km), Čertovka (1,9 km) ; les outils
+  posent Henry à l'altitude du terrain (sous un plancher) et ne lisent pas son cap pour passer une porte. À vérifier par
+  JoVenGer en jouant (l'escorte à pied dans une auberge : porte, escalier, étage, puis dehors) ; « coincé à une porte »
+  est un cas du gardien des hommes (le figé).
 - Vu aussi : le retrait de fin de sortie (V73 f 2 b) retirait un cheval au battement sans lire la selle ; il la lit
   désormais (encore monté : au battement suivant). Et `essai_directeur_a_cheval` remet l'escorte « comme Henry » : à
   pied si Henry est à pied.
