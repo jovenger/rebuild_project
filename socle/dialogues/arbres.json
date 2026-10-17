@@ -1,0 +1,218 @@
+{
+  "_lisez_moi": [
+    "Fiche 21 : les arbres de dialogue du socle, en données. Les mots et les codes sont ceux de Scriptorium",
+    "(Scriptorium\\docs\\socle\\DIALOGUES.md, 18/10/2026) ; outils/dialogues.py écrit d'ici les fichiers du jeu (projet de",
+    "quêtes, rôles, règles Storm, textes). Un choix : invite (le menu), henry (ce que dit Henry), reponse (la première",
+    "réplique), repliques (place 1 à 3, code, texte : choisie par la variable globale de sa place), fin (menu ou fermer),",
+    "condition (« colonel » : seulement au colonel). Une catégorie : ses choix, puis le retour au menu."
+  ],
+  "repli": "Pardon, chef… j'avais la tête ailleurs.",
+  "retour_aux_sujets": "Laissons cela.",
+  "ce_sera_tout": "Ce sera tout.",
+  "arbres": {
+    "homme": {
+      "role": "SCRIPTORIUM_SOCLE_HOMME",
+      "ouverture": "Oui, chef ?",
+      "menu": [
+        {"categorie": "discutons", "invite": "Discutons un peu.", "henry": "J'ai un moment. Discutons.",
+         "reponse": "Je vous écoute, chef.", "choix": [
+          {"nom": "parle_moi_de_toi", "invite": "Parle-moi un peu de toi.", "henry": "Parle-moi un peu de toi.",
+           "repliques": [], "fin": "menu"},
+          {"nom": "vie_au_camp", "invite": "Comment se passe la vie au camp ?", "henry": "Comment se passe la vie au camp ?",
+           "reponse": "Je vais vous dire.", "repliques": [
+            {"place": 1, "code": 1, "texte": "On fait aller, chef. Rien à redire."},
+            {"place": 1, "code": 2, "texte": "Ça va bien ! Le camp me plaît."},
+            {"place": 1, "code": 3, "texte": "Pas fameux. Le moral n'y est pas."},
+            {"place": 1, "code": 4, "texte": "Je suis mort de fatigue. Il me faudrait du repos."},
+            {"place": 1, "code": 5, "texte": "J'ai le ventre creux. La soupe se fait attendre."},
+            {"place": 2, "code": 1, "texte": "Et entre nous, chef… vous n'êtes pas très aimé, ces temps-ci."}
+           ], "fin": "menu"},
+          {"nom": "choses_a_signaler", "invite": "Des choses à signaler sur les autres hommes ?",
+           "henry": "Des choses à signaler sur les autres hommes ?", "reponse": "Entre nous ?", "repliques": [
+            {"place": 1, "code": 6, "texte": "Il y en a un que je ne supporte plus. Un jour, ça finira mal."},
+            {"place": 1, "code": 7, "texte": "Rien à signaler, chef. Les hommes s'entendent."}
+           ], "fin": "menu"}
+        ]},
+        {"categorie": "parlons_de_toi", "invite": "Parlons de toi.", "henry": "Parlons de toi.", "reponse": "Oui, chef ?",
+         "choix": [
+          {"nom": "va_te_faire_soigner", "invite": "Va te faire soigner.", "henry": "Va te faire soigner. C'est moi qui paie.",
+           "reponse": "À vos ordres.", "repliques": [
+            {"place": 1, "code": 8, "texte": "Je vais bien, chef. Pas besoin."},
+            {"place": 1, "code": 9, "texte": "Vous n'avez pas de quoi payer le barbier, chef."},
+            {"place": 1, "code": 10, "texte": "Merci, chef. Me voilà requinqué."}
+           ], "fin": "menu"}
+        ]},
+        {"categorie": "un_ordre", "invite": "J'ai un ordre pour toi.", "henry": "J'ai un ordre pour toi.",
+         "reponse": "Je vous écoute.", "choix": [
+          {"nom": "accompagne_moi", "invite": "Tu m'accompagnes.", "henry": "Prépare-toi. Tu m'accompagnes.", "repliques": [
+            {"place": 1, "code": 20, "texte": "Je prends mes affaires et je vous suis."},
+            {"place": 1, "code": 21, "texte": "Je suis déjà avec vous, chef."}], "fin": "menu"},
+          {"nom": "rentre_au_camp", "invite": "Rentre au camp.", "henry": "Rentre au camp.", "repliques": [
+            {"place": 1, "code": 22, "texte": "À vos ordres. Je rentre au camp."},
+            {"place": 1, "code": 23, "texte": "Mais j'y suis déjà, chef."}], "fin": "menu"},
+          {"nom": "tiens_la_ligne", "invite": "Reste en position ici, tiens la ligne.",
+           "henry": "Reste en position ici, tiens la ligne.", "repliques": [
+            {"place": 1, "code": 17, "texte": "Personne ne passera, chef. Je ne bouge pas d'ici."}], "fin": "menu"},
+          {"nom": "reprends_ton_service", "invite": "Reprends ton service.", "henry": "Reprends ton service.", "repliques": [
+            {"place": 1, "code": 18, "texte": "Bien, chef. Je reprends mon service."},
+            {"place": 1, "code": 19, "texte": "Mais je ne tenais aucune position, chef."}], "fin": "menu"},
+          {"nom": "prends_la_garde", "invite": "Prends ce poste de garde.", "henry": "Prends ce poste de garde.", "repliques": [
+            {"place": 1, "code": 24, "texte": "Bien, chef. Je prends la garde ici."},
+            {"place": 1, "code": 25, "texte": "J'y suis déjà, chef. Rien ne passera."},
+            {"place": 1, "code": 26, "texte": "Il n'y a pas de poste de garde par ici, chef."}], "fin": "menu"},
+          {"nom": "cette_tente", "invite": "Installe-toi dans cette tente.",
+           "henry": "Installe-toi dans cette tente. C'est ici que tu dormiras.", "repliques": [
+            {"place": 1, "code": 27, "texte": "Bien, chef. C'est ici que je dormirai."},
+            {"place": 1, "code": 28, "texte": "Il n'y a pas de lit par ici, chef."}], "fin": "menu"},
+          {"nom": "ton_equipement", "invite": "Montre-moi ton équipement.", "henry": "Montre-moi ton équipement.",
+           "reponse": "Voilà ce que j'ai, chef.", "repliques": [], "fin": "menu"},
+          {"nom": "double_la_garde", "condition": "colonel", "invite": "Double la garde cette nuit.",
+           "henry": "Double la garde cette nuit.", "repliques": [
+            {"place": 1, "code": 31, "texte": "À vos ordres, chef. Je double la garde cette nuit."},
+            {"place": 1, "code": 32, "texte": "La garde est déjà doublée cette nuit, chef."},
+            {"place": 1, "code": 40, "texte": "Je suis déjà en tournée, chef. Je la termine d'abord ?"},
+            {"place": 1, "code": 43, "texte": "C'est justement ce que je fais, chef."}], "fin": "menu"},
+          {"nom": "exercice_general", "condition": "colonel", "invite": "Exercice général.", "henry": "Exercice général.",
+           "repliques": [
+            {"place": 1, "code": 33, "texte": "À vos ordres, chef. Je rassemble les hommes pour l'exercice."},
+            {"place": 1, "code": 34, "texte": "Personne n'est libre pour l'exercice en ce moment, chef."},
+            {"place": 1, "code": 35, "texte": "Il fait nuit, chef. Demain matin, à la première heure."},
+            {"place": 1, "code": 40, "texte": "Je suis déjà en tournée, chef. Je la termine d'abord ?"},
+            {"place": 1, "code": 43, "texte": "C'est justement ce que je fais, chef."}], "fin": "menu"},
+          {"nom": "prepare_une_troupe", "condition": "colonel", "invite": "Prépare une troupe pour une mission.",
+           "henry": "Prépare une troupe pour une mission.", "repliques": [
+            {"place": 1, "code": 36, "texte": "À vos ordres, chef. Je choisis les meilleurs : ils seront prêts à partir."},
+            {"place": 1, "code": 37, "texte": "Personne n'est en état de partir en ce moment, chef."},
+            {"place": 1, "code": 40, "texte": "Je suis déjà en tournée, chef. Je la termine d'abord ?"},
+            {"place": 1, "code": 43, "texte": "C'est justement ce que je fais, chef."}], "fin": "menu"},
+          {"nom": "rassemble_les_hommes", "condition": "colonel", "invite": "Rassemble les hommes.",
+           "henry": "Rassemble les hommes.", "repliques": [
+            {"place": 1, "code": 38, "texte": "À vos ordres ! Tout le monde au rassemblement, en armes !"},
+            {"place": 1, "code": 39, "texte": "Ils sont déjà rassemblés, chef."},
+            {"place": 1, "code": 40, "texte": "Je suis déjà en tournée, chef. Je la termine d'abord ?"},
+            {"place": 1, "code": 43, "texte": "C'est justement ce que je fais, chef."}], "fin": "menu"},
+          {"nom": "c_est_un_ordre", "condition": "colonel", "invite": "C'est un ordre.", "henry": "C'est un ordre.",
+           "repliques": [
+            {"place": 1, "code": 41, "texte": "À vos ordres, chef. Je laisse ma tournée et j'y vais."}], "fin": "menu"},
+          {"nom": "termine_puis", "condition": "colonel", "invite": "Termine, puis fais ça.", "henry": "Termine, puis fais ça.",
+           "repliques": [
+            {"place": 1, "code": 42, "texte": "Bien, chef. Je termine et j'y vais juste après."}], "fin": "menu"}
+        ]},
+        {"nom": "ou_en_sont_les_hommes", "condition": "colonel", "invite": "Où en sont les hommes ?",
+         "henry": "Où en sont les hommes ?", "repliques": [
+          {"place": 1, "code": 1, "texte": "Un blessé, chef. Il est aux bains."},
+          {"place": 1, "code": 2, "texte": "Quelques blessés, chef. Les bains s'en occupent."},
+          {"place": 1, "code": 3, "texte": "Beaucoup de blessés, chef. Il faudra du temps."},
+          {"place": 1, "code": 4, "texte": "Deux ou trois traînent à l'entraînement. Je les reprends en main."},
+          {"place": 1, "code": 5, "texte": "Trop d'hommes négligent l'entraînement, chef."},
+          {"place": 1, "code": 6, "texte": "Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos."},
+          {"place": 1, "code": 7, "texte": "Les hommes sont de bonne humeur, chef."},
+          {"place": 1, "code": 8, "texte": "Il y a de la tension entre deux hommes. Je garde un œil sur eux."},
+          {"place": 1, "code": 9, "texte": "Les hommes sont fourbus, chef."},
+          {"place": 1, "code": 10, "texte": "Rien à signaler, chef. Tout est en ordre."},
+          {"place": 2, "code": 1, "texte": "Un blessé, chef. Il est aux bains."},
+          {"place": 2, "code": 2, "texte": "Quelques blessés, chef. Les bains s'en occupent."},
+          {"place": 2, "code": 3, "texte": "Beaucoup de blessés, chef. Il faudra du temps."},
+          {"place": 2, "code": 4, "texte": "Deux ou trois traînent à l'entraînement. Je les reprends en main."},
+          {"place": 2, "code": 5, "texte": "Trop d'hommes négligent l'entraînement, chef."},
+          {"place": 2, "code": 6, "texte": "Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos."},
+          {"place": 2, "code": 7, "texte": "Les hommes sont de bonne humeur, chef."},
+          {"place": 2, "code": 8, "texte": "Il y a de la tension entre deux hommes. Je garde un œil sur eux."},
+          {"place": 2, "code": 9, "texte": "Les hommes sont fourbus, chef."},
+          {"place": 3, "code": 1, "texte": "Un blessé, chef. Il est aux bains."},
+          {"place": 3, "code": 2, "texte": "Quelques blessés, chef. Les bains s'en occupent."},
+          {"place": 3, "code": 3, "texte": "Beaucoup de blessés, chef. Il faudra du temps."},
+          {"place": 3, "code": 4, "texte": "Deux ou trois traînent à l'entraînement. Je les reprends en main."},
+          {"place": 3, "code": 5, "texte": "Trop d'hommes négligent l'entraînement, chef."},
+          {"place": 3, "code": 6, "texte": "Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos."},
+          {"place": 3, "code": 7, "texte": "Les hommes sont de bonne humeur, chef."},
+          {"place": 3, "code": 8, "texte": "Il y a de la tension entre deux hommes. Je garde un œil sur eux."},
+          {"place": 3, "code": 9, "texte": "Les hommes sont fourbus, chef."}
+         ], "fin": "menu"},
+        {"nom": "duel", "invite": "Je te défie en duel. À la vraie lame, mais pas à mort.",
+         "henry": "Je te défie en duel. À la vraie lame, mais pas à mort.", "reponse": "Un duel ? Voyons voir…",
+         "repliques": [
+          {"place": 1, "code": 11, "texte": "J'accepte. Le cercle se forme hors du camp : à vous de venir.", "fin": "fermer"},
+          {"place": 1, "code": 12, "texte": "Avec plaisir. Ça fait longtemps que j'attends ça. Le cercle se forme hors du camp.", "fin": "fermer"},
+          {"place": 1, "code": 13, "texte": "Contre vous ? Non merci, chef. Je tiens à mes dents."},
+          {"place": 1, "code": 14, "texte": "Pas dans mon état, chef. Une autre fois."},
+          {"place": 1, "code": 15, "texte": "Je tiens à peine debout. Demain, peut-être."},
+          {"place": 1, "code": 16, "texte": "Pas maintenant, chef : un autre duel est en cours."}
+         ], "fin": "menu"}
+      ]
+    },
+    "directeur": {
+      "role": "SCRIPTORIUM_SOCLE_DIRECTEUR",
+      "ouverture": "Oui, chef ?",
+      "menu": [
+        {"nom": "comment_va_le_camp", "invite": "Comment va le camp ?", "henry": "Comment va le camp ?", "repliques": [
+          {"place": 1, "code": 1, "texte": "Les caisses se vident, chef. Il nous faut une bonne mission, et vite."},
+          {"place": 1, "code": 2, "texte": "Les caisses tiennent."},
+          {"place": 1, "code": 3, "texte": "Les caisses sont pleines, chef. Les affaires vont bien."},
+          {"place": 1, "code": 4, "texte": "Les vivres baissent. J'ai envoyé du monde à la chasse et au potager."},
+          {"place": 1, "code": 5, "texte": "Les hommes sont à bout. Il faudrait les ménager."},
+          {"place": 1, "code": 6, "texte": "On a vu des bandits rôder autour du camp. La garde est prévenue."},
+          {"place": 1, "code": 7, "texte": "Tout est calme, chef. Pourvu que ça dure."},
+          {"place": 2, "code": 1, "texte": "Les caisses se vident, chef. Il nous faut une bonne mission, et vite."},
+          {"place": 2, "code": 2, "texte": "Les caisses tiennent."},
+          {"place": 2, "code": 3, "texte": "Les caisses sont pleines, chef. Les affaires vont bien."},
+          {"place": 2, "code": 4, "texte": "Les vivres baissent. J'ai envoyé du monde à la chasse et au potager."},
+          {"place": 2, "code": 5, "texte": "Les hommes sont à bout. Il faudrait les ménager."},
+          {"place": 2, "code": 6, "texte": "On a vu des bandits rôder autour du camp. La garde est prévenue."},
+          {"place": 3, "code": 1, "texte": "Les caisses se vident, chef. Il nous faut une bonne mission, et vite."},
+          {"place": 3, "code": 2, "texte": "Les caisses tiennent."},
+          {"place": 3, "code": 3, "texte": "Les caisses sont pleines, chef. Les affaires vont bien."},
+          {"place": 3, "code": 4, "texte": "Les vivres baissent. J'ai envoyé du monde à la chasse et au potager."},
+          {"place": 3, "code": 5, "texte": "Les hommes sont à bout. Il faudrait les ménager."},
+          {"place": 3, "code": 6, "texte": "On a vu des bandits rôder autour du camp. La garde est prévenue."}
+         ], "fin": "menu"},
+        {"categorie": "les_missions", "invite": "Les missions.", "henry": "Parlons des missions.", "reponse": "Je vous écoute, chef.",
+         "choix": [
+          {"nom": "trouve_une_mission", "invite": "Trouve-nous une mission.", "henry": "Trouve-nous une mission.", "repliques": [
+            {"place": 1, "code": 1, "texte": "J'ai repéré un camp de bandits. La troupe peut partir à l'aube."},
+            {"place": 1, "code": 2, "texte": "Rien de sûr pour l'instant, chef. Je cherche."},
+            {"place": 1, "code": 3, "texte": "Les hommes ne sont pas en état de partir, chef."},
+            {"place": 1, "code": 4, "texte": "C'est jour de repos, chef. Demain."}], "fin": "menu"},
+          {"nom": "mission_difficile", "invite": "Une mission plus difficile, mieux payée.",
+           "henry": "Une mission plus difficile, mieux payée.", "repliques": [
+            {"place": 1, "code": 5, "texte": "Il y en a une. Dangereuse, mais elle rapporte. Je prépare la troupe."},
+            {"place": 1, "code": 6, "texte": "Rien de ce calibre en ce moment, chef."}], "fin": "menu"}
+        ]},
+        {"categorie": "son_conseil", "invite": "Que me conseilles-tu ?", "henry": "Que me conseilles-tu ?",
+         "repliques_categorie": [
+          {"place": 1, "code": 1, "texte": "Les missions nous coûtent trop d'hommes. Je propose de les ménager quelque temps."},
+          {"place": 1, "code": 2, "texte": "Les vivres ne suivront pas. Je propose un chasseur de plus."},
+          {"place": 1, "code": 3, "texte": "Les hommes sont épuisés. Je propose une journée de repos."},
+          {"place": 1, "code": 4, "texte": "Rien pour l'instant, chef. Tout va bien."}],
+         "choix": [
+          {"nom": "fais_le", "invite": "Fais-le.", "henry": "Fais-le.", "repliques": [
+            {"place": 1, "code": 5, "texte": "Bien, chef. C'est fait."}], "fin": "menu"},
+          {"nom": "on_continue", "invite": "Non, on continue comme ça.", "henry": "Non, on continue comme ça.", "repliques": [
+            {"place": 1, "code": 6, "texte": "Comme vous voudrez, chef."}], "fin": "menu"}
+        ]},
+        {"categorie": "les_fautes", "invite": "Des fautes aujourd'hui ?", "henry": "Des fautes aujourd'hui ?",
+         "repliques_categorie": [
+          {"place": 1, "code": 1, "texte": "Une rixe ce matin, chef."},
+          {"place": 1, "code": 2, "texte": "Un vol dans le camp."},
+          {"place": 1, "code": 3, "texte": "Un homme ivre à son poste."},
+          {"place": 1, "code": 4, "texte": "Rien, chef. Les hommes se tiennent bien."}],
+         "choix": [
+          {"nom": "je_pardonne", "invite": "Je pardonne.", "henry": "Je pardonne.", "repliques": [
+            {"place": 1, "code": 5, "texte": "Bien, chef. Il s'en souviendra."}], "fin": "menu"},
+          {"nom": "sanctionne", "invite": "Sanctionne-le.", "henry": "Sanctionne-le.", "repliques": [
+            {"place": 1, "code": 6, "texte": "Ce sera fait, chef."}], "fin": "menu"}
+        ]},
+        {"categorie": "le_coffre", "invite": "Le coffre.", "henry": "Parlons du coffre.", "reponse": "Oui, chef ?",
+         "choix": [
+          {"nom": "donne_de_l_argent", "invite": "Donne-moi de l'argent du coffre.", "henry": "Donne-moi de l'argent du coffre.",
+           "repliques": [
+            {"place": 1, "code": 1, "texte": "Voilà mille gros, chef."},
+            {"place": 1, "code": 2, "texte": "Le coffre est trop bas, chef."}], "fin": "menu"},
+          {"nom": "mets_au_coffre", "invite": "Mets ça au coffre.", "henry": "Mets ça au coffre.", "repliques": [
+            {"place": 1, "code": 3, "texte": "Merci, chef. C'est au coffre."},
+            {"place": 1, "code": 4, "texte": "Vous n'avez pas assez sur vous, chef."}], "fin": "menu"}
+        ]}
+      ]
+    }
+  }
+}

@@ -57,6 +57,9 @@ local function texte_du_message(message)
   if message.nombre > 1 and message.cle_plusieurs then
     return "@" .. message.cle_plusieurs
   end
+  if message.texte then
+    return message.texte
+  end
   return "@" .. message.cle
 end
 
@@ -75,15 +78,36 @@ local function inscrire_historique(message, sort)
 end
 
 -- Rend le sort du message : "en_file", "regroupe", "repete", "journal" ou "refuse".
-function bandeau.annoncer(cle, options)
-  options = options or {}
-  local maintenant = jeu().maintenant()
+local annoncer_message
 
+function bandeau.annoncer(cle, options)
   if not cle_valide(cle) then
     etat.comptes.refuses = etat.comptes.refuses + 1
     jeu().journal("Bandeau : clé refusée « " .. tostring(cle) .. " » (attendu : ui_scriptorium_…)")
     return "refuse"
   end
+  return annoncer_message(cle, nil, options)
+end
+
+-- Demande du pair (18/10, JoVenGer : tout dans la barre noire) : un texte déjà composé par Scriptorium (ses clés « @… »,
+-- que le jeu remplace dans la ligne des sous-titres, mêlées à un nom ou à un montant), par la même file que les
+-- messages du socle (un à la fois, alertes devant, regroupement, répétition, importance, « journal », qui). Un texte
+-- vide ou de plus de « texte_max » caractères est refusé, une ligne au journal.
+bandeau.texte_max = 300
+
+function bandeau.annoncer_texte(texte, options)
+  if type(texte) ~= "string" or texte == "" or #texte > bandeau.texte_max then
+    etat.comptes.refuses = etat.comptes.refuses + 1
+    jeu().journal("Bandeau : texte refusé (" .. (type(texte) == "string" and (#texte .. " caractères") or tostring(texte))
+                  .. ", attendu : de 1 à " .. bandeau.texte_max .. ")")
+    return "refuse"
+  end
+  return annoncer_message("texte:" .. texte, texte, options)
+end
+
+annoncer_message = function(cle, texte, options)
+  options = options or {}
+  local maintenant = jeu().maintenant()
   local importance = options.importance or "nouvelle"
   if not bandeau.importances[importance] then
     etat.comptes.refuses = etat.comptes.refuses + 1
@@ -103,6 +127,7 @@ function bandeau.annoncer(cle, options)
 
   local message = {
     cle = cle,
+    texte = texte,
     importance = importance,
     duree = options.duree,
     groupe = options.groupe,
@@ -117,7 +142,7 @@ function bandeau.annoncer(cle, options)
   -- Importance « journal » : jamais à l'écran, seulement dans le journal et l'historique.
   if importance == "journal" then
     etat.comptes.journal = etat.comptes.journal + 1
-    jeu().journal("Bandeau (journal) : " .. cle)
+    jeu().journal("Bandeau (journal) : " .. (texte or cle))
     inscrire_historique(message, "journal")
     return "journal"
   end
