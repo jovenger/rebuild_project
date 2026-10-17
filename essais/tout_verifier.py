@@ -372,9 +372,20 @@ def verifier_identifiants():
         for _, montant in ipairs({ 0, -5, 2.5, 101, "10", 0 / 0, math.huge }) do
           if l.retirer_groschen_a_henry(montant) then return "retrait accepté : " .. tostring(montant) end
         end
-        for _, montant in ipairs({ 0, -3, 1.5, "5" }) do
+        -- Relecture du pair (17/10) : le versement a les gardes du retrait, plafond compris (1 000 000 par défaut).
+        local journal_d_origine, refus = l.journal, 0
+        l.journal = function(texte) if string.find(texte, "versement refusé", 1, true) then refus = refus + 1 end end
+        for _, montant in ipairs({ 0, -3, 1.5, "5", 0 / 0, math.huge, -math.huge, 1000001, 1e12 }) do
           if l.donner_groschen_a_henry(montant) then return "versement accepté : " .. tostring(montant) end
         end
+        l.journal = journal_d_origine
+        if refus ~= 9 then return "une ligne au journal par versement refusé : " .. refus .. " sur 9" end
+        local plafond_avant = Scriptorium.noyau.reglages.argent_d_henry_max
+        Scriptorium.noyau.reglages.argent_d_henry_max = nil
+        if l.donner_groschen_a_henry(5) then return "versement accepté sans plafond lisible" end
+        Scriptorium.noyau.reglages.argent_d_henry_max = 20
+        if l.donner_groschen_a_henry(21) then return "versement accepté au-dessus d'un plafond réglé à 20" end
+        Scriptorium.noyau.reglages.argent_d_henry_max = plafond_avant
         if #appels > 0 then return "le moteur a été appelé pour un montant refusé : " .. appels[1] end
         if not l.retirer_groschen_a_henry(100) or bourse ~= 0 then return "retrait juste refusé" end
         if not l.donner_groschen_a_henry(30) or bourse ~= 30 then return "versement juste refusé" end

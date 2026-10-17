@@ -26,8 +26,9 @@ Scriptorium.noyau = Scriptorium.noyau or {}
 -- « passage_jours_max » (V73 f 3 b, la règle de Scriptorium transmise par le pair, après le 24/09) : un passage d'une
 -- carte à l'autre n'est cru que si l'horloge du monde a avancé, de tant de jours au plus, depuis la dernière écriture du
 -- registre.
+-- « argent_d_henry_max » (relecture du pair, 17/10) : aucun mouvement de la bourse d'Henry au-delà de ce montant.
 Scriptorium.noyau.reglages = Scriptorium.noyau.reglages
-  or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10 }
+  or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10, argent_d_henry_max = 1000000 }
 
 -- La règle du passage (V73 f 3 b), accrochée à la liaison : l'horloge (heures du jeu) a avancé, de
 -- « passage_jours_max » au plus.

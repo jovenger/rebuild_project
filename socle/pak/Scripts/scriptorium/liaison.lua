@@ -220,10 +220,14 @@ function liaison.groschen_d_henry()
   return 0
 end
 
--- Un montant d'argent acceptable : un nombre entier, fini, strictement positif.
+-- Un montant d'argent acceptable : un nombre entier, fini, strictement positif, au plus « argent_d_henry_max » (réglage
+-- du noyau, section « socle » ; relecture du pair du 17/10 : un montant absurde est refusé). Un plafond illisible : tout
+-- est refusé.
 local function montant_juste(montant)
+  local r = Scriptorium.noyau and Scriptorium.noyau.reglages
+  local plafond = r and tonumber(r.argent_d_henry_max)
   return type(montant) == "number" and montant == montant and montant > 0 and montant < math.huge
-         and math.floor(montant) == montant
+         and math.floor(montant) == montant and plafond ~= nil and montant <= plafond
 end
 
 -- Retire des groschen à Henry (dépôt au coffre, voulu par le joueur). Vrai si fait.
@@ -247,7 +251,8 @@ function liaison.retirer_groschen_a_henry(montant)
   return ok
 end
 
--- Donne des groschen à Henry (versement du coffre). Vrai si fait. Même garde : un montant entier, strictement positif.
+-- Donne des groschen à Henry (versement du coffre, ou crédit simple pour Scriptorium). Vrai si fait. Même garde que le
+-- retrait : un montant entier, strictement positif, sous le plafond ; jamais un ajout de zéro envoyé au jeu.
 -- Vu en jeu le 14/10 : AddMoney.
 function liaison.donner_groschen_a_henry(montant)
   if not montant_juste(montant) then

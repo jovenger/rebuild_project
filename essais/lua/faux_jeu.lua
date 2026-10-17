@@ -548,7 +548,7 @@ Scriptorium = Scriptorium or {}
 Scriptorium.jeu = faux
 -- Au banc, le réveil se fait tout de suite à l'entrée en partie (le noyau garde une table déjà posée) ; l'attente de
 -- 30 s du jeu a son propre essai (essai_noyau.lua).
-Scriptorium.noyau = { reglages = { delai_du_reveil_s = 0, guet_du_chargement_s = 10 } }
+Scriptorium.noyau = { reglages = { delai_du_reveil_s = 0, guet_du_chargement_s = 10, argent_d_henry_max = 1000000 } }
 -- Fiche 16 : au banc, les règles du socle sont éprouvées allumées (le noyau garde cette table) ; les essais des
 -- interrupteurs les éteignent un à un.
 Scriptorium.noyau.interrupteurs = { solde_de_la_semaine = 1, aguerrissement = 1, rangs_du_socle = 1, usure_en_points = 1,
