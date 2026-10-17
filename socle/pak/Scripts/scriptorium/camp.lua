@@ -64,10 +64,13 @@ camp.sortes_places = { lit = true, siege = true }
 
 -- Fiche 18, 5 c, tranche 2 : les genres de postes de travail (section de réglages « postes_du_jeu ») : le gabarit du jeu
 -- (le DatabaseId de Libs/Tables/ai/smartEntity/SmartEntity__<nom>.xml), le geste (un comportement nommé du gabarit),
--- les points d'appui. Relevé le 17/10 dans Tables.pak (lecture seule) ; d'abord des postes sans objet lié.
+-- les points d'appui. Relevé le 17/10 dans Tables.pak (lecture seule) ; d'abord des postes sans objet lié. Les points
+-- d'appui sont ceux des postes du monde, relevés en jeu le 17/10 (essai_postes_relever : tous des SmartObjectHolder).
 camp.genres_de_postes = {
-  priere = { gabarit = "459f694f-4d30-84cd-b21c-ebbc263571ba", geste = "useKneelingGround", aides = "" },
-  balai = { gabarit = "4fbf97e7-3613-4c9f-959f-d24ea368d9a6", geste = "use", aides = "" },
+  priere = { gabarit = "459f694f-4d30-84cd-b21c-ebbc263571ba", geste = "useKneelingGround", aides = "Praying" },
+  desherbage = { gabarit = "c2bb08b4-c1ad-484c-abce-df196518fb9b", geste = "use", aides = "Weeding" },
+  cloture = { gabarit = "8b959f6e-fe08-4841-a826-18f9ff7d989e", geste = "use", aides = "GenU_repairFenceHammer" },
+  pelle = { gabarit = "7401194c-2f37-4735-b53c-0e5d9843258c", geste = "use", aides = "coalThrowing" },
 }
 
 -- Le plan du camp : positions en mètres par rapport à l'ancre (x à droite, y devant),

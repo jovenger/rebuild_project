@@ -103,7 +103,7 @@ Sources réelles (lecture seule) : `Tables.pak`, `Libs/Tables/ai/smartEntity/Sma
 Comportement :
 - **Le catalogue des genres** `camp.genres_de_postes` (section de réglages `postes_du_jeu`) : pour chaque genre, le
   gabarit du jeu, le geste (le comportement nommé) et les points d'appui. D'abord la prière (`so_praying`,
-  `useKneelingGround`) et le balai (`so_sweeping`, `use`) : sans objet lié. La forge (sac de forge, emplacements du
+  `useKneelingGround`), le désherbage, la clôture et la pelle (`so_weeding`, `so_fence`, `so_shoveling`, `use`) : sans objet lié. La forge (sac de forge, emplacements du
   marteau et de l'épée, liés au poste) viendra après, prouvée à part.
 - **Rendre un poste fonctionnel** : `camp.rendre_fonctionnel(nom, genre, position, cap)` (décision remplaçable, A34) :
   un `SmartObjectHolder` du gabarit, posé au sol là où Scriptorium (ou JoVenGer par le plan) le veut ; gardé au
@@ -115,3 +115,4 @@ Comportement :
 - **Le relevé** (outil d'essai) : les objets intelligents du monde d'un gabarit du catalogue, autour d'Henry : classe,
   nom, gabarit, points d'appui, modèle, distance (comme V65 pour les sièges).
 - Non vérifié en jeu tant que le relevé et la première prière ne sont pas vus.
+- **Vu en jeu le 17/10** : le relevé (359 postes à moins de 400 m d'Henry, tous des `SmartObjectHolder` ; points d'appui lus : prière « Praying », désherbage « Weeding », clôture « GenU_repairFenceHammer », pelle « coalThrowing » ; aucun balai alentour : retiré du catalogue, les points d'appui mis d'après le relevé). Puis la prière : le poste posé à 3 m devant Henry, l'homme y marche, s'agenouille (le geste du jeu, lancé une fois et tenu) ; lâché, il se relève aussitôt et repart à l'exercice. Non vus : le désherbage, la clôture, la pelle ; un geste qui finit et qu'on relance ; le poste reposé après un chargement.

@@ -37,7 +37,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A31 | `LogiRemoveOneMerc` | enveloppée par : tenir_la_compagnie | `Scriptorium.hommes.retirer(id, cause)` |
 | A32 | `LogiWealthRaidTick` | enveloppée par : tenir_la_compagnie | pas utile : le socle ne lève aucune bande de lui-même ; Scriptorium appelle `Scriptorium.bataille.lever_une_bande(ordre)` |
 | A33 | `LootEligibleMercs` | les hommes qui peuvent aller fouiller les corps | `Scriptorium.bataille.peut_fouiller(id, bande)` (accroche ; les bains l'enveloppent) ; remplaçable (fiche 19) |
-| A34 | `SpawnCampHouseBed` | enveloppée par : editeur_du_camp | étape 5 (un meuble posé par JoVenGer rendu utilisable, NOTE_METIERS §0) |
+| A34 | `SpawnCampHouseBed` | enveloppée par : editeur_du_camp | `Scriptorium.camp.rendre_fonctionnel(nom, genre, position, cap)` (un meuble posé rendu poste de travail du jeu ; remplaçable, fiche 19 ; fiche 18, 5 c) |
 | A35 | `SpawnCampPracticeYard` | enveloppée par : pantins_d_entrainement | étape 5 (poste d'entraînement) |
 | A36 | `SpawnQuartermaster` | enveloppée par : intendant_du_camp | `Scriptorium.directeur.installer()` |
 | A37 | `TowerSpotIsValid` | enveloppée par : camp_selon_le_terrain | `Scriptorium.jeu.sol_de(position, pas)` ; remplaçable (fiche 19) |
@@ -66,8 +66,8 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F20 | `NoteAttacker` | 4 dossier(s) | pas utile : l'ennemi est la bande levée (`Scriptorium.bataille.bande(id)`), pas un attaquant noté |
 | F21 | `BanditCampSiteAnchor` | 3 dossier(s) | `Scriptorium.missions.lieux_de(carte)` et `ajouter_un_lieu(nom, carte, position, cap)` |
 | F22 | `BeginFollowVerify` | 3 dossier(s) | `Scriptorium.hommes.tenir(id, "escorte", quoi)` |
-| F23 | `CUCount` | 3 dossier(s) | étape 5 (postes posés par JoVenGer ; l'enceinte : `Scriptorium.enceinte.niveau()`) |
-| F24 | `CUStatus` | 3 dossier(s) | étape 5 (postes posés par JoVenGer ; l'enceinte : `Scriptorium.enceinte.est_batie()`) |
+| F23 | `CUCount` | 3 dossier(s) | `Scriptorium.camp.postes()` (les postes posés ; l'enceinte : `Scriptorium.enceinte.niveau()`) |
+| F24 | `CUStatus` | 3 dossier(s) | `Scriptorium.camp.poste(nom)` (genre, position, posé ou non ; l'enceinte : `Scriptorium.enceinte.est_batie()`) |
 | F25 | `EnsureMercIsAlwaysRendered` | 3 dossier(s) | pas utile : le socle ne force pas l'affichage ; le gardien (`Scriptorium.hommes.garder()`) repêche |
 | F26 | `Hire` | 3 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` |
 | F27 | `HireArcher` | 3 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (rôle `archer` ou `arbaletrier`) |
@@ -99,7 +99,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F53 | `BountyPickSite` | 1 dossier(s) | `Scriptorium.missions.choisir_un_lieu(carte)` |
 | F54 | `BountyReport` | 1 dossier(s) | `Scriptorium.missions.rapport_de_mission(r)` (accroche) et `missions.rapport(id)` |
 | F55 | `BountyTierFor` | 1 dossier(s) | `Scriptorium.missions.niveau_pour(force, lieu)` (accroche) |
-| F56 | `CampActiveStations` | 1 dossier(s) | étape 5 (postes de travail) |
+| F56 | `CampActiveStations` | 1 dossier(s) | `Scriptorium.camp.postes()` et `Scriptorium.hommes.qui_tient(id, heure)` (les postes et qui y travaille ; fiche 18, 5 c) |
 | F57 | `CampAdmitToCamp` | 1 dossier(s) | `Scriptorium.hommes.admettre(personnage, contrat)` (un personnage déjà né, jamais refait, renvoyé, équipé ni mis dehors par le socle ; fiche 18, 5 c) |
 | F58 | `CampFormationDirty` | 1 dossier(s) | pas utile : l'ordre est redonné dès que l'activité change (`Scriptorium.hommes.tenir(id, regle, quoi)`) |
 | F59 | `CampOnMercJoined` | 1 dossier(s) | pas utile : `Scriptorium.hommes.embaucher(contrat)` inscrit l'homme au camp d'un seul coup |
@@ -177,7 +177,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D20 | `MercTargetOf` | 6 dossier(s) | `Scriptorium.bataille.cibles(bande)` (`notres` : la cible de chacun de nos hommes) |
 | D21 | `CampModels` | 5 dossier(s) | `Scriptorium.camp.modeles` |
 | D22 | `CampOutParty` | Scriptorium l'écrit aussi | `Scriptorium.hommes.qui_tient(id, heure)` (règle `escorte`) |
-| D23 | `CampStationTiles` | 5 dossier(s) | étape 5 (postes de travail) |
+| D23 | `CampStationTiles` | 5 dossier(s) | `Scriptorium.camp.rendre_fonctionnel(nom, genre, position, cap)` (la disposition des postes reste à Scriptorium ; le socle les rend fonctionnels et les garde au registre) |
 | D24 | `CustomCompanionsData` | 5 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (champs `nom`, `ame`, `position` ; la liste des compagnons reste chez Scriptorium, fiche 18) |
 | D25 | `EnemyAlerted` | Scriptorium l'écrit aussi | `Scriptorium.bataille.bande(id)` (champs `annoncee`, `etat`) |
 | D26 | `ArcherAmmoClass` | 4 dossier(s) | `Scriptorium.jeu.munition_de(nom)` |
@@ -252,7 +252,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D95 | `CampHunt` | 1 dossier(s) | étape 5 (la chasse) |
 | D96 | `CampInn` | 1 dossier(s) | étape 5 (la taverne) |
 | D97 | `CampJoinRadius` | Scriptorium l'écrit aussi | pas utile : pas de rayon d'entrée au camp ; l'homme est au camp dès `Scriptorium.hommes.embaucher(contrat)` |
-| D98 | `CampLoadStationTiles` | Scriptorium l'écrit aussi | étape 5 (postes de travail) |
+| D98 | `CampLoadStationTiles` | Scriptorium l'écrit aussi | déjà fait : les postes rendus fonctionnels sont gardés au registre du camp et reposés à l'entrée en partie (`Scriptorium.camp.redresser()`) |
 | D99 | `CampMaxCampingTiles` | Scriptorium l'écrit aussi | pas utile : la taille du camp est son niveau (`Scriptorium.camp.niveau()`, au plus `camp.niveau_maximal`) |
 | D100 | `CampMaxConcurrentChats` | 1 dossier(s) | pas utile : les voix viennent plus tard (NOTE §8, étape 6 du plan) |
 | D101 | `CampMaxTents` | Scriptorium l'écrit aussi | pas utile : les tentes viennent de `Scriptorium.camp.plan`, par niveau |
@@ -346,10 +346,10 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 202 | 35 | 75 | 80 | 12 |
+| service existant | 208 | 36 | 78 | 82 | 12 |
 | à ouvrir | 0 | 0 | 0 | 0 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
-| étape 5 | 25 | 2 | 4 | 15 | 4 |
+| étape 5 | 19 | 1 | 1 | 13 | 4 |
 | pas utile | 90 | 3 | 28 | 49 | 10 |
 | réglage | 20 | 0 | 4 | 15 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |

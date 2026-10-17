@@ -731,7 +731,7 @@ local function poser_un_poste_devant(genre)
 end
 
 function poste.essai_poste_priere() return poser_un_poste_devant("priere") end
-function poste.essai_poste_balai() return poser_un_poste_devant("balai") end
+function poste.essai_poste_desherbage() return poser_un_poste_devant("desherbage") end
 
 -- Le dernier vu (sinon le premier homme) tenu au dernier poste posé.
 function poste.essai_poste_tenir()
@@ -2414,7 +2414,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_qui_garde", fonction = function() return poste.essai_qui_garde() end, aide = "Qui est de garde, et ce que font les gens de métier" },
   { nom = "scriptorium_essai_postes_relever", fonction = function() return poste.essai_postes_relever() end, aide = "Les postes de travail du monde à 400 m d'Henry (fiche 18, 5 c)" },
   { nom = "scriptorium_essai_poste_priere", fonction = function() return poste.essai_poste_priere() end, aide = "Un poste de prière à 3 m devant Henry" },
-  { nom = "scriptorium_essai_poste_balai", fonction = function() return poste.essai_poste_balai() end, aide = "Un poste de balai à 3 m devant Henry" },
+  { nom = "scriptorium_essai_poste_desherbage", fonction = function() return poste.essai_poste_desherbage() end, aide = "Un poste de désherbage à 3 m devant Henry" },
   { nom = "scriptorium_essai_poste_tenir", fonction = function() return poste.essai_poste_tenir() end, aide = "Le dernier vu tenu au dernier poste posé" },
   { nom = "scriptorium_essai_poste_lacher", fonction = function() return poste.essai_poste_lacher() end, aide = "Le dernier vu lâché de son poste" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
