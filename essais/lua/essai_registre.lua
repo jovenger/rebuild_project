@@ -232,6 +232,48 @@ essai("registre (fiche 01, le pair, 17/10) : les écritures regroupées, une au 
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("registre (fiche 01, vu en jeu le 17/10 : le Directeur perdu à la sauvegarde) : l'attente vidée par une minuterie à la fin de l'intervalle, une seule à la fois ; rien d'écrit après une partie oubliée", function()
+  depart()
+  local registre = Scriptorium.registre
+  local ancien = Scriptorium.noyau.reglages.registre_intervalle_s
+  Scriptorium.noyau.reglages.registre_intervalle_s = 2
+  local ok, erreur = pcall(function()
+    registre.declarer_case("essai_vidage", 1, function() return { n = 0 } end)
+    FauxJeu.temps = 200
+    verifier(registre.enregistrer("essai_vidage") ~= nil, "la première écriture, tout de suite")
+    local d = registre.lire("essai_vidage")
+    d.n = 1
+    FauxJeu.temps = 200.5
+    local avant_minuteries = #FauxJeu.minuteries
+    egal(registre.enregistrer("essai_vidage"), nil, "rapprochée : en attente")
+    egal(#FauxJeu.minuteries, avant_minuteries + 1, "une minuterie posée")
+    local m = FauxJeu.minuteries[#FauxJeu.minuteries]
+    egal(m.ms, 1500, "pour le reste de l'intervalle (1,5 s)")
+    d.n = 2
+    egal(registre.enregistrer("essai_vidage"), nil, "encore en attente")
+    egal(#FauxJeu.minuteries, avant_minuteries + 1, "pas de seconde minuterie")
+    local avant = FauxJeu.registre_stocke
+    m.fonction()
+    verifier(not registre.en_attente, "la minuterie vide l'attente")
+    verifier(FauxJeu.registre_stocke ~= avant, "écrite sans battement")
+    -- Une partie oubliée entre la mise en attente et la minuterie : rien d'écrit.
+    d.n = 3
+    FauxJeu.temps = 200.6
+    egal(registre.enregistrer("essai_vidage"), nil, "de nouveau en attente")
+    local m2 = FauxJeu.minuteries[#FauxJeu.minuteries]
+    verifier(m2 ~= m, "une nouvelle minuterie")
+    registre.invalider()
+    local apres = FauxJeu.registre_stocke
+    m2.fonction()
+    egal(FauxJeu.registre_stocke, apres, "rien d'écrit après la partie oubliée")
+    verifier(not registre.vidage_pose, "plus de minuterie posée")
+  end)
+  Scriptorium.noyau.reglages.registre_intervalle_s = ancien
+  registre.en_attente = false
+  registre.vidage_pose = false
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("registre par case (fiche 01) : seule la case nommée s'écrit ; l'index seulement s'il change ; case inconnue gardée ; repli sans nom", function()
   depart()
   local registre = Scriptorium.registre

@@ -42,6 +42,7 @@ function registre.remettre_a_zero()
   noms_stockes, index_ecrit, marquees, dernieres_chaines = {}, nil, {}, {}
   migration_a_faire, sans_nom_dit = false, false
   registre.en_attente = false
+  registre.vidage_pose = false
 end
 registre.remettre_a_zero()
 
@@ -278,6 +279,7 @@ function registre.invalider()
   contenu_stocke = nil
   noms_stockes, index_ecrit, marquees, dernieres_chaines, migration_a_faire = {}, nil, {}, {}, false
   registre.en_attente = false
+  registre.vidage_pose = false
   for _, nom in ipairs(ordre) do
     cases[nom].donnees = nil
     cases[nom].etat = "non_chargee"
@@ -319,13 +321,35 @@ end
 -- Fiche 01 (demandes du pair, 17/10 : Scriptorium écrit plusieurs clés à chaque battement) : l'écriture PAR CASE et
 -- REGROUPÉE. Seules les cases marquées sont sérialisées et écrites, chacune dans ses jetons ; l'index (la liste des
 -- cases) seulement quand il change. Une écriture au plus par « registre_intervalle_s » secondes réelles (réglage du
--- noyau) ; une demande plus rapprochée attend, et le battement commun la vide (registre.vider). Mesuré au banc avant
+-- noyau) ; une demande plus rapprochée attend, vidée par une minuterie à la fin de l'intervalle (ou par le battement
+-- commun, registre.vider, s'il passe avant). Mesuré au banc avant
 -- l'écriture par case : 10 000 clés, 1 Mo, 34 ms ; 50 000 clés, 5 Mo, 203 ms.
 registre.en_attente = false
 local derniere_ecriture = nil
 
 local function reglage(nom)
   return tonumber(Scriptorium.noyau and Scriptorium.noyau.reglages and Scriptorium.noyau.reglages[nom]) or 0
+end
+
+-- Fiche 01 (vu en jeu le 17/10 : le Directeur installé et ses objets donnés, la partie sauvegardée 10 s après : tout
+-- perdu, l'écriture attendait le battement de 30 s) : une écriture mise en attente est vidée par une minuterie dès que
+-- l'intervalle est passé, sans attendre le battement. Une seule minuterie à la fois ; une partie oubliée entre-temps
+-- (registre.invalider) : rien n'est écrit. La fenêtre de perte au plus tôt : l'intervalle (2 s).
+local function poser_le_vidage(t, intervalle)
+  if registre.vidage_pose or not jeu().minuterie then
+    return
+  end
+  registre.vidage_pose = true
+  local reste = intervalle - ((t and derniere_ecriture and t >= derniere_ecriture) and (t - derniere_ecriture) or 0)
+  jeu().minuterie(math.max(100, math.floor(reste * 1000 + 0.5)), function()
+    registre.vidage_pose = false
+    if charge and registre.en_attente then
+      local ok, erreur = pcall(registre.vider)
+      if not ok then
+        jeu().journal("Registre : vidage de l'attente en erreur : " .. tostring(erreur))
+      end
+    end
+  end)
 end
 
 local function chaine_de(case)
@@ -415,6 +439,7 @@ function registre.enregistrer(nom, forcer)
     return ecrire_maintenant()
   end
   registre.en_attente = true
+  poser_le_vidage(t, intervalle)
   return nil
 end
 
@@ -448,6 +473,7 @@ function registre.surveiller()
       ecrire_maintenant()
     else
       registre.en_attente = true
+      poser_le_vidage(t, intervalle)
     end
   end
   return nouvelles
