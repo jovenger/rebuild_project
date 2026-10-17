@@ -242,7 +242,8 @@
 | 473, puis deux sauts d'Henry (40 m) et trois poses (1 188 m, 6 m, 6 m, à Přítoky) | V73 g (le gardien, la liaison relue, la porte) | normal (six fois) |
 | 473, puis deux sauts d'Henry (40 m) et deux poses près de la bande | Étape 2 (les bandes) | normal (cinq fois) |
 | 473, deux sauts, une bande (Henry visé) | Étape 2 (bande qui attaque) | **noir** (emblème qui tourne ; peut-être la mort d'Henry) |
-- Au total : 4 écrans noirs (dont un douteux) sur 126 chargements ou poses observés ; 2 sur 116 depuis la séparation. **Rien n'est conclu** : il
+- Au total : 5 écrans noirs (dont un douteux) sur 129 chargements ou poses observés ; 3 sur 119 depuis la séparation (le
+  5e, le 17/10, au chargement de la 473, avant que rien de nous ne naisse : réveil jamais venu, séance refaite). **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

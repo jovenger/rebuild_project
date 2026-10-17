@@ -44,4 +44,10 @@ Services : `ajouter_un_lieu`, `lieux(carte)`, `dresser_un_camp(lieu, niveau)`, `
 Réglages au catalogue : `missions.reglages` (section `missions`), `missions.niveaux` (section `niveaux_des_camps`),
 `missions.plan` (section `plan_des_camps`).
 
-À reprendre plus tard : un vrai coffre du jeu à fouiller au milieu du camp ; les bandits assis au feu ou couchés.
+**Vu en jeu (17/10, 1a5d03f)** : rien né sous les yeux d'Henry (à 120 m, devant lui) ; dos tourné, quatre brigands
+et les meubles nés au battement suivant ; Henry à moins de 35 m : alerte, les quatre reçoivent l'ordre 8 contre lui et
+viennent l'attaquer (atout « Envers et contre tous » à l'écran) ; abattus par l'ordre d'essai : « victoire, butin 120 »,
+« camp vaincu » une fois, l'annonce au bandeau ; puis levé. **Non vus en jeu** : la fuite d'Henry (retour au poste), un
+de nos hommes qui donne l'alerte, la réfection au chargement, la levée 24 h après (vus au banc).
+
+À reprendre plus tard : le lieu d'essai pris devant Henry peut tomber dans une ferme (vu : derrière un mur) ; un vrai coffre du jeu à fouiller au milieu du camp ; les bandits assis au feu ou couchés.
