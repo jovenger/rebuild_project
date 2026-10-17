@@ -758,6 +758,21 @@ essai("hommes : une âme par homme, tirée à l'embauche dans la réserve de son
   egal(FauxJeu.personnages[#FauxJeu.personnages].ame, "ame_combattant_1_2", "le dernier revenu sur la sienne")
 end)
 
+essai("hommes (pas de jumeaux, demande du pair, 18/10) : une âme dont le visage est déjà au camp est sautée tant qu'un visage libre reste ; ensuite, une âme libre quelconque", function()
+  preparer(10000, 0, 10)
+  FauxJeu.tailles_paliers.combattant = { 6, 6, 6 }
+  FauxJeu.visages = { combattant = 3 }
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  egal(hommes.fiche(a).ame, "ame_combattant_1_1", "la première, visage 0")
+  local b = hommes.embaucher({ role = "archer", semaines = 1, prime = 0, palier = 3 })
+  egal(hommes.fiche(b).ame, "ame_combattant_3_2", "la 3_1 a le visage 0, déjà au camp : sautée")
+  local c = hommes.embaucher({ role = "pavoisier", semaines = 1, prime = 0 })
+  egal(hommes.fiche(c).ame, "ame_combattant_1_3", "1_2 (visage 1, pris) sautée ; 1_3, visage 2, libre")
+  local d = hommes.embaucher({ role = "arbaletrier", semaines = 1, prime = 0 })
+  egal(hommes.fiche(d).ame, "ame_combattant_1_2", "plus aucun visage libre : la première âme libre")
+  FauxJeu.visages = nil
+end)
+
 essai("hommes : palier plein, l'âme du palier le plus proche ; jamais de refus faute d'âme", function()
   preparer(10000, 0, 10)
   camp.agrandir()

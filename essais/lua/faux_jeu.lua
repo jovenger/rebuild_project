@@ -82,7 +82,8 @@ function faux.remettre_a_zero()
   faux.position_joueur = { x = 0, y = 0, z = 0 }
   faux.cap_joueur = 0
   faux.personnages = {}
-  faux.tailles_paliers = { combattant = { 80, 80, 80 }, metier = { 40 }, femme = { 12 }, directeur = { 1 } }
+  faux.tailles_paliers = { combattant = { 80, 80, 80 }, metier = { 50 }, femme = { 30 }, directeur = { 1 } }
+  faux.visages = nil
   faux.personnages_existants = {}
   faux.inventaires = {}
   faux.portes = {}
@@ -241,6 +242,15 @@ function faux.ame_de(reserve, palier, numero)
   local taille = paliers and paliers[palier]
   if not taille or numero < 1 or numero > taille then return nil end
   return "ame_" .. reserve .. "_" .. palier .. "_" .. numero
+end
+-- Pas de jumeaux : le visage d'une âme, « réserve:rang mod visages » quand faux.visages[réserve] est posé (sinon nil).
+function faux.visage_de(ame)
+  local reserve, palier, numero = string.match(tostring(ame), "^ame_(%a+)_(%d+)_(%d+)$")
+  local n = reserve and faux.visages and faux.visages[reserve]
+  if not n then return nil end
+  local rang = tonumber(numero) - 1
+  for p = 1, tonumber(palier) - 1 do rang = rang + faux.tailles_paliers[reserve][p] end
+  return reserve .. ":" .. (rang % n)
 end
 function faux.paliers_de(reserve)
   local copie = {}

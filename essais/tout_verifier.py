@@ -852,6 +852,31 @@ def verifier_ames():
         attendues[ame] = (reserve, int(palier))
     racine = ET.parse(TABLE_DES_AMES).getroot()
     ames = [s.attrib for s in racine.iter("soul")]
+    # Pas de jumeaux (demande du pair, 18/10) : deux âmes d'une réserve ont le même visage pour la liaison
+    # (liaison.visage_de) si et seulement si elles ont le même personnage du jeu dans la table.
+    visage_de = {}
+    for ligne in lua.eval("""(function()
+        local l, lignes = Scriptorium.liaison_reelle, {}
+        for reserve, r in pairs(l.reserves_d_ames) do
+          for palier, taille in ipairs(r.paliers) do
+            for numero = 1, taille do
+              local ame = l.ame_de(reserve, palier, numero)
+              table.insert(lignes, string.lower(ame) .. "|" .. tostring(l.visage_de(ame)))
+            end
+          end
+        end
+        return table.concat(lignes, "\\n")
+    end)()""").split("\n"):
+        ame, visage = ligne.split("|")
+        visage_de[ame] = visage
+    personnage_du_visage, visage_du_personnage = {}, {}
+    for a in ames:
+        v = visage_de.get(a.get("soul_id", "").lower())
+        if v is None:
+            continue
+        p = a.get("skald_character_name")
+        if personnage_du_visage.setdefault(v, p) != p or visage_du_personnage.setdefault(p, v) != v:
+            erreur("âmes : visage %s et personnage %s mal accordés entre la liaison et la table" % (v, p))
     noms = [a.get("soul_name") for a in ames]
     ids = [a.get("soul_id", "").lower() for a in ames]
     if len(set(noms)) != len(noms) or len(set(ids)) != len(ids):

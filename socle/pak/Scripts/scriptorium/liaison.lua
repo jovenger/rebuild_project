@@ -1199,11 +1199,13 @@ end
 -- remplacent les âmes de gardes de Trosky empruntées au jeu (extraGuards_dummy_1, 3, 5 ; cerveau du jeu, V16). Par
 -- réserve, le nombre d'âmes de chaque palier dans la table ; l'identifiant se calcule à partir de la réserve, du palier et
 -- du numéro (préfixe absent des âmes du jeu). tout_verifier.py vérifie que la table et ces tailles s'accordent.
+-- « visages » (demande du pair, 18/10 : pas de jumeaux) : le nombre de personnages du jeu de la palette de la réserve
+-- (outils/ames.py) ; l'âme de rang r (compté sur tous les paliers) porte le visage numéro r mod visages.
 liaison.reserves_d_ames = {
-  combattant = { code = 1, paliers = { 80, 80, 80 } },   -- recrue, confirmé, vétéran
-  metier     = { code = 2, paliers = { 40 } },
-  femme      = { code = 3, paliers = { 12 } },
-  directeur  = { code = 4, paliers = { 1 } },
+  combattant = { code = 1, paliers = { 80, 80, 80 }, visages = 71 },   -- recrue, confirmé, vétéran
+  metier     = { code = 2, paliers = { 50 }, visages = 50 },
+  femme      = { code = 3, paliers = { 30 }, visages = 30 },
+  directeur  = { code = 4, paliers = { 1 }, visages = 1 },
 }
 
 -- L'identifiant d'une âme, ou nil hors des réserves.
@@ -1214,6 +1216,25 @@ function liaison.ame_de(reserve, palier, numero)
     return nil
   end
   return string.format("5c7a5c7a-%04x-4%03x-8000-%012x", r.code, palier, numero)
+end
+
+-- Le visage d'une âme de nos réserves : « réserve:numéro du visage » (deux âmes au même visage sont des jumeaux), ou nil.
+function liaison.visage_de(ame)
+  local code, palier, numero = string.match(string.lower(tostring(ame)), "^5c7a5c7a%-(%x%x%x%x)%-4(%x%x%x)%-8000%-(%x+)$")
+  if not code then
+    return nil
+  end
+  code, palier, numero = tonumber(code, 16), tonumber(palier, 16), tonumber(numero, 16)
+  for nom, r in pairs(liaison.reserves_d_ames) do
+    if r.code == code and r.paliers[palier] and numero <= r.paliers[palier] then
+      local rang = numero - 1
+      for p = 1, palier - 1 do
+        rang = rang + r.paliers[p]
+      end
+      return nom .. ":" .. (rang % r.visages)
+    end
+  end
+  return nil
 end
 
 -- Le nombre d'âmes de chaque palier d'une réserve (une copie), ou une liste vide.

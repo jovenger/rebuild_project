@@ -649,16 +649,22 @@ end
 
 -- Une âme libre pour l'homme (fiche 13, validée par JoVenGer le 15/10/2026) : une âme par homme vivant, jamais partagée,
 -- prise dans la réserve de son rôle, à son palier ; palier plein, au palier le plus proche (ses compétences corrigent
--- ensuite son niveau). Rend l'identifiant de l'âme, ou nil quand toute la réserve est prise.
+-- ensuite son niveau). Pas de jumeaux (demande du pair, 18/10) : d'abord une âme dont le visage n'est porté par personne
+-- de la Compagnie (liaison.visage_de), puis, s'il n'en reste plus, une âme libre quelconque. Rend l'identifiant de
+-- l'âme, ou nil quand toute la réserve est prise.
 local function choisir_ame(d, f)
   local role = hommes.roles[f.role]
   local reserve = role and role.reserve
   local paliers = reserve and jeu().paliers_de(reserve) or {}
-  local prises = {}
+  local prises, visages_pris = {}, {}
   for _, id in ipairs(d.ordre) do
     local autre = d.liste[id]
     if autre and autre ~= f and autre.ame then
       prises[autre.ame] = true
+      local v = jeu().visage_de and jeu().visage_de(autre.ame)
+      if v then
+        visages_pris[v] = true
+      end
     end
   end
   local voulu = f.palier or 1
@@ -667,11 +673,14 @@ local function choisir_ame(d, f)
     table.insert(ordre_des_paliers, voulu - ecart)
     table.insert(ordre_des_paliers, voulu + ecart)
   end
-  for _, palier in ipairs(ordre_des_paliers) do
-    for numero = 1, paliers[palier] or 0 do
-      local ame = jeu().ame_de(reserve, palier, numero)
-      if ame and not prises[ame] then
-        return ame
+  for _, sans_jumeau in ipairs({ true, false }) do
+    for _, palier in ipairs(ordre_des_paliers) do
+      for numero = 1, paliers[palier] or 0 do
+        local ame = jeu().ame_de(reserve, palier, numero)
+        local v = ame and jeu().visage_de and jeu().visage_de(ame)
+        if ame and not prises[ame] and not (sans_jumeau and v and visages_pris[v]) then
+          return ame
+        end
       end
     end
   end

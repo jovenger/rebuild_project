@@ -77,13 +77,26 @@ COPIES = ("brain_id", "combat_level", "digestion_multiplier", "initial_clothing_
 
 # Les réserves : code, nom des âmes, tailles par palier, personnages (familles du jeu), classe sociale, archétype,
 # niveau de combat par palier. Les tailles doivent être celles de liaison.reserves_d_ames.
+# Pas de jumeaux (demande du pair, 18/10 : « le camp ne doit pas être peuplé de jumeaux ») : le visage suit le personnage
+# du jeu ; trois palettes sans personnage commun, le plus de visages possible par réserve (personnages génériques de
+# skald_character.xml) : combattants 71, gens de métier 50, femmes 30 ; le personnage du Directeur hors des palettes.
+# Le personnage d'une âme est le visage numéro (rang mod visages), rang compté sur tous les paliers de la réserve : la
+# liaison le refait sans liste (liaison.visage_de), et le tirage écarte un visage déjà présent au camp.
 RESERVES = [
-    {"reserve": "combattant", "code": 1, "paliers": [80, 80, 80], "familles": ["char_GENERIC_MAN_SOLDIER"],
+    {"reserve": "combattant", "code": 1, "paliers": [80, 80, 80],
+     "familles": ["char_GENERIC_MAN_SOLDIER", "char_GENERIC_MAN_GUARD", "char_GENERIC_MAN_ENEMY_BANDIT",
+                  "char_GENERIC_MAN_TOWNSMAN", "char_GENERIC_MAN_GERMAN", "char_GENERIC_MAN_CUMAN"],
+     "exclus": ["char_GENERIC_MAN_GUARD_08"],
      "classe": "33", "archetype": "0", "niveaux": ["0.3", "0.5", "0.7"]},
-    {"reserve": "metier", "code": 2, "paliers": [40], "familles": ["char_GENERIC_MAN_COMMONER"],
+    {"reserve": "metier", "code": 2, "paliers": [50],
+     "familles": ["char_GENERIC_MAN_COMMONER", "char_GENERIC_MAN_MINER", "char_GENERIC_MAN_GAMEKEEPER",
+                  "char_GENERIC_MAN_MERCHANT_CZECH", "char_GENERIC_MAN_MERCHANT_GERMAN",
+                  "char_GENERIC_MAN_MARKET_COALMAN_CZECH", "char_GENERIC_MAN_MARKET_POTTER_GERMAN"],
      "classe": "1", "archetype": "0", "niveaux": [None]},
-    {"reserve": "femme", "code": 3, "paliers": [12],
-     "familles": ["char_GENERIC_WOMAN_COMMONER", "char_GENERIC_WOMAN_TOWNSWOMAN"],
+    {"reserve": "femme", "code": 3, "paliers": [30],
+     "familles": ["char_GENERIC_WOMAN_COMMONER", "char_GENERIC_WOMAN_TOWNSWOMAN", "char_GENERIC_WOMAN_MERCHANT_CZECH",
+                  "char_GENERIC_WOMAN_GERMAN", "char_GENERIC_WOMAN_MARKET_POTTER_CZECH", "char_GENERIC_WOMAN_ROMA",
+                  "char_GENERIC_WOMAN_MARKET_POTTER_GERMAN", "char_GENERIC_WOMAN_MERCHANT_GERMAN"],
      "classe": "1", "archetype": "1", "niveaux": [None]},
     # Le Directeur garde le personnage qu'il avait (extraGuards_dummy_6), avec la classe des soldats.
     {"reserve": "directeur", "code": 4, "paliers": [1], "personnages": ["char_GENERIC_MAN_GUARD_08"],
@@ -191,12 +204,13 @@ def ligne(attributs):
 def lignes_des_reserves(personnages):
     lignes = []
     for r in RESERVES:
-        choix = r.get("personnages") or palette(personnages, r["familles"])
+        choix = r.get("personnages") or [p for p in palette(personnages, r["familles"]) if p not in r.get("exclus", [])]
         if not choix:
             raise SystemExit("REFUS : aucun personnage du jeu pour la réserve " + r["reserve"])
         for p in choix:
             if p not in personnages:
                 raise SystemExit("REFUS : personnage introuvable dans le jeu : " + p)
+        print("  réserve %s : %d visages" % (r["reserve"], len(choix)))
         rang = 0
         for palier, taille in enumerate(r["paliers"], start=1):
             for numero in range(1, taille + 1):

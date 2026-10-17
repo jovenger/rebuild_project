@@ -596,3 +596,17 @@
   attribut n'existe plus dans les âmes de KCD2, donc ne s'applique pas. Le dépôt `muyuanjin/kcd2-mod-docs` (copie du
   wiki officiel) rappelle que le comportement des personnages passe par Lua, XGEN AI et Skald.
 - Le mod d'Alex : non ouvert (règle de JoVenGer) ; son principe seulement, par la conversation Scriptorium.
+
+## Pas de jumeaux (demande du pair, 18/10/2026, décision de JoVenGer : « le camp ne doit pas être peuplé de jumeaux »)
+- Le visage suit le personnage du jeu (`skald_character_name`) : deux âmes sur le même personnage sont des jumeaux.
+- Trois palettes sans personnage commun (outils/ames.py, personnages génériques du jeu de base) : **combattants 71**
+  (soldats, gardes sauf `GUARD_08` du Directeur, brigands, bourgeois, Allemands, Coumans ; l'habit est remis par notre
+  Lua), **gens de métier 50** (gens du commun, mineurs, gardes-chasse, marchands, charbonniers, potiers), **femmes 30**
+  (femmes du commun, bourgeoises, marchandes, potières…). Réserves : 80 par palier de combattants, 50 gens de métier,
+  30 femmes, 1 Directeur.
+- L'âme de rang r (compté sur tous les paliers de sa réserve) porte le visage r mod visages : la liaison le refait sans
+  liste (`liaison.visage_de`) ; le banc vérifie que table et liaison s'accordent.
+- Au tirage (`choisir_ame`) : d'abord une âme dont le visage n'est porté par personne de la Compagnie, puis, s'il n'en
+  reste plus, une âme libre quelconque (au-delà de 71 combattants, des jumeaux reviennent ; plafond du camp : 80).
+- Non vérifié en jeu : que des personnages différents donnent bien des visages différents (vu pour quelques gens du
+  commun le 17/10).
