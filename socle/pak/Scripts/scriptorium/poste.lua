@@ -948,6 +948,16 @@ function poste.essai_directeur_a_cheval()
   return ok_d == true
 end
 
+-- Fiche 15, V73 f 3 a (la sonde de la carte) : la carte lue, et le dernier événement de chargement vu.
+function poste.essai_carte_voir()
+  local carte, source = jeu().carte_courante()
+  local dernier = jeu().dernier_chargement
+  jeu().journal("Poste : carte " .. tostring(carte) .. " (" .. tostring(source) .. ") ; dernier chargement : "
+                .. (dernier and (tostring(dernier.evenement) .. " (" .. tostring(dernier.arguments) .. "), sauvegarde = "
+                    .. tostring(dernier.sauvegarde)) or "aucun"))
+  return carte ~= nil
+end
+
 function poste.essai_fin_escorte()
   local n = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
@@ -1791,6 +1801,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
   { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
   { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
+  { nom = "scriptorium_essai_carte_voir", fonction = function() return poste.essai_carte_voir() end, aide = "La carte lue et le dernier chargement vu (V73 f 3 a)" },
   { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },
   { nom = "scriptorium_essai_escorte_comme_henry", fonction = function() return poste.essai_escorte_comme_henry() end, aide = "Les trois premiers hommes suivent Henry, à cheval quand il l'est (V73 f 2 d)" },
   { nom = "scriptorium_essai_henry_a_cheval", fonction = function() return poste.essai_henry_a_cheval() end, aide = "La lecture d'Henry forcée à cheval (V73 f 2 d)" },

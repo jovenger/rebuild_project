@@ -3829,10 +3829,68 @@ end
 -- retour au menu). Les fonctions rendues sont appelées sans argument.
 liaison.ecouteur = {}
 
+-- Fiche 15, V73 f 3 a (la sonde de la carte) : la carte où l'on est. Aucun script du jeu ne lit son nom (et, d'après le
+-- pair, le jeu n'en expose aucun au Lua) : une seule lecture de nom, la variable du moteur « sv_map », sous pcall ;
+-- puis la voie qui marche chez Scriptorium depuis le 5/10 (la tournée du coursier, transmise par le pair) : l'altitude
+-- du terrain en un point connu de chaque carte, à « tolerance_des_reperes_m » près. Rend (la carte, la voie qui a
+-- répondu), ou (nil, ce que chaque voie a rendu).
+liaison.reperes_des_cartes = {
+  { carte = "kutnohorsko", x = 1548.706, y = 1916.385, altitude = 143.74 },   -- sous le forgeron de Miskovice
+  { carte = "trosecko", x = 1997.568, y = 2499.344, altitude = 115.34 },      -- sous le forgeron de Radovan
+}
+liaison.tolerance_des_reperes_m = 1.5
+
+function liaison.carte_courante()
+  local essais = {}
+  local lu, nom = pcall(function() return System.GetCVar("sv_map") end)
+  if lu and type(nom) == "string" and nom ~= "" then
+    return nom, "sv_map"
+  end
+  table.insert(essais, "sv_map : " .. (lu and tostring(nom) or "refusée"))
+  for _, repere in ipairs(liaison.reperes_des_cartes) do
+    local mesure, altitude = pcall(System.GetTerrainElevation, { x = repere.x, y = repere.y, z = 0 })
+    altitude = mesure and tonumber(altitude) or nil
+    if altitude and math.abs(altitude - repere.altitude) <= liaison.tolerance_des_reperes_m then
+      return repere.carte, "altitude du terrain"
+    end
+    table.insert(essais, repere.carte .. " : " .. (altitude and string.format("%.2f m", altitude) or "illisible"))
+  end
+  return nil, table.concat(essais, " ; ")
+end
+
+-- Les événements de chargement du groupe « System » (documentation de CryEngine 5, « UI Action ») : une ligne au
+-- journal avec leurs arguments tels quels et ce que dit Game.IsLoadingEngineSaveGame ; le dernier gardé.
+liaison.dernier_chargement = nil
+liaison.evenements_de_chargement = { "OnLoadingStart", "OnLoadingComplete", "OnLoadingError", "OnUnloadStart",
+                                     "OnUnloadComplete" }
+
+local function dire_le_chargement(evenement, ...)
+  local morceaux = {}
+  for i = 1, select("#", ...) do
+    local valeur = select(i, ...)
+    if valeur ~= liaison.ecouteur then
+      if type(valeur) == "table" then
+        for cle, v in pairs(valeur) do
+          table.insert(morceaux, tostring(cle) .. "=" .. tostring(v))
+        end
+      else
+        table.insert(morceaux, tostring(valeur))
+      end
+    end
+  end
+  local sauvegarde = liaison.chargement_en_cours()
+  liaison.dernier_chargement = { evenement = evenement, arguments = table.concat(morceaux, ", "), sauvegarde = sauvegarde }
+  liaison.journal("Chargement : " .. evenement .. " (" .. table.concat(morceaux, ", ") .. ") ; sauvegarde = "
+                  .. tostring(sauvegarde))
+end
+
 function liaison.ecouter_la_partie(a_l_entree, a_la_sortie)
   -- La mémoire de secours ne passe jamais d'une partie à l'autre : vidée à chaque entrée, avant la relecture.
   liaison.ecouteur.SurEntreeEnPartie = function()
     liaison.memoire.registre = nil
+    -- V73 f 3 a : la carte lue, une ligne au journal.
+    local carte, source = liaison.carte_courante()
+    liaison.journal("Carte : " .. tostring(carte) .. " (" .. tostring(source) .. ")")
     a_l_entree()
   end
   liaison.ecouteur.SurSortieDePartie = function() a_la_sortie() end
@@ -3840,6 +3898,11 @@ function liaison.ecouter_la_partie(a_l_entree, a_la_sortie)
     { evenement = "OnGameplayStarted", methode = "SurEntreeEnPartie" },
     { evenement = "OnGameplayEnded", methode = "SurSortieDePartie" },
   }
+  for _, evenement in ipairs(liaison.evenements_de_chargement) do
+    local methode = "Sur" .. evenement
+    liaison.ecouteur[methode] = function(...) dire_le_chargement(evenement, ...) end
+    table.insert(abonnements, { evenement = evenement, methode = methode })
+  end
   for _, abonnement in ipairs(abonnements) do
     local ok, resultat = pcall(function()
       return UIAction.RegisterEventSystemListener(liaison.ecouteur, "System", abonnement.evenement, abonnement.methode)

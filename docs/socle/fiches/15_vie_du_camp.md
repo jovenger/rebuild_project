@@ -2198,6 +2198,52 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   colonne, le cavalier seul), seulement pour qui suit un autre cavalier ; contrôlé au banc.
 - L'outil `regler.py` ajoute aux valeurs déjà écrites : un réglage d'essai se retire par `--retirer`.
 
+## V73 f 3 a — suivre Henry partout : la sonde de la carte (17/10, relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Idée n° 3 validée par JoVenGer (15/10) : suivre Henry partout (voyage rapide, villes et intérieurs, d'une carte à
+  l'autre) ; à l'arrivée, l'escorte réapparaît près d'Henry.
+- **Ce que le pair a transmis** (principe d'Alex, corrigé par Scriptorium) : les deux régions (Trosky, Kuttenberg) sont
+  deux cartes ; tout ce qui est né appartient à sa carte ; la compagnie voyage en mémoire et ses hommes sont refaits
+  près d'Henry à l'arrivée (par paquets, même âme, même nom ; hors de sa vue, sur un sol vérifié ; à cheval s'ils
+  l'étaient) ; le camp reste sur sa carte ; ce que Scriptorium décide : qui passe. Distinguer un passage de carte d'un
+  chargement de partie : chez Alex, par l'horloge du monde (0 à 2 jours ; 10 jours chez Scriptorium, après une perte de
+  40 hommes) ; **à faire mieux : un signe du jeu**. Le voyage rapide sur une même carte est un saut (le rattrapage le
+  couvre, sauf nos cavaliers, à traiter) ; les maisons sont dans la même carte.
+- **Ce pas : une sonde**, avant toute règle : que dit le jeu au chargement d'une carte et d'une sauvegarde, et peut-on
+  lire le nom de la carte en Lua ?
+
+### Ce que le jeu offre (lu, lecture seule ; deux recherches)
+- Aucun script Lua du jeu ne lit le nom de la carte (`Scripts.pak`). `Game.IsLoadingEngineSaveGame()` existe
+  (`Scripts/Entities/Others/RuntimePrefab.lua`) et nous sert déjà au guet.
+- Les événements d'interface du groupe « System » de CryEngine (documentation de CryEngine 5, « UI Action ») :
+  `OnLoadingStart`, `OnLoadingComplete`, `OnLoadingError`, `OnUnloadStart`, `OnUnloadComplete` ; le socle s'abonne
+  déjà à `OnGameplayStarted` et `OnGameplayEnded` de cette façon (`UIAction.RegisterEventSystemListener`).
+
+### Comment ce serait fait
+1. **Les abonnements de plus** (liaison) : `OnLoadingStart`, `OnLoadingComplete`, `OnLoadingError`, `OnUnloadStart`,
+   `OnUnloadComplete` : à chacun, une ligne au journal avec ses arguments tels quels et ce que rend
+   `Game.IsLoadingEngineSaveGame()` ; le dernier gardé en mémoire. Un abonnement refusé est dit (comme les autres).
+2. **La carte lue** (`liaison.carte_courante()`) : la variable du moteur `sv_map` sous `pcall` ; puis **l'altitude
+   du terrain** en un point connu de chaque carte (`System.GetTerrainElevation`, tolérance 1,5 m ; relecture du pair :
+   ce qui marche chez Scriptorium depuis le 5/10, la tournée du coursier) : kutnohorsko, x 1548,706, y 1916,385 →
+   143,74 m (sous le forgeron de Miskovice) ; trosecko, x 1997,568, y 2499,344 → 115,34 m (sous le forgeron de Radovan).
+   La voie qui a répondu, écrite au journal à l'entrée en partie. Les autres lectures de nom que j'avais devinées
+   (`CryAction`, `Game`, `System.GetLevelName`) sont retirées : aucun script du jeu ne les emploie, et la note d'Alex
+   transmise par le pair dit que le jeu n'expose aucun nom de carte au Lua.
+3. **La commande** `essai_carte_voir` : la carte lue et le dernier chargement vu.
+- Rien ne change dans la vie des hommes à ce pas.
+
+### Essai en jeu : grille
+1. Le chargement de la sauvegarde 473 : les événements au journal, dans l'ordre, avec leurs arguments ; la carte lue.
+2. `essai_carte_voir` en partie.
+- Le passage de carte lui-même (Trosky ↔ Kuttenberg) : je ne sais pas le provoquer seul ; **à vérifier par JoVenGer**
+  en jouant (dans la liste des vérifications à lui demander, pas compté comme prouvé).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **D'abord la sonde** : (a) oui (Recommandé : on ne devine pas un signe du jeu) ; (b) la règle de l'horloge tout de
+   suite. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

@@ -147,6 +147,9 @@ function faux.lire_reglages()
   return nil
 end
 function faux.ecouter_la_partie(entree, sortie) faux.ecoute_partie = { entree = entree, sortie = sortie } end
+-- V73 f 3 a : la carte (« carte » posée par les essais) et le dernier chargement.
+function faux.carte_courante() return faux.carte, faux.carte and "essai" or "aucune lecture" end
+faux.dernier_chargement = nil
 -- Le guetteur du noyau : un chargement qui ne finit pas (faux.chargement), et ce qui entoure Henry.
 function faux.chargement_en_cours() return faux.chargement == true end
 function faux.voisins_d_henry() return { "Henry (0, 0, 0) ; 0 entité(s)" } end

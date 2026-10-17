@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 156:
-        erreur("ordres : %d commandes lues dans poste.lua, 156 attendues" % len(connues))
+    if len(connues) != 157:
+        erreur("ordres : %d commandes lues dans poste.lua, 157 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -617,6 +617,28 @@ def verifier_identifiants():
         end
         if perdus_dits ~= 0 then return "allure : « perdu » dit pour un cavalier qui suit Henry" end
         l.chefs["scriptorium_second"] = nil
+        -- V73 f 3 a : la carte lue (la première lecture qui répond), les abonnements de chargement et leur ligne.
+        System.GetCVar = function(nom) if nom == "sv_map" then return "kutnohorsko" end return nil end
+        local carte_l, source_l = l.carte_courante()
+        if carte_l ~= "kutnohorsko" or source_l ~= "sv_map" then return "carte : " .. tostring(carte_l) .. " " .. tostring(source_l) end
+        System.GetCVar = nil
+        local altitude_avant = System.GetTerrainElevation
+        System.GetTerrainElevation = function(p) if math.abs(p.x - 1997.568) < 0.01 then return 115.9 end return 7 end
+        local carte_a, source_a = l.carte_courante()
+        if carte_a ~= "trosecko" or source_a ~= "altitude du terrain" then return "carte par l'altitude : " .. tostring(carte_a) .. " " .. tostring(source_a) end
+        System.GetTerrainElevation = altitude_avant
+        local carte_n, essais_n = l.carte_courante()
+        if carte_n ~= nil or not string.find(essais_n, "sv_map : refusée", 1, true) or not string.find(essais_n, "kutnohorsko : 7.00 m", 1, true) then return "carte illisible : " .. tostring(essais_n) end
+        local inscrits = {}
+        UIAction = { RegisterEventSystemListener = function(ecouteur, groupe, evenement, methode) inscrits[evenement] = methode return true end }
+        l.ecouter_la_partie(function() end, function() end)
+        UIAction = nil
+        for _, e in ipairs({ "OnGameplayStarted", "OnGameplayEnded", "OnLoadingStart", "OnLoadingComplete", "OnLoadingError", "OnUnloadStart", "OnUnloadComplete" }) do
+          if not inscrits[e] then return "abonnement manquant : " .. e end
+        end
+        l.ecouteur[inscrits.OnLoadingStart](l.ecouteur, { LevelName = "trosecko" })
+        if not string.find(lignes[#lignes], "Chargement : OnLoadingStart (LevelName=trosecko)", 1, true) then return "chargement : " .. lignes[#lignes] end
+        if not l.dernier_chargement or l.dernier_chargement.evenement ~= "OnLoadingStart" then return "le dernier chargement n'est pas gardé" end
         System.GetCurrTime, player = horloge_avant, nil
         l.chefs["scriptorium_cavalier"] = nil
         l.accrocher_l_allure(nil)
