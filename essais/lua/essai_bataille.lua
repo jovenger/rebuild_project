@@ -825,3 +825,113 @@ essai("fouille : l'accroche « peut fouiller » écarte ; un corps pas atteint �
   end
   Scriptorium.en_partie = false
 end)
+
+-- ---------------------------------------------------------------- fiche 19, grappe 2 : les décisions du combat remplaçables
+
+essai("décisions du combat (fiche 19) : la cible de nos hommes (A2, A38), l'ennemi valable (A29), le combattant figé (A13)", function()
+  preparer(1000, 10, { "homme_d_armes", "pavoisier", "arbaletrier", "archer" })
+  bataille.reglages.bande_attaque = false
+  local ok, erreur = pcall(function()
+    FauxJeu.attaques = {}
+    local id
+    avec_remplacement(bataille, "ennemi_valable", function(bande, e) return e ~= FauxJeu.ennemis[1].identifiant end, function()
+      id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+      bataille.battre()
+    end)
+    local e1, e2 = FauxJeu.ennemis[1].identifiant, FauxJeu.ennemis[2].identifiant
+    egal(#FauxJeu.attaques, 4, "quatre ordres")
+    for i = 1, 4 do egal(FauxJeu.attaques[i].cible, e2, "le premier n'est pas valable selon Scriptorium : tous sur le second") end
+    -- Scriptorium change la cible en plein combat : l'ordre est donné, même à qui se bat.
+    for i = 1, 4 do FauxJeu.occupations[FauxJeu.attaques[i].attaquant] = "combat" end
+    local perso1 = FauxJeu.attaques[1].attaquant
+    local socle = Scriptorium.decision_du_socle(bataille, "cible_de")
+    avec_remplacement(bataille, "cible_de", function(bande, h, vivants, actuelle, rang)
+      if hommes.fiche(h).personnage == perso1 then return e1 end
+      return socle(bande, h, vivants, actuelle, rang)
+    end, function()
+      FauxJeu.heure = 10.5
+      bataille.battre()
+    end)
+    egal(#FauxJeu.attaques, 5, "un seul ordre de plus")
+    egal(FauxJeu.attaques[5].attaquant, perso1, "à celui dont Scriptorium change la cible")
+    egal(FauxJeu.attaques[5].cible, e1, "sur la cible de Scriptorium")
+    local qui = bataille.cibles(id)
+    local vise_e1 = 0
+    for _, c in pairs(qui.notres) do if c == e1 then vise_e1 = vise_e1 + 1 end end
+    egal(vise_e1, 1, "qui vise qui, lisible")
+    egal(bataille.cibles("inconnue"), nil, "une bande inconnue : nil")
+    avec_remplacement(bataille, "cible_de", function() return nil end, function()
+      FauxJeu.heure = 11
+      bataille.battre()
+    end)
+    egal(#FauxJeu.attaques, 5, "nil : la cible du socle (il garde la sienne), pas d'ordre")
+    -- Le combattant figé : Scriptorium le dit figé, l'ordre est redonné ; il dit non, rien.
+    for i = 1, 4 do FauxJeu.occupations[FauxJeu.attaques[i].attaquant] = nil end
+    avec_remplacement(bataille, "a_relancer", function() return false end, function()
+      FauxJeu.heure = 11.5
+      bataille.battre()
+    end)
+    egal(#FauxJeu.attaques, 5, "pas figé selon Scriptorium : rien")
+    avec_remplacement(bataille, "a_relancer", function() return true end, function()
+      FauxJeu.heure = 12
+      bataille.battre()
+    end)
+    egal(#FauxJeu.attaques, 9, "figés selon Scriptorium : quatre ordres redonnés")
+  end)
+  FauxJeu.occupations = {}
+  bataille.reglages.bande_attaque = true
+  FauxJeu.attaques = nil
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
+essai("décisions du combat (fiche 19) : la cible d'un brigand ; Scriptorium l'envoie sur Henry", function()
+  preparer(1000, 10, { "homme_d_armes", "homme_d_armes" })
+  bataille.reglages.attaque_au_contact = false
+  local ok, erreur = pcall(function()
+    FauxJeu.attaques = {}
+    avec_remplacement(bataille, "cible_de_la_bande", function() return "henry" end, function()
+      bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+      bataille.battre()
+    end)
+    verifier(#FauxJeu.attaques >= 2, "les brigands attaquent")
+    for _, a in ipairs(FauxJeu.attaques) do
+      egal(a.cible, "henry", "sur Henry, selon Scriptorium")
+    end
+  end)
+  bataille.reglages.attaque_au_contact = true
+  FauxJeu.attaques = nil
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
+essai("décisions du combat (fiche 19) : le sort des survivants (A40) ; « laisser » : le socle ne les touche plus", function()
+  preparer(1000, 10, { "homme_d_armes", "homme_d_armes" })
+  local ancienne = bataille.issue_au_loin
+  bataille.issue_au_loin = function(nous)
+    return { gagne = false, tombes = { nous[1], nous[2] }, debout = {}, eux_tombes = 1, eux_debout = 2, passes = 3 }
+  end
+  local ok, erreur = pcall(function()
+    local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+    bataille.battre()
+    for _, e in ipairs(bataille.bande(id).personnages) do
+      FauxJeu.positions[e] = { x = 0, y = 60, z = 0 }
+    end
+    FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+    FauxJeu.vue_d_henry = function() return false end
+    FauxJeu.ordres = {}
+    avec_remplacement(bataille, "sort_des_survivants", function() return "laisser" end, function()
+      FauxJeu.heure = 13
+      bataille.battre()
+    end)
+    egal(bataille.bande(id).etat, "finie", "tranchée")
+    for _, o in ipairs(FauxJeu.ordres) do
+      verifier(o.activite ~= "fuite", "aucune fuite ordonnée")
+    end
+    local renvoyes = #FauxJeu.ennemis_renvoyes
+    FauxJeu.heure = 13.5
+    bataille.battre()
+    egal(#FauxJeu.ennemis_renvoyes, renvoyes, "hors de la vue : aucun retiré, ils sont à Scriptorium")
+  end)
+  bataille.issue_au_loin = ancienne
+  FauxJeu.vue_d_henry = nil
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)

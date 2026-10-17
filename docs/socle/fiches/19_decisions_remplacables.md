@@ -33,3 +33,19 @@ points remplaçables.
 3. Les hommes (`hommes.lua`) : le choix de l'équipement (tenue, armes, munitions), la nuit, la tenue la plus forte.
 
 Les noms publics nouveaux sont écrits au guichet dans le même commit et dits au pair (son interface).
+
+## Fait
+
+- **Grappe 1** (commit 0e5e9f9) : remplaçables et appelées par `Scriptorium.avis` : `camp.places_libres`,
+  `camp.dans_le_monde`, `hommes.activite_de`, `hommes.gardes`, `hommes.libre_pour`, `hommes.rattraper`,
+  `hommes.pas_de_ronde` (confiée au moteur par la table), `directeur.activite`, `missions.taille_du_camp`,
+  `missions.lieu_reserve` (un « faux » de Scriptorium : libre), `missions.peut_partir`, `missions.niveau_pour`,
+  `bataille.force_d_un_homme`, `bataille.issue_au_loin`, `bataille.peut_fouiller`, `jeu.sol_de` (liaison). Le partage du
+  butin (argent) est appelé par la table, nil = partage du socle, mais garde sa règle stricte : en erreur ou absurde,
+  tout reste au coffre.
+- **Grappe 2** (le combat) : `bataille.ennemi_valable(bande, personnage)`, `bataille.cible_de(bande, id, vivants,
+  actuelle, rang)` (Scriptorium peut changer la cible à tout moment : l'ordre est alors donné, même en plein combat),
+  `bataille.cible_de_la_bande(bande, personnage, cibles, actuelle, rang)`, `bataille.a_relancer(bande, personnage, nom,
+  cible)`, `bataille.sort_des_survivants(bande, survivants)` (« fuite », « rester », « laisser » : le socle ne les touche
+  plus) ; lecture : `bataille.cibles(bande)`. Le comportement par défaut est inchangé (banc entier vert) ; trois
+  contournements injectés, attrapés.

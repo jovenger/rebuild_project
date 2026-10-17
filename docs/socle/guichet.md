@@ -5,7 +5,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | n° | entrée du contrat | ce qu'elle fait | notre service |
 |---|---|---|---|
 | A1 | `GetCampFurniture` | enveloppée par : duels_judiciaires, en_garde_du_camp, lit_par_son_cote, prisonniers_des_raids | `Scriptorium.camp.places_libres(sorte, pour)` ; remplaçable (fiche 19) |
-| A2 | `PickCombatTarget` | enveloppée par : conspiration_du_camp, duels_judiciaires, ordres_de_combat, prisonniers_des_raids | à ouvrir : `bataille.lua`, `lancer_l_attaque` (et `lancer_l_attaque_de_la_bande`) |
+| A2 | `PickCombatTarget` | enveloppée par : conspiration_du_camp, duels_judiciaires, ordres_de_combat, prisonniers_des_raids | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (remplaçable, fiche 19 ; la cible d'un brigand : `Scriptorium.bataille.cible_de_la_bande(bande, personnage, cibles, actuelle, rang)`) |
 | A3 | `ApplyCampRole` | enveloppée par : pilori_du_directeur, pugilat_du_camp, roles_du_mod | `Scriptorium.hommes.tenir(id, regle, quoi)` |
 | A4 | `ClaimSpot` | enveloppée par : amis_cote_a_cote, dialogue_des_mercenaires, nuit_du_camp | `Scriptorium.camp.reserver(nom, qui)` |
 | A5 | `GiveArcherAmmo` | enveloppée par : arbaletriers_du_camp, banque_du_camp, stocks_des_metiers | à ouvrir : `hommes.lua`, `equiper` (les munitions de `hommes.equipement.tir`) |
@@ -16,7 +16,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A10 | `GetCampActivity` | enveloppée par : duels_judiciaires, en_garde_du_camp | `Scriptorium.hommes.activite_de(id, heure)` ; remplaçable (fiche 19) |
 | A11 | `LootSweepClear` | enveloppée par : portage_des_corps, sentinelles_du_camp | `Scriptorium.bataille.vider_la_fouille(id)` (le portage des corps, les sentinelles) |
 | A12 | `SpawnMercCamp` | enveloppée par : montage_du_camp, troupe_chez_elle | `Scriptorium.camp.fonder(position, cap)` |
-| A13 | `UpdateMeleeCombatData` | enveloppée par : conspiration_du_camp, duels_judiciaires | à ouvrir : `bataille.lua`, `a_relancer` (le suivi au contact) |
+| A13 | `UpdateMeleeCombatData` | enveloppée par : conspiration_du_camp, duels_judiciaires | `Scriptorium.bataille.a_relancer(bande, personnage, nom, cible)` (le combattant figé ; remplaçable, fiche 19) |
 | A14 | `AdvancePatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.jeu.accrocher_la_ronde(fonction)` (enveloppe `Scriptorium.hommes.pas_de_ronde`) ; remplaçable (fiche 19) |
 | A15 | `BanditCampScale` | enveloppée par : assaut_des_convois | `Scriptorium.missions.taille_du_camp(lieu, niveau)` (accroche, fiche 17) ; remplaçable (fiche 19) |
 | A16 | `BountyReservedSites` | enveloppée par : missions_en_parallele | `Scriptorium.missions.lieu_reserve(nom)` (accroche, fiche 17, tranche 3) ; remplaçable (fiche 19) |
@@ -32,7 +32,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A26 | `GetArcherStanceCode` | enveloppée par : duels_judiciaires | pas utile : le socle ne règle aucune posture de tir ; le cerveau du jeu la choisit |
 | A27 | `GetPatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.hommes.tenir(id, "ronde", quoi)` (le `chemin` donné par Scriptorium) |
 | A28 | `IsCampGuard` | enveloppée par : sentinelles_du_camp | `Scriptorium.hommes.gardes(heure)` ; remplaçable (fiche 19) |
-| A29 | `IsValidEnemy` | enveloppée par : agent | à ouvrir : `bataille.lua`, `lancer_l_attaque` (la liste des ennemis vivants) |
+| A29 | `IsValidEnemy` | enveloppée par : agent | `Scriptorium.bataille.ennemi_valable(bande, personnage)` (remplaçable, fiche 19) |
 | A30 | `LogiProcessWages` | enveloppée par : banque_du_camp | `Scriptorium.hommes.payer_la_solde()` (interrupteur `solde_de_la_semaine`) |
 | A31 | `LogiRemoveOneMerc` | enveloppée par : tenir_la_compagnie | `Scriptorium.hommes.retirer(id, cause)` |
 | A32 | `LogiWealthRaidTick` | enveloppée par : tenir_la_compagnie | pas utile : le socle ne lève aucune bande de lui-même ; Scriptorium appelle `Scriptorium.bataille.lever_une_bande(ordre)` |
@@ -41,9 +41,9 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A35 | `SpawnCampPracticeYard` | enveloppée par : pantins_d_entrainement | étape 5 (poste d'entraînement) |
 | A36 | `SpawnQuartermaster` | enveloppée par : intendant_du_camp | `Scriptorium.directeur.installer()` |
 | A37 | `TowerSpotIsValid` | enveloppée par : camp_selon_le_terrain | `Scriptorium.jeu.sol_de(position, pas)` ; remplaçable (fiche 19) |
-| A38 | `TryClaimTarget` | enveloppée par : duels_judiciaires | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
+| A38 | `TryClaimTarget` | enveloppée par : duels_judiciaires | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (remplaçable, fiche 19 ; qui vise qui : `Scriptorium.bataille.cibles(bande)`) |
 | A39 | `UpdateFormationLeader` | enveloppée par : directeur_en_route | `Scriptorium.directeur.suivre(oui, formation, a_cheval)` |
-| A40 | `WBRaidClear` | retirer la bande d'un raid | à ouvrir : `bataille.lua`, `finir` (la fin de bataille) |
+| A40 | `WBRaidClear` | retirer la bande d'un raid | `Scriptorium.bataille.sort_des_survivants(bande, survivants)` (« fuite », « rester » ou « laisser » ; remplaçable, fiche 19) |
 | F1 | `LoadString` | relire une valeur texte enregistree dans la partie, par son nom (nil si absente) | `Scriptorium.registre.lire(nom)` (après `Scriptorium.registre.declarer_case(nom, version, par_defaut, migrations)`) |
 | F2 | `SaveString` | enregistrer une valeur texte dans la partie, par son nom ; elle doit survivre a la sauvegarde | `Scriptorium.registre.enregistrer()` |
 | F3 | `CampActorInvalidate` | faire oublier a un homme son activite en cours, pour qu'il en reprenne une | `Scriptorium.hommes.lacher(id, regle)` |
@@ -84,7 +84,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F38 | `LogiApplyBuffs` | 2 dossier(s) | étape 5 (postes de travail : l'alchimie) |
 | F39 | `LogiSpend` | retirer de l'argent a Henry, en refusant sous le prix et jamais zero | `Scriptorium.jeu.retirer_groschen_a_henry(montant)` |
 | F40 | `LogiWageTotal` | 2 dossier(s) | `Scriptorium.hommes.solde_de(id)` (sommée sur `Scriptorium.hommes.liste()`) |
-| F41 | `MercDropClaim` | 2 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
+| F41 | `MercDropClaim` | 2 dossier(s) | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (lâcher une cible : en rendre une autre ; remplaçable, fiche 19) |
 | F42 | `RequestForceTalk` | 2 dossier(s) | pas utile : les voix viennent plus tard (NOTE §8, étape 6 du plan) |
 | F43 | `UpkeepOn` | 2 dossier(s) | interrupteur `repas_du_socle` (l'entretien : repas du socle allumés ou coupés ; gages : interrupteur `solde_de_la_semaine`) |
 | F44 | `WBRaidAlive` | vrai tant que la bande d'un raid a des vivants | `Scriptorium.bataille.bandes()` (les bandes non finies) |
@@ -141,7 +141,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F95 | `LogiUpkeepDay` | 1 dossier(s) | `Scriptorium.hommes.jour_d_entretien(heure)` (le jour change à `hommes.heure_d_entretien`, 20 h) |
 | F96 | `LogiWithdrawCoffer` | 1 dossier(s) | `Scriptorium.coffre.verser_a_henry(montant, motif)` |
 | F97 | `LootSweepForce` | 1 dossier(s) | `Scriptorium.bataille.lancer_la_fouille(id)` |
-| F98 | `PruneCombatClaims` | 1 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
+| F98 | `PruneCombatClaims` | 1 dossier(s) | `Scriptorium.bataille.cibles(bande)` (qui vise qui) et `Scriptorium.bataille.cible_de(...)` (remplaçable, fiche 19) |
 | F99 | `RegionSpawnMan` | 1 dossier(s) | `Scriptorium.jeu.faire_venir_homme(ame, nom, position)` |
 | F100 | `SaveCampOutParty` | 1 dossier(s) | pas utile : les tenues sont gardées au registre à chaque changement |
 | F101 | `SaveStrings` | 1 dossier(s) | `Scriptorium.registre.enregistrer()` |
@@ -170,11 +170,11 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D13 | `CampMercSpots` | les places des hommes au camp | `Scriptorium.camp.occupant_de(nom)` |
 | D14 | `CampForwardAngle` | le sens du camp (l'angle de face) | `Scriptorium.camp.point(x, y, cap)` (le cap rendu) |
 | D15 | `CampTicks` | le battement du camp (son compteur) | `Scriptorium.jeu.heure_du_jeu()` |
-| D16 | `ForcedTargetOf` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
+| D16 | `ForcedTargetOf` | Scriptorium l'écrit aussi | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (la cible imposée : la rendre ; remplaçable, fiche 19) |
 | D17 | `FeedRatio` | 7 dossier(s) | réglage : hommes.ration |
 | D18 | `QuartermasterId` | le personnage de l'intendant (le Directeur de Scriptorium) | `Scriptorium.directeur.personnage()` |
 | D19 | `CampEntities` | Scriptorium l'écrit aussi | `Scriptorium.camp.objet_de(nom)` |
-| D20 | `MercTargetOf` | 6 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
+| D20 | `MercTargetOf` | 6 dossier(s) | `Scriptorium.bataille.cibles(bande)` (`notres` : la cible de chacun de nos hommes) |
 | D21 | `CampModels` | 5 dossier(s) | `Scriptorium.camp.modeles` |
 | D22 | `CampOutParty` | Scriptorium l'écrit aussi | `Scriptorium.hommes.qui_tient(id, heure)` (règle `escorte`) |
 | D23 | `CampStationTiles` | 5 dossier(s) | étape 5 (postes de travail) |
@@ -213,14 +213,14 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D56 | `CampHouseCenter` | 2 dossier(s) | pas utile : pas de cabane dans le socle |
 | D57 | `CampSitFacingFixDeg` | 2 dossier(s) | réglage : meubles.siege.places.assise.cap |
 | D58 | `EnemyAlertRadius` | Scriptorium l'écrit aussi | pas utile : le socle prévient par l'heure d'arrivée de la bande (`bataille.avertissement`), pas par un rayon |
-| D59 | `EnemyTargetOf` | 2 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`) |
+| D59 | `EnemyTargetOf` | 2 dossier(s) | `Scriptorium.bataille.cibles(bande)` (`bande` : la cible de chaque brigand) ; `Scriptorium.bataille.cible_de_la_bande(...)` (remplaçable, fiche 19) |
 | D60 | `FrameHooks` | Scriptorium l'écrit aussi | `Scriptorium.jeu.minuterie(millisecondes, fonction)` |
 | D61 | `GateMax` | 2 dossier(s) | pas utile : une seule porte (`Scriptorium.enceinte.porte()`) |
 | D62 | `LootBodies` | 2 dossier(s) | `Scriptorium.bataille.fouille(id).a_fouiller` |
 | D63 | `LootPerKillWages` | 2 dossier(s) | pas utile : la paye par ennemi tué est une règle de Scriptorium (le guichet donne les tombés : `bataille.resultats()`) |
 | D64 | `LootVisited` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).vus` |
 | D65 | `MaxCompanions` | 2 dossier(s) | `Scriptorium.hommes.plafond_de_la_compagnie()` (plafond, effectif, lits libres ; réglage `hommes.plafond` = 80 ; le lit exigé : interrupteur `un_lit_par_homme`, fiche 18) |
-| D66 | `MercClaimAt` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
+| D66 | `MercClaimAt` | Scriptorium l'écrit aussi | `Scriptorium.bataille.cibles(bande)` (qui vise qui) |
 | D67 | `QuartermasterClothing` | 2 dossier(s) | étape 5 (tenue du Directeur) |
 | D68 | `QuartermasterPost` | Scriptorium l'écrit aussi | `Scriptorium.directeur.activite(heure)` (lieu et position) |
 | D69 | `QuartermasterWeapon` | 2 dossier(s) | étape 5 (armes du Directeur) |
@@ -271,7 +271,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D114 | `DefRestorePending` | 1 dossier(s) | pas utile : l'enceinte est reposée d'un coup à l'entrée (`Scriptorium.enceinte.relancer()`) |
 | D115 | `DefRestoring` | 1 dossier(s) | pas utile : l'enceinte est reposée d'un coup à l'entrée (`Scriptorium.enceinte.relancer()`) |
 | D116 | `EnemyAlertRadiusDefault` | 1 dossier(s) | pas utile : le socle prévient par l'heure d'arrivée de la bande, pas par un rayon |
-| D117 | `EnemyClaimWuid` | 1 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`) |
+| D117 | `EnemyClaimWuid` | 1 dossier(s) | `Scriptorium.bataille.cibles(bande)` (`bande`) ; `Scriptorium.bataille.cible_de_la_bande(...)` (remplaçable, fiche 19) |
 | D118 | `EnemyScanRadius` | 1 dossier(s) | pas utile : le socle prévient par l'heure d'arrivée de la bande, pas par un rayon |
 | D119 | `EscortEnt` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` (règle `escorte`) |
 | D120 | `HealCost` | 1 dossier(s) | pas utile : le prix du soin est une règle de Scriptorium ; le geste : `Scriptorium.atelier.soigner(id, nom_du_soin)` |
@@ -307,10 +307,10 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D150 | `SpawnCampProp` | Scriptorium l'écrit aussi | pas utile : le socle ne pose pas de paillasse en plus du lit |
 | D151 | `SpawnCampPropModel` | Scriptorium l'écrit aussi | `Scriptorium.camp.modeles` |
 | D152 | `StaticArchers` | 1 dossier(s) | `Scriptorium.hommes.gardes(heure)` |
-| D153 | `SwarmCap` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles) |
-| D154 | `SwarmCapHard` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles) |
-| D155 | `SwarmCapMax` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles) |
-| D156 | `UpdateEnemyCache` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (la liste des ennemis vivants) |
+| D153 | `SwarmCap` | Scriptorium l'écrit aussi | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (le tourniquet : « rang » ; un plafond par cible se fait dans la remplaçante, avec `Scriptorium.bataille.cibles(bande)`) |
+| D154 | `SwarmCapHard` | Scriptorium l'écrit aussi | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (le tourniquet ; plafond dans la remplaçante, fiche 19) |
+| D155 | `SwarmCapMax` | Scriptorium l'écrit aussi | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (le tourniquet ; plafond dans la remplaçante, fiche 19) |
+| D156 | `UpdateEnemyCache` | Scriptorium l'écrit aussi | `Scriptorium.bataille.ennemi_valable(bande, personnage)` (la liste des ennemis valables ; remplaçable, fiche 19) |
 | D157 | `WBDefenders` | Scriptorium l'écrit aussi | `Scriptorium.bataille.combattants()` |
 | D158 | `WBRaidStaged` | 1 dossier(s) | `Scriptorium.bataille.bande(id)` (champ `etat`) |
 | D159 | `WeaponSets` | 1 dossier(s) | `Scriptorium.hommes.equipement` (familles) |
@@ -346,8 +346,8 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 178 | 25 | 71 | 70 | 12 |
-| à ouvrir | 20 | 9 | 2 | 9 | 0 |
+| service existant | 194 | 30 | 73 | 79 | 12 |
+| à ouvrir | 4 | 4 | 0 | 0 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
 | étape 5 | 27 | 2 | 5 | 16 | 4 |
 | pas utile | 91 | 3 | 29 | 49 | 10 |
@@ -358,23 +358,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 Les « à ouvrir » (décision du socle en fonction locale, à rendre enveloppable) :
 
-- A2 : `bataille.lua`, `lancer_l_attaque` (et `lancer_l_attaque_de_la_bande`)
 - A5 : `hommes.lua`, `equiper` (les munitions de `hommes.equipement.tir`)
 - A7 : `hommes.lua`, `tenue_la_plus_forte` (l'arbitre des priorités)
-- A13 : `bataille.lua`, `a_relancer` (le suivi au contact)
 - A22 : `hommes.lua`, `choisir_l_equipement`
 - A23 : `hommes.lua`, `choisir_l_equipement`
-- A29 : `bataille.lua`, `lancer_l_attaque` (la liste des ennemis vivants)
-- A38 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- A40 : `bataille.lua`, `finir` (la fin de bataille)
-- F41 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- F98 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- D16 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- D20 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- D59 : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`)
-- D66 : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`)
-- D117 : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`)
-- D153 : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles)
-- D154 : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles)
-- D155 : `bataille.lua`, `lancer_l_attaque` (le tourniquet des cibles)
-- D156 : `bataille.lua`, `lancer_l_attaque` (la liste des ennemis vivants)

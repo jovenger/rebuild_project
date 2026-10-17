@@ -427,8 +427,11 @@ end
 -- « relances_par_bataille » fois, puis une ligne « figé malgré … relances » avec sa position et celle de sa cible.
 bataille.vus = {}
 
-local function a_relancer(b, personnage, nom, cible)
-  if jeu().occupation_de(personnage) == "combat" then
+-- Fiche 19 (A13, le suivi au contact) : décision remplaçable ; « bande » est le nom de la bande. Rend vrai s'il faut le
+-- relancer.
+function bataille.a_relancer(bande, personnage, nom, cible)
+  local b = donnees().bandes[bande]
+  if not b or jeu().occupation_de(personnage) == "combat" then
     bataille.vus[personnage] = nil
     return false
   end
@@ -457,6 +460,58 @@ local function a_relancer(b, personnage, nom, cible)
   b.relances_de[personnage] = n + 1
   return true
 end
+Scriptorium.remplacable(bataille, "a_relancer", function(rendu) return type(rendu) == "boolean" end)
+
+local function a_relancer(b, personnage, nom, cible)
+  return Scriptorium.avis(bataille, "a_relancer", b.id, personnage, nom, cible)
+end
+
+local function contient(liste, valeur)
+  for _, v in ipairs(liste) do
+    if v == valeur then return true end
+  end
+  return false
+end
+
+-- Fiche 19 (A29) : cet ennemi est-il une cible valable pour nos hommes ? Par défaut, debout (ni mort ni assommé).
+function bataille.ennemi_valable(bande, personnage)
+  return debout(personnage)
+end
+Scriptorium.remplacable(bataille, "ennemi_valable", function(rendu) return type(rendu) == "boolean" end)
+
+-- Fiche 19 (A2, A38 ; le tourniquet des cibles) : la cible d'un de nos hommes. « vivants » : les ennemis valables ;
+-- « actuelle » : sa cible (ou nil) ; « rang » : le rang de la prochaine nouvelle cible au tourniquet. Par défaut, il
+-- garde sa cible tant qu'elle est valable, sinon la suivante du tourniquet. Rend un personnage.
+function bataille.cible_de(bande, id, vivants, actuelle, rang)
+  if actuelle and contient(vivants, actuelle) then
+    return actuelle
+  end
+  return vivants[(rang - 1) % #vivants + 1]
+end
+Scriptorium.remplacable(bataille, "cible_de", function(rendu) return type(rendu) == "string" end)
+
+-- Fiche 19 : la cible d'un brigand de la bande, parmi « cibles » (nos hommes debout, et « henry » s'il est près) ; même
+-- défaut que pour nos hommes.
+function bataille.cible_de_la_bande(bande, personnage, cibles, actuelle, rang)
+  if actuelle and contient(cibles, actuelle) then
+    return actuelle
+  end
+  return cibles[(rang - 1) % #cibles + 1]
+end
+Scriptorium.remplacable(bataille, "cible_de_la_bande", function(rendu) return type(rendu) == "string" end)
+
+-- Fiche 19 : qui vise qui dans une bataille (une copie) : { notres = { [homme] = personnage }, bande = { [brigand] =
+-- personnage ou « henry » } }, ou nil.
+function bataille.cibles(bande)
+  local b = donnees().bandes[bande]
+  if not b then
+    return nil
+  end
+  local copie = { notres = {}, bande = {} }
+  for id, c in pairs(b.cibles or {}) do copie.notres[id] = c end
+  for e, c in pairs(b.cibles_de_la_bande or {}) do copie.bande[e] = c end
+  return copie
+end
 
 -- L'attaque (étape 2) : chaque combattant qui ne se bat pas (vu en jeu le 17/10 : son combat fini, il retourne à son
 -- rang et ne repart pas) reçoit l'ordre d'attaque : sa cible si elle vit encore, sinon un autre ennemi vivant, en
@@ -467,7 +522,7 @@ local function lancer_l_attaque(b)
   end
   local vivants = {}
   for _, e in ipairs(b.personnages) do
-    if debout(e) then
+    if Scriptorium.avis(bataille, "ennemi_valable", b.id, e) then
       table.insert(vivants, e)
     end
   end
@@ -479,13 +534,16 @@ local function lancer_l_attaque(b)
   for _, id in ipairs(b.combattants or {}) do
     local f = hommes().fiche(id)
     local cible = b.cibles[id]
-    local tombee = cible == nil or not debout(cible)
-    -- Sa cible tombée : une nouvelle cible, sans user son crédit de relances (réservé à qui est figé).
-    if des_notres_debout(f)
-        and ((tombee and jeu().occupation_de(f.personnage) ~= "combat") or a_relancer(b, f.personnage, f.nom, cible)) then
-      if tombee then
-        k = k % #vivants + 1
-        b.cibles[id] = vivants[k]
+    local tombee = cible == nil or not contient(vivants, cible)
+    -- Sa cible (fiche 19 : Scriptorium peut la changer à tout moment ; tombée, une nouvelle au tourniquet, sans user son
+    -- crédit de relances, réservé à qui est figé).
+    local nouvelle = des_notres_debout(f) and Scriptorium.avis(bataille, "cible_de", b.id, id, vivants, cible, k + 1)
+    local changee = nouvelle and nouvelle ~= cible
+    if des_notres_debout(f) and ((changee and (not tombee or jeu().occupation_de(f.personnage) ~= "combat"))
+        or a_relancer(b, f.personnage, f.nom, cible)) then
+      if changee then
+        k = k + 1
+        b.cibles[id] = nouvelle
       end
       jeu().journal("Bataille : « " .. f.nom .. " » attaque « " .. b.cibles[id] .. " » : "
                     .. tostring(jeu().ordonner_l_attaque(b.cibles[id], f.personnage)))
@@ -528,11 +586,15 @@ local function lancer_l_attaque_de_la_bande(b)
   end
   local donnes, k = 0, 0
   for _, e in ipairs(b.personnages) do
-    local tombee = not vivantes[b.cibles_de_la_bande[e]]
-    if debout(e) and ((tombee and jeu().occupation_de(e) ~= "combat") or a_relancer(b, e, e, b.cibles_de_la_bande[e])) then
-      if tombee then
-        k = k % #cibles + 1
-        b.cibles_de_la_bande[e] = cibles[k]
+    local actuelle = b.cibles_de_la_bande[e]
+    local tombee = not vivantes[actuelle]
+    local nouvelle = debout(e) and Scriptorium.avis(bataille, "cible_de_la_bande", b.id, e, cibles, actuelle, k + 1)
+    local changee = nouvelle and nouvelle ~= actuelle
+    if debout(e) and ((changee and (not tombee or jeu().occupation_de(e) ~= "combat"))
+        or a_relancer(b, e, e, actuelle)) then
+      if changee then
+        k = k + 1
+        b.cibles_de_la_bande[e] = nouvelle
       end
       jeu().journal("Bataille : « " .. e .. " » attaque « " .. b.cibles_de_la_bande[e] .. " » : "
                     .. tostring(jeu().ordonner_l_attaque(b.cibles_de_la_bande[e], e)))
@@ -848,6 +910,17 @@ end
 
 -- À la fin, les ennemis encore debout s'en vont ; les corps restent à fouiller un temps, puis le battement
 -- les retire (choix de JoVenGer, 14/10).
+-- Fiche 19 (A40) : que faire des survivants d'une bande à la fin de sa bataille ? « fuite » (ils partent en courant,
+-- retirés hors de la vue d'Henry), « rester » (debout, retirés hors de la vue), « laisser » (le socle ne les touche plus :
+-- Scriptorium les prend, ses prisonniers). Par défaut, « rester » pour une bande postée, sinon « fuite ».
+bataille.sorts_des_survivants = { fuite = true, rester = true, laisser = true }
+
+function bataille.sort_des_survivants(bande, survivants)
+  local b = donnees().bandes[bande]
+  return (b and b.postee) and "rester" or "fuite"
+end
+Scriptorium.remplacable(bataille, "sort_des_survivants", function(rendu) return bataille.sorts_des_survivants[rendu] == true end)
+
 local function finir(d, b, resultat)
   if b.personnages then
     local debout, corps = {}, {}
@@ -858,10 +931,13 @@ local function finir(d, b, resultat)
         table.insert(corps, identifiant)
       end
     end
-    if #debout > 0 and b.postee then
+    local sort = #debout > 0 and Scriptorium.avis(bataille, "sort_des_survivants", b.id, debout) or nil
+    if sort == "laisser" then
+      jeu().journal("Bataille : « " .. b.id .. " » : " .. #debout .. " survivant(s) laissé(s) à Scriptorium")
+    elseif sort == "rester" then
       -- Fiche 17 : les survivants d'une bande postée restent debout ; retirés hors de la vue d'Henry (le battement).
       b.partants = debout
-    elseif #debout > 0 then
+    elseif sort == "fuite" then
       -- (relecture du pair) Ils partent aussitôt (choix de JoVenGer du 14/10), en courant, à l'opposé du camp ; rien ne
       -- disparaît sous les yeux d'Henry : retirés plus tard par le battement.
       local centre = camp().point(0, 0, 0)
@@ -971,13 +1047,6 @@ function bataille.vider_la_fouille(id)
   enregistrer()
   jeu().journal("Bataille : fouille de « " .. id .. " » vidée")
   return true
-end
-
-local function contient(liste, valeur)
-  for _, v in ipairs(liste) do
-    if v == valeur then return true end
-  end
-  return false
 end
 
 -- Un battement de la fouille : les fouilleurs arrivés s'y tiennent, puis passent au suivant ; un corps pas atteint à
