@@ -2386,6 +2386,10 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   pose perdue) : éprouvée au banc seulement.
 - Séance fermée par `fin_essai` : Partie 1 identique à sa copie, liste des mods d'origine remise, veilleur relancé ;
   écran normal à chaque chargement (2 chargements).
+- **Limites connues** : un cavalier en saut, descendu, dont le cheval reste sous les yeux d'Henry (le filet) attend
+  debout près de son cheval tant qu'Henry regarde (ni retrait ni rattrapage : « rien sous ses yeux ») ; un homme qui ne
+  descendrait jamais écrit « encore monté : retiré plus tard » à chaque battement. « Charger d'abord sur la carte du
+  camp » ne vaut que pour une sauvegarde portant un camp du socle fondé avant ba0906c (la 473 n'en porte pas).
 - Vu aussi : le retrait de fin de sortie (V73 f 2 b) retirait un cheval au battement sans lire la selle ; il la lit
   désormais (encore monté : au battement suivant). Et `essai_directeur_a_cheval` remet l'escorte « comme Henry » : à
   pied si Henry est à pied.
