@@ -253,12 +253,6 @@ function faux.retirer_cheval(identifiant)
 end
 -- V73 f 2 d : Henry à cheval (« henry_cheval » posé par les essais : vrai, faux, ou nil illisible) ; son cheval amené.
 function faux.henry_a_cheval(pres) return faux.henry_cheval end
--- La posture d'Henry vue par l'arbre d'un homme (« postures » posé par les essais : identifiant -> { lectures, en_selle }).
-function faux.posture_d_henry_vue(identifiant)
-  local p = faux.postures and faux.postures[identifiant]
-  if not p then return nil end
-  return p.lectures, p.en_selle
-end
 function faux.amener_le_cheval_d_henry(distance) return true, "cheval d'Henry posé" end
 -- V73 f 2 c : le sol d'une place (« sol_du_cheval » posé par les essais), sinon plat et libre.
 function faux.sol_de(position, pas)

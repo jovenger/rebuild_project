@@ -1874,9 +1874,9 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   (`AI/world/sa_land.xml`) : il faut le cheval ; le Lua le donne déjà.
 
 ### Comment ce serait fait
-1. **La lecture** (`liaison.henry_a_cheval(pres)`) : vrai si le cheval d'Henry a un cavalier et se tient à moins de
-   `henry_cheval_pres_m` (2,5) d'Henry ; faux s'il n'a pas de cheval ou que personne ne le monte ; nil si rien n'est
-   lisible. Limite connue : Henry sur un autre cheval que le sien n'est pas vu monté.
+1. **La lecture** (`liaison.henry_a_cheval(pres)`) : vrai si un cheval monté (n'importe lequel, sauf les nôtres) se
+   tient à moins de `henry_cheval_pres_m` (1,5) d'Henry ; faux sinon ; nil si rien n'est lisible (voir la relecture du
+   pair ci-dessous).
 2. **La veille** (`hommes`) : toutes les `henry_veille_ms` (1 000), une minuterie lancée à l'entrée en partie (comme le
    guet du noyau, arrêtée au changement de partie) lit Henry. **Monté** : tout de suite. **À pied** : seulement après
    `henry_descente_lectures` (4) lectures « à pied » de suite (une lecture « monté » remet le compte à zéro). Une lecture
@@ -1895,20 +1895,23 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   lit par sa posture**, pas par son cheval : un `StanceCheck` dans un arbre, `soul` = Henry, `stance="horse"`,
   `smartObject=""` (n'importe quel cheval : un cheval volé ou emprunté compte) ; l'anti-rebond dans le Lua. Conseil :
   garder la lecture Lua en filet, faire lire la posture par un arbre.
-- **Fait** : chaque branche de la suite (14 à 19), à chaque pouls (500 ms), lit la posture d'Henry
-  (`StanceCheck soul="$__player" stance="horse" smartObject="" negate="true"`, `Then`/`Else` ; la forme du jeu, par
-  exemple `AI/crime/mindplayer/actionsubtree.xml` ; condition inversée : notre façon d'écrire, la ligne d'Alex étant
-  écartée par le contrôle d'absence) dans `scriptorium_henry_en_selle` et compte ses lectures
-  (`scriptorium_henry_lectures`). La veille lit ces deux valeurs chez les hommes de l'escorte « comme Henry » : une
-  lecture est fraîche si le compte a bougé. **Monté si l'arbre ou le filet le dit ; à pied si aucun ne le dit et qu'au
-  moins un est lisible.** Une ligne au journal, une fois, quand l'arbre voit Henry à cheval, et quand seul le filet le
-  voit (pour savoir en jeu si la posture « horse » sans objet répond).
+- **Essayé, puis retiré** (ef36ec9) : la lecture par l'arbre. Sa seule ligne possible
+  (`StanceCheck soul="$__player" stance="horse" smartObject=""`, avec les attributs du jeu) est celle d'Alex, et elle
+  n'est pas telle quelle dans le jeu (le jeu n'écrit « horse » qu'avec un objet : `$horse`, `$companion`) : on ne peut
+  pas l'admettre comme forme du jeu. L'avoir inversée (`negate="true"`) dans le seul but de passer le contrôle, c'est ce
+  que JoVenGer a écarté le 16/10 (« c'est tromper le contrôle ») : rappel du pair, juste ; retiré.
+- **Fait à la place, notre mécanisme** : la lecture en Lua de **n'importe quel cheval monté près d'Henry**
+  (`System.GetEntitiesInSphereByClass(…, "Horse")`, déjà employé pour les places libres ; `horse:HasRider()`), à moins
+  de `henry_cheval_pres_m` (1,5 m) ; nos chevaux (nom commençant par `scriptorium_cheval_`) ne comptent pas. Un cheval
+  emprunté ou volé compte. Limite connue : un cavalier du jeu qui passe à moins de 1,5 m d'Henry à pied le ferait
+  croire monté une seconde (l'escorte monterait, puis redescendrait après 4 s). **À dire à JoVenGer** : la lecture par
+  l'arbre demanderait d'admettre la ligne d'Alex, ce qui est sa décision.
 - **Pour plus tard** (idée d'Alex) : un réglage « pas de chevaux » : Henry monte, la Compagnie jamais ; la formation
   prend un modèle à pied, et le rattrapage d'un coup reste armé (des hommes à pied suivent un cavalier). Utile si
   JoVenGer veut couper les chevaux pour la fluidité.
 
 ### Règles en données (catalogue)
-- `hommes.reglages` : `henry_veille_ms` 1 000, `henry_descente_lectures` 4, `henry_cheval_pres_m` 2,5.
+- `hommes.reglages` : `henry_veille_ms` 1 000, `henry_descente_lectures` 4, `henry_cheval_pres_m` 1,5.
 
 ### Essai en jeu : grille écrite avant la séance
 `playline3`, secours coupé, trois hommes ; `essai_escorte_comme_henry`.

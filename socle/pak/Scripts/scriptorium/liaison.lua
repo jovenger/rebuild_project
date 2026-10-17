@@ -1244,47 +1244,36 @@ local function cheval_d_henry()
   return cheval
 end
 
--- Henry à cheval : son cheval a un cavalier (horse:HasRider, Scripts/Entities/AI/Horse.lua) à moins de « pres » m de
--- lui. Rend vrai, faux (pas de cheval, ou personne dessus, ou loin), ou nil si rien n'est lisible. Limite : Henry sur
--- un autre cheval que le sien n'est pas vu monté.
+-- Henry à cheval : un cheval monté (horse:HasRider, Scripts/Entities/AI/Horse.lua) se tient à moins de « pres » m de
+-- lui (System.GetEntitiesInSphereByClass, classe Horse) : n'importe quel cheval, le sien, un emprunté ou un volé ; nos
+-- chevaux (nom commençant par « scriptorium_cheval_ ») ne comptent pas. Rend vrai, faux, ou nil si rien n'est lisible.
 function liaison.henry_a_cheval(pres)
-  local cheval, raison = cheval_d_henry()
-  if not cheval then
-    if raison == "Henry n'a pas de cheval" then
-      return false
-    end
-    return nil
-  end
-  local monte_lu, monte = pcall(function() return cheval.horse:HasRider() end)
-  if not monte_lu then
-    return nil
-  end
-  if not monte then
-    return false
-  end
   local ici_lu, ici = pcall(function() return player:GetWorldPos() end)
-  local la_lu, la = pcall(function() return cheval:GetWorldPos() end)
-  if not (ici_lu and la_lu and type(ici) == "table" and type(la) == "table") then
+  if not ici_lu or type(ici) ~= "table" then
     return nil
   end
-  return ((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) ^ 0.5 <= pres
-end
-
--- Relecture du pair (V73 f 2 d) : la posture d'Henry vue par l'arbre d'un homme (StanceCheck « horse » sur Henry,
--- n'importe quel cheval, à chaque pouls des branches de la suite) : (le compte de ses lectures, 1 s'il l'a vu à cheval,
--- sinon 0), ou nil si son cerveau est illisible.
-function liaison.posture_d_henry_vue(identifiant)
-  local entite = entite_nommee(identifiant)
-  local this_lu, this = pcall(function() return entite.this end)
-  if not entite or not this_lu or type(this) ~= "table" then
+  local lu, chevaux = pcall(System.GetEntitiesInSphereByClass, ici, pres, "Horse")
+  if not lu then
     return nil
   end
-  local lu, lectures = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_henry_lectures") end)
-  local vu, en_selle = pcall(function() return XGenAIModule.GetBrainVariable(this.id, "scriptorium_henry_en_selle") end)
-  if not lu or not vu or tonumber(lectures) == nil then
+  local vus, lisibles = 0, 0
+  for _, cheval in pairs(type(chevaux) == "table" and chevaux or {}) do
+    local nom_lu, nom = pcall(function() return cheval:GetName() end)
+    if not (nom_lu and type(nom) == "string" and string.sub(nom, 1, 19) == "scriptorium_cheval_") then
+      vus = vus + 1
+      local monte_lu, monte = pcall(function() return cheval.horse:HasRider() end)
+      if monte_lu then
+        lisibles = lisibles + 1
+        if monte then
+          return true
+        end
+      end
+    end
+  end
+  if vus > 0 and lisibles == 0 then
     return nil
   end
-  return tonumber(lectures), tonumber(en_selle) or 0
+  return false
 end
 
 -- Séance d'essai (V73 f 2 d) : le cheval d'Henry amené à « distance » m devant lui, au sol, sur une place que rien

@@ -109,6 +109,16 @@ function Tourner([int]$pas, [int]$haut = 0) {
   Start-Sleep -Milliseconds 600
 }
 
+# Henry « utilise » (touche physique E, code 0x12) : monter sur le cheval devant lui, en descendre (V73 f 2 d) ;
+# « secondes » : le temps d'appui (un appui court par défaut).
+function Utiliser([double]$secondes = 0.15) {
+  if (-not (Mettre-Le-Jeu-Devant)) { throw "le jeu n'est pas au premier plan : Henry n'utilise rien" }
+  [Cycle.U]::keybd_event(0, 0x12, 0x8, [System.UIntPtr]::Zero)
+  Start-Sleep -Milliseconds ([int]($secondes * 1000))
+  [Cycle.U]::keybd_event(0, 0x12, 0xA, [System.UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 600
+}
+
 # Henry recule (touche physique « reculer », code 0x1F) pendant « secondes ».
 function Reculer([double]$secondes) {
   if (-not (Mettre-Le-Jeu-Devant)) { throw "le jeu n'est pas au premier plan : Henry ne bouge pas" }

@@ -2494,9 +2494,8 @@ essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin d
   FauxJeu.manquees = nil
 end)
 
--- Fiche 15, V73 f 2 d : l'escorte monte quand Henry monte (relue par le pair : la posture lue par l'arbre, le cheval
--- d'Henry en filet ; l'anti-rebond).
-essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend après quatre lectures à pied ; la posture lue par l'arbre, le cheval d'Henry en filet", function()
+-- Fiche 15, V73 f 2 d : l'escorte monte quand Henry monte (relue par le pair : l'anti-rebond).
+essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend après quatre lectures à pied", function()
   preparer(5000, 100, 10)
   local ids, perso = {}, {}
   for i = 1, 3 do
@@ -2506,7 +2505,7 @@ essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend 
   end
   hommes.battre()
   FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.manquees = {}, {}, {}
-  FauxJeu.henry_cheval, FauxJeu.postures = false, {}
+  FauxJeu.henry_cheval = false
   for i = 1, 3 do
     verifier(hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "h", formation = "followNPC", a_cheval = "comme_henry", fin = "liberation" }), "escorte comme Henry " .. i)
   end
@@ -2552,19 +2551,6 @@ essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend 
   local cheval1 = hommes.montures[ids[1]] and hommes.montures[ids[1]].cheval
   for _ = 1, 2 do hommes.battre() end
   verifier(cheval1 ~= nil and FauxJeu.chevaux[cheval1] == nil, "son cheval retiré après la descente")
-  -- La posture lue par l'arbre (n'importe quel cheval) : fraîche, elle suffit, même si le filet ne voit rien.
-  FauxJeu.postures[perso[3]] = { lectures = 1, en_selle = 1 }
-  egal(hommes.veiller_henry(), true, "l'arbre voit Henry à cheval")
-  verifier(journal_contient("l'arbre voit Henry à cheval"), "dit au journal")
-  -- Une posture qui ne bouge plus n'est plus lue : le filet seul.
-  egal(hommes.veiller_henry(), false, "lecture de l'arbre périmée : le filet dit à pied")
-  FauxJeu.postures[perso[3]] = { lectures = 2, en_selle = 0 }
-  egal(hommes.veiller_henry(), false, "l'arbre et le filet : à pied")
-  -- Le filet seul le voit : monté quand même, dit au journal.
-  FauxJeu.henry_cheval = true
-  FauxJeu.postures[perso[3]] = { lectures = 3, en_selle = 0 }
-  egal(hommes.veiller_henry(), true, "le filet voit Henry sur son cheval")
-  verifier(journal_contient("le filet voit Henry sur son cheval, l'arbre non"), "dit au journal")
   -- La lecture forcée par le poste.
   hommes.henry_force = false
   egal(hommes.veiller_henry(), false, "forcée à pied")
@@ -2576,5 +2562,5 @@ essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend 
   verifier(not hommes.lancer_la_veille_d_henry(), "une seule par partie")
   egal(#FauxJeu.minuteries, avant + 1, "une minuterie")
   egal(FauxJeu.minuteries[#FauxJeu.minuteries].ms, hommes.reglages.henry_veille_ms, "à la cadence réglée")
-  FauxJeu.henry_cheval, FauxJeu.postures, FauxJeu.manquees = nil, nil, nil
+  FauxJeu.henry_cheval, FauxJeu.manquees = nil, nil
 end)

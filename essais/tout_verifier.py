@@ -560,36 +560,35 @@ def verifier_identifiants():
         if l.sol_de({ x = 1, y = 1, z = 7 }, 2) ~= nil then return "un terrain illisible rend un sol" end
         System.GetTerrainElevation = terrain_avant
         Physics, ent_all, ent_water = nil, nil, nil
-        -- V73 f 2 d : Henry à cheval (son cheval a un cavalier, près de lui), son cheval amené, la posture lue.
-        local cheval_h = { horse = { HasRider = function() return true end }, GetWorldPos = function() return { x = 0, y = 1, z = 0 } end,
-                           GetName = function() return "cheval_henry" end, SetWorldPos = function(self, p) self.pose = p end }
+        -- V73 f 2 d : Henry à cheval (un cheval monté près de lui, n'importe lequel, pas les nôtres) ; son cheval amené.
+        local monture_h = { horse = { HasRider = function() return true end }, GetName = function() return "cheval_d_un_paysan" end }
+        local notre = { horse = { HasRider = function() return true end }, GetName = function() return "scriptorium_cheval_homme_1_1" end }
+        local autour = { monture_h }
+        System.GetEntitiesInSphereByClass = function(p, r, classe) if classe == "Horse" then return autour end return {} end
         player = { GetWorldPos = function() return { x = 0, y = 0, z = 0 } end, GetWorldAngles = function() return { x = 0, y = 0, z = 0 } end,
                    player = { GetPlayerHorse = function() return "wuid_henry_cheval" end } }
+        if l.henry_a_cheval(1.5) ~= true then return "Henry sur un cheval (même emprunté)" end
+        monture_h.horse.HasRider = function() return false end
+        if l.henry_a_cheval(1.5) ~= false then return "un cheval sans cavalier près d'Henry" end
+        autour = { notre }
+        if l.henry_a_cheval(1.5) ~= false then return "un de nos cavaliers près d'Henry compté" end
+        autour = {}
+        if l.henry_a_cheval(1.5) ~= false then return "aucun cheval près d'Henry" end
+        monture_h.horse.HasRider = function() error("illisible") end
+        autour = { monture_h }
+        if l.henry_a_cheval(1.5) ~= nil then return "un cheval illisible" end
+        System.GetEntitiesInSphereByClass = function() error("illisible") end
+        if l.henry_a_cheval(1.5) ~= nil then return "la recherche illisible" end
+        System.GetEntitiesInSphereByClass = nil
+        local cheval_h = { GetName = function() return "cheval_henry" end, SetWorldPos = function(self, p) self.pose = p end }
         local par_wuid_avant = XGenAIModule.GetEntityByWUID
         XGenAIModule.GetEntityByWUID = function(w) return w == "wuid_henry_cheval" and cheval_h or nil end
-        if l.henry_a_cheval(2.5) ~= true then return "Henry sur son cheval" end
-        cheval_h.horse.HasRider = function() return false end
-        if l.henry_a_cheval(2.5) ~= false then return "personne sur son cheval" end
-        cheval_h.horse.HasRider = function() return true end
-        cheval_h.GetWorldPos = function() return { x = 0, y = 30, z = 0 } end
-        if l.henry_a_cheval(2.5) ~= false then return "son cheval monté par un autre, loin" end
-        player.player.GetPlayerHorse = function() return nil end
-        if l.henry_a_cheval(2.5) ~= false then return "Henry sans cheval" end
-        player.player.GetPlayerHorse = function() error("illisible") end
-        if l.henry_a_cheval(2.5) ~= nil then return "lecture illisible" end
-        player.player.GetPlayerHorse = function() return "wuid_henry_cheval" end
         local amene, ligne_a = l.amener_le_cheval_d_henry(4)
         if not amene or not cheval_h.pose or math.abs(cheval_h.pose.y - 4) > 1e-6 then return "cheval amené : " .. tostring(ligne_a) end
+        player.player.GetPlayerHorse = function() return nil end
+        if l.amener_le_cheval_d_henry(4) then return "Henry sans cheval : rien d'amené" end
         XGenAIModule.GetEntityByWUID = par_wuid_avant
         player = nil
-        System.entites["scriptorium_posture"] = { this = { id = "p1" } }
-        local lire_avant_p = XGenAIModule.GetBrainVariable
-        XGenAIModule.GetBrainVariable = function(id, nom) return nom == "scriptorium_henry_lectures" and 7 or 1 end
-        local lectures_p, selle_p = l.posture_d_henry_vue("scriptorium_posture")
-        if lectures_p ~= 7 or selle_p ~= 1 then return "posture lue : " .. tostring(lectures_p) .. " " .. tostring(selle_p) end
-        if l.posture_d_henry_vue("personne") ~= nil then return "posture d'un absent" end
-        XGenAIModule.GetBrainVariable = lire_avant_p
-        System.entites["scriptorium_posture"] = nil
         System.entites["scriptorium_rondier"], System.entites["scriptorium_chef_d_essai"] = nil, nil
         XGenAIModule.GetMyWUID = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
@@ -1396,19 +1395,6 @@ def verifier_la_vie_du_camp():
                "un nœud par mode), la monte bornée et la monte manquée comptée")
     if comportements.count(manquee) != 3:
         erreur("vie du camp : les branches 17, 18 et 19 comptent chacune la monte manquée")
-    # Fiche 15, V73 f 2 d (relecture du pair) : chaque branche de la suite (14 à 19) lit la posture d'Henry à chaque
-    # pouls (StanceCheck « horse » sur Henry, n'importe quel cheval) et compte ses lectures ; la liaison les lit.
-    posture = (r'<StanceCheck soul="\$__player" stance="horse" smartObject="" negate="true"[^>]*>\s*<Then canSkip="1">\s*'
-               r'<Expression expressions="\$scriptorium_henry_en_selle = 0" />\s*</Then>\s*<Else canSkip="1">\s*'
-               r'<Expression expressions="\$scriptorium_henry_en_selle = 1" />\s*</Else>\s*</StanceCheck>\s*'
-               r'<Expression expressions="\$scriptorium_henry_lectures = \$scriptorium_henry_lectures \+ 1" />')
-    for k in range(14, 20):
-        morceaux = comportements.split("$scriptorium_activite == %d &amp;" % k, 1)
-        corps = morceaux[1].split("$scriptorium_activite == %d &amp;" % (k + 1))[0] if len(morceaux) == 2 else ""
-        if not re.search(posture, corps):
-            erreur("vie du camp : la branche %d doit lire la posture d'Henry à chaque pouls" % k)
-    if len(re.findall(posture, comportements)) != 6 or '"scriptorium_henry_lectures"' not in liaison:
-        erreur("vie du camp : six lectures de la posture d'Henry dans l'arbre, lues par la liaison")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '
