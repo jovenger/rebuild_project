@@ -1857,7 +1857,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   qu'on attache les montures). Rien de plus pour l'instant.
 - Ouvert : « jamais reposé seul » et « fermer avant d'ouvrir » toujours pas éprouvés en jeu.
 
-## V73 f 2 d — l'escorte monte quand Henry monte (17/10, relu par le pair ; réponses recommandées prises d'office)
+## V73 f 2 d — l'escorte monte quand Henry monte (17/10, relu par le pair, vu en jeu par la lecture forcée ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - Relecture du pair (V73 f 2 b) : chez Alex comme chez Scriptorium, l'escorte d'Henry **monte quand Henry monte et
@@ -1929,6 +1929,20 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    seule. **Prise : (a).**
 3. **La séance** : (a) la chaîne forcée d'abord, puis la vraie monte si Henry a un cheval (Recommandé) ; (b) la vraie
    monte seulement. **Prise : (a).**
+
+### Mesuré en V73 f 2 d (17/10)
+- a4e12b6, `playline3` (473), sans `-devmode`, secours coupé puis remis ; trois hommes.
+- **Henry à pied** : la vraie lecture rend « false » ; l'escorte « comme Henry » suit à pied en formation (15 et 16).
+- **La chaîne, lecture forcée** : à cheval, l'escorte monte tout de suite (trois chevaux nés hors de la vue d'Henry,
+  trois montes, ordres 18 et 19) ; à pied, la descente seulement après 4 lectures de suite, les hommes à pied, les
+  chevaux retirés au battement. Acquise.
+- **Le cheval d'Henry** (« kmal_horseForSale_2 ») amené à 4 m devant lui : posé, sellé.
+- **La vraie monte d'Henry n'a pas abouti** : la touche E simulée (code de balayage 0x12, appui court puis long, au
+  flanc) ne fait pas monter Henry ; arrêt après deux échecs. **Non vérifié en jeu** : la lecture « monté » vraie (un
+  cheval monté à moins de 1,5 m d'Henry). À éprouver par JoVenGer en jouant, ou par une autre façon de faire monter
+  Henry (à chercher, pas une troisième variante de la touche).
+- Les parades du pair au faux départ (un cavalier du jeu qui frôle Henry) : deux lectures « monté » de suite, ou la
+  hauteur d'Henry au-dessus du sol (à mesurer d'abord, monté et à pied) ; pas encore faites.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

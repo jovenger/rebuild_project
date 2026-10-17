@@ -340,15 +340,20 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   chercher son cheval hors du camp, côté porte ; place à 3 m de tout objet du camp et de l'enceinte, hors du cercle, à
   3 m des autres chevaux, sur un sol praticable (pente, rayon descendu), hors de la vue d'Henry si possible ; le délai
   de monte allongé de la marche. Vu : l'eau n'est pas lisible (pas de `ent_water`) ; le reste se mesure.
-- **Suite** (relecture du pair) : monter quand Henry monte (`StanceCheck` « horse » sur Henry, anti-rebond) et le
-  Directeur monté chef de colonne ; puis le changement de carte et les intérieurs ; puis le gardien des hommes.
+- **V73 f 2 d, l'escorte monte quand Henry monte** (ef36ec9, a4e12b6) : tenue `a_cheval = "comme_henry"` ; une veille
+  d'une seconde (une par partie) lit Henry à cheval en Lua (un cheval monté à moins de 1,5 m de lui, n'importe lequel, pas
+  les nôtres) ; monté tout de suite, à pied après 4 lectures de suite. Vu en jeu avec la lecture forcée ; la vraie monte
+  d'Henry n'a pas abouti (touche E simulée sans effet, deux essais) : non vérifiée. La lecture par l'arbre (`StanceCheck`
+  sans objet) retirée : sa seule ligne est celle d'Alex, absente du jeu ; l'admettre est la décision de JoVenGer.
+- **Suite** : le Directeur monté chef de colonne (relecture du pair) ; puis le changement de carte et les intérieurs ;
+  puis le gardien des hommes.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 60 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 63 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
