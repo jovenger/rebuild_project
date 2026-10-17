@@ -282,11 +282,32 @@ def verifier_identifiants():
           if string.find(nom, "^scriptorium_registre_") then marque = nom end
         end
         if not marque then return "pas de marque de la partie posée dans le monde" end
-        -- V73 f 3 b : un passage de carte (la marque absente ici, la même identité en mémoire) : le jeton est cru et la
-        -- marque posée ici aussi.
+        -- V73 f 3 b (relecture du pair) : sans marque ici et avec la même identité, un passage de carte n'est cru qu'à
+        -- trois conditions : la carte a changé, l'horloge a avancé de 10 jours au plus depuis la dernière écriture.
+        local heure_avant_l = l.heure_du_jeu
+        local h_l = 100
+        l.heure_du_jeu = function() return h_l end
+        l.ecrire_registre("{a=1}")
+        l.memoire.registre = nil   -- vidée à chaque entrée en partie, comme en jeu
+        l.accrocher_le_passage(function(avant, maintenant) return avant ~= nil and maintenant >= avant and maintenant - avant <= 240 end)
         System.entites[marque] = nil
+        l.memoire.carte_d_avant, l.memoire.carte = "kutnohorsko", "kutnohorsko"
+        if l.lire_registre() ~= nil then return "ancienne sauvegarde sans jeton, même carte : le jeton n'est pas ignoré" end
+        if System.entites[marque] then return "même carte : une marque posée à tort" end
+        l.memoire.carte_d_avant, l.memoire.carte = "kutnohorsko", "trosecko"
+        h_l = 90
+        if l.lire_registre() ~= nil then return "autre carte, horloge en arrière : le jeton n'est pas ignoré" end
+        h_l = 100 + 11 * 24
+        if l.lire_registre() ~= nil then return "autre carte, onze jours plus tard : le jeton n'est pas ignoré" end
+        l.accrocher_le_passage(nil)
+        h_l = 130
+        if l.lire_registre() ~= nil then return "sans règle du passage, un passage est cru" end
+        l.accrocher_le_passage(function(avant, maintenant) return avant ~= nil and maintenant >= avant and maintenant - avant <= 240 end)
         if l.lire_registre() ~= "{a=1}" then return "passage de carte : le jeton de la même partie n'est pas cru" end
         if not System.entites[marque] then return "passage de carte : la marque n'est pas posée sur la nouvelle carte" end
+        l.heure_du_jeu = heure_avant_l
+        l.accrocher_le_passage(nil)
+        l.memoire.carte_d_avant, l.memoire.carte = nil, nil
         -- Une autre partie (sauvegarde sans la marque, une autre identité en mémoire) : le jeton est ignoré (vu en jeu le
         -- 14/10).
         System.entites[marque] = nil

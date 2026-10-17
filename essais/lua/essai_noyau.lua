@@ -282,3 +282,16 @@ essai("socle : le réveil attend, la partie d'abord prête ; le guetteur note un
   Scriptorium.arreter_le_battement()
   FauxJeu.sortir_de_partie()
 end)
+
+-- Fiche 15, V73 f 3 b (relecture du pair) : la règle du passage de carte, l'horloge avancée de 10 jours au plus.
+essai("noyau : un passage de carte n'est croyable que si l'horloge a avancé, de dix jours au plus", function()
+  verifier(Scriptorium.passage_croyable(100, 110), "dix heures plus tard : croyable")
+  verifier(Scriptorium.passage_croyable(100, 100 + 10 * 24), "dix jours plus tard : croyable")
+  verifier(not Scriptorium.passage_croyable(100, 90), "l'horloge en arrière : non")
+  verifier(not Scriptorium.passage_croyable(100, 100 + 10 * 24 + 1), "au-delà de dix jours : non")
+  verifier(not Scriptorium.passage_croyable(nil, 100), "sans heure d'écriture : non")
+  local avant = Scriptorium.noyau.reglages.passage_jours_max
+  Scriptorium.noyau.reglages.passage_jours_max = 1
+  verifier(not Scriptorium.passage_croyable(100, 130), "réglé à un jour : trente heures, non")
+  Scriptorium.noyau.reglages.passage_jours_max = avant
+end)

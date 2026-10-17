@@ -2266,6 +2266,21 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   Directeur s'il le suit) est refaite près de lui. **Et le grand saut sur une même carte** (voyage rapide) : un cavalier
   loin de son chef est remis près d'Henry.
 
+### Le registre au passage (relecture du pair, deux objections justes ; fait : b80694a, puis les trois conditions)
+- **Le défaut** (antérieur à ce pas) : le jeton du registre n'est cru que si la marque de la partie (un objet posé
+  dans le monde) existe ; or elle est posée dans une seule carte. Sur l'autre, le registre aurait été ignoré puis écrasé
+  par une nouvelle identité : caisse et hommes perdus, comme le 24/09 chez Scriptorium.
+- **La parade** : l'identité de la partie est gardée en mémoire Lua (elle survit au passage) ; arrivé sur une carte sans
+  marque, le jeton est cru, comme un passage, **seulement si les trois conditions tiennent ensemble** : la carte a changé
+  depuis l'entrée précédente (`sv_map`, gardé en mémoire) ; l'identité du jeton est celle en mémoire ; l'horloge du
+  monde a avancé, de `socle.passage_jours_max` (10, la règle de Scriptorium) au plus, depuis la dernière écriture du
+  registre. Alors la marque est posée ici aussi. Sinon le jeton est ignoré, comme avant (le jeton n'est pas remis à zéro
+  quand on charge une sauvegarde qui n'en a pas, V4 : une partie étrangère ou une ancienne sauvegarde d'avant le camp
+  n'en hérite pas). Au banc : ancienne sauvegarde sans jeton sur la même carte, ignorée ; sur l'autre carte horloge en
+  arrière, ignorée ; onze jours plus tard, ignorée ; le vrai passage, cru et marqué.
+- **Limite connue** : une partie étrangère sans jeton, chargée sur l'autre carte moins de 10 jours en avant. Rare.
+- **Non vérifié en jeu** : le passage Trosky ↔ Kuttenberg est à faire par JoVenGer.
+
 ### Comment ce serait fait
 1. **La carte du camp** : à la fondation, `camp` note la carte (`d.carte`, lue par la liaison) ; un camp ancien sans carte
    notée garde le comportement d'avant (il est de la carte où l'on est). `camp.sur_sa_carte()` : vrai si la carte lue est

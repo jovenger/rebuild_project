@@ -12,8 +12,15 @@ local liaison = {}
 -- Mémoire de secours pour le registre, le temps que le mécanisme de sauvegarde
 -- du jeu soit confirmé : elle ne survit pas à la fermeture du jeu.
 -- « identite » (V73 f 3 b, relecture du pair) : l'identité de la partie en cours, gardée en mémoire Lua (elle survit
--- au passage d'une carte à l'autre, et n'est jamais vidée à l'entrée en partie).
-liaison.memoire = { registre = nil, identite = nil }
+-- au passage d'une carte à l'autre, et n'est jamais vidée à l'entrée en partie) ; « carte » et « carte_d_avant » : la
+-- carte lue à l'entrée en partie, et celle de l'entrée précédente ; « heure_ecrite » : l'heure du jeu de la dernière
+-- écriture du registre.
+liaison.memoire = { registre = nil, identite = nil, carte = nil, carte_d_avant = nil, heure_ecrite = nil }
+-- La règle du passage, accrochée par le noyau (sans elle, aucun passage n'est cru).
+liaison.passage_croyable = nil
+function liaison.accrocher_le_passage(fonction)
+  liaison.passage_croyable = fonction
+end
 
 -- Temps du moteur, en secondes (pas le temps du jeu : l'horloge réelle).
 function liaison.maintenant()
@@ -646,17 +653,29 @@ local function poser_la_marque(identite)
 end
 
 -- Lit la chaîne du registre enregistrée dans cette partie, ou nil. Fiche 15, V73 f 3 b (relecture du pair) : la marque
--- est un objet posé dans une carte ; arrivé sur une carte où elle n'est pas, le jeton est cru si l'identité gardée en
--- mémoire Lua est la sienne (c'est un passage de carte de la même partie) : la marque est posée ici aussi. Une partie
--- étrangère a une autre identité (tirée au hasard) : son jeton reste ignoré. Non vérifié en jeu (passage à faire par
--- JoVenGer).
+-- est un objet posé dans une carte ; arrivé sur une carte où elle n'est pas, le jeton n'est cru, comme un passage de
+-- carte de la même partie, qu'à trois conditions ensemble : la carte a changé depuis l'entrée précédente ; l'identité
+-- du jeton est celle gardée en mémoire Lua ; l'horloge du monde a avancé, de « passage_jours_max » au plus, depuis la
+-- dernière écriture (la règle du noyau). Alors la marque est posée ici aussi. Sinon le jeton est ignoré, comme avant :
+-- le jeton n'est pas remis à zéro quand on charge une sauvegarde qui n'en a pas (V4), et une partie étrangère ou une
+-- ancienne sauvegarde d'avant le camp ne doit pas en hériter. Limite connue : une partie étrangère sans jeton, chargée
+-- sur l'autre carte moins de 10 jours en avant. Non vérifié en jeu (passage à faire par JoVenGer).
 function liaison.lire_registre()
   local identite, donnees, raison = lire_le_jeton()
   local marquee = identite and entite_nommee(liaison.prefixe_de_la_marque .. identite) ~= nil
   if identite and not marquee and identite == liaison.memoire.identite then
-    marquee = poser_la_marque(identite) ~= nil
-    liaison.journal("Registre : carte sans marque, même partie (" .. identite .. ") : marque posée ici "
-                    .. (marquee and "(passage de carte)" or "impossible"))
+    local avant, ici = liaison.memoire.carte_d_avant, liaison.memoire.carte
+    local carte_changee = avant ~= nil and ici ~= nil and avant ~= ici
+    local temps_croyable = liaison.passage_croyable ~= nil
+      and liaison.passage_croyable(liaison.memoire.heure_ecrite, liaison.heure_du_jeu()) == true
+    if carte_changee and temps_croyable then
+      marquee = poser_la_marque(identite) ~= nil
+      liaison.journal("Registre : passage de « " .. tostring(avant) .. " » à « " .. tostring(ici) .. " », même partie ("
+                      .. identite .. ") : marque posée ici " .. (marquee and "" or "impossible"))
+    elseif identite ~= liaison.identite_ignoree then
+      liaison.journal("Registre : même identité sans marque (" .. identite .. "), mais "
+                      .. (carte_changee and "horloge hors de la fenêtre" or "même carte") .. " : jeton ignoré")
+    end
   end
   if marquee then
     identite_de_la_partie = identite
@@ -692,6 +711,7 @@ end
 -- Enregistre la chaîne du registre dans cette partie. La première fois, relit le jeton et dit au journal s'il tient.
 function liaison.ecrire_registre(chaine)
   liaison.memoire.registre = chaine
+  liaison.memoire.heure_ecrite = liaison.heure_du_jeu()
   if not (identite_de_la_partie and entite_nommee(liaison.prefixe_de_la_marque .. identite_de_la_partie)) then
     if not marquer_la_partie() then
       return
@@ -3906,9 +3926,10 @@ function liaison.ecouter_la_partie(a_l_entree, a_la_sortie)
   -- La mémoire de secours ne passe jamais d'une partie à l'autre : vidée à chaque entrée, avant la relecture.
   liaison.ecouteur.SurEntreeEnPartie = function()
     liaison.memoire.registre = nil
-    -- V73 f 3 a : la carte lue, une ligne au journal.
+    -- V73 f 3 a : la carte lue, une ligne au journal ; V73 f 3 b : gardée en mémoire avec celle d'avant.
     local carte, source = liaison.carte_courante()
     liaison.journal("Carte : " .. tostring(carte) .. " (" .. tostring(source) .. ")")
+    liaison.memoire.carte_d_avant, liaison.memoire.carte = liaison.memoire.carte, carte
     a_l_entree()
   end
   liaison.ecouteur.SurSortieDePartie = function() a_la_sortie() end

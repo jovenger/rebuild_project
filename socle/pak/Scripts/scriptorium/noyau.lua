@@ -23,7 +23,19 @@ Scriptorium.en_partie = Scriptorium.en_partie or false
 -- rhabillés, ordres redonnés ; 0 = tout de suite) ; « guet_du_chargement_s », au-delà, un chargement qui ne finit pas
 -- est noté au journal avec les positions autour d'Henry.
 Scriptorium.noyau = Scriptorium.noyau or {}
-Scriptorium.noyau.reglages = Scriptorium.noyau.reglages or { delai_du_reveil_s = 30, guet_du_chargement_s = 10 }
+-- « passage_jours_max » (V73 f 3 b, la règle de Scriptorium transmise par le pair, après le 24/09) : un passage d'une
+-- carte à l'autre n'est cru que si l'horloge du monde a avancé, de tant de jours au plus, depuis la dernière écriture du
+-- registre.
+Scriptorium.noyau.reglages = Scriptorium.noyau.reglages
+  or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10 }
+
+-- La règle du passage (V73 f 3 b), accrochée à la liaison : l'horloge (heures du jeu) a avancé, de
+-- « passage_jours_max » au plus.
+function Scriptorium.passage_croyable(avant_h, maintenant_h)
+  local jours = tonumber(Scriptorium.noyau.reglages.passage_jours_max) or 10
+  return type(avant_h) == "number" and type(maintenant_h) == "number" and maintenant_h >= avant_h
+    and maintenant_h - avant_h <= jours * 24
+end
 Scriptorium.cadence_du_guet_ms = 5000
 Scriptorium.reveil_en_attente = false
 -- L'ordre dans lequel les morceaux battent (ceux qui ont une fonction battre).
@@ -77,6 +89,9 @@ function Scriptorium.demarrer()
   Scriptorium.lancer_le_battement()
   if jeu().ecouter_la_partie then
     jeu().ecouter_la_partie(Scriptorium.entrer_en_partie, Scriptorium.sortir_de_partie)
+  end
+  if jeu().accrocher_le_passage then
+    jeu().accrocher_le_passage(Scriptorium.passage_croyable)
   end
   local prets, pannes = Scriptorium.bilan()
   journal("Socle " .. Scriptorium.version .. " : " .. prets .. " morceau(x) prêt(s), " .. pannes .. " en panne")
