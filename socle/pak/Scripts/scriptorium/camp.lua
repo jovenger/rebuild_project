@@ -71,6 +71,21 @@ camp.genres_de_postes = {
   desherbage = { gabarit = "c2bb08b4-c1ad-484c-abce-df196518fb9b", geste = "use", aides = "Weeding" },
   cloture = { gabarit = "8b959f6e-fe08-4841-a826-18f9ff7d989e", geste = "use", aides = "GenU_repairFenceHammer" },
   pelle = { gabarit = "7401194c-2f37-4735-b53c-0e5d9843258c", geste = "use", aides = "coalThrowing" },
+  -- Relevés le 17/10 dans les préfabriqués du jeu (IPL_GameData.pak, Prefabs/…, lecture seule : les points d'appui de
+  -- chaque SmartObjectHolder ; ceux de la prière, du désherbage, de la clôture et de la pelle y sont les mêmes qu'en jeu).
+  -- Leurs arbres n'exigent aucun objet lié (sauf l'établi de l'armurier, le banc et le balai : une posture ou un outil
+  -- en main, à voir en jeu).
+  armurier = { gabarit = "de1c90bc-16a7-476b-87b8-ab599a2145cc", geste = "use", aides = "Armorsmith" },
+  banc_du_camp = { gabarit = "1b478055-990f-4ce2-a4ae-d3396dfcd2ed", geste = "repairEquipment", aides = "" },
+  beurre = { gabarit = "02d56ed9-a0f8-4639-b093-09c2762b9d34", geste = "use", aides = "churningButter" },
+  lecture = { gabarit = "6fc70a09-0d68-44ee-8347-dbb173b773bc", geste = "use", aides = "" },
+  guet = { gabarit = "fe035f67-cb5f-480d-9067-b575e1de846c", geste = "lookingAround", aides = "" },
+  appui_sur_l_epee = { gabarit = "056da819-2fc6-431b-90ed-14680813bf9f", geste = "use", aides = "" },
+  tri_des_herbes = { gabarit = "44c4e3e5-b8c3-096b-99fe-2a7efb5aa38f", geste = "use_sortingHerbs", aides = "Miner_Sorting" },
+  balai = { gabarit = "4fbf97e7-3613-4c9f-959f-d24ea368d9a6", geste = "use", aides = "" },
+  linge = { gabarit = "1215dba3-8c9c-4670-b583-579a2f9d7f4f", geste = "cleanTube", aides = "GenU_bathrobesCleanTube" },
+  puits = { gabarit = "60d4e0c4-bbe1-40f7-a58e-2a0ad72acee0", geste = "refillWatertube", aides = "waterWell" },
+  soin_des_chevaux = { gabarit = "b67e3e0b-9db5-4f34-8173-c1856f7a42a6", geste = "use_maintenance", aides = "horseMaintenance" },
 }
 
 -- Le plan du camp : positions en mètres par rapport à l'ancre (x à droite, y devant),

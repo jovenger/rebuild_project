@@ -759,6 +759,52 @@ function poste.essai_poste_lacher()
   return true
 end
 
+-- Les genres du catalogue par lots de quatre (ordre alphabétique) : chaque poste du lot posé à 4 m devant Henry, à
+-- 3 m l'un de l'autre, et un homme (les premiers de la Compagnie) tenu à chacun. Les postes d'un lot précédent sont
+-- retirés.
+function poste.essai_postes_lot(numero)
+  local camp, hommes = Scriptorium.camp, Scriptorium.hommes
+  for _, nom in ipairs(camp.postes()) do
+    camp.retirer_le_poste(nom)
+  end
+  local genres = {}
+  for genre in pairs(camp.genres_de_postes) do table.insert(genres, genre) end
+  table.sort(genres)
+  local centre, cap = devant_henry(4)
+  if not centre then
+    return false
+  end
+  local ids = hommes.liste()
+  local poses = 0
+  for i = 1, 4 do
+    local genre = genres[(numero - 1) * 4 + i]
+    local id = ids[i]
+    if genre and id then
+      local decale = (i - 2.5) * 3
+      local point = { x = centre.x + decale * math.cos(math.rad(cap)), y = centre.y - decale * math.sin(math.rad(cap)), z = centre.z }
+      local ok = Scriptorium.avis(camp, "rendre_fonctionnel", "lot_" .. genre, genre, point, ((cap or 0) + 180) % 360)
+      local tenu, raison = false, "poste non posé"
+      if ok then
+        tenu, raison = hommes.tenir(id, "travail", { activite = "poste", poste = "lot_" .. genre, fin = "liberation" })
+        poses = poses + 1
+      end
+      jeu().journal("Poste : lot " .. numero .. " : « " .. genre .. " » posé = " .. tostring(ok) .. ", « " .. hommes.fiche(id).nom
+                    .. " » au poste = " .. tostring(tenu or raison))
+    end
+  end
+  poste.battre_les_hommes()
+  return poses > 0
+end
+
+-- Les hommes lâchés de leurs postes, les postes retirés.
+function poste.essai_postes_fin()
+  local camp, hommes = Scriptorium.camp, Scriptorium.hommes
+  for _, id in ipairs(hommes.liste()) do hommes.lacher(id, "travail") end
+  for _, nom in ipairs(camp.postes()) do camp.retirer_le_poste(nom) end
+  poste.battre_les_hommes()
+  return true
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2417,6 +2463,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_poste_desherbage", fonction = function() return poste.essai_poste_desherbage() end, aide = "Un poste de désherbage à 3 m devant Henry" },
   { nom = "scriptorium_essai_poste_tenir", fonction = function() return poste.essai_poste_tenir() end, aide = "Le dernier vu tenu au dernier poste posé" },
   { nom = "scriptorium_essai_poste_lacher", fonction = function() return poste.essai_poste_lacher() end, aide = "Le dernier vu lâché de son poste" },
+  { nom = "scriptorium_essai_postes_lot_un", fonction = function() return poste.essai_postes_lot(1) end, aide = "Quatre postes du catalogue (lot 1) et un homme à chacun" },
+  { nom = "scriptorium_essai_postes_lot_deux", fonction = function() return poste.essai_postes_lot(2) end, aide = "Quatre postes du catalogue (lot 2) et un homme à chacun" },
+  { nom = "scriptorium_essai_postes_lot_trois", fonction = function() return poste.essai_postes_lot(3) end, aide = "Quatre postes du catalogue (lot 3) et un homme à chacun" },
+  { nom = "scriptorium_essai_postes_lot_quatre", fonction = function() return poste.essai_postes_lot(4) end, aide = "Quatre postes du catalogue (lot 4) et un homme à chacun" },
+  { nom = "scriptorium_essai_postes_fin", fonction = function() return poste.essai_postes_fin() end, aide = "Hommes lâchés des postes, postes retirés" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
