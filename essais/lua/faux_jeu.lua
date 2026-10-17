@@ -248,6 +248,11 @@ function faux.faire_venir_cheval(nom, position)
   faux.positions[identifiant] = position
   return identifiant
 end
+-- V73 f 3 b : la selle d'un cheval (« chevaux_montes » posé par les essais), à pied par défaut.
+function faux.cheval_monte(identifiant)
+  if faux.chevaux_montes and faux.chevaux_montes[identifiant] ~= nil then return faux.chevaux_montes[identifiant] end
+  return false
+end
 function faux.retirer_cheval(identifiant)
   if faux.chevaux then faux.chevaux[identifiant] = nil end
   faux.objets_existants[identifiant] = nil

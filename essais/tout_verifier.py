@@ -648,6 +648,16 @@ def verifier_identifiants():
         end
         if perdus_dits ~= 0 then return "allure : « perdu » dit pour un cavalier qui suit Henry" end
         l.chefs["scriptorium_second"] = nil
+        -- V73 f 3 b : la selle d'un de nos chevaux (horse:HasRider, la lecture d'Henry à cheval) ; illisible : nil.
+        local selle = { HasRider = function() return 1 end }
+        System.entites["scriptorium_cheval_essai"] = { horse = selle }
+        if l.cheval_monte("scriptorium_cheval_essai") ~= true then return "selle : en selle non lu" end
+        selle.HasRider = function() return nil end
+        if l.cheval_monte("scriptorium_cheval_essai") ~= false then return "selle : à pied non lu" end
+        System.entites["scriptorium_cheval_essai"] = {}
+        if l.cheval_monte("scriptorium_cheval_essai") ~= nil then return "selle illisible : pas nil" end
+        System.entites["scriptorium_cheval_essai"] = nil
+        if l.cheval_monte("scriptorium_cheval_essai") ~= nil then return "cheval absent : pas nil" end
         -- V73 f 3 a : la carte lue (la première lecture qui répond), les abonnements de chargement et leur ligne.
         System.GetCVar = function(nom) if nom == "sv_map" then return "kutnohorsko" end return nil end
         local carte_l, source_l = l.carte_courante()

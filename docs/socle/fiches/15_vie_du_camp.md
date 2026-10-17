@@ -2309,21 +2309,28 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
    - **tout de suite** : chaque cavalier (homme ou Directeur) **monté**, en sortie, à plus de `cheval_saut_m` (150) de son
      chef, et ceux qui suivent l'un d'eux (la colonne saute ensemble ; les chefs lus avant tout saut), sont mis en saut :
      leur ordre est redonné **à pied** (ils descendent : vu en jeu en V73 f 2 d, environ 4 s) ;
-   - **`saut_descente_ms` (3000) plus tard**, par minuterie : leurs chevaux sont retirés, eux posés derrière Henry (hors
-     de sa vue), leur saut finit, leur ordre est redonné (un nouveau cheval naît près de chacun, un nom neuf
-     `…_saut1`) ;
-   - **sous les yeux d'Henry** à ce moment : le cheval est retiré, l'homme reste en saut ; le rattrapage du battement le
-     pose quand Henry détourne les yeux, puis, revenu près de son chef, un nouveau cheval ;
+   - **pas de saut sous les yeux d'Henry** (seconde relecture du pair) : un cavalier dans son regard
+     (`secours_vue_cos`) et à moins de `saut_vue_m` (300) ne saute pas : il est en selle, la boucle d'allure le ramène au
+     galop (une ligne au journal). Au-delà de 300 m, il ne se voit plus (`henry_voit` ne lit que la direction) ;
+   - **`saut_descente_ms` (3000) plus tard**, par minuterie, pour chacun : rien ne se fait tant qu'il est **encore en
+     selle** (lu par `horse:HasRider` sur son cheval, `liaison.cheval_monte`, la lecture d'Henry à cheval ; illisible
+     compte comme en selle), que lui ou son cheval est sous les yeux d'Henry, ou que la place derrière Henry l'est : on
+     attend `saut_attente_ms` (2000), `saut_attentes_max` (3) fois au plus ; ensuite le saut est **abandonné**, il
+     rejoint à cheval (rien n'a été retiré). Sinon son cheval est retiré (au journal : « à pied, lu à N s », la durée de
+     la descente à 2 s près), il est posé derrière Henry, son saut finit, son ordre est redonné (un nouveau cheval naît
+     près de lui, un nom neuf `…_saut1`) ;
    - **le filet** du battement (30 s) : un cavalier loin de son chef sans bond vu lance le même saut ; si la minuterie
-     ne tire pas, le cheval est retiré au deuxième battement après l'ordre à pied (jamais plus tôt) ; un cavalier en
-     saut dont le cheval est encore là n'est jamais rattrapé (homme et Directeur).
+     ne tire pas, le cheval n'est retiré qu'au deuxième battement après l'ordre à pied, à pied lu et hors de la vue
+     d'Henry ; encore en selle à ce moment : saut abandonné ; un cavalier en saut dont le cheval est encore là n'est
+     jamais rattrapé (homme et Directeur).
    - **Latence attendue** : 1 s (la veille) + 3 s = 4 s environ ; à mesurer en jeu. Le voyage rapide par la carte, et
      s'il donne un `OnLoadingComplete` (second signe possible, demandé par le pair) : à voir par JoVenGer.
 6. **Qui passe** reste la décision de Scriptorium : ce sont les tenues posées par le guichet.
 
 ### Règles en données (catalogue)
-- `hommes.reglages` : `escorte_derriere_m` 6, `cheval_saut_m` 150, `henry_bond_m` 50, `saut_descente_ms` 3000 (toute la
-  table est réglable par la section `hommes` ; les trois en mètres acceptent les décimales, `taux`).
+- `hommes.reglages` : `escorte_derriere_m` 6, `cheval_saut_m` 150, `henry_bond_m` 50, `saut_descente_ms` 3000,
+  `saut_attente_ms` 2000, `saut_attentes_max` 3, `saut_vue_m` 300 (toute la table est réglable par la section `hommes` ;
+  les valeurs en mètres acceptent les décimales, `taux`).
 
 ### Essais au banc (faits, tout passe)
 - `essai_hommes.lua` : « autre carte » (le camp, l'enceinte et leurs relances ne bougent pas ; seule l'escorte est
@@ -2331,8 +2338,10 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   laissé, puis refait s'il suit ; une place de biais si le droit derrière est sous ses yeux ; au retour tout paraît) ;
   « grand saut » (30 m en une veille : rien ; un bond de 400 m : la colonne de deux descend tout de suite, le second
   parce qu'il suit le premier ; un battement pendant la descente ne pose personne ; la minuterie de 3 s : chevaux
-  retirés, posés 4 m derrière Henry, nouveaux chevaux, ordre à cheval ; sous les yeux d'Henry : en saut, rattrapé
-  ensuite ; le filet : cheval retiré au deuxième battement seulement ; le Directeur de même). Les anciens essais
+  retirés, posés 4 m derrière Henry, nouveaux chevaux, ordre à cheval ; à 210 m sous ses yeux : pas de saut ; à 760 m
+  dans son regard : le saut ; encore en selle : rien retiré, attente de 2 s, le second lu à pied à 5 s et posé, le
+  premier abandonné à 9 s et rejoignant à cheval ; le filet : retrait au deuxième battement seulement, et pas sous un
+  cavalier ; le Directeur de même). La liaison : `cheval_monte` (en selle, à pied, illisible, absent). Les anciens essais
   « jamais posé seul à cheval » passent à 120 m (entre le rattrapage et le saut) pour garder leur sens.
 - `essai_camp.lua` : la carte prise sur preuve, et rien sans objet ici. `essai_bataille.lua` : aucune bande née
   ailleurs, la règle tranche ; au contact, rien lu de l'autre carte.
@@ -2373,6 +2382,9 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   non le relevé écarté de la boucle d'allure, qui ne tourne que dans le cerveau des cavaliers montés) ; la suite par
   minuterie de 3 s. L'essai a montré un défaut de plus, corrigé : le rattrapage du battement posait un cavalier en saut
   dont le cheval n'était pas encore retiré.
+- Après 7a4a05f, seconde relecture du pair, deux points pris : les 3 s ne sont qu'une estimation, la selle est lue avant
+  tout retrait (attentes, puis abandon) ; rien ne saute ni ne disparaît sous les yeux d'Henry. Ajout de ma part : la vue
+  bornée à `saut_vue_m`, sans quoi un cavalier à un kilomètre dans la direction du regard « se verrait ».
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

@@ -1314,6 +1314,20 @@ function liaison.henry_a_cheval(pres)
   return false
 end
 
+-- V73 f 3 b (relecture du pair) : un de nos chevaux porte-t-il encore son cavalier (horse:HasRider, la lecture d'Henry
+-- à cheval) ? Rend vrai, faux, ou nil si rien n'est lisible.
+function liaison.cheval_monte(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return nil
+  end
+  local lu, monte = pcall(function() return entite.horse:HasRider() end)
+  if not lu then
+    return nil
+  end
+  return monte and true or false
+end
+
 -- Séance d'essai (V73 f 2 d) : le cheval d'Henry amené à « distance » m devant lui, au sol, sur une place que rien
 -- n'encombre (sol_de). Rend (vrai, ligne) ou (faux, raison).
 function liaison.amener_le_cheval_d_henry(distance)

@@ -29,7 +29,7 @@ reglages.catalogue = {
     allure_pas_m_s = true, allure_course_m_s = true, allure_galop_m_s = true, allure_marge = true, allure_place_m = true,
     allure_plus_m = true, allure_moins_m = true, allure_freinage_m = true, allure_saut_m_s = true, allure_perdu_m = true,
     allure_rang_m = true, escorte_derriere_m = true, cheval_saut_m = true,
-    henry_bond_m = true } },
+    henry_bond_m = true, saut_vue_m = true } },
   { section = "cerveau", morceau = "hommes", table = "cerveau" },
   { section = "priorites", morceau = "hommes", table = "priorites" },
   { section = "rondes", morceau = "hommes", table = "rondes", taux = { rayon_m = true } },

@@ -128,6 +128,12 @@ hommes.reglages = {
   -- retiré et le cavalier posé derrière Henry.
   henry_bond_m = 50,
   saut_descente_ms = 3000,
+  -- (relecture du pair) Jamais un cheval retiré sous son cavalier : encore en selle (lu), on attend « saut_attente_ms »,
+  -- « saut_attentes_max » fois au plus, puis le saut est abandonné (il rejoint à cheval). Ni saut ni retrait sous les
+  -- yeux d'Henry : dans son regard et à moins de « saut_vue_m ».
+  saut_attente_ms = 2000,
+  saut_attentes_max = 3,
+  saut_vue_m = 300,
   allure_perdu_m = 13,
   allure_rang_m = 6,
   anciens_gardes = 50,
@@ -1973,13 +1979,21 @@ function hommes.rattraper(personnage, chef, nom)
 end
 
 -- Posé « suivi_derriere_m » derrière Henry, jamais sous ses yeux (dit une fois qu'il attend). Rend vrai s'il est posé.
-function hommes.poser_derriere_henry(personnage, nom, motif)
+function hommes.point_derriere_henry()
   local henry, cap = jeu().position_du_joueur(), jeu().cap_du_joueur()
   if not henry then
+    return nil
+  end
+  local recul = tonumber(hommes.reglages.suivi_derriere_m) or 0
+  return { x = henry.x - recul * math.sin(math.rad(cap)), y = henry.y - recul * math.cos(math.rad(cap)), z = henry.z }
+end
+
+function hommes.poser_derriere_henry(personnage, nom, motif)
+  local ou = hommes.point_derriere_henry()
+  if not ou then
     return false
   end
   local recul = tonumber(hommes.reglages.suivi_derriere_m) or 0
-  local ou = { x = henry.x - recul * math.sin(math.rad(cap)), y = henry.y - recul * math.cos(math.rad(cap)), z = henry.z }
   if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true then
     if not hommes.rattrapages_en_attente[personnage] then
       hommes.rattrapages_en_attente[personnage] = true
@@ -2395,6 +2409,19 @@ function hommes.suivi_du_directeur(role, formation)
   return suivi_a_cheval("directeur", p.personnage, role, formation)
 end
 
+-- Henry voit-il ce point, pour le saut (V73 f 3 b, relecture du pair) ? Dans son regard (« secours_vue_cos ») et à moins
+-- de « saut_vue_m » (au-delà, un cavalier ne se voit plus).
+local function sous_les_yeux_d_henry(point)
+  local henry = jeu().position_du_joueur()
+  if not (point and henry) then
+    return false
+  end
+  if math.sqrt((point.x - henry.x) ^ 2 + (point.y - henry.y) ^ 2) > hommes.reglages.saut_vue_m then
+    return false
+  end
+  return jeu().henry_voit(point, hommes.reglages.secours_vue_cos) == true
+end
+
 -- Le grand saut d'un cavalier (V73 f 3 b), vu au battement (le filet ; le bond d'Henry le voit en une seconde) : à plus
 -- de « cheval_saut_m » de son chef, le saut rapide est lancé (hommes.lancer_les_sauts) ; un cavalier encore en saut (la
 -- pose attendait qu'Henry détourne les yeux), revenu près de son chef (moins de « suivi_loin_m »), finit son saut : un
@@ -2437,9 +2464,18 @@ local function veiller_aux_montures(d)
       m.saut_vu = (m.saut_vu or 0) + 1
     end
     if m.saut and m.saut_ordonne and m.cheval and m.saut_vu >= 2 then
-      jeu().retirer_cheval(m.cheval)
-      jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré (grand saut de « " .. tostring(f and f.nom or id) .. " »)")
-      m.cheval = nil
+      local monte = jeu().cheval_monte(m.cheval)
+      if monte == true then
+        m.saut, m.saut_ordonne, m.saut_vu = nil, nil, nil
+        jeu().journal("Hommes : « " .. tostring(f and f.nom or id) .. " » toujours en selle : saut abandonné, il rejoint à cheval")
+        if f then
+          f.derniere_activite = nil
+        end
+      elseif monte == false and not sous_les_yeux_d_henry(jeu().position_du_personnage(m.cheval)) then
+        jeu().retirer_cheval(m.cheval)
+        jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré (grand saut de « " .. tostring(f and f.nom or id) .. " »)")
+        m.cheval = nil
+      end
     end
     if f and f.personnage and en_sortie then
       local n = jeu().montes_manquees(f.personnage)
@@ -2560,6 +2596,19 @@ local function redonner_l_ordre(d, cle, heure)
   end
 end
 
+-- La fin des sauts, « essai » (1 au premier passage), après « ms » ; seulement dans la même partie.
+local function programmer_la_fin(essai, ms)
+  local generation = Scriptorium.generation
+  jeu().minuterie(ms, function()
+    if generation == Scriptorium.generation and Scriptorium.en_partie then
+      local ok, erreur = pcall(hommes.finir_les_sauts, essai)
+      if not ok then
+        jeu().journal("Hommes : fin des sauts en erreur : " .. tostring(erreur))
+      end
+    end
+  end)
+end
+
 function hommes.lancer_les_sauts()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
@@ -2574,8 +2623,12 @@ function hommes.lancer_les_sauts()
         a = hommes.activite_de(cle, heure)
       end
       if a and a.activite == "suivre" and a.chef and a.suivi and a.suivi.mode == "cheval" then
-        candidats[cle] = { f = f, chef = a.chef }
-        par_personnage[f.personnage] = cle
+        if sous_les_yeux_d_henry(jeu().position_du_personnage(f.personnage)) then
+          jeu().journal("Hommes : « " .. tostring(f.nom) .. " » sous les yeux d'Henry : pas de saut, il rejoint à cheval")
+        else
+          candidats[cle] = { f = f, chef = a.chef }
+          par_personnage[f.personnage] = cle
+        end
       end
     end
   end
@@ -2606,40 +2659,66 @@ function hommes.lancer_les_sauts()
     redonner_l_ordre(d, cle, heure)
   end
   if n > 0 then
-    local generation = Scriptorium.generation
-    jeu().minuterie(hommes.reglages.saut_descente_ms, function()
-      if generation == Scriptorium.generation and Scriptorium.en_partie then
-        local ok, erreur = pcall(hommes.finir_les_sauts)
-        if not ok then
-          jeu().journal("Hommes : fin des sauts en erreur : " .. tostring(erreur))
-        end
-      end
-    end)
+    programmer_la_fin(1, hommes.reglages.saut_descente_ms)
   end
   return n
 end
 
--- La fin du saut rapide : chaque cavalier en saut qui a eu son ordre à pied perd son cheval, puis il est posé derrière
--- Henry (jamais sous ses yeux : sinon il attend, et le battement le rattrape ensuite) ; posé, son saut finit et son ordre
--- est redonné (un nouveau cheval naît près de lui). Rend le nombre de cavaliers posés.
-function hommes.finir_les_sauts()
+-- La fin du saut rapide, passage « essai » : pour chaque cavalier en saut qui a eu son ordre à pied, rien ne se fait
+-- tant qu'il est encore en selle (lu), que lui ou son cheval est sous les yeux d'Henry, ou que la place derrière Henry
+-- l'est : on attend « saut_attente_ms », « saut_attentes_max » fois au plus ; ensuite le saut est abandonné, il rejoint à
+-- cheval. Sinon son cheval est retiré (la durée de la descente au journal), il est posé derrière Henry, son saut finit et
+-- son ordre est redonné (un nouveau cheval naît près de lui). Rend le nombre de cavaliers posés.
+function hommes.finir_les_sauts(essai)
+  essai = essai or 1
   local d = donnees()
   local heure = jeu().heure_du_jeu()
-  local poses = 0
+  local r = hommes.reglages
+  local ecoule_s = (r.saut_descente_ms + (essai - 1) * r.saut_attente_ms) / 1000
+  local poses, attendent = 0, 0
   for cle, m in pairs(hommes.montures) do
     if m.saut and m.saut_ordonne then
       local f = porteur(cle, d)
-      if m.cheval then
-        jeu().retirer_cheval(m.cheval)
-        jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré (grand saut de « " .. tostring(f and f.nom or cle) .. " »)")
-        m.cheval = nil
+      local nom = tostring(f and f.nom or cle)
+      local attente = nil
+      local monte = m.cheval and jeu().cheval_monte(m.cheval)
+      if m.cheval and monte ~= false then
+        attente = (monte == true) and "encore en selle" or "selle illisible"
+      elseif m.cheval and sous_les_yeux_d_henry(jeu().position_du_personnage(m.cheval)) then
+        attente = "son cheval sous les yeux d'Henry"
+      elseif f and f.personnage and sous_les_yeux_d_henry(jeu().position_du_personnage(f.personnage)) then
+        attente = "sous les yeux d'Henry"
+      else
+        local ou = hommes.point_derriere_henry()
+        if not ou or jeu().henry_voit(ou, r.secours_vue_cos) == true then
+          attente = "la place derrière Henry sous ses yeux"
+        end
       end
-      if f and f.personnage and hommes.poser_derriere_henry(f.personnage, f.nom, "en grand saut") then
-        m.saut, m.saut_ordonne, m.saut_vu, m.sauts = nil, nil, nil, (m.sauts or 0) + 1
-        poses = poses + 1
+      if attente and essai <= r.saut_attentes_max then
+        attendent = attendent + 1
+        jeu().journal("Hommes : « " .. nom .. " » " .. attente .. " à " .. string.format("%g", ecoule_s) .. " s : il attend")
+      elseif attente and m.cheval then
+        m.saut, m.saut_ordonne, m.saut_vu = nil, nil, nil
+        jeu().journal("Hommes : « " .. nom .. " » " .. attente .. " à " .. string.format("%g", ecoule_s)
+                      .. " s : saut abandonné, il rejoint à cheval")
         redonner_l_ordre(d, cle, heure)
+      elseif not attente then
+        if m.cheval then
+          jeu().retirer_cheval(m.cheval)
+          jeu().journal("Hommes : « " .. nom .. " » à pied, lu à " .. string.format("%g", ecoule_s) .. " s : cheval « "
+                        .. m.cheval .. " » retiré (grand saut)")
+          m.cheval = nil
+        end
+        if f and f.personnage and hommes.poser_derriere_henry(f.personnage, f.nom, "en grand saut") then
+          m.saut, m.saut_ordonne, m.saut_vu, m.sauts = nil, nil, nil, (m.sauts or 0) + 1
+          poses = poses + 1
+          redonner_l_ordre(d, cle, heure)
+        end
       end
     end
+  end
+  if attendent > 0 then
+    programmer_la_fin(essai + 1, r.saut_attente_ms)
   end
   return poses
 end

@@ -2797,37 +2797,62 @@ essai("grand saut (fiche 15, V73 f 3 b) : au bond d'Henry, la colonne descend to
     local o = dernier_ordre_de(perso[i])
     egal(o and o.suivi and o.suivi.mode, "cheval", "l'homme " .. i .. " : de nouveau à cheval")
   end
-  -- Sous les yeux d'Henry à la fin : cheval retiré, il attend ; le battement le rattrape ensuite, puis un nouveau cheval.
+  -- Sous les yeux d'Henry, à moins de 300 m : pas de saut, il rejoint à cheval.
   local c3 = hommes.montures[ids[1]].cheval
   FauxJeu.positions[perso[1]] = { x = 100, y = 440, z = 0 }
-  FauxJeu.position_joueur = { x = 100, y = 900, z = 0 }
-  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.positions[perso[2]] = { x = 100, y = 440, z = 0 }
+  FauxJeu.vue_d_henry = function(p) return math.abs(p.y - FauxJeu.position_joueur.y) > 100 end
+  FauxJeu.position_joueur = { x = 100, y = 650, z = 0 }
   hommes.veiller_henry()
+  verifier(not hommes.montures[ids[1]].saut, "à 210 m sous ses yeux : pas de saut")
+  verifier(journal_contient("sous les yeux d'Henry : pas de saut, il rejoint à cheval"), "dit au journal")
+  -- Hors de ses yeux mais encore en selle : rien n'est retiré ; on attend 2 s, trois fois au plus, puis le saut est
+  -- abandonné (il rejoint à cheval) ; descendu entre-temps : son cheval retiré, la durée au journal.
+  local c_second = hommes.montures[ids[2]].cheval
+  FauxJeu.chevaux_montes = { [c3] = true, [c_second] = true }
+  FauxJeu.position_joueur = { x = 100, y = 1200, z = 0 }
+  hommes.veiller_henry()
+  verifier(hommes.montures[ids[1]].saut and hommes.montures[ids[2]].saut, "à 760 m, même dans son regard : les deux en saut")
   Scriptorium.en_partie = true
   FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
-  Scriptorium.en_partie = false
-  verifier(FauxJeu.chevaux[c3] == nil, "sous ses yeux : le cheval retiré quand même")
-  verifier(hommes.montures[ids[1]].saut, "pas posé : toujours en saut")
-  FauxJeu.vue_d_henry = nil
+  verifier(FauxJeu.chevaux[c3] ~= nil and FauxJeu.chevaux[c_second] ~= nil, "encore en selle à 3 s : rien retiré")
+  verifier(journal_contient("encore en selle à 3 s : il attend"), "l'attente au journal")
+  egal(FauxJeu.minuteries[#FauxJeu.minuteries].ms, 2000, "on attend 2 s")
+  FauxJeu.chevaux_montes[c_second] = false
   FauxJeu.secours = {}
-  hommes.battre()
-  hommes.battre()
-  verifier(#FauxJeu.secours >= 1, "le battement le rattrape")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  verifier(FauxJeu.chevaux[c_second] == nil, "le second à pied à 5 s : son cheval retiré")
+  verifier(journal_contient("à pied, lu à 5 s"), "la durée de la descente au journal")
+  egal(#FauxJeu.secours, 1, "le second posé")
+  local n_min = #FauxJeu.minuteries
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.minuteries, n_min + 1, "trois attentes au plus")
+  Scriptorium.en_partie = false
+  verifier(FauxJeu.chevaux[c3] ~= nil, "le premier toujours en selle : son cheval jamais retiré")
+  verifier(not hommes.montures[ids[1]].saut, "son saut abandonné")
+  verifier(journal_contient("encore en selle à 9 s : saut abandonné, il rejoint à cheval"), "l'abandon au journal")
+  local o1 = dernier_ordre_de(perso[1])
+  egal(o1 and o1.suivi and o1.suivi.mode, "cheval", "il rejoint à cheval")
+  FauxJeu.chevaux_montes, FauxJeu.vue_d_henry = nil, nil
+  -- Le filet, si la minuterie ne tire pas : le cheval n'est retiré qu'au deuxième battement après l'ordre à pied, et
+  -- seulement à pied ; encore en selle à ce moment : saut abandonné.
+  FauxJeu.positions[perso[1]] = { x = 100, y = 1196, z = 0 }
+  FauxJeu.positions[perso[2]] = { x = 100, y = 1196, z = 0 }
   for _ = 1, 3 do hommes.battre() end
-  verifier(not hommes.montures[ids[1]].saut, "revenu : saut fini")
-  verifier(hommes.montures[ids[1]].cheval ~= nil, "un nouveau cheval")
-  -- Le filet, si la minuterie ne tire pas : le cheval n'est retiré qu'au deuxième battement après l'ordre à pied.
-  local c4 = hommes.montures[ids[1]].cheval
-  FauxJeu.positions[perso[1]] = { x = 100, y = 896, z = 0 }
-  FauxJeu.positions[perso[2]] = { x = 100, y = 896, z = 0 }
-  for _ = 1, 2 do hommes.battre() end
-  FauxJeu.position_joueur = { x = 100, y = 1400, z = 0 }
+  local c4, c5 = hommes.montures[ids[1]].cheval, hommes.montures[ids[2]].cheval
+  verifier(c4 ~= nil and c5 ~= nil, "deux chevaux avant le filet")
+  FauxJeu.position_joueur = { x = 100, y = 1700, z = 0 }
   hommes.battre()
-  verifier(hommes.montures[ids[1]].saut, "vu au battement : en saut")
+  verifier(hommes.montures[ids[1]].saut and hommes.montures[ids[2]].saut, "vu au battement : en saut")
   hommes.battre()
   verifier(FauxJeu.chevaux[c4] ~= nil, "le battement suivant : le cheval reste")
+  FauxJeu.chevaux_montes = { [c5] = true }
   hommes.battre()
-  verifier(FauxJeu.chevaux[c4] == nil, "le deuxième battement : le cheval retiré")
+  verifier(FauxJeu.chevaux[c4] == nil, "le deuxième battement, à pied : le cheval retiré")
+  verifier(FauxJeu.chevaux[c5] ~= nil, "le deuxième battement, encore en selle : le cheval reste")
+  verifier(not hommes.montures[ids[2]].saut, "encore en selle : saut abandonné")
+  FauxJeu.chevaux_montes = nil
   -- Le Directeur, de même.
   verifier(Scriptorium.directeur.installer(), "Directeur installé")
   local dir = Scriptorium.directeur.personnage()
