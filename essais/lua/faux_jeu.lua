@@ -228,9 +228,13 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
-function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure)
+function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef)
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
-                              place = place, sorte = sorte, regard = regard, allure = allure })
+                              place = place, sorte = sorte, regard = regard, allure = allure, chef = chef })
+end
+-- La position d'un personnage (fiche 15, V73 f 1), posée par les essais, ou nil.
+function faux.position_du_personnage(identifiant)
+  return faux.positions and faux.positions[identifiant] or nil
 end
 -- La vue d'Henry (fiche 15, V73 e) : par défaut, rien de lisible (nil) ; un essai peut poser « vue_d_henry ».
 function faux.henry_voit(point, seuil)

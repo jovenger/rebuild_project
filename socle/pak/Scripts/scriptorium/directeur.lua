@@ -150,7 +150,24 @@ function directeur.congedier()
   return true
 end
 
+-- Fiche 15, V73 f 1 : le Directeur suit Henry, en tête (« c'est lui le premier qui me suit » ; service pour le guichet).
+-- Gardé à son registre : au rechargement, l'ordre redonné le remet en route. « oui » à faux : il reprend sa journée.
+function directeur.suivre(oui)
+  local d = donnees()
+  if not d.installe then
+    return refuser("pas_de_directeur")
+  end
+  d.suivre = (oui ~= false) or nil
+  d.derniere_activite = nil
+  enregistrer()
+  directeur.battre()
+  return true
+end
+
 function directeur.activite(heure)
+  if donnees().suivre then
+    return { activite = "suivre", lieu = "henry", chef = "henry", position = jeu().position_du_joueur() }
+  end
   local h = heure - math.floor(heure / 24) * 24
   for _, t in ipairs(directeur.journee) do
     if (t.de < t.a and h >= t.de and h < t.a) or (t.de > t.a and (h >= t.de or h < t.a)) then
@@ -173,9 +190,14 @@ function directeur.battre()
     local sorte = camp().sorte_de(a.lieu)
     local objet = sorte and camp().sortes_places[sorte] and camp().objet_du_jeu_de(a.lieu) or nil
     local position = objet and a.position or camp().abord_de(a.lieu) or a.position
-    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil)
+    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, nil, nil, a.chef)
     d.derniere_activite = a.activite
     rapport.ordres = 1
+  elseif a and a.activite == "suivre" and Scriptorium.hommes
+      and Scriptorium.hommes.rattraper(d.personnage, a.chef, "Directeur") then
+    -- Le rattrapage (V73 f 1) : posé derrière Henry, son ordre redonné au battement suivant.
+    d.derniere_activite = nil
+    rapport.rattrapages = 1
   end
   return rapport
 end

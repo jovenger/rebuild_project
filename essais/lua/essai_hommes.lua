@@ -2062,3 +2062,119 @@ essai("rassemblement (fiche 15, V73 e) : les places du briefing d'essai, pour un
   end
 end)
 
+-- Fiche 15, V73 f 1 : suivre Henry, à pied (réponses recommandées prises d'office le 17/10, relecture du pair).
+local function escorter(id, chef)
+  return hommes.tenir(id, "escorte", { activite = "suivre", lieu = "escorte", chef = chef, fin = "liberation" })
+end
+
+essai("escorte (fiche 15, V73 f 1) : la colonne, chacun suit le précédent ; le rang dans la signature ; un lâché, les suivants changent de chef", function()
+  preparer(5000, 100, 10)
+  local ids, perso = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+  end
+  hommes.battre()
+  local ok, raison = escorter(ids[1], "personne")
+  verifier(not ok and raison == "escorte_invalide", "un chef inconnu : refusé")
+  ok, raison = escorter(ids[1], ids[1])
+  verifier(not ok and raison == "escorte_invalide", "il ne se suit pas lui-même")
+  FauxJeu.ordres = {}
+  for i = 1, 3 do verifier(escorter(ids[i]), "escorte " .. i) end
+  local a1, a2, a3 = hommes.activite_de(ids[1], 10), hommes.activite_de(ids[2], 10), hommes.activite_de(ids[3], 10)
+  egal(a1.chef, "henry", "le premier suit Henry")
+  egal(a2.chef, perso[1], "le deuxième suit le premier")
+  egal(a3.chef, perso[2], "le troisième suit le deuxième")
+  egal(a3.signature, "3/3", "le rang dans la signature")
+  local o = dernier_ordre_de(perso[3])
+  egal(o and o.activite, "suivre", "l'ordre de suivre part")
+  egal(o and o.chef, perso[2], "l'ordre porte le chef")
+  FauxJeu.ordres = {}
+  hommes.lacher(ids[1], "escorte")
+  egal(hommes.activite_de(ids[2], 10).chef, "henry", "le premier lâché : le deuxième suit Henry")
+  egal(hommes.activite_de(ids[3], 10).chef, perso[2], "le troisième suit toujours le deuxième")
+  verifier(dernier_ordre_de(perso[2]) ~= nil and dernier_ordre_de(perso[2]).chef == "henry", "le deuxième reçoit son nouveau chef")
+  verifier(dernier_ordre_de(perso[3]) ~= nil, "le troisième reçoit son ordre (son rang a changé)")
+end)
+
+essai("escorte (fiche 15, V73 f 1) : jamais de secours ordinaire pour un suiveur ; à plus de 60 m, rattrapé 4 m derrière Henry, hors secours_max ; jamais sous ses yeux ni en combat", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 50, y = 50, z = 0 }, 0
+  escorter(id)
+  FauxJeu.secours = {}
+  for _ = 1, 10 do
+    FauxJeu.positions[f.personnage] = { x = 50, y = 47, z = 0 }   -- à 3 m d'Henry, sans jamais se rapprocher
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 0, "à 3 m, dix battements sans progrès : aucun secours")
+  local avant = hommes.reglages.secours_max
+  hommes.reglages.secours_max = 0
+  FauxJeu.positions[f.personnage] = { x = 50, y = -20, z = 0 }    -- à 70 m
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "à 70 m : rattrapé, même secours coupé")
+  local ou = FauxJeu.secours[1] and FauxJeu.secours[1].position
+  pres(ou and ou.x, 50, "4 m derrière Henry (x)")
+  pres(ou and ou.y, 46, "4 m derrière Henry (y), Henry face au nord")
+  hommes.battre()   -- l'ordre redonné
+  FauxJeu.positions[f.personnage] = { x = 50, y = -20, z = 0 }
+  hommes.battre()
+  egal(#FauxJeu.secours, 2, "une seconde fois : pas de limite de nombre")
+  -- Sous les yeux d'Henry : il attend, une ligne une seule fois.
+  FauxJeu.journal_lignes = {}
+  FauxJeu.vue_d_henry = function() return true end
+  hommes.battre()
+  FauxJeu.positions[f.personnage] = { x = 50, y = -20, z = 0 }
+  hommes.battre()
+  hommes.battre()
+  egal(#FauxJeu.secours, 2, "Henry regarde l'endroit : pas de rattrapage")
+  egal(lignes_contenant("à rattraper, mais Henry regarde l'endroit"), 1, "dit une seule fois")
+  FauxJeu.vue_d_henry = nil
+  -- En combat : jamais.
+  FauxJeu.occupations[f.personnage] = "combat"
+  hommes.battre()
+  egal(#FauxJeu.secours, 2, "en combat : jamais rattrapé")
+  FauxJeu.occupations[f.personnage] = nil
+  -- suivi_loin_m à 0 : jamais.
+  local loin = hommes.reglages.suivi_loin_m
+  hommes.reglages.suivi_loin_m = 0
+  hommes.battre()
+  egal(#FauxJeu.secours, 2, "suivi_loin_m à 0 : jamais")
+  hommes.reglages.suivi_loin_m = loin
+  hommes.reglages.secours_max = avant
+end)
+
+essai("escorte (fiche 15, V73 f 1) : le Directeur suit Henry, gardé au registre ; la colonne derrière lui ; lâché, il reprend sa journée", function()
+  preparer(5000, 100, 10)
+  verifier(Scriptorium.directeur.installer(), "Directeur installé")
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local directeur_perso = Scriptorium.directeur.personnage()
+  hommes.battre()
+  Scriptorium.directeur.battre()
+  FauxJeu.ordres = {}
+  verifier(Scriptorium.directeur.suivre(true), "le Directeur suit")
+  local o = dernier_ordre_de(directeur_perso)
+  egal(o and o.activite, "suivre", "son ordre : suivre")
+  egal(o and o.chef, "henry", "Henry pour chef")
+  verifier(escorter(id, "directeur"), "l'escorte derrière le Directeur")
+  egal(hommes.activite_de(id, 10).chef, directeur_perso, "l'homme suit le Directeur")
+  -- Le registre : après rechargement, il suit toujours.
+  local chaine, objets = FauxJeu.registre_stocke, FauxJeu.objets_existants
+  depart()
+  FauxJeu.heure = 10
+  FauxJeu.registre_stocke, FauxJeu.objets_existants = chaine, objets
+  egal(Scriptorium.directeur.activite(10).activite, "suivre", "relu : il suit toujours")
+  Scriptorium.directeur.relancer()
+  FauxJeu.ordres = {}
+  Scriptorium.directeur.battre()
+  o = dernier_ordre_de(Scriptorium.directeur.personnage())
+  egal(o and o.activite, "suivre", "relancé : l'ordre de suivre redonné")
+  -- Lâché : sa journée.
+  FauxJeu.ordres = {}
+  verifier(Scriptorium.directeur.suivre(false), "le Directeur ne suit plus")
+  o = dernier_ordre_de(Scriptorium.directeur.personnage())
+  verifier(o ~= nil and o.activite ~= "suivre", "il reprend sa journée : " .. tostring(o and o.activite))
+end)
+

@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 143:
-        erreur("ordres : %d commandes lues dans poste.lua, 143 attendues" % len(connues))
+    if len(connues) != 145:
+        erreur("ordres : %d commandes lues dans poste.lua, 145 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -466,6 +466,23 @@ def verifier_identifiants():
         if XGenAIModule.variables.scriptorium_allure ~= 0 then return "garde : allure " .. tostring(XGenAIModule.variables.scriptorium_allure) end
         System.entites["scriptorium_rondier"] = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
+        -- Suivre (fiche 15, V73 f 1) : le WUID du chef écrit avant l'ordre 14 ; un chef introuvable : une marche.
+        System.entites["scriptorium_rondier"] = rondier
+        player = { nom = "henry" }
+        local suivi = { GetName = function() return "scriptorium_chef_d_essai" end }
+        System.entites["scriptorium_chef_d_essai"] = suivi
+        XGenAIModule.GetMyWUID = function(e) return e == player and "wuid_henry" or (e == suivi and "wuid_chef" or nil) end
+        XGenAIModule.variables = {}
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "escorte", nil, nil, nil, nil, "henry")
+        if XGenAIModule.variables.scriptorium_chef ~= "wuid_henry" then return "suivre Henry : chef " .. tostring(XGenAIModule.variables.scriptorium_chef) end
+        if not string.find(lignes[#lignes], "suit « henry »", 1, true) then return "la ligne ne dit pas qui il suit" end
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "escorte", nil, nil, nil, nil, "scriptorium_chef_d_essai")
+        if XGenAIModule.variables.scriptorium_chef ~= "wuid_chef" then return "suivre un homme : chef " .. tostring(XGenAIModule.variables.scriptorium_chef) end
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "escorte", nil, nil, nil, nil, "personne")
+        if not string.find(lignes[#lignes], "introuvable, marche", 1, true) then return "un chef introuvable : " .. lignes[#lignes] end
+        System.entites["scriptorium_rondier"], System.entites["scriptorium_chef_d_essai"] = nil, nil
+        XGenAIModule.GetMyWUID = nil
+        l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
         -- La vue d'Henry : à moins de 60° de son regard, il voit ; derrière lui, non ; sans Henry, rien de lisible.
         player = { GetWorldPos = function() return { x = 0, y = 0, z = 0 } end,
                    GetWorldAngles = function() return { x = 0, y = 0, z = 0 } end }   -- face au nord
@@ -483,7 +500,7 @@ def verifier_identifiants():
         local lu, vue = pcall(l.voir_sur_la_place, "scriptorium_rondier", nil)
         System.entites["scriptorium_rondier"] = nil
         if not lu then return "lecture du poste sur un rondier : " .. tostring(vue) end
-        if not string.find(vue, "à 5.00 m de son but, pas de ronde 1 ;", 1, true) then return "lecture du poste : " .. vue end
+        if not string.find(vue, "à 5.00 m de son but, pas de ronde 1, à - m de son chef ;", 1, true) then return "lecture du poste : " .. vue end
         XGenAIModule = nil
         l.pas_de_ronde = nil
         System.LogAlways = journal_d_origine
@@ -1161,6 +1178,27 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : la variable de l'arbre allure (enum:movementSpeed) n'est pas déclarée")
     if '"scriptorium_allure", allure == "course" and 1 or 0' not in liaison:
         erreur("vie du camp : la liaison doit écrire scriptorium_allure à chaque ordre de poste")
+    # Fiche 15, V73 f 1 (suivre Henry) : la branche 14 appelle la fonction de suivi du jeu avec le chef du cerveau et nos
+    # huit distances ; la liaison écrit le chef avant l'ordre 14 ; et la fonction du jeu a toujours ses paramètres (une
+    # mise à jour du jeu casserait l'appel en silence).
+    branche14 = comportements.split("$scriptorium_activite == 14", 1)
+    attendus = {"leader": "$scriptorium_chef", "run2sprint": "$suivi_course_sprint", "run2walk": "$suivi_course_marche",
+                "sprint2run": "$suivi_sprint_course", "sprint2walk": "$suivi_sprint_marche", "startDistance": "$suivi_depart",
+                "stopDistance": "$suivi_arret", "walk2run": "$suivi_marche_course", "walk2sprint": "$suivi_marche_sprint"}
+    appel_suivi = re.search(r"<Function_followNpc\b([^>]*)/>", branche14[1]) if len(branche14) == 2 else None
+    trouves = dict(re.findall(r'(\w+)="([^"]*)"', appel_suivi.group(1))) if appel_suivi else {}
+    if not appel_suivi or any(trouves.get(k) != v for k, v in attendus.items()):
+        erreur("vie du camp : la branche 14 doit appeler Function_followNpc avec $scriptorium_chef et les huit distances : %s" % trouves)
+    if "poser_l_activite(entite, 14)" not in liaison or '"scriptorium_chef", wuid' not in liaison:
+        erreur("vie du camp : la liaison doit écrire scriptorium_chef avant l'ordre 14")
+    pak = os.path.join(JEU, "Data", "Scripts.pak")
+    if os.path.exists(pak):
+        with zipfile.ZipFile(pak) as archive:
+            utils = archive.read("AI/move/moveUtils.xml").decode("utf-8", "replace")
+        fonction = re.search(r'<BehaviorTree name="followNpc" is_function="1">(.*?)</BehaviorTree>', utils, re.S)
+        parametres = dict(re.findall(r'<Variable name="(\w+)" type="([^"]+)"[^>]*requirementType="In"', fonction.group(1))) if fonction else {}
+        if not fonction or parametres.get("leader") != "_wuid" or set(attendus) - set(parametres):
+            erreur("vie du camp : la fonction followNpc du jeu a changé (paramètres : %s)" % parametres)
     if '<Variable name="ronde_pause" type="_string"' not in comportements:
         erreur("vie du camp : la variable de l'arbre ronde_pause (_string) n'est pas déclarée")
     for nom, texte in arbres.items():

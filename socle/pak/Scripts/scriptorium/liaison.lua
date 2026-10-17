@@ -2375,15 +2375,19 @@ liaison.regards = {}
 -- d'essai, qui dit l'écart entre l'homme et ce but ; et ses pas de ronde. En mémoire seulement.
 liaison.buts = {}
 liaison.pas_de_ronde_vus = {}
+-- Fiche 15, V73 f 1 : le chef que suit chaque personnage (« henry » ou un identifiant), pour le poste d'essai.
+liaison.chefs = {}
 
 -- « regard » (fiche 15, V73 d 1) : un point ; l'homme tient un poste (ordre 12) : il marche jusqu'à « position », puis
 -- se tourne vers ce point et s'y tient. « allure » (V73 e) : « course » le fait courir jusqu'au poste (variable de
--- cerveau scriptorium_allure, 1 ; remise à 0 à chaque autre ordre de poste).
-function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure)
+-- cerveau scriptorium_allure, 1 ; remise à 0 à chaque autre ordre de poste). « chef » (V73 f 1) : l'identifiant d'un
+-- personnage, ou « henry » : l'homme le suit (son WUID dans scriptorium_chef, ordre 14).
+function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef)
   local entite = entite_nommee(identifiant)
   local ligne
   liaison.regards[identifiant] = nil
   liaison.buts[identifiant] = nil
+  liaison.chefs[identifiant] = nil
   if not entite then
     ligne = "introuvable"
   else
@@ -2394,6 +2398,26 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
     elseif activite == "attendre" then
       -- Fiche 15, V73 b 3 : la journée du socle coupée, l'homme qu'aucune règle ne tient attend où il est (activité 0).
       ligne = "attendre sur place ; " .. poser_l_activite(entite, 0)
+    elseif activite == "suivre" and chef then
+      -- Suivre (V73 f 1) : le WUID du chef dans le cerveau, puis l'ordre 14 (la fonction de suivi du jeu) ; un chef
+      -- introuvable : une marche simple vers « position », s'il y en a une.
+      local this_lu, this = pcall(function() return entite.this end)
+      local cible = (chef == "henry") and player or entite_nommee(chef)
+      local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(cible) end)
+      local pose = this_lu and type(this) == "table" and cible ~= nil and wuid_lu and wuid ~= nil
+        and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_chef", wuid) end)
+      if pose then
+        liaison.chefs[identifiant] = chef
+        ligne = "suit « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 14)
+      elseif position then
+        local point = liaison.au_sol(position)
+        local marche = this_lu and type(this) == "table"
+          and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+        ligne = "chef « " .. tostring(chef) .. " » introuvable, marche, point " .. (marche and "posé" or "refusé") .. " ; "
+          .. poser_l_activite(entite, 9)
+      else
+        ligne = "chef « " .. tostring(chef) .. " » introuvable, sans but"
+      end
     elseif not position then
       ligne = "sans but"
     elseif activite == "ronde" then
@@ -2614,7 +2638,13 @@ function liaison.voir_sur_la_place(qui, identifiant)
   if but and ici_lu and type(ici) == "table" then
     ecart_au_but = math.sqrt((ici.x - but.x) ^ 2 + (ici.y - but.y) ^ 2)
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  -- Fiche 15, V73 f 1 : l'écart à son chef, s'il suit quelqu'un.
+  local chef, ecart_au_chef = liaison.chefs[qui], nil
+  local la = chef and ((chef == "henry") and liaison.position_du_joueur() or liaison.position_du_personnage(chef))
+  if la and ici_lu and type(ici) == "table" then
+    ecart_au_chef = math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
+  end
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s, à %s m de son chef ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
@@ -2624,6 +2654,7 @@ function liaison.voir_sur_la_place(qui, identifiant)
     cap and string.format("%.0f", cap) or "?", ecart_de_cap and string.format("%.0f", ecart_de_cap) or "-",
     variable("scriptorium_en_poste"),
     ecart_au_but and string.format("%.2f", ecart_au_but) or "-", tostring(liaison.pas_de_ronde_vus[qui] or 0),
+    ecart_au_chef and string.format("%.2f", ecart_au_chef) or "-",
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end
@@ -3084,6 +3115,16 @@ function liaison.contextes_de(qui, noms)
 end
 
 -- La position d'un personnage, en texte « x, y », ou nil (V72 b : au prochain écran noir, les positions).
+-- Fiche 15, V73 f 1 : la position d'un personnage, en point du monde, ou nil.
+function liaison.position_du_personnage(qui)
+  local entite = entite_nommee(qui)
+  local ok, ou = pcall(function() return entite:GetWorldPos() end)
+  if ok and type(ou) == "table" and type(ou.x) == "number" then
+    return { x = ou.x, y = ou.y, z = ou.z }
+  end
+  return nil
+end
+
 function liaison.position_de(qui)
   local entite = entite_nommee(qui)
   local ok, ou = pcall(function() return entite:GetWorldPos() end)

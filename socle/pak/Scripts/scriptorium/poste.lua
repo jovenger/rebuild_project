@@ -797,6 +797,39 @@ function poste.essai_rompre()
   return n > 0
 end
 
+-- Fiche 15, V73 f 1 : l'escorte d'essai : le Directeur suit Henry, en tête ; les trois premiers hommes en colonne
+-- derrière lui.
+function poste.essai_escorte()
+  local ok_d, raison_d = Scriptorium.directeur.suivre(true)
+  jeu().journal("Poste : le Directeur suit Henry : " .. tostring(ok_d) .. " " .. tostring(raison_d or ""))
+  local n = 0
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then
+      local ok = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "escorte",
+        chef = ok_d and "directeur" or "henry", fin = "liberation" })
+      if ok then
+        n = n + 1
+      end
+    end
+  end
+  jeu().journal("Poste : escorte de " .. n .. " homme(s) derrière " .. (ok_d and "le Directeur" or "Henry"))
+  return n > 0 or ok_d == true
+end
+
+function poste.essai_fin_escorte()
+  local n = 0
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    local f = Scriptorium.hommes.fiche(id)
+    local tenu = f and f.tenues and f.tenues.escorte ~= nil
+    if Scriptorium.hommes.lacher(id, "escorte") and tenu then
+      n = n + 1
+    end
+  end
+  local ok_d = Scriptorium.directeur.suivre(false)
+  jeu().journal("Poste : fin de l'escorte, " .. n .. " homme(s), Directeur " .. tostring(ok_d))
+  return n > 0 or ok_d == true
+end
+
 function poste.essai_lacher_ronde()
   -- Seuls comptent les hommes qui étaient tenus par la ronde (lâcher une tenue absente rend vrai aussi).
   local lache = 0
@@ -1616,6 +1649,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_ronde_sans_pause", fonction = function() return poste.essai_ronde_sans_pause() end, aide = "Le second rondier sans pause (V73 d 2 bis)" },
   { nom = "scriptorium_essai_briefing", fonction = function() return poste.essai_briefing() end, aide = "Convoque l'homme suivant au briefing d'essai, en courant, face au centre (V73 e)" },
   { nom = "scriptorium_essai_rompre", fonction = function() return poste.essai_rompre() end, aide = "Rompez : le rassemblement lâché pour tous (V73 e)" },
+  { nom = "scriptorium_essai_escorte", fonction = function() return poste.essai_escorte() end, aide = "Le Directeur suit Henry, trois hommes en colonne derrière lui (V73 f 1)" },
+  { nom = "scriptorium_essai_fin_escorte", fonction = function() return poste.essai_fin_escorte() end, aide = "Fin de l'escorte : chacun reprend sa tranche (V73 f 1)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },

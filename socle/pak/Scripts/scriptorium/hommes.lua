@@ -56,6 +56,10 @@ hommes.reglages = {
   -- Scriptorium : un demi-cercle à 3 m, de −60° à +60°).
   rassemblement_rayon_m = 3,
   rassemblement_ouverture = 120,
+  -- Suivre (fiche 15, V73 f 1, la règle de Scriptorium « LOIN 60, ARRIERE 4 ») : un suiveur à plus de « suivi_loin_m » de
+  -- son chef est posé « suivi_derriere_m » derrière Henry, hors de sa vue ; à 0, jamais.
+  suivi_loin_m = 60,
+  suivi_derriere_m = 4,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -77,6 +81,7 @@ hommes.reglages = {
 hommes.priorites = {
   bataille = 1,
   rassemblement = 2,
+  escorte = 2,
   soins = 3,
   bains = 3,
   garde = 4,
@@ -118,6 +123,17 @@ hommes.cerveau = {
   -- 0,5).
   ronde_arret_cm = 100,
   ronde_ecart_cm = 50,
+  -- Suivre (fiche 15, V73 f 1) : les distances de la fonction de suivi du jeu (followNpc, ses valeurs par défaut) : il se
+  -- met en marche au-delà de « suivi_depart_cm » de son chef, s'arrête à « suivi_arret_cm » ; l'allure change d'après la
+  -- distance qui reste (de la marche à la course au-delà de « suivi_marche_course_cm », etc.).
+  suivi_depart_cm = 500,
+  suivi_arret_cm = 250,
+  suivi_marche_course_cm = 2000,
+  suivi_marche_sprint_cm = 3000,
+  suivi_course_marche_cm = 1000,
+  suivi_course_sprint_cm = 3000,
+  suivi_sprint_course_cm = 2000,
+  suivi_sprint_marche_cm = 1000,
   -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
   -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
   relances_max = 3,
@@ -1412,6 +1428,38 @@ function hommes.activite_de(id, heure)
     end
     -- V73 e : un rassemblement avec un centre donne à chacun sa place sur l'arc, parmi les hommes que tient le même
     -- rassemblement (même lieu), dans l'ordre du camp ; la place entre dans la signature de l'ordre.
+    -- V73 f 1 : suivre ; les hommes que tient la même escorte (même lieu), dans l'ordre du camp, forment une colonne :
+    -- le premier suit le chef de la tenue (Henry, le Directeur ou un homme), chacun suit le précédent ; le rang entre dans
+    -- la signature de l'ordre.
+    if tenue.activite == "suivre" then
+      local rang, nombre, precedent = 0, 0, nil
+      for _, autre in ipairs(d.ordre) do
+        local _, t2 = tenue_la_plus_forte(d.liste[autre])
+        if t2 and t2.activite == "suivre" and t2.lieu == tenue.lieu then
+          nombre = nombre + 1
+          if autre == id then
+            rang = nombre
+          end
+          if rang == 0 then
+            precedent = autre
+          end
+        end
+      end
+      if rang > 0 then
+        local chef = nil
+        if rang > 1 then
+          chef = d.liste[precedent].personnage
+        elseif tenue.chef == "directeur" then
+          chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
+        elseif tenue.chef ~= nil and tenue.chef ~= "henry" then
+          chef = d.liste[tenue.chef] and d.liste[tenue.chef].personnage
+        end
+        resultat.chef = chef or "henry"
+        resultat.signature = rang .. "/" .. nombre
+        resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
+          or jeu().position_du_personnage(resultat.chef)
+      end
+    end
     if tenue.activite == "rassemblement" and tenue.centre then
       local rang, nombre = 0, 0
       for _, autre in ipairs(d.ordre) do
@@ -1709,9 +1757,51 @@ local function but_de(a)
   return a.position, nil, nil
 end
 
+-- Suivre (fiche 15, V73 f 1) : le rattrapage d'un suiveur, pour les hommes et pour le Directeur (la règle de Scriptorium,
+-- « LOIN 60, ARRIERE 4 »). À plus de « suivi_loin_m » de son chef (« henry » ou un personnage), il est posé
+-- « suivi_derriere_m » derrière Henry, jamais sous ses yeux, jamais en combat ni en conversation ; il ne compte pas dans
+-- « secours_max » (un long trajet en demande plusieurs). Rend vrai s'il est posé.
+hommes.rattrapages_en_attente = {}
+function hommes.rattraper(personnage, chef, nom)
+  local loin = tonumber(hommes.reglages.suivi_loin_m) or 0
+  if loin <= 0 or not personnage or not chef then
+    return false
+  end
+  local la = (chef == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(chef)
+  local ecart = la and jeu().ecart_au_but(personnage, la)
+  if not ecart or ecart <= loin or jeu().occupation_de(personnage) then
+    return false
+  end
+  local henry, cap = jeu().position_du_joueur(), jeu().cap_du_joueur()
+  local recul = tonumber(hommes.reglages.suivi_derriere_m) or 0
+  local ou = { x = henry.x - recul * math.sin(math.rad(cap)), y = henry.y - recul * math.cos(math.rad(cap)), z = henry.z }
+  if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true then
+    if not hommes.rattrapages_en_attente[personnage] then
+      hommes.rattrapages_en_attente[personnage] = true
+      jeu().journal("Hommes : « " .. tostring(nom) .. " » à rattraper, mais Henry regarde l'endroit : il attend")
+    end
+    return false
+  end
+  hommes.rattrapages_en_attente[personnage] = nil
+  jeu().journal("Hommes : « " .. tostring(nom) .. " » à " .. string.format("%.0f", ecart) .. " m de son chef, rattrapé "
+                .. string.format("%g", recul) .. " m derrière Henry : " .. tostring(jeu().poser_en_secours(personnage, ou)))
+  return true
+end
+
 -- Le secours de l'homme bloqué (réponse 1 de JoVenGer du 16/10) : posé près de son but, jamais dans un meuble (une
 -- place s'aborde à l'écart, camp.abord_de), sur une place libre (la liaison), puis son ordre est redonné.
 local function secourir(id, f, a, rapport)
+  -- Suivre (V73 f 1) : pas de secours ordinaire (un suiveur garde un écart constant, il ne « se rapproche » jamais) ;
+  -- seulement le rattrapage au-delà de « suivi_loin_m ».
+  if a.activite == "suivre" then
+    if a.chef and hommes.rattraper(f.personnage, a.chef, f.nom) then
+      f.derniere_activite = nil
+      if rapport then
+        rapport.rattrapages = (rapport.rattrapages or 0) + 1
+      end
+    end
+    return
+  end
   -- « Rapproché » : l'écart restant jusqu'au but a baissé (règle de JoVenGer : au moins 1 m en 30 s).
   local but = a.position
   -- La ronde (fiche 15, V73 d 2) : le but est le point visé.
@@ -1952,7 +2042,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       position = a.chemin[premier]
     end
     hommes.raisons_de_reprise[id] = nil
-    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure)
+    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
@@ -2070,7 +2160,7 @@ local function redonner_au_rassemblement(d, heure)
   for _, autre in ipairs(d.ordre) do
     local f = d.liste[autre]
     local _, t = tenue_la_plus_forte(f)
-    if t and t.activite == "rassemblement" and t.centre then
+    if t and ((t.activite == "rassemblement" and t.centre) or t.activite == "suivre") then
       ordonner_un_homme(d, autre, heure, nil, true)
     end
   end
@@ -2096,7 +2186,7 @@ local function memes_tenues(a, b)
     and a.ne_pas_rhabiller == b.ne_pas_rhabiller and memes_points(a.position, b.position)
     and a.aller_retour == b.aller_retour and a.depart == b.depart and a.pauses == b.pauses
     and memes_chemins(a.chemin, b.chemin) and memes_points(a.centre, b.centre) and a.rayon == b.rayon
-    and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure
+    and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -2170,6 +2260,11 @@ function hommes.tenir(id, regle, quoi)
     arc = { centre = { x = c.x, y = c.y, z = c.z }, rayon = quoi.rayon, ouverture = quoi.ouverture, face = quoi.face,
             allure = quoi.allure }
   end
+  -- Suivre (V73 f 1) : le chef de la colonne, « henry » (défaut), « directeur », ou un autre homme du camp.
+  if quoi.activite == "suivre" and quoi.chef ~= nil and quoi.chef ~= "henry" and quoi.chef ~= "directeur"
+      and (not d.liste[quoi.chef] or quoi.chef == id) then
+    return refuser("escorte_invalide", "chef " .. tostring(quoi.chef))
+  end
   -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
   local pauses = nil
   if chemin and quoi.pauses == false then
@@ -2182,7 +2277,8 @@ function hommes.tenir(id, regle, quoi)
                   depuis = avant and avant.depuis or heure, ne_pas_rhabiller = (quoi.ne_pas_rhabiller == true) or nil,
                   chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart,
                   pauses = pauses, centre = arc and arc.centre, rayon = arc and arc.rayon,
-                  ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure }
+                  ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
+                  chef = (quoi.activite == "suivre") and quoi.chef or nil }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
