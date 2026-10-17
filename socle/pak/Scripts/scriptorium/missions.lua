@@ -191,12 +191,31 @@ local function copie_du_camp(c)
            issue = c.issue, coffre = c.coffre, effectif = c.effectif, meubles = c.meubles_poses == true }
 end
 
--- Le lieu est-il pris par un camp qui n'est pas levé ?
+-- Le lieu est-il pris par un camp qui n'est pas levé ? (Un lieu pris n'est donné à aucune autre mission.)
 local function lieu_pris(d, nom)
   for _, id in ipairs(d.ordre) do
     local c = d.camps[id]
     if c.etat ~= "leve" and c.lieu.nom == nom then
       return c.id
+    end
+  end
+  return nil
+end
+
+-- Accroche (tranche 3 ; Scriptorium l'enveloppe pour ses missions en parallèle) : le lieu est-il réservé ? Rend la
+-- raison (le camp qui l'occupe), ou nil s'il est libre.
+function missions.lieu_reserve(nom)
+  return lieu_pris(donnees(), nom)
+end
+
+-- Service : un lieu libre de la carte (celle où se tient Henry si nil), le premier par nom, ou nil.
+function missions.choisir_un_lieu(carte)
+  if carte == nil then
+    carte = jeu().carte_courante and (jeu().carte_courante()) or nil
+  end
+  for _, l in ipairs(missions.lieux_de(carte)) do
+    if missions.lieu_reserve(l.nom) == nil then
+      return l.nom
     end
   end
   return nil
@@ -259,9 +278,9 @@ function missions.dresser_un_camp(nom_du_lieu, niveau)
   if not l then
     return refuser("lieu_inconnu", tostring(nom_du_lieu))
   end
-  local pris = lieu_pris(d, nom_du_lieu)
+  local pris = missions.lieu_reserve(nom_du_lieu)
   if pris then
-    return refuser("lieu_pris", pris)
+    return refuser("lieu_pris", tostring(pris))
   end
   local taille = missions.taille_du_camp(nom_du_lieu, niveau)
   if type(taille) ~= "table" then

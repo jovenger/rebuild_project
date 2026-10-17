@@ -598,3 +598,29 @@ essai("missions (4 b) : tous hors d'état au retour : la colonne entière rentre
   egal(missions.mission(id).etat, "retour", "renaît au bord du camp")
   finir()
 end)
+
+-- ---------------------------------------------------------------- tranche 3 : plusieurs missions, lieux réservés
+
+essai("missions (tranche 3) : deux missions à la fois, chacune son lieu ; un lieu pris n'est donné à personne ; l'accroche de réservation", function()
+  local ids = preparer({ "homme_d_armes", "homme_d_armes", "archer", "archer" })
+  missions.ajouter_un_lieu("moulin", "trosky", { x = 300, y = 0, z = 0 }, 0)
+  missions.ajouter_un_lieu("autre_carte", "kuttenberg", { x = 0, y = 0, z = 0 }, 0)
+  egal(missions.choisir_un_lieu("trosky"), "gue", "un lieu libre : le premier par nom")
+  local m1 = missions.prendre_une_mission({ lieu = "gue", hommes = { ids[1], ids[2] } })
+  verifier(m1, "la première part")
+  egal(missions.lieu_reserve("gue") ~= nil, true, "le gué est réservé")
+  egal(missions.choisir_un_lieu("trosky"), "moulin", "le lieu libre suivant")
+  local refus, raison = missions.prendre_une_mission({ lieu = "gue", hommes = { ids[3] } })
+  verifier(not refus and raison == "camp_refuse", "le gué pris : refusé pour une autre mission")
+  local m2 = missions.prendre_une_mission({ lieu = "moulin", hommes = { ids[3], ids[4] } })
+  verifier(m2, "la seconde part, en même temps")
+  egal(#missions.en_cours(), 2, "deux missions en cours")
+  egal(missions.choisir_un_lieu("trosky"), nil, "plus de lieu libre sur Trosky")
+  -- Scriptorium enveloppe la réservation (ses propres missions en parallèle).
+  local ancienne = missions.lieu_reserve
+  missions.lieu_reserve = function(nom) if nom == "autre_carte" then return "mission_de_scriptorium" end return ancienne(nom) end
+  egal(missions.choisir_un_lieu("kuttenberg"), nil, "réservé par Scriptorium : pas donné")
+  verifier(not missions.dresser_un_camp("autre_carte", "petit"), "ni dressé")
+  missions.lieu_reserve = ancienne
+  finir()
+end)
