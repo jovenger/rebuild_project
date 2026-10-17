@@ -855,8 +855,9 @@ function poste.essai_forge_retirer()
   return true
 end
 
--- 5 c : le geste tenu (la forge de Scriptorium) : le premier homme, à 3 m devant Henry, tient le geste du marteau des
--- clôtures du jeu (« repairFenceHammer », AI/profession/housekeeper/so_fence.xml), tourné vers Henry.
+-- 5 c : le geste tenu (la forge de Scriptorium) : le premier homme, à 3 m devant Henry, tourné vers lui, tient une
+-- posture du jeu non alignée (Libs/Tables/ai/NPCStateUnstanceDatabase.xml : « AngryIdle », IsAligned et
+-- UseLocationObject à faux). Vu en jeu le 17/10 : « repairFenceHammer », alignée, ne se joue pas sans objet d'ancrage.
 function poste.essai_geste()
   local hommes = Scriptorium.hommes
   local id = hommes.liste()[1]
@@ -864,7 +865,7 @@ function poste.essai_geste()
   if not id or not point then
     return false
   end
-  local ok, raison = hommes.tenir(id, "travail", { activite = "geste", lieu = "enclume", geste = "repairFenceHammer",
+  local ok, raison = hommes.tenir(id, "travail", { activite = "geste", lieu = "enclume", geste = "AngryIdle",
     position = point, cap = ((cap or 0) + 180) % 360, fin = "liberation" })
   jeu().journal("Poste : « " .. hommes.fiche(id).nom .. " » tient le geste = " .. tostring(ok or raison))
   poste.battre_les_hommes()
@@ -2553,7 +2554,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_forge_base", fonction = function() return poste.essai_forge_base() end, aide = "Sonde : le préfabriqué de base de la forge né entier devant Henry" },
   { nom = "scriptorium_essai_forge_tenir", fonction = function() return poste.essai_forge_tenir() end, aide = "Sonde : le premier homme au poste du forgeron le plus proche" },
   { nom = "scriptorium_essai_forge_retirer", fonction = function() return poste.essai_forge_retirer() end, aide = "Sonde : la forge d'essai retirée" },
-  { nom = "scriptorium_essai_geste", fonction = function() return poste.essai_geste() end, aide = "Le premier homme tient le geste du marteau devant Henry (fiche 18, 5 c)" },
+  { nom = "scriptorium_essai_geste", fonction = function() return poste.essai_geste() end, aide = "Le premier homme tient une posture du jeu devant Henry (fiche 18, 5 c)" },
   { nom = "scriptorium_essai_sortie", fonction = function() return poste.essai_sortie() end, aide = "Deux hommes sortent à cheval à 80 m et rentrent (fiche 18, 5 d)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
