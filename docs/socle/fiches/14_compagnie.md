@@ -223,7 +223,8 @@
 | 473 | V73 d 1 (tenir un poste) | normal |
 | 473 | V73 d 2 (la ronde) | normal |
 | 473 | V73 d 2 bis (la ronde reprise, sans pause) | normal |
-- Au total : 3 écrans noirs sur 46 chargements ou poses observés ; 1 sur 36 depuis la séparation. **Rien n'est conclu** : il
+| 473 | V73 e (le rassemblement) | normal |
+- Au total : 3 écrans noirs sur 47 chargements ou poses observés ; 1 sur 37 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

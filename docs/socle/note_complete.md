@@ -54,14 +54,14 @@
 - Vu en jeu (16 et 17/10, fiche 15) : l'arbitre des ordres par tenues (V73 b) ; la garde de la tenue ; l'ancre du camp ;
   le factionnaire, face au dehors (V73 d 1) ; la ronde, l'arbre appelant le Lua à chaque point, pauses tirées par le
   socle, tourné vers le dehors à chaque pause (V73 d 2) ; la ronde reprise (accroche « ronde reprise ») et la ronde
-  sans pause (V73 d 2 bis).
+  sans pause (V73 d 2 bis) ; le rassemblement en arc, en courant, face au centre, et les 150 m du secours (V73 e).
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 46 chargements, 1 sur 36 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 47 chargements, 1 sur 37 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
-1. L'arbitre (V73 b), la garde de la tenue, l'ancre du camp, le factionnaire (V73 d 1) et la ronde (V73 d 2 et 2 bis) sont faits
-   et vus en jeu. Suite : V73 e, le rassemblement, puis V73 f, suivre Henry (à cheval), puis le gardien des hommes ;
+1. L'arbitre (V73 b), la garde de la tenue, l'ancre du camp, le factionnaire (V73 d 1), la ronde (V73 d 2 et 2 bis) et le
+   rassemblement (V73 e) sont faits et vus en jeu. Suite : V73 f, suivre Henry (à cheval), puis le gardien des hommes ;
    toujours après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.

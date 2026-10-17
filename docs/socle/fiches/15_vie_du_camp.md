@@ -1237,6 +1237,22 @@ convoqués l'un après l'autre, à 3 s d'écart, autour du centre d'essai ; une 
   toutes attrapées : la course jamais écrite, la place hors de la signature, les 150 m pour une sortie, la vue d'Henry
   ignorée, aucun second arc.
 
+### Mesuré en V73 e (17/10) : le rassemblement, acquis
+- **Issue 1, la levée puis la course** : les trois, assis sur les bancs, convoqués à 3 s d'écart ; les ordres partent
+  « en courant » (`scriptorium_allure` à 1) ; chacun se lève et **court** (environ 10 m en 2 à 4 s) ; Ondřej met environ
+  9 s à se lever, puis court. **Le piège de Scriptorium (la levée qui fige la course) ne se montre pas** : notre levée du
+  dedans (V73 c) suivie de la course marche.
+- **Issue 2** : à chaque convocation, les places se recalculent et les déjà convoqués reçoivent leur nouvel ordre
+  (Mikuláš de 2/2, à +60°, à 2/3, au milieu ; Jan, à −60°, garde son point, la signature change) ; trois places
+  distinctes ; arrivée à 0,1–0,7 m de la place ; **tournés vers le centre** (écart au regard de 1°, 10° et 13°), sans
+  glisser (écart au but fixe sur 30 s).
+- **Issue 3, l'image** : les trois debout sur l'arc, à des places distinctes, habillés et armés, tournés vers le centre
+  (de dos pour Henry, resté au camp).
+- **Issue 4** : « Rompez » (`essai_rompre`) : un ordre chacun, retour au pas à l'exercice (arrêt à 2–2,7 m), un
+  lancement chacun, aucun arrêt de relance.
+- **Pas vu en jeu (banc seulement)** : les 150 m, la vue d'Henry, le second arc (neuf hommes), « face au dehors », un
+  arc plein de plus d'hommes, le Directeur au centre (sa place est à Scriptorium).
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
