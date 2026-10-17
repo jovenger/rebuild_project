@@ -17,8 +17,14 @@ missions.reglages = {
   -- « marge_de_force », ne dépasse pas celle de la colonne.
   vitesse_m_par_h = 12000,
   henry_loin_m = 300,
+  -- (relecture) « sous les yeux d'Henry » est borné, comme partout dans le socle : dans son regard et à moins de
+  -- « dehors_vue_m » ; au-delà, même regardée, la colonne peut passer dehors (le jeu ne la fait plus vivre).
+  dehors_vue_m = 500,
+  -- (relecture) La colonne ne rentre pas au feu, au milieu des meubles : elle vise un point au bord du camp, à
+  -- « retour_m » du centre du côté du lieu, et se dit rentrée à moins de « arrivee_m » de ce point.
+  retour_m = 15,
   retour_naissance_m = 150,
-  arrivee_m = 12,
+  arrivee_m = 6,
   marge_de_force = 1.5,
   -- Le registre ne garde que les « gardes » derniers camps levés et dernières missions finies.
   gardes = 20,
@@ -346,21 +352,35 @@ local function envoyer(m, vers)
   end
 end
 
--- Chacun est-il à plus de « henry_loin_m » d'Henry et hors de son regard ? (Un homme sans position lisible : loin.)
+-- Chacun est-il à plus de « henry_loin_m » d'Henry, et pas sous ses yeux (dans son regard à moins de « dehors_vue_m ») ?
+-- Henry illisible : non (on ne retire personne du monde sur une lecture manquée). Un homme sans position lisible : loin.
 local function hors_de_la_vue(vivants)
   local henry = jeu().position_du_joueur()
   if not henry then
-    return true
+    return false
   end
   for _, id in ipairs(vivants) do
     local f = Scriptorium.hommes.fiche(id)
     local ici = f and f.personnage and jeu().position_du_personnage(f.personnage)
-    if ici and (math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2) <= missions.reglages.henry_loin_m
-                or jeu().henry_voit(ici, Scriptorium.hommes.reglages.secours_vue_cos) == true) then
+    local ecart = ici and math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2)
+    if ecart and (ecart <= missions.reglages.henry_loin_m or (ecart <= missions.reglages.dehors_vue_m
+                  and jeu().henry_voit(ici, Scriptorium.hommes.reglages.secours_vue_cos) == true)) then
       return false
     end
   end
   return true
+end
+
+-- Le point d'arrivée au camp : au bord, à « retour_m » du centre du côté du lieu.
+local function point_de_retour(m)
+  local centre = centre_du_camp()
+  if not centre then
+    return nil
+  end
+  local la = m.lieu
+  local loin = math.sqrt((la.x - centre.x) ^ 2 + (la.y - centre.y) ^ 2)
+  local k = (loin > 0) and math.min(1, missions.reglages.retour_m / loin) or 0
+  return { x = centre.x + (la.x - centre.x) * k, y = centre.y + (la.y - centre.y) * k, z = centre.z }
 end
 
 local function copie_de_la_mission(m)
@@ -474,13 +494,13 @@ local function avancer(d, m, heure)
       -- Tranché sur place (Henry présent) : la colonne rentre à cheval ; sans camp (levé entre-temps), finie là.
       m.issue = b.issue
       m.resultat = resultat_de_la_bande(c.bande)
-      local centre = centre_du_camp()
-      if not centre then
+      local retour = point_de_retour(m)
+      if not retour then
         finir_la_mission(d, m, heure)
         return true
       end
       m.etat = "retour"
-      envoyer(m, centre)
+      envoyer(m, retour)
       jeu().journal("Missions : « " .. m.id .. " » : " .. tostring(b.issue) .. " au lieu, retour au camp")
       return true
     end
@@ -533,15 +553,15 @@ local function avancer(d, m, heure)
       Scriptorium.hommes.faire_rentrer(id, { x = point.x + (i - 1) * 2, y = point.y, z = point.z })
     end
     m.etat = "retour"
-    envoyer(m, centre)
+    envoyer(m, point_de_retour(m))
     jeu().journal("Missions : « " .. m.id .. " » renaît sur le chemin du camp")
     return true
   elseif m.etat == "retour" then
-    local centre = centre_du_camp()
+    local retour = point_de_retour(m)
     for _, id in ipairs(vivants) do
       local f = Scriptorium.hommes.fiche(id)
       local ici = f.personnage and jeu().position_du_personnage(f.personnage)
-      if centre and ici and math.sqrt((ici.x - centre.x) ^ 2 + (ici.y - centre.y) ^ 2) <= missions.reglages.arrivee_m then
+      if retour and ici and math.sqrt((ici.x - retour.x) ^ 2 + (ici.y - retour.y) ^ 2) <= missions.reglages.arrivee_m then
         finir_la_mission(d, m, heure)
         return true
       end

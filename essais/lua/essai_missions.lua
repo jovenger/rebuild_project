@@ -328,7 +328,12 @@ essai("missions (4 b) : loin d'Henry, dehors ; l'issue au loin à l'heure d'arri
   FauxJeu.vue_d_henry = function() return true end
   battre()
   egal(missions.mission(id).etat, "aller", "à 400 m mais dans son regard : pas encore dehors")
+  local henry = FauxJeu.position_joueur
+  FauxJeu.position_joueur = nil
   FauxJeu.vue_d_henry = function() return false end
+  battre()
+  egal(missions.mission(id).etat, "aller", "Henry illisible : personne n'est retiré du monde")
+  FauxJeu.position_joueur = henry
   local renvoyes = #FauxJeu.personnages_renvoyes
   battre()
   egal(missions.mission(id).etat, "dehors_aller", "à 400 m, hors de son regard : dehors")
@@ -359,7 +364,12 @@ essai("missions (4 b) : loin d'Henry, dehors ; l'issue au loin à l'heure d'arri
     FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 5, z = 0 }
   end
   battre()
-  egal(#missions.en_cours(), 0, "rentrée : finie")
+  egal(#missions.en_cours(), 1, "au feu, à 10 m du bord : pas encore rentrée (on ne vise pas le milieu du camp)")
+  for _, h in ipairs(m.hommes) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 14, z = 0 }
+  end
+  battre()
+  egal(#missions.en_cours(), 0, "au bord du camp, côté du lieu : rentrée, finie")
   egal(#rapports, 1, "un rapport")
   egal(rapports[1].lieu, "loin", "du bon lieu")
   for _, h in ipairs(m.hommes) do
@@ -411,5 +421,24 @@ essai("missions : le registre ne garde que les derniers camps levés (« gardes 
   verifier(missions.camp("camp_de_bandits_5") ~= nil, "les plus récents")
   verifier(missions.camp(debout) ~= nil, "le camp debout, le plus ancien, jamais retiré")
   missions.reglages.gardes = 20
+  finir()
+end)
+
+essai("missions (4 b) : sous les yeux d'Henry est borné : regardée à 600 m, la colonne passe dehors", function()
+  local ids = preparer_la_mission()
+  missions.ajouter_un_lieu("loin", "trosky", { x = 0, y = 1200, z = 0 }, 0)
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  local id = missions.prendre_une_mission({ lieu = "loin", hommes = ids })
+  FauxJeu.vue_d_henry = function() return true end
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 450, z = 0 }
+  end
+  battre()
+  egal(missions.mission(id).etat, "aller", "à 450 m dans son regard : non")
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 600, z = 0 }
+  end
+  battre()
+  egal(missions.mission(id).etat, "dehors_aller", "à 600 m, même regardée : dehors")
   finir()
 end)

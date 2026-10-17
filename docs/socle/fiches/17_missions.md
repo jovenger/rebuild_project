@@ -91,7 +91,14 @@ le chemin du retour, entre à cheval et descend.
     `missions.rapport_de_mission(r)` une fois (issue, morts, blessés, butin). Camp levé pendant la mission : rentrés près
     d'Henry, mission finie. Le registre garde les `gardes` (20) derniers camps levés et missions finies (trois erreurs
     injectées attrapées).
+  - Relecture avant la séance : « sous les yeux » borné (regard et moins de `dehors_vue_m` 500 m) ; Henry illisible :
+    personne n'est retiré du monde ; le retour vise le bord du camp (`retour_m` 15 m du centre, côté du lieu ;
+    `arrivee_m` 6 m), jamais le feu au milieu des meubles. La tenue « mission » tombe par sûreté après `tenue_max_h`
+    (24 h de jeu) : bien au-delà d'une mission ordinaire. La mission n'ouvre aucune fonction locale de plus au guichet.
   - **Non vérifié en jeu** : la mission entière (le prochain essai, regroupé avec le combat corrigé).
+  - À reprendre plus tard : l'attente de renaissance n'a pas de borne (un joueur qui fixe la route bloque le retour) ;
+    l'heure d'arrivée est comptée depuis le centre du camp, pas depuis le point où la colonne a disparu ; Henry qui
+    rejoint le lieu pendant « dehors » y trouve les brigands sans nos hommes.
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 
