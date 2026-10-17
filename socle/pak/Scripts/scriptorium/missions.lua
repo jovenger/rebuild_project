@@ -29,6 +29,8 @@ missions.reglages = {
   marge_de_force = 1.5,
   -- Le registre ne garde que les « gardes » derniers camps levés et dernières missions finies.
   gardes = 20,
+  -- Tranche 4, les convois : à pied, « convoi_m_par_h » mètres par heure du jeu (plus lent qu'une colonne à cheval).
+  convoi_m_par_h = 4000,
 }
 
 -- Les tailles d'un camp de bandits : ses hommes et la somme de son coffre (réglables, section « niveaux_des_camps »).
@@ -46,6 +48,10 @@ missions.plan = {
   { nom = "tente_2", sorte = "tente", x = 5, y = 3, cap = 225 },
   { nom = "coffre", sorte = "coffre", x = 0, y = 5.5, cap = 180 },
 }
+
+-- Les routes des convois, par carte : fournies par Scriptorium (« ajouter_une_route »), en mémoire ; un convoi lancé
+-- garde une copie de sa route au registre.
+missions.routes = missions.routes or {}
 
 -- Les lieux nommés, par carte : fournis par Scriptorium (« ajouter_un_lieu »), en mémoire ; un camp dressé garde une
 -- copie de son lieu au registre.
@@ -77,6 +83,10 @@ local function donnees()
   d.missions = d.missions or {}
   d.ordre_des_missions = d.ordre_des_missions or {}
   d.prochaine_mission = d.prochaine_mission or 1
+  -- Tranche 4 : les convois.
+  d.convois = d.convois or {}
+  d.ordre_des_convois = d.ordre_des_convois or {}
+  d.prochain_convoi = d.prochain_convoi or 1
   return d
 end
 
@@ -140,7 +150,62 @@ function missions.lieu_sur_ma_carte(nom)
   return ici == nil or ici == l.carte
 end
 
--- ---------------------------------------------------------------- accroches (Scriptorium les remplace)
+-- ---------------------------------------------------------------- routes et convois (tranche 4)
+
+-- Une route : un nom, une carte, au moins deux points { x, y, z }. Rend vrai, ou faux et la raison.
+function missions.ajouter_une_route(nom, carte, points)
+  if type(nom) ~= "string" or nom == "" then
+    return refuser("nom_invalide", tostring(nom))
+  end
+  if type(carte) ~= "string" or carte == "" then
+    return refuser("carte_invalide", tostring(carte))
+  end
+  if type(points) ~= "table" or #points < 2 then
+    return refuser("route_trop_courte", nom)
+  end
+  local copie = {}
+  for i, p in ipairs(points) do
+    if type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number" then
+      return refuser("point_invalide", nom .. " #" .. i)
+    end
+    copie[i] = { x = p.x, y = p.y, z = p.z }
+  end
+  missions.routes[nom] = { nom = nom, carte = carte, points = copie }
+  jeu().journal("Missions : route « " .. nom .. " » sur " .. carte .. ", " .. #copie .. " points")
+  return true
+end
+
+-- La longueur d'une route et le point à « parcouru » mètres de son départ (le dernier point au-delà) ; avec le point
+-- suivant (vers lequel on regarde) et vrai si la route est finie.
+local function point_de_la_route(route, parcouru)
+  local reste = parcouru
+  local points = route.points
+  for numero = 1, #points - 1 do
+    local depuis, jusqu_a = points[numero], points[numero + 1]
+    local troncon = math.sqrt((jusqu_a.x - depuis.x) ^ 2 + (jusqu_a.y - depuis.y) ^ 2)
+    if reste <= troncon and troncon > 0 then
+      local k = reste / troncon
+      return { x = depuis.x + (jusqu_a.x - depuis.x) * k, y = depuis.y + (jusqu_a.y - depuis.y) * k,
+               z = depuis.z + (jusqu_a.z - depuis.z) * k }, jusqu_a, false
+    end
+    reste = reste - troncon
+  end
+  return points[#points], points[#points], true
+end
+
+local function copie_du_convoi(cv)
+  return { id = cv.id, route = cv.route.nom, carte = cv.route.carte, niveau = cv.niveau, bande = cv.bande, etat = cv.etat,
+           issue = cv.issue, parcouru = cv.parcouru, position = cv.position and { x = cv.position.x, y = cv.position.y,
+           z = cv.position.z } or nil, convoi = true }
+end
+
+-- Où sera le convoi à l'heure « t » (il avance tant que sa bande n'est pas au combat).
+local function position_du_convoi_a(cv, t)
+  local parcouru = cv.parcouru + math.max(0, t - cv.dernier) * missions.reglages.convoi_m_par_h
+  return point_de_la_route(cv.route, parcouru)
+end
+
+
 
 -- La taille d'un camp de bandits à ce lieu et à ce niveau : { sorte, effectif, coffre }, ou nil.
 function missions.taille_du_camp(lieu, niveau)
@@ -321,6 +386,62 @@ function missions.retirer_un_personnage(id, personnage)
   return c ~= nil and bataille().retirer_de_la_bande(c.bande, personnage) == true
 end
 
+-- Lance un convoi sur une route connue, à un niveau (la taille : l'accroche « taille du camp », le coffre transporté).
+-- Un seul convoi par route à la fois. Rend son nom, ou faux et la raison.
+function missions.lancer_un_convoi(nom_de_la_route, niveau)
+  local d = donnees()
+  local route = missions.routes[nom_de_la_route]
+  if not route then
+    return refuser("route_inconnue", tostring(nom_de_la_route))
+  end
+  for _, id in ipairs(d.ordre_des_convois) do
+    if d.convois[id].etat == "en_route" and d.convois[id].route.nom == nom_de_la_route then
+      return refuser("route_prise", id)
+    end
+  end
+  local taille = missions.taille_du_camp(nom_de_la_route, niveau)
+  if type(taille) ~= "table" then
+    return refuser("niveau_inconnu", tostring(niveau))
+  end
+  local depart = route.points[1]
+  local bande, raison = bataille().poster_une_bande({ sorte = taille.sorte, effectif = taille.effectif,
+    position = { x = depart.x, y = depart.y, z = depart.z }, cap = 0, carte = route.carte, butin = taille.coffre,
+    mobile = true })
+  if not bande then
+    return refuser("bande_refusee", raison)
+  end
+  local id = "convoi_" .. d.prochain_convoi
+  d.prochain_convoi = d.prochain_convoi + 1
+  local points = {}
+  for i, p in ipairs(route.points) do points[i] = { x = p.x, y = p.y, z = p.z } end
+  local heure = jeu().heure_du_jeu()
+  d.convois[id] = { id = id, route = { nom = route.nom, carte = route.carte, points = points }, niveau = niveau,
+                    bande = bande, etat = "en_route", parcouru = 0, dernier = heure, coffre = taille.coffre,
+                    position = { x = depart.x, y = depart.y, z = depart.z } }
+  table.insert(d.ordre_des_convois, id)
+  enregistrer()
+  jeu().journal("Missions : convoi « " .. id .. " » parti sur « " .. route.nom .. " » (" .. tostring(niveau) .. ", "
+                .. taille.effectif .. " " .. taille.sorte .. ")")
+  return id
+end
+
+function missions.convoi(id)
+  local cv = donnees().convois[id]
+  return cv and copie_du_convoi(cv) or nil
+end
+
+-- Les convois en route.
+function missions.convois()
+  local d = donnees()
+  local liste = {}
+  for _, id in ipairs(d.ordre_des_convois) do
+    if d.convois[id].etat == "en_route" then
+      table.insert(liste, copie_du_convoi(d.convois[id]))
+    end
+  end
+  return liste
+end
+
 function missions.camp(id)
   local c = donnees().camps[id]
   return c and copie_du_camp(c) or nil
@@ -493,7 +614,15 @@ function missions.prendre_une_mission(ordre)
   if not permis then
     return refuser("ne_peut_partir", tostring(pourquoi))
   end
-  local l = missions.lieux[ordre.lieu]
+  local cv = ordre.convoi ~= nil and d.convois[ordre.convoi] or nil
+  if ordre.convoi ~= nil and (not cv or cv.etat ~= "en_route") then
+    return refuser("convoi_inconnu", tostring(ordre.convoi))
+  end
+  if cv and missions.reglages.vitesse_m_par_h <= missions.reglages.convoi_m_par_h then
+    return refuser("convoi_trop_rapide", cv.id)
+  end
+  local l = cv and { nom = cv.route.nom, carte = cv.route.carte, x = cv.position.x, y = cv.position.y, z = cv.position.z }
+    or missions.lieux[ordre.lieu]
   if not l then
     return refuser("lieu_inconnu", tostring(ordre.lieu))
   end
@@ -511,10 +640,13 @@ function missions.prendre_une_mission(ordre)
   if ordre.chef ~= nil and not dans[ordre.chef] then
     return refuser("chef_hors_colonne", tostring(ordre.chef))
   end
-  local niveau = ordre.niveau or missions.niveau_pour((bataille().force_de(ordre.hommes)), ordre.lieu)
-  local camp_id, raison = missions.dresser_un_camp(ordre.lieu, niveau)
-  if not camp_id then
-    return refuser("camp_refuse", raison)
+  local niveau, camp_id = cv and cv.niveau or (ordre.niveau or missions.niveau_pour((bataille().force_de(ordre.hommes)), ordre.lieu)), nil
+  if not cv then
+    local raison
+    camp_id, raison = missions.dresser_un_camp(ordre.lieu, niveau)
+    if not camp_id then
+      return refuser("camp_refuse", raison)
+    end
   end
   local heure = jeu().heure_du_jeu()
   local id = "mission_" .. d.prochaine_mission
@@ -522,7 +654,7 @@ function missions.prendre_une_mission(ordre)
   local hommes = {}
   for i, h in ipairs(ordre.hommes) do hommes[i] = h end
   local m = { id = id, lieu = { nom = l.nom, carte = l.carte, x = l.x, y = l.y, z = l.z }, camp = camp_id, niveau = niveau,
-              hommes = hommes, chef = ordre.chef or hommes[1], etat = "aller", depart = heure }
+              hommes = hommes, chef = ordre.chef or hommes[1], etat = "aller", depart = heure, convoi = cv and cv.id or nil }
   d.missions[id] = m
   table.insert(d.ordre_des_missions, id)
   envoyer(m, { x = l.x, y = l.y, z = l.z })
@@ -563,8 +695,30 @@ local function avancer(d, m, heure)
     finir_la_mission(d, m, heure)
     return true
   end
-  local c = d.camps[m.camp]
+  -- La bande visée : celle du camp de bandits, ou celle du convoi (tranche 4).
+  local cv = m.convoi and d.convois[m.convoi] or nil
+  local c = d.camps[m.camp] or (cv and { bande = cv.bande }) or nil
   local b = c and bataille().bande(c.bande)
+  if m.etat == "aller" and cv and cv.etat == "arrive" then
+    -- Le convoi est arrivé au bout de sa route avant d'être pris : échappé, la colonne rentre.
+    m.issue = "echappe"
+    local retour = point_de_retour(m)
+    if not retour then
+      finir_la_mission(d, m, heure)
+      return true
+    end
+    m.etat = "retour"
+    envoyer(m, retour)
+    jeu().journal("Missions : « " .. m.id .. " » : le convoi s'est échappé, retour au camp")
+    return true
+  end
+  if m.etat == "aller" and cv and cv.position then
+    -- La colonne vise le convoi où il est ; l'ordre redonné quand il a bougé de plus de 15 m.
+    m.lieu.x, m.lieu.y, m.lieu.z = cv.position.x, cv.position.y, cv.position.z
+    if not m.vers or math.sqrt((m.vers.x - cv.position.x) ^ 2 + (m.vers.y - cv.position.y) ^ 2) > 15 then
+      envoyer(m, { x = cv.position.x, y = cv.position.y, z = cv.position.z })
+    end
+  end
   if m.etat == "aller" then
     if b and b.etat == "finie" then
       -- Tranché sur place (Henry présent) : la colonne rentre à cheval ; sans camp (levé entre-temps), finie là.
@@ -588,15 +742,27 @@ local function avancer(d, m, heure)
       local depuis = centre_du_camp() or la
       m.etat = "dehors_aller"
       m.arrivee = heure + math.sqrt((la.x - depuis.x) ^ 2 + (la.y - depuis.y) ^ 2) / missions.reglages.vitesse_m_par_h
+      if cv then
+        -- Le convoi avance : l'heure de la prise se calcule contre sa position à cette heure (trois approches).
+        for _ = 1, 3 do
+          local p = position_du_convoi_a(cv, m.arrivee)
+          m.lieu.x, m.lieu.y, m.lieu.z = p.x, p.y, p.z
+          m.arrivee = heure + math.sqrt((p.x - depuis.x) ^ 2 + (p.y - depuis.y) ^ 2) / missions.reglages.vitesse_m_par_h
+        end
+      end
       jeu().journal(string.format("Missions : « %s » dehors, au lieu à %.2f h", m.id, m.arrivee))
       return true
     end
   elseif m.etat == "dehors_aller" and heure >= m.arrivee then
-    if b and b.etat ~= "finie" then
-      m.resultat = bataille().trancher_la_bande_postee(c.bande, vivants)
+    if cv and cv.etat == "arrive" then
+      m.issue = "echappe"
+    else
+      if b and b.etat ~= "finie" then
+        m.resultat = bataille().trancher_la_bande_postee(c.bande, vivants)
+      end
+      local fini = c and bataille().bande(c.bande)
+      m.issue = fini and fini.issue or "perdue"
     end
-    local fini = c and bataille().bande(c.bande)
-    m.issue = fini and fini.issue or "perdue"
     if m.resultat then
       m.resultat = { morts = #m.resultat.morts, blesses = #m.resultat.blesses, butin = m.resultat.butin,
                      part_coffre = m.resultat.part_coffre }
@@ -680,6 +846,59 @@ local function avancer(d, m, heure)
   return false
 end
 
+-- Un convoi avance d'un battement : à pied, tant que sa bande n'est pas au combat ; sa bande suit son point (née, elle y
+-- marche ; loin d'Henry et hors de sa vue, retirée du monde, elle renaîtra au bon endroit) ; au bout de sa route,
+-- arrivé (retiré hors de la vue d'Henry) ; sa bande finie, le convoi aussi (vaincu : l'accroche « camp vaincu »).
+-- Rend vrai s'il a changé.
+local function avancer_le_convoi(cv, heure)
+  if cv.etat ~= "en_route" then
+    return false
+  end
+  local b = bataille().bande(cv.bande)
+  if not b or b.etat == "finie" then
+    cv.etat = "fini"
+    cv.issue = b and b.issue or "oubliee"
+    if cv.issue == "victoire" or cv.issue == "victoire_couteuse" then
+      local copie = copie_du_convoi(cv)
+      copie.lieu = cv.route.nom
+      local ok, erreur = pcall(missions.camp_vaincu, copie)
+      if not ok then
+        jeu().journal("Missions : accroche « camp vaincu » (convoi) en erreur : " .. tostring(erreur))
+      end
+    end
+    jeu().journal("Missions : convoi « " .. cv.id .. " » fini (" .. tostring(cv.issue) .. ")")
+    return true
+  end
+  if b.etat == "postee" then
+    cv.parcouru = cv.parcouru + math.max(0, heure - cv.dernier) * missions.reglages.convoi_m_par_h
+  end
+  cv.dernier = heure
+  local position, regard, au_bout = point_de_la_route(cv.route, cv.parcouru)
+  cv.position = { x = position.x, y = position.y, z = position.z }
+  if b.etat ~= "postee" then
+    return false
+  end
+  if au_bout then
+    if #b.personnages > 0 and lieu_sous_les_yeux(position) then
+      return false
+    end
+    if #b.personnages > 0 then
+      jeu().renvoyer_ennemis(b.personnages)
+    end
+    bataille().oublier_la_bande(cv.bande)
+    cv.etat = "arrive"
+    jeu().journal("Missions : convoi « " .. cv.id .. " » arrivé au bout de « " .. cv.route.nom .. " »")
+    return true
+  end
+  bataille().deplacer_la_bande(cv.bande, position, regard)
+  local henry = jeu().position_du_joueur()
+  if #b.personnages > 0 and henry and math.sqrt((henry.x - position.x) ^ 2 + (henry.y - position.y) ^ 2)
+      > bataille().reglages.poste_vue_m then
+    bataille().retirer_la_bande_du_monde(cv.bande)
+  end
+  return false
+end
+
 -- ---------------------------------------------------------------- battement et chargement
 
 function missions.battre()
@@ -734,6 +953,12 @@ function missions.battre()
       else
         k = k + 1
       end
+    end
+  end
+  for _, id in ipairs(d.ordre_des_convois) do
+    if avancer_le_convoi(d.convois[id], heure) then
+      rapport.convois = (rapport.convois or 0) + 1
+      change = true
     end
   end
   for _, id in ipairs(d.ordre_des_missions) do

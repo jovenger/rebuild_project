@@ -508,6 +508,38 @@ function poste.essai_missions()
   return true
 end
 
+-- Fiche 17, tranche 4 : un convoi d'essai sur une route de trois points devant Henry (60 m, 120 m à droite, 200 m) ; il
+-- naît quand Henry ne regarde plus son départ.
+function poste.essai_convoi()
+  local carte = jeu().carte_courante and (jeu().carte_courante()) or nil
+  local p1, p3 = jeu().point_devant_henry(60), jeu().point_devant_henry(200)
+  local p2 = jeu().point_devant_henry(120)
+  if not (carte and p1 and p2 and p3) then
+    jeu().journal("Poste : convoi : ni points devant Henry ni carte lisibles")
+    return false
+  end
+  -- Le point du milieu, 40 m sur la droite de la ligne (perpendiculaire au regard).
+  local dx, dy = p3.x - p1.x, p3.y - p1.y
+  local l = math.sqrt(dx * dx + dy * dy)
+  if l > 0 then p2 = { x = p2.x + dy / l * 40, y = p2.y - dx / l * 40, z = p2.z } end
+  poste.camps_d_essai = poste.camps_d_essai + 1
+  local nom = "route_essai_" .. poste.camps_d_essai
+  Scriptorium.missions.ajouter_une_route(nom, carte, { p1, p2, p3 })
+  local id, raison = Scriptorium.missions.lancer_un_convoi(nom, "petit")
+  jeu().journal("Poste : convoi = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or ""))
+  poste.battre_les_hommes()
+  return id
+end
+
+function poste.essai_convois()
+  for _, cv in ipairs(Scriptorium.missions.convois()) do
+    local b = Scriptorium.bataille.bande(cv.bande) or {}
+    jeu().journal(string.format("Poste : « %s » sur « %s » : %.0f m parcourus, en (%.1f, %.1f), bande %s, %d personnage(s)",
+      cv.id, cv.route, cv.parcouru, cv.position.x, cv.position.y, tostring(b.etat), b.personnages and #b.personnages or 0))
+  end
+  return true
+end
+
 function poste.essai_lever_les_camps()
   local n = 0
   for _, c in ipairs(Scriptorium.missions.camps()) do
@@ -2159,6 +2191,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_mission_pres", fonction = function() return poste.essai_mission(120) end, aide = "Mission des trois premiers hommes vers un camp de bandits à 120 m devant Henry" },
   { nom = "scriptorium_essai_mission_loin", fonction = function() return poste.essai_mission(450) end, aide = "Mission des trois premiers hommes vers un camp de bandits à 450 m devant Henry (issue au loin)" },
   { nom = "scriptorium_essai_missions", fonction = function() return poste.essai_missions() end, aide = "Les missions en cours" },
+  { nom = "scriptorium_essai_convoi", fonction = function() return poste.essai_convoi() end, aide = "Lance un convoi d'essai sur une route de trois points devant Henry" },
+  { nom = "scriptorium_essai_convois", fonction = function() return poste.essai_convois() end, aide = "Les convois en route : parcours, position, bande" },
   { nom = "scriptorium_essai_lever_les_camps", fonction = function() return poste.essai_lever_les_camps() end, aide = "Lève tous les camps de bandits" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },

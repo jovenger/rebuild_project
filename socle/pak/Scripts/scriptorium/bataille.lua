@@ -239,6 +239,7 @@ function bataille.poster_une_bande(ordre)
   d.bandes[id] = {
     id = id, sorte = ordre.sorte, effectif = effectif, direction = 0, levee = heure, arrivee = heure,
     etat = "postee", postee = true, carte = ordre.carte, cap = tonumber(ordre.cap) or 0, butin_du_camp = ordre.butin,
+    mobile = ordre.mobile == true or nil,
     point_d_arrivee = { x = p.x, y = p.y, z = p.z }, annoncee = true, contact = nil, personnages = nil, combattants = {},
   }
   table.insert(d.ordre, id)
@@ -1064,7 +1065,10 @@ local function garder_le_poste(b)
   if b.personnages == nil then
     local vu = (henry_a(b) or math.huge) <= r.poste_vue_m
                and jeu().henry_voit(b.point_d_arrivee, hommes().reglages.secours_vue_cos) == true
-    if vu then
+    -- Une bande qui bouge (un convoi, fiche 17) n'existe dans le monde qu'à moins de « poste_vue_m » d'Henry : plus loin,
+    -- elle avance par le calcul.
+    local trop_loin = b.mobile and (henry_a(b) or math.huge) > r.poste_vue_m
+    if vu or trop_loin then
       return false
     end
     local personnages = jeu().faire_venir_ennemis(b.sorte, b.effectif, b.point_d_arrivee, b.cap)
@@ -1321,6 +1325,47 @@ function bataille.oublier_la_bande(id)
   b.personnages = nil
   enregistrer()
   jeu().journal("Bataille : « " .. id .. " » oubliée")
+  return true
+end
+
+-- Fiche 17, tranche 4 (le convoi) : le point d'une bande postée avance ; née, ses hommes debout y marchent (l'ordre de
+-- poste, vers « regard »), redonné seulement quand le point a bougé de plus de 5 m. Vrai si fait.
+function bataille.deplacer_la_bande(id, position, regard)
+  local b = donnees().bandes[id]
+  if not b or not b.postee or b.etat ~= "postee" or type(position) ~= "table" then
+    return false
+  end
+  b.point_d_arrivee = { x = position.x, y = position.y, z = position.z }
+  local avant = b.point_ordonne
+  if b.personnages and (not avant or math.sqrt((avant.x - position.x) ^ 2 + (avant.y - position.y) ^ 2) > 5) then
+    for i, e in ipairs(b.personnages) do
+      if debout(e) then
+        local place = { x = position.x + ((i - 1) % 3) * 1.5, y = position.y - math.floor((i - 1) / 3) * 1.5, z = position.z }
+        jeu().ordonner(e, "convoi", place, "convoi", nil, nil, regard or position, nil)
+      end
+    end
+    b.point_ordonne = { x = position.x, y = position.y }
+  end
+  return true
+end
+
+-- Une bande postée retirée du monde (ses hommes debout comptés, pour renaître ailleurs) : jamais sous les yeux d'Henry.
+-- Vrai si fait.
+function bataille.retirer_la_bande_du_monde(id)
+  local b = donnees().bandes[id]
+  if not b or not b.postee or b.etat ~= "postee" or not b.personnages or sous_les_yeux(b) then
+    return false
+  end
+  local reste = 0
+  for _, e in ipairs(b.personnages) do
+    if debout(e) then reste = reste + 1 end
+  end
+  jeu().renvoyer_ennemis(b.personnages)
+  b.effectif = reste
+  b.personnages = nil
+  b.point_ordonne = nil
+  enregistrer()
+  jeu().journal("Bataille : « " .. id .. " » retirée du monde, hors de la vue d'Henry (" .. reste .. " debout)")
   return true
 end
 

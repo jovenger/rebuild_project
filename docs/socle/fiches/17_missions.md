@@ -149,6 +149,20 @@ le chemin du retour, entre à cheval et descend.
   survivants reçoivent l'ordre de fuite, en courant ; l'un, très blessé, se rend devant Henry (le jeu). Nos recrues ont un
   niveau de combat de 0,3, les brigands 0,4 : leur avantage est normal, pas un défaut. Soupçon 3 du pair (l'ordre 8 ne
   frappe pas) : non, les deux camps frappent.
+- **Tranche 3, plusieurs missions** (a05a3d5) : un lieu pris n'est donné à aucune autre (accroche
+  `missions.lieu_reserve`, que Scriptorium enveloppe pour ses missions en parallèle) ; `missions.choisir_un_lieu(carte)`.
+  Les personnages d'un camp de bandits connus de Scriptorium : `personnages_du_camp`, `ajouter_un_personnage`,
+  `retirer_un_personnage`. Le partage du butin en accroche (`bataille.partager_le_butin`) : des parts absurdes refusées,
+  tout reste au coffre (quatre erreurs injectées attrapées).
+- **Tranche 4, les convois** (réponses prises d'office) : les routes viennent de Scriptorium
+  (`missions.ajouter_une_route(nom, carte, points)`), jamais devinées ; `missions.lancer_un_convoi(route, niveau)` (un
+  seul par route ; la taille par l'accroche « taille du camp ») ; c'est une bande postée dont le point avance à pied
+  (`convoi_m_par_h`, 4 km/h) tant qu'elle n'est pas au combat (`bataille.deplacer_la_bande` : ses hommes y marchent) ;
+  elle n'existe dans le monde qu'à moins de `poste_vue_m` d'Henry (plus loin, retirée hors de sa vue, elle avance par le
+  calcul) ; au bout de sa route, arrivée (retirée hors de sa vue) ; vaincue, l'accroche « camp vaincu ». La mission
+  contre un convoi : `prendre_une_mission({ convoi, hommes })` (refus si la colonne n'est pas plus rapide) ; la colonne
+  le vise où il est ; dehors, l'heure de la prise se calcule contre sa marche ; arrivé avant : « échappé ».
+  **Non vérifié en jeu** : qu'un brigand marche par l'ordre de poste (la fuite l'avait posé, un brigand s'est rendu).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 

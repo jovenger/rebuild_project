@@ -651,3 +651,104 @@ essai("missions : Scriptorium ajoute et retire des personnages d'un camp de band
   egal(la_bande(id).etat, "finie", "plus personne debout dans la bande : finie")
   finir()
 end)
+
+-- ---------------------------------------------------------------- tranche 4 : les convois
+
+local ROUTE = { { x = 0, y = 400, z = 0 }, { x = 400, y = 400, z = 0 }, { x = 400, y = 800, z = 0 } }
+
+essai("missions (convois) : une route fournie par Scriptorium ; un convoi par route ; il avance à pied et sa bande le suit", function()
+  preparer()
+  verifier(not missions.ajouter_une_route("courte", "trosky", { { x = 0, y = 0, z = 0 } }), "un seul point : refusé")
+  verifier(not missions.ajouter_une_route("boiteuse", "trosky", { { x = 0, y = 0 }, { x = 1, y = 1, z = 0 } }), "un point sans hauteur : refusé")
+  verifier(missions.ajouter_une_route("vallee", "trosky", ROUTE), "la route")
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  local id = missions.lancer_un_convoi("vallee", "petit")
+  battre()
+  egal(#bataille.bande(missions.convoi(id).bande).personnages, 0, "à 400 m d'Henry : pas dans le monde")
+  FauxJeu.position_joueur = { x = 0, y = 150, z = 0 }
+  verifier(id, "parti")
+  verifier(not missions.lancer_un_convoi("vallee", "petit"), "un seul convoi par route")
+  battre()
+  local cv = missions.convoi(id)
+  egal(cv.position.x, 0, "au départ")
+  local bande = bataille.bande(cv.bande)
+  egal(#bande.personnages, 4, "sa bande née (hors du regard d'Henry)")
+  FauxJeu.ordres = {}
+  FauxJeu.heure = 10.05      -- 0,05 h à 4 km/h : 200 m
+  battre()
+  cv = missions.convoi(id)
+  verifier(math.abs(cv.position.x - 200) < 0.01 and math.abs(cv.position.y - 400) < 0.01, "200 m le long de la route, sur le premier tronçon")
+  local en_marche = 0
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.activite == "convoi" then en_marche = en_marche + 1 end
+  end
+  egal(en_marche, 4, "ses quatre hommes marchent vers son point")
+  finir()
+end)
+
+essai("missions (convois) : loin d'Henry, retiré du monde ; au bout de sa route, arrivé ; une bande au combat ne marche plus", function()
+  preparer()
+  missions.ajouter_une_route("vallee", "trosky", ROUTE)
+  FauxJeu.position_joueur = { x = 0, y = 150, z = 0 }
+  local id = missions.lancer_un_convoi("vallee", "petit")
+  battre()
+  egal(#bataille.bande(missions.convoi(id).bande).personnages, 4, "à 250 m : né")
+  FauxJeu.heure = 10.1        -- 400 m : au coude, à plus de 400 m d'Henry
+  local renvoyes = #FauxJeu.ennemis_renvoyes
+  battre()
+  egal(#FauxJeu.ennemis_renvoyes - renvoyes, 4, "à plus de 300 m d'Henry : retiré du monde")
+  egal(#bataille.bande(missions.convoi(id).bande).personnages, 0, "sans personnage")
+  FauxJeu.heure = 10.3        -- 1 200 m : au-delà du bout (800 m)
+  battre()
+  egal(missions.convoi(id).etat, "arrive", "arrivé au bout de sa route")
+  egal(#missions.convois(), 0, "plus de convoi en route")
+  -- Un convoi dont la bande est au contact ne marche plus.
+  local id2 = missions.lancer_un_convoi("vallee", "petit")
+  FauxJeu.position_joueur = { x = 0, y = 380, z = 0 }
+  battre()
+  battre()
+  egal(bataille.bande(missions.convoi(id2).bande).etat, "au_contact", "Henry à 20 m : l'alerte")
+  local avant = missions.convoi(id2).parcouru
+  FauxJeu.heure = 10.6
+  battre()
+  egal(missions.convoi(id2).parcouru, avant, "au combat : il n'avance plus")
+  finir()
+end)
+
+essai("missions (convois) : une mission contre un convoi ; au loin, l'heure de la prise se calcule contre sa marche ; échappé s'il arrive avant", function()
+  local ids = preparer_la_mission()
+  missions.ajouter_une_route("vallee", "trosky", ROUTE)
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  local cv = missions.lancer_un_convoi("vallee", "petit")
+  local vitesse = missions.reglages.vitesse_m_par_h
+  missions.reglages.vitesse_m_par_h = 3000
+  verifier(not missions.prendre_une_mission({ convoi = cv, hommes = ids }), "une colonne pas plus rapide : refusée")
+  missions.reglages.vitesse_m_par_h = vitesse
+  local id = missions.prendre_une_mission({ convoi = cv, hommes = ids })
+  verifier(id, "partie contre le convoi")
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 350, z = 0 }
+  end
+  FauxJeu.vue_d_henry = function() return false end
+  battre()
+  local m = missions.mission(id)
+  egal(m.etat, "dehors_aller", "dehors")
+  FauxJeu.heure = 10.2
+  battre()
+  verifier(missions.mission(id).etat ~= "aller", "la prise tranchée au loin")
+  egal(bataille.bande(missions.convoi(cv).bande).etat, "finie", "la bande du convoi tranchée")
+  finir()
+  -- Échappé : le convoi arrive au bout avant la colonne.
+  ids = preparer_la_mission()
+  missions.ajouter_une_route("courte", "trosky", { { x = 0, y = 400, z = 0 }, { x = 0, y = 420, z = 0 } })
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  cv = missions.lancer_un_convoi("courte", "petit")
+  id = missions.prendre_une_mission({ convoi = cv, hommes = ids })
+  FauxJeu.heure = 10.1
+  battre()
+  battre()
+  egal(missions.convoi(cv).etat, "arrive", "le convoi au bout")
+  egal(missions.mission(id).issue, "echappe", "la mission : échappé")
+  finir()
+end)
