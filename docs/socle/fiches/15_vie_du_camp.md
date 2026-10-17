@@ -1058,6 +1058,128 @@ toutes les 2 à 3 s (écart au but, pas, regard).
   long d'un chemin de points (`AI/move/moveinformation_tagpointroute.xml`, à lire d'abord), qui suivent des points du
   niveau : il faudrait poser des points à nous, plus lourd.
 
+## V73 e — le rassemblement (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- **Le mécanisme** : rejoindre une place sur un **arc autour d'un centre**, face au centre ou au dehors, en courant ou en
+  marchant, en quittant toute tâche, et s'y tenir jusqu'à ce que la règle lâche l'homme. **Ce pas le prouve sur le
+  briefing** de Scriptorium (le rassemblement avant mission) ; l'anneau d'alerte (face au dehors, arme tirée) et le
+  cercle des duels s'en serviront à leur pas.
+- **Qui, quand, où, combien de temps** : Scriptorium (le Directeur décide la mission, choisit les aptes, garde une
+  garnison, mène le discours et le lâche). Le socle tient et lâche.
+- **Les 150 m** (réponse 1 a de JoVenGer du 16/10, jamais codée) : un homme à plus de 150 m de son but est posé d'un coup
+  sans attendre les 30 s, pour toutes les activités.
+
+### Ce que Scriptorium attend (relu le 17/10, lecture seule, par un agent de recherche : LISEZMOI de
+`rassemblement_sans_retard`, `briefing_du_directeur`, `missions_du_directeur`, `garde_du_directeur`, `en_garde_du_camp`,
+`sentinelles_du_camp`, `duels_judiciaires`, `hommes_sous_la_carte`, `troupe_chez_elle`, `degel_des_hommes`,
+`NOTE_POUR_LE_SOCLE`)
+- **Le briefing** : devant le Directeur, à son poste, tourné vers le camp ; les hommes en **demi-cercle à 3 m, de −60° à
+  +60°, face à lui** ; ils viennent **en courant** ; « peu importe ce qu'il fait » (entraînement, repas, assis, tir,
+  bain), il quitte sa tâche, qui lui est rendue après ; un convoqué qui ne s'est pas rapproché de 1 m en 30 s est posé à
+  sa place ; discours de 40 s, réactions, « Rompez ! », les tâches rendues.
+- **L'anneau d'alerte** (le ralliement au cor, retiré le 3/10, remplacé par un déploiement) : en anneau, face au
+  dehors, arme tirée ; exemptés : le service, le Directeur, les factionnaires, les hommes dehors. À son pas.
+- **Le cercle des duels** : un cercle de 10 m, les hommes tournés vers les duellistes, venus en marchant, au plus 90 s ;
+  il passe avant toute tâche et tout siège. À son pas, par la même mécanique.
+- **Les pièges** : la levée qui fige (chez eux, lever un homme puis le faire courir le figeait : « d'où une course sans
+  levée ») ; les assis qui glissent (lever d'abord) ; un homme passé sous la carte ; à 250 m, le jeu ne trace pas de
+  chemin ; recréés à 150 m, « on les voyait apparaître ».
+- **Contradictions laissées à Scriptorium** : 90 s ou 5 min pour venir, « démarre dès que tous y sont » ou « un retard
+  n'empêche pas le discours » (le départ et la fin du discours sont à Scriptorium ; le socle n'a besoin d'aucune
+  durée) ; le lieu (devant le bureau du Directeur, ou la zone de briefing derrière les tentes) : c'est le centre que
+  donne la tenue. **L'arme** : rien dans aucun document : rangée, comme la garde (réponse 1 a de V73 d).
+- **Aucun document ne parle de rangs** : seulement demi-cercle, anneau, cercle, et la colonne de marche (V73 f).
+
+### Le constat (code relu le 17/10)
+- La règle « rassemblement » est au rang 2 (après la bataille) ; une tenue la donne sur-le-champ et rend la règle
+  d'en dessous quand elle est lâchée (vu en V73 b 3, V73 d 1, V73 d 2 bis) ; mais elle n'est qu'une **marche** (ordre 9)
+  au point donné, au pas, sans place à soi ni direction.
+- Plusieurs hommes au même rassemblement iraient au même point (le secours les poserait l'un sur l'autre, la liaison les
+  écarte d'un mètre).
+- **Les 150 m ne sont pas codés** : le secours n'attend que le délai sans progrès.
+- La branche 12 (« tenir un poste ») fait déjà : debout, marche à un arrêt court, `Turn` vers un point de regard, tenue
+  avec le pouls, le geste « regarder autour » le jour. Il lui manque la course.
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule)
+- **La course** : le même `Move`, `speed="Run"` (124 emplois ; « Walk » 498, « Sprint » 40) ; la vitesse peut être une
+  variable de l'arbre de type `enum:movementSpeed` (46 emplois de `$speed`), écrite par une `Expression`
+  `$speed = $enum:movementSpeed.run` (`AI/crime/followhelpingnpc.xml`, `AI/_lukas/test_lukas_helper.xml`), déclarée
+  `<Variable name="speed" type="enum:movementSpeed" …/>`. Aucun ternaire sur un enum n'est relevé : la valeur s'écrit
+  sous une condition.
+- **Les formations du jeu** (`MakeFormation`, `FormationFollower`, `EndFormation` ; 63 définitions dans
+  `AI/FormationDefinitions.xml`, dont `dogCompanion_followHeel`) suivent un chef qui bouge (`AI/battles/battlegroupcontroller.xml`,
+  `AI/move/moveUtils.xml`) : une piste pour V73 f (suivre Henry), pas pour une place fixe.
+- Recherche d'un exemple existant (règle du 15/10) : celle de V73 d 2 (aucun mod KCD2 sur ce sujet) ; les arbres du jeu
+  ci-dessus suffisent.
+
+### Comment ce serait fait
+1. **La tenue « rassemblement » avec un centre** : `hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu,
+   centre, cap, rayon, ouverture, face, allure, fin })`. `centre` : un point du monde ; `cap` : la direction du milieu de
+   l'arc vu du centre (cap de boussole) ; `rayon` (défaut `rassemblement_rayon_m`, 3) ; `ouverture` en degrés (défaut
+   `rassemblement_ouverture`, 120 ; 360 : un cercle entier) ; `face` « centre » (défaut) ou « dehors » ; `allure`
+   « course » (défaut) ou « marche ». Valeurs refusées sinon (`rassemblement_invalide`). **Sans centre**, comme avant :
+   une marche au point `position`.
+2. **Les places** (`hommes`) : les hommes que tient le même rassemblement (même lieu, leur tenue la plus forte), dans
+   l'ordre du camp, répartis sur l'arc (un seul : au milieu ; un cercle entier : à égale distance ; sinon d'un bout à
+   l'autre) ; **jamais à moins de `ecart_entre_hommes` (1,2 m) l'un de l'autre** : ce qui ne tient pas sur l'arc passe
+   sur un second arc, `ecart_entre_hommes` plus loin, et ainsi de suite. Le point regardé : le centre, ou le dehors à
+   `regard_m`.
+3. **Une place qui change redonne l'ordre** : la place (son numéro et le nombre de places) entre dans la signature de
+   l'ordre (« activité@lieu#2/3 »), et poser ou lâcher une tenue de rassemblement redonne sur-le-champ l'ordre de chacun
+   des hommes de ce rassemblement dont la place a changé. Le secours repart de zéro à chaque nouvel ordre.
+4. **L'ordre** : la liaison reçoit l'allure en plus (« course », « marche » ou rien) ; avec un regard, elle pose le
+   point, le regard et **l'allure** (`scriptorium_allure`, entier : 1 course, 0 sinon, remise à 0 à chaque ordre de
+   poste, sinon une garde qui suit un briefing courrait), puis l'ordre 12 ; la ligne du journal dit « en courant ».
+5. **La branche 12** : avant la marche, `$allure = $enum:movementSpeed.walk`, puis, si `$scriptorium_allure == 1`,
+   `$allure = $enum:movementSpeed.run` ; le `Move` prend `speed="$allure"`. Le reste ne change pas (le `Turn` vers le
+   regard, le pouls, le geste « regarder autour » le jour : question 2).
+6. **Les 150 m** (`secours_loin_m`, 150) : au-delà, le secours n'attend pas le délai ; il reste compté (au plus
+   `secours_max`), jamais en combat ni en conversation, jamais pour un homme encore assis à sa place d'avant. « Hors de
+   la vue d'Henry si possible » (conversation Scriptorium) : le socle ne le vérifie pas (aucune lecture de la vue d'Henry
+   n'est éprouvée) ; c'est noté.
+- **Valeurs en données** : `hommes.reglages.rassemblement_rayon_m` (3), `rassemblement_ouverture` (120),
+  `secours_loin_m` (150) ; `hommes.points.briefing`, le centre d'essai (−10 ; −3, cap 270, à l'ouest du camp, à
+  l'écart des meubles) ; une variable de cerveau de plus, `scriptorium_allure` (39).
+- Rien au registre de plus que la tenue (son centre et ses options).
+
+### Essais au banc
+- Les places : un homme au milieu de l'arc, face au centre ; trois hommes à −60°, 0°, +60° ; un cercle entier de quatre à
+  90° ; « dehors » : le regard au dehors ; neuf hommes sur 3 m et 120° : un second arc, jamais deux hommes à moins de
+  1,2 m.
+- Trois hommes convoqués l'un après l'autre : à chaque fois, chacun a un ordre vers sa place du moment, jamais deux la
+  même ; un lâché : les autres se resserrent, un ordre chacun.
+- L'allure : « course » par défaut, « marche » si la tenue le dit ; la garde n'en a pas ; les valeurs refusées.
+- La liaison (faux moteur) : l'allure 1 avec un rassemblement, 0 avec une garde.
+- Les 150 m : à 151 m, posé au premier battement ; à 149 m, pas avant le délai.
+- Contrôles statiques : la branche 12 écrit l'allure sous condition et la donne au `Move` ; la variable d'arbre et la
+  variable de cerveau déclarées ; la liaison écrit `scriptorium_allure`. Le garde-fou : les places du briefing d'essai,
+  pour un à neuf hommes, à l'écart des meubles du plan (2,4 m) et en dedans de la palissade.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé ; trois hommes assis sur les bancs (`essai_hommes_asseoir`) ; `essai_briefing` : les trois
+convoqués l'un après l'autre, à 3 s d'écart, autour du centre d'essai ; une lecture toutes les 2 s.
+1. **La levée, puis la course** : chacun se lève et court (la ligne de l'ordre dit « en courant ») ; un homme qui reste
+   assis ou se fige après la levée → le piège noté chez Scriptorium : lire, un seul changement.
+2. À chaque convocation, les places se recalculent (un ordre de plus aux déjà convoqués) ; à la fin, trois places
+   distinctes, à moins de 1 m de chacune, face au centre (écart au regard sous 25°), sans glisser.
+3. Une capture de face : l'arc des trois.
+4. `essai_rompre` : un ordre chacun, retour à leur tranche (l'exercice).
+5. Les 150 m : au banc seulement (dit tel quel).
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **La forme** : (a) un arc autour d'un centre, rayon et ouverture donnés par la tenue, face au centre ou au dehors,
+   un second arc quand le premier est plein (Recommandé : couvre le briefing, l'anneau et le cercle des duels) ; (b) des
+   rangs ; (c) Scriptorium donne chaque place. **Prise : (a).**
+2. **Le geste pendant le rassemblement** : (a) celui de V73 d 1 reste (regarder autour, le jour, 60 s ± 30) ; l'éteindre
+   serait un petit pas après si Scriptorium le veut (Recommandé : une chose à la fois, et un homme qui regarde autour
+   pendant un discours de 40 s n'est pas choquant) ; (b) aucun geste. **Prise : (a).**
+3. **L'allure** : (a) donnée par la tenue, la course par défaut pour un rassemblement (Recommandé : le briefing en
+   courant, le duel en marchant) ; (b) toujours en courant. **Prise : (a).**
+4. **Les 150 m** : (a) maintenant, pour toutes les activités, comme validé le 16/10 (Recommandé) ; (b) seulement pour le
+   rassemblement ; (c) plus tard. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
