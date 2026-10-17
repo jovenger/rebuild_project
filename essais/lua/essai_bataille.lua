@@ -561,3 +561,72 @@ essai("bataille (étape 2) : qui attend son tour à moins de 4 m de sa cible n'e
   FauxJeu.attaques = nil
   FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
 end)
+
+-- Relecture du pair (17/10) : rien ne disparaît sous les yeux d'Henry. Les survivants d'une bande venue au camp
+-- s'enfuient en courant, à l'opposé du camp, et ne sont retirés qu'hors de son regard ou à plus de 150 m de lui.
+essai("bataille : les survivants d'une bande venue au camp s'enfuient en courant ; retirés hors de la vue d'Henry seulement", function()
+  preparer(1000, 10, { "homme_d_armes", "homme_d_armes" })
+  local ancienne = bataille.issue_au_loin
+  bataille.issue_au_loin = function(nous)
+    return { gagne = false, tombes = { nous[1], nous[2] }, debout = {}, eux_tombes = 1, eux_debout = 2, passes = 3 }
+  end
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+  bataille.battre()
+  local ennemis = bataille.bande(id).personnages
+  for _, e in ipairs(ennemis) do
+    FauxJeu.positions[e] = { x = 0, y = 60, z = 0 }
+  end
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.ordres = {}
+  FauxJeu.heure = 13
+  bataille.battre()
+  egal(bataille.bande(id).etat, "finie", "tranchée")
+  local fuites = 0
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.activite == "fuite" then
+      fuites = fuites + 1
+      egal(o.allure, "course", "en courant")
+      verifier(o.position.y > 60, "à l'opposé du camp")
+    end
+  end
+  egal(fuites, 2, "les deux survivants s'enfuient")
+  local renvoyes = #FauxJeu.ennemis_renvoyes
+  bataille.battre()
+  egal(#FauxJeu.ennemis_renvoyes, renvoyes, "sous les yeux d'Henry, à 60 m : encore là")
+  for _, e in ipairs(ennemis) do
+    FauxJeu.positions[e] = { x = 0, y = 160, z = 0 }
+  end
+  bataille.battre()
+  egal(#FauxJeu.ennemis_renvoyes, renvoyes + 2, "à plus de 150 m : retirés")
+  bataille.issue_au_loin = ancienne
+  FauxJeu.vue_d_henry = nil
+end)
+
+-- Relecture du pair (17/10) : un blessé mis à terre ne meurt pas ensuite ; immortel un temps, puis l'effet retiré.
+essai("bataille : nos blessés mis à terre, immortels « blesse_immortel_ms », jamais frappés ensuite", function()
+  local ids = preparer(1000, 10, { "homme_d_armes", "homme_d_armes", "archer" })
+  local ancienne, part = bataille.issue_au_loin, bataille.reglages.part_des_morts
+  bataille.reglages.part_des_morts = 0
+  bataille.issue_au_loin = function(nous)
+    local debout = {}
+    for i = 3, #nous do debout[#debout + 1] = nous[i] end
+    return { gagne = true, tombes = { nous[1], nous[2] }, debout = debout, eux_tombes = 2, eux_debout = 0, passes = 4 }
+  end
+  FauxJeu.refuser_ennemis = true
+  FauxJeu.a_terre, FauxJeu.coups, FauxJeu.effets, FauxJeu.effets_retires = {}, {}, {}, {}
+  local p1, p2 = hommes.fiche(ids[1]).personnage, hommes.fiche(ids[2]).personnage
+  bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(#FauxJeu.a_terre, 2, "deux blessés mis à terre")
+  egal(#FauxJeu.effets, 2, "immortels")
+  for _ = 1, 4 do bataille.battre() end
+  for _, c in ipairs(FauxJeu.coups) do
+    verifier(c.identifiant ~= p1 and c.identifiant ~= p2, "aucun coup sur un blessé")
+  end
+  local mt = FauxJeu.minuteries[#FauxJeu.minuteries]
+  egal(mt.ms, bataille.reglages.blesse_immortel_ms, "l'effet retiré après « blesse_immortel_ms »")
+  mt.fonction()
+  verifier(#FauxJeu.effets_retires >= 1, "effet retiré")
+  bataille.issue_au_loin, bataille.reglages.part_des_morts = ancienne, part
+end)

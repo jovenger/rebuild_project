@@ -485,6 +485,9 @@ essai("missions : tranchée, l'issue s'applique aux vrais personnages ; survivan
     return { gagne = false, tombes = { nous[1], nous[2], nous[3] }, debout = {}, eux_tombes = 2, eux_debout = 2, passes = 5 }
   end
   battre()   -- le premier relevé du combat (le filet compte depuis le dernier changement vu)
+  for _, e in ipairs(la_bande(id).personnages) do
+    FauxJeu.positions[e] = { x = 0, y = 200, z = 0 }
+  end
   FauxJeu.vue_d_henry = function() return true end
   FauxJeu.coups, FauxJeu.a_terre = {}, {}
   local premier = hommes.fiche(ids[1]).personnage

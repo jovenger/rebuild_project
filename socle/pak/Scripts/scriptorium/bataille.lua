@@ -59,6 +59,14 @@ bataille.reglages = {
   -- (sa santé portée à « blesse_sante »), pas retiré ; rien ne disparaît sous les yeux d'Henry (corps et survivants d'une
   -- bande postée retirés hors de sa vue).
   blesse_sante = 5,
+  -- (relecture du pair) Mis à terre, un blessé ne doit pas mourir ensuite (un saignement, un coup) : immortel
+  -- « blesse_immortel_ms », comme l'homme repêché par le gardien.
+  blesse_immortel_ms = 120000,
+  -- (relecture du pair) Les survivants d'une bande venue au camp s'enfuient en courant, à l'opposé du camp, jusqu'à
+  -- « fuite_m » ; retirés une fois hors du regard d'Henry ou à plus de « fuite_retrait_m » de lui (ceux d'une bande
+  -- postée, qui restent à leur camp : hors de son regard ou à plus de « poste_vue_m »).
+  fuite_m = 200,
+  fuite_retrait_m = 150,
 }
 
 -- La force d'un homme selon son palier (recrue, confirmé, vétéran) : un facteur, réglable.
@@ -710,7 +718,14 @@ local function trancher_par_passes(d, b, combattants, bonus)
   for _, blesse in ipairs(blesses) do
     local f = hommes().fiche(blesse.id)
     if f and f.personnage then
-      jeu().mettre_a_terre(f.personnage, bataille.reglages.blesse_sante)
+      local personnage = f.personnage
+      jeu().mettre_a_terre(personnage, bataille.reglages.blesse_sante)
+      local effet = jeu().rendre_immortel(personnage)
+      if effet ~= nil then
+        jeu().minuterie(bataille.reglages.blesse_immortel_ms, function()
+          jeu().retirer_l_effet(personnage, effet)
+        end)
+      end
     end
   end
   b.combattants = combattants
@@ -735,7 +750,26 @@ local function finir(d, b, resultat)
       -- Fiche 17 : les survivants d'une bande postée restent debout ; retirés hors de la vue d'Henry (le battement).
       b.partants = debout
     elseif #debout > 0 then
-      jeu().renvoyer_ennemis(debout)
+      -- (relecture du pair) Ils partent aussitôt (choix de JoVenGer du 14/10), en courant, à l'opposé du camp ; rien ne
+      -- disparaît sous les yeux d'Henry : retirés plus tard par le battement.
+      local centre = camp().point(0, 0, 0)
+      for _, e in ipairs(debout) do
+        local ici = jeu().position_du_personnage(e) or b.point_d_arrivee
+        local dx, dy = 0, 1
+        if ici and centre then
+          dx, dy = ici.x - centre.x, ici.y - centre.y
+        end
+        local longueur = math.sqrt(dx * dx + dy * dy)
+        if longueur < 0.1 then
+          dx, dy, longueur = math.sin(math.rad(b.direction or 0)), math.cos(math.rad(b.direction or 0)), 1
+        end
+        local base = ici or { x = 0, y = 0, z = 0 }
+        local m = bataille.reglages.fuite_m / longueur
+        local point = { x = base.x + dx * m, y = base.y + dy * m, z = base.z }
+        local plus_loin = { x = base.x + dx * m * 2, y = base.y + dy * m * 2, z = base.z }
+        jeu().ordonner(e, "fuite", point, "fuite", nil, nil, plus_loin, "course")
+      end
+      b.partants = debout
     end
     if #corps > 0 then
       b.corps = corps
@@ -987,6 +1021,26 @@ local function sous_les_yeux(b)
     and jeu().henry_voit(b.point_d_arrivee, hommes().reglages.secours_vue_cos) == true
 end
 
+-- Les survivants à retirer : hors du regard d'Henry, ou plus loin de lui que « fuite_retrait_m » (« poste_vue_m » pour
+-- une bande postée, qui reste à son camp), ou sans position lisible. Henry illisible : personne (rien ne disparaît sur
+-- une lecture manquée).
+local function partants_hors_de_vue(b)
+  local henry = jeu().position_du_joueur()
+  local loin = b.postee and bataille.reglages.poste_vue_m or bataille.reglages.fuite_retrait_m
+  local liste = {}
+  if not henry then
+    return liste
+  end
+  for _, e in ipairs(b.partants or {}) do
+    local ici = jeu().position_du_personnage(e)
+    if not ici or math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2) > loin
+        or jeu().henry_voit(ici, hommes().reglages.secours_vue_cos) ~= true then
+      table.insert(liste, e)
+    end
+  end
+  return liste
+end
+
 -- Une bande postée au contact, figée (aucun tombé depuis « poste_stagnation_h ») et Henry pas sur place : tranchée par
 -- passes contre nos combattants encore debout. Rend le résultat, ou nil.
 local function trancher_si_fige(d, b, heure)
@@ -1114,10 +1168,19 @@ function bataille.battre()
         rapport.finies = rapport.finies + 1
         rapport.changements = rapport.changements + 1
       end
-    elseif b.etat == "finie" and b.partants and not sous_les_yeux(b) then
-      jeu().journal("Bataille : « " .. b.id .. " » : " .. #b.partants .. " survivant(s) retiré(s), hors de la vue d'Henry")
-      jeu().renvoyer_ennemis(b.partants)
-      b.partants = nil
+    elseif b.etat == "finie" and b.partants and #partants_hors_de_vue(b) > 0 then
+      local partis = partants_hors_de_vue(b)
+      jeu().journal("Bataille : « " .. b.id .. " » : " .. #partis .. " survivant(s) retiré(s), hors de la vue d'Henry")
+      jeu().renvoyer_ennemis(partis)
+      local restent = {}
+      for _, e in ipairs(b.partants) do
+        local parti = false
+        for _, p in ipairs(partis) do
+          if p == e then parti = true end
+        end
+        if not parti then table.insert(restent, e) end
+      end
+      b.partants = (#restent > 0) and restent or nil
       rapport.changements = rapport.changements + 1
     elseif b.etat == "finie" and b.corps and heure >= b.corps_retires_a and not (b.postee and sous_les_yeux(b)) then
       jeu().journal("Bataille : corps de « " .. b.id .. " » retirés (" .. #b.corps .. ")")
