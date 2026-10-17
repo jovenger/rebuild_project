@@ -138,6 +138,17 @@ le chemin du retour, entre à cheval et descend.
   inactif : à cette distance le jeu ne les fait plus vivre), tranchée au loin, renaissance, rentrée, rapport. La tête
   s'arrêtait à 6,4 m de son point : `arrivee_m` porté à 10 m (68d9c96). **Non vus en jeu** : une victoire (le combat
   vivant a chaque fois figé), la fuite des survivants d'une bande venue au camp, l'immortalité des blessés (c5ae51f).
+- **Le combat vivant figé, la cause** (relecture du pair, 17/10 : trois fois figé, la règle anti-boucle demande la
+  cause). Lue dans le code, puis vue en jeu (64cc36c ; séance de diagnostic, trois des nôtres contre trois brigands,
+  Henry à 30 m, journal du combat toutes les 2 s) : **un assommé comptait comme vivant** des deux côtés (les brigands
+  restaient sur un des nôtres à terre, les nôtres sur un brigand à terre, et le combat ne pouvait pas finir : il fallait
+  zéro ennemi « vivant ») ; **une nouvelle cible après une victime usait le crédit de relances** d'un figé. Corrigé :
+  « debout » = ni mort ni assommé, pour les cibles, pour la fin du combat (nos assommés sont nos blessés) et pour le
+  filet. Vu : Mikuláš assommé, le brigand qui le visait passe aussitôt sur Jan ; les deux camps se blessent ; nos trois
+  hommes assommés, les brigands visent Henry, puis la fin par le jeu, sans filet : « défaite, 0 mort, 3 blessés » ; les
+  survivants reçoivent l'ordre de fuite, en courant ; l'un, très blessé, se rend devant Henry (le jeu). Nos recrues ont un
+  niveau de combat de 0,3, les brigands 0,4 : leur avantage est normal, pas un défaut. Soupçon 3 du pair (l'ordre 8 ne
+  frappe pas) : non, les deux camps frappent.
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 
