@@ -425,3 +425,30 @@ essai("bataille (étape 2) : la bande attaque d'elle-même nos combattants et He
   FauxJeu.attaques = nil
   FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
 end)
+
+-- « Que personne ne reste figé » : au contact, l'attaque est redonnée toutes les 2 s ; la minuterie s'arrête à la fin.
+essai("bataille (étape 2) : au contact, l'attaque redonnée toutes les 2 s des deux côtés ; arrêtée à la fin de la bataille", function()
+  preparer(1000, 10, { "homme_d_armes" })
+  FauxJeu.attaques = {}
+  FauxJeu.position_joueur = { x = 0, y = -300, z = 0 }
+  Scriptorium.en_partie = true
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 1, direction = 0, delai = 0 })
+  bataille.battre()
+  local n = #FauxJeu.attaques
+  egal(n, 2, "un ordre à l'ennemi, un à notre homme")
+  local mt = FauxJeu.minuteries[#FauxJeu.minuteries]
+  egal(mt.ms, 2000, "la relance toutes les 2 s")
+  mt.fonction()
+  egal(#FauxJeu.attaques, n + 2, "redonné aux deux, qui ne se battent pas")
+  local suivante = FauxJeu.minuteries[#FauxJeu.minuteries]
+  verifier(suivante ~= mt, "la minuterie se repose")
+  FauxJeu.ennemis_vivants_par_id[FauxJeu.ennemis[1].identifiant] = false
+  bataille.battre()
+  egal(bataille.bande(id).etat, "finie", "la bataille finie")
+  local avant = #FauxJeu.minuteries
+  suivante.fonction()
+  egal(#FauxJeu.minuteries, avant, "finie : la minuterie s'arrête")
+  Scriptorium.en_partie = false
+  FauxJeu.attaques = nil
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+end)

@@ -25,6 +25,10 @@ bataille.reglages = {
   -- « bande_vise_henry_m » de la bande ; en tourniquet ; redonné à chaque battement.
   bande_attaque = true,
   bande_vise_henry_m = 80,
+  -- « Que personne ne reste figé » (JoVenGer ; le raid du 8/10) : pendant une bataille au contact, l'attaque est
+  -- redonnée toutes les « relance_au_contact_ms » à chaque combattant vivant qui ne se bat pas, des deux côtés ; la
+  -- minuterie s'arrête à la fin de la bataille ; le battement reste le filet.
+  relance_au_contact_ms = 2000,
 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
@@ -391,6 +395,36 @@ local function lancer_l_attaque_de_la_bande(b)
   return donnes
 end
 
+-- La relance au contact : une minuterie par bande et par partie (génération).
+bataille.relances = {}
+local function assurer_la_relance(id)
+  local generation = Scriptorium.generation
+  if bataille.relances[id] == generation then
+    return false
+  end
+  bataille.relances[id] = generation
+  local function tour()
+    if generation ~= Scriptorium.generation or not Scriptorium.en_partie then
+      return
+    end
+    local b = donnees().bandes[id]
+    if not b or b.etat ~= "au_contact" or not b.personnages then
+      bataille.relances[id] = nil
+      return
+    end
+    local ok, erreur = pcall(function()
+      lancer_l_attaque_de_la_bande(b)
+      lancer_l_attaque(b)
+    end)
+    if not ok then
+      jeu().journal("Bataille : relance au contact en erreur : " .. tostring(erreur))
+    end
+    jeu().minuterie(bataille.reglages.relance_au_contact_ms, tour)
+  end
+  jeu().minuterie(bataille.reglages.relance_au_contact_ms, tour)
+  return true
+end
+
 local function arriver(d, b)
   local position = point_face_a(b.direction, 0, bataille.reglages.distance_arrivee)
   local cap = (b.direction + 180) % 360
@@ -411,6 +445,7 @@ local function arriver(d, b)
     jeu().journal("Bataille : « " .. b.id .. " » au contact, " .. #personnages .. " ennemi(s) dans le jeu")
     lancer_l_attaque_de_la_bande(b)
     lancer_l_attaque(b)
+    assurer_la_relance(b.id)
   else
     b.personnages = nil
     jeu().journal("Bataille : « " .. b.id .. " » au contact, le jeu n'a pas fait venir la bande : la règle tranchera")
@@ -678,6 +713,7 @@ function bataille.battre()
         if resultat == nil then
           lancer_l_attaque_de_la_bande(b)
           lancer_l_attaque(b)
+          assurer_la_relance(id)
         end
       end
       if resultat == nil and heure >= b.contact + bataille.reglages.duree_max_contact then
