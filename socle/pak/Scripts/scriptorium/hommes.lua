@@ -2101,8 +2101,8 @@ end
 local function secourir(id, f, a, rapport)
   -- La bataille (fiche 17, vu en jeu le 17/10 : Jan, en plein combat au camp de bandits, jugé « bloqué » et reposé au
   -- centre du camp) : un homme qui se bat ne s'approche pas de son point ; jamais secouru, comme pour le gardien ; la
-  -- bataille relance elle-même ses figés.
-  if a.activite == "bataille" then
+  -- bataille relance elle-même ses figés. De même la fouille, qui laisse un corps pas atteint à temps.
+  if a.activite == "bataille" or a.activite == "fouille" then
     return
   end
   -- Suivre (V73 f 1) : pas de secours ordinaire (un suiveur garde un écart constant, il ne « se rapproche » jamais) ;
@@ -3046,7 +3046,9 @@ function hommes.garder()
         v.depuis_relance = v.depuis_relance + 1
       end
       local but = a and a.position
+      -- La fouille (fiche 17, vu en jeu le 17/10 : un fouilleur arrivé au corps pris pour figé) a sa propre borne.
       local exclu = not but or a.activite == "suivre" or a.activite == "bataille" or a.activite == "ronde"
+        or a.activite == "fouille"
         or jeu().occupation_de(f.personnage) ~= nil
       if not exclu and bouge and bouge < r.fige_bouge_m and v.regards > r.fige_ordre_regards then
         local ecart = jeu().ecart_au_but(f.personnage, but)

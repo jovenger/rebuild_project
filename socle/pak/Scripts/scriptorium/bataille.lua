@@ -78,7 +78,8 @@ bataille.reglages = {
   fouille_rayon_m = 80,
   fouille_duree_h = 0.1,
   fouille_marche_max_h = 0.5,
-  fouille_pres_m = 2.5,
+  -- Vu en jeu le 17/10 : la marche s'arrête à quelque 3 m de son point ; arrivé au corps à moins de 4 m.
+  fouille_pres_m = 4,
 }
 
 -- La force d'un homme selon son palier (recrue, confirmé, vétéran) : un facteur, réglable.
@@ -1024,7 +1025,7 @@ local function avancer_la_fouille(b, heure)
         end
       end
       if choisi then
-        hommes().tenir(choisi, "fouille", { activite = "fouille", lieu = "corps", position = { x = la.x + 1, y = la.y, z = la.z },
+        hommes().tenir(choisi, "fouille", { activite = "fouille", lieu = "corps", position = { x = la.x, y = la.y, z = la.z },
           fin = "liberation" })
         f.fouilleurs[choisi] = { corps = c, depuis = heure }
         occupes[c] = true
