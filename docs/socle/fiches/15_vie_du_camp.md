@@ -2256,6 +2256,50 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   24/09 chez Scriptorium (40 hommes perdus sur un passage pris pour un chargement).
 - **À vérifier par JoVenGer** : le passage Trosky ↔ Kuttenberg en jouant.
 
+## V73 f 3 b — la carte du camp, l'escorte refaite près d'Henry (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Ce que la sonde a montré (V73 f 3 a) : la carte se lit par `sv_map` ; le registre (gardé par la sauvegarde) suit les
+  passages de carte comme les chargements.
+- **Ce pas** : le camp appartient à sa carte ; sur une autre carte, il n'est pas reposé, les hommes du camp ne sont pas
+  refaits (ils restent « de l'autre côté » au registre), et seule l'escorte d'Henry (les hommes qui le suivent, et le
+  Directeur s'il le suit) est refaite près de lui. **Et le grand saut sur une même carte** (voyage rapide) : un cavalier
+  loin de son chef est remis près d'Henry.
+
+### Comment ce serait fait
+1. **La carte du camp** : à la fondation, `camp` note la carte (`d.carte`, lue par la liaison) ; un camp ancien sans carte
+   notée garde le comportement d'avant (il est de la carte où l'on est). `camp.sur_sa_carte()` : vrai si la carte lue est
+   la sienne, ou si l'une des deux est illisible (on ne retire jamais rien sur un doute).
+2. **Le redressement à l'entrée en partie** : le camp et l'enceinte ne se reposent que sur leur carte. Les hommes :
+   sur la carte du camp, comme avant ; ailleurs, seuls les hommes **en escorte d'Henry** (tenue « suivre » dont le chef
+   est Henry, ou le Directeur, ou un homme de l'escorte) sont refaits, **près d'Henry** (derrière lui, hors de sa vue,
+   à `escorte_derriere_m` (6), sur une place libre et un sol vérifié comme les chevaux) ; les autres restent au registre,
+   sans personnage, et reviennent quand Henry revient sur la carte du camp. Le Directeur : de même (refait près d'Henry
+   s'il le suit, sinon laissé au registre).
+3. **À cheval** : rien de plus : l'escorte refaite à pied retrouve son cheval passager par la règle habituelle (un cheval
+   né hors des meubles, la monte) s'il le faut.
+4. **Le grand saut sur une même carte** : au battement, un cavalier (homme ou Directeur) à plus de `cheval_saut_m` (150)
+   de son chef voit son cheval retiré et lui-même posé à pied près d'Henry (comme le rattrapage, hors de sa vue) ; un
+   nouveau cheval naît près de lui ; une ligne au journal. (Un cavalier n'est toujours jamais posé seul avec son cheval
+   à côté : c'est le cheval qui est retiré.)
+5. **Qui passe** reste la décision de Scriptorium : ce sont les tenues posées par le guichet.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `escorte_derriere_m` 6, `cheval_saut_m` 150.
+
+### Essai en jeu : grille
+1. Au banc : un camp fondé sur « kutnohorsko », la carte lue « trosecko » : le camp n'est pas reposé, les hommes du camp
+   restent au registre, l'escorte est refaite près d'Henry ; de retour sur « kutnohorsko », tout revient.
+2. En jeu : le grand saut d'un cavalier (Henry s'éloigne de plus de 150 m par sauts) : le cheval retiré, l'homme posé près
+   d'Henry, un nouveau cheval, la monte.
+- **À vérifier par JoVenGer** : un vrai passage Trosky ↔ Kuttenberg avec une escorte.
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Distinguer un passage d'un chargement** : (a) inutile, la carte du camp et la carte lue suffisent (Recommandé :
+   aucune horloge, aucun risque de perte) ; (b) l'horloge à 10 jours. **Prise : (a).**
+2. **Une carte illisible** : (a) on garde le comportement d'avant, rien n'est retiré (Recommandé) ; (b) on ne refait
+   personne. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

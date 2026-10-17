@@ -11,7 +11,9 @@ local liaison = {}
 
 -- Mémoire de secours pour le registre, le temps que le mécanisme de sauvegarde
 -- du jeu soit confirmé : elle ne survit pas à la fermeture du jeu.
-liaison.memoire = { registre = nil }
+-- « identite » (V73 f 3 b, relecture du pair) : l'identité de la partie en cours, gardée en mémoire Lua (elle survit
+-- au passage d'une carte à l'autre, et n'est jamais vidée à l'entrée en partie).
+liaison.memoire = { registre = nil, identite = nil }
 
 -- Temps du moteur, en secondes (pas le temps du jeu : l'horloge réelle).
 function liaison.maintenant()
@@ -639,11 +641,26 @@ function liaison.verifier_les_nombres()
     liaison.nombres_attendus.hasard[1], liaison.nombres_attendus.hasard[2], liaison.nombres_attendus.hasard[3])
 end
 
--- Lit la chaîne du registre enregistrée dans cette partie, ou nil.
+local function poser_la_marque(identite)
+  return faire_naitre("BasicEntity", liaison.prefixe_de_la_marque .. identite, { x = 0, y = 0, z = 0 }, 0, {})
+end
+
+-- Lit la chaîne du registre enregistrée dans cette partie, ou nil. Fiche 15, V73 f 3 b (relecture du pair) : la marque
+-- est un objet posé dans une carte ; arrivé sur une carte où elle n'est pas, le jeton est cru si l'identité gardée en
+-- mémoire Lua est la sienne (c'est un passage de carte de la même partie) : la marque est posée ici aussi. Une partie
+-- étrangère a une autre identité (tirée au hasard) : son jeton reste ignoré. Non vérifié en jeu (passage à faire par
+-- JoVenGer).
 function liaison.lire_registre()
   local identite, donnees, raison = lire_le_jeton()
-  if identite and entite_nommee(liaison.prefixe_de_la_marque .. identite) then
+  local marquee = identite and entite_nommee(liaison.prefixe_de_la_marque .. identite) ~= nil
+  if identite and not marquee and identite == liaison.memoire.identite then
+    marquee = poser_la_marque(identite) ~= nil
+    liaison.journal("Registre : carte sans marque, même partie (" .. identite .. ") : marque posée ici "
+                    .. (marquee and "(passage de carte)" or "impossible"))
+  end
+  if marquee then
     identite_de_la_partie = identite
+    liaison.memoire.identite = identite
     if raison then
       liaison.journal("Registre : en tranches, refusé (" .. raison .. ")")
       return liaison.memoire.registre
@@ -661,9 +678,10 @@ end
 -- Donne une identité à la partie et pose sa marque dans le monde.
 local function marquer_la_partie()
   local identite = string.format("p%d_%d", os.time(), math.random(100000, 999999))
-  local pose = faire_naitre("BasicEntity", liaison.prefixe_de_la_marque .. identite, { x = 0, y = 0, z = 0 }, 0, {})
+  local pose = poser_la_marque(identite)
   if pose then
     identite_de_la_partie = identite
+    liaison.memoire.identite = identite
     liaison.journal("Registre : partie marquée (" .. identite .. ")")
     return true
   end

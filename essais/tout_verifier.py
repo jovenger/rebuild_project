@@ -282,9 +282,19 @@ def verifier_identifiants():
           if string.find(nom, "^scriptorium_registre_") then marque = nom end
         end
         if not marque then return "pas de marque de la partie posée dans le monde" end
-        -- Une autre partie (sauvegarde sans la marque) : le jeton est ignoré (vu en jeu le 14/10).
+        -- V73 f 3 b : un passage de carte (la marque absente ici, la même identité en mémoire) : le jeton est cru et la
+        -- marque posée ici aussi.
         System.entites[marque] = nil
+        if l.lire_registre() ~= "{a=1}" then return "passage de carte : le jeton de la même partie n'est pas cru" end
+        if not System.entites[marque] then return "passage de carte : la marque n'est pas posée sur la nouvelle carte" end
+        -- Une autre partie (sauvegarde sans la marque, une autre identité en mémoire) : le jeton est ignoré (vu en jeu le
+        -- 14/10).
+        System.entites[marque] = nil
+        local identite_avant = l.memoire.identite
+        l.memoire.identite = "p_une_autre_partie"
         if l.lire_registre() ~= nil then return "le jeton d'une autre partie n'est pas ignoré" end
+        if System.entites[marque] then return "une autre partie : sa marque posée à tort" end
+        l.memoire.identite = identite_avant
         l.ecrire_registre("{c=3}")
         if l.lire_registre() ~= "{c=3}" then return "nouvelle partie : registre non relu après marquage" end
         GameToken = nil
