@@ -89,3 +89,5 @@ Réponses prises d'office :
 - Relecture (17/10), réponses prises d'office : un admis combattant n'est jamais équipé (les deux boucles de
   l'équipement l'ignorent) ; sans prime donnée, un admis ne coûte rien (Scriptorium paie les siens) ; mort, il ne rend
   aucun corps (son entité est à Scriptorium : personne ne la retire).
+
+**Vu en jeu le 17/10** (séance groupée, `essai_en_jeu.md`) : 5 a (trois d'un coup, un posé au point, le compagnon nommé), 5 a bis (9 objets portés à l'état 0,5), 5 b (« Parler [E] » puis « Il vous écoute : … » ; le moteur appelle bien l'enveloppe de l'instance), 5 c tranche 1 (l'admis mené par nos ordres ; les gens de métier hors de la garde). Non vus : pas de « Parler » en combat ; l'admis après un rechargement.

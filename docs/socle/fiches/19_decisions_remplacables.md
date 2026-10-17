@@ -65,3 +65,5 @@ Les noms publics nouveaux sont écrits au guichet dans le même commit et dits a
   par la table sous `pcall` ; remplacées, la remplaçante agit à la place de l'annonce du socle. La fin d'un camp vient de
   sa bande : Scriptorium la tient ouverte par `bataille.ennemi_valable` et `missions.ajouter_un_personnage`.
 - **Pas utiles** : A20, A26, A32 ; **étape 5** : A34, A35 (les postes, pas encore écrits).
+
+**Vu en jeu le 17/10** (fumée, séance de l'étape 5) : le comportement par défaut inchangé : les ordres à chaque tranche (`activite_de` par `avis`), le tour de garde, le combat en tourniquet, la fouille. Les remplaçantes elles-mêmes sont éprouvées au banc seulement.
