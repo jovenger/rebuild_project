@@ -241,7 +241,8 @@
 | 473, puis deux sauts d'Henry (40 m) | V73 g 0 (la sonde du rechargement) | normal (trois fois) |
 | 473, puis deux sauts d'Henry (40 m) et trois poses (1 188 m, 6 m, 6 m, à Přítoky) | V73 g (le gardien, la liaison relue, la porte) | normal (six fois) |
 | 473, puis deux sauts d'Henry (40 m) et deux poses près de la bande | Étape 2 (les bandes) | normal (cinq fois) |
-- Au total : 3 écrans noirs sur 123 chargements ou poses observés ; 1 sur 113 depuis la séparation. **Rien n'est conclu** : il
+| 473, deux sauts, une bande (Henry visé) | Étape 2 (bande qui attaque) | **noir** (emblème qui tourne ; peut-être la mort d'Henry) |
+- Au total : 4 écrans noirs (dont un douteux) sur 126 chargements ou poses observés ; 2 sur 116 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
@@ -358,6 +359,11 @@
   `bande_vise_henry_m` (80) de la bande, en tourniquet (`bataille.reglages.bande_attaque`). La ligne `player -1`
   n'est plus nécessaire.
 - Banc : tout passe ; trois erreurs injectées attrapées. Non vérifié en jeu.
+- **Séance du 17/10 (c2957f8)** : la bande reçoit ses ordres à l'arrivée (un brigand contre Henry), puis se bat. Nos
+  hommes, l'ordre redonné toutes les 2 s, ne passaient jamais en combat : l'ordre coupait leur approche. Puis écran
+  noir avec l'emblème qui tourne, le socle tournant encore (écran noir connu, ou mort d'Henry : non tranché).
+  **Corrigé** : l'ordre n'est redonné qu'à qui ne bouge pas (moins de 0,5 m depuis le relevé précédent) ou dont la
+  cible est tombée. Non vérifié en jeu.
 
 ### À reprendre plus tard
 - (L'initiative de la bande : réglée ci-dessus, à voir en jeu.)

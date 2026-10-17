@@ -452,3 +452,29 @@ essai("bataille (étape 2) : au contact, l'attaque redonnée toutes les 2 s des 
   FauxJeu.attaques = nil
   FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
 end)
+
+
+-- Vu en jeu le 17/10 : l'ordre n'est redonné qu'à qui est figé (moins de 0,5 m depuis le relevé précédent).
+essai("bataille (étape 2) : l'attaque redonnée seulement à qui ne bouge pas ; jamais à qui marche vers sa cible", function()
+  preparer(1000, 10, { "homme_d_armes" })
+  FauxJeu.attaques = {}
+  FauxJeu.position_joueur = { x = 0, y = -300, z = 0 }
+  Scriptorium.en_partie = true
+  bataille.lever_une_bande({ sorte = "brigands", effectif = 1, direction = 0, delai = 0 })
+  bataille.battre()
+  local homme, ennemi = FauxJeu.attaques[2].attaquant, FauxJeu.attaques[1].attaquant
+  FauxJeu.positions[homme] = { x = 0, y = 0, z = 0 }
+  FauxJeu.positions[ennemi] = { x = 0, y = 60, z = 0 }
+  local mt = FauxJeu.minuteries[#FauxJeu.minuteries]
+  mt.fonction()   -- premier relevé des positions
+  local n = #FauxJeu.attaques
+  FauxJeu.positions[homme] = { x = 0, y = 3, z = 0 }    -- il marche vers sa cible
+  FauxJeu.positions[ennemi] = { x = 0, y = 57, z = 0 }  -- elle vient
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.attaques, n, "ils marchent : aucun ordre de plus")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()  -- immobiles depuis le relevé précédent
+  egal(#FauxJeu.attaques, n + 2, "figés : l'ordre redonné aux deux")
+  Scriptorium.en_partie = false
+  FauxJeu.attaques = nil
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+end)

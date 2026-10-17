@@ -29,6 +29,10 @@ bataille.reglages = {
   -- redonnée toutes les « relance_au_contact_ms » à chaque combattant vivant qui ne se bat pas, des deux côtés ; la
   -- minuterie s'arrête à la fin de la bataille ; le battement reste le filet.
   relance_au_contact_ms = 2000,
+  -- Vu en jeu le 17/10 : un ordre redonné toutes les 2 s à un homme qui marche vers sa cible coupait son approche ; il
+  -- n'est redonné qu'à qui n'a pas bougé de « relance_bouge_m » depuis le relevé précédent (figé), ou dont la cible est
+  -- tombée.
+  relance_bouge_m = 0.5,
 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
@@ -315,6 +319,23 @@ local function liberer_les_hommes(b)
   end
 end
 
+-- Faut-il redonner l'attaque à ce personnage ? Jamais s'il se bat ; oui la première fois ; ensuite seulement s'il n'a
+-- pas bougé de « relance_bouge_m » depuis le relevé précédent (en mémoire seulement).
+bataille.vus = {}
+local function a_relancer(personnage)
+  if jeu().occupation_de(personnage) == "combat" then
+    bataille.vus[personnage] = nil
+    return false
+  end
+  local ici = jeu().position_du_personnage(personnage)
+  local avant = bataille.vus[personnage]
+  bataille.vus[personnage] = ici and { x = ici.x, y = ici.y } or nil
+  if not (ici and avant) then
+    return true
+  end
+  return math.sqrt((ici.x - avant.x) ^ 2 + (ici.y - avant.y) ^ 2) < bataille.reglages.relance_bouge_m
+end
+
 -- L'attaque (étape 2) : chaque combattant qui ne se bat pas (vu en jeu le 17/10 : son combat fini, il retourne à son
 -- rang et ne repart pas) reçoit l'ordre d'attaque : sa cible si elle vit encore, sinon un autre ennemi vivant, en
 -- tourniquet. Rend le nombre d'ordres donnés.
@@ -336,8 +357,10 @@ local function lancer_l_attaque(b)
   for _, id in ipairs(b.combattants or {}) do
     local f = hommes().fiche(id)
     local cible = b.cibles[id]
-    if f and f.personnage and not jeu().personnage_mort(f.personnage) and jeu().occupation_de(f.personnage) ~= "combat" then
-      if cible == nil or jeu().ennemis_vivants({ cible }) == 0 then
+    local tombee = cible == nil or jeu().ennemis_vivants({ cible }) == 0
+    if f and f.personnage and not jeu().personnage_mort(f.personnage)
+        and (a_relancer(f.personnage) or (tombee and jeu().occupation_de(f.personnage) ~= "combat")) then
+      if tombee then
         k = k % #vivants + 1
         b.cibles[id] = vivants[k]
       end
@@ -382,8 +405,9 @@ local function lancer_l_attaque_de_la_bande(b)
   end
   local donnes, k = 0, 0
   for _, e in ipairs(b.personnages) do
-    if jeu().ennemis_vivants({ e }) > 0 and jeu().occupation_de(e) ~= "combat" then
-      if not vivantes[b.cibles_de_la_bande[e]] then
+    local tombee = not vivantes[b.cibles_de_la_bande[e]]
+    if jeu().ennemis_vivants({ e }) > 0 and (a_relancer(e) or (tombee and jeu().occupation_de(e) ~= "combat")) then
+      if tombee then
         k = k % #cibles + 1
         b.cibles_de_la_bande[e] = cibles[k]
       end
