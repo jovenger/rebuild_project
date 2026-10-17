@@ -365,7 +365,12 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   Henry, l'embauche va au registre, aucune bande ne naît ; le grand saut lancé au bond d'Henry (veille d'une seconde),
   ordre à pied tout de suite, selle lue avant tout retrait (attentes, abandon), rien sous ses yeux, pose relue avant le
   nouveau cheval. Vu en jeu : six bonds, la colonne posée 5 à 6 s après, 0 pose perdue sur 12 avec la relecture.
-- **Suite** : le gardien des hommes ; puis les étapes 2 à 8. À vérifier par JoVenGer : le passage Trosky ↔ Kuttenberg
+- **Le rechargement du Lua sans relancer le jeu, vu en jeu** (df2974e) : `outils/recharger.py --jeu "<jeu>" hommes …`
+  puis l'ordre `scriptorium_essai_recharger` ; seulement les morceaux sans boucle à eux (pas le noyau, la liaison, le
+  registre, le bandeau, les réglages, le poste ; ni les arbres XML ni les tables). Fiche 15, V73 g 0.
+- **Suite** : le nécessaire de JoVenGer (`plan_d_action.md`, en tête) : la porte d'un intérieur et le gardien des
+  hommes (version simple, fiche 15, V73 g), en une séance ; puis nos personnages, le guichet, les missions, l'embauche
+  et les métiers, la bascule. À vérifier par JoVenGer : le passage Trosky ↔ Kuttenberg
   (avec une sauvegarde portant un camp du socle d'avant ba0906c : la charger d'abord sur la carte du camp), la vraie monte d'Henry, le voyage rapide par la carte, et les intérieurs (l'escorte à pied dans une auberge : porte, escalier, étage).
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
@@ -373,7 +378,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 99 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 102 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire

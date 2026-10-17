@@ -2446,6 +2446,23 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   tout retrait (attentes, puis abandon) ; rien ne saute ni ne disparaît sous les yeux d'Henry. Ajout de ma part : la vue
   bornée à `saut_vue_m`, sans quoi un cavalier à un kilomètre dans la direction du regard « se verrait ».
 
+## V73 g 0 — la sonde du rechargement du Lua (17/10, piste du pair ; réussie au premier essai)
+- **Le besoin** (JoVenGer, par le pair) : chaque pas coûtait environ trois lancements du jeu, de 7 à 8 minutes chacun.
+- **Le principe** : le poste lit déjà le fichier d'ordres hors des paks par `loadfile` ; une copie d'un morceau, posée
+  dans le dossier du mod, se relit de la même façon et s'exécute dans l'environnement du jeu (le morceau se déclare de
+  nouveau au noyau, qui remplace l'entrée). Puis, comme un chargement : les chevaux passagers retirés, la sortie et
+  l'entrée en partie (les anciennes boucles s'éteignent par la génération), le réveil 30 s après relance chaque morceau.
+- **Ce qui se recharge** : les morceaux dont les données vivent au registre et qui n'ont pas de boucle à eux (coffre,
+  camp, hommes, bataille, directeur, enceinte, atelier, patrouilles, discipline, caractère). **Pas** le noyau, la
+  liaison (mémoire du registre, écouteur du jeu), le registre, le bandeau, les réglages ni le poste (leurs boucles) ; ni
+  les arbres XML et les tables : ceux-là demandent toujours un lancement.
+- **Mode d'emploi** : `py -3.13 outils/recharger.py --jeu "<jeu>" hommes directeur [--marque "texte"]` pose les copies
+  et leur liste dans `Mods\scriptorium_socleecharge\` ; puis l'ordre `scriptorium_essai_recharger`.
+- **Vu en jeu** (df2974e, `playline3` 473) : hommes, directeur et camp relus (« Rechargement : hommes relu (sonde 1) »,
+  la ligne ajoutée à la copie), démarrages passés, sortie et entrée en partie ; au réveil, camp et hommes redressés sans
+  rien refaire ; ensuite la troupe à cheval : chevaux nés, ordres donnés, la boucle d'allure branchée sur le nouveau
+  code. Séance fermée par `fin_essai`.
+
 ## V73 g — le gardien des hommes, version simple (17/10, envoyé au pair ; réponses recommandées prises d'office)
 
 ### Le périmètre (le nécessaire de JoVenGer, 17/10 : une version simple qui marche, vue une fois)
