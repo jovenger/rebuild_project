@@ -134,6 +134,14 @@ Pas maintenant : on finit d'abord s'asseoir et dormir, puis la vie du camp. Chac
    chercher comment les arbres du jeu font monter, chevaucher et descendre ses cavaliers (messagers, soldats montés ;
    « Réutiliser avant de créer »), puis un seul homme, prouvé à l'image.
 
+## Une règle de JoVenGer pour l'étape 3, le guichet (transmise par la conversation Scriptorium, 17/10/2026)
+- Pour chaque règle que le socle et Scriptorium ont toutes deux (solde, rations, moral, discipline, bataille…), on garde
+  **la plus juste pour la réalité du camp**, quelle que soit son origine ; l'autre s'éteint. Le tableau des doublons se
+  fera avec la conversation Scriptorium à cette étape.
+- Déjà appliqué (V73 f 3 b) : quand Henry change de carte, seule son escorte le suit ; les hommes du camp restent au
+  camp, et le registre fait vivre le camp en son absence (solde, rations, journée) ; ce qui demande des corps (raids,
+  combats) attend son retour ou se règle par la règle.
+
 ## La note des métiers et de la vie du camp (JoVenGer, 16/10/2026, écrite par la conversation Scriptorium, commit 4383e067)
 - À relire avant chaque fiche de la vie du camp et des métiers, avec `CARTE_DES_REGLES.md` (lecture seule) :
   `C:\Users\maste\Desktop\Scriptorium\docs\socle\NOTE_METIERS.md` et son relevé `NOTE_METIERS_RELEVE.md` (59 dossiers).
