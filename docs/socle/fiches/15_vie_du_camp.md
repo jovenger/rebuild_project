@@ -2117,6 +2117,17 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   `followNpc` : il suit sa cible qui bouge) ; après le `Move`, une attente d'une cadence (300 ms), puis il est redonné ;
   contrôlé au banc (deux erreurs injectées attrapées).
 
+### Mesuré en V73 f 2 f bis, seconde séance (17/10, f91587e) : l'allure du chef monté, acquise
+- **L'écart Directeur–Henry** : juste après 10 s de marche **5,4 m** (10,8 m en V73 f 2 f, 15,9 m en V73 f 2 e) ; juste
+  après 4 s de course **4,3 m** (8,7 m ; 11,6 m) ; arrêté, 4,3 à 6,4 m (il ne se colle pas à 3 m) ; la formation tient
+  derrière lui (1,6–4,1 m).
+- **Le journal** : quatre changements d'allure seulement (pas, tenir, pas, tenir) ; le freinage à 8 m (« course » →
+  « pas » à 7,6 m → « tenir » à 6,8 m).
+- À l'image : les cavaliers à quelques mètres derrière Henry, sans le bousculer ; aucun petit arrêt visible.
+- (Le message de l'enregistrement f91587e disait déjà « le chef ne se fige plus » avant cette séance : c'était
+  prématuré ; c'est vérifié ici.)
+- Suite : l'allure des suiveurs montés qui perdent leur place (ordre 19, repli) et du cavalier seul (ordre 17).
+
 ### Essai en jeu : grille
 Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journal des allures ; but : le chef près de
 7 m à l'arrêt, moins de changements d'allure.
