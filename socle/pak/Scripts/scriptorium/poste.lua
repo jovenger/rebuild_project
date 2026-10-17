@@ -549,6 +549,160 @@ function poste.essai_lever_les_camps()
   return n
 end
 
+-- ---------------------------------------------------------------- étape 5 (fiche 18), la séance groupée du 17/10
+
+-- Un point à « m » mètres devant Henry (cap de boussole), ou nil.
+local function devant_henry(m)
+  local h, cap = jeu().position_du_joueur(), jeu().cap_du_joueur()
+  if not h or not cap then
+    return nil
+  end
+  return { x = h.x + m * math.sin(math.rad(cap)), y = h.y + m * math.cos(math.rad(cap)), z = h.z }, cap
+end
+
+-- 5 a : trois hommes d'armes d'un coup, un archer posé à 15 m devant Henry, un compagnon nommé.
+function poste.essai_embauche_groupee()
+  local hommes = Scriptorium.hommes
+  local engages, raison = hommes.faire_venir_des_hommes({ nombre = 3, role = "homme_d_armes", palier = 1, prime = 0 })
+  jeu().journal("Poste : trois d'un coup : " .. #engages .. " engagé(s)" .. (raison and (" (" .. raison .. ")") or ""))
+  local point = devant_henry(15)
+  local pose, r1 = hommes.embaucher({ role = "archer", prime = 0, position = point })
+  jeu().journal(string.format("Poste : posé à un point (%.1f, %.1f) : %s", point and point.x or 0, point and point.y or 0,
+    tostring(pose or r1)))
+  local nomme, r2 = hommes.embaucher({ role = "homme_d_armes", prime = 0, nom = "Zbyněk le Vieux" })
+  jeu().journal("Poste : compagnon nommé : " .. tostring(nomme and hommes.fiche(nomme).nom or r2))
+  poste.dernier_vu = pose or poste.dernier_vu
+  poste.battre_les_hommes()
+  return #engages == 3 and pose ~= nil and nomme ~= nil
+end
+
+-- 5 a bis : un homme refait avec une liste d'objets (les pièces du préréglage d'un homme équipé, à l'état 0,5).
+function poste.essai_homme_aux_objets()
+  local hommes = Scriptorium.hommes
+  local objets = {}
+  for _, id in ipairs(hommes.liste()) do
+    local e = hommes.fiche(id).equipement
+    if #objets == 0 and e and e.tenue and e.armes then
+      for _, nom in ipairs({ e.tenue, e.armes }) do
+        for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
+          table.insert(objets, { objet = objet, etat = 0.5 })
+        end
+      end
+    end
+  end
+  if #objets == 0 then
+    jeu().journal("Poste : homme aux objets : aucun homme équipé dont reprendre les pièces")
+    return false
+  end
+  local id, raison = hommes.embaucher({ role = "homme_d_armes", prime = 0, nom = "Vavřinec aux objets", objets = objets,
+    position = (devant_henry(12)) })
+  jeu().journal("Poste : homme aux objets (" .. #objets .. " objets, état 0,5) : " .. tostring(id or raison))
+  poste.dernier_vu = id or poste.dernier_vu
+  poste.battre_les_hommes()
+  return id ~= nil
+end
+
+-- Ce que porte le dernier vu : chaque objet, combien, son état.
+function poste.essai_objets_voir()
+  local hommes = Scriptorium.hommes
+  local f = poste.dernier_vu and hommes.fiche(poste.dernier_vu)
+  if not (f and f.personnage) then
+    return false
+  end
+  for _, objet in ipairs(hommes.ce_qu_il_porte(poste.dernier_vu)) do
+    jeu().journal(string.format("Poste : « %s » porte %s : %d, état %s", f.nom, objet, jeu().compter_objet(f.personnage, objet),
+      tostring(jeu().etat_objet(f.personnage, objet))))
+  end
+  return true
+end
+
+-- 5 b : le dernier vu rendu parlable, tenu debout à 2,5 m devant Henry, face à lui.
+function poste.essai_parlable()
+  local hommes = Scriptorium.hommes
+  local id = poste.dernier_vu or hommes.liste()[1]
+  if not id then
+    return false
+  end
+  local point, cap = devant_henry(2.5)
+  local ok = hommes.rendre_parlable(id, true)
+  local tenu, raison = hommes.tenir(id, "travail", { activite = "garde", lieu = "parle", position = point,
+    cap = ((cap or 0) + 180) % 360, fin = "liberation" })
+  jeu().journal("Poste : « " .. hommes.fiche(id).nom .. " » parlable = " .. tostring(ok) .. ", devant Henry = "
+                .. tostring(tenu or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
+function poste.essai_parlable_fin()
+  local hommes = Scriptorium.hommes
+  local id = poste.dernier_vu or hommes.liste()[1]
+  if not id then
+    return false
+  end
+  hommes.lacher(id, "travail")
+  hommes.rendre_parlable(id, false)
+  poste.battre_les_hommes()
+  return true
+end
+
+-- 5 c : un personnage né hors de la Compagnie (une âme de métier libre, à 6 m devant Henry), puis admis forgeron.
+function poste.essai_admettre()
+  local hommes = Scriptorium.hommes
+  local prises = {}
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    if f.ame then prises[f.ame] = true end
+  end
+  local ame = nil
+  for numero = 20, 1, -1 do
+    local candidate = jeu().ame_de("metier", 1, numero)
+    if candidate and not prises[candidate] then
+      ame = candidate
+      break
+    end
+  end
+  local personnage = ame and jeu().faire_venir_homme(ame, "Forgeron de Scriptorium", (devant_henry(6)))
+  if not personnage then
+    jeu().journal("Poste : admettre : pas de personnage né (âme " .. tostring(ame) .. ")")
+    return false
+  end
+  local id, raison = hommes.admettre(personnage, { role = "forgeron", nom = "Mikuláš le forgeron" })
+  jeu().journal("Poste : personnage « " .. personnage .. " » né hors de la Compagnie, admis : " .. tostring(id or raison))
+  poste.dernier_vu = id or poste.dernier_vu
+  poste.battre_les_hommes()
+  return id ~= nil
+end
+
+-- 5 c : un cuisinier et un forgeron engagés (des gens de métier).
+function poste.essai_embaucher_metiers()
+  local hommes = Scriptorium.hommes
+  local c = hommes.embaucher({ role = "cuisinier", prime = 0 })
+  local f = hommes.embaucher({ role = "forgeron", prime = 0 })
+  jeu().journal("Poste : gens de métier : cuisinier " .. tostring(c) .. ", forgeron " .. tostring(f))
+  poste.battre_les_hommes()
+  return c ~= nil and f ~= nil
+end
+
+-- Qui est de garde maintenant, et ce que fait chaque homme de métier.
+function poste.essai_qui_garde()
+  local hommes = Scriptorium.hommes
+  local heure = jeu().heure_du_jeu()
+  local noms = {}
+  for _, g in ipairs(Scriptorium.avis(hommes, "gardes", heure)) do
+    local f = hommes.fiche(g.id)
+    table.insert(noms, f.nom .. " (" .. f.role .. ")")
+  end
+  jeu().journal("Poste : de garde : " .. (#noms > 0 and table.concat(noms, ", ") or "personne"))
+  for _, id in ipairs(hommes.liste()) do
+    local f = hommes.fiche(id)
+    if hommes.roles[f.role] and hommes.roles[f.role].reserve == "metier" then
+      local a = Scriptorium.avis(hommes, "activite_de", id, heure)
+      jeu().journal("Poste : « " .. f.nom .. " » (" .. f.role .. ") : " .. tostring(a and a.activite) .. " / " .. tostring(a and a.regle))
+    end
+  end
+  return true
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2194,6 +2348,14 @@ poste.commandes = {
   { nom = "scriptorium_essai_convoi", fonction = function() return poste.essai_convoi() end, aide = "Lance un convoi d'essai sur une route de trois points devant Henry" },
   { nom = "scriptorium_essai_convois", fonction = function() return poste.essai_convois() end, aide = "Les convois en route : parcours, position, bande" },
   { nom = "scriptorium_essai_lever_les_camps", fonction = function() return poste.essai_lever_les_camps() end, aide = "Lève tous les camps de bandits" },
+  { nom = "scriptorium_essai_embauche_groupee", fonction = function() return poste.essai_embauche_groupee() end, aide = "Trois hommes d'un coup, un posé à 15 m devant Henry, un compagnon nommé (fiche 18)" },
+  { nom = "scriptorium_essai_homme_aux_objets", fonction = function() return poste.essai_homme_aux_objets() end, aide = "Un homme refait avec une liste d'objets à l'état 0,5 (fiche 18)" },
+  { nom = "scriptorium_essai_objets_voir", fonction = function() return poste.essai_objets_voir() end, aide = "Ce que porte le dernier vu, avec l'état" },
+  { nom = "scriptorium_essai_parlable", fonction = function() return poste.essai_parlable() end, aide = "Le dernier vu parlable, debout devant Henry (fiche 18, 5 b)" },
+  { nom = "scriptorium_essai_parlable_fin", fonction = function() return poste.essai_parlable_fin() end, aide = "Le dernier vu n'est plus parlable ni tenu" },
+  { nom = "scriptorium_essai_admettre", fonction = function() return poste.essai_admettre() end, aide = "Un personnage né hors de la Compagnie, admis forgeron (fiche 18, 5 c)" },
+  { nom = "scriptorium_essai_embaucher_metiers", fonction = function() return poste.essai_embaucher_metiers() end, aide = "Un cuisinier et un forgeron engagés" },
+  { nom = "scriptorium_essai_qui_garde", fonction = function() return poste.essai_qui_garde() end, aide = "Qui est de garde, et ce que font les gens de métier" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
