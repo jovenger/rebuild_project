@@ -233,6 +233,86 @@ function poste.essai_auberge_etage()
   return false
 end
 
+-- La porte (V73 g, le nécessaire de JoVenGer) : l'intérieur de l'auberge cherché par des rayons autour du point du
+-- crieur : un point est sous un toit si le premier obstacle vu d'en haut est à plus de « toit_min » m au-dessus du
+-- terrain ; l'intérieur est un point sous un toit dont les quatre voisins (à « pas » m) le sont aussi ; le plus proche
+-- du point du crieur (le côté de la porte) ; son plancher lu par un rayon lancé à « plancher_depuis_m » au-dessus du
+-- terrain. Henry y est posé, relu.
+poste.interieur_d_essai = { centre = { 2165.9, 1513.3 }, rayon = 16, pas = 2, haut_z = 130, toit_min = 2.5,
+                            plancher_depuis_m = 1.6 }
+
+function poste.essai_auberge_interieur()
+  local e = poste.interieur_d_essai
+  local toit = {}
+  local function sous_un_toit(i, j)
+    local cle = i .. "," .. j
+    if toit[cle] == nil then
+      local x, y = e.centre[1] + i * e.pas, e.centre[2] + j * e.pas
+      local terrain = jeu().altitude_du_terrain(x, y)
+      local haut = jeu().plancher_sous(x, y, e.haut_z, e.haut_z - (terrain or 0) + 2)
+      toit[cle] = terrain ~= nil and haut ~= nil and haut > terrain + e.toit_min
+    end
+    return toit[cle]
+  end
+  local n = math.floor(e.rayon / e.pas)
+  local meilleur, distance = nil, nil
+  local sous_toit = 0
+  for i = -n, n do
+    for j = -n, n do
+      if sous_un_toit(i, j) then
+        sous_toit = sous_toit + 1
+        if sous_un_toit(i + 1, j) and sous_un_toit(i - 1, j) and sous_un_toit(i, j + 1) and sous_un_toit(i, j - 1) then
+          local d = math.sqrt(i * i + j * j) * e.pas
+          if not distance or d < distance then
+            meilleur, distance = { i, j }, d
+          end
+        end
+      end
+    end
+  end
+  if not meilleur then
+    jeu().journal("Poste : intérieur : aucun point sous un toit entouré (" .. sous_toit .. " point(s) sous un toit)")
+    return false
+  end
+  local x, y = e.centre[1] + meilleur[1] * e.pas, e.centre[2] + meilleur[2] * e.pas
+  local terrain = jeu().altitude_du_terrain(x, y)
+  local plancher = jeu().plancher_sous(x, y, terrain + e.plancher_depuis_m, e.plancher_depuis_m + 2)
+  jeu().journal("Poste : intérieur : " .. sous_toit .. " point(s) sous un toit ; choisi (" .. x .. ", " .. y .. ") à "
+                .. string.format("%.0f", distance) .. " m du crieur, terrain " .. tostring(terrain) .. ", plancher "
+                .. tostring(plancher))
+  if not plancher then
+    return false
+  end
+  local ok, compte_rendu = jeu().poser_le_joueur({ x = x, y = y, z = plancher + 0.1 })
+  jeu().journal("Poste : Henry posé à l'intérieur = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
+-- Le gardien (V73 g) : le premier homme posé 20 m sous le terrain ; ou endormi.
+function poste.essai_homme_sous_le_sol()
+  local id = Scriptorium.hommes.liste()[1]
+  local f = id and Scriptorium.hommes.fiche(id)
+  if not (f and f.personnage) then
+    jeu().journal("Poste : homme sous le sol : aucun homme présent")
+    return false
+  end
+  local ok, compte_rendu = jeu().poser_sous_le_sol(f.personnage, 20)
+  jeu().journal("Poste : « " .. f.nom .. " » sous le sol = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
+function poste.essai_homme_endormi()
+  local id = Scriptorium.hommes.liste()[2] or Scriptorium.hommes.liste()[1]
+  local f = id and Scriptorium.hommes.fiche(id)
+  if not (f and f.personnage) then
+    jeu().journal("Poste : homme endormi : aucun homme présent")
+    return false
+  end
+  local ok, compte_rendu = jeu().endormir(f.personnage)
+  jeu().journal("Poste : « " .. f.nom .. " » endormi = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
 function poste.essai_lieu(nom)
   local ok, compte_rendu = jeu().poser_le_joueur(poste.lieux_d_essai[nom])
   jeu().journal("Poste : Henry posé au lieu « " .. nom .. " » = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
@@ -1909,6 +1989,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_auberge_dedans", fonction = function() return poste.essai_lieu("auberge_dedans") end, aide = "Pose Henry dans l'auberge de Přítoky, au rez-de-chaussée (V73 f 3 b)" },
   { nom = "scriptorium_essai_auberge_etage", fonction = function() return poste.essai_auberge_etage() end, aide = "Cherche l'étage de l'auberge de Přítoky par un rayon et y pose Henry (V73 f 3 b)" },
   { nom = "scriptorium_essai_recharger", fonction = function() return poste.essai_recharger() end, aide = "Relit nos morceaux Lua posés par outils/recharger.py, sans relancer le jeu (sonde V73 g 0)" },
+  { nom = "scriptorium_essai_auberge_interieur", fonction = function() return poste.essai_auberge_interieur() end, aide = "Cherche l'intérieur de l'auberge de Přítoky par des rayons et y pose Henry (la porte, V73 g)" },
+  { nom = "scriptorium_essai_homme_sous_le_sol", fonction = function() return poste.essai_homme_sous_le_sol() end, aide = "Pose le premier homme 20 m sous le terrain (le gardien, V73 g)" },
+  { nom = "scriptorium_essai_homme_endormi", fonction = function() return poste.essai_homme_endormi() end, aide = "Endort le deuxième homme (Activate(0)) : le gardien doit le relancer (V73 g)" },
   { nom = "scriptorium_essai_grand_saut", fonction = function() return poste.essai_grand_saut() end, aide = "Pose Henry deux cents mètres devant lui (le grand saut, V73 f 3 b)" },
   { nom = "scriptorium_essai_carte_voir", fonction = function() return poste.essai_carte_voir() end, aide = "La carte lue et le dernier chargement vu (V73 f 3 a)" },
   { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },

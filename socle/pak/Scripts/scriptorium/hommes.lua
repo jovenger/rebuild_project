@@ -139,6 +139,25 @@ hommes.reglages = {
   saut_verif_ms = 1500,
   saut_pose_ecart_m = 15,
   saut_poses_max = 3,
+  -- V73 g, le gardien des hommes (version simple ; les leçons de Scriptorium transmises par le pair) : une veille de
+  -- « gardien_cadence_ms ». Sous le sol : plus de « gardien_sous_sol_m » sous le terrain, « gardien_sous_sol_regards »
+  -- regards de suite : repêché, immortel « gardien_immortel_ms », « gardien_repeches_max » fois au plus par partie.
+  -- Figé : à plus de « fige_but_m » de son but, moins de « fige_bouge_m » depuis le regard précédent, son ordre vieux
+  -- d'au moins « fige_ordre_regards » regards : relancé (réveil, ordre redonné), « fige_relances_max » fois par ordre,
+  -- jamais deux en « fige_regards_entre » regards, « fige_par_regard » au plus par regard ; utile au-delà de
+  -- « fige_utile_m » au regard suivant.
+  gardien_cadence_ms = 4000,
+  gardien_sous_sol_m = 5,
+  gardien_sous_sol_regards = 2,
+  gardien_immortel_ms = 15000,
+  gardien_repeches_max = 3,
+  fige_but_m = 2.5,
+  fige_bouge_m = 0.5,
+  fige_utile_m = 1.5,
+  fige_relances_max = 2,
+  fige_regards_entre = 2,
+  fige_par_regard = 6,
+  fige_ordre_regards = 2,
   allure_perdu_m = 13,
   allure_rang_m = 6,
   anciens_gardes = 50,
@@ -2880,6 +2899,136 @@ function hommes.lancer_la_veille_d_henry()
   return true
 end
 
+-- Le gardien des hommes (fiche 15, V73 g, version simple). En mémoire seulement : par homme, ce qu'a vu le regard
+-- précédent ; et les comptes de la partie (relances, utiles, repêchages).
+hommes.gardien = { vus = {}, relances = 0, utiles = 0, repeches = 0 }
+
+local function repecher(f, v, ici)
+  local r = hommes.reglages
+  if (v.repeches or 0) >= r.gardien_repeches_max then
+    if not v.repeche_laisse then
+      v.repeche_laisse = true
+      jeu().journal("Gardien : « " .. f.nom .. " » sous le sol, déjà repêché " .. v.repeches .. " fois : laissé")
+    end
+    return false
+  end
+  local effet, refus = jeu().rendre_immortel(f.personnage)
+  local resultat = jeu().poser_en_secours(f.personnage, { x = ici.x, y = ici.y, z = ici.z })
+  v.repeches = (v.repeches or 0) + 1
+  hommes.gardien.repeches = hommes.gardien.repeches + 1
+  jeu().journal("Gardien : « " .. f.nom .. " » sous le sol (à " .. string.format("%.1f", ici.z) .. ") : repêché, "
+                .. tostring(resultat) .. " ; immortel : " .. (effet ~= nil and "oui" or ("non (" .. tostring(refus) .. ")")))
+  if effet ~= nil then
+    local personnage = f.personnage
+    jeu().minuterie(r.gardien_immortel_ms, function()
+      jeu().retirer_l_effet(personnage, effet)
+    end)
+  end
+  f.derniere_activite = nil
+  return true
+end
+
+-- Un regard du gardien sur chaque homme présent. Rend (repêchés, relancés).
+function hommes.garder()
+  local d = donnees()
+  local r = hommes.reglages
+  local g = hommes.gardien
+  local heure = jeu().heure_du_jeu()
+  local henry = jeu().position_du_joueur()
+  local terrain_d_henry = henry and jeu().altitude_du_terrain(henry.x, henry.y)
+  local henry_sous_le_sol = terrain_d_henry ~= nil and henry.z < terrain_d_henry - r.gardien_sous_sol_m
+  local repeches, relances = 0, 0
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    local ici = f and f.personnage and jeu().position_du_personnage(f.personnage)
+    if ici then
+      local v = g.vus[id] or {}
+      g.vus[id] = v
+      local a = hommes.activite_de(id, heure)
+      -- Sous le sol (jamais s'il suit Henry et qu'Henry est lui-même sous le sol : une grotte).
+      local terrain = jeu().altitude_du_terrain(ici.x, ici.y)
+      if terrain and ici.z < terrain - r.gardien_sous_sol_m then
+        v.sous_le_sol = (v.sous_le_sol or 0) + 1
+        if v.sous_le_sol >= r.gardien_sous_sol_regards and not (a and a.activite == "suivre" and henry_sous_le_sol) then
+          if repecher(f, v, ici) then
+            repeches = repeches + 1
+          end
+          v.sous_le_sol = 0
+        end
+      else
+        v.sous_le_sol = 0
+      end
+      -- Figé.
+      if v.regards == nil or v.ordre ~= f.derniere_activite then
+        v.ordre, v.regards, v.relances, v.depuis_relance, v.laisse = f.derniere_activite, 0, 0, nil, nil
+      end
+      v.regards = v.regards + 1
+      local bouge = v.avant and math.sqrt((ici.x - v.avant.x) ^ 2 + (ici.y - v.avant.y) ^ 2) or nil
+      if v.attend_utile and bouge then
+        v.attend_utile = nil
+        if bouge > r.fige_utile_m then
+          g.utiles = g.utiles + 1
+          jeu().journal("Gardien : « " .. f.nom .. " » repart (" .. string.format("%.1f", bouge) .. " m) : relance utile")
+        end
+      end
+      if v.depuis_relance then
+        v.depuis_relance = v.depuis_relance + 1
+      end
+      local but = a and a.position
+      local exclu = not but or a.activite == "suivre" or a.activite == "bataille" or a.activite == "ronde"
+        or jeu().occupation_de(f.personnage) ~= nil
+      if not exclu and bouge and bouge < r.fige_bouge_m and v.regards > r.fige_ordre_regards then
+        local ecart = jeu().ecart_au_but(f.personnage, but)
+        if ecart and ecart > r.fige_but_m then
+          if v.relances >= r.fige_relances_max then
+            if not v.laisse then
+              v.laisse = true
+              jeu().journal("Gardien : « " .. f.nom .. " » toujours figé après " .. v.relances
+                            .. " relance(s) : laissé au secours")
+            end
+          elseif (v.depuis_relance == nil or v.depuis_relance >= r.fige_regards_entre)
+              and relances < r.fige_par_regard then
+            jeu().eveiller(f.personnage, f.nom)
+            f.derniere_activite = nil
+            ordonner_un_homme(d, id, heure, nil, true)
+            v.ordre = f.derniere_activite
+            v.relances, v.depuis_relance, v.attend_utile = v.relances + 1, 0, true
+            relances = relances + 1
+            g.relances = g.relances + 1
+            jeu().journal("Gardien : « " .. f.nom .. " » figé à " .. string.format("%.1f", ecart) .. " m de son but ("
+                          .. tostring(a.activite) .. ") : relancé (" .. v.relances .. " sur " .. r.fige_relances_max .. ")")
+          end
+        end
+      end
+      v.avant = { x = ici.x, y = ici.y, z = ici.z }
+    end
+  end
+  return repeches, relances
+end
+
+-- La veille du gardien, une par partie (comme la veille d'Henry) ; une erreur est dite au journal, trois fois au plus.
+function hommes.lancer_le_gardien()
+  local generation = Scriptorium.generation
+  if hommes.gardien_generation == generation then
+    return false
+  end
+  hommes.gardien_generation = generation
+  local erreurs = 0
+  local function regard()
+    if generation ~= Scriptorium.generation or not Scriptorium.en_partie then
+      return
+    end
+    local ok, erreur = pcall(hommes.garder)
+    if not ok and erreurs < 3 then
+      erreurs = erreurs + 1
+      jeu().journal("Gardien : regard en erreur : " .. tostring(erreur))
+    end
+    jeu().minuterie(hommes.reglages.gardien_cadence_ms, regard)
+  end
+  jeu().minuterie(hommes.reglages.gardien_cadence_ms, regard)
+  return true
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
@@ -3246,6 +3395,8 @@ function hommes.relancer()
   hommes.henry_monte, hommes.henry_pied_lectures = false, 0
   hommes.henry_derniere_position = nil
   hommes.lancer_la_veille_d_henry()
+  hommes.gardien = { vus = {}, relances = 0, utiles = 0, repeches = 0 }
+  hommes.lancer_le_gardien()
   hommes.raisons_de_reprise = {}
   hommes.cerveaux_regles = {}
   hommes.arrets_vus = {}

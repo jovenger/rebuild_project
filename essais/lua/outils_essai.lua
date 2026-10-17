@@ -51,6 +51,7 @@ function depart()
     Scriptorium.hommes.raisons_de_reprise = {}
     Scriptorium.hommes.accroches.ronde_reprise = {}
     Scriptorium.hommes.rattrapages_en_attente = {}
+    Scriptorium.hommes.gardien = { vus = {}, relances = 0, utiles = 0, repeches = 0 }
   end
   -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
   -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().

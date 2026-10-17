@@ -34,7 +34,7 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   FauxJeu.entrer_en_partie()
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé à l'entrée en partie")
-  egal(#FauxJeu.commandes, 162, "cent soixante-deux commandes de console")
+  egal(#FauxJeu.commandes, 165, "cent soixante-cinq commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 
@@ -196,20 +196,20 @@ essai("socle : l'entrée en partie repose les minuteries, éteint les anciennes,
   Scriptorium.registre.enregistrer()
   Scriptorium.registre.lire("essai_partie").n = 5
   FauxJeu.entrer_en_partie()
-  egal(#FauxJeu.minuteries, 10, "quatre minuteries reposées, le guetteur, et la veille d'Henry à cheval (V73 f 2 d)")
+  egal(#FauxJeu.minuteries, 11, "quatre minuteries reposées, le guetteur, la veille d'Henry à cheval (V73 f 2 d) et le gardien (V73 g)")
   egal(Scriptorium.registre.lire("essai_partie").n, 1, "registre relu depuis la sauvegarde (V5) : la modification non enregistrée a disparu")
   for _ = 1, 9 do
     FauxJeu.tic_minuterie()
   end
-  egal(#FauxJeu.minuteries, 6, "les quatre anciennes se sont éteintes, les quatre neuves, le guetteur et la veille tournent")
+  egal(#FauxJeu.minuteries, 7, "les quatre anciennes se sont éteintes, les quatre neuves, le guetteur, la veille et le gardien tournent")
   egal(lignes_avec("entrée en partie, minuteries reposées"), 1, "noté au journal")
   FauxJeu.sortir_de_partie()
-  for _ = 1, 6 do
+  for _ = 1, 7 do
     FauxJeu.tic_minuterie()
   end
   egal(#FauxJeu.minuteries, 0, "hors partie, plus rien ne tourne")
   FauxJeu.entrer_en_partie()
-  egal(#FauxJeu.minuteries, 6, "une nouvelle entrée repose les quatre, le guetteur, et la veille")
+  egal(#FauxJeu.minuteries, 7, "une nouvelle entrée repose les quatre, le guetteur, la veille et le gardien")
   Scriptorium.arreter_le_battement()
 end)
 

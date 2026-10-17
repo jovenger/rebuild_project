@@ -2500,6 +2500,15 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   `gardien_immortel_ms` 15 000, `gardien_repeches_max` 3, `fige_but_m` 2,5, `fige_bouge_m` 0,5, `fige_utile_m` 1,5,
   `fige_relances_max` 2, `fige_regards_entre` 2, `fige_par_regard` 6, `fige_ordre_regards` 2.
 
+### Au banc (fait)
+- `essai_hommes.lua` : sous le sol (un regard : rien ; deux de suite : repêché, immortel, l'effet retiré 15 s après par
+  son identifiant ; deux regards non consécutifs : rien ; dans la grotte d'Henry : jamais ; trois au plus puis « laissé » ;
+  l'immortalité refusée : dite) ; figé (l'ordre trop jeune : rien ; relancé : réveil et ordre ; pas deux en 8 s ; la
+  deuxième ; la relance utile ; deux au plus puis « laissé au secours » ; ni suite ni combat ; tant par regard).
+- Deux défauts trouvés par les essais et corrigés : un homme sans ordre faisait planter le regard ; le gardien n'était
+  pas remis à zéro entre deux essais (`outils_essai`). 11 erreurs injectées, toutes attrapées (une après avoir réglé la
+  limite par regard à 1 dans l'essai).
+
 ### Essai en jeu : grille (une séance, avec la porte)
 1. Un homme posé 20 m sous le terrain (commande d'essai) : repêché en moins de 8 s, immortel puis l'effet retiré.
 2. Un homme endormi (commande d'essai : `Activate(0)`) loin de son but : figé, relancé, la relance utile.

@@ -2909,6 +2909,132 @@ essai("grand saut (fiche 15, V73 f 3 b) : au bond d'Henry, la colonne descend to
   FauxJeu.manquees, FauxJeu.henry_cheval = nil, nil
 end)
 
+
+-- Fiche 15, V73 g : le gardien des hommes (version simple).
+essai("gardien (fiche 15, V73 g) : sous le sol deux regards de suite, repêché au sol, immortel 15 s ; jamais dans la grotte d'Henry ; trois fois au plus", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  FauxJeu.secours, FauxJeu.effets, FauxJeu.effets_retires = {}, {}, {}
+  FauxJeu.positions[f.personnage] = { x = 20, y = 20, z = -30 }
+  hommes.garder()
+  egal(#FauxJeu.secours, 0, "un regard : rien")
+  hommes.garder()
+  egal(#FauxJeu.secours, 1, "deux regards de suite : repêché")
+  egal(#FauxJeu.effets, 1, "immortel le temps de la pose")
+  verifier(journal_contient("sous le sol (à -30.0) : repêché"), "dit au journal")
+  local mt = FauxJeu.minuteries[#FauxJeu.minuteries]
+  egal(mt.ms, 15000, "l'effet retiré 15 s après")
+  mt.fonction()
+  egal(#FauxJeu.effets_retires, 1, "l'effet retiré, par son identifiant")
+  egal(FauxJeu.effets_retires[1].effet, 1, "le sien seulement")
+  egal(hommes.gardien.repeches, 1, "compté")
+  -- Un regard au-dessus du sol remet le compte à zéro.
+  FauxJeu.positions[f.personnage] = { x = 20, y = 20, z = -30 }
+  hommes.garder()
+  FauxJeu.positions[f.personnage] = { x = 20, y = 20, z = 0 }
+  hommes.garder()
+  FauxJeu.positions[f.personnage] = { x = 20, y = 20, z = -30 }
+  hommes.garder()
+  egal(#FauxJeu.secours, 1, "deux regards non consécutifs : rien")
+  -- Il suit Henry, et Henry est lui-même sous le sol (une grotte) : jamais.
+  escorter(id)
+  FauxJeu.position_joueur = { x = 25, y = 25, z = -40 }
+  hommes.garder()
+  hommes.garder()
+  egal(#FauxJeu.secours, 1, "dans la grotte d'Henry : pas de repêchage")
+  hommes.lacher(id, "escorte")
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  -- Trois fois au plus, puis une ligne « laissé ».
+  for _ = 1, 8 do
+    FauxJeu.positions[f.personnage] = { x = 20, y = 20, z = -30 }
+    hommes.garder()
+  end
+  egal(hommes.gardien.repeches, 3, "trois repêchages au plus")
+  verifier(journal_contient("déjà repêché 3 fois : laissé"), "puis laissé, dit au journal")
+  -- L'immortalité refusée par le jeu : repêché quand même, dit.
+  FauxJeu.refuser_les_effets = true
+  local id2 = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f2 = hommes.fiche(id2)
+  FauxJeu.positions[f2.personnage] = { x = 30, y = 30, z = -30 }
+  hommes.garder()
+  hommes.garder()
+  verifier(journal_contient("immortel : non (effet refusé)"), "l'immortalité refusée, dite")
+  FauxJeu.refuser_les_effets = nil
+end)
+
+essai("gardien (fiche 15, V73 g) : figé loin de son but, relancé (réveil, ordre redonné), deux fois au plus et pas deux en 8 s ; la relance utile ; ni suite, ni bataille, ni combat ; tant par regard", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  local a = hommes.activite_de(id, 10)
+  verifier(a and a.position, "une activité avec un but")
+  FauxJeu.reveilles = {}
+  local loin = { x = a.position.x + 30, y = a.position.y, z = 0 }
+  FauxJeu.positions[f.personnage] = loin
+  local ordres = #FauxJeu.ordres
+  hommes.garder()
+  hommes.garder()
+  egal(#FauxJeu.ordres, ordres, "l'ordre trop jeune : rien")
+  hommes.garder()
+  egal(#FauxJeu.ordres, ordres + 1, "figé : l'ordre redonné")
+  egal(#FauxJeu.reveilles, 1, "et réveillé")
+  verifier(journal_contient("figé à 30.0 m de son but"), "dit au journal")
+  hommes.garder()
+  egal(#FauxJeu.ordres, ordres + 1, "pas deux relances en 8 s")
+  verifier(not journal_contient("relance utile"), "il n'a pas bougé : pas utile")
+  hommes.garder()
+  egal(#FauxJeu.ordres, ordres + 2, "la deuxième relance")
+  -- Il repart : la relance est utile.
+  FauxJeu.positions[f.personnage] = { x = loin.x - 3, y = loin.y, z = 0 }
+  hommes.garder()
+  verifier(journal_contient("repart (3.0 m) : relance utile"), "la relance utile, dite")
+  egal(hommes.gardien.utiles, 1, "comptée")
+  -- Figé de nouveau : plus de relance pour cet ordre, une ligne « laissé ».
+  for _ = 1, 4 do hommes.garder() end
+  egal(#FauxJeu.ordres, ordres + 2, "deux relances au plus par ordre")
+  verifier(journal_contient("toujours figé après 2 relance(s) : laissé au secours"), "laissé au secours, dit")
+  egal(hommes.gardien.relances, 2, "deux relances comptées")
+  -- Ni suite, ni bataille, ni combat.
+  local id_b = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local fb = hommes.fiche(id_b)
+  escorter(id_b)
+  FauxJeu.positions[fb.personnage] = { x = 300, y = 300, z = 0 }
+  local avant = #FauxJeu.ordres
+  for _ = 1, 5 do hommes.garder() end
+  local relances_b = 0
+  for _, o in ipairs(FauxJeu.ordres) do if o.identifiant == fb.personnage then relances_b = relances_b + 1 end end
+  verifier(relances_b <= 1, "un homme qui suit n'est jamais relancé par le gardien")
+  hommes.lacher(id_b, "escorte")
+  FauxJeu.occupations[fb.personnage] = "combat"
+  hommes.battre()
+  avant = #FauxJeu.ordres
+  for _ = 1, 5 do hommes.garder() end
+  egal(#FauxJeu.ordres, avant, "en combat : jamais")
+  FauxJeu.occupations[fb.personnage] = nil
+  -- Tant au plus par regard (réglé à 1 ici : le camp n'a que quatre places) : au moins deux figés (les deux nouveaux),
+  -- une relance.
+  local par_regard = hommes.reglages.fige_par_regard
+  hommes.reglages.fige_par_regard = 1
+  local tous = {}
+  for k = 1, 2 do
+    tous[k] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  end
+  hommes.battre()
+  for _, idk in ipairs(tous) do
+    local ak = hommes.activite_de(idk, 10)
+    FauxJeu.positions[hommes.fiche(idk).personnage] = { x = ak.position.x + 40, y = ak.position.y, z = 0 }
+  end
+  hommes.garder()
+  hommes.garder()
+  local n0 = hommes.gardien.relances
+  hommes.garder()
+  egal(hommes.gardien.relances - n0, 1, "tant de relances au plus par regard")
+  hommes.reglages.fige_par_regard = par_regard
+end)
+
 -- Fiche 15, V73 f 2 f : l'allure du chef monté (principe d'Alex, relu par le pair : la marge contre l'hésitation).
 essai("allure du chef monté (fiche 15, V73 f 2 f) : la vitesse de celui qu'il suit donne l'allure, l'écart corrige, une marge aux seuils", function()
   -- { vitesse, écart, fond avant, correction avant, code avant, attendu, texte }

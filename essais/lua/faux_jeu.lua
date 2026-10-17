@@ -372,6 +372,30 @@ function faux.faire_venir_directeur(position, ame)
   return identifiant
 end
 function faux.position_du_joueur() return faux.position_joueur end
+-- V73 g : le terrain (« terrain » posé par les essais : une fonction, sinon 0), l'immortalité (les effets posés et
+-- retirés), le réveil (les réveillés), les poses d'essai sous le sol et le sommeil.
+function faux.altitude_du_terrain(x, y)
+  if faux.terrain then return faux.terrain(x, y) end
+  return 0
+end
+function faux.rendre_immortel(identifiant)
+  faux.effets = faux.effets or {}
+  if faux.refuser_les_effets then return nil, "effet refusé" end
+  table.insert(faux.effets, { identifiant = identifiant, pose = true })
+  return #faux.effets
+end
+function faux.retirer_l_effet(identifiant, effet)
+  faux.effets_retires = faux.effets_retires or {}
+  table.insert(faux.effets_retires, { identifiant = identifiant, effet = effet })
+  return true
+end
+function faux.eveiller(identifiant, titre)
+  faux.reveilles = faux.reveilles or {}
+  table.insert(faux.reveilles, identifiant)
+  return true
+end
+function faux.poser_sous_le_sol(identifiant, profondeur) return true, "essai" end
+function faux.endormir(identifiant) return true, "essai" end
 -- V73 g 0 : le rechargement d'essai (« rechargement » posé par les essais : { liste = {…}, refus = { nom = raison } }).
 function faux.liste_du_rechargement()
   if not faux.rechargement then return nil end

@@ -1404,6 +1404,68 @@ function liaison.cheval_monte(identifiant)
   return monte and true or false
 end
 
+-- V73 g (le gardien des hommes) : l'altitude du terrain sous (x, y), ou nil.
+function liaison.altitude_du_terrain(x, y)
+  local lu, z = pcall(System.GetTerrainElevation, { x = x, y = y, z = 0 })
+  return lu and tonumber(z) or nil
+end
+
+-- V73 g : l'immortalité du jeu le temps d'un repêchage : l'effet « immortality_nonpersistent » (imm=1,
+-- Libs/Tables/rpg/buff.xml), posé par soul:AddBuff (la forme de Scripts/Entities/actor/player.lua), retiré par son
+-- identifiant seulement (soul:RemoveBuff) : une immortalité donnée par une autre règle reste.
+liaison.effet_immortel = "730503bf-735a-4f47-baae-c2d84ee77524"
+
+-- Rend l'identifiant de l'effet posé, ou nil et la raison.
+function liaison.rendre_immortel(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return nil, "introuvable"
+  end
+  local lu, effet = pcall(function() return entite.soul:AddBuff(liaison.effet_immortel) end)
+  if not lu then
+    return nil, tostring(effet)
+  end
+  if effet == nil then
+    return nil, "effet refusé"
+  end
+  return effet
+end
+
+function liaison.retirer_l_effet(identifiant, effet)
+  local entite = entite_nommee(identifiant)
+  if not entite or effet == nil then
+    return false
+  end
+  return (pcall(function() entite.soul:RemoveBuff(effet) end))
+end
+
+-- Pour le poste d'essai (V73 g) : un homme posé « profondeur » m sous le terrain ; ou endormi (Activate(0) et l'IA en
+-- sommeil), le contraire du réveil. Rendent (vrai, compte rendu) ou (faux, raison).
+function liaison.poser_sous_le_sol(identifiant, profondeur)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return false, "introuvable"
+  end
+  local ok, resultat = pcall(function()
+    local ici = entite:GetWorldPos()
+    local sol = System.GetTerrainElevation(ici)
+    entite:SetWorldPos({ x = ici.x, y = ici.y, z = sol - profondeur })
+    local apres = entite:GetWorldPos()
+    return string.format("posé à %.1f (terrain %.1f)", apres.z, sol)
+  end)
+  return ok, tostring(resultat)
+end
+
+function liaison.endormir(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return false, "introuvable"
+  end
+  local endormi = pcall(function() entite:Activate(0) end)
+  local sommeil = pcall(function() AI.AutoDisable(entite.id, 1) end)
+  return endormi and sommeil, "Activate(0) = " .. tostring(endormi) .. ", AutoDisable(1) = " .. tostring(sommeil)
+end
+
 -- Séance d'essai (V73 f 2 d) : le cheval d'Henry amené à « distance » m devant lui, au sol, sur une place que rien
 -- n'encombre (sol_de). Rend (vrai, ligne) ou (faux, raison).
 function liaison.amener_le_cheval_d_henry(distance)
