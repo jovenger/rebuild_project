@@ -908,6 +908,66 @@ arrivées).
   défaut), **avec l'accroche « ronde reprise »**, dans un petit pas à part (V73 d 2 bis : fiche, pair, code, banc) ; la
   borne des lignes de forme du jeu à 32 lui va.
 
+## V73 d 2 bis — l'accroche « ronde reprise » (17/10, à relire par le pair)
+
+### Le périmètre
+- Choix de JoVenGer (17/10, proposé par le pair) : quand un rondier **reprend** sa ronde (après un rechargement, un
+  secours, ou une règle plus forte qui le lâche, comme une bataille), le socle demande à Scriptorium d'où il repart ;
+  sans réponse, le point le plus proche (la règle confirmée). Scriptorium peut ainsi redonner lui-même l'espacement de
+  ses six gardes de quart.
+- Mécanique seulement : le socle demande et applique ; **quel** point, c'est Scriptorium.
+
+### Le constat (code relu le 17/10)
+- Les accroches des hommes (`hommes.accroches`, `hommes.accrocher`) ne font que prévenir : `appeler` rend seulement
+  « prise ou non » (`apres_le_rhabillage`, `piece_otee`). Celle-ci doit **rendre une réponse** (un numéro de point).
+- Scriptorium ne peut pas redonner le départ par la tenue : reposer la même ronde avec un autre `depart` change la
+  tenue, mais pas l'activité ni le lieu, donc aucun ordre ne part (`ordonner_un_homme` ne redonne l'ordre que si
+  « activité@lieu » change). D'où l'accroche.
+- Le point de reprise se choisit dans `ordonner_un_homme`, seul endroit où part l'ordre de ronde ; « à la pose » (l'ordre
+  donné par `hommes.tenir`) se distingue déjà de la reprise (`a_la_pose`).
+
+### Comment ce serait fait
+1. **Une accroche de plus**, `ronde_reprise`, dans `hommes.accroches`, posée par `hommes.accrocher("ronde_reprise", f)`.
+2. **Quand** : à chaque ordre de ronde qui n'est pas donné à la pose de sa tenue (question 1). À la pose, Scriptorium
+   donne lui-même `depart` s'il le veut.
+3. **Ce qu'elle reçoit** : `f(id, { lieu, plus_proche, points })` : l'homme, le lieu de la ronde, le numéro du point le
+   plus proche de l'homme (le défaut), le nombre de points du chemin.
+4. **Ce qu'elle rend** : un numéro de point, entier de 1 à `points` ; ou rien (le point le plus proche). Plusieurs
+   accroches : la première réponse valable l'emporte, dans l'ordre où elles ont été posées. Une réponse hors du chemin
+   ou non entière : refusée, une ligne au journal, le point le plus proche. Une accroche en panne : sous `pcall`, une
+   ligne au journal, le point le plus proche.
+5. **Une ligne au journal par reprise** : « Hommes : « Jan Kladivo » reprend la ronde « pourtour » au point 4 (le plus
+   proche) », ou « (donné par l'accroche) ».
+- Rien au registre, aucune valeur nouvelle, rien dans l'arbre ni dans la liaison.
+
+### Essais au banc
+- L'accroche se pose ; une accroche d'un nom inconnu reste refusée.
+- À la pose, elle n'est pas appelée ; à la reprise après un rechargement (`relancer`, puis le battement), elle l'est une
+  fois par rondier, avec le lieu, le point le plus proche et le nombre de points ; le point rendu devient le premier
+  point de l'ordre et le point visé.
+- Rien de rendu : le point le plus proche. Rendu 0, 13 (sur 12), 2,5 ou « 3 » : refusé, une ligne, le point le plus
+  proche. En panne : une ligne, le point le plus proche. Deux accroches, la première sans réponse : la seconde l'emporte.
+- La reprise après une règle plus forte (une tenue de bataille posée puis lâchée) appelle l'accroche ; un homme qui
+  n'est pas de ronde ne l'appelle jamais.
+
+### Essai en jeu (question 2) : grille écrite avant la séance
+`playline3`, secours coupé, deux rondiers sur la ronde d'essai (partis des points 1 et 7). Une commande d'essai pose une
+accroche d'essai, qui rend pour chaque homme le point opposé au plus proche (plus proche + 6, modulo 12) et l'écrit au
+journal ; puis une tenue de rassemblement (rang 2) posée sur les deux, et lâchée 20 s plus tard.
+1. Au lâcher, une ligne « reprend la ronde … au point k (donné par l'accroche) » par homme, k opposé au plus proche ; et
+   chacun marche vers ce point, puis reprend sa ronde → bon.
+2. L'accroche d'essai retirée, même manœuvre : « (le plus proche) », chacun repart du point le plus proche → bon.
+3. Aucune ligne « reprend » : la reprise ne passe pas par l'ordre de ronde → lire le journal, un seul changement.
+- Décompte de l'écran noir (fiche 14).
+
+### Questions à JoVenGer (après relecture par le pair)
+1. **Quand l'accroche est-elle appelée ?** (a) à chaque reprise seulement : rechargement, secours, règle plus forte
+   (Recommandé : à la pose, Scriptorium donne déjà le départ) ; (b) aussi à la pose quand Scriptorium n'a pas donné de
+   départ ; (c) seulement après un rechargement.
+2. **L'essai** : (a) au banc, puis un court essai en jeu (rassemblement posé puis lâché, avec et sans l'accroche
+   d'essai), qui montre aussi la reprise d'une ronde, pas encore vue (Recommandé) ; (b) au banc seulement (aucun
+   changement du côté du jeu).
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
