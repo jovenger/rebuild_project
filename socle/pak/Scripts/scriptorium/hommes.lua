@@ -321,6 +321,12 @@ hommes.niveaux_de_moral = {
   { seuil = 0, nom = "abattu" },
 }
 
+-- Un jalon (fiche 17, la colonne d'une mission) : un objet du monde, par son nom, qui existe ; une colonne peut le
+-- prendre pour chef (le feu d'un camp de bandits à l'aller, notre feu au retour).
+local function est_un_jalon(nom)
+  return type(nom) == "string" and Scriptorium.jeu.objet_existe(nom) == true
+end
+
 -- La journée, par tranches d'heures (de inclus, a exclu ; la dernière passe minuit). Réglable par le fichier (section
 -- « journee », fiche 16, 3 b : l'horloge de Scriptorium) ; chaque tranche a un nom pour son chemin ; la nuit est la
 -- tranche du sommeil.
@@ -1685,7 +1691,7 @@ function hommes.activite_de(id, heure)
           elseif du_directeur then
             chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
           elseif tenue.chef ~= nil and tenue.chef ~= "henry" then
-            chef = d.liste[tenue.chef] and d.liste[tenue.chef].personnage
+            chef = (d.liste[tenue.chef] and d.liste[tenue.chef].personnage) or (est_un_jalon(tenue.chef) and tenue.chef) or nil
           end
         end
         resultat.chef = chef or "henry"
@@ -3270,9 +3276,10 @@ function hommes.tenir(id, regle, quoi)
     arc = { centre = { x = c.x, y = c.y, z = c.z }, rayon = quoi.rayon, ouverture = quoi.ouverture, face = quoi.face,
             allure = quoi.allure }
   end
-  -- Suivre (V73 f 1) : le chef de la colonne, « henry » (défaut), « directeur », ou un autre homme du camp.
+  -- Suivre (V73 f 1) : le chef de la colonne, « henry » (défaut), « directeur », un autre homme du camp, ou un jalon
+  -- (fiche 17 : un objet posé par le socle, la destination d'une colonne).
   if quoi.activite == "suivre" and quoi.chef ~= nil and quoi.chef ~= "henry" and quoi.chef ~= "directeur"
-      and (not d.liste[quoi.chef] or quoi.chef == id) then
+      and (not d.liste[quoi.chef] or quoi.chef == id) and not est_un_jalon(quoi.chef) then
     return refuser("escorte_invalide", "chef " .. tostring(quoi.chef))
   end
   if quoi.activite == "suivre" and quoi.formation ~= nil and not hommes.formations[quoi.formation] then

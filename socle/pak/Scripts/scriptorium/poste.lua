@@ -447,6 +447,29 @@ function poste.essai_vers_le_camp_de_bandits()
   return false
 end
 
+-- Fiche 17, 4 b (la sonde de la colonne) : les trois premiers hommes, à cheval, menés vers le feu du premier camp de
+-- bandits meublé (un jalon pour chef : l'ordre 18 vers un objet, sans Henry).
+function poste.essai_colonne_vers_le_camp_de_bandits()
+  local jalon = nil
+  for _, c in ipairs(Scriptorium.missions.camps()) do
+    jalon = jalon or Scriptorium.missions.jalon_du_camp(c.id)
+  end
+  if not jalon then
+    jeu().journal("Poste : colonne : aucun camp de bandits meublé")
+    return false
+  end
+  local n = 0
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then
+      local ok, raison = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "colonne", chef = jalon,
+        formation = "followNPC", a_cheval = true, fin = "liberation" })
+      if ok then n = n + 1 else jeu().journal("Poste : colonne : " .. id .. " refusé (" .. tostring(raison) .. ")") end
+    end
+  end
+  jeu().journal("Poste : colonne de " .. n .. " homme(s) vers « " .. jalon .. " »")
+  return n > 0
+end
+
 function poste.essai_lever_les_camps()
   local n = 0
   for _, c in ipairs(Scriptorium.missions.camps()) do
@@ -2086,6 +2109,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_camp_de_bandits", fonction = function() return poste.essai_camp_de_bandits(120) end, aide = "Dresse un petit camp de bandits à 120 m devant Henry (il naît quand Henry ne le regarde plus)" },
   { nom = "scriptorium_essai_camps_de_bandits", fonction = function() return poste.essai_camps_de_bandits() end, aide = "Les camps de bandits, leur bande et ses ennemis debout" },
   { nom = "scriptorium_essai_vers_le_camp_de_bandits", fonction = function() return poste.essai_vers_le_camp_de_bandits() end, aide = "Pose Henry à 50 m au sud du premier camp de bandits" },
+  { nom = "scriptorium_essai_colonne_vers_le_camp_de_bandits", fonction = function() return poste.essai_colonne_vers_le_camp_de_bandits() end, aide = "Les trois premiers hommes, à cheval, menés vers le feu du camp de bandits" },
   { nom = "scriptorium_essai_lever_les_camps", fonction = function() return poste.essai_lever_les_camps() end, aide = "Lève tous les camps de bandits" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

@@ -194,6 +194,16 @@ local function poser_les_meubles(c)
   return true
 end
 
+-- Le jalon d'un camp de bandits (son feu, posé) : la destination d'une colonne ; nil tant que ses meubles ne sont pas nés.
+function missions.jalon_du_camp(id)
+  local c = donnees().camps[id]
+  local feu = c and c.meubles and c.meubles.feu
+  if feu and jeu().objet_existe(feu) then
+    return feu
+  end
+  return nil
+end
+
 -- Dresse un camp de bandits à un lieu connu, à un niveau. Rend son nom, ou faux et la raison.
 function missions.dresser_un_camp(nom_du_lieu, niveau)
   local d = donnees()

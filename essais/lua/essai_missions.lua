@@ -225,3 +225,23 @@ essai("missions : les accroches se remplacent ; lever un camp oublie sa bande", 
   verifier(not missions.lever_un_camp(id), "déjà levé : refusé")
   finir()
 end)
+
+essai("missions (4 b) : une colonne prend le feu d'un camp de bandits pour chef ; le premier mène à cheval, les autres se rangent", function()
+  local ids = preparer({ "homme_d_armes", "homme_d_armes", "archer" })
+  local id = missions.dresser_un_camp("gue", "petit")
+  local jalon = missions.jalon_du_camp(id)
+  verifier(jalon, "le feu du camp sert de jalon")
+  verifier(not hommes.tenir(ids[1], "escorte", { activite = "suivre", chef = "scriptorium_rien", fin = "liberation" }),
+    "un jalon qui n'existe pas : refusé")
+  for _, h in ipairs(ids) do
+    verifier(hommes.tenir(h, "escorte", { activite = "suivre", lieu = "colonne", chef = jalon, formation = "followNPC",
+      a_cheval = true, fin = "liberation" }), "tenu vers le jalon")
+  end
+  local a1, a2 = hommes.activite_de(ids[1], 10), hommes.activite_de(ids[2], 10)
+  egal(a1.chef, jalon, "le premier suit le jalon")
+  egal(a1.suivi and a1.suivi.role or (a1.suivi and a1.suivi.mode), "mener", "et mène")
+  egal(a2.chef, hommes.fiche(ids[1]).personnage, "le deuxième suit le premier")
+  missions.lever_un_camp(id)
+  egal(hommes.activite_de(ids[1], 10).chef, "henry", "le jalon retiré : plus de chef lu (Henry par défaut)")
+  finir()
+end)

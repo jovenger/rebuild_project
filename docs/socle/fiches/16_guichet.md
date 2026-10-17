@@ -14,6 +14,9 @@ la règle de JoVenGer du 17/10 (la plus juste pour la réalité du camp gagne, l
     entretien, facteur neutre), `fautes_a_l_aube` (le tirage des fautes), `rencontres_de_patrouille`.
   - **Ajouts reportés** (réponse de JoVenGer, 17/10) : `contrats_a_duree` (le départ en fin de contrat),
     `exactions` (la réputation et ses prix), `baisse_du_risque` (les patrouilles).
+- **Allumé par défaut, l'exception** (relecture du pair, 17/10) : `repas_du_socle` (les rations prises aux vivres) ; rien
+  ne change tant que Scriptorium ne le coupe pas ; coupé, Scriptorium nourrit (l'entretien), les soins et le compte de
+  la journée continuent. Avec lui, `hommes.jour_d_entretien(heure)`, qui change à `heure_d_entretien` (20 h).
 - Déjà conformes, sans interrupteur : pas de palissade posée d'office (l'enceinte ne se bâtit que sur demande) ; les
   heures et les nombres de gardes sont des réglages que Scriptorium écrira (la journée en tranches, elle, reste à
   ouvrir au guichet : 3 b).
