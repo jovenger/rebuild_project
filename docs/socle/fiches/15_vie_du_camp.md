@@ -2457,7 +2457,7 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   liaison (mémoire du registre, écouteur du jeu), le registre, le bandeau, les réglages ni le poste (leurs boucles) ; ni
   les arbres XML et les tables : ceux-là demandent toujours un lancement.
 - **Mode d'emploi** : `py -3.13 outils/recharger.py --jeu "<jeu>" hommes directeur [--marque "texte"]` pose les copies
-  et leur liste dans `Mods\scriptorium_socleecharge\` ; puis l'ordre `scriptorium_essai_recharger`.
+  et leur liste dans `Mods\scriptorium_socle\recharge\` ; puis l'ordre `scriptorium_essai_recharger`.
 - **Vu en jeu** (df2974e, `playline3` 473) : hommes, directeur et camp relus (« Rechargement : hommes relu (sonde 1) »,
   la ligne ajoutée à la copie), démarrages passés, sortie et entrée en partie ; au réveil, camp et hommes redressés sans
   rien refaire ; ensuite la troupe à cheval : chevaux nés, ordres donnés, la boucle d'allure branchée sur le nouveau
