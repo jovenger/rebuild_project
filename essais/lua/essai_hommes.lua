@@ -2242,3 +2242,24 @@ essai("formation (fiche 15, V73 f 1 bis) : derrière le Directeur, chacun se ran
   egal(Scriptorium.directeur.activite(10).suivi, nil, "il ne mène plus")
 end)
 
+-- Fiche 15, V73 f 2 a : la sonde à cheval (réponses recommandées prises d'office le 17/10, relecture du pair).
+essai("à cheval (fiche 15, V73 f 2 a) : l'homme qui a un cheval le monte et suit Henry en selle ; sans cheval, à pied", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local perso = hommes.fiche(id).personnage
+  hommes.battre()
+  FauxJeu.ordres = {}
+  local ok = hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers", cheval = "cheval_essai", fin = "liberation" })
+  verifier(ok, "l'escorte à cheval est tenue")
+  local a = hommes.activite_de(id, 10)
+  egal(a.suivi and a.suivi.mode, "cheval", "il monte son cheval")
+  egal(a.suivi and a.suivi.cheval, "cheval_essai", "le cheval de sa tenue")
+  egal(a.chef, "henry", "il suit Henry")
+  local o = dernier_ordre_de(perso)
+  verifier(o ~= nil and o.suivi ~= nil and o.suivi.mode == "cheval" and o.suivi.cheval == "cheval_essai", "l'ordre porte le cheval")
+  -- Un cheval qui n'est pas un identifiant n'est pas gardé : il suit à pied.
+  hommes.lacher(id, "escorte")
+  hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers", cheval = 12, fin = "liberation" })
+  egal(hommes.activite_de(id, 10).suivi, nil, "un cheval illisible : à pied")
+end)
+

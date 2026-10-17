@@ -41,6 +41,8 @@
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_ronde_ecart_cm" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_allure" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_chef" type="wuid" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cheval" type="wuid" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_en_selle" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_suivi_depart_cm" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_suivi_arret_cm" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_suivi_marche_course_cm" type="int" />
@@ -51,5 +53,6 @@
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_suivi_sprint_marche_cm" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_formation_mode" type="int" />
     <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_formation_reessai_ms" type="int" />
+    <brain_variable ai_variable_form_id="0" ai_variable_sync_id="0" brain_id="b8a850d0-47c6-44a1-872e-ce7efcf4b9f9" brain_variable_name="scriptorium_cerveau_monte_delai_ms" type="int" />
   </brain_variables>
 </database>

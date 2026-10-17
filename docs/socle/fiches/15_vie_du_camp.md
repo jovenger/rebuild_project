@@ -1556,7 +1556,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   surnuméraires en chaîne, un autre mode que `MoveHistory`.
 - **Suite** : V73 f 2, à cheval.
 
-## V73 f 2 a — à cheval : la sonde d'un homme (17/10, envoyé au pair ; réponses recommandées prises d'office)
+## V73 f 2 a — à cheval : la sonde d'un homme (17/10, relu par le pair ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - Règle de JoVenGer du 16/10 : « tous ceux qui sortent du camp partent à cheval et en reviennent à cheval » ; chez
@@ -1582,15 +1582,21 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   avant, pour que la monture se stabilise) ; tous les suiveurs montés du jeu sont en `MoveHistory` ou `Relaxed`.
 
 ### Comment ce serait fait (la sonde)
-1. **Le cheval** : `liaison.faire_venir_cheval(position, nom)` : `System.SpawnEntity` de la classe `Horse`, propriétés
-   copiées de la classe (comme pour nos hommes), sans âme donnée (l'âme par défaut de la classe), au sol, à l'écart
-   (place libre, jamais à moins de 1 m d'un personnage), éveillé comme nos hommes ; rend son identifiant.
+1. **Le cheval** : `liaison.faire_venir_cheval(nom, position)` : `System.SpawnEntity` de la classe `Horse`, propriétés
+   copiées de la classe (comme pour nos hommes), **sur une âme de cheval du jeu** (`liaison.ame_de_cheval`, Horse2,
+   `1b356948-3d22-427c-86f9-f33ab2b441c6`, `Libs/Tables/rpg/soul.xml`, archétype 3, classe 7 : relecture du pair),
+   `bSaved_by_game = false` (un cheval de passage, hors de la sauvegarde), `bWH_RequiresHome = false`, au sol, à
+   l'écart (place libre, jamais à moins de 1 m d'un personnage), éveillé comme nos hommes ; rend son identifiant.
 2. **Monter et suivre** : l'activité « suivre » à cheval : une tenue « escorte » avec `cheval` (l'identifiant du cheval) ;
    la liaison écrit son WUID dans `scriptorium_cheval`, puis l'ordre 17 : debout ; la posture
    `StanceElement smartObject="$scriptorium_cheval" stance="horse"` ; dedans, un `WaitAction` (la monture se stabilise),
-   puis `Function_followNpc` vers son chef (Henry) ; le pouls à côté. Au changement d'ordre, la posture finit : le jeu
-   joue la descente.
-3. **Les commandes d'essai** : `essai_cheval` (un cheval né à 4 m du premier homme) ; `essai_escorte_a_cheval` (le premier
+   « en selle » compté, puis `Function_followNpc` vers son chef (Henry) ; le pouls à côté. **La monte est bornée**
+   (relecture du pair) : la posture est en `Parallel` (le premier qui finit) avec une attente de `monte_delai_ms`
+   (10 000 ms, `hommes.cerveau`, au catalogue) ; l'attente ne finit pas si « en selle » a bougé ; pas en selle au bout
+   du délai, la posture est quittée et l'homme suit à pied (jamais figé à côté de son cheval). Au changement d'ordre,
+   la posture finit : le jeu joue la descente.
+3. **Les commandes d'essai** : `essai_cheval` (un cheval né à 5 m du premier homme, sous un angle tiré au hasard ; né
+   derrière une barrière : `essai_retirer_cheval`, puis la commande redonnée tire un autre angle) ; `essai_escorte_a_cheval` (le premier
    homme suit Henry sur ce cheval) ; `essai_fin_escorte` (il descend, il reprend sa tranche) ; `essai_retirer_cheval`.
 - Rien au registre pour la sonde (le cheval d'essai n'est pas gardé : retiré en fin de séance).
 - La forme du jeu (une posture « horse » autour d'une marche) est celle de `moveOnHorse` ; aucune ligne de forme nouvelle
@@ -1606,11 +1612,24 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 4. `essai_fin_escorte` : **il descend**, reprend sa tranche ; le cheval reste là, puis `essai_retirer_cheval`.
 - Décompte de l'écran noir (fiche 14).
 
+### Relecture du pair (17/10)
+- **Le principe chez Alex** (principe seulement, sans son code) : ses chevaux naissent par script, classe `Horse`, avec
+  deux propriétés seulement, une **âme de cheval** et `bSaved_by_game = false`. Notre sonde naissait sans âme : son
+  premier soupçon si la monte échoue. → Âme Horse2 du jeu (relevée dans `Tables.pak`, lecture seule : Horse2,
+  kkut_horse_5 et animal_horse ont le même archétype 3, la même classe 7 et le même cerveau ; Horse2 gardée).
+- **La monte bornée** : `Parallel(Any)` entre la posture (avec le suiveur dedans) et une attente de 10 s qui ne finit pas
+  une fois « en selle » compté ; repli à pied sinon. Le `WaitAction` reste avant le suiveur monté. → Fait.
+- **Le cheval à 5 m sous un angle au hasard**, redonné s'il tombe derrière une barrière. → Fait (`essai_cheval`).
+- Un `StanceCheck` horse après la monte : non retenu pour la sonde (le compte « en selle » et l'image disent la même
+  chose) ; à reprendre avec la troupe montée si la monte se défait en route.
+
 ### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
 1. **La sonde** : (a) un cheval né par script et un seul homme, avant toute troupe montée (Recommandé : la règle du
    16/10, « un seul homme, prouvé à l'image ») ; (b) la troupe d'emblée. **Prise : (a).**
 2. **Le cheval** : (a) de la classe `Horse` avec l'âme par défaut, le temps de la sonde (Recommandé : rien à écrire dans
-   les tables) ; (b) des âmes de chevaux à nous (une table, comme nos hommes). **Prise : (a).**
+   les tables) ; (b) des âmes de chevaux à nous (une table, comme nos hommes). **Prise : (a)**, puis revue par la
+   relecture du pair : une âme de cheval **du jeu** (Horse2), sans table à nous ; une table de chevaux viendra avec la
+   troupe montée.
 3. **Monter** : (a) la posture « horse » du jeu autour de la suite, comme `moveOnHorse` (Recommandé) ; (b)
    `HorseUsageElement`. **Prise : (a).**
 

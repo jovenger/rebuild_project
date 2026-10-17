@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 146:
-        erreur("ordres : %d commandes lues dans poste.lua, 146 attendues" % len(connues))
+    if len(connues) != 149:
+        erreur("ordres : %d commandes lues dans poste.lua, 149 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -493,9 +493,21 @@ def verifier_identifiants():
         if donnees_f.formation_nom ~= nil then return "un suiveur reçoit un modèle à ouvrir" end
         l.nom_de_la_formation(nil, donnees_f)
         if not string.find(lignes[#lignes], "Formation : erreur", 1, true) then return "une entité absente n'est pas dite" end
+        -- V73 f 2 a : à cheval (ordre 17, le WUID du cheval) ; un cheval introuvable, à pied (ordre 14).
+        local monture = { GetName = function() return "scriptorium_cheval_essai" end }
+        System.entites["scriptorium_cheval_essai"] = monture
+        XGenAIModule.GetMyWUID = function(e) return e == player and "wuid_henry" or (e == monture and "wuid_cheval" or nil) end
+        XGenAIModule.variables = {}
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry", { mode = "cheval", cheval = "scriptorium_cheval_essai" })
+        if XGenAIModule.variables.scriptorium_cheval ~= "wuid_cheval" then return "à cheval : WUID " .. tostring(XGenAIModule.variables.scriptorium_cheval) end
+        if not string.find(lignes[#lignes], "monte « scriptorium_cheval_essai »", 1, true) then return "à cheval : " .. lignes[#lignes] end
+        System.entites["scriptorium_cheval_essai"] = nil
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "cavaliers", nil, nil, nil, nil, "henry", { mode = "cheval", cheval = "scriptorium_cheval_essai" })
+        if not string.find(lignes[#lignes], "introuvable, suit « henry » à pied", 1, true) then return "cheval absent : " .. lignes[#lignes] end
         System.entites["scriptorium_rondier"], System.entites["scriptorium_chef_d_essai"] = nil, nil
         XGenAIModule.GetMyWUID = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
+        l.chefs["scriptorium_rondier"] = nil   -- la suite à pied ci-dessus lui a laissé Henry pour chef
         -- La vue d'Henry : à moins de 60° de son regard, il voit ; derrière lui, non ; sans Henry, rien de lisible.
         player = { GetWorldPos = function() return { x = 0, y = 0, z = 0 } end,
                    GetWorldAngles = function() return { x = 0, y = 0, z = 0 } end }   -- face au nord
@@ -513,7 +525,7 @@ def verifier_identifiants():
         local lu, vue = pcall(l.voir_sur_la_place, "scriptorium_rondier", nil)
         System.entites["scriptorium_rondier"] = nil
         if not lu then return "lecture du poste sur un rondier : " .. tostring(vue) end
-        if not string.find(vue, "à 5.00 m de son but, pas de ronde 1, à - m de son chef ;", 1, true) then return "lecture du poste : " .. vue end
+        if not string.find(vue, "à 5.00 m de son but, pas de ronde 1, à - m de son chef, en selle", 1, true) then return "lecture du poste : " .. vue end
         XGenAIModule = nil
         l.pas_de_ronde = nil
         System.LogAlways = journal_d_origine
@@ -1249,6 +1261,34 @@ def verifier_la_vie_du_camp():
         for modele in modeles:
             if '<Formation name="%s">' % modele not in definitions:
                 erreur("vie du camp : la formation « %s » du catalogue n'existe plus dans le jeu" % modele)
+    # Fiche 15, V73 f 2 a (la sonde à cheval) : la branche 17 monte le cheval du cerveau par la posture « horse » du jeu
+    # (la forme de moveOnHorse), y attend que la monture se stabilise, compte « en selle » et suit son chef ; si la monte
+    # échoue, elle le suit à pied (jamais figé).
+    branche17 = comportements.split("$scriptorium_activite == 17", 1)
+    selle = (r'<Expression expressions="\$selle_avant = \$scriptorium_en_selle" />\s*<Parallel successMode="Any" failureMode="Any">\s*'
+             r'<SuppressFailure>\s*'
+             r'<StanceElement smartObject="\$scriptorium_cheval" stance="horse"[^>]*>\s*<Sequence>\s*<WaitAction />\s*'
+             r'<Expression expressions="\$scriptorium_en_selle = \$scriptorium_en_selle \+ 1" />\s*'
+             r'<Function_followNpc leader="\$scriptorium_chef"[^>]*/>\s*</Sequence>\s*</StanceElement>\s*</SuppressFailure>\s*'
+             r'<Sequence>\s*<Wait duration="\$monte_delai"[^>]*/>\s*'
+             r'<While doFail="false" propagateChildFail="false" condition="\$scriptorium_en_selle &gt; \$selle_avant">[\s\S]*?</Parallel>\s*'
+             r'<Function_followNpc leader="\$scriptorium_chef"')
+    if len(branche17) != 2 or not re.search(selle, branche17[1]):
+        erreur("vie du camp : la branche 17 doit monter le cheval par la posture horse, suivre en selle, et à pied si la monte échoue")
+    if "poser_l_activite(entite, 17)" not in liaison or '"scriptorium_cheval", wuid_monture' not in liaison:
+        erreur("vie du camp : la liaison doit écrire scriptorium_cheval avant l'ordre 17")
+    # Relecture du pair (V73 f 2 a) : le cheval naît sur une âme de cheval du jeu (archétype 3, classe 7, relue dans
+    # Tables.pak, lecture seule), hors de la sauvegarde.
+    ame = re.search(r'liaison\.ame_de_cheval = "([0-9a-f-]{36})"', liaison)
+    if not ame or "guidSharedSoulId = liaison.ame_de_cheval, bSaved_by_game = false" not in liaison:
+        erreur("vie du camp : le cheval doit naître sur une âme de cheval du jeu (liaison.ame_de_cheval), hors de la sauvegarde")
+    tables = os.path.join(JEU, "Data", "Tables.pak")
+    if ame and os.path.exists(tables):
+        with zipfile.ZipFile(tables) as archive:
+            ames = archive.read("Libs/Tables/rpg/soul.xml").decode("utf-8", "replace")
+        ligne = re.search(r'<soul [^>]*soul_id="%s"[^>]*/>' % ame.group(1), ames)
+        if not ligne or 'soul_archetype_id="3"' not in ligne.group(0) or 'soul_class_id="7"' not in ligne.group(0):
+            erreur("vie du camp : l'âme %s n'est pas une âme de cheval du jeu (archétype 3, classe 7)" % ame.group(1))
     if '<Variable name="ronde_pause" type="_string"' not in comportements:
         erreur("vie du camp : la variable de l'arbre ronde_pause (_string) n'est pas déclarée")
     for nom, texte in arbres.items():

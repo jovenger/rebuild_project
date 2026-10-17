@@ -283,7 +283,7 @@ local function proprietes_completes(classe, proprietes)
 end
 
 -- Les classes qui naissent avec une copie des propriétés de leur classe, plus les nôtres : les personnages.
-liaison.classes_completees = { NPC = true }
+liaison.classes_completees = { NPC = true, Horse = true }
 
 -- Jamais deux personnages à moins d'un mètre (réponse de JoVenGer du 16/10/2026, après V72 c : trois hommes au même
 -- point, deux écrans noirs). Une place est prise si un personnage (classe NPC) ou Henry s'y tient.
@@ -320,7 +320,7 @@ end
 
 -- « brut » : sans la copie des propriétés de la classe (sonde V71 a2 seulement, fiche 13).
 local function faire_naitre(classe, nom, position, cap, proprietes, brut)
-  if classe == "NPC" then
+  if classe == "NPC" or classe == "Horse" then
     position = place_libre(position)
     if not position then
       return nil, "place prise : un personnage à moins de " .. liaison.ecart_minimal .. " m, et aucune place libre à côté"
@@ -1157,6 +1157,27 @@ end
 
 -- Renvoie un personnage (départ de la Compagnie).
 function liaison.renvoyer_homme(identifiant)
+  liaison.retirer_objet(identifiant)
+end
+
+-- Fiche 15, V73 f 2 a (la sonde à cheval) : un cheval de la classe du jeu (Scripts/Entities/AI/Horse.lua), sur une âme
+-- de cheval du jeu (relecture du pair : sans âme de cheval, la monte risque d'échouer), hors de la sauvegarde
+-- (bSaved_by_game à faux, un cheval de passage), sans maison à rejoindre, au sol, sur une place libre, éveillé. Rend son
+-- identifiant, ou nil.
+liaison.ame_de_cheval = "1b356948-3d22-427c-86f9-f33ab2b441c6"   -- Horse2 (Libs/Tables/rpg/soul.xml, archétype 3, classe 7)
+
+function liaison.faire_venir_cheval(nom, position)
+  local identifiant, raison = faire_naitre("Horse", "scriptorium_cheval_" .. nom, liaison.au_sol(position), 0,
+    { guidSharedSoulId = liaison.ame_de_cheval, bSaved_by_game = false, bWH_RequiresHome = false })
+  if not identifiant then
+    liaison.journal("Cheval « " .. nom .. " » : venue impossible : " .. tostring(raison))
+    return nil
+  end
+  liaison.eveiller(identifiant, "Cheval « " .. nom .. " »")
+  return identifiant
+end
+
+function liaison.retirer_cheval(identifiant)
   liaison.retirer_objet(identifiant)
 end
 
@@ -2401,7 +2422,8 @@ end
 -- cerveau scriptorium_allure, 1 ; remise à 0 à chaque autre ordre de poste). « chef » (V73 f 1) : l'identifiant d'un
 -- personnage, ou « henry » : l'homme le suit (son WUID dans scriptorium_chef, ordre 14). « suivi » (V73 f 1 bis) :
 -- { mode = "mener", formation } : il ouvre la formation du moteur et suit son chef (ordre 15) ; { mode = "formation" } :
--- il se range dans la formation de son chef (ordre 16).
+-- il se range dans la formation de son chef (ordre 16) ; { mode = "cheval", cheval } (V73 f 2 a) : il monte ce cheval
+-- (son WUID dans scriptorium_cheval) et suit son chef en selle (ordre 17) ; un cheval introuvable : à pied (ordre 14).
 function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi)
   local entite = entite_nommee(identifiant)
   local ligne
@@ -2435,6 +2457,17 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
             .. poser_l_activite(entite, 15)
         elseif suivi and suivi.mode == "formation" then
           ligne = "se range dans la formation de « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 16)
+        elseif suivi and suivi.mode == "cheval" then
+          local monture = entite_nommee(suivi.cheval)
+          local monture_lue, wuid_monture = pcall(function() return XGenAIModule.GetMyWUID(monture) end)
+          local en_selle = monture ~= nil and monture_lue and wuid_monture ~= nil
+            and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_cheval", wuid_monture) end)
+          if en_selle then
+            ligne = "monte « " .. tostring(suivi.cheval) .. " » et suit « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 17)
+          else
+            ligne = "cheval « " .. tostring(suivi.cheval) .. " » introuvable, suit « " .. tostring(chef) .. " » à pied ; "
+              .. poser_l_activite(entite, 14)
+          end
         else
           ligne = "suit « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 14)
         end
@@ -2673,7 +2706,7 @@ function liaison.voir_sur_la_place(qui, identifiant)
   if la and ici_lu and type(ici) == "table" then
     ecart_au_chef = math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s, à %s m de son chef ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s, à %s m de son chef, en selle %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
@@ -2683,7 +2716,7 @@ function liaison.voir_sur_la_place(qui, identifiant)
     cap and string.format("%.0f", cap) or "?", ecart_de_cap and string.format("%.0f", ecart_de_cap) or "-",
     variable("scriptorium_en_poste"),
     ecart_au_but and string.format("%.2f", ecart_au_but) or "-", tostring(liaison.pas_de_ronde_vus[qui] or 0),
-    ecart_au_chef and string.format("%.2f", ecart_au_chef) or "-",
+    ecart_au_chef and string.format("%.2f", ecart_au_chef) or "-", variable("scriptorium_en_selle"),
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end

@@ -835,6 +835,48 @@ function poste.essai_escorte_formation()
   return n > 0 or ok_d == true
 end
 
+-- Fiche 15, V73 f 2 a (la sonde à cheval) : un cheval né à 5 m du premier homme (angle au hasard) ; le premier homme suit Henry en selle ;
+-- le cheval retiré.
+poste.cheval_d_essai = nil
+
+function poste.essai_cheval()
+  local id, f = premier_du_camp()
+  local ici = f and f.personnage and jeu().position_du_personnage(f.personnage)
+  if not ici then
+    jeu().journal("Poste : pas d'homme pour le cheval d'essai")
+    return false
+  end
+  -- Relecture du pair (V73 f 2 a) : à 5 m, sous un angle tiré au hasard ; un cheval né derrière une barrière se retire
+  -- (essai_retirer_cheval) et la commande redonnée tire un autre angle.
+  poste.hasard_du_cheval = poste.hasard_du_cheval or Scriptorium.hasard_depuis(5171)
+  local angle = Scriptorium.tirer(poste.hasard_du_cheval) * 2 * math.pi
+  poste.cheval_d_essai = jeu().faire_venir_cheval("essai", { x = ici.x + 5 * math.cos(angle), y = ici.y + 5 * math.sin(angle), z = ici.z })
+  jeu().journal("Poste : cheval d'essai = " .. tostring(poste.cheval_d_essai))
+  return poste.cheval_d_essai ~= nil
+end
+
+function poste.essai_escorte_a_cheval()
+  local id, f = premier_du_camp()
+  if not f or not poste.cheval_d_essai then
+    jeu().journal("Poste : pas d'homme ou pas de cheval d'essai")
+    return false
+  end
+  local ok, raison = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers",
+    cheval = poste.cheval_d_essai, fin = "liberation" })
+  jeu().journal("Poste : " .. f.nom .. " suit Henry à cheval : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok == true
+end
+
+function poste.essai_retirer_cheval()
+  if not poste.cheval_d_essai then
+    return false
+  end
+  jeu().retirer_cheval(poste.cheval_d_essai)
+  jeu().journal("Poste : cheval d'essai retiré")
+  poste.cheval_d_essai = nil
+  return true
+end
+
 function poste.essai_fin_escorte()
   local n = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
@@ -1671,6 +1713,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_escorte", fonction = function() return poste.essai_escorte() end, aide = "Le Directeur suit Henry, trois hommes en colonne derrière lui (V73 f 1)" },
   { nom = "scriptorium_essai_fin_escorte", fonction = function() return poste.essai_fin_escorte() end, aide = "Fin de l'escorte : chacun reprend sa tranche (V73 f 1)" },
   { nom = "scriptorium_essai_escorte_formation", fonction = function() return poste.essai_escorte_formation() end, aide = "Le Directeur mène la formation followNPC, trois hommes s'y rangent (V73 f 1 bis)" },
+  { nom = "scriptorium_essai_cheval", fonction = function() return poste.essai_cheval() end, aide = "Un cheval né à 5 m du premier homme, angle au hasard (V73 f 2 a)" },
+  { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
+  { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },

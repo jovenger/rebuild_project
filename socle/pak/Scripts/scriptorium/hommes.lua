@@ -140,6 +140,9 @@ hommes.cerveau = {
   -- Le suiveur dont la formation n'est pas ouverte suit son chef normalement et réessaie toutes les
   -- « formation_reessai_ms » (pas plus souvent : chaque essai refait le suiveur du moteur, chemin compris).
   formation_reessai_ms = 4000,
+  -- À cheval (fiche 15, V73 f 2 a, relecture du pair) : la monte est bornée ; pas en selle au bout de « monte_delai_ms »,
+  -- l'homme suit à pied (jamais figé à côté de son cheval).
+  monte_delai_ms = 10000,
   -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
   -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
   relances_max = 3,
@@ -1493,6 +1496,10 @@ function hommes.activite_de(id, heure)
           end
         end
         resultat.chef = chef or "henry"
+        -- V73 f 2 a : à cheval (la sonde) ; l'homme qui a un cheval le monte et suit son chef en selle.
+        if tenue.cheval then
+          resultat.suivi = { mode = "cheval", cheval = tenue.cheval }
+        end
         resultat.signature = rang .. "/" .. nombre .. (resultat.suivi and ("/" .. resultat.suivi.mode) or "")
         resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
           or jeu().position_du_personnage(resultat.chef)
@@ -2225,7 +2232,7 @@ local function memes_tenues(a, b)
     and a.aller_retour == b.aller_retour and a.depart == b.depart and a.pauses == b.pauses
     and memes_chemins(a.chemin, b.chemin) and memes_points(a.centre, b.centre) and a.rayon == b.rayon
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
-    and a.formation == b.formation
+    and a.formation == b.formation and a.cheval == b.cheval
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -2321,7 +2328,8 @@ function hommes.tenir(id, regle, quoi)
                   pauses = pauses, centre = arc and arc.centre, rayon = arc and arc.rayon,
                   ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
                   chef = (quoi.activite == "suivre") and quoi.chef or nil,
-                  formation = (quoi.activite == "suivre") and quoi.formation or nil }
+                  formation = (quoi.activite == "suivre") and quoi.formation or nil,
+                  cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()

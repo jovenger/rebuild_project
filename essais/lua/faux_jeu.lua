@@ -232,6 +232,16 @@ function faux.ordonner(identifiant, activite, position, lieu, place, sorte, rega
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
                               place = place, sorte = sorte, regard = regard, allure = allure, chef = chef, suivi = suivi })
 end
+-- Fiche 15, V73 f 2 a : un cheval né (son identifiant), ou retiré.
+function faux.faire_venir_cheval(nom, position)
+  faux.chevaux = faux.chevaux or {}
+  local identifiant = "cheval_" .. nom
+  faux.chevaux[identifiant] = position
+  return identifiant
+end
+function faux.retirer_cheval(identifiant)
+  if faux.chevaux then faux.chevaux[identifiant] = nil end
+end
 -- La position d'un personnage (fiche 15, V73 f 1), posée par les essais, ou nil.
 function faux.position_du_personnage(identifiant)
   return faux.positions and faux.positions[identifiant] or nil
