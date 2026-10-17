@@ -349,15 +349,19 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   a_cheval)` ; son cheval est celui des hommes (un « porteur ») ; il reprend la tête des escortes d'Henry en formation
   (réglable). Vu : il mène monté, la colonne derrière lui ; mais **le chef monté démarre tard** (11 à 16 m d'Henry juste
   après qu'il se met en route, rattrapé en 8 s).
-- **Suite** : V73 f 2 f, l'allure du chef réglée sur la vitesse d'Henry (principe d'Alex, transmis par le pair) ; puis
-  le changement de carte et les intérieurs ; puis le gardien des hommes.
+- **V73 f 2 f, l'allure du chef monté réglée sur Henry, faite et vue en jeu** (4869393) : branche 18, un `Move` vers son
+  chef à l'allure mesurée toutes les 300 ms (vitesse d'Henry par sa position), la distance en correction, une marge de
+  10 % aux seuils. Vu : 10,8 m après 10 s de marche (15,9 avant), 8,7 m après une course (11,6 avant).
+- **Suite** : V73 f 2 f bis (arrêté, aller à sa place de 7 m ; une marge à la correction par la distance) ; puis l'allure
+  des suiveurs montés qui perdent leur place (19) et du cavalier seul (17) ; puis le changement de carte et les
+  intérieurs ; puis le gardien des hommes.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 66 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 69 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire

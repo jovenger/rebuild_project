@@ -60,18 +60,19 @@
   cheval né par script, suit Henry en selle et descend (V73 f 2 a) ; la troupe à cheval, un cheval passager par homme,
   en formation derrière Henry, la monte manquée bornée (V73 f 2 b) ; le cheval né hors du camp et des meubles, sur un
   sol praticable (V73 f 2 c) ; l'escorte qui monte quand Henry monte, avec anti-rebond (V73 f 2 d, vu par la lecture
-  forcée ; la vraie monte d'Henry reste à éprouver) ; le Directeur monté, chef de colonne (V73 f 2 e).
+  forcée ; la vraie monte d'Henry reste à éprouver) ; le Directeur monté, chef de colonne (V73 f 2 e) ; l'allure du chef
+  monté réglée sur la vitesse d'Henry (V73 f 2 f).
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 76 chargements ou poses, 1 sur 66 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 79 chargements ou poses, 1 sur 69 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
 1. L'arbitre (V73 b), la garde de la tenue, l'ancre du camp, le factionnaire (V73 d 1), la ronde (V73 d 2 et 2 bis) et le
    rassemblement (V73 e), suivre Henry à pied (V73 f 1), l'escorte en formation (V73 f 1 bis) et la sonde à cheval
    (V73 f 2 a), la troupe à cheval (V73 f 2 b), le cheval né hors des meubles (V73 f 2 c), l'escorte qui monte avec
-   Henry (V73 f 2 d, lecture forcée) et le Directeur monté (V73 f 2 e) sont faits et vus en jeu. Suite : l'allure du chef
-   réglée sur Henry (V73 f 2 f). Suite : monter quand Henry monte et le
+   Henry (V73 f 2 d, lecture forcée), le Directeur monté (V73 f 2 e) et l'allure du chef monté (V73 f 2 f) sont faits et
+   vus en jeu. Suite : l'allure affinée (V73 f 2 f bis). Suite : monter quand Henry monte et le
    Directeur monté, puis le changement de carte, puis le gardien des hommes ;
    toujours après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.

@@ -2084,6 +2084,15 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 2. **Pour qui** : (a) le chef monté d'abord (Recommandé : une chose à la fois) ; (b) tous les cavaliers tout de suite.
    **Prise : (a).**
 
+### Mesuré en V73 f 2 f (17/10) : le chef monté ne traîne plus, l'écart à affiner
+- 4869393, `playline3` (473), sans `-devmode`, secours coupé puis remis ; le Directeur et trois hommes, lecture forcée.
+- **L'écart Directeur–Henry** : à l'arrêt 9,0 m ; juste après 10 s de marche **10,8 m** (15,9 m en V73 f 2 e) ; juste
+  après 5 s de course **8,7 m** (11,6 m) ; la formation tient derrière lui (1,3–4,2 m).
+- **Le journal des allures** : 7 changements en une quarantaine de secondes, entre pas et course autour de 11 m ;
+  aucune bascule à chaque relevé (la marge des vitesses tient).
+- **À reprendre** (V73 f 2 f bis) : arrêté, le chef « tient » dès 11 m (ma règle : place + plus), au lieu d'aller à sa
+  place (7 m) comme le dit le principe ; la correction par la distance, sans marge, fait l'aller-retour pas/course à 11 m.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
