@@ -1076,6 +1076,15 @@ function poste.essai_henry_a_la_forge()
   return ok == true
 end
 
+-- Les alertes du camp (sonde, deux essais au plus) : le texte de l'alerte au bandeau (le mot « Alerte » en rouge ?) et
+-- la cloche d'alarme du jeu jouée sur Henry.
+function poste.essai_alerte_texte()
+  Scriptorium.bandeau.annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = "Jan Kladivo" })
+  local ok, raison = jeu().jouer_un_son(Scriptorium.bataille.alerte.son, nil)
+  jeu().journal("Poste : alerte au bandeau ; son « " .. Scriptorium.bataille.alerte.son .. " » = " .. tostring(ok or raison))
+  return true
+end
+
 -- Fiche 18, 5 c, tranche 4 : Henry prend la station d'essai comme par la touche E (liaison.utiliser_la_station).
 function poste.essai_henry_prend_la_station()
   if not poste.station_d_essai then
@@ -2797,6 +2806,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_poste_suivant", fonction = function() return poste.essai_poste_suivant() end, aide = "Le genre de poste suivant, à 2,5 m devant Henry (capture rapprochée)" },
   { nom = "scriptorium_essai_dialogue_force", fonction = function() return poste.essai_dialogue_force() end, aide = "Le dialogue forcé vers Henry, sur un dialogue du jeu (fiche 20)" },
   { nom = "scriptorium_essai_henry_a_la_forge", fonction = function() return poste.essai_henry_a_la_forge() end, aide = "Henry posé à 2 m de la forge la plus proche (fiche 18, le poste partagé)" },
+  { nom = "scriptorium_essai_alerte_texte", fonction = function() return poste.essai_alerte_texte() end, aide = "Le texte de l'alerte au bandeau et la cloche d'alarme du jeu (sonde)" },
   { nom = "scriptorium_essai_henry_prend_la_station", fonction = function() return poste.essai_henry_prend_la_station() end, aide = "Henry prend la station d'essai comme par la touche E (fiche 18, le poste partagé)" },
   { nom = "scriptorium_essai_station_partagee", fonction = function() return poste.essai_station_partagee() end, aide = "La station du jeu la plus proche partagée avec Henry, un homme y travaille (fiche 18)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },

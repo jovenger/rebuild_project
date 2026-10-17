@@ -79,6 +79,31 @@ local function fond_des_sous_titres_du_joueur()
   return ok and (valeur == true or valeur == 1 or valeur == "1" or valeur == "true")
 end
 
+-- Les alertes du camp (demande de JoVenGer du 18/10) : un déclencheur sonore du jeu joué sur une entité nommée (Henry
+-- si aucune) : Sound.GetAudioTriggerID puis ExecuteAudioTrigger sur son proxy audio par défaut, comme
+-- AudioUtils.PlayAudioTrigger du jeu (Scripts/Utils/AudioUtils.lua). Rend vrai, ou faux et la raison.
+function liaison.jouer_un_son(nom_du_son, identifiant)
+  local entite = identifiant and entite_nommee(identifiant) or player
+  if not entite then
+    return false, "entité introuvable"
+  end
+  local ok, resultat = pcall(function()
+    local declencheur = Sound.GetAudioTriggerID(nom_du_son)
+    if declencheur == nil then
+      return "déclencheur inconnu"
+    end
+    entite:ExecuteAudioTrigger(declencheur, entite:GetDefaultAuxAudioProxyID())
+    return true
+  end)
+  if not ok then
+    return false, tostring(resultat)
+  end
+  if resultat ~= true then
+    return false, resultat
+  end
+  return true
+end
+
 -- Efface le texte affiché et rend au joueur son réglage du fond des sous-titres.
 function liaison.effacer()
   local ok, erreur = pcall(function()

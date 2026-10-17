@@ -323,6 +323,12 @@ function faux.accrocher_la_parole(fonction) faux.parole = fonction end
 function faux.accrocher_la_station(fonction) faux.station_prise = fonction end
 -- Fiche 01 (le second canal) : l'OnSave accroché ; les cases rangées rendues une fois ; une empreinte simple.
 function faux.accrocher_la_sauvegarde(fonction) faux.a_la_sauvegarde = fonction return true end
+-- Les alertes : les sons joués, dans l'ordre.
+function faux.jouer_un_son(nom, identifiant)
+  faux.sons = faux.sons or {}
+  table.insert(faux.sons, { nom = nom, ou = identifiant })
+  return true
+end
 function faux.cases_de_la_sauvegarde()
   local d = faux.depuis_la_sauvegarde
   faux.depuis_la_sauvegarde = nil

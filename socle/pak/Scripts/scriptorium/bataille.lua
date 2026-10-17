@@ -134,6 +134,20 @@ local function coffre()
   return Scriptorium.coffre
 end
 
+-- Les alertes du camp (règle scellée de Scriptorium « sentinelles_du_camp » : « l'alerte vient des gardes, pas du
+-- lancement du raid » ; demande de JoVenGer du 18/10, par le pair : la voix du guetteur). Un de nos hommes occupé à une
+-- des « activites » (relevée avant l'affectation à la bataille) qui voit un ennemi d'une bande née à moins de « vue_m »
+-- mètres donne l'alerte, une fois par bande : il dit la réplique du jeu « metarole » (le service des paroles, fiche 20 ;
+-- « le PNJ voit l'ennemi et va attaquer », AI/crime/attack/startBark.xml du jeu), le bandeau l'affiche (importance
+-- « alerte »), et le déclencheur sonore du jeu « son » sonne au feu du camp (Libs/GameAudio/foleys.xml du jeu :
+-- f_ge_bell_alarm, la cloche d'alarme ; f_ge_crosscountry_horn, une trompe). Personne n'a vu : rien ne s'affiche.
+bataille.alerte = {
+  vue_m = 80,
+  activites = { garde = 1, ronde = 1, patrouille = 1 },
+  metarole = "NPC_VIDI_NEPRITELE_A_BUDE_UTOCIT",
+  son = "f_ge_bell_alarm",
+}
+
 -- ---------------------------------------------------------------- données
 
 local function donnees_neuves()
@@ -666,6 +680,8 @@ local function arriver(d, b)
   b.point_d_arrivee = position and { x = position.x, y = position.y, z = position.z } or nil
   b.etat = "au_contact"
   b.contact = jeu().heure_du_jeu()
+  -- Les alertes : qui guettait, relevé avant que la bataille ne prenne les hommes.
+  local guetteurs = bataille.guetteurs()
   mettre_en_bataille(d, b)
   -- Fiche 15, V73 f 3 b : sur une autre carte que celle du camp, aucune bande ne naît ici : la règle tranchera.
   local ailleurs = camp().sur_sa_carte and not camp().sur_sa_carte()
@@ -678,6 +694,7 @@ local function arriver(d, b)
   if type(personnages) == "table" and #personnages > 0 then
     b.personnages = personnages
     jeu().journal("Bataille : « " .. b.id .. " » au contact, " .. #personnages .. " ennemi(s) dans le jeu")
+    bataille.guetter_l_alerte(b.id, guetteurs)
     lancer_l_attaque_de_la_bande(b)
     lancer_l_attaque(b)
     assurer_la_relance(b.id)
@@ -1453,6 +1470,79 @@ local function resoudre_par_le_jeu(d, b)
   return resultat
 end
 
+-- ---------------------------------------------------------------- les alertes
+
+-- Nos hommes occupés maintenant à une des activités de guet (bataille.alerte.activites). Rend leurs identifiants.
+function bataille.guetteurs()
+  local liste = {}
+  local heure = jeu().heure_du_jeu()
+  for _, id in ipairs(hommes().liste()) do
+    local a = hommes().activite_de(id, heure)
+    if a and (tonumber(bataille.alerte.activites[a.activite]) or 0) > 0 then
+      table.insert(liste, id)
+    end
+  end
+  return liste
+end
+
+-- Décision remplaçable (fiche 19) : qui voit la bande « id » ? Parmi « guetteurs » (sinon ceux qui guettent maintenant),
+-- vivants, le plus proche d'un ennemi debout à moins de bataille.alerte.vue_m mètres. Rend son identifiant, ou false.
+function bataille.qui_voit(id, guetteurs)
+  local b = donnees().bandes[id]
+  if not (b and type(b.personnages) == "table") then
+    return false
+  end
+  local ennemis = {}
+  for _, e in ipairs(b.personnages) do
+    local la = not jeu().personnage_mort(e) and jeu().position_du_personnage(e)
+    if la then
+      table.insert(ennemis, la)
+    end
+  end
+  local meilleur, plus_pres = false, nil
+  for _, hid in ipairs(guetteurs or bataille.guetteurs()) do
+    local f = hommes().fiche(hid)
+    local ici = f and f.personnage and not jeu().personnage_mort(f.personnage) and jeu().position_du_personnage(f.personnage)
+    if ici then
+      for _, la in ipairs(ennemis) do
+        local d = math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
+        if d <= bataille.alerte.vue_m and (plus_pres == nil or d < plus_pres) then
+          meilleur, plus_pres = hid, d
+        end
+      end
+    end
+  end
+  return meilleur
+end
+Scriptorium.remplacable(bataille, "qui_voit", function(rendu)
+  return rendu == false or (hommes().fiche(rendu) ~= nil)
+end)
+
+-- Si un guetteur voit la bande et que l'alerte n'est pas encore donnée : il la donne (la réplique, le bandeau, le son).
+-- Rend l'identifiant de celui qui l'a donnée, ou nil.
+function bataille.guetter_l_alerte(id, guetteurs)
+  local b = donnees().bandes[id]
+  if not b or b.alerte_donnee then
+    return nil
+  end
+  local qui = Scriptorium.avis(bataille, "qui_voit", id, guetteurs)
+  if not qui then
+    return nil
+  end
+  b.alerte_donnee = true
+  local a, f = bataille.alerte, hommes().fiche(qui)
+  local dit = hommes().dire_une_replique(qui, { metarole = a.metarole })
+  annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = f.nom })
+  local ou = camp().est_fonde() and camp().objet_de("feu_central") or f.personnage
+  local sonne, raison = false, "pas de son"
+  if jeu().jouer_un_son then
+    sonne, raison = jeu().jouer_un_son(a.son, ou)
+  end
+  jeu().journal("Bataille : alerte de « " .. b.id .. " » donnée par « " .. f.nom .. " » ; réplique = " .. tostring(dit)
+                .. ", son « " .. tostring(a.son) .. " » = " .. tostring(sonne or raison))
+  return qui
+end
+
 -- ---------------------------------------------------------------- battement
 
 function bataille.battre()
@@ -1471,7 +1561,8 @@ function bataille.battre()
       end
       if not b.annoncee and heure >= b.arrivee - avance then
         b.annoncee = true
-        annoncer("ui_scriptorium_bataille_approche", { importance = "alerte", complement = b.effectif .. " hommes" })
+        -- Silencieuse (règle « sentinelles_du_camp ») : personne ne l'a vue ; l'alerte viendra d'un guetteur.
+        annoncer("ui_scriptorium_bataille_approche", { importance = "journal", complement = b.effectif .. " hommes" })
         rapport.annoncees = rapport.annoncees + 1
         rapport.changements = rapport.changements + 1
       end
@@ -1488,7 +1579,9 @@ function bataille.battre()
       if garder_le_poste(b) then
         rapport.changements = rapport.changements + 1
       end
+      bataille.guetter_l_alerte(id)
     elseif b.etat == "au_contact" then
+      bataille.guetter_l_alerte(id)
       local resultat = nil
       -- V73 f 3 b : une bande née sur la carte du camp ne se lit pas d'une autre carte : seule la règle, à son heure.
       if b.personnages and sur_la_carte_de(b) then

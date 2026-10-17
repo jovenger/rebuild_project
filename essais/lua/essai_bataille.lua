@@ -72,8 +72,9 @@ essai("bataille : avertissement une heure avant, arrivée, ennemis, affectations
   FauxJeu.heure = 11
   rapport = bataille.battre()
   egal(rapport.annoncees, 1, "prévenu une heure avant")
-  verifier(contient(messages(), "@ui_scriptorium_bataille_approche"), "annoncé")
-  egal(FauxJeu.affichages[1].complement, "4 hommes", "avec l'effectif")
+  -- Règle « sentinelles_du_camp » : personne ne l'a vue : au journal seulement, rien à l'écran.
+  verifier(not contient(messages(), "@ui_scriptorium_bataille_approche"), "pas à l'écran")
+  egal(Scriptorium.bandeau.historique()[#Scriptorium.bandeau.historique()].sort, "journal", "au journal")
   FauxJeu.heure = 12
   FauxJeu.ordres = {}
   rapport = bataille.battre()
@@ -92,6 +93,52 @@ essai("bataille : avertissement une heure avant, arrivée, ennemis, affectations
     if o.activite == "bataille" then ordres_bataille = ordres_bataille + 1 end
   end
   egal(ordres_bataille, 4, "quatre ordres de bataille")
+end)
+
+essai("bataille (alertes, règle « sentinelles_du_camp ») : le guetteur qui voit la bande donne l'alerte, une fois : la réplique du jeu, le bandeau, la cloche au feu ; personne n'a vu : rien ; la décision remplaçable", function()
+  local ids = preparer(1000, 23, { "homme_d_armes", "pavoisier" })
+  local guetteur = ids[1]
+  avec_remplacement(bataille, "guetteurs", function() return { guetteur } end, function()
+    FauxJeu.sons = {}
+    -- Le guetteur loin de la bande (né à 60 m au nord, lui à 200 m au sud) : il ne voit rien.
+    local f = hommes.fiche(guetteur)
+    hommes.battre()
+    FauxJeu.positions[f.personnage] = { x = 0, y = -200, z = 0 }
+    local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+    bataille.battre()
+    egal(bataille.bande(id).etat, "au_contact", "au contact")
+    for _, e in ipairs(FauxJeu.ennemis) do FauxJeu.positions[e.identifiant] = e.position end
+    FauxJeu.positions[f.personnage] = { x = 0, y = -200, z = 0 }
+    FauxJeu.heure = 23.05
+    bataille.battre()
+    verifier(not bataille.bande(id).alerte_donnee, "personne n'a vu : pas d'alerte")
+    egal(#FauxJeu.sons, 0, "pas de son")
+    verifier(not contient(messages(), "@ui_scriptorium_bataille_alerte"), "rien à l'écran")
+    -- Il s'approche (à 20 m de l'ennemi) : il voit, il donne l'alerte.
+    FauxJeu.positions[f.personnage] = { x = 0, y = 40, z = 0 }
+    FauxJeu.heure = 23.1
+    bataille.battre()
+    verifier(bataille.bande(id).alerte_donnee, "l'alerte est donnée")
+    verifier(contient(messages(), "@ui_scriptorium_bataille_alerte"), "à l'écran")
+    egal(#FauxJeu.sons, 1, "la cloche sonne")
+    egal(FauxJeu.sons[1].nom, "f_ge_bell_alarm", "la cloche d'alarme du jeu")
+    verifier(FauxJeu.sons[1].ou ~= nil and FauxJeu.sons[1].ou == camp.objet_de("feu_central"), "au feu du camp")
+    egal(hommes.parole_de(guetteur) and hommes.parole_de(guetteur).metarole, "NPC_VIDI_NEPRITELE_A_BUDE_UTOCIT",
+         "il dit la réplique du jeu")
+    FauxJeu.heure = 23.2
+    bataille.battre()
+    egal(#FauxJeu.sons, 1, "une seule fois par bande")
+  end)
+  -- La décision remplaçable : Scriptorium dit que personne n'a vu.
+  preparer(1000, 23, { "homme_d_armes" })
+  FauxJeu.sons = {}
+  avec_remplacement(bataille, "qui_voit", function() return false end, function()
+    local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+    bataille.battre()
+    verifier(not bataille.bande(id).alerte_donnee, "Scriptorium : personne n'a vu")
+  end)
+  egal(#FauxJeu.sons, 0, "aucun son")
+  FauxJeu.sons = nil
 end)
 
 essai("bataille : ordre de bataille, rangs, intervalles, ailes et réserve", function()

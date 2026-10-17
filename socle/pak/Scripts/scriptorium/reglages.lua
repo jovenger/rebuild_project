@@ -46,6 +46,7 @@ reglages.catalogue = {
     taux = { bande_vise_henry_m = true, relance_bouge_m = true, relance_pres_m = true, poste_vue_m = true,
              poste_alerte_m = true, poste_engagement_m = true, poste_fuite_m = true } },
   { section = "bandes", morceau = "bataille", table = "sortes", taux = { poids = true } },
+  { section = "alerte", morceau = "bataille", table = "alerte", taux = { vue_m = true } },
   { section = "combattants", morceau = "bataille", table = "roles", taux = { poids = true } },
   { section = "issues", morceau = "bataille", table = "issues", parts = { morts = true, blesses = true, butin = true } },
   { section = "journee", morceau = "hommes", table = "journee", taux = { de = true, a = true }, forme = { de = true, a = true },
