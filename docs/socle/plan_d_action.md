@@ -12,6 +12,31 @@ enceinte, atelier, patrouilles, discipline, réglages) sont écrites, validées 
 une bonne part est vue en jeu. Ce qui manque est surtout **ce que le joueur voit bouger** : nos personnages, leurs
 gestes, le combat, le dialogue du Directeur, la quête.
 
+## LE NÉCESSAIRE — ce qui reste, dans l'ordre (JoVenGer, 17/10/2026, transmis par la conversation Scriptorium)
+Le but : que Scriptorium tourne sans le mod d'Alex, le plus vite possible (le temps, l'électricité et l'abonnement
+coûtent cher). **Cette liste passe avant tout le reste de ce plan.**
+1. **Fin de l'étape 1** : la porte d'un intérieur (dehors, dedans, dehors), puis le gardien des hommes en version
+   simple (sous le sol, figé, relance bornée), vu une fois en jeu.
+2. **Nos personnages, nos âmes, notre faction** : juste ce qu'il faut pour que les hommes, le Directeur et les bandes
+   existent et se battent du bon côté.
+3. **Le guichet** : brancher Scriptorium sur le socle, et le tableau des règles en double (la plus réaliste gagne).
+4. **Les missions** : sortir à cheval, se battre, rentrer, avec les gestes déjà prouvés.
+5. **L'embauche et les métiers**, avec les gestes déjà prouvés ; pour les métiers, ce qui marche dans Scriptorium est
+   refait pareil (note des métiers) ; pas de nouveau poste au-delà de ce que Scriptorium a déjà.
+6. **La bascule**, sur l'ordre de JoVenGer.
+
+**Reporté, à ne pas commencer** : la quête de fond, les voix, les icônes, l'étape « au plus près d'un vrai camp », les
+idées non nécessaires (fluidité à 80, banc de l'économie, crimes d'Henry, retrait pour le Workshop, garde contre les
+mises à jour), et toutes les finitions.
+
+**Façon de faire (même jour)** : dès qu'une chose marche en jeu (vue une fois, proprement, mesurée), on passe à la
+suivante ; les finitions vont dans la liste « à reprendre plus tard » de la fiche, sans séance de plus. Les séances sont
+regroupées (ce qui passe au banc s'essaie dans une seule séance : un lancement, un chargement, chaque essai avec sa ligne
+au journal et sa mesure, un seul `fin_essai`) ; une sonde reste seule. La piste du rechargement du Lua dans le jeu
+ouvert est à essayer, deux essais au plus. La rigueur reste : banc, jamais de faux succès, « non vérifié » écrit. La
+conversation Scriptorium n'arrête plus une relecture que sur le grave (perte du camp, d'hommes ou d'argent, règle de
+JoVenGer non respectée, homme figé).
+
 ## Comment on travaille (pour chaque étape)
 1. Recherche en lecture seule dans les paks du jeu (`Data\*.pak`, lus en mémoire, jamais extraits ni modifiés) et dans
    le relevé Lua du jeu (`LuaState_Sorted.txt` à la racine du jeu). Jamais le code d'Alex.
