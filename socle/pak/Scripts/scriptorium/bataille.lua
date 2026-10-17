@@ -45,6 +45,12 @@ bataille.reglages = {
   poste_alerte_m = 35,
   poste_engagement_m = 80,
   poste_fuite_m = 300,
+  -- Vu en jeu le 17/10 (la colonne au camp de bandits, Henry à 117 m) : le combat commence (Jan assommé), puis plus
+  -- personne ne se bat, les relances épuisées ; « que personne ne reste figé » : sans aucun tombé, d'un côté ou de
+  -- l'autre, depuis « poste_stagnation_h » heures du jeu, et Henry à plus de « poste_sur_place_m » du lieu (il n'y est
+  -- pas), la bande postée est tranchée par passes.
+  poste_stagnation_h = 0.5,
+  poste_sur_place_m = 80,
   -- L'issue tranchée (règle scellée de JoVenGer « bataille_au_loin », 24/09 : « laisser le jeu en décider selon la
   -- puissance de chacun », « rien n'est écrit d'avance ») : chaque homme tombé l'est mort avec cette chance, blessé
   -- sinon.
@@ -934,6 +940,32 @@ function bataille.trancher_la_bande_postee(id, ids)
   return resultat
 end
 
+-- Une bande postée au contact, figée (aucun tombé depuis « poste_stagnation_h ») et Henry pas sur place : tranchée par
+-- passes contre nos combattants encore debout. Rend le résultat, ou nil.
+local function trancher_si_fige(d, b, heure)
+  local r = bataille.reglages
+  local leurs = jeu().ennemis_vivants(b.personnages)
+  local notres = {}
+  for _, id in ipairs(b.combattants or {}) do
+    local f = hommes().fiche(id)
+    if f and f.personnage and not jeu().personnage_mort(f.personnage) then table.insert(notres, id) end
+  end
+  local compte = leurs .. "/" .. #notres
+  if b.compte_vu ~= compte then
+    b.compte_vu, b.progres = compte, heure
+    return nil
+  end
+  if heure < (b.progres or heure) + r.poste_stagnation_h or (henry_a(b) or math.huge) <= r.poste_sur_place_m then
+    return nil
+  end
+  b.effectif = leurs
+  local resultat = trancher_par_passes(d, b, notres, 1)
+  finir(d, b, resultat)
+  jeu().journal(string.format("Bataille : « %s » figée sans Henry depuis %.2f h : tranchée par passes (%d passes)", b.id,
+    heure - b.progres, resultat.passes))
+  return resultat
+end
+
 -- L'issue par le jeu : les ennemis vivants et nos morts constatés.
 local function resoudre_par_le_jeu(d, b)
   local vivants = jeu().ennemis_vivants(b.personnages)
@@ -1023,8 +1055,10 @@ function bataille.battre()
           rapport.changements = rapport.changements + 1
         end
       end
-      -- Fiche 17 : une bande postée n'est pas tranchée par la règle à l'heure (l'issue au loin vient avec la colonne,
-      -- tranche 2).
+      -- Fiche 17 : une bande postée n'est pas tranchée par la règle à l'heure ; seulement figée sans Henry (ci-dessous).
+      if resultat == nil and b.etat == "au_contact" and b.postee and b.personnages then
+        resultat = trancher_si_fige(d, b, heure)
+      end
       if resultat == nil and b.etat == "au_contact" and not b.postee
           and heure >= b.contact + bataille.reglages.duree_max_contact then
         resultat = bataille.resoudre_par_la_regle(id)

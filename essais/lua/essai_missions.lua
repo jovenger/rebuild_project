@@ -442,3 +442,28 @@ essai("missions (4 b) : sous les yeux d'Henry est borné : regardée à 600 m, l
   egal(missions.mission(id).etat, "dehors_aller", "à 600 m, même regardée : dehors")
   finir()
 end)
+
+-- Vu en jeu le 17/10 : un combat au camp de bandits figé loin d'Henry (plus personne ne tombe) est tranché par passes.
+essai("missions : un combat figé au camp de bandits, Henry pas sur place, est tranché par passes ; Henry sur place, jamais", function()
+  local ids = preparer({ "homme_d_armes", "homme_d_armes" })
+  local id = missions.dresser_un_camp("gue", "petit")
+  FauxJeu.position_joueur = { x = 0, y = 60, z = 0 }       -- à 140 m du lieu
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  egal(la_bande(id).etat, "au_contact", "au contact")
+  FauxJeu.heure = 10.3
+  battre()
+  egal(la_bande(id).etat, "au_contact", "0,3 h sans tombé : on attend")
+  FauxJeu.position_joueur = { x = 0, y = 150, z = 0 }      -- Henry sur place (50 m)
+  FauxJeu.heure = 10.9
+  battre()
+  egal(la_bande(id).etat, "au_contact", "Henry sur place : le vrai combat, rien de calculé")
+  FauxJeu.position_joueur = { x = 0, y = 60, z = 0 }
+  FauxJeu.heure = 11
+  battre()
+  egal(la_bande(id).etat, "finie", "figé, Henry loin : tranché par passes")
+  finir()
+end)

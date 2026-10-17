@@ -111,6 +111,14 @@ le chemin du retour, entre à cheval et descend.
   fatigue) et le moral ; le sang-froid y entre par le moral (réponse prise d'office : pas de second facteur). Au banc,
   400 batailles par effectif (3 archers) : contre 2 brigands 371 victoires, 3 : 308, 4 : 233, 6 : 81, 9 : 7.
   Henry sur place : le vrai combat du jeu, rien de calculé (les blessés y restent encore une part fixe : à reprendre).
+- **Séance du 17/10 (e22d7ca)** : la mission proche part (chef en tête, ordres 20 et 19), arrive, l'alerte engage les
+  trois ; plus d'ordre de marche ni de « bloqué » (corrections vues). Mais le combat, à 117 m d'Henry, **se fige** : Jan
+  assommé (inconscient, 4,7 de vie), les brigands intacts, plus personne en combat, positions et santés identiques à
+  plusieurs minutes d'écart, les relances bornées épuisées. **Corrigé** : une bande postée au contact sans aucun tombé
+  depuis `poste_stagnation_h` (0,5 h du jeu) et Henry à plus de `poste_sur_place_m` (80 m) est tranchée par passes.
+  Vu aussi, cause non trouvée : après la pose d'Henry à 50 m du camp de bandits (commande d'essai), l'image retournée
+  et l'interface disparue (Henry à terre ?). Séance fermée là ; **non vérifiés** : la fin de la mission proche, la
+  mission lointaine.
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 
