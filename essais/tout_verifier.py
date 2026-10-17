@@ -606,6 +606,16 @@ def verifier_identifiants():
         t_h, pos_h = 202, { x = 0, y = 43, z = 0 }
         l.allure_vers_chef(cavalier, donnees_a)
         if math.abs(vus_allure[#vus_allure].v - 3) > 1e-6 then return "allure : un saut d'Henry pris pour une course" end
+        -- La ligne « perdu » seulement pour qui suit un autre cavalier : rien pour qui suit Henry.
+        second.GetWorldPos = function() return { x = 0, y = 40, z = 0 } end
+        t_h = 203
+        l.allure_vers_chef(second, donnees_a)
+        if donnees_a.allure_perdu ~= 0 then return "allure : le second, revenu près de son chef, toujours perdu" end
+        local perdus_dits = 0
+        for i = 1, #lignes do
+          if string.find(lignes[i], "sa place perdue", 1, true) then perdus_dits = perdus_dits + 1 end
+        end
+        if perdus_dits ~= 0 then return "allure : « perdu » dit pour un cavalier qui suit Henry" end
         l.chefs["scriptorium_second"] = nil
         System.GetCurrTime, player = horloge_avant, nil
         l.chefs["scriptorium_cavalier"] = nil

@@ -2780,7 +2780,9 @@ function liaison.allure_vers_chef(entite, donnees)
       liaison.journal(string.format("Allure de %s : %s (son chef à %.1f m/s, à %.1f m)", tostring(nom),
         liaison.noms_des_allures[code] or tostring(code), vitesse, ecart))
     end
-    if (memo.perdu == true) ~= (perdu == true) and memo.code ~= nil then
+    -- « perdu » ne sert qu'à qui suit un autre cavalier (un suiveur de formation) : rien au journal pour qui suit Henry
+    -- (vu en jeu, V73 f 2 g : des lignes inutiles pour le chef de colonne et le cavalier seul).
+    if (memo.perdu == true) ~= (perdu == true) and memo.code ~= nil and chef ~= "henry" then
       liaison.journal(string.format("Allure de %s : %s (à %.1f m de son chef)", tostring(nom),
         perdu and "sa place perdue" or "de retour dans le rang", ecart))
     end

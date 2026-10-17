@@ -2186,6 +2186,18 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 1. **Les replis à pied** : (a) garder `followNpc` à pied (Recommandé : à pied, la suite ne traîne pas, vu en V73 f 1) ;
    (b) la boucle d'allure partout. **Prise : (a).**
 
+### Mesuré en V73 f 2 g (17/10, 352cbfc) : l'allure de tous les cavaliers, acquise
+- **Les suiveurs** arrivés de loin rejoignent le Directeur par la boucle d'allure (le repli sans formation), puis
+  « tenir » à 0,6–3,4 m de lui.
+- **La perte et le retour** (seuils abaissés un moment, 3 et 1,5 m, par le fichier de réglages : un saut d'Henry
+  n'éloigne pas un suiveur de son chef, remarque du pair ; déplacer un cavalier le séparerait de son cheval) : « sa place
+  perdue (à 4,3 m) », il rejoint son chef à l'allure du Directeur, puis, seuils remis, « de retour dans le rang (3,8 m) ».
+- **Le cavalier seul** (ordre 17) : 4,2 m après 10 s de marche, 4,35 m après 4 s de course (12,45 et 10,76 m avec
+  `followNpc`, V73 f 2 a).
+- Corrigé après la séance : la ligne « perdu / de retour dans le rang » n'est plus écrite pour qui suit Henry (le chef de
+  colonne, le cavalier seul), seulement pour qui suit un autre cavalier ; contrôlé au banc.
+- L'outil `regler.py` ajoute aux valeurs déjà écrites : un réglage d'essai se retire par `--retirer`.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

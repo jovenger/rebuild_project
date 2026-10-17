@@ -64,7 +64,7 @@
   monté réglée sur la vitesse d'Henry (V73 f 2 f).
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 85 chargements ou poses, 1 sur 75 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 88 chargements ou poses, 1 sur 78 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
@@ -72,7 +72,8 @@
    rassemblement (V73 e), suivre Henry à pied (V73 f 1), l'escorte en formation (V73 f 1 bis) et la sonde à cheval
    (V73 f 2 a), la troupe à cheval (V73 f 2 b), le cheval né hors des meubles (V73 f 2 c), l'escorte qui monte avec
    Henry (V73 f 2 d, lecture forcée), le Directeur monté (V73 f 2 e) et l'allure du chef monté (V73 f 2 f) sont faits et
-   vus en jeu, l'allure affinée aussi (V73 f 2 f bis). Suite : l'allure des suiveurs montés et du cavalier seul. Suite : monter quand Henry monte et le
+   vus en jeu, l'allure affinée aussi (V73 f 2 f bis), et celle de tous les cavaliers (V73 f 2 g). Suite : le changement
+   de carte et les intérieurs. Suite : monter quand Henry monte et le
    Directeur monté, puis le changement de carte, puis le gardien des hommes ;
    toujours après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.
