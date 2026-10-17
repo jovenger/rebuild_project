@@ -1402,7 +1402,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   d'essai dit l'écart de chacun à son chef.
 - **La branche 14** : debout, puis `Function_followNpc` (le chef ``, nos huit distances lues du cerveau
   avec leur défaut, celles du jeu) ; le pouls à côté finit la branche au changement d'ordre (la borne que demandait le
-  pair). 50 variables de cerveau (le chef et huit distances de plus).
+  pair). 48 variables de cerveau (le chef et huit distances de plus).
 - **Le rattrapage** (`hommes.rattraper`, partagé avec le Directeur) remplace le secours ordinaire pour un suiveur : à
   plus de `suivi_loin_m` (60) de son chef, posé `suivi_derriere_m` (4) derrière Henry, jamais sous ses yeux (une ligne
   une fois), jamais en combat, sans limite de nombre ; l'ordre redonné ensuite.
@@ -1415,6 +1415,28 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   introuvable) ; le contrôle statique de l'appel et de la fonction `followNpc` du jeu (ses paramètres, relus dans
   `Scripts.pak`). Garde-fous éprouvés par quatre erreurs injectées, toutes attrapées : le secours ordinaire sur un
   suiveur, le chef pris ailleurs, tous derrière Henry, le Directeur qui oublie qu'il suit.
+
+### Mesuré en V73 f 1 (17/10) : suivre Henry à pied, acquis
+- **Issue 1, la fonction du jeu** : `Function_followNpc` est joué dans notre interruption, le chef en WUID et nos distances
+  en variables : Henry marche (15 s) puis court (10 s) ; le Directeur se tient à 2,3–4,1 m d'Henry, chaque homme à 1,2–8,4 m
+  de son chef. La voie (b) n'est pas nécessaire.
+- **Issue 2, la colonne** : Jan derrière le Directeur, Mikuláš derrière Jan, Ondřej derrière Mikuláš (les lignes des
+  ordres) ; à l'image, le Directeur juste derrière Henry, la colonne sur le chemin, le camp au fond.
+- **Issue 3, la course** : l'écart au chef se maintient quand Henry court.
+- **Issue 4, le rattrapage** : deux sauts de 40 m : ils rattrapent seuls, en courant (le Directeur de 33 à 2,5 m en 13 s),
+  aucun rattrapage ; quatre sauts de plus (160 m) : la course du Directeur se bloque vers 95 m dix secondes ; au
+  battement, « à 97 m de son chef, rattrapé 4 m derrière Henry » ; au battement suivant, en chaîne, Jan (66 m), Mikuláš
+  (109 m), Ondřej (97 m), posés à plus de 1 m l'un de l'autre ; ensuite, 2,2–3,4 m de leur chef. Aucun n'a été posé sous
+  les yeux d'Henry (posés derrière lui).
+- **Issue 5, la fin** : le secours remis, `essai_fin_escorte` : un ordre d'exercice chacun ; à 188 m de leur point au camp,
+  **reposés au camp par les 150 m** au premier battement (Henry regardait ailleurs) ; le Directeur, sans secours, rentre à
+  pied (190 m).
+- Une erreur de pilotage, sans rapport avec le socle : l'ordre de fin écrasé par la lecture suivante avant d'être lu
+  (cinq secondes entre deux ordres, rappel) ; redonné.
+- **Pas vu en jeu** : un homme en combat pendant la suite, la reprise au rechargement en route, Henry dans une maison, la
+  vue d'Henry qui retient un rattrapage (banc seulement).
+- **Suite** : V73 f 1 bis, la formation du moteur (la voie d'Alex et de la colonne de Scriptorium, relecture du pair),
+  à lire avant V73 f 2, à cheval.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
