@@ -365,14 +365,13 @@ essai("bataille (étape 2) : au contact, chaque combattant attaque un ennemi viv
   FauxJeu.occupations[perso[2]] = "combat"
   FauxJeu.heure = 10.5
   bataille.battre()
-  egal(#FauxJeu.attaques, 7, "les trois qui ne se battent pas reçoivent l'ordre ; pas celui qui se bat")
+  egal(#FauxJeu.attaques, 6, "les deux dont la cible est tombée, qui ne se battent pas, reçoivent l'ordre")
   egal(FauxJeu.attaques[5].cible, e2, "sa cible tombée : le dernier vivant")
-  egal(FauxJeu.attaques[6].cible, e2, "sa cible vivante : la même")
-  egal(FauxJeu.attaques[7].cible, e2, "sa cible tombée : le dernier vivant")
+  egal(FauxJeu.attaques[6].cible, e2, "sa cible tombée : le dernier vivant")
   for i = 1, 4 do FauxJeu.occupations[perso[i]] = "combat" end
   FauxJeu.heure = 11
   bataille.battre()
-  egal(#FauxJeu.attaques, 7, "tous se battent : pas d'ordre de plus")
+  egal(#FauxJeu.attaques, 6, "tous se battent : pas d'ordre de plus")
   for i = 1, 4 do FauxJeu.occupations[perso[i]] = nil end
   -- L'interrupteur.
   preparer(1000, 10, { "homme_d_armes", "pavoisier" })
@@ -400,10 +399,16 @@ essai("bataille (étape 2) : la bande attaque d'elle-même nos combattants et He
   for _, at in ipairs(FauxJeu.attaques) do cibles[at.cible] = (cibles[at.cible] or 0) + 1 end
   egal(cibles["henry"], 1, "Henry est près : il est l'une des cibles")
   local ennemi = FauxJeu.attaques[1].attaquant
+  for _, at in ipairs(FauxJeu.attaques) do
+    FauxJeu.positions[at.attaquant] = { x = 0, y = 60, z = 0 }
+    if at.cible ~= "henry" then FauxJeu.positions[at.cible] = { x = 0, y = 0, z = 0 } end
+  end
   FauxJeu.occupations[ennemi] = "combat"
   FauxJeu.heure = 10.5
+  bataille.battre()   -- premier relevé
+  FauxJeu.heure = 10.6
   bataille.battre()
-  egal(#FauxJeu.attaques, 5, "au battement, redonné aux deux qui ne se battent pas")
+  egal(#FauxJeu.attaques, 5, "figés loin de leur cible : redonné aux deux qui ne se battent pas")
   FauxJeu.occupations[ennemi] = nil
   -- Henry loin : seulement nos hommes.
   preparer(1000, 10, { "homme_d_armes" })
@@ -438,8 +443,11 @@ essai("bataille (étape 2) : au contact, l'attaque redonnée toutes les 2 s des 
   egal(n, 2, "un ordre à l'ennemi, un à notre homme")
   local mt = FauxJeu.minuteries[#FauxJeu.minuteries]
   egal(mt.ms, 2000, "la relance toutes les 2 s")
-  mt.fonction()
-  egal(#FauxJeu.attaques, n + 2, "redonné aux deux, qui ne se battent pas")
+  FauxJeu.positions[FauxJeu.attaques[1].attaquant] = { x = 0, y = 60, z = 0 }
+  FauxJeu.positions[FauxJeu.attaques[2].attaquant] = { x = 0, y = 0, z = 0 }
+  mt.fonction()   -- premier relevé
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.attaques, n + 2, "figés loin l'un de l'autre : redonné aux deux")
   local suivante = FauxJeu.minuteries[#FauxJeu.minuteries]
   verifier(suivante ~= mt, "la minuterie se repose")
   FauxJeu.ennemis_vivants_par_id[FauxJeu.ennemis[1].identifiant] = false
@@ -474,6 +482,37 @@ essai("bataille (étape 2) : l'attaque redonnée seulement à qui ne bouge pas ;
   egal(#FauxJeu.attaques, n, "ils marchent : aucun ordre de plus")
   FauxJeu.minuteries[#FauxJeu.minuteries].fonction()  -- immobiles depuis le relevé précédent
   egal(#FauxJeu.attaques, n + 2, "figés : l'ordre redonné aux deux")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.attaques, n + 4, "deuxième relance")
+  FauxJeu.journal_lignes = {}
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  egal(#FauxJeu.attaques, n + 4, "deux relances au plus par bataille")
+  local dit = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do if string.find(l, "figé malgré 2 relances", 1, true) then dit = dit + 1 end end
+  egal(dit, 2, "une ligne par figé, avec les positions")
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  dit = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do if string.find(l, "figé malgré 2 relances", 1, true) then dit = dit + 1 end end
+  egal(dit, 2, "dite une seule fois")
+  Scriptorium.en_partie = false
+  FauxJeu.attaques = nil
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+end)
+
+-- (relecture du pair) Celui qui attend son tour à moins de 4 m de sa cible n'est pas figé.
+essai("bataille (étape 2) : qui attend son tour à moins de 4 m de sa cible n'est jamais relancé", function()
+  preparer(1000, 10, { "homme_d_armes" })
+  FauxJeu.attaques = {}
+  FauxJeu.position_joueur = { x = 0, y = -300, z = 0 }
+  Scriptorium.en_partie = true
+  bataille.lever_une_bande({ sorte = "brigands", effectif = 1, direction = 0, delai = 0 })
+  bataille.battre()
+  local homme, ennemi = FauxJeu.attaques[2].attaquant, FauxJeu.attaques[1].attaquant
+  FauxJeu.positions[homme] = { x = 0, y = 57, z = 0 }
+  FauxJeu.positions[ennemi] = { x = 0, y = 60, z = 0 }
+  local n = #FauxJeu.attaques
+  for _ = 1, 4 do FauxJeu.minuteries[#FauxJeu.minuteries].fonction() end
+  egal(#FauxJeu.attaques, n, "à 3 m l'un de l'autre, immobiles : personne n'est relancé")
   Scriptorium.en_partie = false
   FauxJeu.attaques = nil
   FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }

@@ -33,6 +33,10 @@ bataille.reglages = {
   -- n'est redonné qu'à qui n'a pas bougé de « relance_bouge_m » depuis le relevé précédent (figé), ou dont la cible est
   -- tombée.
   relance_bouge_m = 0.5,
+  -- (relecture du pair, la leçon du dégel de Scriptorium) Celui qui attend son tour à moins de « relance_pres_m » de sa
+  -- cible n'est pas figé ; « relances_par_bataille » relances au plus par personnage, puis une ligne au journal.
+  relance_pres_m = 4,
+  relances_par_bataille = 2,
 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
@@ -319,10 +323,12 @@ local function liberer_les_hommes(b)
   end
 end
 
--- Faut-il redonner l'attaque à ce personnage ? Jamais s'il se bat ; oui la première fois ; ensuite seulement s'il n'a
--- pas bougé de « relance_bouge_m » depuis le relevé précédent (en mémoire seulement).
+-- Le personnage est-il figé (à relancer) ? Jamais s'il se bat ; il faut deux relevés de suite ; figé s'il n'a pas bougé
+-- de « relance_bouge_m » et qu'il est à plus de « relance_pres_m » de sa cible (ou sans cible lisible) ; au plus
+-- « relances_par_bataille » fois, puis une ligne « figé malgré … relances » avec sa position et celle de sa cible.
 bataille.vus = {}
-local function a_relancer(personnage)
+
+local function a_relancer(b, personnage, nom, cible)
   if jeu().occupation_de(personnage) == "combat" then
     bataille.vus[personnage] = nil
     return false
@@ -330,10 +336,27 @@ local function a_relancer(personnage)
   local ici = jeu().position_du_personnage(personnage)
   local avant = bataille.vus[personnage]
   bataille.vus[personnage] = ici and { x = ici.x, y = ici.y } or nil
-  if not (ici and avant) then
-    return true
+  local bouge = avant and jeu().ecart_au_but(personnage, avant)
+  if not (ici and bouge) or bouge >= bataille.reglages.relance_bouge_m then
+    return false
   end
-  return math.sqrt((ici.x - avant.x) ^ 2 + (ici.y - avant.y) ^ 2) < bataille.reglages.relance_bouge_m
+  local la = (cible == "henry") and jeu().position_du_joueur() or (cible and jeu().position_du_personnage(cible))
+  local pres = la and jeu().ecart_au_but(personnage, la)
+  if pres and pres <= bataille.reglages.relance_pres_m then
+    return false
+  end
+  b.relances_de = b.relances_de or {}
+  local n = b.relances_de[personnage] or 0
+  if n >= bataille.reglages.relances_par_bataille then
+    if n == bataille.reglages.relances_par_bataille then
+      b.relances_de[personnage] = n + 1
+      jeu().journal(string.format("Bataille : « %s » figé malgré %d relances (en %.1f, %.1f ; sa cible %s)", nom, n,
+        ici.x, ici.y, la and string.format("en %.1f, %.1f", la.x, la.y) or "illisible"))
+    end
+    return false
+  end
+  b.relances_de[personnage] = n + 1
+  return true
 end
 
 -- L'attaque (étape 2) : chaque combattant qui ne se bat pas (vu en jeu le 17/10 : son combat fini, il retourne à son
@@ -359,7 +382,7 @@ local function lancer_l_attaque(b)
     local cible = b.cibles[id]
     local tombee = cible == nil or jeu().ennemis_vivants({ cible }) == 0
     if f and f.personnage and not jeu().personnage_mort(f.personnage)
-        and (a_relancer(f.personnage) or (tombee and jeu().occupation_de(f.personnage) ~= "combat")) then
+        and (a_relancer(b, f.personnage, f.nom, cible) or (tombee and jeu().occupation_de(f.personnage) ~= "combat")) then
       if tombee then
         k = k % #vivants + 1
         b.cibles[id] = vivants[k]
@@ -406,7 +429,8 @@ local function lancer_l_attaque_de_la_bande(b)
   local donnes, k = 0, 0
   for _, e in ipairs(b.personnages) do
     local tombee = not vivantes[b.cibles_de_la_bande[e]]
-    if jeu().ennemis_vivants({ e }) > 0 and (a_relancer(e) or (tombee and jeu().occupation_de(e) ~= "combat")) then
+    if jeu().ennemis_vivants({ e }) > 0
+        and (a_relancer(b, e, e, b.cibles_de_la_bande[e]) or (tombee and jeu().occupation_de(e) ~= "combat")) then
       if tombee then
         k = k % #cibles + 1
         b.cibles_de_la_bande[e] = cibles[k]

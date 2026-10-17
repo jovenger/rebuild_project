@@ -369,6 +369,10 @@
   redonnés aux immobiles (la bande entière vers 43 s et 59 s ; Ondřej toutes les 2 s un moment). **Douteux, à voir** :
   des hommes et des brigands restent immobiles malgré l'ordre redonné (figés ou en attente de combat, non tranché à
   l'écran). Séance arrêtée avant la fin pour ne pas laisser mourir Henry.
+- **Critère du figé corrigé (relecture du pair, la leçon du dégel)** : figé = pas bougé de 0,5 m entre deux relevés ET à
+  plus de 4 m de sa cible (qui attend son tour près d'elle n'est pas figé) ; deux relances au plus par personnage et par
+  bataille, puis « figé malgré 2 relances » au journal avec sa position et celle de sa cible (à lire à la séance du
+  guichet). Banc seulement.
 
 ### À reprendre plus tard
 - (L'initiative de la bande : réglée ci-dessus, à voir en jeu.)
