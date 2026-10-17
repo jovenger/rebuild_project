@@ -1777,7 +1777,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - Suite (relecture du pair) : monter **quand Henry monte** (un `StanceCheck` « horse » sur Henry, anti-rebond), le
   Directeur monté chef de colonne ; puis le changement de carte et les intérieurs.
 
-## V73 f 2 c — le cheval né hors des meubles (17/10, relu par le pair ; réponses recommandées prises d'office)
+## V73 f 2 c — le cheval né hors des meubles (17/10, relu par le pair, fait et vu en jeu ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - Premier point ouvert de V73 f 2 b : la naissance du cheval n'évite que les personnages (à 1 m), pas les meubles. Un
@@ -1840,6 +1840,17 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    **Prise : (a).**
 3. **Le délai de monte** : (a) allongé du temps de la marche jusqu'au cheval (Recommandé) ; (b) inchangé.
    **Prise : (a).**
+
+### Mesuré en V73 f 2 c (17/10) : le cheval né hors des meubles, acquis
+- c65f206, `playline3` (473), sans `-devmode`, secours coupé puis remis ; trois hommes au camp.
+- **Ce que le jeu laisse lire** : « Sol : rayon lisible, eau illisible (pas de `ent_water`) ». La pente et l'encombrement
+  se mesurent ; **l'eau, non** (point ouvert : un cheval peut encore naître dans un ruisseau peu profond si rien d'autre
+  ne l'encombre).
+- **Trois chevaux nés hors du camp**, côté porte, dans le pré (refus au journal : 1, 6 et 1 places dans le cercle, 2 près
+  d'un autre cheval) ; tous vus d'Henry, le point de sortie étant devant lui (la règle : plutôt vu que refusé).
+- **Les hommes marchent jusqu'à eux et montent** sans monte manquée (l'approche comptée), puis rejoignent Henry à cheval.
+- Fin de sortie : chevaux retirés au battement.
+- Ouvert : l'eau ; « jamais reposé seul » et « fermer avant d'ouvrir » toujours pas éprouvés en jeu.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

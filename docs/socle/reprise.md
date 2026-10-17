@@ -336,6 +336,10 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   comptée par l'arbre et lue au battement (3 essais puis à pied) ; retrait après la sortie (homme à plus de 6 m, ou au 2e
   battement) ; un cavalier jamais reposé seul. Réponse prise d'office, à redire à JoVenGer en tête du bilan : **chevaux
   passagers** (pas de chevaux gardés au camp ; idée n° 13 pour plus tard).
+- **V73 f 2 c, le cheval né hors des meubles, fait et vu en jeu** (c65f206 ; relu par le pair) : un homme au camp va
+  chercher son cheval hors du camp, côté porte ; place à 3 m de tout objet du camp et de l'enceinte, hors du cercle, à
+  3 m des autres chevaux, sur un sol praticable (pente, rayon descendu), hors de la vue d'Henry si possible ; le délai
+  de monte allongé de la marche. Vu : l'eau n'est pas lisible (pas de `ent_water`) ; le reste se mesure.
 - **Suite** (relecture du pair) : monter quand Henry monte (`StanceCheck` « horse » sur Henry, anti-rebond) et le
   Directeur monté chef de colonne ; puis le changement de carte et les intérieurs ; puis le gardien des hommes.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
@@ -344,7 +348,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 57 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 60 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
