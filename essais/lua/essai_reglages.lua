@@ -227,7 +227,7 @@ essai("réglages : chaque valeur du catalogue est un nombre relevé, et chaque s
     verifier(type(morceau) == "table" and type(morceau[entree.table]) == "table", "table de " .. entree.section)
     sections = sections + 1
   end
-  egal(sections, 27, "vingt-sept sections (le socle, depuis V72 ; le cerveau et les priorités de l'arbitre, depuis le 16/10 ; les rondes, depuis le 17/10)")
+  egal(sections, 28, "vingt-huit sections (le socle, depuis V72 ; le cerveau et les priorités de l'arbitre, depuis le 16/10 ; les rondes et les formations, depuis le 17/10)")
   verifier(reglages.relever_les_valeurs_validees() > 100, "plus de cent valeurs réglables")
   egal(reglages.valeur_en_place("prix.vivres"), 2, "prix des vivres")
   egal(reglages.valeur_validee("issues.victoire.cle"), nil, "un texte n'est pas relevé")

@@ -1438,7 +1438,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - **Suite** : V73 f 1 bis, la formation du moteur (la voie d'Alex et de la colonne de Scriptorium, relecture du pair),
   à lire avant V73 f 2, à cheval.
 
-## V73 f 1 bis — l'escorte en formation du moteur (17/10, envoyé au pair ; réponses recommandées prises d'office)
+## V73 f 1 bis — l'escorte en formation du moteur (17/10, relu par le pair ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - La relecture du pair (V73 f 1) : Alex fait suivre sa troupe par les **formations du moteur**, et la colonne de
@@ -1463,13 +1463,16 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    son nombre de places) ; sans formation, la chaîne de V73 f 1.
 2. **Le chef de formation** : le Directeur s'il mène (`directeur.suivre(oui, formation)`, chef « directeur »), sinon le
    premier homme de l'escorte. Son ordre devient « mener » (ordre 15) : debout ; un appel au Lua (comme la ronde,
-   `ExecuteLua` sous `pcall`) écrit le nom du modèle dans une variable de l'arbre ; `MakeFormation` dans un `FuseBox`
-   qui la ferme en sortant ; à côté, `Function_followNpc` vers son propre chef (Henry) ; le pouls.
+   `ExecuteLua` sous `pcall`) écrit le nom du modèle dans une variable de l'arbre ; puis, en parallèle, **une branche sans
+   marche** qui ouvre la formation (`MakeFormation`) et attend, et **une branche sœur** qui suit son propre chef (Henry)
+   par `Function_followNpc` ; le pouls. **La formation n'est fermée** (`EndFormation`) qu'au début de l'ordre suivant,
+   s'il n'est plus « mener » (revu après la relecture du pair : aucun `FuseBox`).
 3. **Les suiveurs** (rang 2 et plus, dans la limite des places du modèle) : ordre « en formation » (ordre 16) : debout ;
    tant que l'ordre tient, retrouver la formation du chef (`GetMemberFormation`, le chef en WUID dans
-   `scriptorium_chef`) et s'y ranger (`FormationFollower`, mode `MoveHistory` par défaut, réglable) ; si la formation
-   n'est pas encore ouverte, réessayer chaque seconde ; le pouls. **Au-delà des places**, les surnuméraires suivent en
-   chaîne (V73 f 1) le dernier rangé.
+   `scriptorium_chef`) et s'y ranger (`FormationFollower`, **un nœud par mode**, `MoveHistory` par défaut) ; si la
+   formation n'est pas ouverte, **suivre normalement son chef** (`Function_followNpc`) pendant `formation_reessai_ms`
+   (4 s), puis réessayer ; le pouls. **Au-delà des places**, les surnuméraires suivent en chaîne (V73 f 1) le dernier
+   rangé.
 4. **Le rattrapage** (V73 f 1) vaut pour tous, par rapport à leur chef (le chef de formation pour les suiveurs).
 - **Valeurs en données** : `hommes.formations` (le nom de chaque modèle permis et ses places : `followNPC` 8,
   `infantryMen20` 19, `battleFormation_basic25` 24) au catalogue ; `hommes.cerveau.formation_mode` (1 `MoveHistory`,
@@ -1485,6 +1488,22 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 4. `essai_fin_escorte` : chacun reprend sa tranche ; le Directeur rejoint sa journée.
 - Aucune ligne au journal ne dit « la formation est ouverte » : l'image et les écarts le disent.
 
+### Relecture du pair (17/10), qui change le montage
+- **La fermeture** (mécanisme d'Alex) : la formation se tient dans une branche **à part, sans marche** (ouvrir, puis
+  attendre), la marche du chef dans une branche sœur : c'est la forme du jeu (`formation_lead`, la tournée du bailli).
+  Quand la formation vivait dans la branche de marche, monter à cheval ou un combat interrompait cette branche, son
+  nettoyage **détruisait la formation**, et toute la troupe se défaisait. Un `FuseBox` qui ferme la formation à chaque
+  échec du chef reproduirait ce piège ; et un nettoyage qui relance fait boucle (l'arbre est terminé chaque fois qu'on le
+  remplace exprès). **La formation ne se ferme que quand le chef cesse de mener** (son ordre change).
+- **Les suiveurs** : `FormationFollower` est la marche ; tant que la formation n'est pas ouverte (départ, chef en combat,
+  relais), le suiveur doit **suivre normalement** son chef, pas attendre sur place (il se garerait) ; le suiveur de repli
+  du jeu ne rend jamais la main seul : une borne, **4 s** (pas 1,5 : chaque fin de borne refait le suiveur du moteur ; à
+  1,5 s, une escouade de cinq coûtait jusqu'à 40 images par seconde en ville).
+- **Le mode et `AllowRelocation` sont des attributs écrits en clair** : un nœud par mode, derrière un aiguillage.
+- `MoveHistory`, le bon défaut pour une colonne sur les chemins ; pour les cavaliers (V73 f 2), la seule forme du jeu
+  avec `Relaxed` (aucun suiveur monté en `KeepShape`), et un `WaitAction` avant le suiveur monté laisse la monture se
+  stabiliser.
+
 ### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
 1. **Quand la formation** : (a) quand la tenue nomme un modèle, la chaîne sinon (Recommandé : la chaîne est prouvée,
    la forme de la troupe est à Scriptorium) ; (b) toujours la formation. **Prise : (a).**
@@ -1492,6 +1511,28 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    colonne passe où le chef est passé) ; (b) `KeepShape`. **Prise : (a).**
 3. **Plus d'hommes que de places** : (a) les surnuméraires suivent en chaîne le dernier rangé (Recommandé) ; (b) refusés.
    **Prise : (a).**
+
+### V73 f 1 bis, fait (17/10)
+- **Données** : `hommes.formations` (followNPC 8, infantryMen20 19, battleFormation_basic25 24 ; section « formations » du
+  catalogue, vingt-huit sections) ; `hommes.cerveau.formation_mode` (1) et `formation_reessai_ms` (4 000) ; 50 variables
+  de cerveau.
+- **`hommes`** : la tenue « escorte » accepte `formation` (refus `escorte_invalide` pour un modèle inconnu) ; la colonne
+  donne à chacun son rôle : derrière le Directeur, les hommes se rangent dans sa formation ; derrière Henry, le premier
+  mène, les suivants se rangent dans sa formation ; au-delà des places, la chaîne ; le rôle entre dans la signature.
+- **`directeur.suivre(oui, formation)`** : il mène le modèle (refus `formation_inconnue`), gardé au registre.
+- **La liaison** : avec `suivi`, l'ordre 15 (mener ; le modèle retenu pour l'arbre) ou 16 (se ranger) ;
+  `liaison.nom_de_la_formation`, appelée par l'arbre sous `pcall`, écrit le modèle dans `formation_nom`.
+- **L'arbre** : la fermeture (`EndFormation`) au début d'un ordre qui n'est plus « mener » ; la branche 15 (debout, le
+  modèle par le Lua, la branche sans marche qui ouvre la formation, la branche sœur qui suit Henry, le pouls) ; la
+  branche 16 (debout ; tant que l'ordre tient : retrouver la formation et s'y ranger par l'un des quatre nœuds, sinon
+  suivre son chef 4 s ; le pouls).
+- `essai_escorte_formation` (146 commandes).
+- **Banc** : 7 876 vérifications ; un essai de plus (le modèle inconnu, la formation derrière le Directeur, une seule
+  place et la chaîne, derrière Henry le premier qui mène, le rattrapage d'un suiveur en formation, le Directeur lâché) ;
+  la liaison sur faux moteur (mener, se ranger, le modèle écrit pour l'arbre, une entité absente) ; les contrôles
+  statiques (les branches 15 et 16, une seule `EndFormation` et aucun `FuseBox`, chaque modèle du catalogue relu dans
+  `AI/FormationDefinitions.xml`). Contrôle d'absence inchangé (32). Garde-fous éprouvés par trois erreurs injectées,
+  toutes attrapées : la formation fermée à chaque ordre, les places ignorées, le suiveur jamais rangé.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

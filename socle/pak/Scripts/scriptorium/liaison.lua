@@ -2377,17 +2377,38 @@ liaison.buts = {}
 liaison.pas_de_ronde_vus = {}
 -- Fiche 15, V73 f 1 : le chef que suit chaque personnage (« henry » ou un identifiant), pour le poste d'essai.
 liaison.chefs = {}
+-- Fiche 15, V73 f 1 bis : le modèle de formation que mène chaque chef de formation, lu par son arbre (ordre 15).
+liaison.formations_menees = {}
+
+-- Appelée par l'arbre de la vie du camp (branche 15) sous pcall : écrit dans « formation_nom » le modèle que ce chef
+-- mène ; une ligne au journal ; une erreur, au journal.
+function liaison.nom_de_la_formation(entite, donnees)
+  local fait, erreur = pcall(function()
+    local nom = entite:GetName()
+    local formation = liaison.formations_menees[nom]
+    if formation then
+      donnees.formation_nom = formation
+    end
+    liaison.journal("Formation de " .. tostring(nom) .. " : « " .. tostring(formation) .. " »")
+  end)
+  if not fait then
+    liaison.journal("Formation : erreur : " .. tostring(erreur))
+  end
+end
 
 -- « regard » (fiche 15, V73 d 1) : un point ; l'homme tient un poste (ordre 12) : il marche jusqu'à « position », puis
 -- se tourne vers ce point et s'y tient. « allure » (V73 e) : « course » le fait courir jusqu'au poste (variable de
 -- cerveau scriptorium_allure, 1 ; remise à 0 à chaque autre ordre de poste). « chef » (V73 f 1) : l'identifiant d'un
--- personnage, ou « henry » : l'homme le suit (son WUID dans scriptorium_chef, ordre 14).
-function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef)
+-- personnage, ou « henry » : l'homme le suit (son WUID dans scriptorium_chef, ordre 14). « suivi » (V73 f 1 bis) :
+-- { mode = "mener", formation } : il ouvre la formation du moteur et suit son chef (ordre 15) ; { mode = "formation" } :
+-- il se range dans la formation de son chef (ordre 16).
+function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi)
   local entite = entite_nommee(identifiant)
   local ligne
   liaison.regards[identifiant] = nil
   liaison.buts[identifiant] = nil
   liaison.chefs[identifiant] = nil
+  liaison.formations_menees[identifiant] = nil
   if not entite then
     ligne = "introuvable"
   else
@@ -2408,7 +2429,15 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
         and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_chef", wuid) end)
       if pose then
         liaison.chefs[identifiant] = chef
-        ligne = "suit « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 14)
+        if suivi and suivi.mode == "mener" and suivi.formation then
+          liaison.formations_menees[identifiant] = suivi.formation
+          ligne = "mène la formation « " .. suivi.formation .. " » derrière « " .. tostring(chef) .. " » ; "
+            .. poser_l_activite(entite, 15)
+        elseif suivi and suivi.mode == "formation" then
+          ligne = "se range dans la formation de « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 16)
+        else
+          ligne = "suit « " .. tostring(chef) .. " » ; " .. poser_l_activite(entite, 14)
+        end
       elseif position then
         local point = liaison.au_sol(position)
         local marche = this_lu and type(this) == "table"

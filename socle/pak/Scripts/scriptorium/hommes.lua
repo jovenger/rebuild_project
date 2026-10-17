@@ -134,6 +134,12 @@ hommes.cerveau = {
   suivi_course_sprint_cm = 3000,
   suivi_sprint_course_cm = 2000,
   suivi_sprint_marche_cm = 1000,
+  -- L'escorte en formation du moteur (fiche 15, V73 f 1 bis) : comment les suiveurs se rangent (1 « MoveHistory » : ils
+  -- marchent où le chef a marché ; 2 « KeepShape » ; 3 « KeepDistance » ; 4 « Relaxed »).
+  formation_mode = 1,
+  -- Le suiveur dont la formation n'est pas ouverte suit son chef normalement et réessaie toutes les
+  -- « formation_reessai_ms » (pas plus souvent : chaque essai refait le suiveur du moteur, chemin compris).
+  formation_reessai_ms = 4000,
   -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
   -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
   relances_max = 3,
@@ -231,6 +237,14 @@ hommes.postes_de_garde = {
   { x = 12, y = 0, cap = 90 },
   { x = 0, y = -12, cap = 180 },
   { x = -12, y = 0, cap = 270 },
+}
+
+-- Les formations du moteur permises pour une escorte (fiche 15, V73 f 1 bis) : le nom d'un modèle du jeu
+-- (AI/FormationDefinitions.xml, relu au banc) et son nombre de places ; au-delà, les surnuméraires suivent en chaîne.
+hommes.formations = {
+  followNPC = 8,
+  infantryMen20 = 19,
+  battleFormation_basic25 = 24,
 }
 
 -- Les rondes du socle (fiche 15, V73 d 2), autour de l'ancre : pour la commande d'essai seulement ; celles de
@@ -1447,15 +1461,39 @@ function hommes.activite_de(id, heure)
       end
       if rang > 0 then
         local chef = nil
-        if rang > 1 then
-          chef = d.liste[precedent].personnage
-        elseif tenue.chef == "directeur" then
-          chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
-        elseif tenue.chef ~= nil and tenue.chef ~= "henry" then
-          chef = d.liste[tenue.chef] and d.liste[tenue.chef].personnage
+        -- V73 f 1 bis : en formation, le chef de formation est le Directeur (chef « directeur ») ou le premier homme ;
+        -- les suivants, dans la limite des places du modèle, s'y rangent ; les surnuméraires suivent en chaîne.
+        local places = tenue.formation and tonumber(hommes.formations[tenue.formation]) or nil
+        local du_directeur = tenue.chef == "directeur"
+        local premier = du_directeur and 0 or 1
+        if places and rang > premier and rang - premier <= places then
+          if du_directeur then
+            chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
+          else
+            local tete = nil
+            for _, autre in ipairs(d.ordre) do
+              local _, t2 = tenue_la_plus_forte(d.liste[autre])
+              if not tete and t2 and t2.activite == "suivre" and t2.lieu == tenue.lieu then
+                tete = autre
+              end
+            end
+            chef = tete and d.liste[tete].personnage
+          end
+          resultat.suivi = { mode = "formation" }
+        elseif places and rang == 1 and not du_directeur then
+          resultat.suivi = { mode = "mener", formation = tenue.formation }
+        end
+        if chef == nil then
+          if rang > 1 then
+            chef = d.liste[precedent].personnage
+          elseif du_directeur then
+            chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
+          elseif tenue.chef ~= nil and tenue.chef ~= "henry" then
+            chef = d.liste[tenue.chef] and d.liste[tenue.chef].personnage
+          end
         end
         resultat.chef = chef or "henry"
-        resultat.signature = rang .. "/" .. nombre
+        resultat.signature = rang .. "/" .. nombre .. (resultat.suivi and ("/" .. resultat.suivi.mode) or "")
         resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
           or jeu().position_du_personnage(resultat.chef)
       end
@@ -2042,7 +2080,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       position = a.chemin[premier]
     end
     hommes.raisons_de_reprise[id] = nil
-    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef)
+    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
@@ -2187,6 +2225,7 @@ local function memes_tenues(a, b)
     and a.aller_retour == b.aller_retour and a.depart == b.depart and a.pauses == b.pauses
     and memes_chemins(a.chemin, b.chemin) and memes_points(a.centre, b.centre) and a.rayon == b.rayon
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
+    and a.formation == b.formation
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -2265,6 +2304,9 @@ function hommes.tenir(id, regle, quoi)
       and (not d.liste[quoi.chef] or quoi.chef == id) then
     return refuser("escorte_invalide", "chef " .. tostring(quoi.chef))
   end
+  if quoi.activite == "suivre" and quoi.formation ~= nil and not hommes.formations[quoi.formation] then
+    return refuser("escorte_invalide", "formation " .. tostring(quoi.formation))
+  end
   -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
   local pauses = nil
   if chemin and quoi.pauses == false then
@@ -2278,7 +2320,8 @@ function hommes.tenir(id, regle, quoi)
                   chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart,
                   pauses = pauses, centre = arc and arc.centre, rayon = arc and arc.rayon,
                   ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
-                  chef = (quoi.activite == "suivre") and quoi.chef or nil }
+                  chef = (quoi.activite == "suivre") and quoi.chef or nil,
+                  formation = (quoi.activite == "suivre") and quoi.formation or nil }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()

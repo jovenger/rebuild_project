@@ -25,6 +25,13 @@
       <Variable name="ronde_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="ronde_pause" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="allure" type="enum:movementSpeed" values="" isPersistent="0" form="single" />
+      <Variable name="formation_nom" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="formation_menee" type="_wuid" values="" isPersistent="0" form="single" />
+      <Variable name="formation_suivie" type="_wuid" values="" isPersistent="0" form="single" />
+      <Variable name="formation_mode_lu" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="en_formation" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="reessai_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="reessai" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="suivi_depart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_marche_course" type="_float" values="" isPersistent="0" form="single" />
@@ -65,6 +72,14 @@
             <Expression expressions="$suivi_course_sprint = ($scriptorium_cerveau_suivi_course_sprint_cm &gt; 0 ? $scriptorium_cerveau_suivi_course_sprint_cm : 3000) * 0.01" />
             <Expression expressions="$suivi_sprint_course = ($scriptorium_cerveau_suivi_sprint_course_cm &gt; 0 ? $scriptorium_cerveau_suivi_sprint_course_cm : 2000) * 0.01" />
             <Expression expressions="$suivi_sprint_marche = ($scriptorium_cerveau_suivi_sprint_marche_cm &gt; 0 ? $scriptorium_cerveau_suivi_sprint_marche_cm : 1000) * 0.01" />
+            <Expression expressions="$formation_mode_lu = ($scriptorium_cerveau_formation_mode &gt; 0 ? $scriptorium_cerveau_formation_mode : 1)" />
+            <Expression expressions="$reessai_ms = ($scriptorium_cerveau_formation_reessai_ms &gt; 0 ? $scriptorium_cerveau_formation_reessai_ms : 4000)" />
+            <Expression expressions="$reessai = concat($reessai_ms, &apos;ms&apos;)" />
+            <IfCondition condition="$scriptorium_activite ~= 15 &amp; $formation_menee ~= $__null" failOnCondition="false">
+              <SuppressFailure>
+                <EndFormation FormationHandle="$formation_menee" />
+              </SuppressFailure>
+            </IfCondition>
             <SuppressFailure>
               <Sequence>
                 <IfCondition condition="$scriptorium_activite == 9 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
@@ -340,6 +355,98 @@
                       </SuppressFailure>
                       <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
                       <Function_followNpc leader="$scriptorium_chef" run2sprint="$suivi_course_sprint" run2walk="$suivi_course_marche" sprint2run="$suivi_sprint_course" sprint2walk="$suivi_sprint_marche" startDistance="$suivi_depart" stopDistance="$suivi_arret" walk2run="$suivi_marche_course" walk2sprint="$suivi_marche_sprint" nodeLabel="73110803" />
+                    </Sequence>
+                    <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                      <Sequence>
+                        <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                        <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                        <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                        <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </While>
+                  </Parallel>
+                </IfCondition>
+                <IfCondition condition="$scriptorium_activite == 15 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Parallel successMode="Any" failureMode="Any">
+                    <Sequence>
+                      <SuppressFailure>
+                        <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                          <Parallel successMode="Any" failureMode="Any">
+                            <WaitAction />
+                            <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Parallel>
+                        </StanceElement>
+                      </SuppressFailure>
+                      <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                      <SuppressFailure>
+                        <ExecuteLua code="pcall(function() Scriptorium.jeu.nom_de_la_formation(entity, data) end)" />
+                      </SuppressFailure>
+                      <Parallel successMode="Any" failureMode="Any">
+                        <Sequence>
+                          <SuppressFailure>
+                            <MakeFormation FormationName="$formation_nom" HandleVariable="$formation_menee" />
+                          </SuppressFailure>
+                          <Wait duration="&apos;-1&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                        </Sequence>
+                        <Function_followNpc leader="$scriptorium_chef" run2sprint="$suivi_course_sprint" run2walk="$suivi_course_marche" sprint2run="$suivi_sprint_course" sprint2walk="$suivi_sprint_marche" startDistance="$suivi_depart" stopDistance="$suivi_arret" walk2run="$suivi_marche_course" walk2sprint="$suivi_marche_sprint" nodeLabel="73110804" />
+                      </Parallel>
+                    </Sequence>
+                    <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                      <Sequence>
+                        <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                        <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                        <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                        <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                        <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                      </Sequence>
+                    </While>
+                  </Parallel>
+                </IfCondition>
+                <IfCondition condition="$scriptorium_activite == 16 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Parallel successMode="Any" failureMode="Any">
+                    <Sequence>
+                      <SuppressFailure>
+                        <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                          <Parallel successMode="Any" failureMode="Any">
+                            <WaitAction />
+                            <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Parallel>
+                        </StanceElement>
+                      </SuppressFailure>
+                      <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                      <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                        <Sequence>
+                          <Expression expressions="$en_formation = 0" />
+                          <SuppressFailure>
+                            <Sequence>
+                              <GetMemberFormation MemberWUID="$scriptorium_chef" FormationHandleOut="$formation_suivie" />
+                              <Expression expressions="$en_formation = 1" />
+                                  <IfCondition condition="$formation_mode_lu == 1" failOnCondition="false">
+                                    <FormationFollower FormationHandle="$formation_suivie" PreferredPositions="" FormationMode="MoveHistory" AllowRelocation="false" />
+                                  </IfCondition>
+                                  <IfCondition condition="$formation_mode_lu == 2" failOnCondition="false">
+                                    <FormationFollower FormationHandle="$formation_suivie" PreferredPositions="" FormationMode="KeepShape" AllowRelocation="false" />
+                                  </IfCondition>
+                                  <IfCondition condition="$formation_mode_lu == 3" failOnCondition="false">
+                                    <FormationFollower FormationHandle="$formation_suivie" PreferredPositions="" FormationMode="KeepDistance" AllowRelocation="false" />
+                                  </IfCondition>
+                                  <IfCondition condition="$formation_mode_lu == 4" failOnCondition="false">
+                                    <FormationFollower FormationHandle="$formation_suivie" PreferredPositions="" FormationMode="Relaxed" AllowRelocation="false" />
+                                  </IfCondition>
+                            </Sequence>
+                          </SuppressFailure>
+                          <IfCondition condition="$en_formation == 0" failOnCondition="false">
+                            <Parallel successMode="Any" failureMode="Any">
+                              <Function_followNpc leader="$scriptorium_chef" run2sprint="$suivi_course_sprint" run2walk="$suivi_course_marche" sprint2run="$suivi_sprint_course" sprint2walk="$suivi_sprint_marche" startDistance="$suivi_depart" stopDistance="$suivi_arret" walk2run="$suivi_marche_course" walk2sprint="$suivi_marche_sprint" nodeLabel="73110805" />
+                              <Wait duration="$reessai" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                            </Parallel>
+                          </IfCondition>
+                          <IfCondition condition="$en_formation == 1" failOnCondition="false">
+                            <Wait duration="$reessai" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </IfCondition>
+                        </Sequence>
+                      </While>
                     </Sequence>
                     <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                       <Sequence>

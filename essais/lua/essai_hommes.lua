@@ -2178,3 +2178,67 @@ essai("escorte (fiche 15, V73 f 1) : le Directeur suit Henry, gardé au registre
   verifier(o ~= nil and o.activite ~= "suivre", "il reprend sa journée : " .. tostring(o and o.activite))
 end)
 
+-- Fiche 15, V73 f 1 bis : l'escorte en formation du moteur (réponses recommandées prises d'office le 17/10, relecture du
+-- pair).
+essai("formation (fiche 15, V73 f 1 bis) : derrière le Directeur, chacun se range dans sa formation ; derrière Henry, le premier mène ; au-delà des places, la chaîne", function()
+  preparer(5000, 100, 10)
+  verifier(Scriptorium.directeur.installer(), "Directeur installé")
+  local ids, perso = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+  end
+  hommes.battre()
+  local ok, raison = hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "e", formation = "carre_de_fantaisie", fin = "liberation" })
+  verifier(not ok and raison == "escorte_invalide", "un modèle inconnu : refusé")
+  ok, raison = Scriptorium.directeur.suivre(true, "carre_de_fantaisie")
+  verifier(not ok and raison == "formation_inconnue", "le Directeur refuse un modèle inconnu")
+  -- Derrière le Directeur qui mène.
+  FauxJeu.ordres = {}
+  verifier(Scriptorium.directeur.suivre(true, "followNPC"), "le Directeur mène followNPC")
+  local o = dernier_ordre_de(Scriptorium.directeur.personnage())
+  verifier(o ~= nil and o.suivi ~= nil and o.suivi.mode == "mener" and o.suivi.formation == "followNPC", "son ordre : mener followNPC")
+  for i = 1, 3 do
+    hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "e", chef = "directeur", formation = "followNPC", fin = "liberation" })
+  end
+  for i = 1, 3 do
+    local a = hommes.activite_de(ids[i], 10)
+    egal(a.suivi and a.suivi.mode, "formation", "l'homme " .. i .. " se range dans la formation")
+    egal(a.chef, Scriptorium.directeur.personnage(), "l'homme " .. i .. " a le Directeur pour chef")
+  end
+  o = dernier_ordre_de(perso[3])
+  verifier(o ~= nil and o.suivi ~= nil and o.suivi.mode == "formation", "l'ordre porte la formation")
+  -- Une seule place : le premier dans la formation, les autres en chaîne derrière lui.
+  local places = hommes.formations.followNPC
+  hommes.formations.followNPC = 1
+  egal(hommes.activite_de(ids[1], 10).suivi and hommes.activite_de(ids[1], 10).suivi.mode, "formation", "une place : le premier se range")
+  egal(hommes.activite_de(ids[2], 10).suivi, nil, "le deuxième en chaîne")
+  egal(hommes.activite_de(ids[2], 10).chef, perso[1], "le deuxième suit le premier")
+  egal(hommes.activite_de(ids[3], 10).chef, perso[2], "le troisième suit le deuxième")
+  hommes.formations.followNPC = places
+  -- Derrière Henry : le premier mène, les autres se rangent derrière lui.
+  for i = 1, 3 do hommes.lacher(ids[i], "escorte") end
+  for i = 1, 3 do
+    hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "h", formation = "followNPC", fin = "liberation" })
+  end
+  local a1 = hommes.activite_de(ids[1], 10)
+  egal(a1.suivi and a1.suivi.mode, "mener", "derrière Henry : le premier mène")
+  egal(a1.suivi and a1.suivi.formation, "followNPC", "le modèle mené")
+  egal(a1.chef, "henry", "il suit Henry")
+  for i = 2, 3 do
+    local a = hommes.activite_de(ids[i], 10)
+    egal(a.suivi and a.suivi.mode, "formation", "l'homme " .. i .. " se range")
+    egal(a.chef, perso[1], "dans la formation du premier")
+  end
+  -- Le rattrapage vaut aussi pour un suiveur en formation : à plus de 60 m de son chef.
+  local f3 = hommes.fiche(ids[3])
+  FauxJeu.positions[perso[1]] = { x = 0, y = 0, z = 0 }
+  FauxJeu.positions[f3.personnage] = { x = 0, y = 80, z = 0 }
+  FauxJeu.secours = {}
+  hommes.battre()
+  verifier(#FauxJeu.secours >= 1, "un suiveur en formation à 80 m de son chef : rattrapé")
+  -- Le Directeur lâché : il ne mène plus.
+  verifier(Scriptorium.directeur.suivre(false), "le Directeur lâché")
+  egal(Scriptorium.directeur.activite(10).suivi, nil, "il ne mène plus")
+end)
+

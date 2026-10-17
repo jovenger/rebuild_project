@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 145:
-        erreur("ordres : %d commandes lues dans poste.lua, 145 attendues" % len(connues))
+    if len(connues) != 146:
+        erreur("ordres : %d commandes lues dans poste.lua, 146 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -480,6 +480,19 @@ def verifier_identifiants():
         if XGenAIModule.variables.scriptorium_chef ~= "wuid_chef" then return "suivre un homme : chef " .. tostring(XGenAIModule.variables.scriptorium_chef) end
         l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "escorte", nil, nil, nil, nil, "personne")
         if not string.find(lignes[#lignes], "introuvable, marche", 1, true) then return "un chef introuvable : " .. lignes[#lignes] end
+        -- V73 f 1 bis : mener une formation (ordre 15, le modèle retenu pour l'arbre), s'y ranger (ordre 16).
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "escorte", nil, nil, nil, nil, "henry", { mode = "mener", formation = "followNPC" })
+        if not string.find(lignes[#lignes], "mène la formation « followNPC »", 1, true) then return "mener : " .. lignes[#lignes] end
+        local donnees_f = {}
+        l.nom_de_la_formation(rondier, donnees_f)
+        if donnees_f.formation_nom ~= "followNPC" then return "le modèle n'est pas écrit pour l'arbre : " .. tostring(donnees_f.formation_nom) end
+        l.ordonner("scriptorium_rondier", "suivre", { x = 1, y = 1 }, "escorte", nil, nil, nil, nil, "scriptorium_chef_d_essai", { mode = "formation" })
+        if not string.find(lignes[#lignes], "se range dans la formation", 1, true) then return "se ranger : " .. lignes[#lignes] end
+        donnees_f = {}
+        l.nom_de_la_formation(rondier, donnees_f)
+        if donnees_f.formation_nom ~= nil then return "un suiveur reçoit un modèle à ouvrir" end
+        l.nom_de_la_formation(nil, donnees_f)
+        if not string.find(lignes[#lignes], "Formation : erreur", 1, true) then return "une entité absente n'est pas dite" end
         System.entites["scriptorium_rondier"], System.entites["scriptorium_chef_d_essai"] = nil, nil
         XGenAIModule.GetMyWUID = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
@@ -1199,6 +1212,39 @@ def verifier_la_vie_du_camp():
         parametres = dict(re.findall(r'<Variable name="(\w+)" type="([^"]+)"[^>]*requirementType="In"', fonction.group(1))) if fonction else {}
         if not fonction or parametres.get("leader") != "_wuid" or set(attendus) - set(parametres):
             erreur("vie du camp : la fonction followNpc du jeu a changé (paramètres : %s)" % parametres)
+    # Fiche 15, V73 f 1 bis (l'escorte en formation) : la branche 15 lit le modèle par le Lua, ouvre la formation et suit
+    # son chef ; la branche 16 retrouve la formation du chef et s'y range ; chaque modèle du catalogue existe dans le jeu.
+    branche15 = comportements.split("$scriptorium_activite == 15", 1)
+    branche16 = comportements.split("$scriptorium_activite == 16", 1)
+    appel15 = '<ExecuteLua code="pcall(function() %s.jeu.nom_de_la_formation(entity, data) end)" />' % (chemin.group(1) if chemin else "?")
+    if (len(branche15) != 2 or appel15 not in branche15[1].split("$scriptorium_activite == 16")[0]
+            or '<MakeFormation FormationName="$formation_nom" HandleVariable="$formation_menee" />' not in branche15[1]
+            or '<Function_followNpc leader="$scriptorium_chef"' not in branche15[1].split("$scriptorium_activite == 16")[0]):
+        erreur("vie du camp : la branche 15 doit lire le modèle par le Lua, ouvrir la formation et suivre son chef")
+    if (len(branche16) != 2
+            or '<GetMemberFormation MemberWUID="$scriptorium_chef" FormationHandleOut="$formation_suivie" />' not in branche16[1]
+            or branche16[1].count('<FormationFollower FormationHandle="$formation_suivie"') != 4
+            or '<Function_followNpc leader="$scriptorium_chef"' not in branche16[1]):
+        erreur("vie du camp : la branche 16 doit retrouver la formation de son chef, s'y ranger (un nœud par mode), et le "
+               "suivre normalement tant qu'elle n'est pas ouverte")
+    # Relecture du pair : la formation n'est fermée que quand le chef cesse de mener (jamais au premier échec de sa marche :
+    # chez Alex, cela défaisait toute la troupe), et la branche 15 ne la ferme pas elle-même.
+    fermer = re.search(r'<IfCondition condition="\$scriptorium_activite ~= 15 &amp; \$formation_menee ~= \$__null"[^>]*>\s*'
+                       r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />', comportements)
+    if not fermer or comportements.count("<EndFormation") != 1 or "<FuseBox" in comportements:
+        erreur("vie du camp : la formation se ferme seulement quand le chef cesse de mener (une seule EndFormation, aucun FuseBox)")
+    if "poser_l_activite(entite, 15)" not in liaison or "poser_l_activite(entite, 16)" not in liaison:
+        erreur("vie du camp : la liaison doit donner les ordres 15 et 16")
+    bloc_formations = re.search(r"hommes\.formations = \{(.*?)\n\}", hommes_lua, re.S)
+    modeles = re.findall(r"^\s*([A-Za-z_0-9]+) = \d+", bloc_formations.group(1), re.M) if bloc_formations else []
+    if not modeles:
+        erreur("vie du camp : la table hommes.formations est introuvable ou vide")
+    if os.path.exists(pak):
+        with zipfile.ZipFile(pak) as archive:
+            definitions = archive.read("AI/FormationDefinitions.xml").decode("utf-8", "replace")
+        for modele in modeles:
+            if '<Formation name="%s">' % modele not in definitions:
+                erreur("vie du camp : la formation « %s » du catalogue n'existe plus dans le jeu" % modele)
     if '<Variable name="ronde_pause" type="_string"' not in comportements:
         erreur("vie du camp : la variable de l'arbre ronde_pause (_string) n'est pas déclarée")
     for nom, texte in arbres.items():

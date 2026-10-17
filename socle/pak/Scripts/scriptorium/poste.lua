@@ -816,6 +816,25 @@ function poste.essai_escorte()
   return n > 0 or ok_d == true
 end
 
+-- Fiche 15, V73 f 1 bis : l'escorte d'essai en formation du moteur : le Directeur mène « followNPC », les trois premiers
+-- hommes s'y rangent.
+function poste.essai_escorte_formation()
+  local ok_d, raison_d = Scriptorium.directeur.suivre(true, "followNPC")
+  jeu().journal("Poste : le Directeur mène la formation : " .. tostring(ok_d) .. " " .. tostring(raison_d or ""))
+  local n = 0
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then
+      local ok = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "escorte",
+        chef = ok_d and "directeur" or "henry", formation = "followNPC", fin = "liberation" })
+      if ok then
+        n = n + 1
+      end
+    end
+  end
+  jeu().journal("Poste : escorte en formation de " .. n .. " homme(s)")
+  return n > 0 or ok_d == true
+end
+
 function poste.essai_fin_escorte()
   local n = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
@@ -1651,6 +1670,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_rompre", fonction = function() return poste.essai_rompre() end, aide = "Rompez : le rassemblement lâché pour tous (V73 e)" },
   { nom = "scriptorium_essai_escorte", fonction = function() return poste.essai_escorte() end, aide = "Le Directeur suit Henry, trois hommes en colonne derrière lui (V73 f 1)" },
   { nom = "scriptorium_essai_fin_escorte", fonction = function() return poste.essai_fin_escorte() end, aide = "Fin de l'escorte : chacun reprend sa tranche (V73 f 1)" },
+  { nom = "scriptorium_essai_escorte_formation", fonction = function() return poste.essai_escorte_formation() end, aide = "Le Directeur mène la formation followNPC, trois hommes s'y rangent (V73 f 1 bis)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
