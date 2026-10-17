@@ -132,6 +132,12 @@ le chemin du retour, entre à cheval et descend.
   donné) ; puis la tête, Jan, assommé au combat, ne remonte pas : la colonne l'attend. **Corrigé** : un homme hors
   d'état (`liaison.personnage_inconscient`) est porté (mis dehors hors de la vue d'Henry, il rentre avec la colonne) ; la
   tête passe au premier homme debout ; personne debout : la colonne entière rentre au loin. Non vérifié en jeu.
+- **Vu en jeu (17/10, a182f1d)** : les deux missions jusqu'au rapport. Proche : combat figé tranché par passes
+  (défaite, 3 blessés mis à terre), les trois portés, retour au loin, renaissance dès qu'Henry se détourne, rentrée à
+  cheval, rapport une fois, les blessés à leur lit. Lointaine : dehors (les brigands à 451 m d'Henry ont l'agent IA
+  inactif : à cette distance le jeu ne les fait plus vivre), tranchée au loin, renaissance, rentrée, rapport. La tête
+  s'arrêtait à 6,4 m de son point : `arrivee_m` porté à 10 m (68d9c96). **Non vus en jeu** : une victoire (le combat
+  vivant a chaque fois figé), la fuite des survivants d'une bande venue au camp, l'immortalité des blessés (c5ae51f).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 
