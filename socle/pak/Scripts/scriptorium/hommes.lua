@@ -2089,6 +2089,12 @@ end
 -- Le secours de l'homme bloqué (réponse 1 de JoVenGer du 16/10) : posé près de son but, jamais dans un meuble (une
 -- place s'aborde à l'écart, camp.abord_de), sur une place libre (la liaison), puis son ordre est redonné.
 local function secourir(id, f, a, rapport)
+  -- La bataille (fiche 17, vu en jeu le 17/10 : Jan, en plein combat au camp de bandits, jugé « bloqué » et reposé au
+  -- centre du camp) : un homme qui se bat ne s'approche pas de son point ; jamais secouru, comme pour le gardien ; la
+  -- bataille relance elle-même ses figés.
+  if a.activite == "bataille" then
+    return
+  end
   -- Suivre (V73 f 1) : pas de secours ordinaire (un suiveur garde un écart constant, il ne « se rapproche » jamais) ;
   -- seulement le rattrapage au-delà de « suivi_loin_m ».
   if a.activite == "suivre" then

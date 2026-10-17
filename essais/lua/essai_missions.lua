@@ -251,3 +251,24 @@ essai("missions (4 b) : une colonne va à un point ; sa tête mène vers le poin
   verifier(ordre and ordre.suivi and ordre.suivi.vers == true, "l'ordre de la tête porte le point")
   finir()
 end)
+
+-- Vu en jeu le 17/10 : la tenue « bataille » ne porte pas de point ; aucun ordre de marche ne vient écraser l'attaque.
+essai("missions : engagés contre une bande postée, nos hommes n'ont aucun point à rejoindre ; seul l'ordre d'attaque compte", function()
+  local ids = preparer({ "homme_d_armes" })
+  local id = missions.dresser_un_camp("gue", "petit")
+  FauxJeu.position_joueur = { x = 0, y = -100, z = 0 }
+  battre()
+  local f = hommes.fiche(ids[1])
+  FauxJeu.positions[f.personnage] = { x = 0, y = 170, z = 0 }
+  FauxJeu.ordres = {}
+  battre()
+  egal(la_bande(id).etat, "au_contact", "l'alerte")
+  egal(hommes.qui_tient(ids[1]), "bataille", "tenu par la bataille")
+  egal(hommes.activite_de(ids[1], 10).position, nil, "sans point")
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == f.personnage then
+      egal(o.position, nil, "l'ordre de la tenue : sans point (aucune marche)")
+    end
+  end
+  finir()
+end)

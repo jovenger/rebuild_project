@@ -3082,3 +3082,20 @@ essai("allure du chef monté (fiche 15, V73 f 2 f) : la vitesse de celui qu'il s
   egal(hommes.vitesse_retenue(5, 3), 5, "une course : retenue")
   egal(hommes.vitesse_retenue(25, nil), 0, "un saut sans vitesse d'avant : 0")
 end)
+
+-- Fiche 17 (vu en jeu le 17/10) : un homme tenu par la bataille, loin de son point et immobile, n'est jamais secouru.
+essai("secours (fiche 17) : un homme tenu par la bataille n'est jamais secouru, même immobile loin de son point", function()
+  preparer(5000, 100, 15)
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  local id = hommes.liste()[1]
+  local f = hommes.fiche(id)
+  verifier(hommes.tenir(id, "bataille", { activite = "bataille", lieu = "camp_de_bandits", position = { x = 0, y = 200, z = 0 },
+    cap = 0, fin = "liberation" }), "tenu par la bataille")
+  FauxJeu.secours = {}
+  FauxJeu.positions[f.personnage] = { x = 0, y = 189, z = 0 }
+  for _ = 1, 8 do
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 0, "immobile à 11 m de son point, huit battements : aucun secours")
+  hommes.lacher(id, "bataille")
+end)

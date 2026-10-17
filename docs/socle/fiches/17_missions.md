@@ -67,6 +67,14 @@ le chemin du retour, entre à cheval et descend.
 - **Sonde du 17/10 (b56d855)** : l'ordre 18 avec pour chef un objet du monde (le feu du camp de bandits) : la monte et la
   formation se font (« Formation de Jan : followNPC », allure « course » à 142 m), mais **Jan n'a pas bougé** en deux
   minutes (même position à deux relevés) : le `Move` vers une entité qui n'est pas un personnage échoue en silence.
-  D'où l'ordre 20 vers un point (le jalon invisible n'aurait pas mieux marché). **Non vérifié en jeu** : l'ordre 20.
+  D'où l'ordre 20 vers un point (le jalon invisible n'aurait pas mieux marché).
+- **Vu en jeu (17/10, 198384c)** : l'ordre 20 marche : Jan monte et mène vers le point (40 m entre deux relevés), les
+  deux autres rangés derrière lui ; arrêté à 6,7 m du point ; l'alerte engage les trois. **Deux défauts vus, corrigés** :
+  le secours jugeait « bloqué » un homme qui se battait et le reposait au point (la bataille en est exclue, comme pour le
+  gardien) ; la tenue « bataille » portait le point du camp : un ordre de marche redonné après le retrait du cheval
+  écrasait l'attaque, et le combat s'enlisait (4 brigands sur 4 debout après plusieurs minutes, trois « figé malgré 2
+  relances »). Contre une bande postée, la tenue ne porte plus de point. **Non vérifié en jeu** : le combat corrigé.
+- À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
+  combat peut de même écraser l'attaque (à relire en séance).
 
 À reprendre plus tard : le lieu d'essai pris devant Henry peut tomber dans une ferme (vu : derrière un mur) ; un vrai coffre du jeu à fouiller au milieu du camp ; les bandits assis au feu ou couchés.

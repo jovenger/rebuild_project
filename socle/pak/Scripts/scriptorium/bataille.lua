@@ -773,8 +773,10 @@ local function engager_la_bande_postee(b)
   b.contact = jeu().heure_du_jeu()
   b.combattants = {}
   for _, id in ipairs(hommes_pres_de(b.point_d_arrivee, r.poste_engagement_m, true)) do
-    hommes().tenir(id, "bataille", { activite = "bataille", lieu = "camp_de_bandits", position = b.point_d_arrivee,
-                                     cap = 0, fin = "liberation" })
+    -- Sans point (vu en jeu le 17/10) : un ordre « marche au point » redonné en plein combat (après le retrait du cheval)
+    -- écrasait l'ordre d'attaque, et Jan, Ondřej et un brigand restaient figés ; la tenue ne fait que les tenir, l'ordre
+    -- d'attaque reste le seul.
+    hommes().tenir(id, "bataille", { activite = "bataille", lieu = "camp_de_bandits", fin = "liberation" })
     table.insert(b.combattants, id)
   end
   jeu().journal("Bataille : « " .. b.id .. " » postée, alerte : " .. #b.combattants .. " des nôtres engagé(s)")
