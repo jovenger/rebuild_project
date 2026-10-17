@@ -372,6 +372,11 @@ function faux.faire_venir_directeur(position, ame)
   return identifiant
 end
 function faux.position_du_joueur() return faux.position_joueur end
+-- V73 f 3 b : le plancher sous un point (« plancher » posé par les essais), sinon rien touché.
+function faux.plancher_sous(x, y, z_depart, profondeur)
+  if faux.plancher then return faux.plancher(x, y, z_depart, profondeur) end
+  return nil, "rien touché"
+end
 -- V73 f 3 b : Henry posé à une position exacte (le poste d'essai des intérieurs).
 function faux.poser_le_joueur(position)
   faux.position_joueur = { x = position.x, y = position.y, z = position.z }

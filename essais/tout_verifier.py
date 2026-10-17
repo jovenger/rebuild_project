@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 160:
-        erreur("ordres : %d commandes lues dans poste.lua, 160 attendues" % len(connues))
+    if len(connues) != 161:
+        erreur("ordres : %d commandes lues dans poste.lua, 161 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -658,6 +658,20 @@ def verifier_identifiants():
         player.SetWorldPos = function() end
         if l.poser_le_joueur({ x = 50, y = 20, z = 107.1 }) then return "poser le joueur : une pose perdue dite réussie" end
         player = joueur_avant_l
+        -- V73 f 3 b : le plancher sous un point (rayon statique + terrain) ; masques absents : nil et la raison.
+        local physique_avant_l, statique_avant_l, terrain_avant_l = Physics, ent_static, ent_terrain
+        ent_static, ent_terrain = nil, nil
+        local z_r, raison_r = l.plancher_sous(1, 2, 111.5, 6)
+        if z_r ~= nil or not string.find(tostring(raison_r), "masques", 1, true) then return "plancher : masques absents mal dits" end
+        ent_static, ent_terrain = 1, 2
+        local masque_r = nil
+        Physics = { RayWorldIntersection = function(depart, dir, n, masque, a, b, touches)
+          masque_r = masque
+          touches[1] = { pos = { x = depart.x, y = depart.y, z = 110.2 } }
+          return 1 end }
+        z_r = l.plancher_sous(1, 2, 111.5, 6)
+        if z_r ~= 110.2 or masque_r ~= 3 then return "plancher : " .. tostring(z_r) .. " masque " .. tostring(masque_r) end
+        Physics, ent_static, ent_terrain = physique_avant_l, statique_avant_l, terrain_avant_l
         -- V73 f 3 b : la selle d'un de nos chevaux (horse:HasRider, la lecture d'Henry à cheval) ; illisible : nil.
         local selle = { HasRider = function() return 1 end }
         System.entites["scriptorium_cheval_essai"] = { horse = selle }

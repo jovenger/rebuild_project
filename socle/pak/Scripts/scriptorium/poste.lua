@@ -151,6 +151,29 @@ poste.lieux_d_essai = {
   auberge_dedans = { x = 2160.0, y = 1482.2, z = 107.1 },
 }
 
+-- L'étage (méthode du pair) : un rayon vers le bas lancé de « depart_z » (le rez-de-chaussée à 107,0 + 4,5 m), en trois
+-- points de l'intérieur au plus ; un plancher touché entre « plancher_min » et « plancher_max » est l'étage.
+poste.etage_d_essai = {
+  points = { { 2160.0, 1482.2 }, { 2157.5, 1484.0 }, { 2162.5, 1480.0 } },
+  depart_z = 111.5, profondeur = 6, plancher_min = 108.5, plancher_max = 111,
+}
+
+function poste.essai_auberge_etage()
+  local e = poste.etage_d_essai
+  for i, p in ipairs(e.points) do
+    local z, raison = jeu().plancher_sous(p[1], p[2], e.depart_z, e.profondeur)
+    jeu().journal("Poste : étage, point " .. i .. " (" .. p[1] .. ", " .. p[2] .. ") : "
+                  .. (z and string.format("touché à %.2f", z) or tostring(raison)))
+    if z and z >= e.plancher_min and z <= e.plancher_max then
+      local ok, compte_rendu = jeu().poser_le_joueur({ x = p[1], y = p[2], z = z + 0.1 })
+      jeu().journal("Poste : Henry posé à l'étage = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+      return ok
+    end
+  end
+  jeu().journal("Poste : pas d'étage trouvé en " .. #e.points .. " points")
+  return false
+end
+
 function poste.essai_lieu(nom)
   local ok, compte_rendu = jeu().poser_le_joueur(poste.lieux_d_essai[nom])
   jeu().journal("Poste : Henry posé au lieu « " .. nom .. " » = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
@@ -1825,6 +1848,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
   { nom = "scriptorium_essai_auberge_dehors", fonction = function() return poste.essai_lieu("auberge_dehors") end, aide = "Pose Henry devant l'auberge de Přítoky (les intérieurs, V73 f 3 b)" },
   { nom = "scriptorium_essai_auberge_dedans", fonction = function() return poste.essai_lieu("auberge_dedans") end, aide = "Pose Henry dans l'auberge de Přítoky, au rez-de-chaussée (V73 f 3 b)" },
+  { nom = "scriptorium_essai_auberge_etage", fonction = function() return poste.essai_auberge_etage() end, aide = "Cherche l'étage de l'auberge de Přítoky par un rayon et y pose Henry (V73 f 3 b)" },
   { nom = "scriptorium_essai_grand_saut", fonction = function() return poste.essai_grand_saut() end, aide = "Pose Henry deux cents mètres devant lui (le grand saut, V73 f 3 b)" },
   { nom = "scriptorium_essai_carte_voir", fonction = function() return poste.essai_carte_voir() end, aide = "La carte lue et le dernier chargement vu (V73 f 3 a)" },
   { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },

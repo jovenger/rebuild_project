@@ -802,6 +802,29 @@ function liaison.poser_le_joueur(position)
   return resultat[1], resultat[2]
 end
 
+-- Pour le poste d'essai (V73 f 3 b, l'étage d'une auberge, méthode du pair) : la hauteur du premier obstacle fixe
+-- (statique ou terrain, Physics.RayWorldIntersection dans la forme de sol_de) sous (x, y), en descendant de « z_depart »
+-- sur « profondeur » m. Rend la hauteur touchée, ou nil et la raison.
+function liaison.plancher_sous(x, y, z_depart, profondeur)
+  if type(ent_static) ~= "number" or type(ent_terrain) ~= "number" then
+    return nil, "masques illisibles (ent_static, ent_terrain)"
+  end
+  local touches = {}
+  local lu, n = pcall(function()
+    return Physics.RayWorldIntersection({ x = x, y = y, z = z_depart }, { x = 0, y = 0, z = -profondeur }, 1,
+      ent_static + ent_terrain, nil, nil, touches)
+  end)
+  if not lu then
+    return nil, "rayon refusé : " .. tostring(n)
+  end
+  local premier = touches[1]
+  local z = premier and type(premier.pos) == "table" and tonumber(premier.pos.z) or nil
+  if not z then
+    return nil, "rien touché (" .. tostring(n) .. ")"
+  end
+  return z
+end
+
 -- Pour le poste d'essai : pose Henry à « distance » mètres d'un objet posé, du côté d'un point (le centre du camp).
 function liaison.aller_pres_de(identifiant, vers, distance)
   local entite = entite_nommee(identifiant)
