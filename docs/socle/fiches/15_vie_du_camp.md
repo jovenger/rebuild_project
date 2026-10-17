@@ -2396,6 +2396,21 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   posent Henry à l'altitude du terrain (sous un plancher) et ne lisent pas son cap pour passer une porte. À vérifier par
   JoVenGer en jouant (l'escorte à pied dans une auberge : porte, escalier, étage, puis dehors) ; « coincé à une porte »
   est un cas du gardien des hommes (le figé).
+- **Essai fait ensuite (méthode du pair, def3e6e, cda1b49)** : Henry posé à des lieux exacts lus dans les calques
+  (`poser_le_joueur`, pose relue). « Dehors » (le point du crieur « hostinec2 ») : bond de 1 188 m, l'escorte à pied
+  (le Directeur et trois hommes) rattrapée derrière Henry au battement suivant (« à 1 190 m de son chef ») ; Henry
+  devant le bâtiment à porte cintrée. « Dedans » (à 1 m des deux personnages du calque « inn ») : **c'était la tente
+  des bains, en plein air**, pas l'intérieur ; l'escorte a suivi Henry sur 31 m. **La porte n'a donc pas été passée.**
+  Consigne de JoVenGer (17/10, par le pair) : les intérieurs s'arrêtent là ; porte, escalier et étage vont sur sa liste
+  à vérifier en jouant. La commande `scriptorium_essai_auberge_etage` (le rayon de l'étage) existe mais n'a pas servi.
+
+### À reprendre plus tard (consigne de JoVenGer du 17/10 : on ne peaufine plus, sans séance de plus)
+- La repose après une pose ignorée (vue au banc seulement).
+- Un cavalier sous les yeux d'Henry au bond ; le filet du battement sans bond.
+- Les deux limites connues du saut (cavalier descendu qui attend sous les yeux d'Henry ; ligne par battement d'un
+  homme qui ne descend jamais).
+- Le voyage rapide par la carte et son `OnLoadingComplete`.
+- Les intérieurs : porte, escalier, étage (liste de JoVenGer).
 - Vu aussi : le retrait de fin de sortie (V73 f 2 b) retirait un cheval au battement sans lire la selle ; il la lit
   désormais (encore monté : au battement suivant). Et `essai_directeur_a_cheval` remet l'escorte « comme Henry » : à
   pied si Henry est à pied.

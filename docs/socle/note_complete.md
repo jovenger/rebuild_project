@@ -65,7 +65,7 @@
   derrière Henry ailleurs, et le grand saut des cavaliers au bond d'Henry (V73 f 3 b).
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 106 chargements ou poses, 1 sur 96 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 109 chargements ou poses, 1 sur 99 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
