@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 201:
-        erreur("ordres : %d commandes lues dans poste.lua, 201 attendues" % len(connues))
+    if len(connues) != 203:
+        erreur("ordres : %d commandes lues dans poste.lua, 203 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)

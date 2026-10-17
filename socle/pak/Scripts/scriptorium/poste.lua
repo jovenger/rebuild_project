@@ -886,6 +886,42 @@ function poste.essai_sortie()
   return id ~= nil
 end
 
+-- 5 d : les deux premiers hommes sortent à cheval à 600 m DERRIÈRE Henry (hors de sa vue), y restent 0,1 h du jeu : la
+-- sortie au loin (dehors, calculée, renaissance sur le chemin du camp, rapport).
+function poste.essai_sortie_loin()
+  local hommes = Scriptorium.hommes
+  local ids = hommes.liste()
+  local point = devant_henry(-600)
+  if #ids < 2 or not point then
+    return false
+  end
+  local id, raison = Scriptorium.missions.sortir({ hommes = { ids[1], ids[2] }, point = point, duree_h = 0.1, motif = "sortie_lointaine" })
+  jeu().journal("Poste : sortie lointaine = " .. tostring(id or raison))
+  poste.battre_les_hommes()
+  return id ~= nil
+end
+
+-- D67, D69 : le Directeur (installé au besoin) habillé des pièces du préréglage d'un homme équipé, à l'état 0,7.
+function poste.essai_directeur_objets()
+  local directeur, hommes = Scriptorium.directeur, Scriptorium.hommes
+  if not directeur.est_installe() then
+    directeur.installer()
+  end
+  local objets = {}
+  for _, id in ipairs(hommes.liste()) do
+    local e = hommes.fiche(id).equipement
+    if #objets == 0 and e and e.tenue then
+      for _, objet in ipairs(jeu().pieces_de(e.tenue) or {}) do
+        table.insert(objets, { objet = objet, etat = 0.7 })
+      end
+    end
+  end
+  local ok, raison = directeur.donner_les_objets(objets)
+  jeu().journal("Poste : Directeur, " .. #objets .. " objet(s) donné(s) = " .. tostring(ok or raison))
+  poste.battre_les_hommes()
+  return ok == true and #objets > 0
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2556,6 +2592,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_forge_retirer", fonction = function() return poste.essai_forge_retirer() end, aide = "Sonde : la forge d'essai retirée" },
   { nom = "scriptorium_essai_geste", fonction = function() return poste.essai_geste() end, aide = "Le premier homme tient une posture du jeu devant Henry (fiche 18, 5 c)" },
   { nom = "scriptorium_essai_sortie", fonction = function() return poste.essai_sortie() end, aide = "Deux hommes sortent à cheval à 80 m et rentrent (fiche 18, 5 d)" },
+  { nom = "scriptorium_essai_sortie_loin", fonction = function() return poste.essai_sortie_loin() end, aide = "Deux hommes sortent à cheval à 600 m derrière Henry (la sortie au loin)" },
+  { nom = "scriptorium_essai_directeur_objets", fonction = function() return poste.essai_directeur_objets() end, aide = "Le Directeur habillé des pièces d'un homme équipé (D67, D69)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },
