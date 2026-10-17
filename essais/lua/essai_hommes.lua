@@ -3404,3 +3404,27 @@ essai("métiers (5 c) : admettre un personnage déjà né (le forgeron de Script
   egal(#FauxJeu.personnages_renvoyes, renvoyes, "son personnage reste dans le monde")
   verifier(FauxJeu.personnage_existe(perso), "toujours là")
 end)
+
+essai("embauche (5 a bis) : un homme refait avec son équipement donné (une liste d'objets, au lieu du préréglage), posé à un point", function()
+  preparer(5000, 100, 10)
+  local CASQUE, EPEE = "aaaaaaaa-1111-2222-3333-444444444444", "BBBBBBBB-1111-2222-3333-555555555555"
+  local id, r = hommes.embaucher({ role = "homme_d_armes", palier = 2, semaines = 4, prime = 0, nom = "Vavřinec",
+    position = { x = 40, y = -40, z = 0 }, objets = { { objet = CASQUE, etat = 0.6 }, EPEE } })
+  verifier(id, "engagé (" .. tostring(r) .. ")")
+  local e = hommes.fiche(id).equipement
+  egal(e.tenue, nil, "pas de préréglage")
+  egal(e.etat, "a_equiper", "à équiper")
+  FauxJeu.equipements = {}
+  hommes.battre()
+  local ordre = FauxJeu.equipements[1] and FauxJeu.equipements[1].ordre
+  verifier(ordre ~= nil, "équipé au battement")
+  egal(ordre and #ordre.creer, 0, "aucune pièce de préréglage créée")
+  egal(ordre and #ordre.recreer, 2, "ses deux objets recréés")
+  egal(ordre and ordre.recreer[1].etat, 0.6, "avec leur état")
+  egal(ordre and ordre.recreer[2].objet, string.lower(EPEE), "l'identifiant en minuscules")
+  egal(ordre and #ordre.porter, 2, "et portés")
+  for _, mauvais in ipairs({ {}, { "pas un objet" }, { { objet = CASQUE, etat = 2 } }, "casque" }) do
+    local i2, r2 = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0, objets = mauvais })
+    verifier(not i2 and (r2 == "objets_invalides" or r2 == "objet_invalide"), "objets boiteux : refusés")
+  end
+end)

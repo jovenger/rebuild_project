@@ -78,3 +78,11 @@ Réponses prises d'office :
   (refus `personnage_admis`). Pour les gens que Scriptorium fait naître lui-même (le forgeron, le service) ; les hommes
   de la partie de JoVenGer, eux, seront refaits sur nos âmes à la bascule (le pair, 17/10).
 - Au banc ; non vérifié en jeu.
+
+### 5 a bis : un homme refait avec son équipement donné (la reprise de la partie de JoVenGer, le pair, 17/10)
+
+- Contrat `objets` : une liste de `{ objet, etat }` (ou d'identifiants du jeu, état neuf) ; pas de préréglage ; les
+  objets sont recréés à la naissance avec leur état par la voie des pièces données (V71 c), puis portés ; refaits de même
+  si le personnage est refait. Avec `nom`, `role`, `palier` et `position` : l'homme repris. Le point est choisi par qui
+  appelle (hors de la vue d'Henry : à lui d'y veiller, comme pour `faire_rentrer`). Objets boiteux : refus.
+- Au banc ; non vérifié en jeu.

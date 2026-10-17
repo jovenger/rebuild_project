@@ -1286,6 +1286,28 @@ function hommes.embaucher(contrat)
   if contrat.famille ~= nil and not hommes.equipement.familles[contrat.famille] then
     return refuser("famille_inconnue", tostring(contrat.famille))
   end
+  -- Fiche 18, 5 a bis (la reprise de la partie de JoVenGer, le pair, 17/10) : « objets », l'équipement donné au lieu du
+  -- préréglage : une liste de { objet (identifiant du jeu), etat (0 à 1) } ou d'identifiants, recréés à la naissance avec
+  -- leur état (la voie des pièces données, V71 c), puis portés.
+  local objets = nil
+  if contrat.objets ~= nil then
+    if type(contrat.objets) ~= "table" or #contrat.objets == 0 then
+      return refuser("objets_invalides")
+    end
+    objets = {}
+    for i, piece in ipairs(contrat.objets) do
+      local objet = type(piece) == "table" and piece.objet or piece
+      local etat = type(piece) == "table" and piece.etat or hommes.equipement.etat_neuf
+      if type(objet) ~= "string" or not string.match(objet, "^%x+%-%x+%-%x+%-%x+%-%x+$")
+          or type(etat) ~= "number" or etat <= 0 or etat > 1 then
+        return refuser("objet_invalide", tostring(i))
+      end
+      objets[i] = { objet = string.lower(objet), etat = etat }
+    end
+    if contrat.personnage ~= nil then
+      return refuser("personnage_avec_objets")
+    end
+  end
   local lits = Scriptorium.avis(camp(), "places_libres", "lit", "hommes")
   if #lits == 0 and Scriptorium.actif("un_lit_par_homme") then
     annoncer("ui_scriptorium_hommes_pas_de_lit")
@@ -1348,7 +1370,10 @@ function hommes.embaucher(contrat)
   else
     jeu().journal("Hommes : « " .. f.nom .. " » embauché loin du camp (autre carte) : il paraîtra au camp")
   end
-  if est_combattant(f) and not f.admis then
+  if objets then
+    f.equipement = { en_plus = objets, otees = {}, naissance_retiree = false, munitions = 0, etat = "a_equiper",
+                     recreer_en_plus = true }
+  elseif est_combattant(f) and not f.admis then
     choisir_l_equipement(d, f)
   end
   verifier_rangs(d, {})
