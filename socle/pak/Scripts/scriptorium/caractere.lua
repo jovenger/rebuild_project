@@ -361,8 +361,9 @@ function caractere.facteur_de_combat(id)
     return 1
   end
   local r = caractere.reglages
-  local facteur = entre(r.aguerri_facteur_min, r.aguerri_facteur_max, c.aguerri)
-                * entre(r.courage_facteur_min, r.courage_facteur_max, c.traits.courage)
+  -- Fiche 16 : l'expérience est à Scriptorium ; l'aguerrissement éteint ne pèse plus au combat.
+  local aguerri = Scriptorium.actif("aguerrissement") and entre(r.aguerri_facteur_min, r.aguerri_facteur_max, c.aguerri) or 1
+  local facteur = aguerri * entre(r.courage_facteur_min, r.courage_facteur_max, c.traits.courage)
   if c.fatigue >= r.seuil_epuise then
     facteur = facteur * r.malus_epuise
   elseif c.fatigue >= r.seuil_fatigue then
@@ -453,7 +454,9 @@ function caractere.apres_bataille(ids)
     local c = fiche_de(d, survivant)
     if c then
       c.fatigue = borner(c.fatigue + r.fatigue_bataille, 0, 100)
-      c.aguerri = borner(c.aguerri + r.gain_bataille * caractere.facteur_d_apprendre(c.traits.don), 0, 100)
+      if Scriptorium.actif("aguerrissement") then
+        c.aguerri = borner(c.aguerri + r.gain_bataille * caractere.facteur_d_apprendre(c.traits.don), 0, 100)
+      end
       decouvrir_par(c, survivant, "bataille")
     end
   end
@@ -522,7 +525,9 @@ function caractere.passer_la_journee(id, fin, affame)
   c.fatigue = borner(c.fatigue
     + heures_de_travail * r.fatigue_par_heure * (1.5 - c.traits.endurance / 100)
     - heures_de_sommeil * r.repos_par_heure * (0.5 + c.traits.forme / 100), 0, 100)
-  c.aguerri = borner(c.aguerri + heures_d_exercice * r.gain_par_heure * caractere.facteur_d_apprendre(c.traits.don), 0, 100)
+  if Scriptorium.actif("aguerrissement") then
+    c.aguerri = borner(c.aguerri + heures_d_exercice * r.gain_par_heure * caractere.facteur_d_apprendre(c.traits.don), 0, 100)
+  end
   c.traits.endurance = borner(c.traits.endurance + heures_d_exercice * r.endurance_par_heure, 0, 100)
   if affame then
     c.traits.forme = borner(c.traits.forme + r.faim_forme, 0, 100)

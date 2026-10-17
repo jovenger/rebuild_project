@@ -28,6 +28,13 @@ function egal(obtenu, attendu, message)
 end
 
 -- Remet le socle et le faux jeu dans l'état de départ, pour chaque essai.
+-- Fiche 16 : les essais d'avant éprouvent les règles du socle allumées.
+function allumer_les_interrupteurs()
+  for nom in pairs(Scriptorium.noyau.interrupteurs or {}) do
+    Scriptorium.noyau.interrupteurs[nom] = 1
+  end
+end
+
 function depart()
   FauxJeu.remettre_a_zero()
   Scriptorium.bandeau.remettre_a_zero()
@@ -36,6 +43,7 @@ function depart()
   if Scriptorium.reglages then
     Scriptorium.reglages.remettre_a_zero()
   end
+  allumer_les_interrupteurs()
   FauxJeu.chargement = false
   if Scriptorium.hommes then
     Scriptorium.hommes.suivi = {}
@@ -79,4 +87,5 @@ end
 function depart_avec_caractere()
   depart()
   Scriptorium.reglages.remettre_a_zero()
+  allumer_les_interrupteurs()
 end

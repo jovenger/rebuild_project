@@ -122,6 +122,10 @@ end
 
 -- Use l'équipement de chaque combattant d'une bataille.
 function atelier.user_apres_bataille(combattants)
+  -- Fiche 16 : l'usure réelle des objets est à Scriptorium ; l'usure en points, éteinte.
+  if not Scriptorium.actif("usure_en_points") then
+    return
+  end
   local d = donnees()
   for _, combattant in ipairs(combattants) do
     if hommes().fiche(combattant) then
@@ -133,7 +137,7 @@ end
 
 -- Facteur de poids au combat selon l'usure.
 function atelier.facteur_de(id)
-  if atelier.usure_de(id) > atelier.reglages.seuil_usure then
+  if Scriptorium.actif("usure_en_points") and atelier.usure_de(id) > atelier.reglages.seuil_usure then
     return atelier.reglages.malus_usure
   end
   return 1
@@ -153,6 +157,9 @@ end
 function atelier.entretenir()
   local d = donnees()
   local rapport = { repares = 0, fer = 0, cuir = 0, sans_armurier = false, sans_matiere = false }
+  if not Scriptorium.actif("usure_en_points") then
+    return rapport
+  end
   if not armurier_valide() then
     rapport.sans_armurier = true
     return rapport

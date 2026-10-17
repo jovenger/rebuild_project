@@ -17,6 +17,7 @@ reglages.profondeur_maximale = 8    -- un fichier plus profond est refusé (il n
 -- du chemin.
 reglages.catalogue = {
   { section = "socle", morceau = "noyau", table = "reglages" },
+  { section = "interrupteurs", morceau = "noyau", table = "interrupteurs" },
   { section = "bandeau", morceau = "bandeau", table = "reglages" },
   { section = "coffre", morceau = "coffre", table = "reglages" },
   { section = "camp", morceau = "camp", table = "reglages", taux = { fonder_devant = true } },

@@ -31,6 +31,27 @@ Scriptorium.noyau.reglages = Scriptorium.noyau.reglages
 
 -- La règle du passage (V73 f 3 b), accrochée à la liaison : l'horloge (heures du jeu) a avancé, de
 -- « passage_jours_max » au plus.
+-- Les interrupteurs (fiche 16, 3 a ; le tableau des règles en double, 17/10) : 1 allumé, 0 éteint, réglables par le
+-- fichier de réglages (section « interrupteurs »). Éteints par défaut : ce que Scriptorium décide, et les ajouts
+-- reportés par JoVenGer.
+Scriptorium.noyau.interrupteurs = Scriptorium.noyau.interrupteurs or {
+  solde_de_la_semaine = 0,
+  aguerrissement = 0,
+  rangs_du_socle = 0,
+  usure_en_points = 0,
+  fautes_a_l_aube = 0,
+  rencontres_de_patrouille = 0,
+  contrats_a_duree = 0,
+  exactions = 0,
+  baisse_du_risque = 0,
+}
+
+function Scriptorium.actif(nom)
+  local valeur = Scriptorium.noyau.interrupteurs[nom]
+  assert(valeur ~= nil, "socle : interrupteur inconnu : " .. tostring(nom))
+  return valeur == 1
+end
+
 function Scriptorium.passage_croyable(avant_h, maintenant_h)
   local jours = tonumber(Scriptorium.noyau.reglages.passage_jours_max) or 10
   return type(avant_h) == "number" and type(maintenant_h) == "number" and maintenant_h >= avant_h

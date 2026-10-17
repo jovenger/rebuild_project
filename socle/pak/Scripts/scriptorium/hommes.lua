@@ -562,6 +562,10 @@ end
 -- ---------------------------------------------------------------- rangs
 
 local function verifier_rangs(d, rapport)
+  -- Fiche 16 : le chef est le colonel de Scriptorium ; le capitaine et les dizainiers d'office, éteints.
+  if not Scriptorium.actif("rangs_du_socle") then
+    return
+  end
   local total = #d.ordre
   -- Capitaine d'office à dix hommes, s'il n'y en a pas : le plus ancien.
   if d.capitaine == nil and total >= 10 then
@@ -1757,6 +1761,10 @@ end
 function hommes.payer_la_solde()
   local d = donnees()
   local rapport = { payes = 0, impayes = 0, somme = 0, partis = 0 }
+  -- Fiche 16 : la paie est à Scriptorium (la part des missions) ; la solde du socle et le départ pour impayé, éteints.
+  if not Scriptorium.actif("solde_de_la_semaine") then
+    return rapport
+  end
   local partants = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
@@ -1843,7 +1851,7 @@ local function aube_du_jour(d, heure, rapport)
   local partants = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
-    if heure >= f.contrat.fin then
+    if Scriptorium.actif("contrats_a_duree") and heure >= f.contrat.fin then
       table.insert(partants, { f = f, cause = "fin_de_contrat", cle = "ui_scriptorium_hommes_parti_fin_contrat" })
     elseif f.moral < hommes.reglages.moral_desertion then
       table.insert(partants, { f = f, cause = "desertion", cle = "ui_scriptorium_hommes_parti_moral" })

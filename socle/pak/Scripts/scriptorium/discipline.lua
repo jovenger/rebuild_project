@@ -72,6 +72,10 @@ local function borner(valeur, mini, maxi)
 end
 
 local function changer_reputation(d, delta)
+  -- Fiche 16 : les exactions et la réputation auprès des villages, reportées (éteintes).
+  if not Scriptorium.actif("exactions") then
+    return
+  end
   d.reputation = borner(d.reputation + delta, 0, 100)
 end
 
@@ -83,6 +87,9 @@ end
 
 -- Le facteur de prix auprès des villages : 1 à 50, 1,5 à 0, 0,5 à 100.
 function discipline.facteur_de_prix()
+  if not Scriptorium.actif("exactions") then
+    return 1
+  end
   return 1.5 - donnees().reputation / 100
 end
 
@@ -179,7 +186,8 @@ local function aube(d, heure)
   local fautes = 0
   for _, id in ipairs(hommes().liste()) do
     local f = hommes().fiche(id)
-    if f and f.blessure == 0 and bataille().tirage() < chance_de(f) then
+    -- Fiche 16 : les fautes sont à Scriptorium ; le tirage du socle, éteint.
+    if Scriptorium.actif("fautes_a_l_aube") and f and f.blessure == 0 and bataille().tirage() < chance_de(f) then
       local faute = tirer_la_sorte(id)
       if faute and commettre(d, id, faute, heure) then
         fautes = fautes + 1

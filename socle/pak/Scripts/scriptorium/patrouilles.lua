@@ -78,7 +78,7 @@ function patrouilles.risque_de(nom)
   end
   local d = donnees()
   local r = d.risques[nom]
-  if r and r.jusqu_a and jeu().heure_du_jeu() < r.jusqu_a then
+  if Scriptorium.actif("baisse_du_risque") and r and r.jusqu_a and jeu().heure_du_jeu() < r.jusqu_a then
     return math.max(0, chemin.risque - r.baisse)
   end
   return chemin.risque
@@ -177,7 +177,8 @@ local function rentrer(d, p)
     if hommes().fiche(id) then table.insert(presents, id) end
   end
   local risque = patrouilles.risque_de(p.chemin)
-  if #presents > 0 and tirage() < risque then
+  -- Fiche 16 : les sorties sont les missions de Scriptorium ; les rencontres tirées au sort, éteintes.
+  if Scriptorium.actif("rencontres_de_patrouille") and #presents > 0 and tirage() < risque then
     if tirage() < patrouilles.reglages.part_rodeurs then
       compte_rendu.issue = "rodeurs"
       local butin = 0
