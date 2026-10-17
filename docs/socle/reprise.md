@@ -1,4 +1,4 @@
-# Fiche de reprise — socle de Scriptorium (état au 16/10/2026, vers 3 h)
+# Fiche de reprise — socle de Scriptorium (état au 17/10/2026 au soir)
 
 Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer. La note courte à coller est
 `docs/socle/note_complete.md` ; ce fichier-ci donne le détail.
@@ -384,6 +384,31 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
 - **Écran noir** : 1 sur 113 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
+
+## 6 quinquies. Où reprendre (17/10/2026 au soir : étapes 1 à 5 franchies ; la bascule attend l'ordre de JoVenGer)
+
+- **Fait** (le « nécessaire » de la note de JoVenGer) : étape 1 ; âmes et faction ; étape 3, le guichet
+  (`docs/socle/guichet.md` : 337 entrées du contrat, plus aucune « à ouvrir » ni « étape 5 » : 221 servies, 93 pas utiles
+  avec leur raison, 23 réglages) ; étape 4, les missions (fiche 17) ; étape 5, l'embauche et les métiers (fiche 18).
+- **Ajouté à la demande du pair pour la bascule** : les décisions remplaçables (fiche 19 : `Scriptorium.remplacable`,
+  `Scriptorium.avis`) ; les paroles (fiche 20) ; le registre par case, regroupé et surveillé (fiche 01) ; les noms du
+  jeu admis au contrôle d'absence (`GetActions` seul, décision de JoVenGer du 17/10 : un nom de plus se demande à lui).
+- **Banc** : 18 fichiers d'essais, 8 877 vérifications, tout passe (commit de tête : voir `git log`).
+- **Vu en jeu** (détail dans `essai_en_jeu.md`) : l'embauche groupée, l'homme refait avec ses objets, « Parler »,
+  l'admis (après rechargement aussi), les gens de métier hors de la garde, quinze postes de travail du jeu (la prière dite
+  en sous-titre), le geste tenu, les sorties à cheval proche et lointaine, le Directeur habillé, le registre par case
+  sauvegardé puis rechargé (644 Ko intacts, écrits en 30 à 33 ms), les paroles de bout en bout (aucune ligne dite).
+- **Non vu en jeu** : la liste finale est `docs/socle/a_verifier_par_jovenger.md`.
+- **En attente** : l'ordre de JoVenGer pour la bascule (étape 6) ; le poste partagé avec Henry (pas encore écrit ; un
+  second « nom du jeu admis » possible, à soumettre à JoVenGer).
+- **Séances d'essai** : `debut_essai.ps1`, puis `vers_partie_d_essai.ps1 -Charger -SansDevmode -Ligne playline3`, Bas
+  deux fois, Entrée, capture, `confirmer_sauvegarde.ps1 -Attendu "playline3/autosave473"`, ordres par
+  `outils/ordonner.py`, toujours `fin_essai.ps1`. Une sauvegarde d'essai faite par `sauvegarder_et_quitter.ps1` est
+  rangée à part par `fin_essai.ps1`. Lua rechargeable en jeu ouvert : `outils/recharger.py` puis
+  `scriptorium_essai_recharger` (le poste lui-même ne se recharge pas : une commande nouvelle demande de relancer le jeu).
+- **Leçons de la journée** : une sonde à deux essais au plus, puis on s'arrête ; un détecteur d'oublis qui dénonce des
+  états intermédiaires ne prouve rien (la surveillance au battement l'a remplacé) ; l'horloge du moteur n'avance pas
+  dans une image (mesurer avec `liaison.chrono`) ; une posture « unstance » alignée ne se joue pas sans objet d'ancrage.
 
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;

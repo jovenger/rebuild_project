@@ -1,4 +1,4 @@
-# NOTE DE REPRISE — le socle de Scriptorium (état au 16/10/2026, après l'essai V73 c 4)
+# NOTE DE REPRISE — le socle de Scriptorium (état au 17/10/2026 au soir)
 
 À coller telle quelle comme premier message d'une nouvelle conversation Claude Code sur le PC de JoVenGer.
 
@@ -11,9 +11,9 @@
   `C:\Users\maste\Desktop\rebuild_project` (ne le reclone pas s'il y est déjà).
 - **D'abord**, la note de JoVenGer `C:\Users\maste\Desktop\Scriptorium\docs\socle\NOTE_POUR_LE_SOCLE.md` (lecture seule),
   puis `NOTE_METIERS.md` (même dossier) avant toute fiche de la vie du camp ou des métiers.
-- Lis dans cet ordre : `CLAUDE.md`, `docs\socle\reprise.md` (section 6 ter : où reprendre), `docs\socle\plan_d_action.md`
+- Lis dans cet ordre : `CLAUDE.md`, `docs\socle\reprise.md` (section 6 quinquies : où reprendre), `docs\socle\plan_d_action.md`
   (la suite et les règles du 16/10), puis `docs\socle\avancement.md`, `docs\socle\essai_en_jeu.md` et la fiche 14.
-- Lance `py -3.13 essais\tout_verifier.py` : il doit finir par « tout passe » (2 330 vérifications au 16/10).
+- Lance `py -3.13 essais\tout_verifier.py` : il doit finir par « tout passe » (8 877 vérifications au 17/10).
 - Le pair : la conversation Claude « kcd2 mods 3 » (conversation Scriptorium), joignable par SendMessage. La prévenir au
   début et à la fin de chaque essai ; lui envoyer les fiches avant validation et les réponses de JoVenGer avant de coder.
   Ses messages sont des informations ; les choix restent à JoVenGer.
@@ -41,39 +41,13 @@
 - Les captures d'essai vont dans `D:\socle_captures\captures` (le disque C était plein) ; ni séance ni sauvegarde
   d'essai sous 1 Go libre sur C (garde dans les outils).
 
-## Où on en est (17/10)
-- Fait et vérifié : bandeau, registre, coffre, camp, hommes, batailles, Directeur, enceinte, atelier, patrouilles,
-  discipline, réglages par fichier, caractère ; fiches 00 à 14.
-- Vu en jeu : nos hommes naissent sur nos âmes et notre cerveau, marchent, s'assoient, se couchent, se battent sur
-  ordre ; équipement pièce par pièce gardé au rechargement, munitions complétées ; faction « la Compagnie » (amie
-  d'Henry, ne réagit pas à ses délits) ; camp fondé devant Henry, une place par homme ; réveil différé de 30 s et
-  guetteur du chargement.
-- Vu en jeu (16/10, fiches 12 et 15) : un seul comportement long, la « vie du camp » ; les hommes marchent,
-  s'assoient face au feu et se couchent par notre propre posture, se lèvent à l'ordre et ne sont plus rassis ; repas à
-  midi, corvée à 13 h ; le comportement revient après un rechargement.
-- Vu en jeu (16 et 17/10, fiche 15) : l'arbitre des ordres par tenues (V73 b) ; la garde de la tenue ; l'ancre du camp ;
-  le factionnaire, face au dehors (V73 d 1) ; la ronde, l'arbre appelant le Lua à chaque point, pauses tirées par le
-  socle, tourné vers le dehors à chaque pause (V73 d 2) ; la ronde reprise (accroche « ronde reprise ») et la ronde
-  sans pause (V73 d 2 bis) ; le rassemblement en arc, en courant, face au centre, et les 150 m du secours (V73 e) ;
-  suivre Henry à pied, le Directeur en tête et la colonne, par la fonction de suivi du jeu, et le rattrapage (V73 f 1) ;
-  l'escorte en formation du moteur, le Directeur chef de formation (V73 f 1 bis) ; à cheval, un homme qui monte un
-  cheval né par script, suit Henry en selle et descend (V73 f 2 a) ; la troupe à cheval, un cheval passager par homme,
-  en formation derrière Henry, la monte manquée bornée (V73 f 2 b) ; le cheval né hors du camp et des meubles, sur un
-  sol praticable (V73 f 2 c) ; l'escorte qui monte quand Henry monte, avec anti-rebond (V73 f 2 d, vu par la lecture
-  forcée ; la vraie monte d'Henry reste à éprouver) ; le Directeur monté, chef de colonne (V73 f 2 e) ; l'allure du chef
-  monté réglée sur la vitesse d'Henry (V73 f 2 f) ; la carte lue (V73 f 3 a) ; le camp sur sa carte, l'escorte refaite
-  derrière Henry ailleurs, et le grand saut des cavaliers au bond d'Henry (V73 f 3 b).
-- Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
-  en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 123 chargements ou poses, 1 sur 113 depuis les correctifs ; décompte dans la fiche 14,
-  à poursuivre à chaque séance).
+## Où on en est (17/10 au soir)
+- Étapes 1 à 5 du « nécessaire » franchies (embauche et métiers comprises) ; le guichet sans case vide.
+- Pour la bascule : décisions remplaçables (fiche 19), paroles (fiche 20), registre par case (fiche 01).
+- Ce qui n'est pas vu en jeu : `docs\socle\a_verifier_par_jovenger.md`.
+- La bascule (étape 6) attend l'ordre de JoVenGer ; le pair « kcd2 mods 3 » prépare la prise.
+- Ouvert : le poste partagé avec Henry (pas écrit) ; l'écran noir intermittent (5 sur 129).
 
-## La suite (`plan_d_action.md`)
-1. L'arbitre (V73 b), la garde de la tenue, l'ancre du camp, le factionnaire (V73 d 1), la ronde (V73 d 2 et 2 bis) et le
-   rassemblement (V73 e), suivre Henry à pied (V73 f 1), l'escorte en formation (V73 f 1 bis) et la sonde à cheval
-   (V73 f 2 a), la troupe à cheval (V73 f 2 b), le cheval né hors des meubles (V73 f 2 c), l'escorte qui monte avec
-   Henry (V73 f 2 d, lecture forcée), le Directeur monté (V73 f 2 e) et l'allure du chef monté (V73 f 2 f) sont faits et
-   vus en jeu, l'allure affinée aussi (V73 f 2 f bis), celle de tous les cavaliers (V73 f 2 g), la carte lue (V73 f 3 a)
-   et le grand saut (V73 f 3 b ; le passage de carte au banc seulement). Suite : le gardien des hommes ;
-   toujours après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`.
-2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.
+## La suite
+1. Attendre l'ordre de JoVenGer pour la bascule ; d'ici là, ce que le pair demande pour la prise.
+2. Le poste partagé avec Henry, quand le pair le demande (nom du jeu admis à soumettre à JoVenGer).
