@@ -1054,6 +1054,39 @@ function poste.essai_dialogue_force()
   return ok == true
 end
 
+-- Fiche 18, 5 c, tranche 4 (la preuve en jeu) : Henry posé à 2 m de la forge la plus proche (classe Smithery : leurs
+-- noms sont uniques, pas ceux des meules), du côté du camp ; ensuite essai_station_partagee la prend (la plus proche).
+function poste.essai_henry_a_la_forge()
+  local forge
+  for _, s in ipairs(jeu().stations_proches(1500)) do
+    if s.classe == "Smithery" then
+      forge = s
+      break
+    end
+  end
+  if not forge then
+    jeu().journal("Poste : aucune forge à moins de 1 500 m")
+    return false
+  end
+  local ok, compte_rendu = jeu().aller_pres_de(forge.nom, Scriptorium.camp.point(0, 0, 0), 2)
+  -- La meule de la forge est souvent plus proche : essai_station_partagee prendra la forge (la meule refuse Henry par
+  -- son IsUsable, et son « use » ouvre l'inventaire, pas un mini-jeu ; Scripts/Entities/WH/Minigames, lecture seule).
+  poste.forge_d_essai = forge.nom
+  jeu().journal("Poste : Henry près de la forge « " .. forge.nom .. " » = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok == true
+end
+
+-- Fiche 18, 5 c, tranche 4 : Henry prend la station d'essai comme par la touche E (liaison.utiliser_la_station).
+function poste.essai_henry_prend_la_station()
+  if not poste.station_d_essai then
+    jeu().journal("Poste : aucune station d'essai (essai_station_partagee d'abord)")
+    return false
+  end
+  local ok, compte_rendu = jeu().utiliser_la_station(poste.station_d_essai)
+  jeu().journal("Poste : Henry prend « " .. poste.station_d_essai .. " » : " .. tostring(compte_rendu))
+  return ok == true
+end
+
 -- Fiche 18, 5 c, tranche 4 : les stations du jeu à 1 500 m ; la plus proche surveillée, le premier homme y tient un geste
 -- à 2 m, partagée avec Henry.
 function poste.essai_station_partagee()
@@ -1064,6 +1097,11 @@ function poste.essai_station_partagee()
     jeu().journal(string.format("Poste : station « %s » (%s) à %.0f m", s.nom, s.classe, s.distance))
   end
   local s = stations[1]
+  for _, autre in ipairs(stations) do
+    if autre.nom == poste.forge_d_essai then
+      s = autre
+    end
+  end
   local id = hommes.liste()[1]
   if not s or not id then
     jeu().journal("Poste : aucune station proche, ou aucun homme")
@@ -2758,6 +2796,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_actions_offertes", fonction = function() return poste.essai_actions_offertes() end, aide = "Les actions qu'offre le dernier vu à Henry, et s'il est en combat" },
   { nom = "scriptorium_essai_poste_suivant", fonction = function() return poste.essai_poste_suivant() end, aide = "Le genre de poste suivant, à 2,5 m devant Henry (capture rapprochée)" },
   { nom = "scriptorium_essai_dialogue_force", fonction = function() return poste.essai_dialogue_force() end, aide = "Le dialogue forcé vers Henry, sur un dialogue du jeu (fiche 20)" },
+  { nom = "scriptorium_essai_henry_a_la_forge", fonction = function() return poste.essai_henry_a_la_forge() end, aide = "Henry posé à 2 m de la forge la plus proche (fiche 18, le poste partagé)" },
+  { nom = "scriptorium_essai_henry_prend_la_station", fonction = function() return poste.essai_henry_prend_la_station() end, aide = "Henry prend la station d'essai comme par la touche E (fiche 18, le poste partagé)" },
   { nom = "scriptorium_essai_station_partagee", fonction = function() return poste.essai_station_partagee() end, aide = "La station du jeu la plus proche partagée avec Henry, un homme y travaille (fiche 18)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },

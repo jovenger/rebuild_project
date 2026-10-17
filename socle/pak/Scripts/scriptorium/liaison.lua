@@ -3380,6 +3380,33 @@ function liaison.henry_a_fini(station, depuis, delai, loin)
   return ok and (peut == true or peut == 1)
 end
 
+-- Pour le poste d'essai (fiche 18, 5 c, tranche 4 ; la nuit, la station ne se vise pas à l'écran) : ce que fait le jeu
+-- quand Henry appuie sur E devant une station : ses actions demandées (GetActions, donc notre enveloppe si elle est
+-- partagée), puis l'action « use » exécutée pour Henry. Rend (vrai ou faux, une ligne).
+function liaison.utiliser_la_station(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite or not player then
+    return false, "introuvable"
+  end
+  local ok, sortie = pcall(function() return entite:GetActions(player, false) end)
+  if not ok or type(sortie) ~= "table" then
+    return false, "actions illisibles : " .. tostring(sortie)
+  end
+  local noms, use = {}, nil
+  for _, a in ipairs(sortie) do
+    table.insert(noms, tostring(a.action))
+    if a.action == "use" and type(a.func) == "function" and not use then
+      use = a
+    end
+  end
+  if not use then
+    return false, "pas d'action « use » parmi [" .. table.concat(noms, ", ") .. "]"
+  end
+  local fait, erreur = pcall(use.func, entite, player)
+  return fait, "actions [" .. table.concat(noms, ", ") .. "], « use » exécutée = " .. tostring(fait)
+         .. (fait and "" or (" : " .. tostring(erreur)))
+end
+
 -- Pour le poste d'essai (fiche 18, 5 b) : les actions qu'un personnage offre à Henry, demandées au jeu (sa fonction
 -- GetActions), et s'il est en combat. Rend une ligne.
 function liaison.actions_offertes(identifiant)
