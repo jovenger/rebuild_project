@@ -3474,13 +3474,24 @@ essai("postes de travail (5 c, tranche 2) : rendre un poste fonctionnel, l'homme
   egal(vu and vu.place, pose.identifiant, "sur l'objet du poste")
   egal(vu and vu.sorte, "poste", "de sorte « poste »")
   egal(vu and vu.position and vu.position.x, 5, "à sa position")
+  -- Un autre poste : un nouvel ordre (vu en jeu le 17/10).
+  verifier(camp.rendre_fonctionnel("autel_2", "priere", { x = 9, y = 5, z = 0 }, 90), "un second poste")
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir(id, "travail", { activite = "poste", poste = "autel_2", fin = "liberation" }), "tenu au second poste")
+  local second = nil
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == perso and o.activite == "poste" then second = o end
+  end
+  verifier(second ~= nil and second.position.x == 9, "l'ordre redonné pour le second poste")
+  verifier(hommes.tenir(id, "travail", { activite = "poste", poste = "autel", fin = "liberation" }), "de retour au premier")
   -- Rechargé : l'objet manque, il est reposé.
+  local poses_avant = #FauxJeu.postes_poses
   FauxJeu.objets_existants[pose.identifiant] = nil
   camp.redresser()
-  egal(#FauxJeu.postes_poses, 2, "reposé au redressement")
+  egal(#FauxJeu.postes_poses, poses_avant + 1, "reposé au redressement (seul celui qui manque)")
   verifier(camp.poste("autel").pose, "de nouveau posé")
   hommes.lacher(id, "travail")
   verifier(camp.lever(), "camp levé")
-  verifier(not FauxJeu.objet_existe(FauxJeu.postes_poses[2].identifiant), "le poste retiré avec le camp")
+  verifier(not FauxJeu.objet_existe(FauxJeu.postes_poses[#FauxJeu.postes_poses].identifiant), "le poste retiré avec le camp")
   egal(#camp.postes(), 0, "plus de poste")
 end)

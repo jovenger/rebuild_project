@@ -816,6 +816,15 @@ function poste.essai_forge_naitre()
   return poste.forge_d_essai ~= nil
 end
 
+-- Second essai de la sonde (17/10 : la forge née par RuntimePrefab ne paraît pas, rien au journal du moteur) : le
+-- préfabriqué simple de la prière (Prefabs/profession/parson/praying.xml, Prefab Id eeeabcbd-…-4ec49c4a), complet et
+-- connu ; né, le relevé doit montrer un poste de prière de plus à 6 m devant Henry.
+function poste.essai_prefab_priere()
+  local point, cap = devant_henry(6)
+  poste.forge_d_essai = jeu().faire_naitre_un_prefabrique("priere", "eeeabcbd-ee85-459f-b515-dbbd4ec49c4a", point, cap or 0)
+  return poste.forge_d_essai ~= nil
+end
+
 function poste.essai_forge_tenir()
   local hommes = Scriptorium.hommes
   local id = hommes.liste()[1]
@@ -2501,6 +2510,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_postes_lot_quatre", fonction = function() return poste.essai_postes_lot(4) end, aide = "Quatre postes du catalogue (lot 4) et un homme à chacun" },
   { nom = "scriptorium_essai_postes_fin", fonction = function() return poste.essai_postes_fin() end, aide = "Hommes lâchés des postes, postes retirés" },
   { nom = "scriptorium_essai_forge_naitre", fonction = function() return poste.essai_forge_naitre() end, aide = "Sonde : la petite forge du jeu née entière (RuntimePrefab) devant Henry" },
+  { nom = "scriptorium_essai_prefab_priere", fonction = function() return poste.essai_prefab_priere() end, aide = "Sonde : le préfabriqué de la prière né entier (RuntimePrefab) devant Henry" },
   { nom = "scriptorium_essai_forge_tenir", fonction = function() return poste.essai_forge_tenir() end, aide = "Sonde : le premier homme au poste du forgeron le plus proche" },
   { nom = "scriptorium_essai_forge_retirer", fonction = function() return poste.essai_forge_retirer() end, aide = "Sonde : la forge d'essai retirée" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },

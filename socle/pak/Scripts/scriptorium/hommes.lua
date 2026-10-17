@@ -1894,6 +1894,9 @@ function hommes.activite_de(id, heure)
     -- Fiche 18, 5 c : au poste de travail, le poste et sa position.
     if tenue.poste then
       resultat.poste = tenue.poste
+      -- Le lieu, dans la signature de l'ordre : un autre poste redonne l'ordre (vu en jeu le 17/10 : sans lui, l'homme
+      -- passait d'un poste à l'autre sans nouvel ordre).
+      resultat.lieu = resultat.lieu or tenue.poste
       local p = camp().poste(tenue.poste)
       resultat.position = resultat.position or (p and p.position)
     end
