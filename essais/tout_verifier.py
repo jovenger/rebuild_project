@@ -540,6 +540,26 @@ def verifier_identifiants():
         l.retirer_cheval("scriptorium_cheval_essai")
         if System.entites[doublure] == nil then return "une doublure de dialogue retirée avec le cheval" end
         System.entites[doublure] = nil
+        -- V73 f 2 c : le sol d'une place, pour un cheval (la pente par le terrain, l'encombrement par un rayon descendu ;
+        -- l'eau seulement si le jeu donne ent_water).
+        local sol = l.sol_de({ x = 1, y = 1, z = 7 }, 1.5)
+        if not sol or sol.pente ~= 0 or sol.encombre ~= nil then return "sol plat, rayon illisible : " .. tostring(sol and sol.pente) .. " " .. tostring(sol and sol.encombre) end
+        ent_all = 1
+        Physics = { RayWorldIntersection = function(depart, dir, n, masque, a, b, touches) touches[1] = { pos = { x = depart.x, y = depart.y, z = 7 } } return 1 end }
+        sol = l.sol_de({ x = 1, y = 1, z = 7 }, 1.5)
+        if sol.encombre ~= false or sol.eau_lisible ~= false then return "sol libre : " .. tostring(sol.encombre) .. " " .. tostring(sol.eau_lisible) end
+        Physics.RayWorldIntersection = function(depart, dir, n, masque, a, b, touches) touches[1] = { pos = { x = depart.x, y = depart.y, z = 8 } } return 1 end
+        ent_water = 512
+        sol = l.sol_de({ x = 1, y = 1, z = 7 }, 1.5)
+        if sol.encombre ~= true or sol.eau_lisible ~= true then return "sol encombré : " .. tostring(sol.encombre) .. " " .. tostring(sol.eau_lisible) end
+        local terrain_avant = System.GetTerrainElevation
+        System.GetTerrainElevation = function(p) return p.x end
+        sol = l.sol_de({ x = 1, y = 1, z = 7 }, 2)
+        if math.abs(sol.pente - 1) > 1e-6 then return "pente : " .. tostring(sol.pente) end
+        System.GetTerrainElevation = function() error("terrain illisible") end
+        if l.sol_de({ x = 1, y = 1, z = 7 }, 2) ~= nil then return "un terrain illisible rend un sol" end
+        System.GetTerrainElevation = terrain_avant
+        Physics, ent_all, ent_water = nil, nil, nil
         System.entites["scriptorium_rondier"], System.entites["scriptorium_chef_d_essai"] = nil, nil
         XGenAIModule.GetMyWUID = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
@@ -1345,6 +1365,13 @@ def verifier_la_vie_du_camp():
                "un nœud par mode), la monte bornée et la monte manquée comptée")
     if comportements.count(manquee) != 3:
         erreur("vie du camp : les branches 17, 18 et 19 comptent chacune la monte manquée")
+    # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
+    approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
+                         r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '
+                         r'\$scriptorium_monte_approche_ms : 0\)" />\s*<Expression expressions="\$monte_delai = concat', comportements)
+    if not approche or '"scriptorium_monte_approche_ms", approche' not in liaison:
+        erreur("vie du camp : le délai de la monte s'allonge de la marche jusqu'au cheval (écrite par la liaison, ajoutée par "
+               "l'arbre avant la durée)")
     if ("poser_l_activite(entite, 18)" not in liaison or "poser_l_activite(entite, 19)" not in liaison
             or '"scriptorium_monte_manquee"' not in liaison):
         erreur("vie du camp : la liaison doit donner les ordres 18 et 19 et lire les montes manquées")
@@ -1370,6 +1397,11 @@ def verifier_la_vie_du_camp():
 
 
 def principal(arguments):
+    # Un nom tchèque (« ř ») dans un message ne doit pas faire planter l'affichage sous cp1252 (vu le 17/10).
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, ValueError) as exc:
+        print("affichage : réglage des caractères impossible (%s)" % exc)
     strict = "--strict" in arguments
     print("Vérification complète du socle (%s)" % ("mode strict" if strict else "mode suivi"))
 

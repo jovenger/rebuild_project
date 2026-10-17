@@ -2277,7 +2277,7 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   for i = 1, 3 do
     ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
     perso[i] = hommes.fiche(ids[i]).personnage
-    FauxJeu.positions[perso[i]] = { x = 10 * i, y = 0, z = 0 }
+    FauxJeu.positions[perso[i]] = { x = 100 + 10 * i, y = 0, z = 0 }   -- hors du camp (V73 f 2 c)
   end
   hommes.battre()
   FauxJeu.manquees, FauxJeu.chevaux, FauxJeu.chevaux_retires = {}, {}, {}
@@ -2370,6 +2370,127 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   verifier(hommes.renvoyer(ids[1]), "l'homme renvoyé")
   hommes.battre()
   verifier(FauxJeu.chevaux[cheval_c] == nil, "l'homme renvoyé : son cheval retiré")
+  FauxJeu.manquees = nil
+end)
+
+-- Fiche 15, V73 f 2 c : le cheval né hors des meubles (conseils du pair), sur un sol praticable, hors de la vue d'Henry
+-- de préférence ; l'approche allonge le délai de la monte.
+essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin des meubles et des autres chevaux ; le sol ; la vue d'Henry ; l'approche", function()
+  preparer(5000, 100, 10)
+  camp.agrandir()
+  camp.agrandir()
+  egal(camp.niveau(), 3, "un camp plein de meubles (niveau 3)")
+  local ids, perso = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+    FauxJeu.positions[perso[i]] = { x = i - 2, y = 1, z = 0 }   -- au feu
+  end
+  hommes.battre()
+  FauxJeu.manquees, FauxJeu.chevaux, FauxJeu.chevaux_retires = {}, {}, {}
+  for i = 1, 3 do
+    hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
+  end
+  local r, rayon = hommes.reglages, Scriptorium.enceinte.reglages.rayon
+  local function ecart(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
+  local objets = {}
+  for _, e in ipairs(camp.plan) do table.insert(objets, (camp.point(e.x, e.y, 0))) end
+  for _, e in ipairs(Scriptorium.enceinte.plan) do table.insert(objets, (camp.point(e.x, e.y, 0))) end
+  local places = {}
+  for i = 1, 3 do
+    local m = hommes.montures[ids[i]]
+    verifier(m and m.cheval and FauxJeu.chevaux[m.cheval], "l'homme " .. i .. " a son cheval")
+    local p = FauxJeu.chevaux[m.cheval]
+    places[i] = p
+    verifier(ecart(p, { x = 0, y = 0 }) >= rayon + r.cheval_ecart_meuble_m, "le cheval " .. i .. " hors du camp")
+    verifier(p.y > 0, "le cheval " .. i .. " du côté de la porte")
+    local plus_pres = math.huge
+    for _, o in ipairs(objets) do plus_pres = math.min(plus_pres, ecart(p, o)) end
+    verifier(plus_pres >= r.cheval_ecart_meuble_m, "le cheval " .. i .. " à 3 m de tout meuble (" .. string.format("%.1f", plus_pres) .. " m)")
+    local o = dernier_ordre_de(perso[i])
+    verifier(o and o.suivi and o.suivi.approche_ms and o.suivi.approche_ms >= 20000, "l'approche de l'homme " .. i .. " comptée (" .. tostring(o and o.suivi and o.suivi.approche_ms) .. " ms)")
+  end
+  for i = 1, 3 do
+    for j = i + 1, 3 do
+      verifier(ecart(places[i], places[j]) >= r.cheval_ecart_cheval_m, "les chevaux " .. i .. " et " .. j .. " à 3 m l'un de l'autre")
+    end
+  end
+  verifier(journal_contient("places refusées"), "les refus au journal")
+  for i = 1, 3 do hommes.lacher(ids[i], "escorte") end
+  for _ = 1, 2 do hommes.battre() end
+  -- Un homme hors du camp : son cheval à 5 m de lui, hors du cercle.
+  FauxJeu.positions[perso[1]] = { x = 100, y = 0, z = 0 }
+  hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  local p1 = FauxJeu.chevaux[hommes.montures[ids[1]].cheval]
+  verifier(math.abs(ecart(p1, FauxJeu.positions[perso[1]]) - r.cheval_distance_m) < 0.01, "hors du camp : à 5 m de l'homme")
+  hommes.lacher(ids[1], "escorte")
+  for _ = 1, 2 do hommes.battre() end
+  -- Le sol : un angle dans l'eau (encombré) ou sur une pente refusé ; la vue d'Henry : un angle hors de vue préféré.
+  local ici = { x = 100, y = 0, z = 0 }
+  FauxJeu.positions[perso[1]] = ici   -- reposé : le secours du faux moteur a pu le ramener au camp
+  local essayees_avant = r.cheval_places_essayees
+  r.cheval_places_essayees = 32   -- un quart des angles seulement reste permis ici
+  FauxJeu.sol_du_cheval = function(p)
+    if p.x > ici.x then return { pente = 0, encombre = true, eau_lisible = true } end
+    if p.y > ici.y then return { pente = 2, encombre = false, eau_lisible = true } end
+    return { pente = 0, encombre = false, eau_lisible = true }
+  end
+  FauxJeu.vue_d_henry = function(p) return p.x > ici.x - 3 end
+  hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  local p2 = FauxJeu.chevaux[hommes.montures[ids[1]].cheval]
+  verifier(p2.x <= ici.x and p2.y <= ici.y, "l'eau et la pente refusées")
+  verifier(p2.x <= ici.x - 3, "un angle hors de la vue d'Henry préféré")
+  verifier(journal_contient("vu d'Henry : non"), "hors de vue au journal")
+  hommes.lacher(ids[1], "escorte")
+  for _ = 1, 2 do hommes.battre() end
+  -- Toutes les places vues d'Henry : le cheval naît quand même (mieux qu'un refus).
+  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.positions[perso[1]] = { x = 100, y = 0, z = 0 }
+  hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  verifier(hommes.montures[ids[1]].cheval ~= nil, "tout vu d'Henry : le cheval naît quand même")
+  verifier(journal_contient("vu d'Henry : oui"), "vu au journal")
+  hommes.lacher(ids[1], "escorte")
+  for _ = 1, 2 do hommes.battre() end
+  FauxJeu.vue_d_henry, FauxJeu.sol_du_cheval = nil, nil
+  -- Des refus francs, un seul motif possible à chaque fois : tout encombré (l'eau), tout en pente, et, le cercle de
+  -- l'enceinte rétréci, seul le sol contre un meuble du camp libre.
+  local function refus_seul(motif, sol, ou)
+    hommes.montures = {}
+    FauxJeu.positions[perso[1]] = ou or { x = 100, y = 0, z = 0 }
+    FauxJeu.sol_du_cheval = sol
+    hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+    FauxJeu.sol_du_cheval = nil
+    local m = hommes.montures[ids[1]]
+    verifier(m and m.cheval == nil, motif .. " : naissance refusée")
+    local derniere = FauxJeu.journal_lignes[#FauxJeu.journal_lignes] or ""
+    verifier(string.find(derniere, "naissance refusée", 1, true) and string.find(derniere, motif, 1, true), motif .. " au journal : " .. derniere)
+    hommes.lacher(ids[1], "escorte")
+    for _ = 1, 2 do hommes.battre() end
+  end
+  refus_seul("encombre", function() return { pente = 0, encombre = true, eau_lisible = true } end)
+  refus_seul("pente", function() return { pente = 2, encombre = false, eau_lisible = true } end)
+  local rayon_avant = Scriptorium.enceinte.reglages.rayon
+  Scriptorium.enceinte.reglages.rayon = 2
+  local loin = nil
+  for _, e in ipairs(camp.plan) do
+    local o = camp.point(e.x, e.y, 0)
+    if not loin and ecart(o, { x = 0, y = 0 }) >= 9 then loin = o end
+  end
+  verifier(loin ~= nil, "un meuble à 9 m au moins du feu")
+  local d_loin = ecart(loin, { x = 0, y = 0 })
+  refus_seul("meuble", function(p) return { pente = 0, encombre = ecart(p, loin) >= 3, eau_lisible = true } end,
+    { x = loin.x * (1 + 4.5 / d_loin), y = loin.y * (1 + 4.5 / d_loin), z = 0 })
+  Scriptorium.enceinte.reglages.rayon = rayon_avant
+  r.cheval_places_essayees = essayees_avant
+  -- Aucune place possible : la naissance est refusée (un essai).
+  local ecart_avant = r.cheval_ecart_meuble_m
+  r.cheval_ecart_meuble_m = 1000
+  hommes.montures = {}
+  FauxJeu.positions[perso[2]] = { x = 0, y = 1, z = 0 }
+  hommes.tenir(ids[2], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  r.cheval_ecart_meuble_m = ecart_avant
+  verifier(hommes.montures[ids[2]].cheval == nil and hommes.montures[ids[2]].essais == 1, "aucune place : naissance refusée, un essai")
+  verifier(journal_contient("naissance refusée"), "le refus au journal")
   FauxJeu.manquees = nil
 end)
 

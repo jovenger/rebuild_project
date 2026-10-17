@@ -251,6 +251,11 @@ function faux.retirer_cheval(identifiant)
   faux.chevaux_retires = faux.chevaux_retires or {}
   table.insert(faux.chevaux_retires, identifiant)
 end
+-- V73 f 2 c : le sol d'une place (« sol_du_cheval » posé par les essais), sinon plat et libre.
+function faux.sol_de(position, pas)
+  if faux.sol_du_cheval then return faux.sol_du_cheval(position, pas) end
+  return { pente = 0, encombre = false, eau_lisible = true }
+end
 -- V73 f 2 b : le compte des montes manquées du cerveau d'un homme (posé par les essais), 0 sinon.
 function faux.montes_manquees(identifiant)
   return faux.manquees and faux.manquees[identifiant] or 0

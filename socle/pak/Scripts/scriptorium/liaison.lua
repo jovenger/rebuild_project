@@ -1181,6 +1181,52 @@ function liaison.retirer_cheval(identifiant)
   liaison.retirer_objet(identifiant)
 end
 
+-- Fiche 15, V73 f 2 c (relecture du pair) : le sol d'une place, pour un cheval. « pente » : la plus forte pente du
+-- terrain autour (hauteurs du terrain à « pas » m de part et d'autre, en mètres par mètre) ; « encombre » : vrai si un
+-- rayon descendu de 3 m au-dessus du terrain (Physics.RayWorldIntersection, la forme de
+-- Scripts/Entities/Physics/PressurizedObject.lua) touche quelque chose à plus de 0,3 m au-dessus : un objet, un
+-- personnage, et l'eau quand le jeu donne « ent_water » (« eau_lisible ») ; nil quand le rayon est illisible. Rend
+-- { pente, encombre, eau_lisible }, ou nil si le terrain est illisible.
+function liaison.sol_de(position, pas)
+  local function hauteur(x, y)
+    local lu, z = pcall(System.GetTerrainElevation, { x = x, y = y, z = position.z or 0 })
+    return lu and tonumber(z) or nil
+  end
+  local z0 = hauteur(position.x, position.y)
+  if not z0 then
+    return nil
+  end
+  local pente = 0
+  for _, d in ipairs({ { pas, 0 }, { -pas, 0 }, { 0, pas }, { 0, -pas } }) do
+    local z = hauteur(position.x + d[1], position.y + d[2])
+    if z then
+      pente = math.max(pente, math.abs(z - z0) / pas)
+    end
+  end
+  local eau_lisible = type(ent_water) == "number"
+  local encombre = nil
+  if type(ent_all) == "number" then
+    local masque = ent_all + (eau_lisible and ent_water or 0)
+    local touches = {}
+    local lu, n = pcall(function()
+      return Physics.RayWorldIntersection({ x = position.x, y = position.y, z = z0 + 3 }, { x = 0, y = 0, z = -4 }, 1,
+        masque, nil, nil, touches)
+    end)
+    if lu and tonumber(n) then
+      local premier = touches[1]
+      local z = premier and type(premier.pos) == "table" and tonumber(premier.pos.z) or nil
+      encombre = (tonumber(n) > 0 and z ~= nil and z > z0 + 0.3) or false
+    end
+  end
+  -- Une fois par partie : ce que le jeu a laissé lire (à vérifier en jeu, fiche 15, V73 f 2 c).
+  if not liaison.sol_dit then
+    liaison.sol_dit = true
+    liaison.journal("Sol : rayon " .. (encombre == nil and "illisible" or "lisible") .. ", eau "
+                    .. (eau_lisible and "lisible (ent_water)" or "illisible (pas de ent_water)"))
+  end
+  return { pente = pente, encombre = encombre, eau_lisible = eau_lisible }
+end
+
 -- Fiche 15, V73 f 2 b : le compte des montes manquées que tient le cerveau de l'homme (l'arbre l'augmente quand le délai
 -- de la monte passe sans qu'il soit en selle) ; nil s'il est illisible.
 function liaison.montes_manquees(identifiant)
@@ -2477,6 +2523,11 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
           local monture_lue, wuid_monture = pcall(function() return XGenAIModule.GetMyWUID(monture) end)
           local en_selle = monture ~= nil and monture_lue and wuid_monture ~= nil
             and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_cheval", wuid_monture) end)
+          -- V73 f 2 c : le temps de la marche jusqu'au cheval, ajouté par l'arbre au délai de la monte.
+          if en_selle then
+            local approche = math.floor(tonumber(suivi.approche_ms) or 0)
+            pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_monte_approche_ms", approche)
+          end
           local menee = suivi.role == "mener" and suivi.formation or nil
           if menee then
             liaison.formations_menees[identifiant] = menee

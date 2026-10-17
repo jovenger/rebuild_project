@@ -1777,6 +1777,70 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - Suite (relecture du pair) : monter **quand Henry monte** (un `StanceCheck` « horse » sur Henry, anti-rebond), le
   Directeur monté chef de colonne ; puis le changement de carte et les intérieurs.
 
+## V73 f 2 c — le cheval né hors des meubles (17/10, relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Premier point ouvert de V73 f 2 b : la naissance du cheval n'évite que les personnages (à 1 m), pas les meubles. Un
+  cheval né dans une tente, sur un banc ou contre la palissade : c'est l'hypothèse même de l'écran noir (un corps posé
+  dans un objet). Le pair conseille de ne pas l'attendre.
+
+### Ce que le pair a transmis
+- Réemployer le garde-fou des postes (fiche 15, V73 d 1 : à plus de 2 m de tout meuble du plan, en dedans ou en dehors
+  de la palissade selon le cas), et sinon un autre angle.
+- Pour un homme au camp, le plus sûr : faire naître le cheval **hors du camp, sur le chemin de sortie**, et l'homme
+  marche jusqu'à lui (on va chercher sa monture) ; au banc, un camp plein de meubles.
+
+### Comment ce serait fait
+1. **La base** : sans camp, l'homme ; camp fondé et homme **dans le cercle de l'enceinte** (le cercle du plan, rayon
+   `enceinte.reglages.rayon`, bâtie ou non) : **le point de sortie**, du côté de la porte (le plan la met au nord de
+   l'ancre), à `cheval_hors_camp_m` (6) au-delà du cercle ; homme hors du cercle : l'homme.
+2. **La place** : jusqu'à `cheval_places_essayees` (8) angles tirés au hasard, à `cheval_distance_m` (5) de la base ;
+   une place est bonne si elle est à au moins `cheval_ecart_meuble_m` (3 ; un cheval est plus long qu'un homme) de tout
+   objet du plan du camp et de l'enceinte (tous niveaux, bâtis ou non : par prudence), **hors du cercle** de l'enceinte d'au moins le même
+   écart quand un camp est fondé, à au moins `cheval_ecart_cheval_m` (3) des chevaux des autres hommes, **sur un sol
+   praticable** (relecture du pair) : une pente au plus `cheval_pente_max` (0,5 m par m ; hauteurs du terrain à
+   `cheval_sol_pas_m`, 1,5 m, de part et d'autre, `System.GetTerrainElevation`) et rien qui encombre (un rayon descendu
+   de 3 m au-dessus, `Physics.RayWorldIntersection`, la forme de `Scripts/Entities/Physics/PressurizedObject.lua`, qui
+   touche quelque chose à plus de 0,3 m au-dessus du terrain : objet, personnage, et l'eau si le jeu donne `ent_water`).
+   **La vue d'Henry** (relecture du pair) : d'abord une place qu'Henry ne voit pas (`henry_voit`, `secours_vue_cos`) ;
+   sinon une place qu'il voit, plutôt qu'un refus. Aucune place : la naissance est refusée (un essai, une ligne au
+   journal avec les refus par raison, comme avant).
+3. **L'approche** : l'homme marche jusqu'à son cheval ; le délai de la monte s'allonge du temps de la marche :
+   `scriptorium_monte_approche_ms` (variable de cerveau écrite par la liaison avec l'ordre), la distance de l'homme à
+   son cheval à `monte_approche_m_par_s` (1 m/s, une marche prudente), au plus `monte_approche_max_ms` (60 000) ; l'arbre
+   l'ajoute à `monte_delai_ms`.
+4. **Au banc** : un camp fondé au niveau 3 (tous ses meubles), l'enceinte bâtie, trois hommes au feu ; chaque cheval à
+   au moins 3 m de chaque meuble et de chaque objet de l'enceinte, hors du cercle, à 3 m des autres ; l'approche donnée ;
+   un homme hors du camp : son cheval à 5 m de lui, hors du cercle ; aucune place possible : refus.
+
+### Relecture du pair (17/10)
+- Fiche bonne ; deux ajouts à la « bonne place » : **le sol** (au sol, pas dans l'eau, pas sur une pente trop raide : un
+  cheval mal posé glisse ou reste coincé) et **la vue d'Henry** (préférer les angles qu'il ne voit pas ; ceux qu'il voit
+  seulement si aucun autre ne convient, plutôt que refuser ; la règle des hommes posés d'un coup). Faits.
+- **L'eau** : aucun script du jeu ne la lit (`Scripts.pak`, lecture seule : ni `GetWaterLevel` ni `ent_water`) ; deux
+  recherches sur la toile (documentation de CryEngine 5) sans réponse sûre. D'où la mesure prudente : le rayon descendu
+  ajoute `ent_water` seulement si le jeu le donne (« eau lisible », écrit au journal de la séance) ; à vérifier en jeu.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `cheval_hors_camp_m` 6, `cheval_places_essayees` 8, `cheval_ecart_meuble_m` 3,
+  `cheval_ecart_cheval_m` 3, `cheval_pente_max` 0,5, `cheval_sol_pas_m` 1,5, `monte_approche_m_par_s` 1,
+  `monte_approche_max_ms` 60 000.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé ; camp fondé, trois hommes au camp ; `essai_troupe_a_cheval`.
+1. **Trois chevaux hors du camp**, du côté de la porte, sur l'herbe, aucun dans un meuble (à l'image, et journal).
+2. **Les hommes marchent jusqu'à eux et montent** sans monte manquée (l'approche comptée).
+3. Puis comme V73 f 2 b : la troupe suit Henry ; fin de sortie, descentes, chevaux retirés.
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Où naît le cheval d'un homme au camp** : (a) hors du camp, du côté de la porte (Recommandé : le conseil du pair,
+   aucun meuble là, et vraisemblable) ; (b) à 5 m de l'homme, loin des meubles. **Prise : (a).**
+2. **L'écart aux meubles** : (a) 3 m (Recommandé : un cheval est plus long qu'un homme) ; (b) 2 m, comme les postes.
+   **Prise : (a).**
+3. **Le délai de monte** : (a) allongé du temps de la marche jusqu'au cheval (Recommandé) ; (b) inchangé.
+   **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

@@ -70,6 +70,22 @@ hommes.reglages = {
   cheval_retrait_m = 6,
   cheval_retrait_battements = 2,
   monte_essais_max = 3,
+  -- La place du cheval (V73 f 2 c, conseils du pair : jamais dans un meuble, l'hypothèse de l'écran noir) : un homme dans
+  -- le cercle de l'enceinte (celui du plan, bâtie ou non) va chercher sa monture hors du camp, « cheval_hors_camp_m »
+  -- au-delà du cercle, du côté de la porte ; jusqu'à « cheval_places_essayees » angles tirés au hasard ; une place est
+  -- bonne à « cheval_ecart_meuble_m » de tout objet du plan du camp et de l'enceinte (tous niveaux, par prudence), hors
+  -- du cercle d'autant quand un camp est fondé, à « cheval_ecart_cheval_m » des chevaux des autres hommes, sur un terrain
+  -- de pente au plus « cheval_pente_max » (mesurée à « cheval_sol_pas_m » de part et d'autre) et que rien n'encombre ;
+  -- hors de la vue d'Henry si possible. L'homme marche jusqu'à son cheval : le délai de la monte s'allonge de la marche,
+  -- à « monte_approche_m_par_s », au plus « monte_approche_max_ms ».
+  cheval_hors_camp_m = 6,
+  cheval_places_essayees = 8,
+  cheval_ecart_meuble_m = 3,
+  cheval_ecart_cheval_m = 3,
+  cheval_pente_max = 0.5,
+  cheval_sol_pas_m = 1.5,
+  monte_approche_m_par_s = 1,
+  monte_approche_max_ms = 60000,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -1518,8 +1534,15 @@ function hommes.activite_de(id, heure)
           local m = hommes.montures[id]
           if m and m.cheval and not m.abandon then
             local role = resultat.suivi
+            -- V73 f 2 c : l'homme marche jusqu'à son cheval ; le délai de la monte s'allonge de cette marche.
+            local ici, la = jeu().position_du_personnage(f.personnage), jeu().position_du_personnage(m.cheval)
+            local approche = 0
+            if ici and la then
+              approche = math.floor(math.min(hommes.reglages.monte_approche_max_ms, 1000
+                * math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) / hommes.reglages.monte_approche_m_par_s))
+            end
             resultat.suivi = { mode = "cheval", cheval = m.cheval, role = role and role.mode or nil,
-                               formation = role and role.formation or nil }
+                               formation = role and role.formation or nil, approche_ms = approche }
           end
         end
         -- Le rôle à cheval et le nom du cheval entrent dans la signature : un cheval né de nouveau redonne l'ordre.
@@ -2092,8 +2115,90 @@ local function compter_un_essai(f, m)
   end
 end
 
--- Le cheval passager de l'homme en sortie à cheval qui n'en a pas de vivant (V73 f 2 b) : à « cheval_distance_m » de
--- lui, sous un angle tiré au hasard ; une naissance refusée compte comme un essai manqué, une seule fois à la même heure
+-- La place du cheval (V73 f 2 c) : voir les réglages « cheval_* ». Rend (place, refus par raison, vue d'Henry), ou
+-- (nil, refus par raison).
+local function place_du_cheval(id, ici)
+  local r = hommes.reglages
+  local function ecart(a, b)
+    return ((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) ^ 0.5
+  end
+  local enceinte = Scriptorium.enceinte
+  local centre = camp().est_fonde() and camp().point(0, 0, 0) or nil
+  local rayon = enceinte and enceinte.reglages and tonumber(enceinte.reglages.rayon) or nil
+  local base = ici
+  local objets = {}
+  if centre then
+    if rayon and ecart(ici, centre) < rayon + r.cheval_ecart_meuble_m then
+      base = camp().point(0, rayon + r.cheval_hors_camp_m, 0)
+    end
+    for _, e in ipairs(camp().plan) do
+      table.insert(objets, (camp().point(e.x, e.y, 0)))
+    end
+    for _, e in ipairs(enceinte and enceinte.plan or {}) do
+      table.insert(objets, (camp().point(e.x, e.y, 0)))
+    end
+  end
+  local chevaux = {}
+  for autre, m in pairs(hommes.montures) do
+    if autre ~= id and m.cheval then
+      local la = jeu().position_du_personnage(m.cheval)
+      if la then
+        table.insert(chevaux, la)
+      end
+    end
+  end
+  local refus, vue = {}, nil
+  for _ = 1, r.cheval_places_essayees do
+    local angle = Scriptorium.tirer(hommes.hasard_des_chevaux) * 2 * math.pi
+    local p = { x = base.x + r.cheval_distance_m * math.cos(angle), y = base.y + r.cheval_distance_m * math.sin(angle),
+                z = base.z }
+    local raison = nil
+    if centre and rayon and ecart(p, centre) < rayon + r.cheval_ecart_meuble_m then
+      raison = "camp"
+    end
+    for _, o in ipairs(objets) do
+      if not raison and ecart(p, o) < r.cheval_ecart_meuble_m then
+        raison = "meuble"
+      end
+    end
+    for _, c in ipairs(chevaux) do
+      if not raison and ecart(p, c) < r.cheval_ecart_cheval_m then
+        raison = "cheval"
+      end
+    end
+    if not raison then
+      local sol = jeu().sol_de(p, r.cheval_sol_pas_m)
+      if sol and type(sol.pente) == "number" and sol.pente > r.cheval_pente_max then
+        raison = "pente"
+      elseif sol and sol.encombre == true then
+        raison = "encombre"
+      end
+    end
+    if raison then
+      refus[raison] = (refus[raison] or 0) + 1
+    elseif jeu().henry_voit(p, r.secours_vue_cos) ~= true then
+      return p, refus, false
+    else
+      vue = vue or p
+    end
+  end
+  if vue then
+    return vue, refus, true
+  end
+  return nil, refus
+end
+
+local function dire_les_refus(refus)
+  local morceaux = {}
+  for _, raison in ipairs({ "camp", "meuble", "cheval", "pente", "encombre" }) do
+    if refus[raison] then
+      table.insert(morceaux, refus[raison] .. " " .. raison)
+    end
+  end
+  return #morceaux > 0 and table.concat(morceaux, ", ") or "aucune"
+end
+
+-- Le cheval passager de l'homme en sortie à cheval qui n'en a pas de vivant (V73 f 2 b) : sa place (V73 f 2 c) ; une naissance refusée compte comme un essai manqué, une seule fois à la même heure
 -- du jeu (la pose d'une tenue ordonne l'homme deux fois). Une ligne au journal.
 local function preparer_la_monture(id, f, heure)
   if not en_sortie_a_cheval(f) then
@@ -2116,17 +2221,17 @@ local function preparer_la_monture(id, f, heure)
   if not Scriptorium.hasard_en_ordre(hommes.hasard_des_chevaux) then
     hommes.hasard_des_chevaux = Scriptorium.hasard_depuis(5171)
   end
-  local angle = Scriptorium.tirer(hommes.hasard_des_chevaux) * 2 * math.pi
-  local r = hommes.reglages.cheval_distance_m
+  local place, refus, vu = place_du_cheval(id, ici)
   -- Un nom par essai : le cheval né de nouveau change la signature de l'ordre.
-  local cheval = jeu().faire_venir_cheval(id .. "_" .. (m.essais + 1),
-    { x = ici.x + r * math.cos(angle), y = ici.y + r * math.sin(angle), z = ici.z })
+  local cheval = place and jeu().faire_venir_cheval(id .. "_" .. (m.essais + 1), place)
   if cheval then
     m.cheval = cheval
     m.manquees = jeu().montes_manquees(f.personnage)
-    jeu().journal("Hommes : « " .. f.nom .. " » part à cheval sur « " .. cheval .. " » (essai " .. (m.essais + 1) .. ")")
+    jeu().journal("Hommes : « " .. f.nom .. " » part à cheval sur « " .. cheval .. " » (essai " .. (m.essais + 1)
+                  .. " ; places refusées : " .. dire_les_refus(refus) .. " ; vu d'Henry : " .. (vu and "oui" or "non") .. ")")
   else
-    jeu().journal("Hommes : pas de cheval pour « " .. f.nom .. " » (naissance refusée, essai " .. (m.essais + 1) .. ")")
+    jeu().journal("Hommes : pas de cheval pour « " .. f.nom .. " » (naissance refusée, essai " .. (m.essais + 1)
+                  .. " ; places refusées : " .. dire_les_refus(refus or {}) .. ")")
     m.refus_a = heure
     compter_un_essai(f, m)
   end
