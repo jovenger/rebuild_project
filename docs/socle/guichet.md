@@ -38,7 +38,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A32 | `LogiWealthRaidTick` | enveloppée par : tenir_la_compagnie | pas utile : le socle ne lève aucune bande de lui-même ; Scriptorium appelle `Scriptorium.bataille.lever_une_bande(ordre)` |
 | A33 | `LootEligibleMercs` | les hommes qui peuvent aller fouiller les corps | `Scriptorium.bataille.peut_fouiller(id, bande)` (accroche ; les bains l'enveloppent) ; remplaçable (fiche 19) |
 | A34 | `SpawnCampHouseBed` | enveloppée par : editeur_du_camp | `Scriptorium.camp.rendre_fonctionnel(nom, genre, position, cap)` (un meuble posé rendu poste de travail du jeu ; remplaçable, fiche 19 ; fiche 18, 5 c) |
-| A35 | `SpawnCampPracticeYard` | enveloppée par : pantins_d_entrainement | étape 5 (poste d'entraînement) |
+| A35 | `SpawnCampPracticeYard` | enveloppée par : pantins_d_entrainement | en partie : `Scriptorium.hommes.tenir(id, regle, { activite = "geste", geste, position, cap })` (l'exercice : un geste tenu à un point) ; le terrain (pantins, cibles) est un décor de Scriptorium (fiche 18, 5 c) |
 | A36 | `SpawnQuartermaster` | enveloppée par : intendant_du_camp | `Scriptorium.directeur.installer()` |
 | A37 | `TowerSpotIsValid` | enveloppée par : camp_selon_le_terrain | `Scriptorium.jeu.sol_de(position, pas)` ; remplaçable (fiche 19) |
 | A38 | `TryClaimTarget` | enveloppée par : duels_judiciaires | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (remplaçable, fiche 19 ; qui vise qui : `Scriptorium.bataille.cibles(bande)`) |
@@ -81,7 +81,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F35 | `GateCount` | 2 dossier(s) | `Scriptorium.enceinte.porte()` (une seule porte) |
 | F36 | `IsArcherName` | 2 dossier(s) | `Scriptorium.hommes.fiche(id)` (champ `role`) |
 | F37 | `IsCombatViable` | 2 dossier(s) | `Scriptorium.jeu.sante_de(qui)` |
-| F38 | `LogiApplyBuffs` | 2 dossier(s) | étape 5 (postes de travail : l'alchimie) |
+| F38 | `LogiApplyBuffs` | 2 dossier(s) | pas utile : les effets (bonus) sont des règles de Scriptorium ; le geste d'alchimie : `Scriptorium.hommes.tenir(id, regle, { activite = "geste" })` |
 | F39 | `LogiSpend` | retirer de l'argent a Henry, en refusant sous le prix et jamais zero | `Scriptorium.jeu.retirer_groschen_a_henry(montant)` |
 | F40 | `LogiWageTotal` | 2 dossier(s) | `Scriptorium.hommes.solde_de(id)` (sommée sur `Scriptorium.hommes.liste()`) |
 | F41 | `MercDropClaim` | 2 dossier(s) | `Scriptorium.bataille.cible_de(bande, id, vivants, actuelle, rang)` (lâcher une cible : en rendre une autre ; remplaçable, fiche 19) |
@@ -192,7 +192,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D35 | `CampBedSO` | 3 dossier(s) | `Scriptorium.camp.objets_du_jeu` (« lit ») |
 | D36 | `CampChairSO` | 3 dossier(s) | `Scriptorium.camp.objets_du_jeu` (« siege ») |
 | D37 | `CampForgeSmithWuid` | 3 dossier(s) | `Scriptorium.hommes.homme_du_personnage(personnage)` (le forgeron connu par son personnage ; admis par `Scriptorium.hommes.admettre`, rôle `forgeron`, exempté de garde et de ronde : `hommes.exemptions_des_metiers`) |
-| D38 | `CampPracticeYard` | 3 dossier(s) | étape 5 (poste d'entraînement) |
+| D38 | `CampPracticeYard` | 3 dossier(s) | en partie : `Scriptorium.hommes.tenir(id, regle, { activite = "geste" })` (l'exercice) et `Scriptorium.camp.rendre_fonctionnel(nom, genre, position, cap)` ; la disposition reste à Scriptorium |
 | D39 | `CampRoster` | 3 dossier(s) | `Scriptorium.hommes.liste()` |
 | D40 | `CampSitSOOffset` | 3 dossier(s) | réglage : meubles.siege.places.assise.x (et .y) |
 | D41 | `CampTrainCenter` | 3 dossier(s) | `Scriptorium.hommes.points` (« exercice ») |
@@ -203,13 +203,13 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D46 | `WBRaidForce` | 3 dossier(s) | `Scriptorium.bataille.force_de_la_bande(b)` |
 | D47 | `WagePerTier` | Scriptorium l'écrit aussi | réglage : soldes.homme_d_armes.solde (une valeur par rôle ; et rangs.*) |
 | D48 | `ActivePlacement` | 2 dossier(s) | pas utile : pas de mode de pose dans le socle |
-| D49 | `AlxKnightHarness` | 2 dossier(s) | étape 5 (tenues selon le grade) |
+| D49 | `AlxKnightHarness` | 2 dossier(s) | `Scriptorium.hommes.choix_de_l_equipement(id)` (remplaçable : la tenue selon le grade) et le contrat `objets` de `Scriptorium.hommes.embaucher` |
 | D50 | `AlxSilver` | 2 dossier(s) | pas utile : donnée interne de l'ancien mod ; l'argent passe par `Scriptorium.jeu.donner_groschen_a_henry(montant)` |
 | D51 | `BCQ_BO` | 2 dossier(s) | pas utile : état interne de l'ancien mod (le dernier lieu par carte) ; Scriptorium garde le sien |
 | D52 | `BanditCampMoneyItem` | 2 dossier(s) | pas utile : le coffre d'un camp de bandits est une somme (fiche 17) |
 | D53 | `CampClusterSize` | 2 dossier(s) | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D54 | `CampClusterSpacing` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
-| D55 | `CampFoodCart` | 2 dossier(s) | étape 5 (la charrette de vivres) |
+| D55 | `CampFoodCart` | 2 dossier(s) | réglage : `plan_des_camps` (les meubles du camp ; la charrette de vivres est un décor de Scriptorium par le plan) |
 | D56 | `CampHouseCenter` | 2 dossier(s) | pas utile : pas de cabane dans le socle |
 | D57 | `CampSitFacingFixDeg` | 2 dossier(s) | réglage : meubles.siege.places.assise.cap |
 | D58 | `EnemyAlertRadius` | Scriptorium l'écrit aussi | pas utile : le socle prévient par l'heure d'arrivée de la bande (`bataille.avertissement`), pas par un rayon |
@@ -221,9 +221,9 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D64 | `LootVisited` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).vus` |
 | D65 | `MaxCompanions` | 2 dossier(s) | `Scriptorium.hommes.plafond_de_la_compagnie()` (plafond, effectif, lits libres ; réglage `hommes.plafond` = 80 ; le lit exigé : interrupteur `un_lit_par_homme`, fiche 18) |
 | D66 | `MercClaimAt` | Scriptorium l'écrit aussi | `Scriptorium.bataille.cibles(bande)` (qui vise qui) |
-| D67 | `QuartermasterClothing` | 2 dossier(s) | étape 5 (tenue du Directeur) |
+| D67 | `QuartermasterClothing` | 2 dossier(s) | `Scriptorium.directeur.donner_les_objets(objets)` (sa tenue, portée à chaque naissance ; fiche 18, 5 c) |
 | D68 | `QuartermasterPost` | Scriptorium l'écrit aussi | `Scriptorium.directeur.activite(heure)` (lieu et position) |
-| D69 | `QuartermasterWeapon` | 2 dossier(s) | étape 5 (armes du Directeur) |
+| D69 | `QuartermasterWeapon` | 2 dossier(s) | `Scriptorium.directeur.donner_les_objets(objets)` (ses armes, portées à chaque naissance) |
 | D70 | `SaverValues` | 2 dossier(s) | `Scriptorium.registre.dernier_rapport()` |
 | D71 | `UpdateOnAction` | 2 dossier(s) | pas utile : rafraîchissement de l'ancien panneau |
 | D72 | `WBPhase` | 2 dossier(s) | `Scriptorium.bataille.bande(id)` (champ `etat`) |
@@ -239,18 +239,18 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D82 | `CCReinject` | 1 dossier(s) | déjà fait : la fiche de l'homme garde son nom et son âme ; il renaît sur la même âme à chaque entrée en partie (`Scriptorium.hommes.embaucher(contrat)`) |
 | D83 | `CUHide` | Scriptorium l'écrit aussi | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
 | D84 | `CUShow` | Scriptorium l'écrit aussi | pas utile : écran de l'ancien mod, que le socle n'a jamais eu |
-| D85 | `CampAlchemy` | 1 dossier(s) | étape 5 (l'alchimie) |
-| D86 | `CampArcherCart` | 1 dossier(s) | étape 5 (la charrette des archers) |
+| D85 | `CampAlchemy` | 1 dossier(s) | en partie : `Scriptorium.hommes.tenir(id, regle, { activite = "geste" })` (une posture d'alchimie du jeu ou de Scriptorium, non alignée) ; la table d'alchimie est un décor de Scriptorium |
+| D86 | `CampArcherCart` | 1 dossier(s) | réglage : `plan_des_camps` (la charrette des archers, un meuble du plan) |
 | D87 | `CampAtlas` | 1 dossier(s) | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D88 | `CampBuildMap` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D89 | `CampBusyUntil` | 1 dossier(s) | `Scriptorium.hommes.tenir(id, regle, quoi)` (champ `fin`) |
 | D90 | `CampClusterTentRingSlots` | 1 dossier(s) | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D91 | `CampFireSeatRadius` | 1 dossier(s) | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
-| D92 | `CampFoodCartLayout` | 1 dossier(s) | étape 5 (la charrette de vivres) |
-| D93 | `CampForge` | 1 dossier(s) | étape 5 (la forge) |
+| D92 | `CampFoodCartLayout` | 1 dossier(s) | réglage : `plan_des_camps` (la disposition de la charrette de vivres) |
+| D93 | `CampForge` | 1 dossier(s) | `Scriptorium.hommes.tenir(id, regle, { activite = "geste", geste, position, cap })` (la forge de Scriptorium : sa ronde de gestes ; le décor par le plan du camp ; fiche 18, 5 c) |
 | D94 | `CampGridOffsets` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
-| D95 | `CampHunt` | 1 dossier(s) | étape 5 (la chasse) |
-| D96 | `CampInn` | 1 dossier(s) | étape 5 (la taverne) |
+| D95 | `CampHunt` | 1 dossier(s) | `Scriptorium.missions.sortir(ordre)` (la chasse : une sortie à cheval ; le gibier, règle de Scriptorium ; fiche 18, 5 d) |
+| D96 | `CampInn` | 1 dossier(s) | en partie : `Scriptorium.camp.rendre_fonctionnel(nom, genre, position, cap)` et `Scriptorium.hommes.tenir(id, regle, { activite = "geste" })` (postes et gestes du jeu) ; la taverne et sa disposition restent à Scriptorium |
 | D97 | `CampJoinRadius` | Scriptorium l'écrit aussi | pas utile : pas de rayon d'entrée au camp ; l'homme est au camp dès `Scriptorium.hommes.embaucher(contrat)` |
 | D98 | `CampLoadStationTiles` | Scriptorium l'écrit aussi | déjà fait : les postes rendus fonctionnels sont gardés au registre du camp et reposés à l'entrée en partie (`Scriptorium.camp.redresser()`) |
 | D99 | `CampMaxCampingTiles` | Scriptorium l'écrit aussi | pas utile : la taille du camp est son niveau (`Scriptorium.camp.niveau()`, au plus `camp.niveau_maximal`) |
@@ -267,7 +267,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D110 | `CampTentRingRadius` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D111 | `CampTentVariants` | Scriptorium l'écrit aussi | `Scriptorium.camp.modeles` (« tente ») |
 | D112 | `CampTileHalf` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
-| D113 | `CustomOutfitIndex` | 1 dossier(s) | étape 5 (tenues) |
+| D113 | `CustomOutfitIndex` | 1 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (champ `objets`) et `Scriptorium.hommes.donner_une_piece(id, objet, etat, porter)` |
 | D114 | `DefRestorePending` | 1 dossier(s) | pas utile : l'enceinte est reposée d'un coup à l'entrée (`Scriptorium.enceinte.relancer()`) |
 | D115 | `DefRestoring` | 1 dossier(s) | pas utile : l'enceinte est reposée d'un coup à l'entrée (`Scriptorium.enceinte.relancer()`) |
 | D116 | `EnemyAlertRadiusDefault` | 1 dossier(s) | pas utile : le socle prévient par l'heure d'arrivée de la bande, pas par un rayon |
@@ -276,7 +276,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D119 | `EscortEnt` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` (règle `escorte`) |
 | D120 | `HealCost` | 1 dossier(s) | pas utile : le prix du soin est une règle de Scriptorium ; le geste : `Scriptorium.atelier.soigner(id, nom_du_soin)` |
 | D121 | `HoldActive` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` |
-| D122 | `InnStationLayout` | 1 dossier(s) | étape 5 (la taverne) |
+| D122 | `InnStationLayout` | 1 dossier(s) | en partie : `Scriptorium.camp.rendre_fonctionnel(nom, genre, position, cap)` (la disposition des postes de la taverne reste à Scriptorium) |
 | D123 | `IsLootableCorpseName` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).a_fouiller` (les corps d'une bande, par nom) |
 | D124 | `LivePatrolsEnabled` | 1 dossier(s) | pas utile : le socle n'envoie de patrouille que sur ordre (`Scriptorium.patrouilles.envoyer(ordre)`) |
 | D125 | `LogiTrackCombat` | Scriptorium l'écrit aussi | `Scriptorium.bataille.partager_le_butin(butin, combattants)` (accroche) ; l'issue : `bataille.issue_au_loin` (accroche) |
@@ -329,29 +329,29 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | R13 | `2/10 : le dialogue d'un mercenaire rangé en catégories (choses/dialogue_des_mercenaires)` |  | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
 | R14 | `2/10 (soir) : les choix du dialogue d'un homme passent par les anciens jetons des renforts` |  | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
 | R15 | `2/10 (nuit) : les réponses d'un mercenaire restent dans le dialogue du jeu` |  | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
-| R16 | `3/10 : les cris de marché du jeu (par métarôle)` |  | étape 5 (l'étal du marchand et ses cris) |
+| R16 | `3/10 : les cris de marché du jeu (par métarôle)` |  | pas utile : les voix viennent plus tard (NOTE §8, étape 6 du plan) |
 | R17 | `5/10 — plus de rhabillage au hasard à chaque chargement` |  | déjà fait : `Scriptorium.hommes.relancer()` (chaque homme remet ses propres pièces, rien n'est retiré au hasard) |
 | R18 | `6/10 — la nuit, les dormeurs ne sont plus relancés toutes les 8 s` |  | déjà fait : `Scriptorium.hommes.garder()` (ne relance qu'un homme figé loin de son but ; l'ordre n'est redonné qu'au changement d'activité) |
-| R19 | `6/10 — le titre « Mercenaire » pour tous, le grade sous le nom` |  | étape 5 (le grade affiché ; chaque homme a déjà son nom, `Scriptorium.hommes.nom_d_epoque(i)`) |
-| R20 | `7/10 — le colonel garde sa tenue d'officier` |  | étape 5 (tenue d'officier ; le capitaine du socle est éteint, interrupteur `rangs_du_socle`) |
+| R19 | `6/10 — le titre « Mercenaire » pour tous, le grade sous le nom` |  | pas utile : les finitions (titres, icônes) viennent plus tard (NOTE §8, étape 6 du plan) |
+| R20 | `7/10 — le colonel garde sa tenue d'officier` |  | `Scriptorium.hommes.choix_de_l_equipement(id)` (remplaçable : Scriptorium rend la tenue d'officier du colonel) |
 | R21 | `8/10 — des ordres au colonel, en lui parlant` |  | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
 | R22 | `8/10 — la réserve du camp vide s'enregistre enfin` |  | déjà fait : `Scriptorium.registre.enregistrer()` (tout le registre d'un coup, jamais une chaîne vide) |
 | R23 | `8/10 au soir — les longues valeurs enregistrées en morceaux (la partie qui ne se rechargeait plus)` |  | déjà fait : `Scriptorium.jeu.ecrire_registre(chaine)` (tranches de 30 000 octets, plafond 65 535) |
 | R24 | `8/10 au soir — rien de Scriptorium ne s'écrit quand il est en pause` |  | déjà fait : `Scriptorium.entrer_en_partie()` (le registre est invalidé et relu ; il porte l'identité de sa partie) |
 | R25 | `10/10 — retirer zéro gros vidait la bourse d'Henry` |  | déjà fait : `Scriptorium.jeu.retirer_groschen_a_henry(montant)` (refuse 0, négatif, non entier, au-delà de la bourse) |
-| R26 | `11/10 — un tireur en séance garde son arc et sa cible` |  | étape 5 (poste de tir à la cible) |
+| R26 | `11/10 — un tireur en séance garde son arc et sa cible` |  | en partie : `Scriptorium.hommes.tenir(id, regle, { activite = "geste" })` (le tireur tient son geste) ; son arc : `Scriptorium.hommes.choix_de_l_equipement(id)` (remplaçable) |
 | R27 | `12/10 — le camp sans personne se monte enfin (le bivouac de la patente)` |  | déjà fait : `Scriptorium.camp.fonder(position, cap)` (aucun homme exigé) |
 
 ## Bilan
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 208 | 36 | 78 | 82 | 12 |
+| service existant | 221 | 37 | 78 | 92 | 14 |
 | à ouvrir | 0 | 0 | 0 | 0 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
-| étape 5 | 19 | 1 | 1 | 13 | 4 |
-| pas utile | 90 | 3 | 28 | 49 | 10 |
-| réglage | 20 | 0 | 4 | 15 | 1 |
+| étape 5 | 0 | 0 | 0 | 0 | 0 |
+| pas utile | 93 | 3 | 29 | 49 | 12 |
+| réglage | 23 | 0 | 4 | 18 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |
 
 « Service existant » compte aussi les retouches que le socle fait déjà (« déjà fait », « en partie »).

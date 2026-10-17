@@ -275,3 +275,25 @@ essai("directeur (fiche 15) : à la veillée, à l'écart du feu ; la nuit, à s
   egal(o.sorte, "lit", "au lit")
   egal(o.place, camp.objet_du_jeu_de("lit_directeur"), "par l'objet du jeu de son lit")
 end)
+
+essai("directeur (5 c, D67, D69) : sa tenue et ses armes données par Scriptorium, portées à chaque naissance ; refus d'objets boiteux", function()
+  preparer(1000, 10)
+  directeur.battre()
+  local perso = directeur.personnage()
+  verifier(not directeur.donner_les_objets({ "pas un objet" }), "objet boiteux : refusé")
+  verifier(not directeur.donner_les_objets("rien"), "pas une liste : refusée")
+  local CAPE = "cccccccc-1111-2222-3333-444444444444"
+  verifier(directeur.donner_les_objets({ { objet = CAPE, etat = 0.8 } }), "donnés")
+  FauxJeu.equipements = {}
+  directeur.battre()
+  local ordre = FauxJeu.equipements[1] and FauxJeu.equipements[1].ordre
+  verifier(ordre ~= nil and ordre.personnage == nil, "habillé au battement")
+  egal(FauxJeu.equipements[1] and FauxJeu.equipements[1].personnage, perso, "lui")
+  egal(ordre and ordre.recreer[1].objet, CAPE, "son objet")
+  egal(ordre and ordre.recreer[1].etat, 0.8, "avec son état")
+  verifier(ordre and ordre.retirer_naissance, "tenue de naissance retirée")
+  directeur.battre()
+  directeur.battre()
+  egal(#FauxJeu.equipements, 1, "une seule fois par personnage")
+  verifier(directeur.donner_les_objets({}), "liste vide : sa tenue de naissance")
+end)

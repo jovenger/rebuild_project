@@ -147,3 +147,17 @@ garde la ronde, ses durées et le décor ; le socle fournit le geste tenu et la 
   aussi le nom en variable, `AI/special/so_injured.xml`) jusqu'au changement d'ordre. Le nom du geste entre dans la
   signature de l'ordre : un autre geste redonne l'ordre. Refus `geste_invalide`.
 - Au banc ; à voir en jeu avec un geste du jeu (`repairFenceHammer`, le marteau des clôtures).
+- **Vu en jeu le 17/10, le geste tenu** : avec `repairFenceHammer` (posture alignée dans
+  `Libs/Tables/ai/NPCStateUnstanceDatabase.xml` : elle exige un objet d'ancrage), l'homme reste figé au point ; avec
+  `AngryIdle` (non alignée, `IsAligned` et `UseLocationObject` à faux), la posture se joue (le corps change d'une capture
+  à l'autre). Le mécanisme est prouvé ; c'est pourquoi Scriptorium déclare ses propres postures non alignées
+  (« marteler », « chauffer »).
+- **Vu en jeu le 17/10, la sortie à cheval** (5 d) : deux hommes montent, la colonne part à 80 m, arrive, reste 0,2 h du
+  jeu, rentre à cheval ; rapport « faite ». Non vus : la sortie au loin (dehors, calculée) ; couverte au banc.
+- **La tenue et les armes du Directeur** (D67, D69) : `directeur.donner_les_objets(objets)` (une liste de `{ objet,
+  etat }` ou d'identifiants ; portés à chaque naissance, sa tenue de naissance retirée, puis un second passage ; une
+  liste vide rend sa tenue de naissance). Au banc ; non vu en jeu.
+- **Le guichet à la fin de l'étape 5** : plus aucune case « étape 5 » (221 servies, dont des « en partie » qui disent
+  ce qui reste à Scriptorium ; 93 pas utiles avec leur raison ; 23 réglages ; 0 à ouvrir).
+- **Reste ouvert** (dit au pair) : le poste partagé avec Henry (Henry passe avant, par l'interaction ; l'enveloppe sur
+  l'instance d'une fonction du jeu peut demander un second « nom du jeu admis » : à JoVenGer).

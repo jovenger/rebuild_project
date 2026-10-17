@@ -94,6 +94,53 @@ local function faire_venir(d, pres_d_henry)
   return true
 end
 
+-- Fiche 18, 5 c (D67, D69) : la tenue et les armes du Directeur, données par Scriptorium : une liste de { objet
+-- (identifiant du jeu), etat (0 à 1) } ou d'identifiants (état neuf) ; portées à chaque naissance, sa tenue de naissance
+-- retirée d'abord (la voie des hommes, V71) : au battement qui suit, puis un second passage. Une liste vide : sa tenue
+-- de naissance. Rend vrai, ou faux et la raison.
+function directeur.donner_les_objets(objets)
+  if type(objets) ~= "table" then
+    return refuser("objets_invalides")
+  end
+  local liste = {}
+  for i, piece in ipairs(objets) do
+    local objet = type(piece) == "table" and piece.objet or piece
+    local etat = type(piece) == "table" and piece.etat or 1
+    if type(objet) ~= "string" or not string.match(objet, "^%x+%-%x+%-%x+%-%x+%-%x+$")
+        or type(etat) ~= "number" or etat <= 0 or etat > 1 then
+      return refuser("objet_invalide", tostring(i))
+    end
+    liste[i] = { objet = string.lower(objet), etat = etat }
+  end
+  local d = donnees()
+  d.objets = (#liste > 0) and liste or nil
+  d.habille_pour, d.second_passage_pour = nil, nil
+  enregistrer()
+  jeu().journal("Directeur : " .. #liste .. " objet(s) donné(s) à porter")
+  return true
+end
+
+-- Habille le Directeur de ses objets donnés, une fois par personnage (puis un second passage au battement suivant).
+local function habiller(d)
+  if not d.objets or not d.personnage then
+    return
+  end
+  local portes = {}
+  for i, piece in ipairs(d.objets) do portes[i] = piece.objet end
+  if d.habille_pour ~= d.personnage then
+    local recreer = {}
+    for i, piece in ipairs(d.objets) do recreer[i] = { objet = piece.objet, etat = piece.etat } end
+    local compte = jeu().equiper_homme(d.personnage, { retirer_naissance = true, creer = {}, etat = 1, recreer = recreer,
+                                                       porter = portes })
+    d.habille_pour = d.personnage
+    jeu().journal("Directeur : habillé de ses objets : " .. tostring(compte))
+  elseif d.second_passage_pour ~= d.personnage then
+    jeu().faire_porter(d.personnage, portes)
+    d.second_passage_pour = d.personnage
+    jeu().journal("Directeur : second passage de ses objets")
+  end
+end
+
 -- Le personnage du Directeur dans le jeu, ou nil.
 function directeur.personnage()
   return donnees().personnage
@@ -238,6 +285,7 @@ function directeur.battre()
   if not d.installe or not d.personnage then
     return rapport
   end
+  habiller(d)
   -- V73 f 2 e : son cheval passager préparé s'il est en sortie à cheval ; son ordre redonné quand son activité ou sa
   -- monture change (le rôle et le nom du cheval dans sa signature).
   if Scriptorium.hommes then

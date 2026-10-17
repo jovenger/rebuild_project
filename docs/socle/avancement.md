@@ -190,3 +190,8 @@ Tous les morceaux sont écrits et passent au banc : 1 322 vérifications. Aucun 
 - 17/10/2026 : étape 3 (guichet) : interrupteurs (546183d), l'horloge (0e70913), le tableau du guichet (b02c101, 337 entrées du contrat). Étape 4 a, le camp de bandits à un lieu (1a5d03f) : vu en jeu (naissance hors du regard, alerte, attaque d'Henry, victoire, camp vaincu, butin). Séances fermées par fin_essai.
 - 17/10/2026 : étape 4 b, la mission et sa colonne : la colonne à cheval vers un point (ordre 20), la mission (prendre, peut_partir, niveau selon la force, dehors, issue au loin, renaissance, rapport), l'issue par passes (règle « bataille_au_loin »), l'issue appliquée aux vrais personnages, les hommes hors d'état portés ; vu en jeu, les deux missions jusqu'au rapport (a182f1d, 68d9c96). Séances fermées par fin_essai.
 - 17/10/2026 : étape 4 franchie (le nécessaire, missions) : camps de bandits, missions et colonne, issue par passes, plusieurs missions, convois, fouille ; vu en jeu chacun ; la cause du combat figé trouvée et corrigée (l'assommé compté vivant). Guichet : plus aucune entrée « étape 4 ». Séances fermées par fin_essai.
+- 17/10/2026 : étape 5 (embauche et métiers) écrite et vue en jeu pour l'essentiel : embauche groupée, compagnon nommé,
+  homme posé à un point, homme refait avec ses objets, « Parler » (nom du jeu admis GetActions, décision de JoVenGer),
+  personnage admis, gens de métier hors de la garde, quinze postes de travail du jeu, geste tenu, sortie à cheval ;
+  décisions remplaçables (fiche 19) ; guichet sans case « étape 5 ». Non vus : « Parler » en combat, l'admis après un
+  rechargement, la sortie au loin, la tenue du Directeur ; le poste partagé avec Henry reste ouvert.
