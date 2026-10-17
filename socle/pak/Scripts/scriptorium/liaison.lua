@@ -1507,9 +1507,16 @@ end
 -- Âmes des ennemis par sorte de bande, prises dans le jeu de base.
 -- Premier essai (V18, 14/10) : une seule âme, un brigand générique d'une quête de Trosecko
 -- (bohutovaVlozka_bandit_3, faction trosecko_enemies_bandits_bohutovaVlozka, table soul__bohutovaVlozka.xml).
+-- Étape 2 (le nécessaire, fiche 14) : nos quatre âmes de bande (soul__scriptorium_socle.xml), faction
+-- scriptorium_socle_bande, copiées sur des âmes réelles du jeu (cerveau d'ennemi, personnage, voix, niveau de combat).
 liaison.ames_ennemies = {
-  brigands = "11c514e3-1c7c-40de-8011-318192937d41",
+  brigands = "5c7a5c7a-0005-4001-8000-000000000001",
+  deserteurs = "5c7a5c7a-0005-4001-8000-000000000002",
+  soudards = "5c7a5c7a-0005-4001-8000-000000000003",
+  coumans = "5c7a5c7a-0005-4001-8000-000000000004",
 }
+-- Un numéro pour chaque ennemi né (deux bandes de la même sorte n'ont jamais le même nom) ; gardé à la relecture.
+liaison.ennemis_nes = liaison.ennemis_nes or 0
 
 -- Fait venir une bande ennemie et rend la liste de ses identifiants, ou nil.
 -- À vérifier en jeu : System.SpawnEntity classe NPC, et comment les rendre hostiles au camp.
@@ -1523,8 +1530,12 @@ function liaison.faire_venir_ennemis(sorte, effectif, position, cap)
   for i = 1, effectif do
     -- Au sol (vu le 14/10 : posé à la hauteur du camp, un brigand flottait au-dessus d'un chemin plus bas).
     local place = liaison.au_sol({ x = position.x + (i % 5) * 1.5, y = position.y + math.floor(i / 5) * 1.5, z = position.z })
-    local identifiant = faire_naitre("NPC", "scriptorium_ennemi_" .. sorte .. "_" .. i, place, cap, { guidSharedSoulId = ame })
+    liaison.ennemis_nes = liaison.ennemis_nes + 1
+    local identifiant = faire_naitre("NPC", "scriptorium_ennemi_" .. sorte .. "_" .. liaison.ennemis_nes, place, cap,
+      { guidSharedSoulId = ame })
     if identifiant then
+      -- Étape 2 : éveillée à sa naissance, comme nos hommes (sinon son cerveau ne fait qu'un tour).
+      liaison.eveiller(identifiant, "Ennemi « " .. identifiant .. " »")
       table.insert(liste, identifiant)
     end
   end

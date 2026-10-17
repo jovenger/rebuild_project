@@ -768,6 +768,13 @@ def verifier_identifiants():
         local identite = string.match(GameToken.valeurs["scriptorium_socle.registre"], "^([%w_]+)|")
         GameToken.valeurs["scriptorium_socle.registre"] = identite .. "|{ancien=1}"
         if l.lire_registre() ~= "{ancien=1}" then return "l'ancien format en un seul jeton n'est plus lu" end
+        -- Étape 2 : deux bandes de la même sorte n'ont jamais les mêmes noms (un numéro par ennemi né).
+        local bande1 = l.faire_venir_ennemis("brigands", 2, { x = 0, y = 0, z = 0 }, 0)
+        local bande2 = l.faire_venir_ennemis("brigands", 2, { x = 0, y = 0, z = 0 }, 0)
+        if not bande1 or not bande2 or #bande1 ~= 2 or bande1[1] == bande2[1] or bande1[2] == bande2[2] then
+          return "bandes : noms en double ou bande absente"
+        end
+        if l.faire_venir_ennemis("inconnus", 2, { x = 0, y = 0, z = 0 }, 0) ~= nil then return "bandes : une sorte sans âme est née" end
         -- V73 g 0 : la liaison relue (outils/recharger.py) garde sa table, sa mémoire, ses relevés et son état de
         -- fichier ; ses fonctions sont remplacées ; le registre se relit ensuite comme avant.
         local identite_relue = l.etat_du_fichier.identite_de_la_partie
@@ -838,10 +845,24 @@ def verifier_ames():
     ids = [a.get("soul_id", "").lower() for a in ames]
     if len(set(noms)) != len(noms) or len(set(ids)) != len(ids):
         erreur("âmes : nom ou identifiant en double dans la table")
+    # Étape 2 (fiche 14) : les âmes de bande, une par sorte, copiées sur des âmes du jeu (leur cerveau d'ennemi) ; ce
+    # sont celles de liaison.ames_ennemies, de la faction des bandes.
+    bandes_de_la_liaison = set(lua.eval("""(function()
+        local ids = {}
+        for _, ame in pairs(Scriptorium.liaison_reelle.ames_ennemies) do table.insert(ids, string.lower(ame)) end
+        return table.concat(ids, ",")
+    end)()""").split(","))
+    bandes = {a["soul_id"].lower(): a for a in ames if a.get("soul_name", "").startswith("scriptorium_bande_")}
+    if set(bandes) != bandes_de_la_liaison:
+        erreur("âmes : les âmes de bande de la table et de la liaison diffèrent")
+    for a in bandes.values():
+        if a.get("factionName") != "scriptorium_socle_bande" or not a.get("brain_id") or not a.get("combat_level"):
+            erreur("âmes : %s, une âme de bande sans sa faction, son cerveau ou son niveau" % a.get("soul_name"))
     for a in ames:
-        if a.get("brain_id") != NOTRE_CERVEAU:
+        if a.get("brain_id") != NOTRE_CERVEAU and a.get("soul_id", "").lower() not in bandes:
             erreur("âmes : %s n'a pas notre cerveau" % a.get("soul_name"))
-    du_mod = {a["soul_id"].lower(): a for a in ames if a.get("soul_id", "").lower().startswith("5c7a5c7a")}
+    du_mod = {a["soul_id"].lower(): a for a in ames
+              if a.get("soul_id", "").lower().startswith("5c7a5c7a") and a.get("soul_id", "").lower() not in bandes}
     for ame, (reserve, palier) in attendues.items():
         a = du_mod.get(ame)
         if a is None:
@@ -866,10 +887,19 @@ def verifier_la_compagnie():
     Rend le nom de la Compagnie, ou None."""
     racine = ET.parse(TABLE_DES_FACTIONS).getroot()
     factions = list(racine.iter("Faction"))
-    if racine.tag != "database" or racine.find("FactionTree") is None or len(factions) != 1:
-        erreur("factions : une seule faction attendue, sous database/FactionTree")
+    if racine.tag != "database" or racine.find("FactionTree") is None or len(factions) != 2:
+        erreur("factions : deux factions attendues (la Compagnie, les bandes), sous database/FactionTree")
         return None
-    f = factions[0]
+    f, bande = factions[0], factions[1]
+    # Étape 2 (fiche 14) : la faction des bandes, ennemie publique, hostile à Henry et à la Compagnie, et réciproquement.
+    relations_bande = [(r.get("target", ""), r.get("reputation", "")) for r in bande.iter("Relation")]
+    if bande.get("Name") != "scriptorium_socle_bande" or bande.get("Labels") != "publicEnemy" \
+            or bande.get("LocationId") or bande.get("LevelId"):
+        erreur("factions : la faction des bandes n'a pas sa forme (nom, publicEnemy, sans lieu ni carte)")
+    if (f.get("Name"), "-1") not in relations_bande:
+        erreur("factions : les bandes ne sont pas hostiles à la Compagnie")
+    if ("scriptorium_socle_bande", "-1") not in [(r.get("target", ""), r.get("reputation", "")) for r in f.iter("Relation")]:
+        erreur("factions : la Compagnie n'est pas hostile aux bandes")
     nom = f.get("Name", "")
     if not nom.startswith("scriptorium_socle_"):
         erreur("factions : %s n'a pas le préfixe du socle" % nom)

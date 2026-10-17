@@ -294,6 +294,49 @@
    n° 2, un crime contre le monde) ; (b) tu fais le délit toi-même pendant l'essai ; (c) pas de délit dans cet essai,
    seulement la faction.
 
+## Étape 2, le nécessaire : les bandes qui se battent (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Ce qui est fait (relevé)
+- Nos hommes (sept rôles) et le Directeur naissent sur nos âmes, de la faction `scriptorium_socle_compagnie`, amie
+  d'Henry ; vu en jeu (V70, V72 a, V72 b) ; nos hommes se battent sur ordre et tuent un brigand posé à la main (V73 b 1,
+  V71 g).
+- **Ce qui manque** : les bandes. Une seule sorte sur quatre a une âme (une âme du jeu, de Trosecko) ; la bande n'est pas
+  éveillée à sa naissance (elle resterait inerte) ; la vraie bataille ne donne jamais l'ordre d'attaque (nos hommes se
+  mettent en rang et attendent) ; « ennemie des bandes » n'est déclaré que de notre côté.
+
+### Comment ce serait fait
+1. **Quatre âmes de bande à nous**, une par sorte, copiées sur des âmes réelles du jeu (`Tables.pak`, lecture seule) :
+   le cerveau d'ennemi du jeu `4b914d1c-…` (celui de tous leurs brigands, déserteurs et Coumans), le personnage, la
+   classe sociale, la voix et le niveau de combat de `bohutovaVlozka_bandit_3` (brigands), `krab_deserter_1`
+   (déserteurs), `kvrc_lapka_1` (soudards : des larrons aguerris) et `bratriZCimburka_cuman_1` (Coumans) ; seule la
+   faction change. Identifiants dans notre suite (`5c7a5c7a-0005-…`).
+2. **La faction des bandes**, `scriptorium_socle_bande`, dans notre arbre des factions, à la forme des ennemis du jeu
+   (`Labels="publicEnemy"`, sans carte : comme `players_enemies`, « pour les deux cartes ») : -1 envers
+   `players_friends`, la Compagnie, `kutnohorsko_allies`, `trosecko_allies` ; et la Compagnie -1 envers elle (déclaré
+   des deux côtés). **Aucune relation vers `player`** : comme les factions de brigands du jeu
+   (`kutnohorsko_enemies_bandits_campOpatovicko` ne déclare qu'un allié), l'hostilité envers Henry vient de l'étiquette
+   `publicEnemy`. La ligne `player -1` du premier jet était aussi commune avec Alex (contrôle d'absence) ; retirée pour
+   la raison du jeu, à vérifier en jeu. Les tables sont produites par `outils/ames.py`, qui copie les âmes modèles.
+3. **La bande éveillée à sa naissance**, comme nos hommes (`Activate` et IA hors sommeil).
+4. **L'attaque au contact** (`bataille.reglages.attaque_au_contact`, vrai) : chaque combattant reçoit l'ordre d'attaque
+   (l'ordre 8, déjà prouvé) contre un ennemi vivant, réparti en tourniquet ; à chaque battement, ceux dont la cible est
+   tombée en reçoivent une autre. La bande attaque d'elle-même (son cerveau du jeu et la faction).
+5. La fin par le jeu, les morts, le butin : comme avant (V19, `soul:DealDamage`), maintenant avec de vrais coups.
+
+### Essai en jeu (une séance)
+- Une bande de trois brigands levée près du camp : elle vient, elle frappe nos hommes ; nos hommes la combattent ; les
+  morts ; la fin par le jeu. Puis une bande de Coumans. Henry à l'écart (s'il est là, la bande l'attaque aussi).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **La bande attaque-t-elle Henry s'il est là ?** (a) oui, elle est ennemie du joueur (Recommandé : réaliste) ;
+   (b) seulement nos hommes. **Prise : (a).**
+2. **Combien d'âmes par sorte ?** (a) une (Recommandé : le nécessaire ; plusieurs personnes peuvent partager une âme,
+   vu en V18) ; (b) plusieurs, pour varier les visages. **Prise : (a)**, (b) reporté.
+
+### Reporté (le nécessaire de JoVenGer)
+- Les apparences propres ; le caractère porté par l'âme ; les métiers et la réserve « femmes » vus en jeu ; la
+  renaissance depuis une âme empruntée.
+
 ## Sources
 - `Tables.pak` : `Libs/Tables/rpg/FactionTree.xml`, `FactionTree__tests.xml`, `FactionTree__autotests.xml`,
   `faction_label.xml`, `social_class.xml`, `soul_crime_role.xml`, `Libs/Tables/ai/mailbox.xml`,

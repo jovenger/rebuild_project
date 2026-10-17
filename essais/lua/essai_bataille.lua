@@ -342,3 +342,36 @@ essai("bataille (fiche 15, V73 f 3 b) : Henry sur une autre carte : aucune bande
   FauxJeu.heure = FauxJeu.heure + bataille.reglages.duree_max_contact
   egal(bataille.battre().finies, 1, "la règle tranche à son heure")
 end)
+
+-- Étape 2 (le nécessaire, fiche 14) : au contact, chaque combattant attaque un ennemi vivant, en tourniquet ; à chaque
+-- battement, celui dont la cible est tombée en reçoit une autre ; l'interrupteur.
+essai("bataille (étape 2) : au contact, chaque combattant attaque un ennemi vivant ; une nouvelle cible quand la sienne tombe ; l'interrupteur", function()
+  preparer(1000, 10, { "homme_d_armes", "pavoisier", "arbaletrier", "archer" })
+  FauxJeu.attaques = {}
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(bataille.bande(id).etat, "au_contact", "au contact")
+  local e1, e2 = FauxJeu.ennemis[1].identifiant, FauxJeu.ennemis[2].identifiant
+  egal(#FauxJeu.attaques, 4, "quatre ordres d'attaque, un par combattant")
+  egal(FauxJeu.attaques[1].cible, e1, "le premier sur le premier ennemi")
+  egal(FauxJeu.attaques[2].cible, e2, "le deuxième sur le deuxième")
+  egal(FauxJeu.attaques[3].cible, e1, "en tourniquet")
+  FauxJeu.ennemis_vivants_par_id[e1] = false
+  FauxJeu.heure = 10.5
+  bataille.battre()
+  egal(#FauxJeu.attaques, 6, "les deux dont la cible est tombée en reçoivent une autre")
+  egal(FauxJeu.attaques[5].cible, e2, "le dernier vivant")
+  egal(FauxJeu.attaques[6].cible, e2, "le dernier vivant")
+  FauxJeu.heure = 11
+  bataille.battre()
+  egal(#FauxJeu.attaques, 6, "rien de changé : pas d'ordre de plus")
+  -- L'interrupteur.
+  preparer(1000, 10, { "homme_d_armes", "pavoisier" })
+  FauxJeu.attaques = {}
+  bataille.reglages.attaque_au_contact = false
+  bataille.lever_une_bande({ sorte = "coumans", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(#FauxJeu.attaques, 0, "interrupteur à faux : aucune attaque")
+  bataille.reglages.attaque_au_contact = true
+  FauxJeu.attaques = nil
+end)

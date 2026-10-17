@@ -17,6 +17,9 @@ bataille.reglages = {
   effectif_max = 60,
   journal_gardes = 30,
   duree_des_corps = 24,        -- heures de jeu où les corps ennemis restent à fouiller (choix de JoVenGer, 14/10)
+  -- Étape 2 (le nécessaire, fiche 14) : au contact, chaque combattant reçoit l'ordre d'attaque contre un ennemi vivant ;
+  -- redonné à chaque battement à ceux dont la cible est tombée.
+  attaque_au_contact = true,
 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
@@ -303,6 +306,38 @@ local function liberer_les_hommes(b)
   end
 end
 
+-- L'attaque (étape 2) : chaque combattant sans cible vivante reçoit l'ordre d'attaque contre un ennemi vivant, en
+-- tourniquet. Rend le nombre d'ordres donnés.
+local function lancer_l_attaque(b)
+  if not bataille.reglages.attaque_au_contact or type(b.personnages) ~= "table" then
+    return 0
+  end
+  local vivants = {}
+  for _, e in ipairs(b.personnages) do
+    if jeu().ennemis_vivants({ e }) > 0 then
+      table.insert(vivants, e)
+    end
+  end
+  if #vivants == 0 then
+    return 0
+  end
+  b.cibles = b.cibles or {}
+  local donnes, k = 0, 0
+  for _, id in ipairs(b.combattants or {}) do
+    local f = hommes().fiche(id)
+    local cible = b.cibles[id]
+    if f and f.personnage and not jeu().personnage_mort(f.personnage)
+        and (cible == nil or jeu().ennemis_vivants({ cible }) == 0) then
+      k = k % #vivants + 1
+      b.cibles[id] = vivants[k]
+      jeu().journal("Bataille : « " .. f.nom .. " » attaque « " .. vivants[k] .. " » : "
+                    .. tostring(jeu().ordonner_l_attaque(vivants[k], f.personnage)))
+      donnes = donnes + 1
+    end
+  end
+  return donnes
+end
+
 local function arriver(d, b)
   local position = point_face_a(b.direction, 0, bataille.reglages.distance_arrivee)
   local cap = (b.direction + 180) % 360
@@ -320,6 +355,7 @@ local function arriver(d, b)
   if type(personnages) == "table" and #personnages > 0 then
     b.personnages = personnages
     jeu().journal("Bataille : « " .. b.id .. " » au contact, " .. #personnages .. " ennemi(s) dans le jeu")
+    lancer_l_attaque(b)
   else
     b.personnages = nil
     jeu().journal("Bataille : « " .. b.id .. " » au contact, le jeu n'a pas fait venir la bande : la règle tranchera")
@@ -584,6 +620,9 @@ function bataille.battre()
       -- V73 f 3 b : une bande née sur la carte du camp ne se lit pas d'une autre carte : seule la règle, à son heure.
       if b.personnages and not (camp().sur_sa_carte and not camp().sur_sa_carte()) then
         resultat = resoudre_par_le_jeu(d, b)
+        if resultat == nil then
+          lancer_l_attaque(b)
+        end
       end
       if resultat == nil and heure >= b.contact + bataille.reglages.duree_max_contact then
         resultat = bataille.resoudre_par_la_regle(id)
