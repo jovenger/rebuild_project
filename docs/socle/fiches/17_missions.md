@@ -178,6 +178,10 @@ le chemin du retour, entre à cheval et descend.
   (les fouilleurs lâchés, la fouille close : le portage des corps, les sentinelles) ; accroche `bataille.fouille_finie(id,
   fouille)`. Les corps restent `duree_des_corps`, retirés hors de la vue d'Henry. À reprendre plus tard : un vrai geste
   de fouille du jeu (pour l'instant, l'homme se tient au corps).
+  **Vu en jeu (17/10, 27fae72)** : victoire au camp, « fouille de bande_1 : 3 corps », trois fouilleurs marchent chacun
+  vers un corps, s'y tiennent (à l'image, près du corps), puis « 3 corps fouillés, 0 laissé » et l'exercice repris.
+  Corrigés (5686b2d) : la marche s'arrête à quelque 3 m de son point (seuil d'arrivée porté à 4 m) ; le gardien prenait
+  le fouilleur arrivé pour figé (la fouille exclue du gardien et du secours, comme la bataille).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 
