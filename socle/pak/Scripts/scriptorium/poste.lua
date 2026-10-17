@@ -805,6 +805,38 @@ function poste.essai_postes_fin()
   return true
 end
 
+-- 5 c, la sonde de la forge (deux essais au plus) : la petite forge du jeu (Prefabs/profession/blacksmith/
+-- smithy_workshop_small.xml, Prefab Id bad22e6e-…-0736) née entière à 6 m devant Henry ; puis le premier homme au poste
+-- du forgeron (so_blacksmith, geste « use ») le plus proche.
+poste.forge_d_essai = nil
+
+function poste.essai_forge_naitre()
+  local point, cap = devant_henry(6)
+  poste.forge_d_essai = jeu().faire_naitre_un_prefabrique("forge", "bad22e6e-32ed-4c2a-9597-668243bb0736", point, cap or 0)
+  return poste.forge_d_essai ~= nil
+end
+
+function poste.essai_forge_tenir()
+  local hommes = Scriptorium.hommes
+  local id = hommes.liste()[1]
+  local f = id and hommes.fiche(id)
+  if not (f and f.personnage) then
+    return false
+  end
+  jeu().journal("Poste : « " .. f.nom .. " » à la forge : "
+                .. jeu().ordonner_au_poste_du_monde(f.personnage, "a7daaa9f-8424-430d-80a6-e7996aed85a3", "use", 30))
+  return true
+end
+
+function poste.essai_forge_retirer()
+  if poste.forge_d_essai then
+    jeu().retirer_objet(poste.forge_d_essai)
+    jeu().journal("Poste : forge d'essai retirée (" .. poste.forge_d_essai .. ")")
+    poste.forge_d_essai = nil
+  end
+  return true
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2468,6 +2500,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_postes_lot_trois", fonction = function() return poste.essai_postes_lot(3) end, aide = "Quatre postes du catalogue (lot 3) et un homme à chacun" },
   { nom = "scriptorium_essai_postes_lot_quatre", fonction = function() return poste.essai_postes_lot(4) end, aide = "Quatre postes du catalogue (lot 4) et un homme à chacun" },
   { nom = "scriptorium_essai_postes_fin", fonction = function() return poste.essai_postes_fin() end, aide = "Hommes lâchés des postes, postes retirés" },
+  { nom = "scriptorium_essai_forge_naitre", fonction = function() return poste.essai_forge_naitre() end, aide = "Sonde : la petite forge du jeu née entière (RuntimePrefab) devant Henry" },
+  { nom = "scriptorium_essai_forge_tenir", fonction = function() return poste.essai_forge_tenir() end, aide = "Sonde : le premier homme au poste du forgeron le plus proche" },
+  { nom = "scriptorium_essai_forge_retirer", fonction = function() return poste.essai_forge_retirer() end, aide = "Sonde : la forge d'essai retirée" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

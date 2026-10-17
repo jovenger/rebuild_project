@@ -3008,6 +3008,47 @@ function liaison.relever_les_postes(gabarits, rayon, combien)
   return #trouves
 end
 
+-- Fiche 18, 5 c, la sonde de la forge (principe transmis par le pair le 17/10 : un préfabriqué né entier garde peut-être
+-- ses liens imbriqués) : un préfabriqué du jeu (IPL_GameData.pak, Prefabs/…) né par la classe RuntimePrefab
+-- (Scripts/Entities/Others/RuntimePrefab.lua : guidPrefabTemplate, Game.SpawnPrefab). Rend l'identifiant, ou nil.
+function liaison.faire_naitre_un_prefabrique(nom, prefabrique, position, cap)
+  local identifiant, raison = faire_naitre("RuntimePrefab", "scriptorium_prefab_" .. nom, liaison.au_sol(position), cap,
+                                           { guidPrefabTemplate = prefabrique, nMaxSpawn = 0 })
+  liaison.journal("Préfabriqué « " .. nom .. " » (" .. tostring(prefabrique) .. ") : " .. tostring(identifiant or raison))
+  return identifiant
+end
+
+-- Donne à « qui » le plus proche objet intelligent du monde de ce gabarit (à moins de « rayon » mètres de lui), avec ce
+-- geste (ordre 21). Rend une ligne.
+function liaison.ordonner_au_poste_du_monde(qui, gabarit, geste, rayon)
+  local personnage = entite_nommee(qui)
+  if not personnage then
+    return "poste du monde : « " .. tostring(qui) .. " » introuvable"
+  end
+  local ici = personnage:GetWorldPos()
+  local choisi, plus_pres = nil, nil
+  for _, classe in ipairs(liaison.classes_des_postes) do
+    local ok, liste = pcall(System.GetEntitiesByClass, classe)
+    for _, entite in ipairs((ok and type(liste) == "table") and liste or {}) do
+      local lu, ecart = pcall(function()
+        if string.lower(tostring((entite.Properties or {}).guidSmartObjectType)) ~= string.lower(gabarit) then
+          return nil
+        end
+        local la = entite:GetWorldPos()
+        return math.sqrt((la.x - ici.x) ^ 2 + (la.y - ici.y) ^ 2)
+      end)
+      if lu and ecart and ecart <= rayon and (plus_pres == nil or ecart < plus_pres) then
+        choisi, plus_pres = entite, ecart
+      end
+    end
+  end
+  if not choisi then
+    return "poste du monde : aucun objet du gabarit " .. gabarit .. " à moins de " .. rayon .. " m"
+  end
+  liaison.gestes_des_postes[choisi:GetName()] = geste
+  return donner_la_place(personnage, choisi, "poste du monde (" .. string.format("%.1f", plus_pres) .. " m)", 21)
+end
+
 -- Fiche 18, 5 b : un personnage parlable. Le jeu ne met « Parler » (Scripts/Entities/AI/Shared/BasicAIActions.lua,
 -- GetActions) que si un dialogue existe pour son âme ; le socle enveloppe GetActions sur l'instance de l'entité (jamais
 -- la classe) et y ajoute « Parler » (Scripts/Utils/InteractorAction.lua : Action, AddInteractorAction ; interaction
