@@ -203,11 +203,14 @@ essai("directeur : lever le camp renvoie tout le monde ; impossible pendant une 
   FauxJeu.refuser_ennemis = true
   FauxJeu.heure = 13
   Scriptorium.bataille.battre()
+  -- Par passes (fiche 17), l'archer a pu tomber : on compte ceux qui restent avant de lever le camp.
+  local restes = #hommes.liste()
+  local renvoyes = #FauxJeu.personnages_renvoyes
   verifier(directeur.agir("lever_le_camp"), "levé")
   egal(camp.est_fonde(), false, "camp levé")
   egal(#hommes.liste(), 0, "hommes renvoyés")
   egal(directeur.est_installe(), false, "Directeur parti")
-  egal(#FauxJeu.personnages_renvoyes >= 2, true, "personnages renvoyés")
+  egal(#FauxJeu.personnages_renvoyes - renvoyes >= restes + 1, true, "les hommes restés et le Directeur renvoyés")
 end)
 
 essai("directeur : redressement et relecture", function()

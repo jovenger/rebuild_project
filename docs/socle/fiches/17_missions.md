@@ -119,6 +119,13 @@ le chemin du retour, entre à cheval et descend.
   Vu aussi, cause non trouvée : après la pose d'Henry à 50 m du camp de bandits (commande d'essai), l'image retournée
   et l'interface disparue (Henry à terre ?). Séance fermée là ; **non vérifiés** : la fin de la mission proche, la
   mission lointaine.
+- **Tranchée, l'issue s'applique aux vrais personnages** (relecture du pair, 17/10 ; « rien ne disparaît » sous les
+  yeux d'Henry) : leurs tombés tués dans le jeu (le corps reste, à fouiller) ; nos morts tués, couchés, leur corps
+  gardé puis retiré avec ceux de la bande ; nos blessés mis à terre (`liaison.mettre_a_terre`, santé portée à
+  `blesse_sante` 5 : non vérifié que le jeu les couche) ; les survivants d'une bande postée restent debout et ne sont
+  retirés que hors de la vue d'Henry ; le camp de bandits n'est levé que hors de sa vue. Un mort, partout (même au combat
+  vu dans le jeu), laisse son corps (`hommes.retirer` rend le corps). Une bande venue au camp : ses survivants s'en
+  vont aussitôt, comme avant (choix de JoVenGer du 14/10).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 

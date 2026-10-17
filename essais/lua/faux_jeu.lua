@@ -364,6 +364,21 @@ function faux.renvoyer_ennemis(liste)
     faux.ennemis_vivants_par_id[identifiant] = nil
   end
 end
+-- Un coup (vu en jeu : 1000 tue) : la victime morte, ennemi ou des nôtres.
+function faux.blesser(identifiant, points)
+  faux.coups = faux.coups or {}
+  table.insert(faux.coups, { identifiant = identifiant, points = points })
+  if points >= 1000 then
+    faux.personnages_morts[identifiant] = true
+    faux.ennemis_vivants_par_id[identifiant] = nil
+  end
+  return true
+end
+function faux.mettre_a_terre(identifiant, reste)
+  faux.a_terre = faux.a_terre or {}
+  table.insert(faux.a_terre, identifiant)
+  return true
+end
 function faux.personnage_mort(identifiant) return faux.personnages_morts[identifiant] == true end
 function faux.partie_en_cours() return faux.partie end
 function faux.changer_porte(identifiant, etat)

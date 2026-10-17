@@ -467,3 +467,49 @@ essai("missions : un combat figé au camp de bandits, Henry pas sur place, est t
   egal(la_bande(id).etat, "finie", "figé, Henry loin : tranché par passes")
   finir()
 end)
+
+-- Relecture du pair (17/10) : tranchée sous les yeux d'Henry, l'issue s'applique aux vrais personnages ; rien ne
+-- disparaît sous ses yeux.
+essai("missions : tranchée, l'issue s'applique aux vrais personnages ; survivants et camp retirés seulement hors de la vue d'Henry", function()
+  local ids = preparer({ "homme_d_armes", "homme_d_armes", "archer" })
+  local id = missions.dresser_un_camp("gue", "petit")
+  FauxJeu.position_joueur = { x = 0, y = 60, z = 0 }
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  -- Des passes écrites d'avance : deux bandits tombent, puis nos trois hommes (le premier mort, les autres blessés).
+  local ancienne, part = bataille.issue_au_loin, bataille.reglages.part_des_morts
+  bataille.issue_au_loin = function(nous)
+    return { gagne = false, tombes = { nous[1], nous[2], nous[3] }, debout = {}, eux_tombes = 2, eux_debout = 2, passes = 5 }
+  end
+  battre()   -- le premier relevé du combat (le filet compte depuis le dernier changement vu)
+  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.coups, FauxJeu.a_terre = {}, {}
+  local premier = hommes.fiche(ids[1]).personnage
+  FauxJeu.heure = 11
+  battre()
+  egal(la_bande(id).etat, "finie", "figée, tranchée par passes")
+  local tues = 0
+  for _, c in ipairs(FauxJeu.coups) do
+    if c.points >= 1000 then tues = tues + 1 end
+  end
+  verifier(tues >= 2, "les deux bandits tombés tués dans le jeu (et nos morts)")
+  egal(#FauxJeu.a_terre + (tues - 2), 3, "chacun des nôtres tombé : tué ou mis à terre")
+  local renvoyes = #FauxJeu.ennemis_renvoyes
+  battre()
+  egal(#FauxJeu.ennemis_renvoyes, renvoyes, "Henry regarde : les deux survivants restent debout")
+  FauxJeu.vue_d_henry = function() return false end
+  battre()
+  egal(#FauxJeu.ennemis_renvoyes, renvoyes + 2, "il se détourne : les survivants retirés")
+  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.heure = 11 + missions.reglages.camp_vaincu_reste_h + 1
+  battre()
+  verifier(#missions.camps() == 1, "le camp n'est pas levé sous ses yeux")
+  FauxJeu.vue_d_henry = function() return false end
+  battre()
+  egal(#missions.camps(), 0, "levé hors de sa vue")
+  bataille.issue_au_loin, bataille.reglages.part_des_morts = ancienne, part
+  finir()
+end)

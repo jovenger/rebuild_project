@@ -209,6 +209,13 @@ local function retirer_les_meubles(c)
   c.meubles_poses = false
 end
 
+-- Henry voit-il ce lieu ? Dans son regard et à moins de « poste_vue_m » (rien ne disparaît sous ses yeux).
+local function lieu_sous_les_yeux(l)
+  local henry = jeu().position_du_joueur()
+  return henry ~= nil and math.sqrt((henry.x - l.x) ^ 2 + (henry.y - l.y) ^ 2) <= bataille().reglages.poste_vue_m
+    and jeu().henry_voit(l, Scriptorium.hommes.reglages.secours_vue_cos) == true
+end
+
 -- Les meubles d'un camp naissent comme ses hommes : sur la carte du lieu, hors du regard d'Henry (fiche 17).
 local function poser_les_meubles(c)
   local l = c.lieu
@@ -598,7 +605,7 @@ function missions.battre()
           end
         end
       end
-    elseif c.etat == "fini" and heure >= c.fini_a + missions.reglages.camp_vaincu_reste_h then
+    elseif c.etat == "fini" and heure >= c.fini_a + missions.reglages.camp_vaincu_reste_h and not lieu_sous_les_yeux(c.lieu) then
       retirer_les_meubles(c)
       c.etat = "leve"
       rapport.leves = rapport.leves + 1

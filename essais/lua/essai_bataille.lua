@@ -256,30 +256,36 @@ essai("bataille : fin par le jeu, les ennemis tombent, nos morts sont ceux que l
   egal(r.butin, math.floor(3 * 16 * 0.6), "butin à 60 %")
   -- Les corps restent à fouiller vingt-quatre heures de jeu, puis sont retirés.
   egal(#FauxJeu.ennemis_renvoyes, 0, "les corps restent à fouiller")
-  egal(#FauxJeu.corps_couches, 3, "les trois morts couchés en corps (vu le 15/10 : sinon ils restaient debout)")
+  egal(#FauxJeu.corps_couches, 4, "les trois ennemis et notre mort couchés en corps (vu le 15/10 : sinon ils restaient debout ; fiche 17 : rien ne disparaît)")
   FauxJeu.heure = 11 + 23.9
   bataille.battre()
   egal(#FauxJeu.ennemis_renvoyes, 0, "encore là le lendemain avant l'heure")
   FauxJeu.heure = 11 + 24
   egal(bataille.battre().changements, 1, "corps retirés au battement")
-  egal(#FauxJeu.ennemis_renvoyes, 3, "les trois corps retirés")
+  egal(#FauxJeu.ennemis_renvoyes, 4, "les quatre corps retirés")
   FauxJeu.heure = 11 + 30
   bataille.battre()
-  egal(#FauxJeu.ennemis_renvoyes, 3, "retirés une seule fois")
+  egal(#FauxJeu.ennemis_renvoyes, 4, "retirés une seule fois")
 end)
 
-essai("bataille : à la fin, les ennemis debout s'en vont, les corps restent", function()
+-- Fiche 17 : tranchée par passes, la bataille se joue jusqu'au bout ; chaque ennemi est tombé (tué, couché) ou debout
+-- (parti aussitôt, pour une bande venue au camp) ; les corps restent à fouiller.
+essai("bataille : à la fin, les ennemis debout s'en vont, les tombés restent à terre", function()
   preparer(1000, 10, { "homme_d_armes", "homme_d_armes", "pavoisier", "arbaletrier" })
   local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
   bataille.battre()
   FauxJeu.ennemis_vivants_par_id[FauxJeu.ennemis[1].identifiant] = false
   FauxJeu.heure = 13
   egal(bataille.battre().finies, 1, "tranchée par la règle")
-  egal(#FauxJeu.ennemis_renvoyes, 2, "les deux debout s'en vont aussitôt")
-  egal(#FauxJeu.corps_couches, 1, "seul le mort est couché")
+  local couches = 0
+  for _, c in ipairs(FauxJeu.corps_couches) do
+    if string.find(c, "ennemi_", 1, true) == 1 then couches = couches + 1 end
+  end
+  verifier(couches >= 1, "le premier mort est couché")
+  egal(couches + #FauxJeu.ennemis_renvoyes, 3, "chaque ennemi : à terre ou parti")
   FauxJeu.heure = 13 + 24
   bataille.battre()
-  egal(#FauxJeu.ennemis_renvoyes, 3, "le corps retiré le lendemain")
+  verifier(#FauxJeu.ennemis_renvoyes >= 3, "les corps retirés le lendemain")
   egal(bataille.bande(id).etat, "finie", "bande finie")
 end)
 
@@ -308,7 +314,8 @@ essai("bataille : après deux heures de contact sans fin, la règle tranche et r
   egal(bataille.battre().finies, 1, "tranchée")
   egal(bataille.bande(id).etat, "finie", "finie")
   egal(bataille.bande(id).issue, "victoire", "deux déserteurs contre quatre : victoire")
-  egal(#FauxJeu.ennemis_renvoyes, 2, "ennemis renvoyés")
+  egal(#FauxJeu.ennemis_renvoyes, 0, "par passes, les deux tombés : rien n'est renvoyé")
+  egal(#FauxJeu.corps_couches, 2, "les deux à terre, à fouiller")
 end)
 
 essai("bataille : la graine est gardée, deux parties identiques donnent les mêmes pertes", function()

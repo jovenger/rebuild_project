@@ -3240,6 +3240,23 @@ function liaison.blesser(identifiant, points)
   return ok, (not ok) and tostring(erreur) or nil
 end
 
+-- Fiche 17 (relecture du pair, 17/10 : l'issue tranchée appliquée aux vrais personnages) : un blessé est mis à terre,
+-- sa santé portée à « reste » par un coup du jeu (soul:DealDamage, comme « blesser ») ; vu en jeu le 17/10 : Jan, à
+-- 4,7 de santé, était inconscient. Vrai si fait.
+function liaison.mettre_a_terre(identifiant, reste)
+  local entite = entite_nommee(identifiant)
+  if not entite or type(entite.soul) ~= "table" or type(entite.actor) ~= "table" then
+    return false, "personnage introuvable"
+  end
+  local ok, erreur = pcall(function()
+    local sante = entite.actor:GetHealth()
+    if type(sante) == "number" and sante > reste then
+      entite.soul:DealDamage(sante - reste, sante - reste, __null, true)
+    end
+  end)
+  return ok, (not ok) and tostring(erreur) or nil
+end
+
 -- V71 a (fiche 13) : l'équipement par le Lua, mesuré avant d'écrire les tables. Les appels de l'outil de combat du jeu
 -- (Scripts/Debug/CombatDebug.lua : actor:EquipClothingPreset, actor:EquipWeaponPreset) sur l'un de nos hommes, hors
 -- -devmode ; et ce qu'ils donnent, compté par inventory:GetCountOfClass (Scripts/Utils/ItemUtils.lua). Préréglages et

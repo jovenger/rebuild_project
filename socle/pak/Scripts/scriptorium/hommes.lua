@@ -748,8 +748,14 @@ local function liberer_place(f)
   f.lit = nil
 end
 
-local function faire_partir(d, f, cause, cle)
-  if f.personnage then
+local function faire_partir(d, f, cause, cle, garder_le_corps)
+  local corps = nil
+  if f.personnage and garder_le_corps then
+    -- Fiche 17 (relecture du pair) : un mort reste à terre, rien ne disparaît sous les yeux d'Henry ; qui l'a tué retire
+    -- le corps plus tard, hors de sa vue.
+    corps = f.personnage
+    f.personnage = nil
+  elseif f.personnage then
     jeu().renvoyer_homme(f.personnage)
     f.personnage = nil
   end
@@ -775,6 +781,7 @@ local function faire_partir(d, f, cause, cle)
   if cle then
     annoncer(cle, { complement = f.nom })
   end
+  return corps
 end
 
 -- ---------------------------------------------------------------- équipement (fiche 13, V71 b)
@@ -1277,10 +1284,11 @@ function hommes.retirer(id, cause)
     return refuser("homme_inconnu", tostring(id))
   end
   local cle = (cause == "mort") and "ui_scriptorium_hommes_mort" or nil
-  faire_partir(d, f, cause or "retire", cle)
+  -- Un mort laisse son corps (fiche 17) : rendu en second, pour qui le retirera hors de la vue d'Henry.
+  local corps = faire_partir(d, f, cause or "retire", cle, cause == "mort")
   verifier_rangs(d, {})
   enregistrer()
-  return true
+  return true, corps
 end
 
 -- ---------------------------------------------------------------- moral et blessures
