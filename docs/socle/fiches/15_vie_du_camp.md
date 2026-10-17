@@ -1650,7 +1650,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   jamais retirée avec le cheval, même l'original parti ; un retrait « qui contient » injecté est attrapé.
 - Suite : V73 f 2 b, la troupe à cheval.
 
-## V73 f 2 b — la troupe à cheval (17/10, relu par le pair ; réponses recommandées prises d'office)
+## V73 f 2 b — la troupe à cheval (17/10, relu par le pair, fait et vu en jeu ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - Après la sonde (V73 f 2 a, vue en jeu) : **les hommes d'une escorte partent à cheval**, chacun sur un cheval né pour la
@@ -1756,6 +1756,26 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    Directeur monté d'emblée. **Prise : (a)**.
 3. **L'allure du chef réglée sur Henry** : (a) pas dans ce pas, à décider sur l'image (Recommandé) ; (b) tout de suite.
    **Prise : (a)**.
+
+### Mesuré en V73 f 2 b (17/10) : la troupe à cheval, acquise
+- 64ed7f8, `playline3` (473), sans `-devmode`, secours coupé puis remis ; trois hommes.
+- **Trois chevaux nés, trois montes** (« en selle 1 » chacun) ; Jan mène (ordre 18), les deux autres se rangent (ordre 19) ;
+  à l'image, Jan devant, les deux autres en flanc derrière lui.
+- **La troupe suit Henry** au pas (Jan à 17,98 m juste après 10 s de marche, puis contre Henry ; suiveurs à 3,1–3,5 m de
+  lui) et à la course (Jan à 10,53 m, puis 2,38 m 8 s plus tard ; suiveurs à 2,1–2,5 m). **L'allure du chef réglée sur
+  Henry n'est pas nécessaire** à ce stade (question 3 : rien à faire).
+- **Deux sauts de 40 m** : la troupe rejoint d'elle-même au galop (Jan à 31,78 m 11 s après le saut, 2,44 m 26 s plus
+  tard) ; la formation tient : la formation hors de la posture se vérifie. Aucune pose ni rattrapage au journal.
+- **Descentes** à la fin de la sortie, **chevaux retirés** au battement suivant (une ligne chacun).
+- **Monte manquée** (`cerveau.monte_delai_ms` à 300 par le fichier de réglages) : pour chacun, trois essais (chevaux `_1`,
+  `_2`, `_3` retirés tour à tour), puis à pied jusqu'à la fin de la sortie (ordres 15 et 16, en formation autour d'Henry).
+- Vu aussi : à la pose de la troupe et à sa fin, l'ordre du premier est redonné à chaque homme ajouté ou lâché (le nombre
+  est dans la signature) ; sans effet visible (tout se passe au même instant).
+- **Ouvert** : la naissance du cheval n'évite que les personnages (à 1 m), pas les meubles du camp ; la règle « jamais
+  reposé seul » n'a pas été éprouvée en jeu (aucun battement n'a vu un cavalier à plus de 60 m) ; « fermer avant d'ouvrir »
+  toujours pas revu en jeu.
+- Suite (relecture du pair) : monter **quand Henry monte** (un `StanceCheck` « horse » sur Henry, anti-rebond), le
+  Directeur monté chef de colonne ; puis le changement de carte et les intérieurs.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
