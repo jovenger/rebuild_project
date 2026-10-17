@@ -2680,6 +2680,14 @@ local function donner_la_place(entite, objet, libelle, ordre)
   end
   local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
   liaison.objet_vise = objet
+  -- Fiche 18, 5 c : au poste de travail (ordre 21), le geste de ce poste, lu par l'arbre (liaison.geste_du_poste).
+  if ordre == 21 then
+    local lu_nom, nom = pcall(function() return entite:GetName() end)
+    local lu_objet, nom_objet = pcall(function() return objet:GetName() end)
+    if lu_nom and lu_objet then
+      liaison.gestes[nom] = liaison.gestes_des_postes[nom_objet]
+    end
+  end
   return string.format("place : %s, %s ; WUID posé %s ; %s", libelle, decrire_un_siege(objet, ecart_entre(entite, objet)),
     tostring(pose), poser_l_activite(entite, ordre))
 end
@@ -2722,7 +2730,7 @@ end
 -- La vie du camp (fiche 15, V73 a) : l'ordre devient un geste, plus de téléportation. Une place du camp (« place » :
 -- l'identifiant de son objet du jeu, « sorte » : « siege » ou « lit ») se prend par l'ordre 10 ou 11 ; sinon l'homme
 -- marche jusqu'à « position » (ordre 9, point posé dans son cerveau). Rend une ligne.
-liaison.ordres_des_places = { siege = 10, lit = 11 }
+liaison.ordres_des_places = { siege = 10, lit = 11, poste = 21 }
 
 -- Fiche 15, V73 d 1 : le dernier point de regard posé chez chaque personnage (pour le poste d'essai, qui dit l'écart
 -- entre son cap et ce point). En mémoire seulement.
@@ -2918,6 +2926,87 @@ end
 -- La ronde (fiche 15, V73 d 2) : la fonction des hommes qui donne le pas suivant, confiée au démarrage (la liaison
 -- n'appelle aucun morceau).
 liaison.pas_de_ronde = liaison.pas_de_ronde
+
+-- Fiche 18, 5 c, tranche 2 : les postes de travail du jeu. Un SmartObjectHolder (Scripts/Entities/WH/Others/
+-- SmartObjectHolder.lua : un objet intelligent sans géométrie) porte le gabarit du poste (guidSmartObjectType, le
+-- DatabaseId de Libs/Tables/ai/smartEntity/SmartEntity__<nom>.xml) ; l'arbre de la vie du camp (branche 21) y lance le
+-- geste, un comportement nommé du gabarit (CallBehavior, comme AI/crime/mournOnBench.xml). En mémoire : le geste de
+-- chaque poste posé, et celui donné à chaque personnage.
+liaison.gestes_des_postes = liaison.gestes_des_postes or {}
+liaison.gestes = liaison.gestes or {}
+
+function liaison.poser_poste(nom, gabarit, position, cap, aides, geste)
+  local proprietes = { guidSmartObjectType = gabarit, soclass_SmartObjectHelpers = aides or "", bSaved_by_game = false,
+                       bOwnedByHome = false }
+  local identifiant, raison = faire_naitre("SmartObjectHolder", "scriptorium_poste_" .. nom, liaison.au_sol(position), cap,
+                                           proprietes)
+  if not identifiant then
+    liaison.journal("Poste de travail « " .. nom .. " » : pose impossible : " .. tostring(raison))
+    return nil
+  end
+  liaison.gestes_des_postes[identifiant] = geste
+  liaison.journal("Poste de travail « " .. nom .. " » posé : " .. identifiant .. " (gabarit " .. tostring(gabarit)
+                  .. ", geste « " .. tostring(geste) .. " »)")
+  return identifiant
+end
+
+-- Appelée par l'arbre de la vie du camp (branche 21) sous pcall : écrit dans « poste_geste » le geste du poste donné à
+-- ce personnage ; une ligne au journal ; une erreur, au journal.
+function liaison.geste_du_poste(entite, donnees)
+  local fait, erreur = pcall(function()
+    local nom = entite:GetName()
+    local geste = liaison.gestes[nom] or "use"
+    donnees.poste_geste = geste
+    liaison.journal("Poste de travail : « " .. tostring(nom) .. " » lance le geste « " .. geste .. " »")
+  end)
+  if not fait then
+    liaison.journal("Poste de travail : erreur : " .. tostring(erreur))
+  end
+end
+
+-- Le relevé des postes du monde (outil d'essai, comme V65 pour les sièges) : les objets intelligents des classes qui
+-- portent un gabarit (relevé dans Scripts.pak), dont le gabarit est dans « gabarits » ({ [identifiant en minuscules] =
+-- genre }), à moins de « rayon » mètres d'Henry ; au plus « combien » lignes, du plus proche au plus loin. Rend le
+-- nombre trouvé.
+liaison.classes_des_postes = { "SmartObjectHolder", "GeomEntity", "AnimObject", "RigidBodyEx", "SO_ActionSettings",
+                               "SmartObjectTrigger", "StanceSmartObject" }
+
+function liaison.relever_les_postes(gabarits, rayon, combien)
+  local henry = liaison.position_du_joueur()
+  if not henry then
+    return 0
+  end
+  local trouves = {}
+  for _, classe in ipairs(liaison.classes_des_postes) do
+    local ok, liste = pcall(System.GetEntitiesByClass, classe)
+    for _, entite in ipairs((ok and type(liste) == "table") and liste or {}) do
+      local lu, ligne = pcall(function()
+        local p = entite.Properties or {}
+        local genre = gabarits[string.lower(tostring(p.guidSmartObjectType))]
+        if not genre then
+          return nil
+        end
+        local ici = entite:GetWorldPos()
+        local distance = math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2)
+        if distance > rayon then
+          return nil
+        end
+        return { distance = distance, texte = string.format("Relevé des postes : %s, %s « %s », à %.1f m (%.1f, %.1f, %.1f) ; "
+          .. "aides « %s », modèle « %s »", genre, classe, tostring(entite:GetName()), distance, ici.x, ici.y, ici.z,
+          tostring(p.soclass_SmartObjectHelpers), tostring(p.object_Model or p.object_editorModel)) }
+      end)
+      if lu and ligne then
+        table.insert(trouves, ligne)
+      end
+    end
+  end
+  table.sort(trouves, function(a, b) return a.distance < b.distance end)
+  for i = 1, math.min(#trouves, combien or 30) do
+    liaison.journal(trouves[i].texte)
+  end
+  liaison.journal("Relevé des postes : " .. #trouves .. " à moins de " .. rayon .. " m")
+  return #trouves
+end
 
 -- Fiche 18, 5 b : un personnage parlable. Le jeu ne met « Parler » (Scripts/Entities/AI/Shared/BasicAIActions.lua,
 -- GetActions) que si un dialogue existe pour son âme ; le socle enveloppe GetActions sur l'instance de l'entité (jamais

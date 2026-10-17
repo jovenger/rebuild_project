@@ -1891,6 +1891,12 @@ function hommes.activite_de(id, heure)
     -- V73 d 2 : une ronde suit son chemin, en boucle ou en aller-retour, depuis son point de départ s'il est donné.
     resultat.chemin, resultat.aller_retour, resultat.depart = tenue.chemin, tenue.aller_retour, tenue.depart
     resultat.pauses = tenue.pauses
+    -- Fiche 18, 5 c : au poste de travail, le poste et sa position.
+    if tenue.poste then
+      resultat.poste = tenue.poste
+      local p = camp().poste(tenue.poste)
+      resultat.position = resultat.position or (p and p.position)
+    end
     -- V73 d 1 : une garde se tient face au dehors (le cap de la tenue, sinon du centre du camp vers le poste).
     if tenue.activite == "garde" then
       resultat.regard = regard_du_poste(tenue.position, tenue.cap)
@@ -2293,6 +2299,14 @@ end
 -- Ce que l'ordre vise (fiche 15, V73 a) : une place du camp (siège, lit) se prend par son objet du jeu ; tout le reste est
 -- un point où marcher. Rend (position, objet de la place, sorte de la place).
 local function but_de(a)
+  -- Fiche 18, 5 c : un poste de travail (ordre 21) : son objet du jeu.
+  if a.poste then
+    local objet = camp().objet_du_poste(a.poste)
+    if objet then
+      return a.position, objet, "poste"
+    end
+    return a.position, nil, nil
+  end
   local sorte = a.lieu and camp().sorte_de(a.lieu)
   if sorte and camp().sortes_places[sorte] then
     local objet = camp().objet_du_jeu_de(a.lieu)
@@ -3490,7 +3504,7 @@ local function memes_tenues(a, b)
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
-    and a.tete == b.tete
+    and a.tete == b.tete and a.poste == b.poste
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -3590,6 +3604,10 @@ function hommes.tenir(id, regle, quoi)
   if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" and quoi.a_cheval ~= "comme_henry" then
     return refuser("escorte_invalide", "a_cheval " .. tostring(quoi.a_cheval))
   end
+  -- Fiche 18, 5 c : le poste de travail, un poste connu du camp.
+  if quoi.activite == "poste" and not camp().poste(quoi.poste) then
+    return refuser("poste_inconnu", tostring(quoi.poste))
+  end
   -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
   local pauses = nil
   if chemin and quoi.pauses == false then
@@ -3605,6 +3623,7 @@ function hommes.tenir(id, regle, quoi)
                   ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
                   chef = (quoi.activite == "suivre") and quoi.chef or nil, vers = vers,
                   tete = (quoi.activite == "suivre") and quoi.tete or nil,
+                  poste = (quoi.activite == "poste") and quoi.poste or nil,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
                   a_cheval = (quoi.activite == "suivre" and (quoi.a_cheval == true or quoi.a_cheval == "comme_henry"))

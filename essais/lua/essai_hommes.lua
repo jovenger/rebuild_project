@@ -3446,3 +3446,41 @@ essai("métiers (5 c) : un admis combattant jamais équipé, sans prime payée p
   egal(corps, nil, "aucun corps rendu (il est à Scriptorium)")
   egal(#FauxJeu.personnages_renvoyes, renvoyes, "jamais renvoyé")
 end)
+
+essai("postes de travail (5 c, tranche 2) : rendre un poste fonctionnel, l'homme y va (ordre de poste), reposé au redressement, retiré au levage", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "cuisinier", semaines = 4, prime = 0 })
+  hommes.battre()
+  FauxJeu.postes_poses = {}
+  verifier(not camp.rendre_fonctionnel("autel", "inconnu", { x = 5, y = 5, z = 0 }, 0), "genre inconnu : refusé")
+  verifier(not camp.rendre_fonctionnel("mauvais nom", "priere", { x = 5, y = 5, z = 0 }, 0), "nom boiteux : refusé")
+  verifier(not camp.rendre_fonctionnel("autel", "priere", { x = 5 }, 0), "point boiteux : refusé")
+  verifier(Scriptorium.avis(camp, "rendre_fonctionnel", "autel", "priere", { x = 5, y = 5, z = 0 }, 90), "posé")
+  egal(#FauxJeu.postes_poses, 1, "un objet du jeu posé")
+  local pose = FauxJeu.postes_poses[1]
+  egal(pose.gabarit, camp.genres_de_postes.priere.gabarit, "le gabarit du genre")
+  egal(pose.geste, "useKneelingGround", "son geste")
+  egal(camp.postes()[1], "autel", "listé")
+  local ok, r = hommes.tenir(id, "travail", { activite = "poste", poste = "nulle_part", fin = "liberation" })
+  verifier(not ok and r == "poste_inconnu", "un poste inconnu : refusé")
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir(id, "travail", { activite = "poste", poste = "autel", fin = "liberation" }), "tenu au poste")
+  local perso = hommes.fiche(id).personnage
+  local vu = nil
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == perso and o.activite == "poste" then vu = o end
+  end
+  verifier(vu ~= nil, "l'ordre du poste donné")
+  egal(vu and vu.place, pose.identifiant, "sur l'objet du poste")
+  egal(vu and vu.sorte, "poste", "de sorte « poste »")
+  egal(vu and vu.position and vu.position.x, 5, "à sa position")
+  -- Rechargé : l'objet manque, il est reposé.
+  FauxJeu.objets_existants[pose.identifiant] = nil
+  camp.redresser()
+  egal(#FauxJeu.postes_poses, 2, "reposé au redressement")
+  verifier(camp.poste("autel").pose, "de nouveau posé")
+  hommes.lacher(id, "travail")
+  verifier(camp.lever(), "camp levé")
+  verifier(not FauxJeu.objet_existe(FauxJeu.postes_poses[2].identifiant), "le poste retiré avec le camp")
+  egal(#camp.postes(), 0, "plus de poste")
+end)

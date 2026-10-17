@@ -91,3 +91,27 @@ Réponses prises d'office :
   aucun corps (son entité est à Scriptorium : personne ne la retire).
 
 **Vu en jeu le 17/10** (séance groupée, `essai_en_jeu.md`) : 5 a (trois d'un coup, un posé au point, le compagnon nommé), 5 a bis (9 objets portés à l'état 0,5), 5 b (« Parler [E] » puis « Il vous écoute : … » ; le moteur appelle bien l'enveloppe de l'instance), 5 c tranche 1 (l'admis mené par nos ordres ; les gens de métier hors de la garde). Non vus : pas de « Parler » en combat ; l'admis après un rechargement.
+
+### Tranche 2 : les postes de travail du jeu
+
+Sources réelles (lecture seule) : `Tables.pak`, `Libs/Tables/ai/smartEntity/SmartEntity__<nom>.xml` (le gabarit : son
+`DatabaseId`, ses comportements nommés) ; `Scripts.pak`, `AI/profession/…` (l'arbre de chaque comportement),
+`Scripts/Entities/WH/Others/SmartObjectHolder.lua` (un objet intelligent sans géométrie, qui porte
+`guidSmartObjectType`), `AI/crime/mournOnBench.xml` (un personnage lance le comportement d'un objet :
+`<CallBehavior Target=… BehaviorName=…>`). Deux recherches (GitHub, Nexus) sans exemple pour KCD2 (5 b).
+
+Comportement :
+- **Le catalogue des genres** `camp.genres_de_postes` (section de réglages `postes_du_jeu`) : pour chaque genre, le
+  gabarit du jeu, le geste (le comportement nommé) et les points d'appui. D'abord la prière (`so_praying`,
+  `useKneelingGround`) et le balai (`so_sweeping`, `use`) : sans objet lié. La forge (sac de forge, emplacements du
+  marteau et de l'épée, liés au poste) viendra après, prouvée à part.
+- **Rendre un poste fonctionnel** : `camp.rendre_fonctionnel(nom, genre, position, cap)` (décision remplaçable, A34) :
+  un `SmartObjectHolder` du gabarit, posé au sol là où Scriptorium (ou JoVenGer par le plan) le veut ; gardé au
+  registre, reposé à l'entrée en partie s'il manque, retiré quand le camp est levé ; `camp.retirer_le_poste(nom)`,
+  `camp.postes()`.
+- **Le geste vient du jeu, l'ordre vient de nous** : `hommes.tenir(id, regle, { activite = "poste", poste = nom, fin })`
+  : l'homme marche au poste (ordre 21), puis l'arbre lance le comportement du poste (`CallBehavior`), le relance quand
+  il finit, et l'interrompt au changement d'ordre (la fin de la tenue, une bataille, la nuit : l'arbitre).
+- **Le relevé** (outil d'essai) : les objets intelligents du monde d'un gabarit du catalogue, autour d'Henry : classe,
+  nom, gabarit, points d'appui, modèle, distance (comme V65 pour les sièges).
+- Non vérifié en jeu tant que le relevé et la première prière ne sont pas vus.

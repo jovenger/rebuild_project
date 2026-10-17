@@ -62,6 +62,14 @@ camp.objets_du_jeu = {
 -- Les sortes qui sont des places (un homme peut les prendre).
 camp.sortes_places = { lit = true, siege = true }
 
+-- Fiche 18, 5 c, tranche 2 : les genres de postes de travail (section de réglages « postes_du_jeu ») : le gabarit du jeu
+-- (le DatabaseId de Libs/Tables/ai/smartEntity/SmartEntity__<nom>.xml), le geste (un comportement nommé du gabarit),
+-- les points d'appui. Relevé le 17/10 dans Tables.pak (lecture seule) ; d'abord des postes sans objet lié.
+camp.genres_de_postes = {
+  priere = { gabarit = "459f694f-4d30-84cd-b21c-ebbc263571ba", geste = "useKneelingGround", aides = "" },
+  balai = { gabarit = "4fbf97e7-3613-4c9f-959f-d24ea368d9a6", geste = "use", aides = "" },
+}
+
 -- Le plan du camp : positions en mètres par rapport à l'ancre (x à droite, y devant),
 -- cap en degrés (0 = devant, sens des aiguilles d'une montre vu de dessus), niveau 1 à 3.
 local function emplacement(nom, sorte, x, y, cap, niveau, reserve)
@@ -128,6 +136,7 @@ local function donnees_neuves()
     proprietaire = camp.proprietaire,
     objets = {},   -- nom -> { identifiant }
     places = {},   -- nom -> qui
+    postes = {},   -- fiche 18, 5 c : nom -> { genre, x, y, z, cap, identifiant }
   }
 end
 
@@ -375,9 +384,99 @@ function camp.redresser()
       end
     end
   end
+  for nom, poste in pairs(d.postes or {}) do
+    if not (poste.identifiant and jeu().objet_existe(poste.identifiant)) then
+      if camp.poser_le_poste(d, nom, poste) then reposes = reposes + 1 else manquants = manquants + 1 end
+    end
+  end
   enregistrer()
   jeu().journal("Camp : redressé, " .. reposes .. " objet(s) reposé(s), " .. manquants .. " manquant(s)")
   return reposes, manquants
+end
+
+-- ---------------------------------------------------------------- les postes de travail (fiche 18, 5 c, tranche 2)
+
+-- Pose le SmartObjectHolder d'un poste ; vrai si posé.
+function camp.poser_le_poste(d, nom, poste)
+  local genre = camp.genres_de_postes[poste.genre]
+  if not genre then
+    return false
+  end
+  poste.identifiant = jeu().poser_poste(nom, genre.gabarit, { x = poste.x, y = poste.y, z = poste.z }, poste.cap,
+                                        genre.aides, genre.geste)
+  return poste.identifiant ~= nil
+end
+
+-- Rendre un poste fonctionnel (A34 ; décision remplaçable) : un poste de travail du jeu d'un genre du catalogue, à un
+-- point du monde (un meuble posé par JoVenGer, ou là où Scriptorium le veut). Gardé au registre, reposé à l'entrée en
+-- partie, retiré quand le camp est levé. Rend vrai, ou faux et la raison.
+function camp.rendre_fonctionnel(nom, genre, position, cap)
+  local d = donnees()
+  if not d.fonde then
+    return refuser("pas_fonde")
+  end
+  if type(nom) ~= "string" or nom == "" or not string.match(nom, "^[%w_]+$") then
+    return refuser("nom_invalide", tostring(nom))
+  end
+  if not camp.genres_de_postes[genre] then
+    return refuser("genre_inconnu", tostring(genre))
+  end
+  if type(position) ~= "table" or type(position.x) ~= "number" or type(position.y) ~= "number"
+      or type(position.z) ~= "number" or (cap ~= nil and type(cap) ~= "number") then
+    return refuser("position_invalide")
+  end
+  d.postes = d.postes or {}
+  local ancien = d.postes[nom]
+  if ancien and ancien.identifiant then
+    jeu().retirer_objet(ancien.identifiant)
+  end
+  local poste = { genre = genre, x = position.x, y = position.y, z = position.z, cap = cap or 0 }
+  d.postes[nom] = poste
+  local pose = camp.poser_le_poste(d, nom, poste)
+  enregistrer()
+  if not pose then
+    jeu().journal("Camp : poste « " .. nom .. " » (" .. genre .. ") gardé au registre, pas posé (le jeu a refusé)")
+    return refuser("pose_refusee", nom)
+  end
+  return true
+end
+Scriptorium.remplacable(camp, "rendre_fonctionnel", function(rendu) return type(rendu) == "boolean" end)
+
+function camp.retirer_le_poste(nom)
+  local d = donnees()
+  local poste = d.postes and d.postes[nom]
+  if not poste then
+    return refuser("poste_inconnu", tostring(nom))
+  end
+  if poste.identifiant then
+    jeu().retirer_objet(poste.identifiant)
+  end
+  d.postes[nom] = nil
+  enregistrer()
+  return true
+end
+
+-- Un poste : une copie { genre, position, cap, pose }, ou nil ; tous les postes : la liste de leurs noms, triée.
+function camp.poste(nom)
+  local p = donnees().postes and donnees().postes[nom]
+  if not p then
+    return nil
+  end
+  return { genre = p.genre, position = { x = p.x, y = p.y, z = p.z }, cap = p.cap,
+           pose = p.identifiant ~= nil and jeu().objet_existe(p.identifiant) }
+end
+
+function camp.postes()
+  local noms = {}
+  for nom in pairs(donnees().postes or {}) do table.insert(noms, nom) end
+  table.sort(noms)
+  return noms
+end
+
+-- L'objet du jeu d'un poste (posé), ou nil.
+function camp.objet_du_poste(nom)
+  local p = donnees().postes and donnees().postes[nom]
+  return p and p.identifiant and jeu().objet_existe(p.identifiant) and p.identifiant or nil
 end
 
 -- Entrée en partie (nouvelle ou chargée). Choix de JoVenGer (15/10) : ne reposer que ce qui manque. Avec le réglage
@@ -414,6 +513,13 @@ function camp.lever()
     end
     retirer(objet)
     d.objets[nom] = nil
+  end
+  for nom, poste in pairs(d.postes or {}) do
+    if poste.identifiant then
+      jeu().retirer_objet(poste.identifiant)
+      retires = retires + 1
+    end
+    d.postes[nom] = nil
   end
   d.fonde = false
   d.niveau = 0

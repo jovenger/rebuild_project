@@ -197,6 +197,17 @@ function faux.retirer_objet(identifiant)
   faux.objets_existants[identifiant] = nil
 end
 function faux.objet_existe(identifiant) return faux.objets_existants[identifiant] == true end
+-- Fiche 18, 5 c : un poste de travail posé (« refuser_les_postes » : aucun).
+function faux.poser_poste(nom, gabarit, position, cap, aides, geste)
+  if faux.refuser_les_postes then return nil end
+  local identifiant = "poste_" .. faux.prochain_objet
+  faux.prochain_objet = faux.prochain_objet + 1
+  faux.postes_poses = faux.postes_poses or {}
+  table.insert(faux.postes_poses, { identifiant = identifiant, nom = nom, gabarit = gabarit, position = position, cap = cap,
+                                    geste = geste })
+  faux.objets_existants[identifiant] = true
+  return identifiant
+end
 function faux.poser_objet_du_jeu(nom, position, cap, proprietes)
   if faux.refuser_pose[nom] then return nil end
   local identifiant = "place_" .. faux.prochain_objet

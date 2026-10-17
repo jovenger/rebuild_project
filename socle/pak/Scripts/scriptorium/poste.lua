@@ -703,6 +703,62 @@ function poste.essai_qui_garde()
   return true
 end
 
+-- 5 c, tranche 2 : le relevé des postes du monde, à 400 m d'Henry : les genres du catalogue, et d'autres gabarits du
+-- jeu à connaître (relevés le 17/10 dans Tables.pak : Libs/Tables/ai/smartEntity/SmartEntity__<nom>.xml).
+poste.gabarits_a_relever = {
+  ["a7daaa9f-8424-430d-80a6-e7996aed85a3"] = "so_blacksmith", ["de1c90bc-16a7-476b-87b8-ab599a2145cc"] = "so_armorsmith",
+  ["0eb1fa03-74d8-414f-94c2-76a0981b7fe1"] = "so_campArrowFix", ["1b478055-990f-4ce2-a4ae-d3396dfcd2ed"] = "so_benchCampFun",
+  ["4e5740c0-c63d-68b9-0ad7-51f6cc522d86"] = "so_guardSpot", ["60d4e0c4-bbe1-40f7-a58e-2a0ad72acee0"] = "so_waterWell",
+  ["056da819-2fc6-431b-90ed-14680813bf9f"] = "so_leanOnSword", ["e12af658-1941-4593-85c9-e0d303bd2cc6"] = "standLikeGuard",
+  ["8b959f6e-fe08-4841-a826-18f9ff7d989e"] = "so_fence", ["7401194c-2f37-4735-b53c-0e5d9843258c"] = "so_shoveling",
+  ["c2bb08b4-c1ad-484c-abce-df196518fb9b"] = "so_weeding", ["9f3738e3-b93e-402d-a7d3-c9a61d1e779c"] = "so_tailor",
+  ["4908b625-8a6d-42cf-c221-ff56cf0e549b"] = "so_butcher", ["d40a8dfa-2b43-4dc8-b7b7-d44351b36f1c"] = "so_herbalist",
+}
+
+function poste.essai_postes_relever()
+  local gabarits = {}
+  for cle, nom in pairs(poste.gabarits_a_relever) do gabarits[cle] = nom end
+  for genre, g in pairs(Scriptorium.camp.genres_de_postes) do gabarits[string.lower(g.gabarit)] = genre end
+  return jeu().relever_les_postes(gabarits, 400, 40) > 0
+end
+
+-- Un poste du genre donné à 3 m devant Henry (le camp doit être fondé).
+local function poser_un_poste_devant(genre)
+  local point, cap = devant_henry(3)
+  local ok, raison = Scriptorium.avis(Scriptorium.camp, "rendre_fonctionnel", "essai_" .. genre, genre, point, cap or 0)
+  jeu().journal("Poste : poste « essai_" .. genre .. " » rendu fonctionnel = " .. tostring(ok) .. (raison and (" (" .. tostring(raison) .. ")") or ""))
+  return ok == true
+end
+
+function poste.essai_poste_priere() return poser_un_poste_devant("priere") end
+function poste.essai_poste_balai() return poser_un_poste_devant("balai") end
+
+-- Le dernier vu (sinon le premier homme) tenu au dernier poste posé.
+function poste.essai_poste_tenir()
+  local hommes = Scriptorium.hommes
+  local id = poste.dernier_vu or hommes.liste()[1]
+  local postes = Scriptorium.camp.postes()
+  local nom = postes[#postes]
+  if not id or not nom then
+    return false
+  end
+  local ok, raison = hommes.tenir(id, "travail", { activite = "poste", poste = nom, fin = "liberation" })
+  jeu().journal("Poste : « " .. hommes.fiche(id).nom .. " » au poste « " .. nom .. " » = " .. tostring(ok or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
+function poste.essai_poste_lacher()
+  local hommes = Scriptorium.hommes
+  local id = poste.dernier_vu or hommes.liste()[1]
+  if not id then
+    return false
+  end
+  hommes.lacher(id, "travail")
+  poste.battre_les_hommes()
+  return true
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2356,6 +2412,11 @@ poste.commandes = {
   { nom = "scriptorium_essai_admettre", fonction = function() return poste.essai_admettre() end, aide = "Un personnage né hors de la Compagnie, admis forgeron (fiche 18, 5 c)" },
   { nom = "scriptorium_essai_embaucher_metiers", fonction = function() return poste.essai_embaucher_metiers() end, aide = "Un cuisinier et un forgeron engagés" },
   { nom = "scriptorium_essai_qui_garde", fonction = function() return poste.essai_qui_garde() end, aide = "Qui est de garde, et ce que font les gens de métier" },
+  { nom = "scriptorium_essai_postes_relever", fonction = function() return poste.essai_postes_relever() end, aide = "Les postes de travail du monde à 400 m d'Henry (fiche 18, 5 c)" },
+  { nom = "scriptorium_essai_poste_priere", fonction = function() return poste.essai_poste_priere() end, aide = "Un poste de prière à 3 m devant Henry" },
+  { nom = "scriptorium_essai_poste_balai", fonction = function() return poste.essai_poste_balai() end, aide = "Un poste de balai à 3 m devant Henry" },
+  { nom = "scriptorium_essai_poste_tenir", fonction = function() return poste.essai_poste_tenir() end, aide = "Le dernier vu tenu au dernier poste posé" },
+  { nom = "scriptorium_essai_poste_lacher", fonction = function() return poste.essai_poste_lacher() end, aide = "Le dernier vu lâché de son poste" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

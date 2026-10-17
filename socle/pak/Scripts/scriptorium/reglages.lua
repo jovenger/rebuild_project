@@ -22,6 +22,7 @@ reglages.catalogue = {
   { section = "coffre", morceau = "coffre", table = "reglages" },
   { section = "camp", morceau = "camp", table = "reglages", taux = { fonder_devant = true } },
   { section = "meubles", morceau = "camp", table = "objets_du_jeu" },
+  { section = "postes_du_jeu", morceau = "camp", table = "genres_de_postes" },
   { section = "hommes", morceau = "hommes", table = "reglages", taux = { secours_progres_m = true, secours_arrivee_m = true, secours_assis_m = true, regard_m = true,
     rassemblement_rayon_m = true, secours_loin_m = true, secours_loin_camp_m = true, secours_vue_cos = true,
     suivi_loin_m = true, suivi_derriere_m = true, cheval_distance_m = true, cheval_retrait_m = true,
