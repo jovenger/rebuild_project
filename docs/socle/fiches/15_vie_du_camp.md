@@ -1253,6 +1253,127 @@ convoqués l'un après l'autre, à 3 s d'écart, autour du centre d'essai ; une 
 - **Pas vu en jeu (banc seulement)** : les 150 m, la vue d'Henry, le second arc (neuf hommes), « face au dehors », un
   arc plein de plus d'hommes, le Directeur au centre (sa place est à Scriptorium).
 
+## V73 f 1 — suivre Henry, à pied (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- **Ce pas** : à pied ; le Directeur en tête (« c'est lui le premier qui me suit »), la troupe en colonne derrière lui ;
+  au-delà de 60 m de son chef, l'homme réapparaît 4 m derrière Henry, hors de sa vue (ce qui couvre déjà le voyage
+  rapide sur une même carte : à l'arrivée, l'escorte réapparaît près d'Henry, idée validée n° 3 du 15/10).
+- **Plus tard, chacun à son pas** : à cheval (V73 f 2 : la monte n'est pas vue chez Scriptorium et y a figé un homme ;
+  règle du 16/10, « tous ceux qui sortent du camp partent à cheval ») ; le changement de carte et les intérieurs ;
+  « appelez la troupe » (recréée à 200–300 m, hors de vue) ; la garde d'Henry en route.
+- **Qui, quand** : Scriptorium (le pliage du camp, les ordres par la conversation du Directeur, jamais au milieu d'un
+  dialogue ; camp levé, seuls le Directeur et le colonel restent ; la troupe appelée). Le socle fait suivre et lâche.
+
+### Ce que Scriptorium attend (relu le 17/10, lecture seule, par un agent de recherche : LISEZMOI de
+`directeur_en_route`, `troupe_chez_elle`, `intendant_du_camp`, `dialogue_des_mercenaires`, `retour_de_la_troupe`,
+`chacun_son_combat`, `combat_exterieur`, `hommes_sous_la_carte`, `degel_des_hommes`, `correctif_passage_de_carte` ;
+`NOTE_METIERS`, `NOTE_METIERS_RELEVE`, `CONTRAT_DU_SOCLE` en lecture seule)
+- Le Directeur en tête tient l'allure d'Henry (il court ; à cheval quand Henry l'est) ; la troupe en colonne. Mesuré chez
+  eux le 3/10 : le Directeur à 1,2 m d'Henry, la troupe à 31 m en moyenne. Réglages de leur règle : `LOIN` 60 m,
+  `ARRIERE` 4 m (le Directeur apparaît 4 m derrière Henry si sa dernière place est à plus de 60 m).
+- En combat, on se bat d'abord ; la troupe ne s'arrête que si Henry est en danger.
+- **Pièges** : des hommes bloqués autour d'Henry ; à 250 m le jeu ne trace pas de chemin ; au-delà d'environ 300 m, le
+  jeu ne fait plus vivre personne ; un homme planté (relancé chez eux en 25 s) ; des apparitions visibles (recréés à
+  150 m, « on les voyait apparaître ») ; « ne jamais téléporter Henry ».
+- **Pas trouvé** : l'espacement et la vitesse chiffrés de la colonne ; le voyage rapide, la nage, Henry qui dort ou entre
+  dans une maison.
+
+### Le constat (code relu le 17/10)
+- Aucune règle « escorte » ni activité « suivre » ; le Directeur reçoit ses ordres par son morceau (`directeur.activite`,
+  `directeur.battre`), pas par l'arbitre.
+- **Le secours ordinaire tuerait la suite** : un homme qui suit Henry au pas garde un écart constant ; « moins de 1 m de
+  progrès en 30 s » serait vrai à chaque battement, et il serait posé d'un coup.
+- La liaison sait lire la position d'Henry (`position_du_joueur`), son cap (`cap_du_joueur`), la position d'un
+  personnage (`position_de`), et écrire un WUID dans un cerveau (`GetMyWUID`, déjà fait pour la cible d'une attaque).
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule)
+- **La fonction de suivi du jeu** : `followNpc` (`AI/move/moveUtils.xml`, `is_function="1"`), appelée par
+  `<Function_followNpc leader=… startDistance="5" stopDistance="2.5" walk2run="20" walk2sprint="30" run2walk="10"
+  run2sprint="30" sprint2run="20" sprint2walk="10" …/>` (5 emplois, par exemple `AI/quests/budovaniLazni/budovanilazni.xml`).
+  Elle fait : si le chef est plus loin que `startDistance`, un `Move` vers son WUID (qui suit un chef qui bouge), arrêt à
+  `stopDistance` ; sinon se tourner vers lui et attendre 1 s ; à côté, toutes les secondes, l'allure (marche, course,
+  sprint) d'après la distance qui reste, avec ces seuils. `followPlayer` du jeu ne fait que la même chose avec
+  `$__player` pour chef.
+- Les formations du jeu (`dogCompanion_followHeel`, `followNPC`, `prototypeFollowPlayer`) : un chef qui les fait et des
+  suiveurs ; le chien d'Henry (`companion_playerDog`) en est le modèle (idée n° 3) ; pas pour ce pas.
+- La monte : `HorseUsageElement` (56 emplois), `Function_moveOnHorse` (16), `GetPlayerHorse` (66) : à lire pour V73 f 2.
+
+### Comment ce serait fait : deux voies (question 2)
+- **(a) La fonction du jeu (recommandée)** : la branche 14 du comportement long, debout d'abord, puis `Function_followNpc`
+  avec le chef en variable de cerveau `scriptorium_chef` (WUID) et ses huit distances en variables de l'arbre, lues du
+  cerveau avec leur défaut ; le pouls à côté. Aucun de nos arbres n'a encore appelé une fonction du jeu avec des
+  flottants en variables : issue 1 de la grille.
+- **(b) La réécriture à notre façon**, si (a) ne joue pas : un `Move` vers `$scriptorium_chef` arrêté à la distance de
+  suite, et une boucle d'allure à côté (la forme de V73 e).
+
+### Le détail de la voie (a)
+1. **La règle « escorte »** (rang 2, avec le rassemblement : question 1) et la tenue
+   `hommes.tenir(id, "escorte", { activite = "suivre", lieu, chef, fin })` ; `chef` : « henry » (défaut), « directeur »,
+   ou le numéro d'un homme ; refus `escorte_invalide` sinon.
+2. **La colonne** (question 3) : les hommes que tient la même escorte (même lieu), dans l'ordre du camp ; le premier suit
+   le chef de la tenue, chacun suit le précédent. Le rang entre dans la signature de l'ordre (« suivre@escorte#2/3 ») :
+   un homme qui quitte la colonne fait redonner leur chef aux suivants.
+3. **L'ordre** : la liaison reçoit le chef (l'identifiant d'un personnage, ou « henry ») ; elle écrit son WUID dans
+   `scriptorium_chef`, puis l'ordre 14 ; la ligne du journal dit qui suit qui.
+4. **La branche 14** : debout ; `Function_followNpc` (chef `$scriptorium_chef`, `startDistance` `suivi_depart_cm` 500,
+   `stopDistance` `suivi_arret_cm` 250, les seuils d'allure `suivi_marche_course_m` 20, `suivi_marche_sprint_m` 30,
+   `suivi_course_marche_m` 10, `suivi_course_sprint_m` 30, `suivi_sprint_course_m` 20, `suivi_sprint_marche_m` 10 : les
+   valeurs du jeu) ; le pouls à côté.
+5. **Le rattrapage remplace le secours pour « suivre »** (question 4) : aucun secours ordinaire ; à plus de
+   `suivi_loin_m` (60) de son chef, l'homme est posé `suivi_derriere_m` (4) derrière Henry (son cap), sur une place
+   libre, jamais sous ses yeux (la vue d'Henry de V73 e), **sans compter dans `secours_max`** (un long trajet en demande
+   plusieurs) ; `suivi_loin_m` à 0 : jamais. Jamais en combat ni en conversation.
+6. **Le Directeur** (question 5) : un service `directeur.suivre(oui)`, gardé à son registre (il revient au
+   rechargement) ; son activité devient « suivre », Henry pour chef, le même ordre, la même branche (son cerveau a déjà
+   nos valeurs) ; le même rattrapage. Une escorte dont le chef est « directeur » suit donc la tête de la colonne.
+7. **La fin** : la tenue lâchée, l'homme reprend sa tranche ; loin du camp, le but redevient un point du camp et les
+   150 m de V73 e le posent au camp au premier battement (Scriptorium fait de même : « tous rentrent d'un coup ») : une
+   issue à observer.
+- **Valeurs en données** : `hommes.cerveau` : les huit distances (en centimètres pour les deux premières, en mètres pour
+  les seuils, entiers) ; `hommes.reglages` : `suivi_loin_m` (60), `suivi_derriere_m` (4) ; la règle « escorte » au rang 2
+  (`hommes.priorites`). 41 variables de cerveau (le chef et les huit distances, moins rien).
+- Contrôle statique de plus : `followNpc` relu dans `Scripts.pak` à chaque passage du banc, avec ses huit paramètres et
+  le type `_wuid` de son chef (une mise à jour du jeu casserait l'appel en silence).
+
+### Essais au banc
+- La tenue : refus d'un chef inconnu ; la colonne : le premier suit le chef, chacun le précédent, le rang dans la
+  signature ; un homme lâché, les suivants changent de chef (un ordre chacun).
+- **Le secours ne prend jamais un suiveur** : il suit à 3 m pendant dix battements sans progrès : aucun secours ; à
+  61 m, posé 4 m derrière Henry, plusieurs fois s'il le faut, hors `secours_max` ; sous les yeux d'Henry, il attend ;
+  `suivi_loin_m` à 0, jamais ; en combat, jamais.
+- Le Directeur : `directeur.suivre` gardé au registre, son ordre « suivre » avec Henry pour chef, rendu au rechargement ;
+  lâché, il reprend sa journée.
+- La liaison (faux moteur) : le WUID du chef (Henry ou un personnage) écrit avant l'ordre 14 ; un chef introuvable : une
+  marche simple, dite au journal.
+- Statiques : la branche 14 appelle `Function_followNpc` avec `$scriptorium_chef` et les huit distances ; les variables
+  déclarées, lues avec leur défaut ; `followNpc` relu dans le jeu.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé (`secours_max=0` ; le rattrapage n'en dépend pas, il reste actif) ; trois hommes et le
+Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les trois en colonne derrière lui.
+1. **L'appel de la fonction** : Henry fait quelques pas (`Marcher 15`) ; chacun bouge, l'écart à son chef baisse puis se
+   tient entre 2,5 et 5 m → bon ; aucun ne bouge → lire, la voie (b), un seul changement.
+2. **La colonne** : Directeur, puis Jan, Mikuláš, Ondřej, chacun derrière le précédent ; aucun ne dépasse Henry.
+3. **La course** : Henry court (`Marcher 10 -Course`) ; ils courent (l'écart à leur chef se maintient).
+4. **Le rattrapage** : Henry posé 40 m plus loin, deux fois (`essai_aller_nord`) ; au battement, chacun à plus de 60 m de
+   son chef réapparaît 4 m derrière Henry (une ligne au journal par homme), jamais sous ses yeux.
+5. **La fin** : `essai_fin_escorte` ; chacun reprend sa tranche ; loin du camp, posé au camp par les 150 m (à observer).
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Le rang de l'escorte** : (a) 2, avec le rassemblement : un ordre exprès d'Henry ; la bataille passe devant
+   (Recommandé) ; (b) 3 ; (c) 4. **Prise : (a).**
+2. **La voie** : (a) la fonction de suivi du jeu, (b) en réserve (Recommandé : réutiliser avant de créer) ; (b) notre
+   réécriture d'emblée. **Prise : (a).**
+3. **La colonne** : (a) le socle chaîne les hommes d'une même escorte, le premier suit le chef, chacun le précédent
+   (Recommandé) ; (b) tous suivent le même chef ; (c) Scriptorium donne le chef de chacun. **Prise : (a).**
+4. **Le rattrapage** : (a) au-delà de 60 m du chef, posé 4 m derrière Henry, hors de sa vue, sans limite de nombre (la
+   règle de Scriptorium, `LOIN` 60, `ARRIERE` 4) (Recommandé) ; (b) jamais. **Prise : (a).**
+5. **Le Directeur** : (a) dans ce pas, en tête (Recommandé : « c'est lui le premier qui me suit ») ; (b) plus tard.
+   **Prise : (a).**
+6. **À cheval** : (a) un pas à part, V73 f 2 (Recommandé) ; (b) dans ce pas. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
