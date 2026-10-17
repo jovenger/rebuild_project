@@ -855,6 +855,36 @@ function poste.essai_forge_retirer()
   return true
 end
 
+-- 5 c : le geste tenu (la forge de Scriptorium) : le premier homme, à 3 m devant Henry, tient le geste du marteau des
+-- clôtures du jeu (« repairFenceHammer », AI/profession/housekeeper/so_fence.xml), tourné vers Henry.
+function poste.essai_geste()
+  local hommes = Scriptorium.hommes
+  local id = hommes.liste()[1]
+  local point, cap = devant_henry(3)
+  if not id or not point then
+    return false
+  end
+  local ok, raison = hommes.tenir(id, "travail", { activite = "geste", lieu = "enclume", geste = "repairFenceHammer",
+    position = point, cap = ((cap or 0) + 180) % 360, fin = "liberation" })
+  jeu().journal("Poste : « " .. hommes.fiche(id).nom .. " » tient le geste = " .. tostring(ok or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
+-- 5 d : les deux premiers hommes sortent à cheval à 80 m devant Henry, y restent 0,2 h du jeu, et rentrent.
+function poste.essai_sortie()
+  local hommes = Scriptorium.hommes
+  local ids = hommes.liste()
+  local point = devant_henry(80)
+  if #ids < 2 or not point then
+    return false
+  end
+  local id, raison = Scriptorium.missions.sortir({ hommes = { ids[1], ids[2] }, point = point, duree_h = 0.2, motif = "sortie_d_essai" })
+  jeu().journal("Poste : sortie à cheval = " .. tostring(id or raison))
+  poste.battre_les_hommes()
+  return id ~= nil
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2523,6 +2553,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_forge_base", fonction = function() return poste.essai_forge_base() end, aide = "Sonde : le préfabriqué de base de la forge né entier devant Henry" },
   { nom = "scriptorium_essai_forge_tenir", fonction = function() return poste.essai_forge_tenir() end, aide = "Sonde : le premier homme au poste du forgeron le plus proche" },
   { nom = "scriptorium_essai_forge_retirer", fonction = function() return poste.essai_forge_retirer() end, aide = "Sonde : la forge d'essai retirée" },
+  { nom = "scriptorium_essai_geste", fonction = function() return poste.essai_geste() end, aide = "Le premier homme tient le geste du marteau devant Henry (fiche 18, 5 c)" },
+  { nom = "scriptorium_essai_sortie", fonction = function() return poste.essai_sortie() end, aide = "Deux hommes sortent à cheval à 80 m et rentrent (fiche 18, 5 d)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

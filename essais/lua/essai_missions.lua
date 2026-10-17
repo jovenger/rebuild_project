@@ -757,3 +757,61 @@ essai("missions (convois) : une mission contre un convoi ; au loin, l'heure de l
   egal(missions.mission(id).issue, "echappe", "la mission : échappé")
   finir()
 end)
+
+-- ---------------------------------------------------------------- fiche 18, 5 d : les sorties à cheval
+
+essai("sorties (5 d) : un cuisinier sort à cheval à un point, y reste, rentre ; sans camp de bandits ; rapport « faite »", function()
+  local ids = preparer_la_mission({ "cuisinier", "forgeron" })
+  local rapports = {}
+  avec_remplacement(missions, "rapport_de_mission", function(r) table.insert(rapports, r) end, function()
+    verifier(not missions.sortir({ hommes = ids, point = { x = 1 } , duree_h = 1 }), "point boiteux : refusée")
+    verifier(not missions.sortir({ hommes = ids, lieu = "gue", duree_h = -1 }), "durée boiteuse : refusée")
+    local id = missions.sortir({ hommes = ids, point = { x = 0, y = 60, z = 0 }, duree_h = 1, motif = "bois" })
+    verifier(id, "partie")
+    egal(#missions.camps(), 0, "aucun camp de bandits")
+    local a = hommes.activite_de(ids[1], FauxJeu.heure)
+    verifier(a.suivi and a.suivi.mode == "cheval", "à cheval")
+    battre()
+    egal(missions.mission(id).etat, "aller", "en route")
+    FauxJeu.positions[hommes.fiche(ids[1]).personnage] = { x = 0, y = 58, z = 0 }
+    battre()
+    egal(missions.mission(id).etat, "sur_place", "arrivée")
+    FauxJeu.heure = FauxJeu.heure + 0.5
+    battre()
+    egal(missions.mission(id).etat, "sur_place", "elle y reste")
+    FauxJeu.heure = FauxJeu.heure + 0.6
+    battre()
+    egal(missions.mission(id).etat, "retour", "le temps passé : retour")
+    local retour = hommes.activite_de(ids[1], FauxJeu.heure)
+    verifier(retour.suivi and retour.suivi.mode == "cheval", "rentre à cheval")
+    for _, h in ipairs(ids) do
+      FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 10, z = 0 }
+    end
+    battre()
+    egal(missions.mission(id).etat, "finie", "rentrée")
+    egal(#rapports, 1, "un rapport")
+    egal(rapports[1] and rapports[1].issue, "faite", "issue « faite »")
+    egal(hommes.qui_tient(ids[1]) == "mission", false, "lâchés")
+  end)
+  finir()
+end)
+
+essai("sorties (5 d) : loin d'Henry, dehors ; aller, séjour et retour calculés ; renaît sur le chemin du camp", function()
+  local ids = preparer_la_mission({ "forgeron" })
+  missions.ajouter_un_lieu("ville", "trosky", { x = 0, y = 2000, z = 0 }, 0)
+  FauxJeu.position_joueur = { x = 0, y = -1000, z = 0 }
+  local id = missions.sortir({ hommes = ids, lieu = "ville", duree_h = 2 })
+  verifier(id, "partie")
+  battre()
+  egal(missions.mission(id).etat, "dehors_aller", "loin d'Henry : dehors")
+  verifier(hommes.est_dehors(ids[1]), "hors du monde")
+  FauxJeu.heure = FauxJeu.heure + 2000 / missions.reglages.vitesse_m_par_h + 0.01
+  battre()
+  egal(missions.mission(id).etat, "dehors_retour", "au lieu, au loin")
+  FauxJeu.heure = FauxJeu.heure + 2 + 2000 / missions.reglages.vitesse_m_par_h + 0.01
+  FauxJeu.vue_d_henry = function() return false end
+  battre()
+  egal(missions.mission(id).etat, "retour", "renaît sur le chemin")
+  verifier(not hommes.est_dehors(ids[1]), "dans le monde")
+  finir()
+end)

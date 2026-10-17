@@ -299,6 +299,11 @@ end
 function faux.accrocher_la_ronde(fonction) faux.pas_de_ronde = fonction end
 -- Fiche 18, 5 b : les personnages parlables ; « parler_a » joue Henry qui appuie sur « Parler ».
 function faux.accrocher_la_parole(fonction) faux.parole = fonction end
+-- Fiche 18, 5 c : le geste tenu donné à un personnage.
+function faux.donner_le_geste(identifiant, geste)
+  faux.gestes = faux.gestes or {}
+  faux.gestes[identifiant] = geste
+end
 function faux.rendre_parlable(identifiant, oui)
   faux.parlables = faux.parlables or {}
   faux.poses_parlables = (faux.poses_parlables or 0) + 1

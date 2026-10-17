@@ -583,7 +583,8 @@ end
 
 local function copie_de_la_mission(m)
   return { id = m.id, lieu = m.lieu.nom, carte = m.lieu.carte, niveau = m.niveau, camp = m.camp, chef = m.chef,
-           etat = m.etat, issue = m.issue, depart = m.depart, hommes = vivants_de(m) }
+           etat = m.etat, issue = m.issue, depart = m.depart, hommes = vivants_de(m), sortie = m.sortie,
+           duree_h = m.duree_h, motif = m.motif }
 end
 
 local function finir_la_mission(d, m, heure)
@@ -631,8 +632,21 @@ function missions.prendre_une_mission(ordre)
   end
   local l = cv and { nom = cv.route.nom, carte = cv.route.carte, x = cv.position.x, y = cv.position.y, z = cv.position.z }
     or missions.lieux[ordre.lieu]
+  -- Fiche 18, 5 d : une sortie vise un lieu connu ou un point du monde.
+  local p = ordre.point
+  if ordre.sortie and not l and p ~= nil then
+    if type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number" then
+      return refuser("point_invalide")
+    end
+    l = { nom = tostring(ordre.motif or "sortie"), carte = jeu().carte_courante and (jeu().carte_courante()) or nil,
+          x = p.x, y = p.y, z = p.z }
+  end
   if not l then
     return refuser("lieu_inconnu", tostring(ordre.lieu))
+  end
+  if ordre.sortie and (type(ordre.duree_h) ~= "number" or ordre.duree_h ~= ordre.duree_h or ordre.duree_h < 0
+      or ordre.duree_h == math.huge) then
+    return refuser("duree_invalide", tostring(ordre.duree_h))
   end
   if type(ordre.hommes) ~= "table" or #ordre.hommes == 0 then
     return refuser("hommes_absents")
@@ -648,8 +662,11 @@ function missions.prendre_une_mission(ordre)
   if ordre.chef ~= nil and not dans[ordre.chef] then
     return refuser("chef_hors_colonne", tostring(ordre.chef))
   end
-  local niveau, camp_id = cv and cv.niveau or (ordre.niveau or Scriptorium.avis(missions, "niveau_pour", (bataille().force_de(ordre.hommes)), ordre.lieu)), nil
-  if not cv then
+  local niveau, camp_id = nil, nil
+  if not ordre.sortie then
+    niveau = cv and cv.niveau or (ordre.niveau or Scriptorium.avis(missions, "niveau_pour", (bataille().force_de(ordre.hommes)), ordre.lieu))
+  end
+  if not cv and not ordre.sortie then
     local raison
     camp_id, raison = missions.dresser_un_camp(ordre.lieu, niveau)
     if not camp_id then
@@ -662,7 +679,9 @@ function missions.prendre_une_mission(ordre)
   local hommes = {}
   for i, h in ipairs(ordre.hommes) do hommes[i] = h end
   local m = { id = id, lieu = { nom = l.nom, carte = l.carte, x = l.x, y = l.y, z = l.z }, camp = camp_id, niveau = niveau,
-              hommes = hommes, chef = ordre.chef or hommes[1], etat = "aller", depart = heure, convoi = cv and cv.id or nil }
+              hommes = hommes, chef = ordre.chef or hommes[1], etat = "aller", depart = heure, convoi = cv and cv.id or nil,
+              sortie = ordre.sortie == true or nil, duree_h = ordre.sortie and ordre.duree_h or nil,
+              motif = ordre.sortie and ordre.motif or nil }
   d.missions[id] = m
   table.insert(d.ordre_des_missions, id)
   envoyer(m, { x = l.x, y = l.y, z = l.z })
@@ -671,6 +690,15 @@ function missions.prendre_une_mission(ordre)
                 .. " homme(s), chef « " .. m.chef .. " »)")
   annoncer("ui_scriptorium_missions_partie", { complement = l.nom })
   return id
+end
+
+-- Fiche 18, 5 d : une sortie à cheval (gens de métier, coursier) : { hommes, chef, lieu | point, duree_h, motif }. Rend
+-- son nom, ou faux et la raison.
+function missions.sortir(ordre)
+  local o = {}
+  for cle, valeur in pairs(ordre or {}) do o[cle] = valeur end
+  o.sortie = true
+  return missions.prendre_une_mission(o)
 end
 
 function missions.mission(id)
@@ -695,6 +723,73 @@ function missions.rapport(id)
   return m and m.rapport or nil
 end
 
+local function distance_au_camp(m)
+  local depuis, la = centre_du_camp() or m.lieu, m.lieu
+  return math.sqrt((la.x - depuis.x) ^ 2 + (la.y - depuis.y) ^ 2)
+end
+
+-- Fiche 18, 5 d : une sortie avance d'un battement (aller, sur place, au loin). Rend vrai si elle a changé, faux sinon,
+-- ou nil pour le retour (« dehors_retour », « retour »), commun avec les missions.
+local function avancer_la_sortie(d, m, heure, vivants)
+  local r = missions.reglages
+  if m.etat == "aller" then
+    for _, id in ipairs(vivants) do
+      local f = Scriptorium.hommes.fiche(id)
+      local ici = f.personnage and jeu().position_du_personnage(f.personnage)
+      if ici and math.sqrt((ici.x - m.lieu.x) ^ 2 + (ici.y - m.lieu.y) ^ 2) <= r.arrivee_m then
+        m.etat = "sur_place"
+        m.jusqu_a = heure + m.duree_h
+        jeu().journal(string.format("Missions : sortie « %s » arrivée à « %s », jusqu'à %.2f h", m.id, m.lieu.nom, m.jusqu_a))
+        return true
+      end
+    end
+    if hors_de_la_vue(vivants) then
+      for _, id in ipairs(vivants) do
+        Scriptorium.hommes.mettre_dehors(id, m.id)
+      end
+      m.etat = "dehors_aller"
+      m.arrivee = heure + distance_au_camp(m) / r.vitesse_m_par_h
+      jeu().journal(string.format("Missions : sortie « %s » dehors, au lieu à %.2f h", m.id, m.arrivee))
+      return true
+    end
+    return false
+  elseif m.etat == "sur_place" then
+    if heure >= m.jusqu_a then
+      m.issue = "faite"
+      local retour = point_de_retour(m)
+      if not retour then
+        finir_la_mission(d, m, heure)
+        return true
+      end
+      m.etat = "retour"
+      envoyer(m, retour)
+      jeu().journal("Missions : sortie « " .. m.id .. " » : retour au camp")
+      return true
+    end
+    if hors_de_la_vue(vivants) then
+      for _, id in ipairs(vivants) do
+        Scriptorium.hommes.mettre_dehors(id, m.id)
+      end
+      m.issue = "faite"
+      m.etat = "dehors_retour"
+      m.retour = m.jusqu_a + distance_au_camp(m) / r.vitesse_m_par_h
+      jeu().journal(string.format("Missions : sortie « %s » dehors sur place, de retour à %.2f h", m.id, m.retour))
+      return true
+    end
+    return false
+  elseif m.etat == "dehors_aller" then
+    if heure >= m.arrivee then
+      m.issue = "faite"
+      m.etat = "dehors_retour"
+      m.retour = heure + m.duree_h + distance_au_camp(m) / r.vitesse_m_par_h
+      jeu().journal(string.format("Missions : sortie « %s » au lieu (au loin), de retour à %.2f h", m.id, m.retour))
+      return true
+    end
+    return false
+  end
+  return nil
+end
+
 -- Une mission avance d'un battement. Rend vrai si elle a changé.
 local function avancer(d, m, heure)
   local vivants = vivants_de(m)
@@ -702,6 +797,12 @@ local function avancer(d, m, heure)
     m.issue = m.issue or "perdue"
     finir_la_mission(d, m, heure)
     return true
+  end
+  if m.sortie then
+    local change = avancer_la_sortie(d, m, heure, vivants)
+    if change ~= nil then
+      return change
+    end
   end
   -- La bande visée : celle du camp de bandits, ou celle du convoi (tranche 4).
   local cv = m.convoi and d.convois[m.convoi] or nil

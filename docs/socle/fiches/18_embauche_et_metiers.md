@@ -119,3 +119,31 @@ Comportement :
 
 - **Vu en jeu le 17/10, les lots** (tous les genres du catalogue, quatre à la fois, un homme à chacun) : chaque poste posé, chaque geste lancé une fois et tenu (aucune relance en 55 s : le comportement du jeu tourne). Visibles : la prière (agenouillé, et la prière du jeu dite en sous-titre « Priez pour nous, sainte Mère de Dieu… »), la clôture (bras au marteau), le banc du camp et l'établi de l'armurier (postures qui changent). Pas distinguables à cette distance : le beurre, la lecture, le guet, l'appui sur l'épée, le linge, le puits, le soin des chevaux. Le balai, le désherbage, la pelle et le tri des herbes non éprouvés : leur homme était de garde (la garde, rang 4, passe avant le travail, rang 5 : l'arbitre a raison). **Corrigé en jeu** : d'un poste à un autre, aucun nouvel ordre (le lieu d'un poste était vide dans la signature de l'ordre) ; le lieu vaut maintenant le nom du poste (essai qui l'attrape).
 - **La sonde de la forge** (principe du pair : un préfabriqué né entier par `RuntimePrefab`), deux essais au plus : 1) la petite forge (préfabriqué imbriqué) : l'entité naît, rien ne paraît ; 2) le préfabriqué de base (poste du forgeron, station de forge, emplacements, boutique) : de même. Entre les deux, le préfabriqué simple de la prière naît bien (un poste « Praying » de plus au relevé) : `RuntimePrefab` marche, mais pas pour les forges. Sonde arrêtée ; la forge passera par la ronde de gestes (la voie prouvée de Scriptorium : enclume, foyer, bac d'eau).
+
+## 5 d — Les sorties à cheval des gens de métier
+
+Règle de JoVenGer du 16/10 (NOTE_METIERS §0) : tous ceux qui sortent du camp partent à cheval et reviennent à cheval
+(coursier, gens de métier qui vont en ville, au bois, à la chasse). Les raisons et les heures sont des règles de
+Scriptorium ; le socle offre la sortie.
+
+- `missions.sortir({ hommes, chef, lieu | point, duree_h, motif })` : une mission sans camp de bandits, par la même
+  machine que les missions (étape 4) : la colonne part à cheval, sa tête en avant ; arrivée au lieu (à
+  `arrivee_m`), elle y reste `duree_h` heures du jeu, puis rentre à cheval au bord du camp. Loin d'Henry et hors de sa
+  vue, elle passe « dehors » (retirée du monde) ; l'aller, le séjour et le retour se calculent alors (vitesse de la
+  colonne) ; elle renaît sur le chemin du camp, hors de la vue d'Henry. Rapport à la fin (issue « faite »), par
+  l'accroche `rapport_de_mission`.
+- Réponses prises d'office : une sortie vise un lieu connu (`missions.ajouter_un_lieu`, ceux de Scriptorium) ou un
+  point du monde ; les gens de métier peuvent sortir (aucune exemption) ; un homme exempté de mission, non.
+
+### Tranche 3 : le geste tenu à un point (la forge de Scriptorium, « refaite pareil »)
+
+Principe transmis par le pair le 17/10 (Scriptorium, pas Alex) : la forge du camp est un coin en modèles du jeu et une
+ronde de deux gestes (« marteler » à l'enclume, « chauffer » au foyer), postures « unstance » que Scriptorium déclare
+dans sa table des postures. La trempe (une seule fois, elle fige le cerveau) n'entre jamais dans une boucle. Scriptorium
+garde la ronde, ses durées et le décor ; le socle fournit le geste tenu et la marche entre les points.
+
+- `hommes.tenir(id, regle, { activite = "geste", lieu, geste, position, cap, fin })` : l'homme marche au point, se
+  tourne selon le cap, puis tient le geste (`UnstanceAction` par son nom, lu par l'arbre : ordre 22 ; le jeu emploie
+  aussi le nom en variable, `AI/special/so_injured.xml`) jusqu'au changement d'ordre. Le nom du geste entre dans la
+  signature de l'ordre : un autre geste redonne l'ordre. Refus `geste_invalide`.
+- Au banc ; à voir en jeu avec un geste du jeu (`repairFenceHammer`, le marteau des clôtures).

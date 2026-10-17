@@ -3495,3 +3495,30 @@ essai("postes de travail (5 c, tranche 2) : rendre un poste fonctionnel, l'homme
   verifier(not FauxJeu.objet_existe(FauxJeu.postes_poses[#FauxJeu.postes_poses].identifiant), "le poste retiré avec le camp")
   egal(#camp.postes(), 0, "plus de poste")
 end)
+
+essai("geste tenu (5 c) : un geste du jeu tenu à un point (la forge de Scriptorium) ; un autre geste, un nouvel ordre ; refus d'un geste boiteux", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "forgeron", semaines = 4, prime = 0 })
+  local perso = hommes.fiche(id).personnage
+  hommes.battre()
+  verifier(not hommes.tenir(id, "travail", { activite = "geste", geste = "pas un geste", position = { x = 1, y = 1, z = 0 } }), "geste boiteux : refusé")
+  verifier(not hommes.tenir(id, "travail", { activite = "geste", geste = "marteler" }), "sans point : refusé")
+  FauxJeu.ordres, FauxJeu.gestes = {}, {}
+  verifier(hommes.tenir(id, "travail", { activite = "geste", lieu = "enclume", geste = "marteler", position = { x = 4, y = 2, z = 0 }, cap = 90, fin = "liberation" }), "tenu")
+  egal(FauxJeu.gestes[perso], "marteler", "le geste donné à la liaison")
+  local vu = nil
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == perso and o.activite == "geste" then vu = o end
+  end
+  verifier(vu ~= nil and vu.position.x == 4, "l'ordre du geste, au point")
+  verifier(vu and vu.regard and math.abs(vu.regard.x - 9) < 0.01, "regardant selon le cap (à l'est)")
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir(id, "travail", { activite = "geste", lieu = "foyer", geste = "chauffer", position = { x = 6, y = 2, z = 0 }, fin = "liberation" }), "l'autre temps de la ronde")
+  egal(FauxJeu.gestes[perso], "chauffer", "l'autre geste")
+  local deux = 0
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == perso and o.activite == "geste" then deux = deux + 1 end
+  end
+  verifier(deux >= 1, "un nouvel ordre")
+  hommes.lacher(id, "travail")
+end)

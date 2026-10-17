@@ -1891,6 +1891,16 @@ function hommes.activite_de(id, heure)
     -- V73 d 2 : une ronde suit son chemin, en boucle ou en aller-retour, depuis son point de départ s'il est donné.
     resultat.chemin, resultat.aller_retour, resultat.depart = tenue.chemin, tenue.aller_retour, tenue.depart
     resultat.pauses = tenue.pauses
+    -- Fiche 18, 5 c : le geste tenu : son nom (dans le lieu, donc dans la signature de l'ordre) et le point regardé,
+    -- à 5 m devant lui selon le cap.
+    if tenue.geste then
+      resultat.geste = tenue.geste
+      resultat.lieu = (tenue.lieu or "geste") .. "/" .. tenue.geste
+      if tenue.cap and tenue.position then
+        local r = math.rad(tenue.cap)
+        resultat.regard = { x = tenue.position.x + 5 * math.sin(r), y = tenue.position.y + 5 * math.cos(r), z = tenue.position.z }
+      end
+    end
     -- Fiche 18, 5 c : au poste de travail, le poste et sa position.
     if tenue.poste then
       resultat.poste = tenue.poste
@@ -2900,6 +2910,10 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   end
   preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
   local a = Scriptorium.avis(hommes, "activite_de", id, heure)
+  -- Fiche 18, 5 c : le geste tenu, donné avant l'ordre.
+  if a and a.geste and jeu().donner_le_geste then
+    jeu().donner_le_geste(f.personnage, a.geste)
+  end
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
   if f.derniere_activite ~= resume then
@@ -3507,7 +3521,7 @@ local function memes_tenues(a, b)
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
-    and a.tete == b.tete and a.poste == b.poste
+    and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -3607,6 +3621,15 @@ function hommes.tenir(id, regle, quoi)
   if quoi.activite == "suivre" and quoi.a_cheval ~= nil and type(quoi.a_cheval) ~= "boolean" and quoi.a_cheval ~= "comme_henry" then
     return refuser("escorte_invalide", "a_cheval " .. tostring(quoi.a_cheval))
   end
+  -- Fiche 18, 5 c : le geste tenu à un point (la forge de Scriptorium) : un nom de geste et un point.
+  if quoi.activite == "geste" then
+    local p = quoi.position
+    if type(quoi.geste) ~= "string" or quoi.geste == "" or not string.match(quoi.geste, "^[%w_]+$")
+        or type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number"
+        or (quoi.cap ~= nil and type(quoi.cap) ~= "number") then
+      return refuser("geste_invalide", tostring(quoi.geste))
+    end
+  end
   -- Fiche 18, 5 c : le poste de travail, un poste connu du camp.
   if quoi.activite == "poste" and not camp().poste(quoi.poste) then
     return refuser("poste_inconnu", tostring(quoi.poste))
@@ -3627,6 +3650,7 @@ function hommes.tenir(id, regle, quoi)
                   chef = (quoi.activite == "suivre") and quoi.chef or nil, vers = vers,
                   tete = (quoi.activite == "suivre") and quoi.tete or nil,
                   poste = (quoi.activite == "poste") and quoi.poste or nil,
+                  geste = (quoi.activite == "geste") and quoi.geste or nil,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
                   a_cheval = (quoi.activite == "suivre" and (quoi.a_cheval == true or quoi.a_cheval == "comme_henry"))

@@ -2889,6 +2889,26 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       else
         ligne = "ronde refusée ; " .. poser_l_activite(entite, 9)
       end
+    elseif activite == "geste" and liaison.gestes_tenus[identifiant] then
+      -- Fiche 18, 5 c (la forge « pareil », principe transmis par le pair) : le geste tenu à un point : l'homme marche au
+      -- point, se tourne vers le point regardé, puis tient le geste (une posture « unstance » du jeu ou de Scriptorium,
+      -- par son nom, lu par l'arbre : liaison.geste_tenu) jusqu'au changement d'ordre (ordre 22).
+      local this_lu, this = pcall(function() return entite.this end)
+      local point = liaison.au_sol(position)
+      local vers = regard and liaison.au_sol(regard) or point
+      local pose = this_lu and type(this) == "table"
+        and pcall(function()
+          XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point)
+          XGenAIModule.SetBrainVariable(this.id, "scriptorium_regard", vers)
+          XGenAIModule.SetBrainVariable(this.id, "scriptorium_allure", 0)
+        end)
+      if pose then
+        liaison.regards[identifiant], liaison.buts[identifiant] = vers, point
+        ligne = string.format("geste « %s », point posé (%.1f, %.1f) ; ", liaison.gestes_tenus[identifiant], point.x, point.y)
+          .. poser_l_activite(entite, 22)
+      else
+        ligne = "geste refusé ; " .. poser_l_activite(entite, 9)
+      end
     elseif regard then
       -- Tenir un poste : le poste et le point regardé posés d'abord, puis l'activité ; l'homme marche, et ne se tourne
       -- qu'une fois arrivé (relecture du pair : montré trop tôt, un homme glissait).
@@ -3047,6 +3067,26 @@ function liaison.ordonner_au_poste_du_monde(qui, gabarit, geste, rayon)
   end
   liaison.gestes_des_postes[choisi:GetName()] = geste
   return donner_la_place(personnage, choisi, "poste du monde (" .. string.format("%.1f", plus_pres) .. " m)", 21)
+end
+
+-- Fiche 18, 5 c : le geste tenu donné à un personnage (avant son ordre « geste ») ; lu par l'arbre (branche 22) sous
+-- pcall, écrit dans « geste_nom » ; une ligne au journal ; une erreur, au journal.
+liaison.gestes_tenus = liaison.gestes_tenus or {}
+
+function liaison.donner_le_geste(identifiant, geste)
+  liaison.gestes_tenus[identifiant] = geste
+end
+
+function liaison.geste_tenu(entite, donnees)
+  local fait, erreur = pcall(function()
+    local nom = entite:GetName()
+    local geste = liaison.gestes_tenus[nom] or "LookingAround"
+    donnees.geste_nom = geste
+    liaison.journal("Geste : « " .. tostring(nom) .. " » tient le geste « " .. geste .. " »")
+  end)
+  if not fait then
+    liaison.journal("Geste : erreur : " .. tostring(erreur))
+  end
 end
 
 -- Fiche 18, 5 b : un personnage parlable. Le jeu ne met « Parler » (Scripts/Entities/AI/Shared/BasicAIActions.lua,
