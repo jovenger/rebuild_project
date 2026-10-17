@@ -14,7 +14,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A8 | `EquipMercenary` | enveloppée par : armures_de_la_forge, tenue_selon_le_grade | `Scriptorium.hommes.accrocher("apres_le_rhabillage", fonction)` |
 | A9 | `FindQuartermasterTarget` | enveloppée par : directeur_en_retrait, prisonniers_des_raids | `Scriptorium.directeur.activite(heure)` |
 | A10 | `GetCampActivity` | enveloppée par : duels_judiciaires, en_garde_du_camp | `Scriptorium.hommes.activite_de(id, heure)` |
-| A11 | `LootSweepClear` | enveloppée par : portage_des_corps, sentinelles_du_camp | étape 4 (la fouille des corps, le butin) |
+| A11 | `LootSweepClear` | enveloppée par : portage_des_corps, sentinelles_du_camp | `Scriptorium.bataille.vider_la_fouille(id)` (le portage des corps, les sentinelles) |
 | A12 | `SpawnMercCamp` | enveloppée par : montage_du_camp, troupe_chez_elle | `Scriptorium.camp.fonder(position, cap)` |
 | A13 | `UpdateMeleeCombatData` | enveloppée par : conspiration_du_camp, duels_judiciaires | à ouvrir : `bataille.lua`, `a_relancer` (le suivi au contact) |
 | A14 | `AdvancePatrolWaypoint` | enveloppée par : nuit_du_camp | `Scriptorium.jeu.accrocher_la_ronde(fonction)` (enveloppe `Scriptorium.hommes.pas_de_ronde`) |
@@ -36,7 +36,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | A30 | `LogiProcessWages` | enveloppée par : banque_du_camp | `Scriptorium.hommes.payer_la_solde()` (interrupteur `solde_de_la_semaine`) |
 | A31 | `LogiRemoveOneMerc` | enveloppée par : tenir_la_compagnie | `Scriptorium.hommes.retirer(id, cause)` |
 | A32 | `LogiWealthRaidTick` | enveloppée par : tenir_la_compagnie | pas utile : le socle ne lève aucune bande de lui-même ; Scriptorium appelle `Scriptorium.bataille.lever_une_bande(ordre)` |
-| A33 | `LootEligibleMercs` | les hommes qui peuvent aller fouiller les corps | étape 4 (la fouille des corps, le butin) |
+| A33 | `LootEligibleMercs` | les hommes qui peuvent aller fouiller les corps | `Scriptorium.bataille.peut_fouiller(id, bande)` (accroche ; les bains l'enveloppent) |
 | A34 | `SpawnCampHouseBed` | enveloppée par : editeur_du_camp | étape 5 (un meuble posé par JoVenGer rendu utilisable, NOTE_METIERS §0) |
 | A35 | `SpawnCampPracticeYard` | enveloppée par : pantins_d_entrainement | étape 5 (poste d'entraînement) |
 | A36 | `SpawnQuartermaster` | enveloppée par : intendant_du_camp | `Scriptorium.directeur.installer()` |
@@ -140,7 +140,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F94 | `LogiInfo` | 1 dossier(s) | `Scriptorium.bandeau.annoncer(cle, options)` |
 | F95 | `LogiUpkeepDay` | 1 dossier(s) | `Scriptorium.hommes.jour_d_entretien(heure)` (le jour change à `hommes.heure_d_entretien`, 20 h) |
 | F96 | `LogiWithdrawCoffer` | 1 dossier(s) | `Scriptorium.coffre.verser_a_henry(montant, motif)` |
-| F97 | `LootSweepForce` | 1 dossier(s) | étape 4 (la fouille des corps, le butin) |
+| F97 | `LootSweepForce` | 1 dossier(s) | `Scriptorium.bataille.lancer_la_fouille(id)` |
 | F98 | `PruneCombatClaims` | 1 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
 | F99 | `RegionSpawnMan` | 1 dossier(s) | `Scriptorium.jeu.faire_venir_homme(ame, nom, position)` |
 | F100 | `SaveCampOutParty` | 1 dossier(s) | pas utile : les tenues sont gardées au registre à chaque changement |
@@ -159,7 +159,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D2 | `CampActive` | vrai si un camp est dresse | `Scriptorium.camp.est_fonde()` |
 | D3 | `CampActivities` | ce que fait chaque homme au camp en ce moment (poste, siege, lit...) | `Scriptorium.hommes.qui_tient(id, heure)` |
 | D4 | `CampCenter` | la position du centre du camp | `Scriptorium.camp.point(x, y, cap)` (en 0, 0) |
-| D5 | `LootActivities` | les hommes partis fouiller des corps, et ce qu'ils font | étape 4 (la fouille des corps, le butin) |
+| D5 | `LootActivities` | les hommes partis fouiller des corps, et ce qu'ils font | `Scriptorium.bataille.fouille(id).fouilleurs` (homme → corps) |
 | D6 | `CampFurniture` | les meubles poses au camp | `Scriptorium.camp.plan` et `Scriptorium.camp.objet_de(nom)` |
 | D7 | `CampPatrollers` | les hommes de la ronde de garde | `Scriptorium.hommes.gardes(heure)` |
 | D8 | `CampBuildOrigin` | le point d'origine et le sens du camp (la ou il a ete fonde) | `Scriptorium.camp.point(x, y, cap)` (en 0, 0 : l'origine et le cap) |
@@ -197,7 +197,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D40 | `CampSitSOOffset` | 3 dossier(s) | réglage : meubles.siege.places.assise.x (et .y) |
 | D41 | `CampTrainCenter` | 3 dossier(s) | `Scriptorium.hommes.points` (« exercice ») |
 | D42 | `KleinkriegPerHead` | 3 dossier(s) | réglage : bandes.brigands.butin_par_tete (une valeur par sorte) |
-| D43 | `LootBattle` | 3 dossier(s) | étape 4 (la fouille des corps, le butin) |
+| D43 | `LootBattle` | 3 dossier(s) | `Scriptorium.bataille.fouille(id)` (la fouille d'une bande finie) |
 | D44 | `MeleeStyleOf` | Scriptorium l'écrit aussi | `Scriptorium.hommes.fiche(id)` (champ `famille`) |
 | D45 | `QuartermasterName` | Scriptorium l'écrit aussi | `Scriptorium.directeur.nom` |
 | D46 | `WBRaidForce` | 3 dossier(s) | `Scriptorium.bataille.force_de_la_bande(b)` |
@@ -216,9 +216,9 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D59 | `EnemyTargetOf` | 2 dossier(s) | à ouvrir : `bataille.lua`, `lancer_l_attaque_de_la_bande` (`b.cibles_de_la_bande`) |
 | D60 | `FrameHooks` | Scriptorium l'écrit aussi | `Scriptorium.jeu.minuterie(millisecondes, fonction)` |
 | D61 | `GateMax` | 2 dossier(s) | pas utile : une seule porte (`Scriptorium.enceinte.porte()`) |
-| D62 | `LootBodies` | 2 dossier(s) | étape 4 (la fouille des corps, le butin) |
-| D63 | `LootPerKillWages` | 2 dossier(s) | étape 4 (la fouille des corps, le butin) |
-| D64 | `LootVisited` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
+| D62 | `LootBodies` | 2 dossier(s) | `Scriptorium.bataille.fouille(id).a_fouiller` |
+| D63 | `LootPerKillWages` | 2 dossier(s) | pas utile : la paye par ennemi tué est une règle de Scriptorium (le guichet donne les tombés : `bataille.resultats()`) |
+| D64 | `LootVisited` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).vus` |
 | D65 | `MaxCompanions` | 2 dossier(s) | `Scriptorium.camp.capacite()` (pas de plafond chiffré : un lit par homme) |
 | D66 | `MercClaimAt` | Scriptorium l'écrit aussi | à ouvrir : `bataille.lua`, `lancer_l_attaque` (les cibles, `b.cibles`) |
 | D67 | `QuartermasterClothing` | 2 dossier(s) | étape 5 (tenue du Directeur) |
@@ -277,19 +277,19 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | D120 | `HealCost` | 1 dossier(s) | pas utile : le prix du soin est une règle de Scriptorium ; le geste : `Scriptorium.atelier.soigner(id, nom_du_soin)` |
 | D121 | `HoldActive` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` |
 | D122 | `InnStationLayout` | 1 dossier(s) | étape 5 (la taverne) |
-| D123 | `IsLootableCorpseName` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
+| D123 | `IsLootableCorpseName` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).a_fouiller` (les corps d'une bande, par nom) |
 | D124 | `LivePatrolsEnabled` | 1 dossier(s) | pas utile : le socle n'envoie de patrouille que sur ordre (`Scriptorium.patrouilles.envoyer(ordre)`) |
 | D125 | `LogiTrackCombat` | Scriptorium l'écrit aussi | `Scriptorium.bataille.partager_le_butin(butin, combattants)` (accroche) ; l'issue : `bataille.issue_au_loin` (accroche) |
-| D126 | `LootAdvance` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D127 | `LootAssign` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D128 | `LootClaims` | 1 dossier(s) | étape 4 (la fouille des corps, le butin) |
-| D129 | `LootCorpseRadius` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D130 | `LootMaxSweepers` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D131 | `LootMercRange` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D132 | `LootPlayerRadius` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D133 | `LootWalkRange` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D134 | `LootWalkTimeout` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
-| D135 | `LootWindow` | Scriptorium l'écrit aussi | étape 4 (la fouille des corps, le butin) |
+| D126 | `LootAdvance` | Scriptorium l'écrit aussi | le battement de la fouille (`bataille.battre`) |
+| D127 | `LootAssign` | Scriptorium l'écrit aussi | `Scriptorium.bataille.fouille(id).fouilleurs` |
+| D128 | `LootClaims` | 1 dossier(s) | `Scriptorium.bataille.fouille(id).fouilleurs` (un corps, un fouilleur) |
+| D129 | `LootCorpseRadius` | Scriptorium l'écrit aussi | réglage : bataille.fouille_pres_m |
+| D130 | `LootMaxSweepers` | Scriptorium l'écrit aussi | réglage : bataille.fouilleurs_max |
+| D131 | `LootMercRange` | Scriptorium l'écrit aussi | réglage : bataille.fouille_rayon_m |
+| D132 | `LootPlayerRadius` | Scriptorium l'écrit aussi | pas utile : la fouille ne dépend pas de la distance d'Henry (les corps ne sont retirés que hors de sa vue) |
+| D133 | `LootWalkRange` | Scriptorium l'écrit aussi | réglage : bataille.fouille_rayon_m |
+| D134 | `LootWalkTimeout` | Scriptorium l'écrit aussi | réglage : bataille.fouille_marche_max_h |
+| D135 | `LootWindow` | Scriptorium l'écrit aussi | réglage : bataille.duree_des_corps |
 | D136 | `MoralePerKill` | 1 dossier(s) | réglage : issues.victoire.moral (une valeur par issue) |
 | D137 | `NavTentFootHalf` | Scriptorium l'écrit aussi | pas utile : géométrie de l'ancien camp ; le plan du socle est la table `Scriptorium.camp.plan` |
 | D138 | `OurWuids` | 1 dossier(s) | `Scriptorium.hommes.liste()` et `Scriptorium.hommes.fiche(id)` (champ `personnage`) |
@@ -346,12 +346,12 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 163 | 23 | 69 | 60 | 11 |
+| service existant | 174 | 25 | 70 | 68 | 11 |
 | à ouvrir | 20 | 9 | 2 | 9 | 0 |
-| étape 4 | 19 | 2 | 1 | 16 | 0 |
+| étape 4 | 0 | 0 | 0 | 0 | 0 |
 | étape 5 | 31 | 2 | 6 | 18 | 5 |
-| pas utile | 89 | 3 | 29 | 47 | 10 |
-| réglage | 15 | 1 | 4 | 9 | 1 |
+| pas utile | 91 | 3 | 29 | 49 | 10 |
+| réglage | 21 | 1 | 4 | 15 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |
 
 « Service existant » compte aussi les retouches que le socle fait déjà (« déjà fait », « en partie »).

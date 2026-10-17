@@ -190,6 +190,7 @@ hommes.priorites = {
   garde = 4,
   garde_de_nuit = 4,
   ronde = 4,
+  fouille = 4,
   patrouille = 4,
   travail = 5,
   punition = 5,

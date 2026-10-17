@@ -70,6 +70,15 @@ bataille.reglages = {
   -- postée, qui restent à leur camp : hors de son regard ou à plus de « poste_vue_m »).
   fuite_m = 200,
   fuite_retrait_m = 150,
+  -- La fouille (fiche 17, tranche 5) : 1 allumée ; après une victoire, au plus « fouilleurs_max » hommes vont aux corps
+  -- ennemis à moins de « fouille_rayon_m » d'eux, s'y tiennent « fouille_duree_h », laissent un corps pas atteint en
+  -- « fouille_marche_max_h » (heures du jeu ; une heure du jeu dure environ 4,75 minutes réelles).
+  fouille = 1,
+  fouilleurs_max = 3,
+  fouille_rayon_m = 80,
+  fouille_duree_h = 0.1,
+  fouille_marche_max_h = 0.5,
+  fouille_pres_m = 2.5,
 }
 
 -- La force d'un homme selon son palier (recrue, confirmé, vétéran) : un facteur, réglable.
@@ -871,6 +880,8 @@ local function finir(d, b, resultat)
       b.corps = corps
       b.corps_retires_a = jeu().heure_du_jeu() + bataille.reglages.duree_des_corps
       jeu().coucher_les_corps(corps)
+      b.corps_ennemis = {}
+      for i, c in ipairs(corps) do b.corps_ennemis[i] = c end
     end
     b.personnages = nil
   end
@@ -889,6 +900,155 @@ local function finir(d, b, resultat)
   b.issue = resultat.issue
   jeu().journal("Bataille : « " .. b.id .. " » finie : " .. resultat.issue .. ", " .. #resultat.morts .. " mort(s), "
                 .. #resultat.blesses .. " blessé(s), butin " .. resultat.butin)
+  -- La fouille après une victoire (fiche 17, tranche 5).
+  if bataille.reglages.fouille == 1 and (resultat.issue == "victoire" or resultat.issue == "victoire_couteuse")
+      and b.corps_ennemis and #b.corps_ennemis > 0 then
+    bataille.lancer_la_fouille(b.id)
+  end
+end
+
+-- ---------------------------------------------------------------- la fouille (fiche 17, tranche 5)
+
+-- Accroche : cet homme peut-il fouiller les corps de cette bande ? (Scriptorium l'enveloppe : les bains…) Par défaut,
+-- un combattant debout, valide, libre pour la fouille, pas dehors.
+function bataille.peut_fouiller(id, bande)
+  local f = hommes().fiche(id)
+  return f ~= nil and bataille.roles[f.role] ~= nil and f.blessure == 0 and not f.dehors and des_notres_debout(f)
+    and hommes().libre_pour(id, "fouille")
+end
+
+-- Accroche : la fouille d'une bande est finie (une fois). Par défaut, une ligne au journal.
+function bataille.fouille_finie(id, fouille)
+  jeu().journal("Bataille : fouille de « " .. id .. " » finie, " .. #fouille.vus .. " corps fouillé(s), "
+                .. fouille.laisses .. " laissé(s)")
+end
+
+-- Lance la fouille des corps ennemis d'une bande finie. Vrai si lancée.
+function bataille.lancer_la_fouille(id)
+  local b = donnees().bandes[id]
+  if not b or b.etat ~= "finie" or not b.corps_ennemis or #b.corps_ennemis == 0 or b.fouille then
+    return false
+  end
+  b.fouille = { a_fouiller = {}, vus = {}, fouilleurs = {}, laisses = 0, debut = jeu().heure_du_jeu() }
+  for i, c in ipairs(b.corps_ennemis) do b.fouille.a_fouiller[i] = c end
+  enregistrer()
+  jeu().journal("Bataille : fouille de « " .. id .. " » : " .. #b.corps_ennemis .. " corps")
+  return true
+end
+
+-- La fouille d'une bande : une copie (les corps à fouiller, les vus, les fouilleurs et leur corps), ou nil.
+function bataille.fouille(id)
+  local b = donnees().bandes[id]
+  if not b or not b.fouille then
+    return nil
+  end
+  local f = b.fouille
+  local copie = { a_fouiller = {}, vus = {}, fouilleurs = {}, laisses = f.laisses }
+  for i, c in ipairs(f.a_fouiller) do copie.a_fouiller[i] = c end
+  for i, c in ipairs(f.vus) do copie.vus[i] = c end
+  for h, a in pairs(f.fouilleurs) do copie.fouilleurs[h] = a.corps end
+  return copie
+end
+
+-- Vider la fouille (le portage des corps, les sentinelles) : les fouilleurs lâchés, la fouille close. Vrai si faite.
+function bataille.vider_la_fouille(id)
+  local b = donnees().bandes[id]
+  if not b or not b.fouille then
+    return false
+  end
+  for h in pairs(b.fouille.fouilleurs) do
+    if hommes().fiche(h) then hommes().lacher(h, "fouille") end
+  end
+  b.fouille = nil
+  enregistrer()
+  jeu().journal("Bataille : fouille de « " .. id .. " » vidée")
+  return true
+end
+
+local function contient(liste, valeur)
+  for _, v in ipairs(liste) do
+    if v == valeur then return true end
+  end
+  return false
+end
+
+-- Un battement de la fouille : les fouilleurs arrivés s'y tiennent, puis passent au suivant ; un corps pas atteint à
+-- temps est laissé ; les corps libres reçoivent le fouilleur le plus proche. Rend vrai si quelque chose a changé.
+local function avancer_la_fouille(b, heure)
+  local f, r = b.fouille, bataille.reglages
+  local change = false
+  for h, a in pairs(f.fouilleurs) do
+    local fiche = hommes().fiche(h)
+    local ici = fiche and fiche.personnage and jeu().position_du_personnage(fiche.personnage)
+    local la = jeu().position_du_personnage(a.corps)
+    local fini = false
+    if not fiche or hommes().qui_tient(h) ~= "fouille" then
+      fini = true   -- pris par plus fort (une bataille, les soins) : le corps redevient libre
+    elseif ici and la and math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) <= r.fouille_pres_m then
+      a.arrive = a.arrive or heure
+      if heure >= a.arrive + r.fouille_duree_h then
+        table.insert(f.vus, a.corps)
+        fini = true
+      end
+    elseif heure >= a.depuis + r.fouille_marche_max_h then
+      table.insert(f.vus, a.corps)
+      f.laisses = f.laisses + 1
+      jeu().journal("Bataille : « " .. tostring(fiche.nom) .. " » n'atteint pas le corps « " .. a.corps .. " » : laissé")
+      fini = true
+    end
+    if fini then
+      f.fouilleurs[h] = nil
+      if fiche then hommes().lacher(h, "fouille") end
+      change = true
+    end
+  end
+  local occupes, nombre = {}, 0
+  for h, a in pairs(f.fouilleurs) do
+    occupes[a.corps] = true
+    nombre = nombre + 1
+  end
+  for _, c in ipairs(f.a_fouiller) do
+    if nombre >= r.fouilleurs_max then break end
+    local la = jeu().position_du_personnage(c)
+    if not contient(f.vus, c) and not occupes[c] and la then
+      local choisi, plus_pres = nil, nil
+      for _, h in ipairs(hommes().liste()) do
+        local fiche = hommes().fiche(h)
+        local ici = fiche.personnage and jeu().position_du_personnage(fiche.personnage)
+        local ecart = ici and math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2)
+        if not f.fouilleurs[h] and ecart and ecart <= r.fouille_rayon_m and (plus_pres == nil or ecart < plus_pres) then
+          local lu, peut = pcall(bataille.peut_fouiller, h, b.id)
+          if lu and peut == true then
+            choisi, plus_pres = h, ecart
+          end
+        end
+      end
+      if choisi then
+        hommes().tenir(choisi, "fouille", { activite = "fouille", lieu = "corps", position = { x = la.x + 1, y = la.y, z = la.z },
+          fin = "liberation" })
+        f.fouilleurs[choisi] = { corps = c, depuis = heure }
+        occupes[c] = true
+        nombre = nombre + 1
+        change = true
+      end
+    end
+  end
+  if next(f.fouilleurs) == nil then
+    local reste = false
+    for _, c in ipairs(f.a_fouiller) do
+      if not contient(f.vus, c) and jeu().position_du_personnage(c) then reste = true end
+    end
+    if not reste or (#f.vus == 0 and heure >= f.debut + r.fouille_marche_max_h) then
+      local copie = bataille.fouille(b.id)
+      b.fouille = nil
+      local lu, erreur = pcall(bataille.fouille_finie, b.id, copie)
+      if not lu then
+        jeu().journal("Bataille : accroche « fouille finie » en erreur : " .. tostring(erreur))
+      end
+      change = true
+    end
+  end
+  return change
 end
 
 -- L'issue par la règle, pour une bande au contact.
@@ -1289,10 +1449,16 @@ function bataille.battre()
       b.partants = (#restent > 0) and restent or nil
       rapport.changements = rapport.changements + 1
     elseif b.etat == "finie" and b.corps and heure >= b.corps_retires_a and not (b.postee and sous_les_yeux(b)) then
+      if b.fouille then
+        bataille.vider_la_fouille(b.id)
+      end
       jeu().journal("Bataille : corps de « " .. b.id .. " » retirés (" .. #b.corps .. ")")
       jeu().renvoyer_ennemis(b.corps)
       b.corps = nil
       b.corps_retires_a = nil
+      rapport.changements = rapport.changements + 1
+    end
+    if b.etat == "finie" and b.fouille and avancer_la_fouille(b, heure) then
       rapport.changements = rapport.changements + 1
     end
   end

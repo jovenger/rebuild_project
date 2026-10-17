@@ -168,6 +168,16 @@ le chemin du retour, entre à cheval et descend.
   point du convoi (une vingtaine de mètres en 20 s, une vingtaine de mètres derrière le point calculé), puis arrivé au
   bout, sa bande retirée hors de la vue d'Henry. **Non vus en jeu** : une mission contre un convoi, le combat contre un
   convoi.
+- **Tranche 5, la fouille** (la liste du pair, 17/10 ; réponses prises d'office) : après une bataille gagnée (au camp,
+  à un camp de bandits, contre un convoi), au plus `fouilleurs_max` (3) de nos hommes vont aux corps ennemis, un corps à
+  la fois chacun, s'y tiennent `fouille_duree_h` (tournés vers le corps), puis passent au suivant ; règle « fouille »
+  (rang 4, sous la bataille, l'escorte et les soins). Peuvent fouiller (accroche `bataille.peut_fouiller(id, bande)`,
+  que Scriptorium enveloppe, les bains par exemple) : un combattant debout, valide, libre, à moins de `fouille_rayon_m`
+  du corps. Un fouilleur qui n'atteint pas son corps en `fouille_marche_max_h` le laisse. Services :
+  `bataille.lancer_la_fouille(id)`, `bataille.fouille(id)` (les corps, les vus, les fouilleurs), `bataille.vider_la_fouille(id)`
+  (les fouilleurs lâchés, la fouille close : le portage des corps, les sentinelles) ; accroche `bataille.fouille_finie(id,
+  fouille)`. Les corps restent `duree_des_corps`, retirés hors de la vue d'Henry. À reprendre plus tard : un vrai geste
+  de fouille du jeu (pour l'instant, l'homme se tient au corps).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 

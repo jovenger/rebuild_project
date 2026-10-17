@@ -749,3 +749,79 @@ essai("bataille : le partage du butin est une accroche ; des parts absurdes sont
   end
   bataille.partager_le_butin, bataille.issue_au_loin = ancienne, issue_d_origine
 end)
+
+-- ---------------------------------------------------------------- la fouille (fiche 17, tranche 5)
+
+local function bataille_gagnee(roles)
+  local ids = preparer(1000, 10, roles)
+  Scriptorium.en_partie = true
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 4, direction = 0, delai = 0 })
+  bataille.battre()
+  for i, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = i, y = 40, z = 0 }
+  end
+  for k, e in ipairs(FauxJeu.ennemis) do
+    FauxJeu.positions[e.identifiant] = { x = 10 * k, y = 60, z = 0 }
+    FauxJeu.ennemis_vivants_par_id[e.identifiant] = false
+  end
+  FauxJeu.heure = 10.2
+  bataille.battre()
+  return ids, id
+end
+
+essai("fouille : après une victoire, au plus trois hommes vont aux corps ; arrivés, ils s'y tiennent, puis le suivant ; la fin une fois", function()
+  local ids, id = bataille_gagnee({ "homme_d_armes", "homme_d_armes", "archer", "archer", "pavoisier" })
+  egal(bataille.bande(id).etat, "finie", "victoire")
+  local f = bataille.fouille(id)
+  verifier(f ~= nil, "la fouille lancée")
+  egal(#f.a_fouiller, 4, "quatre corps à fouiller")
+  local fouilleurs = 0
+  for _ in pairs(f.fouilleurs) do fouilleurs = fouilleurs + 1 end
+  egal(fouilleurs, 3, "trois fouilleurs au plus")
+  for h in pairs(f.fouilleurs) do
+    egal(hommes.qui_tient(h), "fouille", "tenu par la fouille")
+  end
+  local fins = 0
+  local ancienne = bataille.fouille_finie
+  bataille.fouille_finie = function(i, copie) fins = fins + 1 return ancienne(i, copie) end
+  -- Chacun arrive à son corps, s'y tient « fouille_duree_h », puis passe au suivant.
+  for _ = 1, 6 do
+    for h, c in pairs(bataille.fouille(id) and bataille.fouille(id).fouilleurs or {}) do
+      FauxJeu.positions[hommes.fiche(h).personnage] = FauxJeu.positions[c]
+    end
+    bataille.battre()
+    FauxJeu.heure = FauxJeu.heure + bataille.reglages.fouille_duree_h + 0.01
+    bataille.battre()
+  end
+  egal(bataille.fouille(id), nil, "tous les corps fouillés : la fouille close")
+  egal(fins, 1, "la fin dite une fois")
+  for _, h in ipairs(ids) do
+    verifier(hommes.qui_tient(h) ~= "fouille", "plus personne tenu par la fouille")
+  end
+  bataille.fouille_finie = ancienne
+  Scriptorium.en_partie = false
+end)
+
+essai("fouille : l'accroche « peut fouiller » écarte ; un corps pas atteint à temps est laissé ; vider la fouille lâche tout", function()
+  local ancienne = bataille.peut_fouiller
+  bataille.peut_fouiller = function(h) return hommes.fiche(h).role ~= "archer" and ancienne(h) end
+  local ids, id = bataille_gagnee({ "archer", "archer", "homme_d_armes" })
+  local f = bataille.fouille(id)
+  local fouilleurs = {}
+  for h in pairs(f.fouilleurs) do table.insert(fouilleurs, h) end
+  egal(#fouilleurs, 1, "les archers écartés : un seul fouilleur")
+  egal(hommes.fiche(fouilleurs[1]).role, "homme_d_armes", "l'homme d'armes")
+  bataille.peut_fouiller = ancienne
+  -- Il ne bouge pas : le corps est laissé après « fouille_marche_max_h ».
+  FauxJeu.heure = FauxJeu.heure + bataille.reglages.fouille_marche_max_h + 0.01
+  bataille.battre()
+  verifier(bataille.fouille(id) == nil or bataille.fouille(id).laisses >= 1, "un corps laissé")
+  -- Une autre bataille gagnée : vider la fouille lâche les fouilleurs.
+  ids, id = bataille_gagnee({ "homme_d_armes", "homme_d_armes" })
+  verifier(bataille.vider_la_fouille(id), "vidée")
+  egal(bataille.fouille(id), nil, "close")
+  for _, h in ipairs(ids) do
+    verifier(hommes.qui_tient(h) ~= "fouille", "lâché")
+  end
+  Scriptorium.en_partie = false
+end)
