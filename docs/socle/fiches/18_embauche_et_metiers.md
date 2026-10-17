@@ -118,6 +118,13 @@ Comportement :
 - **Vu en jeu le 17/10** : le relevé (359 postes à moins de 400 m d'Henry, tous des `SmartObjectHolder` ; points d'appui lus : prière « Praying », désherbage « Weeding », clôture « GenU_repairFenceHammer », pelle « coalThrowing » ; aucun balai alentour : retiré du catalogue, les points d'appui mis d'après le relevé). Puis la prière : le poste posé à 3 m devant Henry, l'homme y marche, s'agenouille (le geste du jeu, lancé une fois et tenu) ; lâché, il se relève aussitôt et repart à l'exercice. Non vus : le désherbage, la clôture, la pelle ; un geste qui finit et qu'on relance ; le poste reposé après un chargement.
 
 - **Vu en jeu le 17/10, les lots** (tous les genres du catalogue, quatre à la fois, un homme à chacun) : chaque poste posé, chaque geste lancé une fois et tenu (aucune relance en 55 s : le comportement du jeu tourne). Visibles : la prière (agenouillé, et la prière du jeu dite en sous-titre « Priez pour nous, sainte Mère de Dieu… »), la clôture (bras au marteau), le banc du camp et l'établi de l'armurier (postures qui changent). Pas distinguables à cette distance : le beurre, la lecture, le guet, l'appui sur l'épée, le linge, le puits, le soin des chevaux. Le balai, le désherbage, la pelle et le tri des herbes non éprouvés : leur homme était de garde (la garde, rang 4, passe avant le travail, rang 5 : l'arbitre a raison). **Corrigé en jeu** : d'un poste à un autre, aucun nouvel ordre (le lieu d'un poste était vide dans la signature de l'ordre) ; le lieu vaut maintenant le nom du poste (essai qui l'attrape).
+- **Vu en jeu le 17-18/10, les postes un par un** (gros plans, `essai_poste_suivant`, un homme à 2,5 m d'Henry) : les
+  seize genres posés et tenus, leur geste lancé. Distingués : le désherbage (accroupi, mains au sol), la pelle (penché),
+  le puits (bras tendus), le tri des herbes, le guet et la lecture (postures de tête et de main), la prière et la prière
+  courte (à genoux). Debout sans outil : l'appui sur l'épée, le balai, le beurre, le linge : il leur manque l'objet du
+  jeu (épée, balai, baratte, baquet), pas d'autres points d'appui. **Corrigé en jeu** : un geste à un coup (la prière
+  courte, `useKneelingGroundOneShotShort`) finissait et n'était pas relancé, contrairement à cette fiche ; l'arbre le
+  relance maintenant tant que l'ordre tient (garde-fou au banc) ; vu : trois relances en 60 s.
 - **La sonde de la forge** (principe du pair : un préfabriqué né entier par `RuntimePrefab`), deux essais au plus : 1) la petite forge (préfabriqué imbriqué) : l'entité naît, rien ne paraît ; 2) le préfabriqué de base (poste du forgeron, station de forge, emplacements, boutique) : de même. Entre les deux, le préfabriqué simple de la prière naît bien (un poste « Praying » de plus au relevé) : `RuntimePrefab` marche, mais pas pour les forges. Sonde arrêtée ; la forge passera par la ronde de gestes (la voie prouvée de Scriptorium : enclume, foyer, bac d'eau).
 
 ## 5 d — Les sorties à cheval des gens de métier
@@ -189,3 +196,9 @@ Comportement :
   marche au point d'attente (décision remplaçable `hommes.ou_attendre(id, station)` : par défaut à `partage_attente_m`
   mètres de la station, de son côté) ; libérée, il reprend sa tenue (son geste, son poste).
 - Non vérifié en jeu tant qu'une station du jeu n'a pas été prise puis rendue par Henry.
+- **Essai en jeu du 18/10, arrêté après deux essais** : Henry posé à une forge (`essai_henry_a_la_forge`), la station
+  partagée, puis « Henry la prend » comme à la touche E (`essai_henry_prend_la_station` : GetActions puis « use »). La
+  meule (`IsUsable` du jeu) puis la forge (`Blacksmithing.CanUse`) n'offrent **aucune action** à Henry à cet endroit (de
+  nuit, une forge qui n'est pas à lui). Et **le nom d'une station, même avec son GUID, peut se résoudre vers une autre
+  entité** (la forge visée : une autre à 3,3 km) : le partage devrait tenir l'entité par son identifiant
+  (`stations_proches` la tient déjà), pas par son nom. À voir par JoVenGer, de jour, à une forge qu'il peut utiliser.

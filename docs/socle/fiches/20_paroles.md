@@ -27,4 +27,6 @@ joue le nœud de parole du jeu, le compteur avance, le socle dit « a dit » et 
 ligne n'a été dite** : le metarole d'essai « GOSSIP » est muet pour nos âmes, et les alias de Scriptorium (« scr_… »)
 sont dans ses tables, absentes du socle d'essai : la ligne entendue et sous-titrée se vérifiera après la bascule.
 Corrigé en jeu : l'ordre de parole tombait dans « sans but » (pas de position) ; sa branche passe avant ce test. Le
-dialogue vers Henry (sorte 3) n'a pas été essayé.
+dialogue vers Henry (sorte 3), essayé le 18/10 (metarole « GOSSIP ») : la demande va de bout en bout (ordre 23,
+nœud joué, « a dit »), **aucun dialogue ne s'ouvre** (même limite : pas de dialogue du jeu pour nos âmes) ; à vérifier
+après la bascule, avec les dialogues de Scriptorium.

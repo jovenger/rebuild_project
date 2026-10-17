@@ -80,3 +80,17 @@ image : « 0,0 ms ») ; `liaison.chrono` (os.clock) est ajoutée pour la mesure 
 il est remplacé par la surveillance à la fin du battement (sûre par construction). Un vrai défaut attrapé au banc : à
 la migration de l'ancien flux, une case connue non nommée n'était pas réécrite alors que le flux était vidé ; corrigé.
 **Mesuré en jeu le 17/10** (horloge `os.clock`) : la case de 644 372 octets (22 tranches) s'écrit en 30 à 33 ms ; une petite case en 1 ms au plus. Une case de quelques dizaines de Ko coûte donc environ 1 à 3 ms.
+**Vu en jeu le 17-18/10 : la perte à la sauvegarde.** Le Directeur installé et ses objets donnés, la partie
+sauvegardée 10 s après : après rechargement, plus installé, plus d'objets. L'écriture mise en attente (moins de
+`registre_intervalle_s` après la précédente) n'était vidée qu'au battement suivant (30 s). **Corrigé** (8fbd973 ;
+`git log`) : une minuterie vide l'attente à la fin de l'intervalle (une seule à la fois ; rien d'écrit après une partie
+oubliée) ; essai qui attrape l'ancien registre. Vu en jeu : un changement fait 6 s avant la sauvegarde survit au
+rechargement. **Fenêtre restante : 2 s** (l'intervalle) : un changement suivi d'une sauvegarde dans les 2 s est perdu.
+**Essayé pour la fermer (demande du pair, 18/10), puis retiré** : vider l'attente pendant la sauvegarde par un `OnSave`.
+Posé sur l'instance d'Henry : jamais appelé. Sur une entité d'une classe à nous (`Entities/*.ent`, forme du guide
+« How-to Lua », Nexus Mods, KCD, mod 1344, et d'AISpawner du jeu) : appelé pendant la sauvegarde, l'entité revient
+avec la partie, mais l'écriture faite à ce moment manque au rechargement : le jeu a déjà écrit les GameToken quand il
+appelle les `OnSave` des entités. Aucun événement Lua de début de sauvegarde trouvé dans les fichiers du jeu. Code
+retiré (pas de second canal de sauvegarde) ; la minuterie reste. Débris : l'entité `scriptorium_sauvegarde_1` est dans
+la partie d'essai `playline3` (sa classe retirée).
+
