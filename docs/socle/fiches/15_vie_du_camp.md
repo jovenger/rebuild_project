@@ -2244,6 +2244,18 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 1. **D'abord la sonde** : (a) oui (Recommandé : on ne devine pas un signe du jeu) ; (b) la règle de l'horloge tout de
    suite. **Prise : (a).**
 
+### Mesuré en V73 f 3 a (17/10, 7adeaf2)
+- **La carte se lit par `sv_map`** : « kutnohorsko » (l'altitude des repères reste en secours, pas servie ici).
+- **Un seul événement de chargement** au chargement de la sauvegarde 473 : `OnLoadingComplete`, argument
+  « @ui_kutnohorsko » (le nom affiché de la carte) ; `IsLoadingEngineSaveGame` à faux à ce moment ; `OnLoadingStart`
+  n'est pas venu.
+- **Conséquence pour la suite** : pas besoin de distinguer un passage de carte d'un chargement de partie. Le registre
+  (gardé par la sauvegarde) sait sur quelle carte est le camp ; `sv_map` dit où est Henry ; s'ils diffèrent, le camp
+  n'est pas reposé et seule l'escorte d'Henry est refaite près de lui ; s'ils sont les mêmes, tout comme avant. Un
+  chargement dans l'autre carte donne la même réponse, ce qui est juste. Plus d'horloge, plus de risque comme celui du
+  24/09 chez Scriptorium (40 hommes perdus sur un passage pris pour un chargement).
+- **À vérifier par JoVenGer** : le passage Trosky ↔ Kuttenberg en jouant.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

@@ -235,7 +235,8 @@
 | 473, puis deux sauts d'Henry (40 m, sur un sol dégagé) | V73 f 2 f bis (l'allure affinée, première séance) | normal (trois fois) |
 | 473, puis deux sauts d'Henry (40 m, sur un sol dégagé) | V73 f 2 f bis (le Move qui suit sa cible) | normal (trois fois) |
 | 473, puis deux sauts d'Henry (40 m, sur un sol dégagé) | V73 f 2 g (l'allure de tous les cavaliers) | normal (trois fois) |
-- Au total : 3 écrans noirs sur 88 chargements ou poses observés ; 1 sur 78 depuis la séparation. **Rien n'est conclu** : il
+| 473 | V73 f 3 a (la sonde de la carte) | normal |
+- Au total : 3 écrans noirs sur 89 chargements ou poses observés ; 1 sur 79 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

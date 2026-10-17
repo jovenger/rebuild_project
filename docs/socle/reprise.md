@@ -358,15 +358,18 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **V73 f 2 g, l'allure de tous les cavaliers, faite et vue en jeu** (352cbfc) : le cavalier seul (17) et le suiveur
   perdu ou sans formation (19) passent par la boucle d'allure ; perdu au-delà de 13 m de son chef, de retour en deçà de
   6 m ; une mesure par homme suivi ; les sauts écartés. Vu : le cavalier seul à 4,2–4,35 m d'Henry ; la perte et le retour.
-- **Suite** : le changement de carte et les intérieurs (fiche à écrire) ; puis le gardien des hommes ; puis les étapes
-  2 à 8.
+- **V73 f 3 a, la sonde de la carte, faite** (7adeaf2) : la carte se lit par `sv_map` (« kutnohorsko »), l'altitude des
+  repères de Scriptorium en secours ; au chargement, seul `OnLoadingComplete`.
+- **Suite** : V73 f 3 b, la carte du camp (le camp reste sur sa carte ; l'escorte refaite près d'Henry ailleurs) et les
+  cavaliers après un grand saut (voyage rapide) ; puis le gardien des hommes ; puis les étapes 2 à 8. À vérifier par
+  JoVenGer : le passage Trosky ↔ Kuttenberg.
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
   jeu (fonder, déplacer Henry de 50 m, sauvegarder, recharger : le camp reste à sa place) ; l'écrire dans la fiche 03.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 78 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 79 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
