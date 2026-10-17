@@ -2010,6 +2010,80 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
   pas suivant (V73 f 2 f).
 - Descente après 4 lectures, il mène à pied de nouveau ; son cheval retiré au battement avec ceux des hommes.
 
+## V73 f 2 f — l'allure du chef monté réglée sur Henry (17/10, relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Mesuré en V73 f 2 b et e : le chef monté démarre tard (11 à 18 m d'Henry juste après que celui-ci se met en route,
+  rattrapé en 8 s) ; la colonne fait de même.
+- **Ce pas** : le chef monté (ordre 18 : le Directeur, ou le premier homme) règle son allure sur la vitesse de son chef
+  (Henry). Les suiveurs montés qui perdent leur place (ordre 19, repli) et le cavalier seul (ordre 17) : au pas suivant.
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule)
+- `followNpc` (`AI/move/moveUtils.xml`) : à moins de `startDistance` (5 m), le suiveur s'arrête et attend 1 s ; sinon il
+  marche ; chaque seconde, il ne passe à la course qu'au-delà de `walk2run` (20 m) : un cheval au pas traîne jusqu'à
+  20 m : c'est ce qu'on a mesuré.
+- Le `Move` du jeu prend son allure dans une variable (`speed="$speed"` dans `followNpc`) ; les allures : `walk`, `run`,
+  `dash`, `sprint` (`movementSpeed`, plus de 10 emplois chacune). Une horloge en Lua : `System.GetCurrTime()`
+  (`Scripts/Entities/Physics/AnimObject.lua`).
+
+### Le principe d'Alex (transmis par le pair, principe seulement)
+- Le chef monté ne peut pas être un suiveur de formation : il se mène lui-même par un `Move` vers son chef (arrêt à 3 m
+  ± 1, `changeNPCState`), son allure tenue par une variable : 3 galop (`sprint`), 2 trot rapide (`dash`), 1 course
+  (`run`), 0 pas (`walk`), −1 « tenir » (il attend au lieu d'avancer).
+- **La vitesse d'Henry mesurée par sa position** : toutes les 300 ms, un appel au Lua depuis l'arbre relève sa
+  position ; vitesse = distance parcourue / temps écoulé ; **elle donne l'allure**. La distance ne fait qu'une petite
+  correction : le chef vise une place à 7 m de lui ; au-delà de 7 + 4 m, une allure de plus ; en deçà de 7 − 3 m, une
+  de moins ; Henry arrêté et le chef à sa place : il tient.
+- **La leçon** : sa première version choisissait l'allure d'après l'écart seul (galop au-delà de 10 m, pas en deçà,
+  relevé chaque seconde) : à-coups du chef, et la colonne en accordéon (chaque suiveur `MoveHistory` refait son chemin).
+  Régler la vitesse sur celle d'Henry tient l'écart constant.
+
+### Comment ce serait fait
+1. **La règle, en données, chez les hommes** (`hommes.allure_du_chef(vitesse, ecart)`) : vitesse sous
+   `allure_arret_m_s` (0,3) : il tient s'il est à sa place (écart ≤ 7 + 4), sinon pas ; sous `allure_pas_m_s` (2,2) :
+   pas ; sous `allure_course_m_s` (4,5) : course ; sous `allure_galop_m_s` (8) : trot rapide (`dash`) ; au-delà :
+   galop (`sprint`) ; puis la correction : au-delà de `allure_place_m` (7) + `allure_plus_m` (4), une de plus (au plus
+   3) ; en deçà de 7 − `allure_moins_m` (3), une de moins (jusqu'à « tenir »).
+2. **La mesure, dans la liaison** (`liaison.allure_vers_chef(entite, donnees)`, appelée par l'arbre) : la position du
+   chef (Henry ou un homme) et l'heure (`System.GetCurrTime`) gardées à chaque relevé ; vitesse = distance / temps ;
+   l'écart du cavalier à son chef ; la règle accrochée par les hommes (comme la ronde) ; « allure_code » écrit pour
+   l'arbre ; une ligne au journal **seulement quand l'allure change**.
+3. **L'arbre, branche 18** (le chef monté) : dans la posture « horse », à la place de `followNpc`, une boucle : la
+   mesure ; l'allure posée dans `$allure` (un `IfCondition` par allure, la forme de la branche 12) ; un seul `Move` vers
+   `$scriptorium_chef` (arrêt `allure_arret_cm` 300 ± `allure_ecart_cm` 100) à `speed="$allure"`, ou une attente pour
+   « tenir » ; en parallèle, une nouvelle mesure toutes les `allure_cadence_ms` (300) : l'allure change → le `Move` est
+   redonné. La formation reste dans sa branche à part (inchangée).
+4. **Latence ajoutée, signalée** : un appel au Lua toutes les 300 ms par chef monté (un ou deux par troupe), quelques
+   opérations ; aucune autre.
+
+### Relecture du pair (17/10)
+- Fiche bonne ; `speed="$allure"` : la preuve vient du jeu (`followNpc` passe `speed="$speed"`), elle vaut mieux que la
+  note d'Alex (un nœud par allure) ; redonner le `Move` à chaque changement d'allure est la bonne précaution.
+- **Mesurer le bon homme** : la vitesse de **celui que le chef suit** (Henry), pas la sienne, sinon il ne démarrerait
+  jamais. Fait et éprouvé au banc (le cavalier bouge, Henry non : vitesse nulle).
+- **Un seuil qui hésite** : près d'un seuil, l'allure basculerait à chaque relevé. Fait : `allure_marge` (10 %) : on
+  ne monte d'allure qu'au-dessus du seuil plus la marge, on ne descend qu'en dessous du seuil moins la marge ; la ligne
+  au journal « seulement quand l'allure change » dira en jeu si ça bascule trop.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `allure_arret_m_s` 0,3, `allure_pas_m_s` 2,2, `allure_course_m_s` 4,5, `allure_galop_m_s` 8,
+  `allure_marge` 0,1, `allure_place_m` 7, `allure_plus_m` 4, `allure_moins_m` 3.
+- `hommes.cerveau` : `allure_cadence_ms` 300, `allure_arret_cm` 300, `allure_ecart_cm` 100.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé, trois hommes, le Directeur ; `essai_directeur_a_cheval`, lecture forcée à cheval.
+1. Henry marche 10 s : l'écart Directeur–Henry juste après, puis 8 s plus tard ; Henry court 5 s : idem. But : près de
+   7 m, sans à-coups (journal des allures).
+2. La formation tient derrière lui, sans accordéon (écarts des hommes à lui).
+- Décompte de l'écran noir (fiche 14).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Le remède** : (a) l'allure réglée sur la vitesse mesurée d'Henry, la distance en correction (Recommandé : le principe
+   d'Alex, et sa leçon contre l'accordéon) ; (b) des seuils de distance plus bas dans `followNpc` (sa première version,
+   écartée). **Prise : (a).**
+2. **Pour qui** : (a) le chef monté d'abord (Recommandé : une chose à la fois) ; (b) tous les cavaliers tout de suite.
+   **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

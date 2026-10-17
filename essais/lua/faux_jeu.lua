@@ -251,6 +251,8 @@ function faux.retirer_cheval(identifiant)
   faux.chevaux_retires = faux.chevaux_retires or {}
   table.insert(faux.chevaux_retires, identifiant)
 end
+-- V73 f 2 f : la règle de l'allure accrochée par les hommes.
+function faux.accrocher_l_allure(fonction) faux.allure_choisie = fonction end
 -- V73 f 2 d : Henry à cheval (« henry_cheval » posé par les essais : vrai, faux, ou nil illisible) ; son cheval amené.
 function faux.henry_a_cheval(pres) return faux.henry_cheval end
 function faux.amener_le_cheval_d_henry(distance) return true, "cheval d'Henry posé" end

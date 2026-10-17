@@ -36,6 +36,12 @@
       <Variable name="monte_delai_ms" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="monte_delai" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="formation_mode_monte_lu" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="allure_code" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="allure_tenue" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="allure_cadence_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="allure_cadence" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="allure_arret" type="_float" values="" isPersistent="0" form="single" />
+      <Variable name="allure_arret_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_depart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_marche_course" type="_float" values="" isPersistent="0" form="single" />
@@ -83,6 +89,10 @@
             <Expression expressions="$monte_delai_ms = $monte_delai_ms + ($scriptorium_monte_approche_ms &gt; 0 ? $scriptorium_monte_approche_ms : 0)" />
             <Expression expressions="$monte_delai = concat($monte_delai_ms, &apos;ms&apos;)" />
             <Expression expressions="$formation_mode_monte_lu = ($scriptorium_cerveau_formation_mode_monte &gt; 0 ? $scriptorium_cerveau_formation_mode_monte : 1)" />
+            <Expression expressions="$allure_cadence_ms = ($scriptorium_cerveau_allure_cadence_ms &gt; 0 ? $scriptorium_cerveau_allure_cadence_ms : 300)" />
+            <Expression expressions="$allure_cadence = concat($allure_cadence_ms, &apos;ms&apos;)" />
+            <Expression expressions="$allure_arret = ($scriptorium_cerveau_allure_arret_cm &gt; 0 ? $scriptorium_cerveau_allure_arret_cm : 300) * 0.01" />
+            <Expression expressions="$allure_arret_ecart = ($scriptorium_cerveau_allure_ecart_cm &gt; 0 ? $scriptorium_cerveau_allure_ecart_cm : 100) * 0.01" />
             <IfCondition condition="$scriptorium_activite ~= 15 &amp; $scriptorium_activite ~= 18 &amp; $formation_menee ~= $__null" failOnCondition="false">
               <SuppressFailure>
                 <EndFormation FormationHandle="$formation_menee" />
@@ -547,7 +557,47 @@
                                 <Sequence>
                                   <WaitAction />
                                   <Expression expressions="$scriptorium_en_selle = $scriptorium_en_selle + 1" />
-                                  <Function_followNpc leader="$scriptorium_chef" run2sprint="$suivi_course_sprint" run2walk="$suivi_course_marche" sprint2run="$suivi_sprint_course" sprint2walk="$suivi_sprint_marche" startDistance="$suivi_depart" stopDistance="$suivi_arret" walk2run="$suivi_marche_course" walk2sprint="$suivi_marche_sprint" nodeLabel="73110808" />
+                                  <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                                    <Sequence>
+                                      <SuppressFailure>
+                                        <ExecuteLua code="pcall(function() Scriptorium.jeu.allure_vers_chef(entity, data) end)" />
+                                      </SuppressFailure>
+                                      <Expression expressions="$allure_tenue = $allure_code" />
+                                      <IfCondition condition="$allure_tenue == 3" failOnCondition="false">
+                                        <Expression expressions="$allure = $enum:movementSpeed.sprint" />
+                                      </IfCondition>
+                                      <IfCondition condition="$allure_tenue == 2" failOnCondition="false">
+                                        <Expression expressions="$allure = $enum:movementSpeed.dash" />
+                                      </IfCondition>
+                                      <IfCondition condition="$allure_tenue == 1" failOnCondition="false">
+                                        <Expression expressions="$allure = $enum:movementSpeed.run" />
+                                      </IfCondition>
+                                      <IfCondition condition="$allure_tenue == 0" failOnCondition="false">
+                                        <Expression expressions="$allure = $enum:movementSpeed.walk" />
+                                      </IfCondition>
+                                      <Parallel successMode="Any" failureMode="Any">
+                                        <Sequence>
+                                          <IfCondition condition="$allure_tenue &gt;= 0" failOnCondition="false">
+                                            <SuppressFailure>
+                                              <Move destinationSpecification="$scriptorium_chef" destinationSpecification2="" destinationSpecification3="" speed="$allure" stopWithinDistance="$allure_arret" stopDistanceVariation="$allure_arret_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                                            </SuppressFailure>
+                                          </IfCondition>
+                                          <Wait duration="&apos;-1&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                        </Sequence>
+                                        <Sequence>
+                                          <Wait duration="$allure_cadence" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                          <While doFail="false" propagateChildFail="false" condition="$allure_code == $allure_tenue">
+                                            <Sequence>
+                                              <SuppressFailure>
+                                                <ExecuteLua code="pcall(function() Scriptorium.jeu.allure_vers_chef(entity, data) end)" />
+                                              </SuppressFailure>
+                                              <Wait duration="$allure_cadence" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                            </Sequence>
+                                          </While>
+                                        </Sequence>
+                                      </Parallel>
+                                    </Sequence>
+                                  </While>
                                 </Sequence>
                               </StanceElement>
                             </SuppressFailure>

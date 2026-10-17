@@ -2561,6 +2561,7 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
   liaison.buts[identifiant] = nil
   liaison.chefs[identifiant] = nil
   liaison.formations_menees[identifiant] = nil
+  liaison.allures_relevees[identifiant] = nil
   if not entite then
     ligne = "introuvable"
   else
@@ -2717,6 +2718,57 @@ function liaison.au_point_de_ronde(entite, donnees)
   end)
   if not fait then
     liaison.journal("Ronde : erreur au point : " .. tostring(erreur))
+  end
+end
+
+-- Fiche 15, V73 f 2 f (principe d'Alex, transmis par le pair) : l'allure d'un cavalier qui se mène lui-même vers son
+-- chef. La vitesse de **son chef** (celui qu'il suit : Henry, ou un homme) est mesurée par sa position : la distance
+-- parcourue depuis le relevé précédent, divisée par le temps écoulé (System.GetCurrTime, la forme de
+-- Scripts/Entities/Physics/AnimObject.lua ; sans horloge lisible, la cadence de l'arbre) ; deux relevés à moins de 0,15 s
+-- gardent la vitesse d'avant. L'écart du cavalier à son chef corrige ; la règle est celle des hommes (accrochée). Écrit
+-- « allure_code » pour l'arbre ; une ligne au journal seulement quand l'allure change.
+liaison.allure_choisie = nil
+liaison.allures_relevees = {}
+liaison.noms_des_allures = { [-1] = "tenir", [0] = "pas", [1] = "course", [2] = "trot rapide", [3] = "galop" }
+
+function liaison.accrocher_l_allure(fonction)
+  liaison.allure_choisie = fonction
+end
+
+function liaison.allure_vers_chef(entite, donnees)
+  local fait, erreur = pcall(function()
+    local nom = entite:GetName()
+    local chef = liaison.chefs[nom]
+    local la = chef and ((chef == "henry") and liaison.position_du_joueur() or liaison.position_du_personnage(chef))
+    local ici_lu, ici = pcall(function() return entite:GetWorldPos() end)
+    if not la or not ici_lu or type(ici) ~= "table" or not liaison.allure_choisie then
+      return
+    end
+    local horloge_lue, maintenant = pcall(function() return System.GetCurrTime() end)
+    maintenant = horloge_lue and tonumber(maintenant) or nil
+    local memo = liaison.allures_relevees[nom]
+    local vitesse = memo and memo.vitesse or 0
+    local cadence = (tonumber(donnees and donnees.allure_cadence_ms) or 300) / 1000
+    local ecoule = (memo and maintenant and memo.t) and (maintenant - memo.t) or cadence
+    if memo and ecoule >= 0.15 then
+      vitesse = ((la.x - memo.la.x) ^ 2 + (la.y - memo.la.y) ^ 2) ^ 0.5 / ecoule
+    end
+    if not memo or ecoule >= 0.15 then
+      memo = { t = maintenant, la = { x = la.x, y = la.y }, vitesse = vitesse, code = memo and memo.code,
+               fond = memo and memo.fond }
+      liaison.allures_relevees[nom] = memo
+    end
+    local ecart = ((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) ^ 0.5
+    local code, fond = liaison.allure_choisie(vitesse, ecart, memo.fond)
+    donnees.allure_code = code
+    if memo.code ~= code then
+      liaison.journal(string.format("Allure de %s : %s (son chef à %.1f m/s, à %.1f m)", tostring(nom),
+        liaison.noms_des_allures[code] or tostring(code), vitesse, ecart))
+    end
+    memo.code, memo.fond = code, fond
+  end)
+  if not fait then
+    liaison.journal("Allure : erreur : " .. tostring(erreur))
   end
 end
 

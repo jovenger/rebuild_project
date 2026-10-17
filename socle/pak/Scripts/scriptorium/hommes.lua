@@ -96,6 +96,20 @@ hommes.reglages = {
   -- Le Directeur reprend la tête (V73 f 2 e, la règle de Scriptorium transmise par le pair) : quand il suit Henry en
   -- formation, une escorte d'Henry en formation se range dans sa formation ; à faux, son premier homme mène.
   directeur_mene_l_escorte = true,
+  -- L'allure du chef monté (V73 f 2 f, principe d'Alex transmis par le pair) : la vitesse mesurée de celui qu'il suit la
+  -- donne : sous « allure_arret_m_s », arrêté ; sous « allure_pas_m_s », le pas ; sous « allure_course_m_s », la course ;
+  -- sous « allure_galop_m_s », le trot rapide ; au-delà, le galop ; « allure_marge » (relecture du pair) : on ne monte
+  -- d'allure qu'au-dessus du seuil plus la marge, on ne descend qu'en dessous du seuil moins la marge. La distance
+  -- corrige : le chef vise une place à « allure_place_m » ; au-delà de la place plus « allure_plus_m », une allure de
+  -- plus ; en deçà de la place moins « allure_moins_m », une de moins ; arrêté et à sa place, il tient.
+  allure_arret_m_s = 0.3,
+  allure_pas_m_s = 2.2,
+  allure_course_m_s = 4.5,
+  allure_galop_m_s = 8,
+  allure_marge = 0.1,
+  allure_place_m = 7,
+  allure_plus_m = 4,
+  allure_moins_m = 3,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -179,6 +193,11 @@ hommes.cerveau = {
   -- À cheval (fiche 15, V73 f 2 a, relecture du pair) : la monte est bornée ; pas en selle au bout de « monte_delai_ms »,
   -- l'homme suit à pied (jamais figé à côté de son cheval).
   monte_delai_ms = 10000,
+  -- L'allure du chef monté (V73 f 2 f) : un relevé toutes les « allure_cadence_ms » ; son Move s'arrête à
+  -- « allure_arret_cm » de son chef, à plus ou moins « allure_ecart_cm ».
+  allure_cadence_ms = 300,
+  allure_arret_cm = 300,
+  allure_ecart_cm = 100,
   -- La formation montée (V73 f 2 b, relecture du pair : tous les suiveurs montés du jeu sont en « MoveHistory » ou
   -- « Relaxed », aucun en « KeepShape ») : 1 « MoveHistory » ; 4 « Relaxed ».
   formation_mode_monte = 1,
@@ -2940,10 +2959,44 @@ function hommes.piece_otee(id, objet)
   return true
 end
 
+-- L'allure du chef monté (fiche 15, V73 f 2 f) : la règle, en données (voir « allure_* »). « vitesse » : celle de celui
+-- qu'il suit (m/s) ; « ecart » : la distance qui les sépare (m) ; « fond_avant » : l'allure de fond du relevé précédent
+-- (la marge). Rend (le code : 3 galop, 2 trot rapide, 1 course, 0 pas, -1 tenir ; l'allure de fond, sans correction).
+function hommes.allure_du_chef(vitesse, ecart, fond_avant)
+  local r = hommes.reglages
+  local fond = 0
+  for k, seuil in ipairs({ r.allure_pas_m_s, r.allure_course_m_s, r.allure_galop_m_s }) do
+    local s = seuil
+    if fond_avant ~= nil then
+      s = (fond_avant >= k) and seuil * (1 - r.allure_marge) or seuil * (1 + r.allure_marge)
+    end
+    if vitesse >= s then
+      fond = k
+    end
+  end
+  local code = fond
+  if vitesse < r.allure_arret_m_s then
+    if ecart <= r.allure_place_m + r.allure_plus_m then
+      return -1, fond
+    end
+    code = 0
+  end
+  if ecart > r.allure_place_m + r.allure_plus_m then
+    code = math.min(3, code + 1)
+  elseif ecart < r.allure_place_m - r.allure_moins_m then
+    code = code - 1
+  end
+  return code, fond
+end
+
 Scriptorium.declarer_morceau("hommes", function()
   -- Le battement est lancé par le poste d'essai ou par le socle une fois la partie chargée.
   -- La ronde (fiche 15, V73 d 2) : la liaison, appelée par l'arbre à chaque point, demande le pas suivant aux hommes.
   if jeu() and jeu().accrocher_la_ronde then
     jeu().accrocher_la_ronde(hommes.pas_de_ronde)
+  end
+  -- L'allure du chef monté (V73 f 2 f) : la liaison, appelée par l'arbre toutes les 300 ms, demande l'allure aux hommes.
+  if jeu() and jeu().accrocher_l_allure then
+    jeu().accrocher_l_allure(hommes.allure_du_chef)
   end
 end)

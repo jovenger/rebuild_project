@@ -560,6 +560,38 @@ def verifier_identifiants():
         if l.sol_de({ x = 1, y = 1, z = 7 }, 2) ~= nil then return "un terrain illisible rend un sol" end
         System.GetTerrainElevation = terrain_avant
         Physics, ent_all, ent_water = nil, nil, nil
+        -- V73 f 2 f : l'allure mesurée sur la vitesse de celui que le cavalier suit (Henry), pas la sienne ; deux relevés
+        -- trop proches gardent la vitesse d'avant ; une ligne au journal seulement quand l'allure change.
+        local vus_allure = {}
+        l.accrocher_l_allure(function(v, e, fond) table.insert(vus_allure, { v = v, e = e }); if v > 3 then return 2, 2 end return 0, 0 end)
+        local cavalier = { GetName = function() return "scriptorium_cavalier" end, GetWorldPos = function() return { x = 0, y = -7, z = 0 } end }
+        l.chefs["scriptorium_cavalier"] = "henry"
+        local t_h, pos_h = 100, { x = 0, y = 0, z = 0 }
+        local horloge_avant = System.GetCurrTime
+        System.GetCurrTime = function() return t_h end
+        player = { GetWorldPos = function() return pos_h end }
+        local donnees_a = { allure_cadence_ms = 300 }
+        local lignes_avant = #lignes
+        l.allure_vers_chef(cavalier, donnees_a)
+        if donnees_a.allure_code ~= 0 or vus_allure[1].v ~= 0 or math.abs(vus_allure[1].e - 7) > 1e-6 then return "allure : premier relevé" end
+        t_h, pos_h = 101, { x = 0, y = 5, z = 0 }
+        l.allure_vers_chef(cavalier, donnees_a)
+        if math.abs(vus_allure[2].v - 5) > 1e-6 or donnees_a.allure_code ~= 2 then return "allure : la vitesse d'Henry " .. tostring(vus_allure[2].v) end
+        t_h = 102
+        cavalier.GetWorldPos = function() return { x = 0, y = 100, z = 0 } end
+        l.allure_vers_chef(cavalier, donnees_a)
+        if vus_allure[3].v ~= 0 then return "allure : c'est la vitesse du cavalier qui est mesurée" end
+        t_h, pos_h = 102.05, { x = 0, y = 50, z = 0 }
+        l.allure_vers_chef(cavalier, donnees_a)
+        if vus_allure[4].v ~= 0 then return "allure : un relevé trop proche change la vitesse" end
+        local dites = 0
+        for i = lignes_avant + 1, #lignes do
+          if string.find(lignes[i], "Allure de scriptorium_cavalier", 1, true) then dites = dites + 1 end
+        end
+        if dites ~= 3 then return "allure : " .. dites .. " lignes au journal pour trois changements" end
+        System.GetCurrTime, player = horloge_avant, nil
+        l.chefs["scriptorium_cavalier"] = nil
+        l.accrocher_l_allure(nil)
         -- V73 f 2 d : Henry à cheval (un cheval monté près de lui, n'importe lequel, pas les nôtres) ; son cheval amené.
         local monture_h = { horse = { HasRider = function() return true end }, GetName = function() return "cheval_d_un_paysan" end }
         local notre = { horse = { HasRider = function() return true end }, GetName = function() return "scriptorium_cheval_homme_1_1" end }
@@ -1379,7 +1411,18 @@ def verifier_la_vie_du_camp():
                       r'<Expression expressions="\$selle_avant = \$scriptorium_en_selle" />\s*<Parallel successMode="Any" failureMode="Any">\s*'
                       r'<SuppressFailure>\s*<StanceElement smartObject="\$scriptorium_cheval" stance="horse"[^>]*>\s*<Sequence>\s*'
                       r'<WaitAction />\s*<Expression expressions="\$scriptorium_en_selle = \$scriptorium_en_selle \+ 1" />\s*'
-                      r'<Function_followNpc leader="\$scriptorium_chef"[^>]*/>\s*</Sequence>\s*</StanceElement>')
+                      r'<While [^>]*>\s*<Sequence>\s*<SuppressFailure>\s*'
+                      r'<ExecuteLua code="pcall\(function\(\) [A-Za-z_.]+\.jeu\.allure_vers_chef\(entity, data\) end\)" />')
+    # V73 f 2 f (principe d'Alex, relu par le pair) : le chef monté se mène lui-même par un Move vers son chef, à l'allure
+    # mesurée toutes les « allure_cadence », redonné quand l'allure change ; une allure par IfCondition.
+    allures18 = re.findall(r'<IfCondition condition="\$allure_tenue == (\d)" failOnCondition="false">\s*'
+                           r'<Expression expressions="\$allure = \$enum:movementSpeed\.(\w+)" />', corps18)
+    if (sorted(allures18) != [("0", "walk"), ("1", "run"), ("2", "dash"), ("3", "sprint")]
+            or not re.search(r'<Move destinationSpecification="\$scriptorium_chef"[^>]*speed="\$allure" stopWithinDistance="\$allure_arret"', corps18)
+            or '<While doFail="false" propagateChildFail="false" condition="$allure_code == $allure_tenue">' not in corps18
+            or corps18.count('allure_vers_chef(entity, data)') != 2 or '<Wait duration="$allure_cadence"' not in corps18):
+        erreur("vie du camp : la branche 18 doit régler l'allure du chef monté sur la vitesse mesurée de son chef (quatre "
+               "allures, un Move vers son chef, une mesure à chaque cadence)")
     if (not corps18 or not re.search(mener_a_cheval, corps18) or appel15 not in corps18 or manquee not in corps18
             or '<Wait duration="$monte_delai"' not in corps18):
         erreur("vie du camp : la branche 18 doit ouvrir la formation hors de la posture et mener à cheval, la monte bornée "
