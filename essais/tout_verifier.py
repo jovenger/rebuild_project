@@ -856,10 +856,11 @@ def verifier_ames():
     if set(bandes) != bandes_de_la_liaison:
         erreur("âmes : les âmes de bande de la table et de la liaison diffèrent")
     for a in bandes.values():
-        if a.get("factionName") != "scriptorium_socle_bande" or not a.get("brain_id") or not a.get("combat_level"):
-            erreur("âmes : %s, une âme de bande sans sa faction, son cerveau ou son niveau" % a.get("soul_name"))
+        if a.get("factionName") != "scriptorium_socle_bande" or not a.get("combat_level"):
+            erreur("âmes : %s, une âme de bande sans sa faction ou son niveau" % a.get("soul_name"))
+    # Toutes nos âmes ont notre cerveau, celles des bandes aussi (étape 2 : notre ordre d'attaque les fait venir).
     for a in ames:
-        if a.get("brain_id") != NOTRE_CERVEAU and a.get("soul_id", "").lower() not in bandes:
+        if a.get("brain_id") != NOTRE_CERVEAU:
             erreur("âmes : %s n'a pas notre cerveau" % a.get("soul_name"))
     du_mod = {a["soul_id"].lower(): a for a in ames
               if a.get("soul_id", "").lower().startswith("5c7a5c7a") and a.get("soul_id", "").lower() not in bandes}

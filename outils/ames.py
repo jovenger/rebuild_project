@@ -9,7 +9,9 @@ identifiants des âmes du jeu et l'arbre des factions ; n'écrit que la table de
 brigand d'essai) sont gardées telles quelles ; les réserves sont réécrites, toujours à l'identique.
 
 Les bandes (étape 2, le nécessaire, fiche 14) : une âme par sorte, copiée sur une âme réelle du jeu lue dans
-Tables.pak (son cerveau d'ennemi, son personnage, sa classe, sa voix, son niveau de combat) ; seule la faction change :
+Tables.pak (son personnage, sa classe, sa voix, son niveau de combat) ; la faction change, et le cerveau est le nôtre
+(règle scellée de Scriptorium « ennemis_au_contact » : une bande ne reste jamais sur place ; c'est notre ordre d'attaque
+qui la fait venir, comme nos hommes) :
 « scriptorium_socle_bande », écrite elle aussi dans la table des factions du socle. Plusieurs ennemis d'une même bande
 partagent son âme (vu en V18).
 
@@ -153,6 +155,7 @@ def lignes_des_bandes(modeles, personnages):
         if m.get("skald_character_name") not in personnages:
             raise SystemExit("REFUS : personnage introuvable dans le jeu : " + str(m.get("skald_character_name")))
         a = {cle: m[cle] for cle in COPIES if cle in m}
+        a["brain_id"] = NOTRE_CERVEAU
         a["factionName"] = FACTION_BANDE
         a["soul_id"] = identifiant(CODE_BANDE, 1, numero)
         a["soul_name"] = "scriptorium_bande_" + sorte

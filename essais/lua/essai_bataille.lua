@@ -348,6 +348,7 @@ end)
 essai("bataille (étape 2) : au contact, chaque combattant attaque un ennemi vivant ; une nouvelle cible quand la sienne tombe ; l'interrupteur", function()
   preparer(1000, 10, { "homme_d_armes", "pavoisier", "arbaletrier", "archer" })
   FauxJeu.attaques = {}
+  bataille.reglages.bande_attaque = false   -- ici, nos hommes seulement (la bande a son essai)
   local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
   bataille.battre()
   egal(bataille.bande(id).etat, "au_contact", "au contact")
@@ -381,5 +382,46 @@ essai("bataille (étape 2) : au contact, chaque combattant attaque un ennemi viv
   bataille.battre()
   egal(#FauxJeu.attaques, 0, "interrupteur à faux : aucune attaque")
   bataille.reglages.attaque_au_contact = true
+  bataille.reglages.bande_attaque = true
   FauxJeu.attaques = nil
+end)
+
+-- Règle scellée de Scriptorium « ennemis_au_contact » : la bande ne reste jamais sur place ; chaque ennemi attaque un de
+-- nos combattants, ou Henry s'il est près, en tourniquet ; redonné à chaque battement à qui ne se bat pas.
+essai("bataille (étape 2) : la bande attaque d'elle-même nos combattants et Henry s'il est près ; redonné à qui ne se bat pas ; l'interrupteur", function()
+  preparer(1000, 10, { "homme_d_armes", "pavoisier" })
+  FauxJeu.attaques = {}
+  bataille.reglages.attaque_au_contact = false   -- ici, la bande seulement
+  FauxJeu.position_joueur = { x = 0, y = 70, z = 0 }   -- à une dizaine de mètres de la bande (au nord, à 60 m)
+  bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(#FauxJeu.attaques, 3, "trois ordres, un par ennemi")
+  local cibles = {}
+  for _, at in ipairs(FauxJeu.attaques) do cibles[at.cible] = (cibles[at.cible] or 0) + 1 end
+  egal(cibles["henry"], 1, "Henry est près : il est l'une des cibles")
+  local ennemi = FauxJeu.attaques[1].attaquant
+  FauxJeu.occupations[ennemi] = "combat"
+  FauxJeu.heure = 10.5
+  bataille.battre()
+  egal(#FauxJeu.attaques, 5, "au battement, redonné aux deux qui ne se battent pas")
+  FauxJeu.occupations[ennemi] = nil
+  -- Henry loin : seulement nos hommes.
+  preparer(1000, 10, { "homme_d_armes" })
+  FauxJeu.attaques = {}
+  FauxJeu.position_joueur = { x = 0, y = -300, z = 0 }
+  bataille.lever_une_bande({ sorte = "coumans", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  for _, at in ipairs(FauxJeu.attaques) do verifier(at.cible ~= "henry", "Henry loin : jamais visé") end
+  egal(#FauxJeu.attaques, 2, "deux ordres")
+  -- L'interrupteur.
+  preparer(1000, 10, { "homme_d_armes" })
+  FauxJeu.attaques = {}
+  bataille.reglages.bande_attaque = false
+  bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(#FauxJeu.attaques, 0, "interrupteur à faux : la bande ne reçoit rien")
+  bataille.reglages.bande_attaque = true
+  bataille.reglages.attaque_au_contact = true
+  FauxJeu.attaques = nil
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
 end)

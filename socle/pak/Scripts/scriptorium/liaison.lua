@@ -2258,7 +2258,9 @@ end
 -- « cible » : le nom de l'entité à attaquer ; le brigand du jeu par défaut (V51 : l'adversaire, qui ne se défend pas).
 -- « attaquant » : le marcheur par défaut ; un de nos hommes (même cerveau) pour V71 d (voir ce qu'il prend en main).
 function liaison.ordonner_l_attaque(cible, attaquant)
-  local qui, contre = entite_nommee(attaquant or liaison.marcheur), entite_nommee(cible or liaison.brigand_du_jeu)
+  -- Étape 2 : la cible « henry » est le joueur (la bande l'attaque s'il est là).
+  local qui = entite_nommee(attaquant or liaison.marcheur)
+  local contre = (cible == "henry") and player or entite_nommee(cible or liaison.brigand_du_jeu)
   local this_lu, this = pcall(function() return qui.this end)
   local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(contre) end)
   if not qui or not contre or not this_lu or type(this) ~= "table" or not wuid_lu then

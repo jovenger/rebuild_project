@@ -20,6 +20,11 @@ bataille.reglages = {
   -- Étape 2 (le nécessaire, fiche 14) : au contact, chaque combattant reçoit l'ordre d'attaque contre un ennemi vivant ;
   -- redonné à chaque battement à ceux dont la cible est tombée.
   attaque_au_contact = true,
+  -- La bande attaque d'elle-même (règle scellée de Scriptorium « ennemis_au_contact ») : chaque ennemi vivant qui ne se
+  -- bat pas reçoit l'ordre d'attaque contre un de nos combattants vivants, ou contre Henry s'il est à moins de
+  -- « bande_vise_henry_m » de la bande ; en tourniquet ; redonné à chaque battement.
+  bande_attaque = true,
+  bande_vise_henry_m = 80,
 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
@@ -340,9 +345,56 @@ local function lancer_l_attaque(b)
   return donnes
 end
 
+-- L'attaque de la bande (étape 2, règle scellée « ennemis_au_contact ») : une bande ne reste jamais sur place. Rend le
+-- nombre d'ordres donnés.
+local function lancer_l_attaque_de_la_bande(b)
+  if not bataille.reglages.bande_attaque or type(b.personnages) ~= "table" then
+    return 0
+  end
+  local cibles = {}
+  for _, id in ipairs(b.combattants or {}) do
+    local f = hommes().fiche(id)
+    if f and f.personnage and not jeu().personnage_mort(f.personnage) then
+      table.insert(cibles, f.personnage)
+    end
+  end
+  local henry = jeu().position_du_joueur()
+  -- La bande se repère par un ennemi vivant, sinon par son point d'arrivée.
+  local premier = nil
+  for _, e in ipairs(b.personnages) do
+    premier = premier or (jeu().ennemis_vivants({ e }) > 0 and jeu().position_du_personnage(e)) or nil
+  end
+  premier = premier or b.point_d_arrivee
+  if henry and premier and math.sqrt((henry.x - premier.x) ^ 2 + (henry.y - premier.y) ^ 2) <= bataille.reglages.bande_vise_henry_m then
+    table.insert(cibles, "henry")
+  end
+  if #cibles == 0 then
+    return 0
+  end
+  b.cibles_de_la_bande = b.cibles_de_la_bande or {}
+  local vivantes = {}
+  for _, c in ipairs(cibles) do
+    vivantes[c] = true
+  end
+  local donnes, k = 0, 0
+  for _, e in ipairs(b.personnages) do
+    if jeu().ennemis_vivants({ e }) > 0 and jeu().occupation_de(e) ~= "combat" then
+      if not vivantes[b.cibles_de_la_bande[e]] then
+        k = k % #cibles + 1
+        b.cibles_de_la_bande[e] = cibles[k]
+      end
+      jeu().journal("Bataille : « " .. e .. " » attaque « " .. b.cibles_de_la_bande[e] .. " » : "
+                    .. tostring(jeu().ordonner_l_attaque(b.cibles_de_la_bande[e], e)))
+      donnes = donnes + 1
+    end
+  end
+  return donnes
+end
+
 local function arriver(d, b)
   local position = point_face_a(b.direction, 0, bataille.reglages.distance_arrivee)
   local cap = (b.direction + 180) % 360
+  b.point_d_arrivee = position and { x = position.x, y = position.y, z = position.z } or nil
   b.etat = "au_contact"
   b.contact = jeu().heure_du_jeu()
   mettre_en_bataille(d, b)
@@ -357,6 +409,7 @@ local function arriver(d, b)
   if type(personnages) == "table" and #personnages > 0 then
     b.personnages = personnages
     jeu().journal("Bataille : « " .. b.id .. " » au contact, " .. #personnages .. " ennemi(s) dans le jeu")
+    lancer_l_attaque_de_la_bande(b)
     lancer_l_attaque(b)
   else
     b.personnages = nil
@@ -623,6 +676,7 @@ function bataille.battre()
       if b.personnages and not (camp().sur_sa_carte and not camp().sur_sa_carte()) then
         resultat = resoudre_par_le_jeu(d, b)
         if resultat == nil then
+          lancer_l_attaque_de_la_bande(b)
           lancer_l_attaque(b)
         end
       end

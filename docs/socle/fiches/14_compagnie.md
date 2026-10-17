@@ -348,11 +348,19 @@
   12 m. Henry n'est donc pas attaqué (la réponse 1 a n'est pas tenue).
 - Séance fermée par `fin_essai`, écran normal.
 
+### L'initiative de la bande (objection grave du pair, règle scellée de Scriptorium « ennemis_au_contact »)
+- « Peu importe la distance : les ennemis qui apparaissent ne doivent jamais rester sur place. Ils doivent venir attaquer
+  le camp. » Une bande sans initiative est refusée par JoVenGer : réglé dans l'étape 2, pas « à reprendre ».
+- **Fait** (principe transmis par le pair : l'hostilité seule ne fait pas attaquer ; c'est le Lua qui désigne à chaque
+  ennemi sa cible, l'arbre exécute, et l'attaque est redonnée sans fin si elle a échoué) : les âmes de bande prennent
+  **notre cerveau** (`outils/ames.py`) ; à l'arrivée puis à chaque battement, chaque ennemi vivant qui ne se bat pas
+  reçoit l'ordre d'attaque (ordre 8) contre un de nos combattants vivants, ou contre **Henry** s'il est à moins de
+  `bande_vise_henry_m` (80) de la bande, en tourniquet (`bataille.reglages.bande_attaque`). La ligne `player -1`
+  n'est plus nécessaire.
+- Banc : tout passe ; trois erreurs injectées attrapées. Non vérifié en jeu.
+
 ### À reprendre plus tard
-- **L'initiative de la bande** (attaquer nos hommes et Henry d'elle-même) : la ligne `player -1`, retirée, existe telle
-  quelle dans le jeu (`kutnohorsko_enemies_bandits_naBylance_archery`) ; les formes admises du contrôle d'absence sont
-  au plafond (32) ; rien ne prouve qu'elle suffirait (la bande n'attaque pas non plus nos hommes, hostiles des deux
-  côtés). Question posée au pair.
+- (L'initiative de la bande : réglée ci-dessus, à voir en jeu.)
 - La fin par le jeu (tous les brigands tombés) avec la correction ; une bande de Coumans.
 
 ### Reporté (le nécessaire de JoVenGer)
