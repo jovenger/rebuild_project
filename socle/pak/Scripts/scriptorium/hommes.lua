@@ -3738,11 +3738,15 @@ hommes.prochaine_parole = hommes.prochaine_parole or 1
 hommes.sortes_de_paroles = { replique = 1, conversation = 2, dialogue = 3, replique_vers_henry = 4 }
 
 -- Décision remplaçable (fiche 19) : cet homme peut-il dire sa parole maintenant ? Par défaut : ni occupé en combat, ni
--- tenu par la bataille, ni au sommeil.
+-- tenu par la bataille, ni au sommeil. Une parole « urgente » (l'alerte du guetteur ; vu en jeu le 18/10 : sinon elle
+-- attendait la fin du combat) se dit même tenu par la bataille, jamais en plein combat ni au sommeil.
 function hommes.peut_parler(id, parole, activite)
   local f = donnees().liste[id]
   if not f or not f.personnage or jeu().occupation_de(f.personnage) == "combat" then
     return false
+  end
+  if parole and parole.urgente then
+    return not (activite and activite.activite == "sommeil")
   end
   return not (activite and (activite.regle == "bataille" or activite.activite == "sommeil"))
 end
@@ -3775,7 +3779,7 @@ end
 function hommes.dire_une_replique(id, quoi)
   quoi = quoi or {}
   return demander_la_parole(id, { sorte = quoi.regard_henry and "replique_vers_henry" or "replique", alias = quoi.alias,
-                                  metarole = quoi.metarole })
+                                  metarole = quoi.metarole, urgente = quoi.urgente == true or nil })
 end
 
 -- Fiche 20 : une conversation à deux, depuis l'initiateur, avec son partenaire (un autre homme de la Compagnie).
@@ -3802,7 +3806,8 @@ function hommes.parole_de(id)
   if not p then
     return nil
   end
-  return { sorte = p.sorte, alias = p.alias, metarole = p.metarole, partenaire = p.partenaire, numero = p.numero }
+  return { sorte = p.sorte, alias = p.alias, metarole = p.metarole, partenaire = p.partenaire, numero = p.numero,
+           urgente = p.urgente }
 end
 
 -- ---------------------------------------------------------------- le poste partagé avec Henry (fiche 18, 5 c, tranche 4)

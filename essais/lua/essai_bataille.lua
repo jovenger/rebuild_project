@@ -126,6 +126,12 @@ essai("bataille (alertes, règle « sentinelles_du_camp ») : le guetteur qui vo
     verifier(FauxJeu.sons[1].ou ~= nil and FauxJeu.sons[1].ou == camp.objet_de("feu_central"), "au feu du camp")
     egal(hommes.parole_de(guetteur) and hommes.parole_de(guetteur).metarole, "NPC_VIDI_NEPRITELE_A_BUDE_UTOCIT",
          "il dit la réplique du jeu")
+    -- Vu en jeu le 18/10 : tenu par la bataille, il la dit tout de suite (parole urgente), pas après le combat.
+    verifier(hommes.parole_de(guetteur).urgente, "parole urgente")
+    verifier(hommes.peut_parler(guetteur, hommes.parole_de(guetteur), hommes.activite_de(guetteur, FauxJeu.heure)),
+             "permise même tenu par la bataille")
+    verifier(not hommes.peut_parler(guetteur, { metarole = "X" }, { regle = "bataille", activite = "bataille" }),
+             "une parole ordinaire attend la fin de la bataille")
     FauxJeu.heure = 23.2
     bataille.battre()
     egal(#FauxJeu.sons, 1, "une seule fois par bande")

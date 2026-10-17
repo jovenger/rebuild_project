@@ -1535,7 +1535,7 @@ function bataille.guetter_l_alerte(id, guetteurs)
   end
   b.alerte_donnee = true
   local a, f = bataille.alerte, hommes().fiche(qui)
-  local dit = hommes().dire_une_replique(qui, { metarole = a.metarole })
+  local dit = hommes().dire_une_replique(qui, { metarole = a.metarole, urgente = true })
   annoncer("ui_scriptorium_bataille_alerte", { importance = "alerte", complement = f.nom, qui = "ui_scriptorium_bataille_alerte_qui" })
   local ou = camp().est_fonde() and camp().objet_de("feu_central") or f.personnage
   local sonne, raison = false, "pas de son"
