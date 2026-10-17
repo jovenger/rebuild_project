@@ -21,3 +21,10 @@ Comportement :
 - Une demande n'est pas gardée au registre (une parole n'a de sens que sur le moment).
 - Réponses prises d'office : une seule demande à la fois par homme ; la conversation se joue depuis l'initiateur seul (le
   jeu y fait entrer le partenaire).
+
+**Vu en jeu le 17/10** : la réplique (en regardant Henry) et la conversation : la demande donne l'ordre 23, l'arbre
+joue le nœud de parole du jeu, le compteur avance, le socle dit « a dit » et l'homme reprend sa journée. **Aucune
+ligne n'a été dite** : le metarole d'essai « GOSSIP » est muet pour nos âmes, et les alias de Scriptorium (« scr_… »)
+sont dans ses tables, absentes du socle d'essai : la ligne entendue et sous-titrée se vérifiera après la bascule.
+Corrigé en jeu : l'ordre de parole tombait dans « sans but » (pas de position) ; sa branche passe avant ce test. Le
+dialogue vers Henry (sorte 3) n'a pas été essayé.
