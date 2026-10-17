@@ -587,6 +587,37 @@ function hommes.solde_de(id)
   return f and solde_hebdomadaire(f) or nil
 end
 
+-- ---------------------------------------------------------------- dialogues
+
+-- Décision remplaçable (fiche 21, fiche 19) : la réponse d'un interlocuteur (un de nos hommes, ou « directeur ») au choix
+-- d'Henry « choix » de l'arbre « arbre » : { codes = { c1, c2, c3 }, colonel = vrai|faux }. Les règles et les mots sont
+-- à Scriptorium ; par défaut le socle ne dit rien (la réplique de repli), et seul le chef de la Compagnie (le capitaine
+-- du socle ; le colonel de Scriptorium par sa remplaçante) est dit colonel.
+function hommes.reponse_du_dialogue(arbre, choix, id)
+  local d = donnees()
+  return { codes = {}, colonel = (id ~= nil and id == d.capitaine) }
+end
+Scriptorium.remplacable(hommes, "reponse_du_dialogue", function(rendu)
+  if type(rendu) ~= "table" or (rendu.codes ~= nil and type(rendu.codes) ~= "table") then
+    return false
+  end
+  for i, code in ipairs(rendu.codes or {}) do
+    if i > 3 or type(code) ~= "number" or code ~= math.floor(code) or code < 0 then
+      return false
+    end
+  end
+  return true
+end)
+
+-- Le personnage qui parle (le nom de son entité) devient l'homme, ou « directeur » ; la décision rend la réponse.
+function hommes.repondre_au_dialogue(arbre, choix, personnage)
+  local id = personnage and hommes.homme_du_personnage(personnage) or nil
+  if not id and personnage and Scriptorium.directeur and Scriptorium.directeur.personnage() == personnage then
+    id = "directeur"
+  end
+  return Scriptorium.avis(hommes, "reponse_du_dialogue", arbre, choix, id) or { codes = {} }
+end
+
 -- ---------------------------------------------------------------- rangs
 
 local function verifier_rangs(d, rapport)
@@ -4292,6 +4323,12 @@ Scriptorium.declarer_morceau("hommes", function()
           return hommes.quand_on_lui_parle(id)
         end
       end
+    end)
+  end
+  -- Fiche 21 : les dialogues ; la liaison, appelée par l'ExitScript d'un choix d'Henry, demande la réponse aux hommes.
+  if jeu() and jeu().accrocher_le_dialogue then
+    jeu().accrocher_le_dialogue(function(arbre, choix, personnage)
+      return hommes.repondre_au_dialogue(arbre, choix, personnage)
     end)
   end
   -- L'allure du chef monté (V73 f 2 f) : la liaison, appelée par l'arbre toutes les 300 ms, demande l'allure aux hommes.

@@ -333,6 +333,8 @@ function faux.accrocher_la_parole(fonction) faux.parole = fonction end
 function faux.accrocher_la_station(fonction) faux.station_prise = fonction end
 -- Fiche 01 (le second canal) : l'OnSave accroché ; les cases rangées rendues une fois ; une empreinte simple.
 function faux.accrocher_la_sauvegarde(fonction) faux.a_la_sauvegarde = fonction return true end
+-- Fiche 21 : l'accroche des dialogues (la liaison la garde ; l'essai l'appelle comme l'ExitScript).
+function faux.accrocher_le_dialogue(fonction) faux.reponse_du_dialogue = fonction end
 -- Les alertes : les sons joués, dans l'ordre.
 function faux.jouer_un_son(nom, identifiant)
   faux.sons = faux.sons or {}

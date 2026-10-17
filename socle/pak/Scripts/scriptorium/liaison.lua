@@ -3561,6 +3561,53 @@ function liaison.henry_a_fini(station, depuis, delai, loin)
   return ok and (peut == true or peut == 1)
 end
 
+-- Fiche 21 (les dialogues) : appelée par l'ExitScript d'un choix d'Henry dans nos arbres de dialogue, avec le nom de
+-- l'arbre, le nom du choix et l'interlocuteur (dc['ROLE'] : une entité, ou son WUID). La fonction accrochée (les hommes)
+-- rend { codes = { c1, c2, c3 }, colonel = vrai|faux } ; les codes vont dans les variables globales du jeu
+-- (Variables.SetGlobal, comme Scripts/Systems/KCD1/Negotiation.lua du jeu), lues par les EntryCondition gvar(…) des
+-- répliques ; 0 : rien à dire à cette place. Une erreur : au journal, et tous les codes à 0 (la réplique de repli).
+liaison.variables_du_dialogue = { "scriptorium_dialogue_code_1", "scriptorium_dialogue_code_2",
+                                  "scriptorium_dialogue_code_3" }
+liaison.variable_du_colonel = "scriptorium_dialogue_colonel"
+
+function liaison.accrocher_le_dialogue(fonction)
+  liaison.reponse_du_dialogue = fonction
+end
+
+local function nom_de_l_interlocuteur(qui)
+  local entite = qui
+  if type(qui) ~= "table" then
+    local ok, trouvee = pcall(function() return XGenAIModule.GetEntityByWUID(qui) end)
+    entite = ok and trouvee or nil
+  end
+  local ok, nom = pcall(function() return entite:GetName() end)
+  return ok and nom or nil
+end
+
+function liaison.dialogue_choix(arbre, choix, qui)
+  local reponse = {}
+  local ok, erreur = pcall(function()
+    local nom = nom_de_l_interlocuteur(qui)
+    if type(liaison.reponse_du_dialogue) == "function" then
+      reponse = liaison.reponse_du_dialogue(tostring(arbre), tostring(choix), nom) or {}
+    end
+  end)
+  if not ok then
+    liaison.journal("Dialogue : « " .. tostring(arbre) .. "/" .. tostring(choix) .. " » en erreur : " .. tostring(erreur))
+    reponse = {}
+  end
+  local codes = type(reponse.codes) == "table" and reponse.codes or {}
+  local poses = {}
+  for i, variable in ipairs(liaison.variables_du_dialogue) do
+    local code = tonumber(codes[i]) or 0
+    pcall(function() Variables.SetGlobal(variable, code) end)
+    table.insert(poses, tostring(code))
+  end
+  pcall(function() Variables.SetGlobal(liaison.variable_du_colonel, reponse.colonel and 1 or 0) end)
+  liaison.journal("Dialogue : « " .. tostring(arbre) .. "/" .. tostring(choix) .. " » : codes " .. table.concat(poses, ", ")
+                  .. (reponse.colonel and " (colonel)" or ""))
+end
+
 -- Pour le poste d'essai (fiche 18, 5 c, tranche 4 ; la nuit, la station ne se vise pas à l'écran) : ce que fait le jeu
 -- quand Henry appuie sur E devant une station : ses actions demandées (GetActions, donc notre enveloppe si elle est
 -- partagée), puis l'action « use » exécutée pour Henry. Rend (vrai ou faux, une ligne).

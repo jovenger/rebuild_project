@@ -773,6 +773,33 @@ essai("hommes (pas de jumeaux, demande du pair, 18/10) : une âme dont le visage
   FauxJeu.visages = nil
 end)
 
+essai("dialogues (fiche 21) : l'accroche donne la réponse d'un homme ou du Directeur ; par défaut rien ; le chef est le colonel ; la remplaçante de Scriptorium ; une réponse absurde refusée", function()
+  preparer(10000, 0, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  hommes.battre()
+  for _, m in ipairs(Scriptorium.morceaux) do
+    if m.nom == "hommes" and m.demarrage then m.demarrage() end
+  end
+  verifier(type(FauxJeu.reponse_du_dialogue) == "function", "accrochée à la liaison")
+  local perso = hommes.fiche(a).personnage
+  local r = FauxJeu.reponse_du_dialogue("homme", "vie_au_camp", perso)
+  egal(#r.codes, 0, "par défaut, rien à dire")
+  verifier(not r.colonel, "pas le chef")
+  avec_remplacement(hommes, "reponse_du_dialogue", function(arbre, choix, id)
+    if id == a and choix == "vie_au_camp" then return { codes = { 3, 0, 1 }, colonel = true } end
+  end, function()
+    local s = FauxJeu.reponse_du_dialogue("homme", "vie_au_camp", perso)
+    egal(s.codes[1], 3, "le code de Scriptorium")
+    verifier(s.colonel, "dit colonel par Scriptorium")
+  end)
+  avec_remplacement(hommes, "reponse_du_dialogue", function() return { codes = { "trois" } } end, function()
+    egal(#FauxJeu.reponse_du_dialogue("homme", "vie_au_camp", perso).codes, 0, "un code absurde : la décision du socle")
+  end)
+  avec_remplacement(hommes, "reponse_du_dialogue", function(arbre, choix, id) return { codes = { id == "directeur" and 7 or 1 } } end, function()
+    egal(FauxJeu.reponse_du_dialogue("directeur", "camp", "inconnu").codes[1], 1, "un inconnu : aucun homme")
+  end)
+end)
+
 essai("hommes : palier plein, l'âme du palier le plus proche ; jamais de refus faute d'âme", function()
   preparer(10000, 0, 10)
   camp.agrandir()
