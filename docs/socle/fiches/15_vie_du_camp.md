@@ -1947,7 +1947,7 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - Les parades du pair au faux départ (un cavalier du jeu qui frôle Henry) : deux lectures « monté » de suite, ou la
   hauteur d'Henry au-dessus du sol (à mesurer d'abord, monté et à pied) ; pas encore faites.
 
-## V73 f 2 e — le Directeur monté, chef de colonne (17/10, relu par le pair ; réponses recommandées prises d'office)
+## V73 f 2 e — le Directeur monté, chef de colonne (17/10, relu par le pair, fait et vu en jeu ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - Relecture du pair (V73 f 2 b) : chez Scriptorium, **le Directeur est le chef de la colonne** ; quand il est là, il
@@ -1998,6 +1998,17 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    des chevaux) ; (b) un cheval à lui, gardé au registre. **Prise : (a).**
 2. **Il reprend la tête d'elle-même** : (a) oui, réglable (Recommandé : la règle de Scriptorium transmise par le pair) ;
    (b) seulement si l'escorte dit chef « directeur ». **Prise : (a).**
+
+### Mesuré en V73 f 2 e (17/10) : le Directeur monté, acquis ; son allure, à faire
+- a0e7449, `playline3` (473), sans `-devmode`, secours coupé puis remis ; trois hommes et le Directeur.
+- **Il reprend la tête** : à pied, les trois hommes se rangent dans sa formation (ordre 16, chef le Directeur).
+- **Lecture forcée à cheval** : quatre chevaux ; il mène monté (18), les hommes rangés montés (19) ; à l'image, en tête.
+- **Son allure** : à l'arrêt 4,11 m d'Henry ; juste après 10 s de marche d'Henry 15,93 m, puis 2,43 m 8 s plus tard ;
+  juste après 5 s de course 11,61 m, puis 2,28 m 8 s plus tard ; la formation tient derrière lui (1,6–5 m). **Le chef
+  monté démarre tard** (déjà vu en V73 f 2 b : le premier homme monté à 17,98 m après 10 s de marche) : nettement au-delà
+  des 2 à 4 m de la colonne à pied. Selon la relecture du pair, **l'allure du chef réglée sur la vitesse d'Henry** est le
+  pas suivant (V73 f 2 f).
+- Descente après 4 lectures, il mène à pied de nouveau ; son cheval retiré au battement avec ceux des hommes.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
