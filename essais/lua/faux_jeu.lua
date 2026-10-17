@@ -52,6 +52,7 @@ local faux = {
 
 function faux.remettre_a_zero()
   faux.temps = 0
+  faux.carte = nil
   faux.positions = {}
   faux.vue_d_henry = nil
   faux.secours = {}

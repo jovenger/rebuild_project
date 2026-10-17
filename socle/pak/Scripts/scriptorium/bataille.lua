@@ -309,7 +309,14 @@ local function arriver(d, b)
   b.etat = "au_contact"
   b.contact = jeu().heure_du_jeu()
   mettre_en_bataille(d, b)
-  local personnages = jeu().faire_venir_ennemis(b.sorte, b.effectif, position, cap)
+  -- Fiche 15, V73 f 3 b : sur une autre carte que celle du camp, aucune bande ne naît ici : la règle tranchera.
+  local ailleurs = camp().sur_sa_carte and not camp().sur_sa_carte()
+  local personnages = nil
+  if ailleurs then
+    jeu().journal("Bataille : « " .. b.id .. " » au contact, Henry sur une autre carte que le camp")
+  else
+    personnages = jeu().faire_venir_ennemis(b.sorte, b.effectif, position, cap)
+  end
   if type(personnages) == "table" and #personnages > 0 then
     b.personnages = personnages
     jeu().journal("Bataille : « " .. b.id .. " » au contact, " .. #personnages .. " ennemi(s) dans le jeu")
@@ -574,7 +581,8 @@ function bataille.battre()
       end
     elseif b.etat == "au_contact" then
       local resultat = nil
-      if b.personnages then
+      -- V73 f 3 b : une bande née sur la carte du camp ne se lit pas d'une autre carte : seule la règle, à son heure.
+      if b.personnages and not (camp().sur_sa_carte and not camp().sur_sa_carte()) then
         resultat = resoudre_par_le_jeu(d, b)
       end
       if resultat == nil and heure >= b.contact + bataille.reglages.duree_max_contact then

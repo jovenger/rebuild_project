@@ -65,7 +65,7 @@ end
 
 -- Le Directeur vient sur son âme (fiche 13, réserve « directeur »). Né avant la fiche 13 sur une âme empruntée au jeu
 -- (cerveau du jeu), il renaît sur la sienne.
-local function faire_venir(d)
+local function faire_venir(d, pres_d_henry)
   local ame = jeu().ame_de("directeur", 1, 1)
   if d.personnage and jeu().personnage_existe(d.personnage) then
     if d.ame == ame then
@@ -75,7 +75,8 @@ local function faire_venir(d)
     jeu().renvoyer_homme(d.personnage)
     d.personnage = nil
   end
-  local position = camp().position_de("lit_directeur")
+  -- V73 f 3 b : sur une autre carte, près d'Henry (derrière lui, hors de sa vue).
+  local position = pres_d_henry and hommes() and hommes().point_pres_d_henry() or camp().position_de("lit_directeur")
   local personnage = jeu().faire_venir_directeur(position, ame)
   if personnage == nil then
     jeu().journal("Directeur : le jeu n'a pas fait venir le Directeur ; il reste sur le registre")
@@ -120,7 +121,18 @@ function directeur.redresser()
   if not d.installe then
     return false
   end
-  local revenu = faire_venir(d)
+  -- V73 f 3 b : sur une autre carte que celle du camp, le Directeur n'est refait (près d'Henry) que s'il le suit ; sinon
+  -- il reste au camp, au registre.
+  local sur_place = camp().sur_sa_carte == nil or camp().sur_sa_carte()
+  if not sur_place and not d.suivre then
+    if d.personnage and not jeu().personnage_existe(d.personnage) then
+      d.personnage = nil
+      enregistrer()
+    end
+    jeu().journal("Directeur : laissé au camp (autre carte)")
+    return false
+  end
+  local revenu = faire_venir(d, not sur_place)
   if revenu then
     enregistrer()
   end
@@ -228,8 +240,16 @@ function directeur.battre()
     local objet = sorte and camp().sortes_places[sorte] and camp().objet_du_jeu_de(a.lieu) or nil
     local position = objet and a.position or camp().abord_de(a.lieu) or a.position
     jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, nil, nil, a.chef, a.suivi)
+    if Scriptorium.hommes then
+      Scriptorium.hommes.ordre_donne_en_saut("directeur")
+    end
     d.derniere_activite = resume
     rapport.ordres = 1
+  elseif a and a.activite == "suivre" and Scriptorium.hommes and Scriptorium.hommes.montures.directeur
+      and ((a.suivi and a.suivi.mode == "cheval") or Scriptorium.hommes.montures.directeur.saut)
+      and Scriptorium.hommes.saut_du_cavalier("directeur", d.personnage, a.chef, "Directeur") then
+    -- V73 f 3 b : le grand saut : il descend (ou, revenu, remonte) ; son ordre redonné.
+    d.derniere_activite = nil
   elseif a and a.activite == "suivre" and not (a.suivi and a.suivi.mode == "cheval") and Scriptorium.hommes
       and Scriptorium.hommes.rattraper(d.personnage, a.chef, "Directeur") then
     -- Le rattrapage (V73 f 1) : posé derrière Henry, son ordre redonné au battement suivant.

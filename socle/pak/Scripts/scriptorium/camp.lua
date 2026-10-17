@@ -286,6 +286,8 @@ function camp.fonder(position, cap)
   end
   d.fonde = true
   d.ancre = { x = position.x, y = position.y, z = position.z, cap = normaliser_cap(cap or 0) }
+  -- Fiche 15, V73 f 3 b : la carte du camp (lue par la liaison ; nil si illisible).
+  d.carte = (jeu().carte_courante and (jeu().carte_courante())) or nil
   d.niveau = 1
   d.proprietaire = camp.proprietaire
   d.objets = {}
@@ -314,9 +316,49 @@ function camp.agrandir()
 end
 
 -- Après un chargement : repose ce qui manque, sans toucher au reste. Rend (reposés, manquants).
+-- Fiche 15, V73 f 3 b : le camp appartient à sa carte. Vrai si la carte lue est la sienne, ou si l'une des deux est
+-- inconnue (un camp fondé avant V73 f 3 b, une carte illisible : on ne retire jamais rien sur un doute).
+function camp.sur_sa_carte()
+  local d = donnees()
+  if not d.fonde or not d.carte then
+    return true
+  end
+  local ici = jeu().carte_courante and (jeu().carte_courante()) or nil
+  return ici == nil or ici == d.carte
+end
+
+function camp.carte()
+  return donnees().carte
+end
+
+-- Un camp fondé avant V73 f 3 b n'a pas de carte notée : il prend la carte lue dès que l'un de ses objets est déjà là
+-- (une preuve, jamais un doute). Rend vrai si la carte vient d'être notée.
+local function prendre_la_carte_sur_preuve(d)
+  if d.carte then
+    return false
+  end
+  local ici = jeu().carte_courante and (jeu().carte_courante()) or nil
+  if not ici then
+    return false
+  end
+  for _, objet in pairs(d.objets or {}) do
+    if objet.identifiant and jeu().objet_existe(objet.identifiant) then
+      d.carte = ici
+      jeu().journal("Camp : fondé avant la carte notée ; ses objets sont ici : sa carte est « " .. ici .. " »")
+      return true
+    end
+  end
+  return false
+end
+
 function camp.redresser()
   local d = donnees()
   if not d.fonde then
+    return 0, 0
+  end
+  prendre_la_carte_sur_preuve(d)
+  if not camp.sur_sa_carte() then
+    jeu().journal("Camp : sur une autre carte (le camp est sur « " .. tostring(d.carte) .. " ») : rien reposé")
     return 0, 0
   end
   local reposes, manquants = 0, 0
@@ -345,7 +387,7 @@ function camp.relancer()
   if not d.fonde then
     return 0, 0
   end
-  if camp.reglages.reposer_tout_a_l_entree ~= 1 then
+  if camp.reglages.reposer_tout_a_l_entree ~= 1 or not camp.sur_sa_carte() then
     return camp.redresser()
   end
   for _, objet in pairs(d.objets) do

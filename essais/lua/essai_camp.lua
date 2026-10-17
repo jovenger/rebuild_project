@@ -368,3 +368,21 @@ essai("camp (fiche 15) : on aborde un meuble à l'écart, jamais dessus", functi
   egal(camp.sorte_de("lit_1a"), "lit", "sorte d'une place")
   egal(camp.abord_de("inconnu"), nil, "emplacement inconnu")
 end)
+
+-- Fiche 15, V73 f 3 b : un camp fondé avant la carte notée la prend sur preuve (l'un de ses objets est là), jamais sur un
+-- doute.
+essai("camp (fiche 15, V73 f 3 b) : un camp sans carte notée prend la carte lue si l'un de ses objets est là ; sinon rien", function()
+  depart()
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  egal(camp.carte(), nil, "fondé sans carte lisible : rien de noté")
+  FauxJeu.carte = "kutnohorsko"
+  camp.redresser()
+  egal(camp.carte(), "kutnohorsko", "ses objets sont là : la carte prise")
+  depart()
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  FauxJeu.objets_existants = {}
+  FauxJeu.carte = "trosecko"
+  local reposes = camp.redresser()
+  verifier(reposes > 0, "aucun objet ici : le comportement d'avant (reposé)")
+  egal(camp.carte(), nil, "aucun objet ici avant : rien de noté")
+end)

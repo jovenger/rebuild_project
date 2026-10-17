@@ -2314,10 +2314,10 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   verifier(o and o.suivi and o.suivi.role == "mener" and o.suivi.cheval == hommes.montures[ids[1]].cheval, "l'ordre du premier : mener à cheval")
   -- Un homme à cheval loin de son chef n'est jamais posé seul : son cheval le ramène.
   local ici3 = FauxJeu.positions[perso[3]]
-  FauxJeu.positions[perso[3]] = { x = ici3.x, y = ici3.y + 200, z = 0 }
+  FauxJeu.positions[perso[3]] = { x = ici3.x, y = ici3.y + 120, z = 0 }
   FauxJeu.secours = {}
   hommes.battre()
-  egal(#FauxJeu.secours, 0, "un homme à cheval à 200 m de son chef : pas de pose")
+  egal(#FauxJeu.secours, 0, "un homme à cheval à 120 m de son chef : pas de pose")
   FauxJeu.positions[perso[3]] = ici3
   -- La monte manquée du deuxième : son cheval retiré, un autre né sous un autre nom, l'ordre redonné avec lui.
   local premier_cheval = hommes.montures[ids[2]].cheval
@@ -2619,10 +2619,10 @@ essai("Directeur monté (fiche 15, V73 f 2 e) : il reprend la tête de l'escorte
   egal(#FauxJeu.ordres, n_ordres, "rien de changé : pas d'ordre de plus")
   egal(#FauxJeu.secours, 0, "rien de changé : pas de pose")
   -- À cheval, jamais reposé seul par le rattrapage.
-  FauxJeu.positions[dir] = { x = 100, y = 300, z = 0 }
+  FauxJeu.positions[dir] = { x = 100, y = 120, z = 0 }
   FauxJeu.secours = {}
   Scriptorium.directeur.battre()
-  egal(#FauxJeu.secours, 0, "le Directeur à cheval loin d'Henry : pas de pose")
+  egal(#FauxJeu.secours, 0, "le Directeur à cheval à 120 m d'Henry : pas de pose")
   FauxJeu.positions[dir] = { x = 100, y = 0, z = 0 }
   -- Henry descend : tout le monde à pied, le Directeur mène de nouveau à pied.
   FauxJeu.henry_cheval = false
@@ -2648,6 +2648,166 @@ essai("Directeur monté (fiche 15, V73 f 2 e) : il reprend la tête de l'escorte
   for _ = 1, 2 do hommes.battre() end
   verifier(FauxJeu.chevaux[m2.cheval] == nil, "lâché : son cheval retiré")
   FauxJeu.henry_cheval, FauxJeu.manquees = nil, nil
+end)
+
+-- Fiche 15, V73 f 3 b : le camp appartient à sa carte ; ailleurs, seule l'escorte d'Henry est refaite, derrière lui.
+essai("autre carte (fiche 15, V73 f 3 b) : le camp, l'enceinte et les hommes du camp restent ; l'escorte et le Directeur qui suit sont refaits derrière Henry ; de retour, tout revient", function()
+  depart()
+  FauxJeu.heure, FauxJeu.carte = 10, "kutnohorsko"
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  egal(camp.carte(), "kutnohorsko", "la carte du camp notée à la fondation")
+  coffre.ajouter_reserve("bois", 1000, "achat")
+  verifier(Scriptorium.enceinte.batir(), "l'enceinte bâtie")
+  verifier(Scriptorium.directeur.installer(), "Directeur installé")
+  local ids = {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  end
+  hommes.battre()
+  escorter(ids[1])
+  -- Le passage : Henry sur l'autre carte, plus rien du camp n'existe ici.
+  FauxJeu.carte = "trosecko"
+  FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 500, y = 500, z = 0 }, 0
+  FauxJeu.personnages_existants, FauxJeu.objets_existants = {}, {}
+  verifier(not camp.sur_sa_carte(), "une autre carte")
+  local poses = #FauxJeu.objets_poses
+  egal(camp.redresser(), 0, "le camp n'est pas reposé")
+  egal(Scriptorium.enceinte.redresser(), 0, "l'enceinte n'est pas reposée")
+  egal(#FauxJeu.objets_poses, poses, "aucun objet posé")
+  verifier(journal_contient("sur une autre carte"), "une ligne au journal")
+  local nes = #FauxJeu.personnages
+  local revenus, manquants = hommes.redresser()
+  egal(revenus, 1, "seul l'homme de l'escorte est refait")
+  egal(manquants, 0, "aucun manquant")
+  egal(#FauxJeu.personnages, nes + 1, "un seul personnage né")
+  local ne = FauxJeu.personnages[#FauxJeu.personnages]
+  egal(ne.identifiant, hommes.fiche(ids[1]).personnage, "c'est l'homme de l'escorte")
+  pres(ne.position and ne.position.x, 500, "derrière Henry (x)")
+  pres(ne.position and ne.position.y, 494, "à 6 m derrière Henry (y), Henry face au nord")
+  for i = 2, 3 do
+    verifier(hommes.fiche(ids[i]).personnage == nil, "l'homme " .. i .. " reste au camp, sans personnage")
+  end
+  verifier(journal_contient("2 laissé(s) au camp (autre carte)"), "les laissés au journal")
+  -- Les battements d'ailleurs ne font naître personne ; une embauche rejoint le registre.
+  for _ = 1, 3 do
+    hommes.battre()
+    Scriptorium.directeur.battre()
+  end
+  egal(#FauxJeu.personnages, nes + 1, "trois battements : personne de plus")
+  for i = 2, 3 do
+    verifier(hommes.fiche(ids[i]).personnage == nil, "l'homme " .. i .. " toujours au camp")
+  end
+  ids[4] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  verifier(ids[4] and hommes.fiche(ids[4]).personnage == nil, "embauché d'ici : au registre, sans personnage")
+  verifier(journal_contient("embauché loin du camp (autre carte)"), "l'embauche au journal")
+  egal(#FauxJeu.personnages, nes + 1, "l'embauche ne fait naître personne ici")
+  -- Les relances d'entrée en partie ne retirent ni ne reposent rien.
+  local retires = #FauxJeu.objets_retires
+  local tout = camp.reglages.reposer_tout_a_l_entree
+  camp.reglages.reposer_tout_a_l_entree = 1
+  egal(camp.relancer(), 0, "la relance du camp, même « tout reposer » : rien")
+  camp.reglages.reposer_tout_a_l_entree = tout
+  egal(Scriptorium.enceinte.relancer(), 0, "la relance de l'enceinte : rien")
+  egal(#FauxJeu.objets_retires, retires, "rien retiré")
+  egal(#FauxJeu.objets_poses, poses, "rien posé")
+  -- Le Directeur ne suit pas : laissé au registre ; s'il suit, refait derrière Henry.
+  egal(Scriptorium.directeur.redresser(), false, "le Directeur qui ne suit pas n'est pas refait")
+  verifier(Scriptorium.directeur.personnage() == nil, "sans personnage")
+  verifier(Scriptorium.directeur.suivre(true), "le Directeur suit Henry")
+  verifier(Scriptorium.directeur.redresser(), "le Directeur qui suit est refait")
+  local dir = FauxJeu.directeurs[#FauxJeu.directeurs]
+  pres(dir.position and dir.position.y, 494, "derrière Henry")
+  -- Le droit derrière Henry est sous ses yeux : une place de biais.
+  FauxJeu.vue_d_henry = function(p) return math.abs(p.x - 500) < 0.5 end
+  local p = hommes.point_pres_d_henry()
+  verifier(p and p.x < 499, "sous ses yeux : une place de biais")
+  FauxJeu.vue_d_henry = nil
+  -- Le retour sur la carte du camp : tout revient.
+  FauxJeu.carte = "kutnohorsko"
+  verifier(camp.sur_sa_carte(), "de retour sur la carte du camp")
+  verifier(camp.redresser() > 0, "le camp reposé")
+  verifier(Scriptorium.enceinte.redresser() > 0, "l'enceinte reposée")
+  revenus = hommes.redresser()
+  egal(revenus, 3, "les deux hommes du camp et l'embauché paraissent")
+  local au_feu = FauxJeu.personnages[#FauxJeu.personnages]
+  verifier(au_feu.position and math.abs(au_feu.position.y - 494) > 1, "au camp, pas derrière Henry")
+  -- Une carte illisible : rien n'est retiré.
+  FauxJeu.carte = nil
+  verifier(camp.sur_sa_carte(), "carte illisible : le comportement d'avant")
+  Scriptorium.directeur.suivre(false)
+end)
+
+essai("grand saut (fiche 15, V73 f 3 b) : à plus de 150 m de son chef, le cavalier descend ; son cheval retiré au battement d'après l'ordre à pied ; rattrapé ; revenu, un nouveau cheval", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local p = hommes.fiche(id).personnage
+  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 100, y = 10, z = 0 }, 0
+  hommes.battre()
+  FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.manquees = {}, {}, {}
+  hommes.tenir(id, "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  local cheval1 = hommes.montures[id] and hommes.montures[id].cheval
+  verifier(cheval1 ~= nil, "son cheval")
+  hommes.battre()
+  local o = dernier_ordre_de(p)
+  egal(o and o.suivi and o.suivi.mode, "cheval", "il suit à cheval")
+  -- À 120 m : rien (le rattrapage ne pose jamais un cavalier).
+  FauxJeu.position_joueur = { x = 100, y = 120, z = 0 }
+  FauxJeu.secours = {}
+  hommes.battre()
+  verifier(not hommes.montures[id].saut, "à 120 m : pas de saut")
+  -- Henry à 400 m : le saut ; le cheval reste tant qu'il n'a pas eu l'ordre à pied.
+  FauxJeu.position_joueur = { x = 100, y = 400, z = 0 }
+  hommes.battre()
+  verifier(hommes.montures[id].saut, "à 400 m : le saut")
+  verifier(journal_contient("il descend, son cheval sera retiré (grand saut)"), "une ligne au journal")
+  verifier(FauxJeu.chevaux[cheval1] ~= nil, "le cheval est encore là")
+  hommes.battre()
+  o = dernier_ordre_de(p)
+  verifier(o and not (o.suivi and o.suivi.mode == "cheval"), "l'ordre redonné à pied")
+  verifier(FauxJeu.chevaux[cheval1] ~= nil, "le cheval reste le battement de l'ordre")
+  egal(#FauxJeu.secours, 0, "pas encore de pose")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval1] == nil, "le cheval retiré au battement suivant")
+  egal(FauxJeu.chevaux_retires[#FauxJeu.chevaux_retires], cheval1, "c'est son cheval")
+  egal(#FauxJeu.secours, 1, "à pied et loin : rattrapé")
+  verifier(hommes.montures[id].cheval == nil, "pas de nouveau cheval pendant le saut")
+  -- Revenu près de son chef : le saut fini, un nouveau cheval, l'ordre à cheval.
+  FauxJeu.positions[p] = { x = 100, y = 394, z = 0 }
+  for _ = 1, 3 do hommes.battre() end
+  verifier(not hommes.montures[id].saut, "le saut fini")
+  local cheval2 = hommes.montures[id].cheval
+  verifier(cheval2 ~= nil and cheval2 ~= cheval1, "un nouveau cheval")
+  o = dernier_ordre_de(p)
+  egal(o and o.suivi and o.suivi.mode, "cheval", "de nouveau à cheval")
+  -- Le Directeur, de même.
+  verifier(Scriptorium.directeur.installer(), "Directeur installé")
+  local dir = Scriptorium.directeur.personnage()
+  FauxJeu.positions[dir] = { x = 100, y = 390, z = 0 }
+  verifier(Scriptorium.directeur.suivre(true, nil, true), "le Directeur suit à cheval")
+  local cd = hommes.montures.directeur and hommes.montures.directeur.cheval
+  verifier(cd ~= nil, "son cheval")
+  Scriptorium.directeur.battre()
+  FauxJeu.position_joueur = { x = 100, y = 800, z = 0 }
+  FauxJeu.secours = {}
+  Scriptorium.directeur.battre()
+  verifier(hommes.montures.directeur.saut, "le Directeur à 410 m : le saut")
+  Scriptorium.directeur.battre()
+  o = dernier_ordre_de(dir)
+  verifier(o and not (o.suivi and o.suivi.mode == "cheval"), "son ordre redonné à pied")
+  verifier(FauxJeu.chevaux[cd] ~= nil, "son cheval encore là")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cd] == nil, "son cheval retiré")
+  Scriptorium.directeur.battre()
+  verifier(#FauxJeu.secours >= 1, "à pied et loin : rattrapé")
+  FauxJeu.positions[dir] = { x = 100, y = 794, z = 0 }
+  for _ = 1, 3 do Scriptorium.directeur.battre() end
+  verifier(not hommes.montures.directeur.saut, "son saut fini")
+  verifier(hommes.montures.directeur.cheval ~= nil and hommes.montures.directeur.cheval ~= cd, "un nouveau cheval")
+  Scriptorium.directeur.suivre(false)
+  FauxJeu.manquees = nil
 end)
 
 -- Fiche 15, V73 f 2 f : l'allure du chef monté (principe d'Alex, relu par le pair : la marge contre l'hésitation).

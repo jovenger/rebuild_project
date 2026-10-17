@@ -28,7 +28,7 @@ reglages.catalogue = {
     cheval_sol_pas_m = true, monte_approche_m_par_s = true, henry_cheval_pres_m = true, allure_arret_m_s = true,
     allure_pas_m_s = true, allure_course_m_s = true, allure_galop_m_s = true, allure_marge = true, allure_place_m = true,
     allure_plus_m = true, allure_moins_m = true, allure_freinage_m = true, allure_saut_m_s = true, allure_perdu_m = true,
-    allure_rang_m = true } },
+    allure_rang_m = true, escorte_derriere_m = true, cheval_saut_m = true } },
   { section = "cerveau", morceau = "hommes", table = "cerveau" },
   { section = "priorites", morceau = "hommes", table = "priorites" },
   { section = "rondes", morceau = "hommes", table = "rondes", taux = { rayon_m = true } },

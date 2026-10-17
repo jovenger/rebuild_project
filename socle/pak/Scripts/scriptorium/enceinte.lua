@@ -243,6 +243,10 @@ function enceinte.redresser()
   if not d.batie then
     return 0, 0
   end
+  -- Fiche 15, V73 f 3 b : l'enceinte reste sur la carte du camp.
+  if camp().sur_sa_carte and not camp().sur_sa_carte() then
+    return 0, 0
+  end
   local reposes, manquants = 0, 0
   for _, e in ipairs(enceinte.plan) do
     if e.niveau <= d.niveau then
@@ -266,6 +270,10 @@ function enceinte.relancer()
   local d = donnees()
   enceinte.refaire_le_plan()
   if not d.batie then
+    return 0, 0
+  end
+  -- Fiche 15, V73 f 3 b : sur une autre carte que celle du camp, rien n'est retiré ni reposé.
+  if camp().sur_sa_carte and not camp().sur_sa_carte() then
     return 0, 0
   end
   for _, objet in pairs(d.objets) do

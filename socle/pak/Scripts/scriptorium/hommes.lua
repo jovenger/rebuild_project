@@ -118,6 +118,11 @@ hommes.reglages = {
   -- d'avant reste) ; un suiveur est perdu au-delà de « allure_perdu_m » de son chef, et rentre dans le rang en deçà de
   -- « allure_rang_m ».
   allure_saut_m_s = 20,
+  -- V73 f 3 b : sur une autre carte que celle du camp, l'escorte d'Henry est refaite à « escorte_derriere_m » derrière
+  -- lui, hors de sa vue ; un cavalier à plus de « cheval_saut_m » de son chef (un grand saut, le voyage rapide) descend,
+  -- son cheval est retiré, il est rattrapé à pied, puis un nouveau cheval naît près de lui.
+  escorte_derriere_m = 6,
+  cheval_saut_m = 150,
   allure_perdu_m = 13,
   allure_rang_m = 6,
   anciens_gardes = 50,
@@ -609,7 +614,30 @@ end
 -- L'âme est tirée une fois, à la première venue, et gardée sur le registre : même visage et même voix au retour, et
 -- l'homme la garde quand il monte en grade. Un homme né avant la fiche 13 sur une âme empruntée au jeu (cerveau du jeu)
 -- renaît sur une âme à nous.
-local function faire_venir(d, f)
+-- Une place derrière Henry (V73 f 3 b) : à « escorte_derriere_m », hors de sa vue, sur un sol que rien n'encombre ni ne
+-- penche trop (les règles des chevaux) ; en éventail derrière lui, sinon juste derrière.
+function hommes.point_pres_d_henry()
+  local henry, cap = jeu().position_du_joueur(), jeu().cap_du_joueur() or 0
+  if not henry then
+    return nil
+  end
+  local r = hommes.reglages
+  local repli = nil
+  for _, ecart in ipairs({ 0, 40, -40, 80, -80 }) do
+    local a = math.rad(cap + 180 + ecart)
+    local p = { x = henry.x + r.escorte_derriere_m * math.sin(a), y = henry.y + r.escorte_derriere_m * math.cos(a),
+                z = henry.z }
+    repli = repli or p
+    local sol = jeu().sol_de and jeu().sol_de(p, r.cheval_sol_pas_m) or nil
+    local mauvais_sol = sol and (sol.encombre == true or (type(sol.pente) == "number" and sol.pente > r.cheval_pente_max))
+    if not mauvais_sol and jeu().henry_voit(p, r.secours_vue_cos) ~= true then
+      return p
+    end
+  end
+  return repli
+end
+
+local function faire_venir(d, f, pres_d_henry)
   local present = f.personnage and jeu().personnage_existe(f.personnage)
   if present and f.ame then
     return true
@@ -630,7 +658,9 @@ local function faire_venir(d, f)
     end
   end
   local position = nil
-  if camp().est_fonde() then
+  if pres_d_henry then
+    position = hommes.point_pres_d_henry()
+  elseif camp().est_fonde() then
     position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
   end
   local personnage = jeu().faire_venir_homme(f.ame, f.nom, position)
@@ -1140,7 +1170,13 @@ function hommes.embaucher(contrat)
     d.derniere_aube = jour_de(heure - hommes.reglages.heure_lever)
     d.dernier_jour_repas = jour_de(heure - hommes.reglages.heure_repas)
   end
-  faire_venir(d, f)
+  -- V73 f 3 b : embauché quand Henry est sur une autre carte que celle du camp, il rejoint le registre (sans personnage)
+  -- et paraît au camp au retour d'Henry.
+  if camp().sur_sa_carte == nil or camp().sur_sa_carte() then
+    faire_venir(d, f)
+  else
+    jeu().journal("Hommes : « " .. f.nom .. " » embauché loin du camp (autre carte) : il paraîtra au camp")
+  end
   if est_combattant(f) then
     choisir_l_equipement(d, f)
   end
@@ -1476,7 +1512,7 @@ end
 -- s'allonge de cette marche) ; nil sans cheval (pas encore né, ou l'abandon après les montes manquées).
 local function suivi_a_cheval(cle, personnage, role, formation)
   local m = hommes.montures[cle]
-  if not (m and m.cheval and not m.abandon) then
+  if not (m and m.cheval and not m.abandon and not m.saut) then
     return nil
   end
   local ici, la = jeu().position_du_personnage(personnage), jeu().position_du_personnage(m.cheval)
@@ -1951,7 +1987,16 @@ local function secourir(id, f, a, rapport)
   -- seulement le rattrapage au-delà de « suivi_loin_m ».
   if a.activite == "suivre" then
     -- V73 f 2 b : un homme à cheval n'est jamais posé seul (il serait séparé de son cheval) ; son cheval le ramène.
+    -- V73 f 3 b : sauf le grand saut : il descend d'abord, son ordre redonné à pied.
     if a.suivi and a.suivi.mode == "cheval" then
+      if hommes.saut_du_cavalier(id, f.personnage, a.chef, f.nom) then
+        f.derniere_activite = nil
+      end
+      return
+    end
+    -- En saut et à pied : revenu près de son chef, un nouveau cheval (son ordre redonné).
+    if hommes.montures[id] and hommes.montures[id].saut and hommes.saut_du_cavalier(id, f.personnage, a.chef, f.nom) then
+      f.derniere_activite = nil
       return
     end
     if a.chef and hommes.rattraper(f.personnage, a.chef, f.nom) then
@@ -2269,7 +2314,7 @@ local function preparer_la_monture(id, f, heure, en_sortie)
     hommes.montures[id] = m
   end
   m.hors_sortie = 0
-  if m.abandon or (m.cheval and jeu().objet_existe(m.cheval)) or m.refus_a == heure then
+  if m.abandon or m.saut or (m.cheval and jeu().objet_existe(m.cheval)) or m.refus_a == heure then
     return
   end
   m.cheval = nil
@@ -2281,8 +2326,9 @@ local function preparer_la_monture(id, f, heure, en_sortie)
     hommes.hasard_des_chevaux = Scriptorium.hasard_depuis(5171)
   end
   local place, refus, vu = place_du_cheval(id, ici)
-  -- Un nom par essai : le cheval né de nouveau change la signature de l'ordre.
-  local cheval = place and jeu().faire_venir_cheval(id .. "_" .. (m.essais + 1), place)
+  -- Un nom par essai : le cheval né de nouveau change la signature de l'ordre ; et par grand saut (V73 f 3 b).
+  local cheval = place and jeu().faire_venir_cheval(id .. "_" .. (m.essais + 1) .. (m.sauts and ("_saut" .. m.sauts) or ""),
+                                                    place)
   if cheval then
     m.cheval = cheval
     m.manquees = jeu().montes_manquees(f.personnage)
@@ -2332,9 +2378,52 @@ function hommes.suivi_du_directeur(role, formation)
   return suivi_a_cheval("directeur", p.personnage, role, formation)
 end
 
+-- Le grand saut d'un cavalier (V73 f 3 b) : à plus de « cheval_saut_m » de son chef (le voyage rapide d'Henry), il
+-- descend d'abord (sa monture « en saut » : son ordre suivant est à pied) ; puis, son cheval retiré au battement suivant
+-- (personne dessus), il est rattrapé à pied ; revenu près de son chef (moins de « suivi_loin_m »), un nouveau cheval
+-- naît près de lui. Rend vrai si le cavalier vient d'être mis en saut (son ordre est à redonner).
+function hommes.saut_du_cavalier(cle, personnage, chef, nom)
+  local m = hommes.montures[cle]
+  if not (m and personnage and chef) then
+    return false
+  end
+  local la = (chef == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(chef)
+  local ecart = la and jeu().ecart_au_but(personnage, la)
+  if not ecart then
+    return false
+  end
+  if not m.saut and m.cheval and ecart > hommes.reglages.cheval_saut_m then
+    m.saut, m.saut_ordonne = true, nil
+    jeu().journal("Hommes : « " .. tostring(nom) .. " » à " .. string.format("%.0f", ecart)
+                  .. " m de son chef : il descend, son cheval sera retiré (grand saut)")
+    return true
+  end
+  if m.saut and ecart < hommes.reglages.suivi_loin_m then
+    m.saut, m.saut_ordonne, m.sauts = nil, nil, (m.sauts or 0) + 1
+    jeu().journal("Hommes : « " .. tostring(nom) .. " » revenu près de son chef : un nouveau cheval")
+    return true
+  end
+  return false
+end
+
+-- L'ordre à pied d'un cavalier en saut est donné (son cheval sera retiré au battement suivant).
+function hommes.ordre_donne_en_saut(cle)
+  local m = hommes.montures[cle]
+  if m and m.saut then
+    m.saut_ordonne = true
+  end
+end
+
 local function veiller_aux_montures(d)
   for id, m in pairs(hommes.montures) do
     local f, en_sortie = porteur(id, d)
+    -- V73 f 3 b : un cavalier en saut a eu un battement pour descendre depuis son ordre à pied : son cheval est retiré
+    -- (jamais avant cet ordre : le battement d'ici passe avant les ordres).
+    if m.saut and m.saut_ordonne and m.cheval then
+      jeu().retirer_cheval(m.cheval)
+      jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré (grand saut de « " .. tostring(f and f.nom or id) .. " »)")
+      m.cheval = nil
+    end
     if f and f.personnage and en_sortie then
       local n = jeu().montes_manquees(f.personnage)
       if m.cheval and n and m.manquees and n > m.manquees then
@@ -2415,6 +2504,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     end
     hommes.raisons_de_reprise[id] = nil
     jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi)
+    hommes.ordre_donne_en_saut(id)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
@@ -2825,20 +2915,38 @@ function hommes.qui_tient(id, heure)
 end
 
 -- Après un chargement : fait revenir les personnages manquants. Rend (revenus, manquants).
+-- L'escorte d'Henry (V73 f 3 b) : la tenue la plus forte de l'homme le fait suivre (Henry, le Directeur, ou un homme qui
+-- suit) ; elle passe d'une carte à l'autre avec lui.
+local function en_escorte(f)
+  local _, t = tenue_la_plus_forte(f)
+  return t ~= nil and t.activite == "suivre"
+end
+
 function hommes.redresser()
   local d = donnees()
-  local revenus, manquants = 0, 0
+  local revenus, manquants, laisses = 0, 0, 0
+  -- V73 f 3 b : sur une autre carte que celle du camp, seule l'escorte d'Henry est refaite, près de lui ; les autres
+  -- restent au registre (sans personnage) et reviennent quand Henry revient sur la carte du camp.
+  local sur_place = camp().sur_sa_carte == nil or camp().sur_sa_carte()
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     local present = f.personnage and jeu().personnage_existe(f.personnage)
     if not present or not f.ame then
-      if faire_venir(d, f) then revenus = revenus + 1 else manquants = manquants + 1 end
+      if sur_place or en_escorte(f) then
+        if faire_venir(d, f, not sur_place) then revenus = revenus + 1 else manquants = manquants + 1 end
+      else
+        if not present then
+          f.personnage = nil
+        end
+        laisses = laisses + 1
+      end
     end
   end
-  if revenus > 0 then
+  if revenus > 0 or laisses > 0 then
     enregistrer()
   end
-  jeu().journal("Hommes : redressés, " .. revenus .. " revenu(s), " .. manquants .. " manquant(s)")
+  jeu().journal("Hommes : redressés, " .. revenus .. " revenu(s), " .. manquants .. " manquant(s)"
+                .. (laisses > 0 and (", " .. laisses .. " laissé(s) au camp (autre carte)") or ""))
   return revenus, manquants
 end
 

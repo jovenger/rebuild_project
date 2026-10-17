@@ -310,3 +310,35 @@ essai("bataille : le journal des batailles est borné, et tout est relu", functi
   egal(b.arrivee, 15, "arrivée relue")
   egal(#bataille.resultats(), bataille.reglages.journal_gardes, "journal relu")
 end)
+
+-- Fiche 15, V73 f 3 b : Henry sur une autre carte que le camp : aucune bande ne naît ici, la règle tranche ; une bande déjà
+-- au contact ne se lit pas d'ailleurs.
+essai("bataille (fiche 15, V73 f 3 b) : Henry sur une autre carte : aucune bande ne naît ici, la règle tranche ; au contact, rien lu d'ailleurs", function()
+  preparer(1000, 10, { "homme_d_armes", "pavoisier", "arbaletrier", "archer" })
+  FauxJeu.carte = "kutnohorsko"
+  camp.redresser()
+  egal(camp.carte(), "kutnohorsko", "la carte du camp")
+  FauxJeu.carte = "trosecko"
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(#FauxJeu.ennemis, 0, "aucun ennemi né sur l'autre carte")
+  egal(bataille.bande(id).etat, "finie", "la règle a tranché")
+  local dit = false
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "Henry sur une autre carte que le camp", 1, true) then dit = true end
+  end
+  verifier(dit, "une ligne au journal")
+  -- Au contact sur la carte du camp, puis Henry passe : les ennemis (illisibles d'ici) ne finissent pas la bataille.
+  FauxJeu.carte = "kutnohorsko"
+  local id2 = bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(bataille.bande(id2).etat, "au_contact", "au contact sur la carte du camp")
+  FauxJeu.carte = "trosecko"
+  for _, e in ipairs(FauxJeu.ennemis) do
+    FauxJeu.ennemis_vivants_par_id[e.identifiant] = false
+  end
+  FauxJeu.heure = FauxJeu.heure + 0.5
+  egal(bataille.battre().finies, 0, "rien lu de l'autre carte")
+  FauxJeu.heure = FauxJeu.heure + bataille.reglages.duree_max_contact
+  egal(bataille.battre().finies, 1, "la règle tranche à son heure")
+end)
