@@ -1422,6 +1422,26 @@ def verifier_la_vie_du_camp():
             litterale = re.fullmatch(r"&apos;(-1|\d+(ms|s|m))&apos;", duree)
             if not litterale and not re.fullmatch(r"\$[a-z_]+", duree):
                 erreur("vie du camp : %s : durée « %s » hors des formes du jeu (entier suivi de ms, s ou m, ou -1, ou une variable)" % (nom, duree))
+    # Fiche 18 (vu en jeu le 17/10 : un geste à un coup, fini, n'était pas relancé) : le geste du poste (CallBehavior
+    # « $poste_geste ») et le geste tenu (UnstanceAction) sont chacun dans une boucle While, qui les relance quand ils finissent.
+    # Lu par une pile de balises (les commentaires ôtés), pas par un lecteur XML strict : nos arbres ont des commentaires
+    # que le jeu lit mais qu'ElementTree refuse.
+    pile, gestes = [], 0
+    for m in re.finditer(r"<(/?)([A-Za-z_]+)([^>]*?)(/?)>", re.sub(r"<!--.*?-->", "", comportements, flags=re.S)):
+        fermante, balise, attributs, seule = m.groups()
+        if fermante:
+            while pile and pile.pop() != balise:
+                pass
+            continue
+        if (balise == "CallBehavior" and 'BehaviorName="$poste_geste"' in attributs) or balise == "UnstanceAction":
+            gestes += 1
+            englobante = next((b for b in reversed(pile) if b in ("While", "IfCondition")), None)
+            if englobante != "While":
+                erreur("vie du camp : « %s » n'est dans aucune boucle While : il ne serait pas relancé quand il finit" % balise)
+        if not seule:
+            pile.append(balise)
+    if gestes < 2:
+        erreur("vie du camp : le geste du poste ou le geste tenu est introuvable dans comportements.xml")
     # Fiche 12 (les valeurs de l'arbre en données) : chaque valeur de hommes.cerveau a sa variable de cerveau, déclarée,
     # lue par un arbre ; chaque variable du cerveau lue par un arbre a sa valeur au catalogue ; et l'arbre ne la lit
     # jamais seule, mais avec la valeur par défaut du catalogue (« (a > 0 ? a : défaut) »), qui doit être la même (V73 c 10).

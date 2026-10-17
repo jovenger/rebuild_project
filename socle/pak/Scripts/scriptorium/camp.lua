@@ -68,6 +68,8 @@ camp.sortes_places = { lit = true, siege = true }
 -- d'appui sont ceux des postes du monde, relevés en jeu le 17/10 (essai_postes_relever : tous des SmartObjectHolder).
 camp.genres_de_postes = {
   priere = { gabarit = "459f694f-4d30-84cd-b21c-ebbc263571ba", geste = "useKneelingGround", aides = "Praying" },
+  -- Un geste à un coup du même gabarit (SmartEntity__so_praying : useKneelingGroundOneShotShort) : il finit, l'arbre le relance.
+  priere_courte = { gabarit = "459f694f-4d30-84cd-b21c-ebbc263571ba", geste = "useKneelingGroundOneShotShort", aides = "Praying" },
   desherbage = { gabarit = "c2bb08b4-c1ad-484c-abce-df196518fb9b", geste = "use", aides = "Weeding" },
   cloture = { gabarit = "8b959f6e-fe08-4841-a826-18f9ff7d989e", geste = "use", aides = "GenU_repairFenceHammer" },
   pelle = { gabarit = "7401194c-2f37-4735-b53c-0e5d9843258c", geste = "use", aides = "coalThrowing" },

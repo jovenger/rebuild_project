@@ -3117,14 +3117,26 @@ function liaison.poser_poste(nom, gabarit, position, cap, aides, geste)
   return identifiant
 end
 
--- Appelée par l'arbre de la vie du camp (branche 21) sous pcall : écrit dans « poste_geste » le geste du poste donné à
--- ce personnage ; une ligne au journal ; une erreur, au journal.
+-- Appelée par l'arbre de la vie du camp (branche 21) sous pcall, à chaque lancement du geste (l'arbre le relance quand
+-- il finit, tant que l'ordre tient) : écrit dans « poste_geste » le geste du poste donné à ce personnage ; une ligne au
+-- journal au premier lancement, puis aux relances 1 à 3 et toutes les 20 (pas d'inondation si un geste finit aussitôt) ;
+-- une erreur, au journal.
+liaison.lancements_des_gestes = {}
+
 function liaison.geste_du_poste(entite, donnees)
   local fait, erreur = pcall(function()
     local nom = entite:GetName()
     local geste = liaison.gestes[nom] or "use"
     donnees.poste_geste = geste
-    liaison.journal("Poste de travail : « " .. tostring(nom) .. " » lance le geste « " .. geste .. " »")
+    local deja = liaison.lancements_des_gestes[nom]
+    local relances = (deja and deja.geste == geste) and deja.relances + 1 or 0
+    liaison.lancements_des_gestes[nom] = { geste = geste, relances = relances }
+    if relances == 0 then
+      liaison.journal("Poste de travail : « " .. tostring(nom) .. " » lance le geste « " .. geste .. " »")
+    elseif relances <= 3 or relances % 20 == 0 then
+      liaison.journal("Poste de travail : « " .. tostring(nom) .. " » relance le geste « " .. geste .. " » ("
+                      .. relances .. "e relance)")
+    end
   end)
   if not fait then
     liaison.journal("Poste de travail : erreur : " .. tostring(erreur))
