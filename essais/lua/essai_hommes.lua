@@ -2652,25 +2652,33 @@ end)
 
 -- Fiche 15, V73 f 2 f : l'allure du chef monté (principe d'Alex, relu par le pair : la marge contre l'hésitation).
 essai("allure du chef monté (fiche 15, V73 f 2 f) : la vitesse de celui qu'il suit donne l'allure, l'écart corrige, une marge aux seuils", function()
+  -- { vitesse, écart, fond avant, correction avant, code avant, attendu, texte }
   local cas = {
-    { 0, 5, nil, -1, "arrêté, à sa place : il tient" },
-    { 0, 20, nil, 1, "arrêté, loin : le pas, plus un (course)" },
-    { 1.5, 7, nil, 0, "au pas, à sa place : le pas" },
-    { 1.5, 15, nil, 1, "au pas, loin : une de plus" },
-    { 1.5, 2, nil, -1, "au pas, trop près : une de moins (tenir)" },
-    { 3.5, 7, nil, 1, "à la course : la course" },
-    { 6, 7, nil, 2, "plus vite : le trot rapide" },
-    { 10, 7, nil, 3, "au galop : le galop" },
-    { 10, 20, nil, 3, "au galop, loin : pas au-delà du galop" },
-    { 2.3, 7, 0, 0, "2,3 m/s depuis le pas : pas encore la course (2,2 + 10 %)" },
-    { 2.5, 7, 0, 1, "2,5 m/s depuis le pas : la course" },
-    { 2.1, 7, 1, 1, "2,1 m/s depuis la course : encore la course (2,2 − 10 %)" },
-    { 1.9, 7, 1, 0, "1,9 m/s depuis la course : le pas" },
-    { 4.6, 7, 1, 1, "4,6 m/s depuis la course : pas encore le trot rapide" },
-    { 4.2, 7, 2, 2, "4,2 m/s depuis le trot rapide : il le garde" },
+    { 0, 5, nil, nil, nil, -1, "arrêté, à sa place : il tient" },
+    { 0, 9, nil, nil, nil, 0, "arrêté à 9 m : le pas jusqu'à sa place (V73 f 2 f bis)" },
+    { 0, 9, nil, nil, -1, -1, "arrêté à 9 m, il tenait : il tient encore" },
+    { 0, 12, nil, nil, -1, 1, "arrêté à 12 m, il tenait : il repart (le pas, plus un)" },
+    { 0, 20, nil, nil, nil, 1, "arrêté, loin : le pas, plus un (course)" },
+    { 1.5, 7, nil, nil, nil, 0, "au pas, à sa place : le pas" },
+    { 1.5, 15, nil, nil, nil, 1, "au pas, loin : une de plus" },
+    { 1.5, 2, nil, nil, nil, -1, "au pas, trop près : une de moins (tenir)" },
+    { 1.5, 9, nil, 1, nil, 1, "à 9 m, une de plus gardée" },
+    { 1.5, 7.5, nil, 1, nil, 0, "à 7,5 m : une de plus lâchée (freinage, 8 m)" },
+    { 1.5, 5, nil, -1, nil, -1, "à 5 m, une de moins gardée" },
+    { 1.5, 5, nil, 0, nil, 0, "à 5 m, sans correction : le pas" },
+    { 3.5, 7, nil, nil, nil, 1, "à la course : la course" },
+    { 6, 7, nil, nil, nil, 2, "plus vite : le trot rapide" },
+    { 10, 7, nil, nil, nil, 3, "au galop : le galop" },
+    { 10, 20, nil, nil, nil, 3, "au galop, loin : pas au-delà du galop" },
+    { 2.3, 7, 0, nil, nil, 0, "2,3 m/s depuis le pas : pas encore la course (2,2 + 10 %)" },
+    { 2.5, 7, 0, nil, nil, 1, "2,5 m/s depuis le pas : la course" },
+    { 2.1, 7, 1, nil, nil, 1, "2,1 m/s depuis la course : encore la course (2,2 − 10 %)" },
+    { 1.9, 7, 1, nil, nil, 0, "1,9 m/s depuis la course : le pas" },
+    { 4.6, 7, 1, nil, nil, 1, "4,6 m/s depuis la course : pas encore le trot rapide" },
+    { 4.2, 7, 2, nil, nil, 2, "4,2 m/s depuis le trot rapide : il le garde" },
   }
   for _, c in ipairs(cas) do
-    local code = hommes.allure_du_chef(c[1], c[2], c[3])
-    egal(code, c[4], c[5])
+    local code = hommes.allure_du_chef(c[1], c[2], c[3], c[4], c[5])
+    egal(code, c[6], c[7])
   end
 end)

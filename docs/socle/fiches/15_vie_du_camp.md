@@ -2093,6 +2093,30 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - **À reprendre** (V73 f 2 f bis) : arrêté, le chef « tient » dès 11 m (ma règle : place + plus), au lieu d'aller à sa
   place (7 m) comme le dit le principe ; la correction par la distance, sans marge, fait l'aller-retour pas/course à 11 m.
 
+## V73 f 2 f bis — l'allure du chef monté, affinée (17/10 ; réponses recommandées prises d'office)
+
+### Ce qui change (d'après la mesure de V73 f 2 f)
+1. **Arrêté, il tient seulement à sa place** (écart ≤ `allure_place_m`, 7 m) ; plus loin, il va au pas jusqu'à elle. Ma
+   règle de V73 f 2 f le faisait tenir dès 11 m (place + plus), contrairement au principe transmis (« à sa place »).
+2. **La correction par la distance, tenue** : « une allure de plus » au-delà de la place + `allure_plus_m` (11 m), gardée
+   tant qu'il n'est pas revenu à sa place (7 m) ; « une de moins » en deçà de la place − `allure_moins_m` (4 m), gardée
+   tant qu'il n'est pas revenu à 7 m. Fini l'aller-retour pas/course autour de 11 m. La règle reçoit la correction du
+   relevé précédent (gardée par la liaison, comme l'allure de fond).
+3. **Relecture du pair** : l'arrêt aussi a sa tenue : il s'arrête à ≤ 7 m, et ne repart au pas qu'au-delà de la
+   place + plus (11 m ; mon ancien seuil était le bon pour repartir) ; « une de plus » est lâchée un peu avant la place,
+   à la place + `allure_freinage_m` (1 m, soit 8 m) : à cheval, il faut de la distance pour freiner. À vérifier à
+   l'image : après une course, il s'arrête vers 7 m, pas à 3-4 m (son `Move` s'arrête à 3 m ± 1 d'Henry ; il ne doit
+   pas bousculer le cheval d'Henry).
+- Une valeur nouvelle : `hommes.reglages.allure_freinage_m` (1).
+
+### Essai en jeu : grille
+Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journal des allures ; but : le chef près de
+7 m à l'arrêt, moins de changements d'allure.
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **La marge de la distance** : (a) tenue jusqu'au retour à la place (Recommandé : aucune valeur de plus) ; (b) une
+   valeur de marge à part. **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

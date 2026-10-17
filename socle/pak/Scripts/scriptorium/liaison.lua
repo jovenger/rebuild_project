@@ -2755,17 +2755,17 @@ function liaison.allure_vers_chef(entite, donnees)
     end
     if not memo or ecoule >= 0.15 then
       memo = { t = maintenant, la = { x = la.x, y = la.y }, vitesse = vitesse, code = memo and memo.code,
-               fond = memo and memo.fond }
+               fond = memo and memo.fond, correction = memo and memo.correction }
       liaison.allures_relevees[nom] = memo
     end
     local ecart = ((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) ^ 0.5
-    local code, fond = liaison.allure_choisie(vitesse, ecart, memo.fond)
+    local code, fond, correction = liaison.allure_choisie(vitesse, ecart, memo.fond, memo.correction, memo.code)
     donnees.allure_code = code
     if memo.code ~= code then
       liaison.journal(string.format("Allure de %s : %s (son chef à %.1f m/s, à %.1f m)", tostring(nom),
         liaison.noms_des_allures[code] or tostring(code), vitesse, ecart))
     end
-    memo.code, memo.fond = code, fond
+    memo.code, memo.fond, memo.correction = code, fond, correction
   end)
   if not fait then
     liaison.journal("Allure : erreur : " .. tostring(erreur))

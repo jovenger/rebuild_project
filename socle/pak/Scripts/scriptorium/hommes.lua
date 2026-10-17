@@ -110,6 +110,10 @@ hommes.reglages = {
   allure_place_m = 7,
   allure_plus_m = 4,
   allure_moins_m = 3,
+  -- V73 f 2 f bis (relecture du pair) : arrêté, il s'arrête à sa place et ne repart qu'au-delà de la place plus
+  -- « allure_plus_m » ; « une de plus » est gardée jusqu'à la place plus « allure_freinage_m » (à cheval, il faut de
+  -- la distance pour freiner) ; « une de moins », jusqu'à la place.
+  allure_freinage_m = 1,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -2960,9 +2964,10 @@ function hommes.piece_otee(id, objet)
 end
 
 -- L'allure du chef monté (fiche 15, V73 f 2 f) : la règle, en données (voir « allure_* »). « vitesse » : celle de celui
--- qu'il suit (m/s) ; « ecart » : la distance qui les sépare (m) ; « fond_avant » : l'allure de fond du relevé précédent
--- (la marge). Rend (le code : 3 galop, 2 trot rapide, 1 course, 0 pas, -1 tenir ; l'allure de fond, sans correction).
-function hommes.allure_du_chef(vitesse, ecart, fond_avant)
+-- qu'il suit (m/s) ; « ecart » : la distance qui les sépare (m) ; « fond_avant », « correction_avant », « code_avant » :
+-- l'allure de fond, la correction et le code du relevé précédent (les tenues). Rend (le code : 3 galop, 2 trot rapide,
+-- 1 course, 0 pas, -1 tenir ; l'allure de fond, sans correction ; la correction par la distance : 1, 0 ou -1).
+function hommes.allure_du_chef(vitesse, ecart, fond_avant, correction_avant, code_avant)
   local r = hommes.reglages
   local fond = 0
   for k, seuil in ipairs({ r.allure_pas_m_s, r.allure_course_m_s, r.allure_galop_m_s }) do
@@ -2974,19 +2979,25 @@ function hommes.allure_du_chef(vitesse, ecart, fond_avant)
       fond = k
     end
   end
+  local place = r.allure_place_m
+  -- La correction tenue (V73 f 2 f bis) : « une de plus » au-delà de la place + plus, gardée jusqu'à la place + freinage ;
+  -- « une de moins » en deçà de la place − moins, gardée jusqu'à la place.
+  local correction = 0
+  if ecart > place + r.allure_plus_m or (correction_avant == 1 and ecart > place + r.allure_freinage_m) then
+    correction = 1
+  elseif ecart < place - r.allure_moins_m or (correction_avant == -1 and ecart < place) then
+    correction = -1
+  end
   local code = fond
   if vitesse < r.allure_arret_m_s then
-    if ecart <= r.allure_place_m + r.allure_plus_m then
-      return -1, fond
+    -- Arrêté : il s'arrête à sa place, et ne repart qu'au-delà de la place + plus (la tenue de l'arrêt).
+    if ecart <= place or (code_avant == -1 and ecart <= place + r.allure_plus_m) then
+      return -1, fond, 0
     end
     code = 0
   end
-  if ecart > r.allure_place_m + r.allure_plus_m then
-    code = math.min(3, code + 1)
-  elseif ecart < r.allure_place_m - r.allure_moins_m then
-    code = code - 1
-  end
-  return code, fond
+  code = math.max(-1, math.min(3, code + correction))
+  return code, fond, correction
 end
 
 Scriptorium.declarer_morceau("hommes", function()
