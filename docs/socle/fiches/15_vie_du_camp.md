@@ -2109,6 +2109,14 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    pas bousculer le cheval d'Henry).
 - Une valeur nouvelle : `hommes.reglages.allure_freinage_m` (1).
 
+### Vu en jeu, première séance du bis (17/10, 06833ae)
+- **Le freinage marche** : « course » jusqu'à 8 m, puis « pas » à 7,9 m, « tenir » à 6,5 m.
+- **Mais le chef se fige** (11,34 m puis 20,52 m d'Henry, constant, plus aucun changement d'allure). Cause : le `Move`
+  visait la place d'Henry au moment de l'ordre, puis l'attente sans fin le gardait arrêté tant que l'allure restait la
+  même. **Corrigé** : le `Move` reçoit `additionalParams="$allure_parametres"` (`destChangedThreshold`, comme
+  `followNpc` : il suit sa cible qui bouge) ; après le `Move`, une attente d'une cadence (300 ms), puis il est redonné ;
+  contrôlé au banc (deux erreurs injectées attrapées).
+
 ### Essai en jeu : grille
 Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journal des allures ; but : le chef près de
 7 m à l'arrêt, moins de changements d'allure.

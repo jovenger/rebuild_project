@@ -42,6 +42,7 @@
       <Variable name="allure_cadence" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="allure_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="allure_arret_ecart" type="_float" values="" isPersistent="0" form="single" />
+      <Variable name="allure_parametres" type="additionalMoveParams" values="destChangedThreshold(&apos;500ms&apos;)" isPersistent="0" form="single" />
       <Variable name="suivi_depart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="suivi_marche_course" type="_float" values="" isPersistent="0" form="single" />
@@ -93,6 +94,7 @@
             <Expression expressions="$allure_cadence = concat($allure_cadence_ms, &apos;ms&apos;)" />
             <Expression expressions="$allure_arret = ($scriptorium_cerveau_allure_arret_cm &gt; 0 ? $scriptorium_cerveau_allure_arret_cm : 300) * 0.01" />
             <Expression expressions="$allure_arret_ecart = ($scriptorium_cerveau_allure_ecart_cm &gt; 0 ? $scriptorium_cerveau_allure_ecart_cm : 100) * 0.01" />
+            <Expression expressions="$allure_parametres.destChangedThreshold = &apos;500&apos;" />
             <IfCondition condition="$scriptorium_activite ~= 15 &amp; $scriptorium_activite ~= 18 &amp; $formation_menee ~= $__null" failOnCondition="false">
               <SuppressFailure>
                 <EndFormation FormationHandle="$formation_menee" />
@@ -579,10 +581,10 @@
                                         <Sequence>
                                           <IfCondition condition="$allure_tenue &gt;= 0" failOnCondition="false">
                                             <SuppressFailure>
-                                              <Move destinationSpecification="$scriptorium_chef" destinationSpecification2="" destinationSpecification3="" speed="$allure" stopWithinDistance="$allure_arret" stopDistanceVariation="$allure_arret_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                                              <Move destinationSpecification="$scriptorium_chef" destinationSpecification2="" destinationSpecification3="" speed="$allure" stopWithinDistance="$allure_arret" stopDistanceVariation="$allure_arret_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="$allure_parametres" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
                                             </SuppressFailure>
                                           </IfCondition>
-                                          <Wait duration="&apos;-1&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                          <Wait duration="$allure_cadence" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                                         </Sequence>
                                         <Sequence>
                                           <Wait duration="$allure_cadence" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />

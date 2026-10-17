@@ -361,7 +361,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 69 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 72 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire

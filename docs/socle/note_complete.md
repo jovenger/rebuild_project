@@ -64,7 +64,7 @@
   monté réglée sur la vitesse d'Henry (V73 f 2 f).
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 79 chargements ou poses, 1 sur 69 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 82 chargements ou poses, 1 sur 72 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)

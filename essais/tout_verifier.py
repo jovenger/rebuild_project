@@ -1418,11 +1418,14 @@ def verifier_la_vie_du_camp():
     allures18 = re.findall(r'<IfCondition condition="\$allure_tenue == (\d)" failOnCondition="false">\s*'
                            r'<Expression expressions="\$allure = \$enum:movementSpeed\.(\w+)" />', corps18)
     if (sorted(allures18) != [("0", "walk"), ("1", "run"), ("2", "dash"), ("3", "sprint")]
-            or not re.search(r'<Move destinationSpecification="\$scriptorium_chef"[^>]*speed="\$allure" stopWithinDistance="\$allure_arret"', corps18)
+            or not re.search(r'<Move destinationSpecification="\$scriptorium_chef"[^>]*speed="\$allure" stopWithinDistance="\$allure_arret"'
+                             r'[^>]*additionalParams="\$allure_parametres"[^>]*/>\s*</SuppressFailure>\s*</IfCondition>\s*'
+                             r'<Wait duration="\$allure_cadence"', corps18)
+            or 'name="allure_parametres" type="additionalMoveParams" values="destChangedThreshold(' not in comportements
             or '<While doFail="false" propagateChildFail="false" condition="$allure_code == $allure_tenue">' not in corps18
             or corps18.count('allure_vers_chef(entity, data)') != 2 or '<Wait duration="$allure_cadence"' not in corps18):
         erreur("vie du camp : la branche 18 doit régler l'allure du chef monté sur la vitesse mesurée de son chef (quatre "
-               "allures, un Move vers son chef, une mesure à chaque cadence)")
+               "allures, un Move vers son chef qui suit sa cible et se redonne à chaque cadence, une mesure à chaque cadence)")
     if (not corps18 or not re.search(mener_a_cheval, corps18) or appel15 not in corps18 or manquee not in corps18
             or '<Wait duration="$monte_delai"' not in corps18):
         erreur("vie du camp : la branche 18 doit ouvrir la formation hors de la posture et mener à cheval, la monte bornée "
