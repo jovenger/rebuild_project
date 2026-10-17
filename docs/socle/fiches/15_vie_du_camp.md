@@ -1438,6 +1438,61 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - **Suite** : V73 f 1 bis, la formation du moteur (la voie d'Alex et de la colonne de Scriptorium, relecture du pair),
   à lire avant V73 f 2, à cheval.
 
+## V73 f 1 bis — l'escorte en formation du moteur (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- La relecture du pair (V73 f 1) : Alex fait suivre sa troupe par les **formations du moteur**, et la colonne de
+  Scriptorium (`directeur_en_route`) est un modèle de formation, le Directeur en chef. Notre chaîne (chacun suit le
+  précédent) marche pour trois hommes, mais s'étire avec une vraie troupe. Ce pas ajoute la formation, au choix de la
+  tenue ; la chaîne reste le défaut. À lire aussi avant V73 f 2 (à cheval, par la formation chez Alex).
+
+### Ce que le jeu fait (lu dans `Scripts.pak`, lecture seule)
+- **Le chef** ouvre une formation par son nom et la tient : `<MakeFormation FormationName=… HandleVariable=…/>` puis une
+  attente sans fin (`formation_lead`, `AI/move/moveUtils.xml`) ; `moveInFormation_leader` l'entoure d'un `FuseBox` qui la
+  ferme (`EndFormation`) en sortant (« OnSuccess » 774 emplois, « OnFail » 514 dans le jeu).
+- **Les suiveurs** la retrouvent par le WUID du chef et s'y rangent : `<GetMemberFormation MemberWUID=… FormationHandleOut=…/>`
+  puis `<FormationFollower FormationHandle=… PreferredPositions="" FormationMode=… AllowRelocation="false"/>`
+  (`formation_follow`, `moveInFormation_slave`). Modes : `MoveHistory` (13 emplois : ils marchent où le chef a marché),
+  `KeepShape` (6), `KeepDistance` (2), `Relaxed` (2).
+- **Les modèles** (`AI/FormationDefinitions.xml`, 63) : `followNPC` (8 places, deux colonnes, de 1,7 à 6,9 m derrière le
+  chef), `infantryMen20` (19), `battleFormation_basic25` (24), `cavalryRiders6` (5, à cheval), `mucirna_vypaleniSemina_rideToSemin`
+  (14, à cheval). Un mod ne peut pas ajouter de modèle sans remplacer tout ce fichier du jeu : on prend ceux du jeu.
+
+### Comment ce serait fait
+1. **La tenue « escorte » accepte `formation`** (le nom d'un modèle du jeu, connu du catalogue `hommes.formations` avec
+   son nombre de places) ; sans formation, la chaîne de V73 f 1.
+2. **Le chef de formation** : le Directeur s'il mène (`directeur.suivre(oui, formation)`, chef « directeur »), sinon le
+   premier homme de l'escorte. Son ordre devient « mener » (ordre 15) : debout ; un appel au Lua (comme la ronde,
+   `ExecuteLua` sous `pcall`) écrit le nom du modèle dans une variable de l'arbre ; `MakeFormation` dans un `FuseBox`
+   qui la ferme en sortant ; à côté, `Function_followNpc` vers son propre chef (Henry) ; le pouls.
+3. **Les suiveurs** (rang 2 et plus, dans la limite des places du modèle) : ordre « en formation » (ordre 16) : debout ;
+   tant que l'ordre tient, retrouver la formation du chef (`GetMemberFormation`, le chef en WUID dans
+   `scriptorium_chef`) et s'y ranger (`FormationFollower`, mode `MoveHistory` par défaut, réglable) ; si la formation
+   n'est pas encore ouverte, réessayer chaque seconde ; le pouls. **Au-delà des places**, les surnuméraires suivent en
+   chaîne (V73 f 1) le dernier rangé.
+4. **Le rattrapage** (V73 f 1) vaut pour tous, par rapport à leur chef (le chef de formation pour les suiveurs).
+- **Valeurs en données** : `hommes.formations` (le nom de chaque modèle permis et ses places : `followNPC` 8,
+  `infantryMen20` 19, `battleFormation_basic25` 24) au catalogue ; `hommes.cerveau.formation_mode` (1 `MoveHistory`,
+  2 `KeepShape`, 3 `KeepDistance`, 4 `Relaxed`). Le nom passe par le Lua, pas par le cerveau (une chaîne).
+- Le contrôle statique relit dans `Scripts.pak` que chaque modèle du catalogue existe encore.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé ; trois hommes et le Directeur ; `essai_escorte_formation` : le Directeur mène, en
+`followNPC`, les trois en formation derrière lui.
+1. Le Directeur suit Henry ; les trois prennent des places de la formation (deux colonnes derrière lui), à l'image.
+2. Henry marche puis court : la formation suit (écarts au chef entre 1,7 et 7 m).
+3. Un saut de 160 m : le rattrapage du Directeur, puis des suiveurs ; la formation se reforme.
+4. `essai_fin_escorte` : chacun reprend sa tranche ; le Directeur rejoint sa journée.
+- Aucune ligne au journal ne dit « la formation est ouverte » : l'image et les écarts le disent.
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Quand la formation** : (a) quand la tenue nomme un modèle, la chaîne sinon (Recommandé : la chaîne est prouvée,
+   la forme de la troupe est à Scriptorium) ; (b) toujours la formation. **Prise : (a).**
+2. **Le mode des suiveurs** : (a) `MoveHistory` par défaut, réglable (Recommandé : le plus employé par le jeu ; la
+   colonne passe où le chef est passé) ; (b) `KeepShape`. **Prise : (a).**
+3. **Plus d'hommes que de places** : (a) les surnuméraires suivent en chaîne le dernier rangé (Recommandé) ; (b) refusés.
+   **Prise : (a).**
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
