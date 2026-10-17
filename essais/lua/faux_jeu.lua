@@ -318,6 +318,20 @@ function faux.accrocher_la_ronde(fonction) faux.pas_de_ronde = fonction end
 -- Fiche 18, 5 b : les personnages parlables ; « parler_a » joue Henry qui appuie sur « Parler ».
 function faux.accrocher_la_parole(fonction) faux.parole = fonction end
 -- Fiche 18, 5 c : le geste tenu donné à un personnage.
+-- Fiche 18, 5 c, tranche 4 : les stations partagées ; « henry_prend » joue Henry qui emploie la station.
+function faux.accrocher_la_station(fonction) faux.station_prise = fonction end
+function faux.partager_avec_henry(station, oui)
+  faux.stations = faux.stations or {}
+  if faux.stations_absentes and faux.stations_absentes[station] then return false end
+  faux.stations[station] = oui and true or nil
+  return true
+end
+function faux.henry_prend(station)
+  if faux.stations and faux.stations[station] and faux.station_prise then faux.station_prise(station) return true end
+  return false
+end
+function faux.henry_a_fini(station, depuis, delai, loin) return faux.henry_fini == true end
+function faux.position_d_un_objet(nom) return faux.positions_des_objets and faux.positions_des_objets[nom] or nil end
 -- Fiche 20 : la parole donnée à un personnage.
 function faux.donner_la_parole(identifiant, sorte, alias, metarole, partenaire)
   faux.paroles = faux.paroles or {}

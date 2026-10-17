@@ -999,6 +999,86 @@ function poste.essai_conversation()
   return ok == true
 end
 
+-- Séance du 17/10 (liste courte de JoVenGer) : les actions qu'offre le premier homme parlable, demandées au jeu (pour voir
+-- que « Parler » disparaît en combat).
+function poste.essai_actions_offertes()
+  local hommes = Scriptorium.hommes
+  local id = poste.dernier_vu or hommes.liste()[1]
+  local f = id and hommes.fiche(id)
+  if not (f and f.personnage) then
+    return false
+  end
+  jeu().journal("Poste : « " .. f.nom .. " » offre : " .. jeu().actions_offertes(f.personnage))
+  return true
+end
+
+-- Les genres du catalogue un par un (à chaque appel, le suivant) : le poste à 2,5 m devant Henry, le premier homme tenu
+-- à lui ; pour une capture rapprochée de chaque geste.
+poste.genre_suivant = 0
+
+function poste.essai_poste_suivant()
+  local camp, hommes = Scriptorium.camp, Scriptorium.hommes
+  for _, nom in ipairs(camp.postes()) do camp.retirer_le_poste(nom) end
+  local genres = {}
+  for genre in pairs(camp.genres_de_postes) do table.insert(genres, genre) end
+  table.sort(genres)
+  poste.genre_suivant = poste.genre_suivant % #genres + 1
+  local genre = genres[poste.genre_suivant]
+  local point, cap = devant_henry(2.5)
+  local id = hommes.liste()[1]
+  if not point or not id then
+    return false
+  end
+  local ok = Scriptorium.avis(camp, "rendre_fonctionnel", "un_" .. genre, genre, point, ((cap or 0) + 180) % 360)
+  local tenu, raison = false, "non posé"
+  if ok then
+    tenu, raison = hommes.tenir(id, "travail", { activite = "poste", poste = "un_" .. genre, fin = "liberation" })
+  end
+  jeu().journal("Poste : un par un, n° " .. poste.genre_suivant .. " « " .. genre .. " » : posé = " .. tostring(ok)
+                .. ", tenu = " .. tostring(tenu or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
+-- Fiche 20 : le dialogue forcé du premier homme vers Henry, sur un dialogue du jeu de base (metarole « GOSSIP »,
+-- AI/carts/carts.xml).
+function poste.essai_dialogue_force()
+  local hommes = Scriptorium.hommes
+  local id = poste.dernier_vu or hommes.liste()[1]
+  if not id then
+    return false
+  end
+  local ok, raison = hommes.dialogue_force(id, { metarole = "GOSSIP" })
+  jeu().journal("Poste : dialogue forcé demandé = " .. tostring(ok or raison))
+  poste.battre_les_hommes()
+  return ok == true
+end
+
+-- Fiche 18, 5 c, tranche 4 : les stations du jeu à 1 500 m ; la plus proche surveillée, le premier homme y tient un geste
+-- à 2 m, partagée avec Henry.
+function poste.essai_station_partagee()
+  local hommes = Scriptorium.hommes
+  local stations = jeu().stations_proches(1500)
+  for i = 1, math.min(#stations, 8) do
+    local s = stations[i]
+    jeu().journal(string.format("Poste : station « %s » (%s) à %.0f m", s.nom, s.classe, s.distance))
+  end
+  local s = stations[1]
+  local id = hommes.liste()[1]
+  if not s or not id then
+    jeu().journal("Poste : aucune station proche, ou aucun homme")
+    return false
+  end
+  hommes.partager_avec_henry(s.nom, true)
+  local la = jeu().position_d_un_objet(s.nom)
+  local ok, raison = hommes.tenir(id, "travail", { activite = "geste", lieu = "station", geste = "AngryIdle",
+    position = { x = la.x + 2, y = la.y, z = la.z }, partage = s.nom, fin = "liberation" })
+  jeu().journal("Poste : « " .. hommes.fiche(id).nom .. " » à la station « " .. s.nom .. " » = " .. tostring(ok or raison))
+  poste.station_d_essai = s.nom
+  poste.battre_les_hommes()
+  return ok == true
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2675,6 +2755,10 @@ poste.commandes = {
   { nom = "scriptorium_essai_registre_gros_relire", fonction = function() return poste.essai_registre_gros_relire() end, aide = "La case d'essai de 500 Ko relue après rechargement, intacte ou non" },
   { nom = "scriptorium_essai_replique", fonction = function() return poste.essai_replique() end, aide = "Le premier homme dit une réplique du jeu en regardant Henry (fiche 20)" },
   { nom = "scriptorium_essai_conversation", fonction = function() return poste.essai_conversation() end, aide = "Les deux premiers hommes conversent (fiche 20)" },
+  { nom = "scriptorium_essai_actions_offertes", fonction = function() return poste.essai_actions_offertes() end, aide = "Les actions qu'offre le dernier vu à Henry, et s'il est en combat" },
+  { nom = "scriptorium_essai_poste_suivant", fonction = function() return poste.essai_poste_suivant() end, aide = "Le genre de poste suivant, à 2,5 m devant Henry (capture rapprochée)" },
+  { nom = "scriptorium_essai_dialogue_force", fonction = function() return poste.essai_dialogue_force() end, aide = "Le dialogue forcé vers Henry, sur un dialogue du jeu (fiche 20)" },
+  { nom = "scriptorium_essai_station_partagee", fonction = function() return poste.essai_station_partagee() end, aide = "La station du jeu la plus proche partagée avec Henry, un homme y travaille (fiche 18)" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

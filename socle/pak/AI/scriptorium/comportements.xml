@@ -965,7 +965,7 @@
                           </Sequence>
                         </IfCondition>
                         <IfCondition condition="$parole_sorte == 3" failOnCondition="false">
-                          <Function_speech_dialogInitiator alias="$parole_alias" animationApproach="$enum:animationApproach.dontPlayDialogAnimations" context="" customParameters="" metarole="" preset="$enum:dialogPreset.chat" recipient="$__player" recipientMetaroles="" nodeLabel="73110833" />
+                          <Function_speech_dialogInitiator alias="$parole_alias" animationApproach="$enum:animationApproach.dontPlayDialogAnimations" context="" customParameters="" metarole="$parole_metarole" preset="$enum:dialogPreset.ingame" recipient="$__player" recipientMetaroles="" nodeLabel="73110833" />
                         </IfCondition>
                       </Sequence>
                     </SuppressFailure>

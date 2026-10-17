@@ -165,3 +165,27 @@ garde la ronde, ses durées et le décor ; le socle fournit le geste tenu et la 
   retour calculés, renaissance sur le chemin du camp, rapport « faite ») ; le Directeur habillé de ses objets (7 créés,
   7 portés) ; après rechargement, le poste de prière reposé et repris, l'admis retrouvé et mené, jamais refait. Ajouté
   ensuite : à l'entrée en partie, le Directeur remet ses objets (recréés s'il en manque, sans doublon) ; non vu en jeu.
+
+### Tranche 4 : le poste partagé avec Henry (Henry passe avant)
+
+NOTE_METIERS §2 (réponse de JoVenGer du 16/10) et principe transmis par le pair (17/10) : un poste qu'Henry emploie
+aussi (la forge, la table d'alchimie…) est partagé ; quand Henry veut s'en servir, l'homme cède aussitôt la place, sans
+être renvoyé de son métier, attend à côté, puis reprend. On sait qu'Henry s'en sert par son **interaction** avec la
+station, pas par la distance.
+
+Sources (lecture seule) : `Scripts/Entities/WH/Minigames/Smithery.lua`, `AlchemyTable.lua` : `GetActions` y bâtit
+l'action « use » par `Action()…:func(<la fonction de la station>)` et `AddInteractorAction` ; aucune lecture « Henry en
+mini-jeu » dans les scripts ; `Minigame.CanUseMinigame(user.id)` (employée par ces stations) dit si Henry peut lancer un
+mini-jeu.
+
+Comportement :
+- `hommes.partager_avec_henry(station, oui)` : la station (le nom de son entité) est surveillée. Le socle enveloppe son
+  `GetActions` sur l'instance (le nom du jeu déjà admis) et **reconstruit** l'action « use » avec le constructeur du jeu,
+  sa fonction enveloppée : quand Henry l'emploie, la station est « prise par Henry » (une ligne au journal), puis la
+  fonction du jeu joue. Reposé à chaque battement (une entité refaite au chargement perd l'enveloppe).
+- La fin : Henry peut de nouveau lancer un mini-jeu (`Minigame.CanUseMinigame`), après `partage_delai_s` secondes au
+  moins, ou il s'est éloigné de plus de `partage_loin_m` mètres.
+- Un homme tenu avec `partage = station` (`hommes.tenir(..., { ..., partage = station })`) : la station prise, il
+  marche au point d'attente (décision remplaçable `hommes.ou_attendre(id, station)` : par défaut à `partage_attente_m`
+  mètres de la station, de son côté) ; libérée, il reprend sa tenue (son geste, son poste).
+- Non vérifié en jeu tant qu'une station du jeu n'a pas été prise puis rendue par Henry.

@@ -167,6 +167,12 @@ hommes.reglages = {
   semaines_max = 52,
   -- Fiche 20 : une demande de parole qui attend plus de tant d'heures du jeu (en combat, au lit) est oubliée.
   parole_attente_max_h = 2,
+  -- Fiche 18, 5 c, tranche 4 : le poste partagé avec Henry : la station rendue après « partage_delai_s » secondes au
+  -- moins (Henry peut de nouveau lancer un mini-jeu), ou quand Henry s'en éloigne de plus de « partage_loin_m » ; l'homme
+  -- attend à « partage_attente_m » de la station.
+  partage_delai_s = 3,
+  partage_loin_m = 6,
+  partage_attente_m = 2.5,
   palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
   plafond = 80,               -- fiche 18, 5 a : la compagnie au plus (le chiffre de JoVenGer du 28/09)
   -- L'arbitre (fiche 15, V73 b 3) : une tenue « jusqu'à libération » (bataille, patrouille) tombe par sûreté au bout de
@@ -1903,6 +1909,14 @@ function hommes.activite_de(id, heure)
         resultat.regard = { x = tenue.position.x + 5 * math.sin(r), y = tenue.position.y + 5 * math.cos(r), z = tenue.position.z }
       end
     end
+    -- Fiche 18, 5 c, tranche 4 : la station prise par Henry : l'homme cède la place et attend à côté.
+    local station = tenue.partage and hommes.stations[tenue.partage]
+    if station and station.prise then
+      resultat.activite, resultat.lieu = "cede", "cede_" .. tenue.partage
+      resultat.position = Scriptorium.avis(hommes, "ou_attendre", id, tenue.partage)
+      resultat.geste, resultat.regard, resultat.chemin = nil, nil, nil
+      return resultat
+    end
     -- Fiche 18, 5 c : au poste de travail, le poste et sa position.
     if tenue.poste then
       resultat.poste = tenue.poste
@@ -3427,6 +3441,8 @@ function hommes.battre()
   rapport.cerveaux = regler_les_cerveaux(d)
   rapport.arrets, rapport.a_rhabiller = surveiller_les_cerveaux(d)
   veiller_aux_montures(d)
+  -- Fiche 18, 5 c, tranche 4 : les stations partagées avec Henry (définies plus bas, appelées par la table).
+  hommes.veiller_les_stations(d, heure)
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -3547,7 +3563,7 @@ local function memes_tenues(a, b)
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
-    and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste
+    and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste and a.partage == b.partage
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -3656,6 +3672,10 @@ function hommes.tenir(id, regle, quoi)
       return refuser("geste_invalide", tostring(quoi.geste))
     end
   end
+  -- Fiche 18, 5 c, tranche 4 : la station partagée avec Henry, une station surveillée.
+  if quoi.partage ~= nil and not (type(quoi.partage) == "string" and hommes.stations[quoi.partage]) then
+    return refuser("station_inconnue", tostring(quoi.partage))
+  end
   -- Fiche 18, 5 c : le poste de travail, un poste connu du camp.
   if quoi.activite == "poste" and not camp().poste(quoi.poste) then
     return refuser("poste_inconnu", tostring(quoi.poste))
@@ -3677,6 +3697,7 @@ function hommes.tenir(id, regle, quoi)
                   tete = (quoi.activite == "suivre") and quoi.tete or nil,
                   poste = (quoi.activite == "poste") and quoi.poste or nil,
                   geste = (quoi.activite == "geste") and quoi.geste or nil,
+                  partage = quoi.partage,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
                   a_cheval = (quoi.activite == "suivre" and (quoi.a_cheval == true or quoi.a_cheval == "comme_henry"))
@@ -3767,8 +3788,11 @@ function hommes.conversation(id, partenaire, quoi)
   return demander_la_parole(id, { sorte = "conversation", alias = quoi.alias, metarole = quoi.metarole, partenaire = partenaire })
 end
 
--- Fiche 20 : un dialogue du jeu vers Henry, par son alias.
+-- Fiche 20 : un dialogue du jeu vers Henry, par son alias (ou { alias | metarole }).
 function hommes.dialogue_force(id, alias)
+  if type(alias) == "table" then
+    return demander_la_parole(id, { sorte = "dialogue", alias = alias.alias, metarole = alias.metarole })
+  end
   return demander_la_parole(id, { sorte = "dialogue", alias = alias })
 end
 
@@ -3780,6 +3804,101 @@ function hommes.parole_de(id)
   end
   return { sorte = p.sorte, alias = p.alias, metarole = p.metarole, partenaire = p.partenaire, numero = p.numero }
 end
+
+-- ---------------------------------------------------------------- le poste partagé avec Henry (fiche 18, 5 c, tranche 4)
+
+-- Les stations surveillées, en mémoire (reposées à chaque battement) : nom de l'entité -> { prise, depuis }.
+hommes.stations = hommes.stations or {}
+
+-- Surveiller une station du jeu qu'Henry emploie aussi (son nom d'entité). « oui » à faux : plus surveillée.
+function hommes.partager_avec_henry(station, oui)
+  if type(station) ~= "string" or station == "" then
+    return refuser("station_inconnue", tostring(station))
+  end
+  if oui == false then
+    hommes.stations[station] = nil
+    if jeu().partager_avec_henry then jeu().partager_avec_henry(station, false) end
+    return true
+  end
+  hommes.stations[station] = hommes.stations[station] or { prise = false }
+  if jeu().partager_avec_henry and not jeu().partager_avec_henry(station, true) then
+    jeu().journal("Hommes : station « " .. station .. " » introuvable pour l'instant (reposée au battement)")
+  end
+  return true
+end
+
+-- La station est-elle prise par Henry ? (vrai, faux, ou nil si elle n'est pas surveillée)
+function hommes.station_prise(station)
+  local s = hommes.stations[station]
+  if not s then
+    return nil
+  end
+  return s.prise == true
+end
+
+-- Décision remplaçable (fiche 19) : où l'homme attend que la station se libère. Par défaut, à « partage_attente_m » de la
+-- station, de son côté (sans position lisible : près de la station).
+function hommes.ou_attendre(id, station)
+  local f = donnees().liste[id]
+  local la = jeu().position_d_un_objet and jeu().position_d_un_objet(station) or nil
+  if not la then
+    return nil
+  end
+  local ici = f and f.personnage and jeu().position_du_personnage(f.personnage)
+  local dx, dy = 1, 0
+  if ici then
+    dx, dy = ici.x - la.x, ici.y - la.y
+  end
+  local longueur = math.sqrt(dx * dx + dy * dy)
+  if longueur < 0.1 then
+    dx, dy, longueur = 1, 0, 1
+  end
+  local m = (tonumber(hommes.reglages.partage_attente_m) or 2.5) / longueur
+  return { x = la.x + dx * m, y = la.y + dy * m, z = la.z }
+end
+Scriptorium.remplacable(hommes, "ou_attendre", function(rendu)
+  return type(rendu) == "table" and type(rendu.x) == "number" and type(rendu.y) == "number" and type(rendu.z) == "number"
+end)
+
+local function redonner_aux_partageurs(d, station, heure)
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    for _, t in pairs(f.tenues or {}) do
+      if t.partage == station then
+        f.derniere_activite = nil
+        ordonner_un_homme(d, id, heure, nil, true)
+        break
+      end
+    end
+  end
+end
+
+-- Henry vient de prendre la station (appelé par la liaison, l'action « use » de la station).
+function hommes.henry_prend_la_station(station)
+  local s = hommes.stations[station]
+  if not s or s.prise then
+    return
+  end
+  s.prise, s.depuis = true, jeu().maintenant()
+  jeu().journal("Hommes : Henry prend la station « " .. station .. " » : ses hommes lui cèdent la place")
+  redonner_aux_partageurs(donnees(), station, jeu().heure_du_jeu())
+end
+
+-- Au battement : les enveloppes reposées ; une station prise, rendue quand Henry a fini.
+local function veiller_les_stations(d, heure)
+  for station, s in pairs(hommes.stations) do
+    if jeu().partager_avec_henry then
+      jeu().partager_avec_henry(station, true)
+    end
+    if s.prise and jeu().henry_a_fini and jeu().henry_a_fini(station, s.depuis, tonumber(hommes.reglages.partage_delai_s) or 0,
+        tonumber(hommes.reglages.partage_loin_m) or 6) then
+      s.prise, s.depuis = false, nil
+      jeu().journal("Hommes : Henry rend la station « " .. station .. " » : ses hommes reprennent")
+      redonner_aux_partageurs(d, station, heure)
+    end
+  end
+end
+hommes.veiller_les_stations = veiller_les_stations
 
 -- Service (réponse 3 a de JoVenGer, V73 b) : exempter un homme d'une règle, par exemple un compagnon de la garde de nuit
 -- (« garde_de_nuit ») ; l'arbitre et la garde du socle ne la lui donnent plus, et sa tenue de cette règle tombe. « oui »
@@ -4115,6 +4234,10 @@ Scriptorium.declarer_morceau("hommes", function()
   -- La ronde (fiche 15, V73 d 2) : la liaison, appelée par l'arbre à chaque point, demande le pas suivant aux hommes.
   if jeu() and jeu().accrocher_la_ronde then
     jeu().accrocher_la_ronde(function(personnage) return Scriptorium.avis(hommes, "pas_de_ronde", personnage) end)
+  end
+  -- Fiche 18, 5 c, tranche 4 : la station prise par Henry, dite par la liaison.
+  if jeu() and jeu().accrocher_la_station then
+    jeu().accrocher_la_station(function(station) return hommes.henry_prend_la_station(station) end)
   end
   -- Fiche 18, 5 b : « Parler » à un homme parlable ; la liaison donne le personnage, l'accroche reçoit l'homme.
   if jeu() and jeu().accrocher_la_parole then

@@ -58,6 +58,8 @@ function depart()
     Scriptorium.hommes.hasard_de_la_ronde = nil
     Scriptorium.hommes.raisons_de_reprise = {}
     Scriptorium.hommes.accroches.ronde_reprise = {}
+    -- Fiches 20 et 18 (tranche 4) : les paroles et les stations partagées vivent en mémoire.
+    Scriptorium.hommes.paroles, Scriptorium.hommes.stations = {}, {}
     Scriptorium.hommes.rattrapages_en_attente = {}
     Scriptorium.hommes.gardien = { vus = {}, relances = 0, utiles = 0, repeches = 0 }
   end

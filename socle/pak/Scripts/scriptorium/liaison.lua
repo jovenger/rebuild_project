@@ -3269,6 +3269,155 @@ function liaison.geste_tenu(entite, donnees)
   end
 end
 
+-- Fiche 18, 5 c, tranche 4 : le poste partagé avec Henry. Une station du jeu (Smithery, AlchemyTable… : leur GetActions
+-- bâtit l'action « use » par Action()…:func(...), Scripts/Entities/WH/Minigames/Smithery.lua) : son GetActions est
+-- enveloppé sur l'instance, et l'action « use » rebâtie avec le constructeur du jeu, sa fonction enveloppée : Henry
+-- l'emploie, la station est dite prise (l'accroche des hommes), puis la fonction du jeu joue.
+liaison.stations_surveillees = liaison.stations_surveillees or {}
+
+function liaison.accrocher_la_station(fonction)
+  liaison.station_prise = fonction
+end
+
+local function quand_henry_prend(station)
+  if type(liaison.station_prise) ~= "function" then
+    return
+  end
+  local ok, erreur = pcall(liaison.station_prise, station)
+  if not ok then
+    liaison.journal("Station : « " .. station .. " » : accroche en erreur : " .. tostring(erreur))
+  end
+end
+
+local function rebatir_l_action(a, station)
+  local fonction = a.func
+  return Action():hint(a.hint):action(a.action):actionMap(a.actionMap):hintType(a.hintType):hintClass(a.hintClass)
+    :enabled(a.enabled):reason(a.reason):disabledBarkMetarole(a.disabledBarkMetarole):uiOrder(a.uiOrder)
+    :interaction(a.interactionName):uiVisible(a.uiVisible)
+    :func(function(soi, qui, emplacement)
+      if qui ~= nil and player ~= nil and (qui == player or qui.id == player.id) then
+        quand_henry_prend(station)
+      end
+      return fonction(soi, qui, emplacement)
+    end)
+end
+
+function liaison.partager_avec_henry(station, oui)
+  local entite = entite_nommee(station)
+  if not entite then
+    return false
+  end
+  if not oui then
+    if rawget(entite, "scriptorium_partage") then
+      entite.GetActions = entite.scriptorium_actions_du_partage
+      entite.scriptorium_partage, entite.scriptorium_actions_du_partage = nil, nil
+    end
+    return true
+  end
+  if rawget(entite, "scriptorium_partage") then
+    return true
+  end
+  if type(Action) ~= "function" or type(AddInteractorAction) ~= "function" then
+    liaison.journal("Station : Action ou AddInteractorAction absents : « " .. station .. " » pas surveillée")
+    return false
+  end
+  local d_origine = rawget(entite, "GetActions")
+  local origine = entite.GetActions
+  entite.scriptorium_actions_du_partage = d_origine
+  entite.scriptorium_partage = true
+  entite.GetActions = function(soi, utilisateur, premier_seul)
+    local sortie = (type(origine) == "function" and origine(soi, utilisateur, premier_seul)) or {}
+    local ok, refaite = pcall(function()
+      local liste = {}
+      for _, a in ipairs(sortie) do
+        if a.action == "use" and type(a.func) == "function" then
+          AddInteractorAction(liste, false, rebatir_l_action(a, station))
+        else
+          table.insert(liste, a)
+        end
+      end
+      return liste
+    end)
+    if ok then
+      return refaite
+    end
+    if not soi.scriptorium_partage_en_erreur then
+      soi.scriptorium_partage_en_erreur = true
+      liaison.journal("Station : « " .. station .. " » : action non rebâtie : " .. tostring(refaite))
+    end
+    return sortie
+  end
+  liaison.journal("Station : « " .. station .. " » surveillée (partagée avec Henry)")
+  return true
+end
+
+-- Henry a-t-il fini avec la station ? Vrai s'il s'en est éloigné de plus de « loin » mètres, ou si, « delai » secondes
+-- au moins après la prise, il peut de nouveau lancer un mini-jeu (Minigame.CanUseMinigame, employée par les stations).
+function liaison.henry_a_fini(station, depuis, delai, loin)
+  local entite, henry = entite_nommee(station), liaison.position_du_joueur()
+  if entite and henry then
+    local lu, la = pcall(function() return entite:GetWorldPos() end)
+    if lu and la and math.sqrt((la.x - henry.x) ^ 2 + (la.y - henry.y) ^ 2) > loin then
+      return true
+    end
+  end
+  if depuis and liaison.maintenant() - depuis < delai then
+    return false
+  end
+  local ok, peut = pcall(function() return Minigame.CanUseMinigame(player.id) end)
+  return ok and (peut == true or peut == 1)
+end
+
+-- Pour le poste d'essai (fiche 18, 5 b) : les actions qu'un personnage offre à Henry, demandées au jeu (sa fonction
+-- GetActions), et s'il est en combat. Rend une ligne.
+function liaison.actions_offertes(identifiant)
+  local entite = entite_nommee(identifiant)
+  if not entite or not player then
+    return "introuvable"
+  end
+  local ok, sortie = pcall(function() return entite:GetActions(player, false) end)
+  if not ok then
+    return "actions illisibles : " .. tostring(sortie)
+  end
+  local noms = {}
+  for _, a in ipairs(type(sortie) == "table" and sortie or {}) do
+    table.insert(noms, tostring(a.action))
+  end
+  local lu, combat = pcall(function() return entite.soul:IsInCombatMode() end)
+  return "actions [" .. table.concat(noms, ", ") .. "], en combat = " .. tostring(lu and combat)
+end
+
+-- Pour le poste d'essai (fiche 18, 5 c, tranche 4) : les stations du jeu qu'Henry emploie (forge, table d'alchimie,
+-- meule), à moins de « rayon » mètres de lui, de la plus proche à la plus loin. Rend la liste { nom, classe, distance }.
+function liaison.stations_proches(rayon)
+  local henry = liaison.position_du_joueur()
+  local liste = {}
+  if not henry then
+    return liste
+  end
+  for _, classe in ipairs({ "Smithery", "AlchemyTable", "Grindstone" }) do
+    local ok, entites = pcall(System.GetEntitiesByClass, classe)
+    for _, entite in ipairs((ok and type(entites) == "table") and entites or {}) do
+      local lu, la = pcall(function() return entite:GetWorldPos() end)
+      if lu and la then
+        local d = math.sqrt((la.x - henry.x) ^ 2 + (la.y - henry.y) ^ 2)
+        if d <= rayon then
+          table.insert(liste, { nom = entite:GetName(), classe = classe, distance = d })
+        end
+      end
+    end
+  end
+  table.sort(liste, function(a, b) return a.distance < b.distance end)
+  return liste
+end
+
+-- La position d'une entité du monde par son nom, ou nil.
+function liaison.position_d_un_objet(nom)
+  local entite = entite_nommee(nom)
+  local lu, la = pcall(function() return entite:GetWorldPos() end)
+  return (entite and lu and la) and { x = la.x, y = la.y, z = la.z } or nil
+end
+
 -- Fiche 18, 5 b : un personnage parlable. Le jeu ne met « Parler » (Scripts/Entities/AI/Shared/BasicAIActions.lua,
 -- GetActions) que si un dialogue existe pour son âme ; le socle enveloppe GetActions sur l'instance de l'entité (jamais
 -- la classe) et y ajoute « Parler » (Scripts/Utils/InteractorAction.lua : Action, AddInteractorAction ; interaction

@@ -3600,3 +3600,45 @@ essai("paroles (fiche 20) : une réplique jouée une fois puis oubliée ; une co
   verifier(nuit, "remplacée : la parole passe")
   FauxJeu.variables_du_cerveau = {}
 end)
+
+essai("poste partagé (5 c, tranche 4) : Henry prend la station, l'homme cède et attend à côté ; rendue, il reprend ; station inconnue refusée", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "forgeron", semaines = 4, prime = 0 })
+  local perso = hommes.fiche(id).personnage
+  hommes.battre()
+  FauxJeu.positions_des_objets = { forge_du_village = { x = 10, y = 0, z = 0 } }
+  FauxJeu.positions[perso] = { x = 9, y = 0, z = 0 }
+  verifier(not hommes.tenir(id, "travail", { activite = "geste", geste = "marteler", position = { x = 9, y = 0, z = 0 }, partage = "inconnue", fin = "liberation" }), "station non surveillée : refusé")
+  verifier(hommes.partager_avec_henry("forge_du_village", true), "station surveillée")
+  verifier(FauxJeu.stations.forge_du_village, "enveloppée par la liaison")
+  verifier(hommes.tenir(id, "travail", { activite = "geste", geste = "marteler", position = { x = 9, y = 0, z = 0 }, partage = "forge_du_village", fin = "liberation" }), "au travail")
+  egal(Scriptorium.avis(hommes, "activite_de", id, 10).activite, "geste", "il forge")
+  FauxJeu.ordres = {}
+  verifier(FauxJeu.henry_prend("forge_du_village"), "Henry prend la station")
+  egal(hommes.station_prise("forge_du_village"), true, "prise")
+  local a = Scriptorium.avis(hommes, "activite_de", id, 10)
+  egal(a.activite, "cede", "il cède la place")
+  verifier(a.position and math.abs(a.position.x - 7.5) < 0.01, "il attend à 2,5 m, de son côté")
+  local ordonne = false
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == perso and o.activite == "cede" then ordonne = true end
+  end
+  verifier(ordonne, "l'ordre donné aussitôt")
+  FauxJeu.henry_fini = false
+  hommes.battre()
+  egal(hommes.station_prise("forge_du_village"), true, "Henry pas fini : toujours prise")
+  FauxJeu.henry_fini = true
+  FauxJeu.ordres = {}
+  hommes.battre()
+  egal(hommes.station_prise("forge_du_village"), false, "rendue")
+  egal(Scriptorium.avis(hommes, "activite_de", id, 10).activite, "geste", "il reprend son geste")
+  avec_remplacement(hommes, "ou_attendre", function() return { x = 0, y = 20, z = 0 } end, function()
+    FauxJeu.henry_fini = false
+    FauxJeu.henry_prend("forge_du_village")
+    egal(Scriptorium.avis(hommes, "activite_de", id, 10).position.y, 20, "le point d'attente de Scriptorium")
+  end)
+  FauxJeu.henry_fini = nil
+  hommes.lacher(id, "travail")
+  hommes.partager_avec_henry("forge_du_village", false)
+  hommes.stations = {}
+end)
