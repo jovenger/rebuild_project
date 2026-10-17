@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 158:
-        erreur("ordres : %d commandes lues dans poste.lua, 158 attendues" % len(connues))
+    if len(connues) != 160:
+        erreur("ordres : %d commandes lues dans poste.lua, 160 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -648,6 +648,16 @@ def verifier_identifiants():
         end
         if perdus_dits ~= 0 then return "allure : « perdu » dit pour un cavalier qui suit Henry" end
         l.chefs["scriptorium_second"] = nil
+        -- V73 f 3 b : Henry posé à une position exacte, la pose relue ; une pose perdue n'est pas dite réussie.
+        local pose_l = nil
+        local joueur_avant_l = player
+        player = { SetWorldPos = function(self, p) pose_l = { x = p.x, y = p.y, z = p.z } end,
+                   GetWorldPos = function(self) return pose_l or { x = 0, y = 0, z = 0 } end }
+        local ok_p, cr_p = l.poser_le_joueur({ x = 10, y = 20, z = 107.1 })
+        if not ok_p or not pose_l or pose_l.z ~= 107.1 then return "poser le joueur : " .. tostring(cr_p) end
+        player.SetWorldPos = function() end
+        if l.poser_le_joueur({ x = 50, y = 20, z = 107.1 }) then return "poser le joueur : une pose perdue dite réussie" end
+        player = joueur_avant_l
         -- V73 f 3 b : la selle d'un de nos chevaux (horse:HasRider, la lecture d'Henry à cheval) ; illisible : nil.
         local selle = { HasRider = function() return 1 end }
         System.entites["scriptorium_cheval_essai"] = { horse = selle }

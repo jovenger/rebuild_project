@@ -143,6 +143,20 @@ function poste.essai_grand_saut()
   return ok
 end
 
+-- Fiche 15, V73 f 3 b (les intérieurs, méthode du pair) : des lieux d'essai lus dans les calques de la carte (level.pak
+-- de kutnohorsko, lecture seule), à l'auberge de Přítoky : « dedans », à 1 m des personnages de l'auberge (calque
+-- kpri_pritoky/inn, z = leur plancher, 107,0) ; « dehors », le point du crieur « hostinec2 », à 32 m.
+poste.lieux_d_essai = {
+  auberge_dehors = { x = 2165.9, y = 1513.3, z = 107.3 },
+  auberge_dedans = { x = 2160.0, y = 1482.2, z = 107.1 },
+}
+
+function poste.essai_lieu(nom)
+  local ok, compte_rendu = jeu().poser_le_joueur(poste.lieux_d_essai[nom])
+  jeu().journal("Poste : Henry posé au lieu « " .. nom .. " » = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
 -- Henry : posé sur le terrain d'essai (un pré dégagé hors du campement du jeu, liaison.terrain_d_essai).
 -- Le camp du socle est levé avant, pour ne pas le laisser derrière soi.
 function poste.essai_terrain_d_essai()
@@ -1809,6 +1823,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
   { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
   { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
+  { nom = "scriptorium_essai_auberge_dehors", fonction = function() return poste.essai_lieu("auberge_dehors") end, aide = "Pose Henry devant l'auberge de Přítoky (les intérieurs, V73 f 3 b)" },
+  { nom = "scriptorium_essai_auberge_dedans", fonction = function() return poste.essai_lieu("auberge_dedans") end, aide = "Pose Henry dans l'auberge de Přítoky, au rez-de-chaussée (V73 f 3 b)" },
   { nom = "scriptorium_essai_grand_saut", fonction = function() return poste.essai_grand_saut() end, aide = "Pose Henry deux cents mètres devant lui (le grand saut, V73 f 3 b)" },
   { nom = "scriptorium_essai_carte_voir", fonction = function() return poste.essai_carte_voir() end, aide = "La carte lue et le dernier chargement vu (V73 f 3 a)" },
   { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },

@@ -784,6 +784,24 @@ function liaison.deplacer_le_joueur(distance, cap)
   return resultat[1], resultat[2]
 end
 
+-- Pour le poste d'essai (V73 f 3 b, les intérieurs) : Henry posé à une position exacte (un plancher lu dans les calques
+-- de la carte, jamais l'altitude du terrain), la pose relue aussitôt. Rend (vrai, compte rendu) s'il est à moins de 2 m
+-- de la position, sinon (faux, compte rendu).
+function liaison.poser_le_joueur(position)
+  local ok, resultat = pcall(function()
+    local avant = player:GetWorldPos()
+    local de = string.format("%.0f, %.0f, %.1f", avant.x, avant.y, avant.z)
+    player:SetWorldPos({ x = position.x, y = position.y, z = position.z })
+    local apres = player:GetWorldPos()
+    local ecart = math.sqrt((apres.x - position.x) ^ 2 + (apres.y - position.y) ^ 2 + (apres.z - position.z) ^ 2)
+    return { ecart <= 2, string.format("de %s à %.1f, %.1f, %.1f, relu à %.1f m", de, apres.x, apres.y, apres.z, ecart) }
+  end)
+  if not ok then
+    return false, tostring(resultat)
+  end
+  return resultat[1], resultat[2]
+end
+
 -- Pour le poste d'essai : pose Henry à « distance » mètres d'un objet posé, du côté d'un point (le centre du camp).
 function liaison.aller_pres_de(identifiant, vers, distance)
   local entite = entite_nommee(identifiant)

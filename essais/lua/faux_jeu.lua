@@ -372,6 +372,11 @@ function faux.faire_venir_directeur(position, ame)
   return identifiant
 end
 function faux.position_du_joueur() return faux.position_joueur end
+-- V73 f 3 b : Henry posé à une position exacte (le poste d'essai des intérieurs).
+function faux.poser_le_joueur(position)
+  faux.position_joueur = { x = position.x, y = position.y, z = position.z }
+  return true, "posé"
+end
 function faux.cap_du_joueur() return faux.cap_joueur end
 
 -- L'équipement pièce par pièce (fiche 13, V71 b) : mêmes fonctions que la liaison. Les préréglages d'essai suivent la
