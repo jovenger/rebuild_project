@@ -1548,6 +1548,10 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - **À surveiller** : après un rattrapage, le chef reçoit de nouveau l'ordre 15 et ouvre une nouvelle formation sans
   fermer l'ancienne (la fermeture ne vient qu'à un ordre qui n'est plus « mener ») ; les suiveurs retrouvent la nouvelle.
   Une formation orpheline par rattrapage reste possible : aucune trace n'en est lisible au journal.
+  **Corrigé le 17/10 (remède du pair, « fermer avant d'ouvrir »)** : la branche 15 ferme l'ancienne formation du même chef
+  (`EndFormation`, sans effet s'il n'y en a pas) juste avant d'en ouvrir une ; contrôle statique au banc (deux
+  `EndFormation`, aucun `FuseBox`). Non revu en jeu : à regarder à la prochaine séance d'escorte (le cheval). Si cela ne
+  suffit pas, le second remède du pair : ne redonner l'ordre 15 au chef rattrapé que si son pouls est figé.
 - **Pas vu en jeu** : un homme en combat pendant l'escorte, la formation menée par le premier homme (derrière Henry), les
   surnuméraires en chaîne, un autre mode que `MoveHistory`.
 - **Suite** : V73 f 2, à cheval.

@@ -1228,11 +1228,15 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : la branche 16 doit retrouver la formation de son chef, s'y ranger (un nœud par mode), et le "
                "suivre normalement tant qu'elle n'est pas ouverte")
     # Relecture du pair : la formation n'est fermée que quand le chef cesse de mener (jamais au premier échec de sa marche :
-    # chez Alex, cela défaisait toute la troupe), et la branche 15 ne la ferme pas elle-même.
+    # chez Alex, cela défaisait toute la troupe) ; et « fermer avant d'ouvrir » : la branche 15 ferme l'ancienne formation
+    # du même chef juste avant d'en ouvrir une (après un rattrapage, l'ordre redonné rouvrait sans fermer).
     fermer = re.search(r'<IfCondition condition="\$scriptorium_activite ~= 15 &amp; \$formation_menee ~= \$__null"[^>]*>\s*'
                        r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />', comportements)
-    if not fermer or comportements.count("<EndFormation") != 1 or "<FuseBox" in comportements:
-        erreur("vie du camp : la formation se ferme seulement quand le chef cesse de mener (une seule EndFormation, aucun FuseBox)")
+    avant_d_ouvrir = re.search(r'<SuppressFailure>\s*<EndFormation FormationHandle="\$formation_menee" />\s*</SuppressFailure>\s*'
+                               r'<SuppressFailure>\s*<MakeFormation FormationName="\$formation_nom"', comportements)
+    if not fermer or not avant_d_ouvrir or comportements.count("<EndFormation") != 2 or "<FuseBox" in comportements:
+        erreur("vie du camp : la formation se ferme quand le chef cesse de mener, et juste avant d'en rouvrir une (deux "
+               "EndFormation, aucun FuseBox)")
     if "poser_l_activite(entite, 15)" not in liaison or "poser_l_activite(entite, 16)" not in liaison:
         erreur("vie du camp : la liaison doit donner les ordres 15 et 16")
     bloc_formations = re.search(r"hommes\.formations = \{(.*?)\n\}", hommes_lua, re.S)
