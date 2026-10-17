@@ -2216,7 +2216,10 @@ essai("formation (fiche 15, V73 f 1 bis) : derrière le Directeur, chacun se ran
   egal(hommes.activite_de(ids[2], 10).chef, perso[1], "le deuxième suit le premier")
   egal(hommes.activite_de(ids[3], 10).chef, perso[2], "le troisième suit le deuxième")
   hommes.formations.followNPC = places
-  -- Derrière Henry : le premier mène, les autres se rangent derrière lui.
+  -- Derrière Henry : le premier mène, les autres se rangent derrière lui (sans la reprise de tête par le Directeur,
+  -- V73 f 2 e, coupée ici : le Directeur mène encore).
+  local reprise_avant = hommes.reglages.directeur_mene_l_escorte
+  hommes.reglages.directeur_mene_l_escorte = false
   for i = 1, 3 do hommes.lacher(ids[i], "escorte") end
   for i = 1, 3 do
     hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "h", formation = "followNPC", fin = "liberation" })
@@ -2237,6 +2240,7 @@ essai("formation (fiche 15, V73 f 1 bis) : derrière le Directeur, chacun se ran
   FauxJeu.secours = {}
   hommes.battre()
   verifier(#FauxJeu.secours >= 1, "un suiveur en formation à 80 m de son chef : rattrapé")
+  hommes.reglages.directeur_mene_l_escorte = reprise_avant
   -- Le Directeur lâché : il ne mène plus.
   verifier(Scriptorium.directeur.suivre(false), "le Directeur lâché")
   egal(Scriptorium.directeur.activite(10).suivi, nil, "il ne mène plus")
@@ -2562,5 +2566,86 @@ essai("escorte comme Henry (fiche 15, V73 f 2 d) : monte tout de suite, descend 
   verifier(not hommes.lancer_la_veille_d_henry(), "une seule par partie")
   egal(#FauxJeu.minuteries, avant + 1, "une minuterie")
   egal(FauxJeu.minuteries[#FauxJeu.minuteries].ms, hommes.reglages.henry_veille_ms, "à la cadence réglée")
+  FauxJeu.henry_cheval, FauxJeu.manquees = nil, nil
+end)
+
+-- Fiche 15, V73 f 2 e : le Directeur monté, chef de colonne (relu par le pair : directeur_en_route de Scriptorium).
+essai("Directeur monté (fiche 15, V73 f 2 e) : il reprend la tête de l'escorte d'Henry, monte et descend avec Henry, son cheval retiré après", function()
+  preparer(5000, 100, 10)
+  verifier(Scriptorium.directeur.installer(), "Directeur installé")
+  local dir = Scriptorium.directeur.personnage()
+  FauxJeu.positions[dir] = { x = 100, y = 0, z = 0 }
+  local ids, perso = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+    FauxJeu.positions[perso[i]] = { x = 100 + 10 * i, y = 0, z = 0 }
+  end
+  hommes.battre()
+  FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.manquees, FauxJeu.henry_cheval = {}, {}, {}, false
+  local ok, raison = Scriptorium.directeur.suivre(true, "followNPC", "oui")
+  verifier(not ok and raison == "a_cheval_invalide", "a_cheval invalide : refusé")
+  verifier(Scriptorium.directeur.suivre(true, "followNPC", "comme_henry"), "le Directeur suit Henry comme Henry")
+  for i = 1, 3 do
+    hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = "comme_henry", fin = "liberation" })
+  end
+  -- À pied : il mène ; les hommes se rangent dans sa formation (il reprend la tête).
+  egal(Scriptorium.directeur.activite(10).suivi.mode, "mener", "le Directeur mène à pied")
+  for i = 1, 3 do
+    local a = hommes.activite_de(ids[i], 10)
+    egal(a.suivi and a.suivi.mode, "formation", "l'homme " .. i .. " se range")
+    egal(a.chef, dir, "dans la formation du Directeur")
+  end
+  hommes.reglages.directeur_mene_l_escorte = false
+  egal(hommes.activite_de(ids[1], 10).suivi.mode, "mener", "réglage à faux : le premier homme mène")
+  hommes.reglages.directeur_mene_l_escorte = true
+  -- Henry monte : le Directeur a son cheval et mène monté ; les hommes se rangent montés derrière lui.
+  FauxJeu.henry_cheval = true
+  hommes.veiller_henry()
+  local md = hommes.montures.directeur
+  verifier(md and md.cheval and FauxJeu.chevaux[md.cheval], "le Directeur a son cheval")
+  local o = dernier_ordre_de(dir)
+  verifier(o and o.suivi and o.suivi.mode == "cheval" and o.suivi.role == "mener" and o.suivi.formation == "followNPC", "il mène monté")
+  for i = 1, 3 do
+    local oi = dernier_ordre_de(perso[i])
+    verifier(oi and oi.suivi and oi.suivi.mode == "cheval" and oi.suivi.role == "formation" and oi.chef == dir, "l'homme " .. i .. " se range monté derrière lui")
+  end
+  -- Le même ordre n'est pas redonné tant que rien ne change (Henry posé près de lui pour le faux moteur : un essai
+  -- précédent l'a laissé ailleurs).
+  FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 100, y = 0, z = 0 }, 0
+  FauxJeu.secours = {}
+  local n_ordres = #FauxJeu.ordres
+  Scriptorium.directeur.battre()
+  egal(#FauxJeu.ordres, n_ordres, "rien de changé : pas d'ordre de plus")
+  egal(#FauxJeu.secours, 0, "rien de changé : pas de pose")
+  -- À cheval, jamais reposé seul par le rattrapage.
+  FauxJeu.positions[dir] = { x = 100, y = 300, z = 0 }
+  FauxJeu.secours = {}
+  Scriptorium.directeur.battre()
+  egal(#FauxJeu.secours, 0, "le Directeur à cheval loin d'Henry : pas de pose")
+  FauxJeu.positions[dir] = { x = 100, y = 0, z = 0 }
+  -- Henry descend : tout le monde à pied, le Directeur mène de nouveau à pied.
+  FauxJeu.henry_cheval = false
+  for _ = 1, 4 do hommes.veiller_henry() end
+  o = dernier_ordre_de(dir)
+  egal(o and o.suivi and o.suivi.mode, "mener", "le Directeur mène à pied")
+  -- La contre-épreuve : à pied, le Directeur loin d'Henry est rattrapé.
+  FauxJeu.positions[dir] = { x = 100, y = 300, z = 0 }
+  FauxJeu.secours = {}
+  Scriptorium.directeur.battre()
+  verifier(#FauxJeu.secours >= 1, "à pied, le Directeur à 300 m d'Henry : rattrapé")
+  FauxJeu.positions[dir] = { x = 100, y = 0, z = 0 }
+  -- Son cheval retiré par la règle de la sortie.
+  for _ = 1, 2 do hommes.battre() end
+  verifier(FauxJeu.chevaux[md.cheval] == nil, "le cheval du Directeur retiré")
+  verifier(hommes.montures.directeur == nil, "plus rien en mémoire pour lui")
+  -- Toujours à cheval (vrai) : son cheval sans attendre Henry.
+  verifier(Scriptorium.directeur.suivre(true, nil, true), "toujours à cheval")
+  local m2 = hommes.montures.directeur
+  verifier(m2 and m2.cheval, "son cheval sans attendre Henry")
+  egal(Scriptorium.directeur.activite(10).suivi.mode, "cheval", "il suit à cheval")
+  verifier(Scriptorium.directeur.suivre(false), "le Directeur lâché")
+  for _ = 1, 2 do hommes.battre() end
+  verifier(FauxJeu.chevaux[m2.cheval] == nil, "lâché : son cheval retiré")
   FauxJeu.henry_cheval, FauxJeu.manquees = nil, nil
 end)

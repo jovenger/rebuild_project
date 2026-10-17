@@ -93,6 +93,9 @@ hommes.reglages = {
   henry_veille_ms = 1000,
   henry_descente_lectures = 4,
   henry_cheval_pres_m = 1.5,
+  -- Le Directeur reprend la tête (V73 f 2 e, la règle de Scriptorium transmise par le pair) : quand il suit Henry en
+  -- formation, une escorte d'Henry en formation se range dans sa formation ; à faux, son premier homme mène.
+  directeur_mene_l_escorte = true,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -1439,6 +1442,23 @@ end
 -- L'activité d'un homme à une heure : { regle, activite, lieu, position, cap, fin, regard }. L'arbitre (fiche 15, V73 b 3) : la
 -- tenue posée la plus forte, contre les règles que le socle calcule lui-même (les soins d'un blessé, son tour de garde) ;
 -- à rang égal, la tenue posée l'emporte (un ordre exprès) ; sinon la journée du socle, ou l'attente si elle est coupée.
+-- Le « suivi » à cheval d'un porteur qui a son cheval passager (V73 f 2 b, c ; un homme, ou le Directeur, V73 f 2 e) :
+-- son rôle (« mener » et sa formation, « formation », ou rien) et l'approche jusqu'à son cheval (le délai de la monte
+-- s'allonge de cette marche) ; nil sans cheval (pas encore né, ou l'abandon après les montes manquées).
+local function suivi_a_cheval(cle, personnage, role, formation)
+  local m = hommes.montures[cle]
+  if not (m and m.cheval and not m.abandon) then
+    return nil
+  end
+  local ici, la = jeu().position_du_personnage(personnage), jeu().position_du_personnage(m.cheval)
+  local approche = 0
+  if ici and la then
+    approche = math.floor(math.min(hommes.reglages.monte_approche_max_ms, 1000
+      * math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) / hommes.reglages.monte_approche_m_par_s))
+  end
+  return { mode = "cheval", cheval = m.cheval, role = role, formation = formation, approche_ms = approche }
+end
+
 function hommes.activite_de(id, heure)
   local d = donnees()
   local f = d.liste[id]
@@ -1503,7 +1523,12 @@ function hommes.activite_de(id, heure)
         -- V73 f 1 bis : en formation, le chef de formation est le Directeur (chef « directeur ») ou le premier homme ;
         -- les suivants, dans la limite des places du modèle, s'y rangent ; les surnuméraires suivent en chaîne.
         local places = tenue.formation and tonumber(hommes.formations[tenue.formation]) or nil
+        -- V73 f 2 e : le Directeur reprend la tête (réglable) : quand il suit Henry en formation, une escorte d'Henry en
+        -- formation (chef « henry » ou rien) se range dans sa formation.
+        local dir = Scriptorium.directeur
         local du_directeur = tenue.chef == "directeur"
+          or (hommes.reglages.directeur_mene_l_escorte == true and tenue.formation ~= nil
+              and (tenue.chef == nil or tenue.chef == "henry") and dir ~= nil and dir.mene_une_formation() == true)
         local premier = du_directeur and 0 or 1
         if places and rang > premier and rang - premier <= places then
           if du_directeur then
@@ -1538,19 +1563,9 @@ function hommes.activite_de(id, heure)
         elseif tenue.a_cheval == true or (tenue.a_cheval == "comme_henry" and hommes.henry_monte == true) then
           -- V73 f 2 b : la sortie à cheval (V73 f 2 d : « comme Henry », tant qu'Henry est retenu monté) ; l'homme qui a son cheval passager le monte, dans son rôle (mener, se ranger,
           -- suivre) ; sans cheval (pas encore né, ou l'abandon après les montes manquées), à pied dans ce rôle.
-          local m = hommes.montures[id]
-          if m and m.cheval and not m.abandon then
-            local role = resultat.suivi
-            -- V73 f 2 c : l'homme marche jusqu'à son cheval ; le délai de la monte s'allonge de cette marche.
-            local ici, la = jeu().position_du_personnage(f.personnage), jeu().position_du_personnage(m.cheval)
-            local approche = 0
-            if ici and la then
-              approche = math.floor(math.min(hommes.reglages.monte_approche_max_ms, 1000
-                * math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) / hommes.reglages.monte_approche_m_par_s))
-            end
-            resultat.suivi = { mode = "cheval", cheval = m.cheval, role = role and role.mode or nil,
-                               formation = role and role.formation or nil, approche_ms = approche }
-          end
+          local role = resultat.suivi
+          resultat.suivi = suivi_a_cheval(id, f.personnage, role and role.mode or nil, role and role.formation or nil)
+            or resultat.suivi
         end
         -- Le rôle à cheval et le nom du cheval entrent dans la signature : un cheval né de nouveau redonne l'ordre.
         resultat.signature = rang .. "/" .. nombre .. (resultat.suivi and ("/" .. resultat.suivi.mode) or "")
@@ -2215,8 +2230,8 @@ end
 
 -- Le cheval passager de l'homme en sortie à cheval qui n'en a pas de vivant (V73 f 2 b) : sa place (V73 f 2 c) ; une naissance refusée compte comme un essai manqué, une seule fois à la même heure
 -- du jeu (la pose d'une tenue ordonne l'homme deux fois). Une ligne au journal.
-local function preparer_la_monture(id, f, heure)
-  if not en_sortie_a_cheval(f) then
+local function preparer_la_monture(id, f, heure, en_sortie)
+  if not en_sortie then
     return
   end
   local m = hommes.montures[id]
@@ -2256,10 +2271,42 @@ end
 -- du cheval) retire ce cheval ; l'ordre suivant en fait naître un autre, sous le plafond d'essais. Un cheval dont l'homme
 -- n'est plus en sortie à cheval est retiré quand l'homme s'en est éloigné, ou au plus tard au
 -- « cheval_retrait_battements »-ième battement ; tout de suite si l'homme n'est plus au camp.
+-- Le porteur d'une monture (V73 f 2 e) : un homme (sa tenue) ou le Directeur (clé « directeur », son registre). Rend
+-- (porteur { personnage, nom }, en sortie à cheval), ou nil.
+local function porteur(cle, d)
+  if cle == "directeur" then
+    local dir = Scriptorium.directeur
+    local personnage = dir and dir.personnage()
+    if not personnage then
+      return nil, false
+    end
+    return { personnage = personnage, nom = "Directeur" }, dir.en_sortie_a_cheval() == true
+  end
+  local f = d.liste[cle]
+  return f, f ~= nil and en_sortie_a_cheval(f)
+end
+
+-- Services pour le Directeur (V73 f 2 e) : son cheval passager, préparé s'il est en sortie à cheval ; et son « suivi »
+-- à cheval dans son rôle, ou nil.
+function hommes.preparer_la_monture_du_directeur(heure)
+  local p, en_sortie = porteur("directeur", donnees())
+  if p then
+    preparer_la_monture("directeur", p, heure, en_sortie)
+  end
+end
+
+function hommes.suivi_du_directeur(role, formation)
+  local p, en_sortie = porteur("directeur", donnees())
+  if not p or not en_sortie then
+    return nil
+  end
+  return suivi_a_cheval("directeur", p.personnage, role, formation)
+end
+
 local function veiller_aux_montures(d)
   for id, m in pairs(hommes.montures) do
-    local f = d.liste[id]
-    if f and f.personnage and en_sortie_a_cheval(f) then
+    local f, en_sortie = porteur(id, d)
+    if f and f.personnage and en_sortie then
       local n = jeu().montes_manquees(f.personnage)
       if m.cheval and n and m.manquees and n > m.manquees then
         jeu().retirer_cheval(m.cheval)
@@ -2302,7 +2349,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   if not f or not f.personnage then
     return
   end
-  preparer_la_monture(id, f, heure)
+  preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
   local a = hommes.activite_de(id, heure)
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
@@ -2397,6 +2444,10 @@ function hommes.veiller_henry()
         end
         ordonner_un_homme(d, id, heure, nil, true)
       end
+    end
+    -- V73 f 2 e : le Directeur aussi, s'il suit Henry (son ordre n'est redonné que si sa monture change).
+    if Scriptorium.directeur and Scriptorium.directeur.est_installe() then
+      Scriptorium.directeur.battre()
     end
   end
   return lu

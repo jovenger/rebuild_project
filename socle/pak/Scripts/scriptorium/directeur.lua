@@ -153,8 +153,9 @@ end
 -- Fiche 15, V73 f 1 : le Directeur suit Henry, en tête (« c'est lui le premier qui me suit » ; service pour le guichet).
 -- Gardé à son registre : au rechargement, l'ordre redonné le remet en route. « oui » à faux : il reprend sa journée.
 -- « formation » (V73 f 1 bis) : il mène une formation du moteur (un modèle de hommes.formations), où se rangent les hommes
--- d'une escorte dont le chef est « directeur ».
-function directeur.suivre(oui, formation)
+-- d'une escorte dont le chef est « directeur ». « a_cheval » (V73 f 2 e) : rien, vrai (toujours à cheval) ou
+-- « comme_henry » (à cheval tant qu'Henry l'est) ; son cheval est celui des hommes (un cheval passager).
+function directeur.suivre(oui, formation, a_cheval)
   local d = donnees()
   if not d.installe then
     return refuser("pas_de_directeur")
@@ -163,19 +164,40 @@ function directeur.suivre(oui, formation)
   if formation ~= nil and not formations[formation] then
     return refuser("formation_inconnue", tostring(formation))
   end
+  if a_cheval ~= nil and type(a_cheval) ~= "boolean" and a_cheval ~= "comme_henry" then
+    return refuser("a_cheval_invalide", tostring(a_cheval))
+  end
   d.suivre = (oui ~= false) or nil
   d.formation = d.suivre and formation or nil
+  d.a_cheval = (d.suivre and (a_cheval == true or a_cheval == "comme_henry")) and a_cheval or nil
   d.derniere_activite = nil
   enregistrer()
   directeur.battre()
   return true
 end
 
+-- V73 f 2 e : le Directeur en sortie à cheval (il suit Henry, à cheval toujours, ou tant qu'Henry l'est).
+function directeur.en_sortie_a_cheval()
+  local d = donnees()
+  local h = Scriptorium.hommes
+  return d.suivre == true
+    and (d.a_cheval == true or (d.a_cheval == "comme_henry" and h ~= nil and h.henry_monte == true))
+end
+
+-- V73 f 2 e : il suit Henry en menant une formation (il reprend alors la tête des escortes d'Henry en formation).
+function directeur.mene_une_formation()
+  local d = donnees()
+  return d.installe == true and d.suivre == true and d.formation ~= nil and d.personnage ~= nil
+end
+
 function directeur.activite(heure)
   local d = donnees()
   if d.suivre then
+    local suivi = d.formation and { mode = "mener", formation = d.formation } or nil
+    -- V73 f 2 e : à cheval, dans son rôle (mener sa formation, ou suivre) ; sans cheval encore, à pied.
+    local a_cheval = Scriptorium.hommes and Scriptorium.hommes.suivi_du_directeur(d.formation and "mener" or nil, d.formation)
     return { activite = "suivre", lieu = "henry", chef = "henry", position = jeu().position_du_joueur(),
-             suivi = d.formation and { mode = "mener", formation = d.formation } or nil }
+             suivi = a_cheval or suivi }
   end
   local h = heure - math.floor(heure / 24) * 24
   for _, t in ipairs(directeur.journee) do
@@ -192,17 +214,23 @@ function directeur.battre()
   if not d.installe or not d.personnage then
     return rapport
   end
+  -- V73 f 2 e : son cheval passager préparé s'il est en sortie à cheval ; son ordre redonné quand son activité ou sa
+  -- monture change (le rôle et le nom du cheval dans sa signature).
+  if Scriptorium.hommes then
+    Scriptorium.hommes.preparer_la_monture_du_directeur(jeu().heure_du_jeu())
+  end
   local a = directeur.activite(jeu().heure_du_jeu())
-  if a and d.derniere_activite ~= a.activite then
+  local resume = a and (a.activite .. (a.suivi and ("/" .. tostring(a.suivi.mode) .. "/" .. tostring(a.suivi.cheval)) or ""))
+  if a and d.derniere_activite ~= resume then
     -- Fiche 15, V73 a : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart, jamais dessus
     -- (avant, il était posé dans le feu à la veillée).
     local sorte = camp().sorte_de(a.lieu)
     local objet = sorte and camp().sortes_places[sorte] and camp().objet_du_jeu_de(a.lieu) or nil
     local position = objet and a.position or camp().abord_de(a.lieu) or a.position
     jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, nil, nil, a.chef, a.suivi)
-    d.derniere_activite = a.activite
+    d.derniere_activite = resume
     rapport.ordres = 1
-  elseif a and a.activite == "suivre" and Scriptorium.hommes
+  elseif a and a.activite == "suivre" and not (a.suivi and a.suivi.mode == "cheval") and Scriptorium.hommes
       and Scriptorium.hommes.rattraper(d.personnage, a.chef, "Directeur") then
     -- Le rattrapage (V73 f 1) : posé derrière Henry, son ordre redonné au battement suivant.
     d.derniere_activite = nil

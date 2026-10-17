@@ -929,6 +929,25 @@ function poste.essai_cheval_d_henry()
   return ok == true
 end
 
+-- Fiche 15, V73 f 2 e : le Directeur suit Henry « comme Henry » en menant la formation followNPC ; les trois premiers
+-- hommes « comme Henry » derrière Henry (ils se rangent dans sa formation : il reprend la tête).
+function poste.essai_directeur_a_cheval()
+  local ok_d, raison_d = Scriptorium.directeur.suivre(true, "followNPC", "comme_henry")
+  jeu().journal("Poste : le Directeur suit Henry comme Henry : " .. tostring(ok_d) .. " " .. tostring(raison_d or ""))
+  local n = 0
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then
+      local ok = Scriptorium.hommes.tenir(id, "escorte", { activite = "suivre", lieu = "cavaliers", formation = "followNPC",
+        a_cheval = "comme_henry", fin = "liberation" })
+      if ok then
+        n = n + 1
+      end
+    end
+  end
+  jeu().journal("Poste : escorte « comme Henry » de " .. n .. " homme(s) derrière le Directeur")
+  return ok_d == true
+end
+
 function poste.essai_fin_escorte()
   local n = 0
   for _, id in ipairs(Scriptorium.hommes.liste()) do
@@ -1772,6 +1791,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
   { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
   { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
+  { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },
   { nom = "scriptorium_essai_escorte_comme_henry", fonction = function() return poste.essai_escorte_comme_henry() end, aide = "Les trois premiers hommes suivent Henry, à cheval quand il l'est (V73 f 2 d)" },
   { nom = "scriptorium_essai_henry_a_cheval", fonction = function() return poste.essai_henry_a_cheval() end, aide = "La lecture d'Henry forcée à cheval (V73 f 2 d)" },
   { nom = "scriptorium_essai_henry_a_pied", fonction = function() return poste.essai_henry_a_pied() end, aide = "La lecture d'Henry forcée à pied (V73 f 2 d)" },

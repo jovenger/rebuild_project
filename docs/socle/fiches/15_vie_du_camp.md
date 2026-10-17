@@ -1940,9 +1940,64 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 - **La vraie monte d'Henry n'a pas abouti** : la touche E simulée (code de balayage 0x12, appui court puis long, au
   flanc) ne fait pas monter Henry ; arrêt après deux échecs. **Non vérifié en jeu** : la lecture « monté » vraie (un
   cheval monté à moins de 1,5 m d'Henry). À éprouver par JoVenGer en jouant, ou par une autre façon de faire monter
-  Henry (à chercher, pas une troisième variante de la touche).
+  Henry (à chercher, pas une troisième variante de la touche). Le pair (17/10) : ni Alex ni Scriptorium ne font
+  monter Henry par script ; le jeu a deux comportements du joueur (`AI/player/scheduler/playerAction_horse.xml`,
+  `playerAction_teleportOnHorse.xml`), lancés sans doute par les quêtes. **À vérifier par JoVenGer**, en jouant : il
+  monte sur son cheval, l'escorte « comme Henry » monte ; il descend, elle descend au bout d'environ 4 s.
 - Les parades du pair au faux départ (un cavalier du jeu qui frôle Henry) : deux lectures « monté » de suite, ou la
   hauteur d'Henry au-dessus du sol (à mesurer d'abord, monté et à pied) ; pas encore faites.
+
+## V73 f 2 e — le Directeur monté, chef de colonne (17/10, relu par le pair ; réponses recommandées prises d'office)
+
+### Le périmètre
+- Relecture du pair (V73 f 2 b) : chez Scriptorium, **le Directeur est le chef de la colonne** ; quand il est là, il
+  reprend la tête, et « le premier homme mène » ne sert qu'en son absence.
+- **Ce pas** : le Directeur suit Henry à cheval (toujours, ou « comme Henry »), mène la formation monté, et l'escorte
+  d'Henry en formation se range derrière lui d'elle-même.
+
+### Comment ce serait fait
+1. **Le service** : `directeur.suivre(oui, formation, a_cheval)` ; `a_cheval` : rien (à pied), vrai (toujours à cheval)
+   ou « comme_henry » ; autre chose : refus `a_cheval_invalide`. Gardé à son registre, comme `formation`.
+2. **Son cheval** : le même que celui des hommes (V73 f 2 b et c) : un cheval passager, en mémoire, né hors des
+   meubles, la monte bornée et la monte manquée (3 essais), le retrait après la sortie. Le code des chevaux sert à un
+   « porteur » : un homme (sa tenue) ou le Directeur (son registre, clé « directeur »).
+3. **Son ordre** : en sortie à cheval, « suivre » à cheval dans son rôle (mener sa formation : ordre 18 ; sinon 17) ;
+   l'approche comptée. Son ordre est redonné quand son activité **ou sa monture** change (le nom du cheval et le rôle
+   dans sa signature, comme pour les hommes). À cheval, jamais reposé seul par le rattrapage (comme les hommes).
+4. **Henry monte, Henry descend** (V73 f 2 d) : la veille redonne aussi l'ordre du Directeur s'il suit « comme Henry ».
+5. **Il reprend la tête** (réglable : `hommes.reglages.directeur_mene_l_escorte`, vrai) : quand il suit Henry en
+   formation, une escorte d'Henry en formation (chef « henry » ou rien) se range dans **sa** formation (le chef de
+   chacun : le Directeur) au lieu que son premier homme en ouvre une autre.
+6. **Les commandes d'essai** : `essai_directeur_a_cheval` (le Directeur suit Henry « comme Henry » en formation
+   followNPC, et les trois premiers hommes « comme Henry » derrière Henry) ; `essai_fin_escorte` (déjà là, lâche aussi
+   le Directeur) ; la lecture forcée (`essai_henry_a_cheval`, `essai_henry_a_pied`).
+
+### Règles en données (catalogue)
+- `hommes.reglages.directeur_mene_l_escorte` : vrai.
+
+### Essai en jeu : grille écrite avant la séance
+`playline3`, secours coupé, trois hommes, le Directeur ; `essai_directeur_a_cheval`.
+1. **À pied** : le Directeur mène (ordre 15), les trois hommes se rangent dans sa formation (ordre 16, chef le
+   Directeur), même si leur escorte dit « henry ».
+2. **Lecture forcée à cheval** : quatre chevaux naissent ; le Directeur mène monté (18), les hommes se rangent montés
+   (19) derrière lui ; à l'image, le Directeur en tête.
+3. **L'allure du chef** (relecture du pair) : l'écart Directeur–Henry, lecture forcée à cheval, Henry au pas puis à la
+   course ; s'il dépasse nettement les 2 à 4 m de la colonne à pied, il faudra l'allure du chef réglée sur la vitesse
+   d'Henry (le principe d'Alex, repoussé en V73 f 2 b).
+4. **Lecture forcée à pied** : tout le monde descend après 4 s, chevaux retirés au battement.
+- Décompte de l'écran noir (fiche 14).
+
+### Relecture du pair (17/10)
+- Fiche bonne : c'est `directeur_en_route` de Scriptorium (le Directeur chef de la formation, la troupe derrière lui).
+  Scriptorium dit qu'il « tient l'allure d'Henry » (au pas, à la course, à cheval) : en tête d'une colonne montée, s'il
+  distance Henry ou traîne, toute la colonne fait de même. À mesurer dans la séance (point 3 de la grille).
+- Fait en plus : un essai probant du rattrapage (le Directeur à pied loin d'Henry est rattrapé ; à cheval, non).
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Le cheval du Directeur** : (a) le même mécanisme que les hommes, un « porteur » de plus (Recommandé : un seul code
+   des chevaux) ; (b) un cheval à lui, gardé au registre. **Prise : (a).**
+2. **Il reprend la tête d'elle-même** : (a) oui, réglable (Recommandé : la règle de Scriptorium transmise par le pair) ;
+   (b) seulement si l'escorte dit chef « directeur ». **Prise : (a).**
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
