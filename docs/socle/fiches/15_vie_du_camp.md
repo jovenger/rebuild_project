@@ -660,7 +660,7 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
   d'essai avec V73 d 2 : l'écart au but de l'ordre, pas seulement au siège).
 - **Suite** : V73 d 2, la ronde (mécanique seulement : suivre un chemin de points avec des pauses).
 
-## V73 d 2 — la ronde (17/10, à relire par le pair)
+## V73 d 2 — la ronde (17/10, relu par le pair)
 
 ### Le périmètre
 - **Mécanique seulement** (réponse 3 a de JoVenGer, 16/10) : l'homme suit un chemin de points, avec une pause à chaque
@@ -728,11 +728,13 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
 ### Le détail de la voie (a)
 1. **La tenue « ronde »** (`hommes.tenir`) : `chemin`, une liste de 2 à `ronde_points_max` (32) points du monde
    ({ x, y, z }, comme la `position` d'une garde) ; `aller_retour` (faux par défaut : boucle) ; `depart`, le numéro du
-   premier point (facultatif). Refus `chemin_invalide` sinon. Gardée au registre comme toute tenue (24 points font
+   premier point (facultatif). Refus `chemin_invalide` sinon. Scriptorium garde sa ronde dans le repère du camp
+   (relecture du pair) : il la redonne, en points du monde (`camp.point`), à chaque nouvelle fondation. La ronde se
+   joue le jour comme la nuit. Gardée au registre comme toute tenue (24 points font
    environ 1 Ko par homme, loin des 65 535 octets d'un jeton ; mesuré au banc). `memes_tenues` compare le chemin point
    par point et les deux options.
-2. **`activite_de`** : la tenue « ronde » rend l'activité « ronde », son chemin et ses options ; aucun regard (ni `Turn`
-   ni geste aux pauses dans ce pas, question 3).
+2. **`activite_de`** : la tenue « ronde » rend l'activité « ronde », son chemin et ses options ; le regard de chaque
+   pause est donné par le pas (réponse 3 b, ci-dessous).
 3. **L'ordre** (`ordonner_un_homme`) : le premier point est `depart`, sinon le point du chemin le plus proche de
    l'homme ; l'état de sa ronde est gardé en mémoire (`hommes.en_ronde` : point visé, point quitté, sens) ; l'ordre 13
    part avec ce premier point. Au rechargement, le cerveau repart de zéro ; l'ordre redonné repart du point le plus
@@ -744,8 +746,10 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
    500 ms. Un homme qui n'est plus de ronde : rien (l'arbre garde sa pause par défaut, et finit au changement d'ordre).
 5. **La liaison** : `liaison.ordonner` avec l'activité « ronde » pose le point, puis l'activité 13 ;
    `liaison.au_point_de_ronde(entite, donnees)` retrouve l'homme par le nom de l'entité, demande le pas, pose le point,
-   écrit la pause (« 6000ms ») ; tout sous `pcall` ; une ligne au journal par pas (le point, la pause, l'écart au point
-   quitté).
+   écrit la pause (« 6000ms ») ; tout sous `pcall`, l'erreur écrite au journal ; une ligne au journal par pas (le
+   point, la pause, l'écart au point quitté). Dans l'arbre, l'appel est lui-même sous `pcall(function() … end)` (si la
+   table manquait, l'erreur ne casserait pas la branche), une seule instruction, **jamais de commentaire Lua dans
+   `code`** (un « -- » couperait sans bruit tout le reste) ; le banc le vérifie.
 6. **Le secours** : pour un rondier, le but est le point visé ; il est « arrivé » s'il est à moins de
    `secours_arrivee_m` du point visé ou du point quitté (il y fait sa pause) ; posé d'un coup seulement s'il ne se
    rapproche d'aucun des deux pendant `secours_delai_s`, et alors près du point visé.
@@ -775,8 +779,8 @@ poste 1, jusqu'à libération) ; une lecture toutes les 5 s environ ; `voir_sur_
 - Le secours : un rondier en pause au point quitté n'est jamais posé ; bloqué entre deux points, posé près du point
   visé.
 - La liaison, sur un faux moteur : le pas pose le point et écrit la pause ; un homme inconnu, rien, sans erreur.
-- Contrôles statiques : la branche 13 (la marche, l'arrivée, l'appel au nom de `Scriptorium.chemin`, l'attente de
-  `$ronde_pause`) ; la fonction appelée existe dans la liaison ; les deux variables de cerveau, déclarées, avec leur
+- Contrôles statiques : la branche 13 (la marche, l'arrivée, l'appel sous `pcall` au nom de `Scriptorium.chemin`, sans
+  commentaire Lua, l'attente de `$ronde_pause`) ; la fonction appelée existe dans la liaison ; les deux variables de cerveau, déclarées, avec leur
   défaut dans l'arbre.
 - Le garde-fou de la ronde d'essai : chaque segment à au moins `ecart_d_abord` (2,4 m) de tout meuble du plan, tous
   niveaux, et en dedans de la palissade.
@@ -789,23 +793,82 @@ arrivées).
    ligne → `ExecuteLua` n'est pas joué : lire le journal, la voie (b), un seul changement.
 2. À chaque point : arrivé à moins de 1,5 m, une pause, puis il repart seul vers le suivant ; les pauses lues aux
    heures des lignes : courtes de 2 à 10 s, une longue (12 à 28 s) environ une fois sur cinq → bon.
-3. Le tour complet (environ 3 min) : les 12 points puis le premier, aucun arrêt, aucune glissade, jamais planté plus de 30 s → bon.
-4. Les deux rondiers : chacun son pas, aucun ne bloque l'autre → bon.
-5. `essai_lacher_ronde` : un seul ordre par homme, chacun rejoint sa tranche → bon.
-6. Le troisième homme suit sa journée, un lancement.
+3. Pendant chaque pause, il se tourne vers le dehors (écart au regard sous 25°, la tolérance du `Turn` est d'environ
+   20°), puis repart vers le point suivant → bon (réponse 3 b).
+4. Le tour complet (environ 3 min) : les 12 points puis le premier, aucun arrêt, aucune glissade, jamais planté plus de 30 s → bon.
+5. Les deux rondiers : chacun son pas, aucun ne bloque l'autre → bon.
+6. `essai_lacher_ronde` : un seul ordre par homme, chacun rejoint sa tranche → bon.
+7. Le troisième homme suit sa journée, un lancement.
 - Décompte de l'écran noir (fiche 14).
+
+### Relecture du pair (17/10)
+- **Alex fait la voie (a)** (mécanisme seulement) : arrivé au point (arrêt à 1 m ± 0,5, état du personnage changé par
+  la marche), l'arbre appelle le Lua, qui pose le point suivant dans une variable de cerveau `vec3` ; un second appel
+  écrit dans les variables de l'arbre une pause demandée ou non, et la longue pause est tirée dans l'arbre une fois sur
+  cinq ; puis l'attente (20 s ± 8, 6 s ± 4, ou 200 ms). Ni minuterie ni guet. Notre variante (la pause tirée par le
+  socle, écrite dans `data.ronde_pause`) est équivalente et garde le hasard du côté du socle.
+- **Les pièges d'`ExecuteLua`** : chaque appel sous `pcall(function() … end)` (une erreur non attrapée casse la
+  branche, l'homme se fige), l'erreur écrite au journal ; jamais de commentaire Lua dans `code` (tout le reste est coupé
+  sans bruit) ; une seule instruction qui appelle une fonction du module. Le code tourne bien sur le personnage qui joue
+  l'arbre (`entity.this.id` chez Alex) ; aucun cas « hors du personnage » vu.
+- **La ronde de Scriptorium** (`ronde_tracee`, `nuit_du_camp`) : une boucle (JoVenGer trace au moins 3 points, la boucle
+  se ferme d'elle-même) ; redécoupée en 24 points à égale distance ; six gardes de quart espacés, à cadence commune,
+  et c'est Scriptorium qui les espace (le point de départ) ; points gardés dans le repère du camp ; le jour et la nuit.
+  La borne de 32 points couvre ses 24.
+- **Ce qui change dans la fiche** : l'appel sous `pcall` dans l'arbre et dans la liaison, sans commentaire ; le chemin
+  redonné par Scriptorium à chaque fondation ; jour et nuit. Les recommandations des quatre questions sont confirmées.
 
 ### Questions à JoVenGer (après relecture par le pair)
 1. **La voie** : (a) l'arbre appelle le Lua à chaque point, la pause tirée par le socle (Recommandé : aucune attente, le
    hasard vérifié au banc, la forme du jeu existe) ; (b) le guet de 5 s relit les arrivées (jusqu'à 5 s de plus à chaque
    point) ; (c) tout le chemin dans le cerveau (aucun exemple dans le jeu, à sonder d'abord).
 2. **Plusieurs hommes sur une ronde** : (a) chacun part du point le plus proche de lui, et Scriptorium peut donner le
-   point de départ pour les espacer (Recommandé : le socle fait la mécanique, Scriptorium décide) ; (b) le socle les
+   point de départ pour les espacer (Recommandé, avec le pair : Scriptorium espace déjà ses six gardes de quart) ; (b) le socle les
    espace lui-même, à égale distance le long du chemin ; (c) ensemble, l'un derrière l'autre.
-3. **La pause** : (a) debout, rien d'autre, comme le principe d'Alex (Recommandé pour ce pas ; un geste pourra venir
-   après l'avoir vu) ; (b) se tourner vers le dehors à chaque pause ; (c) le jour, regarder autour aux pauses longues.
-4. **La forme du chemin** : (a) en boucle par défaut, en aller-retour si la tenue le demande (Recommandé : un cercle
-   autour du camp, ou un chemin le long d'un mur) ; (b) en boucle seulement ; (c) en aller-retour seulement.
+3. **La pause** : (a) debout, rien d'autre, comme le principe d'Alex (Recommandé, avec le pair ; un geste pourra
+   venir après l'avoir vu) ; (b) se tourner vers le dehors à chaque pause ; (c) le jour, regarder autour aux pauses longues.
+4. **La forme du chemin** : (a) en boucle par défaut, en aller-retour si la tenue le demande (Recommandé, avec le
+   pair : la ronde tracée de Scriptorium est une boucle) ; (b) en boucle seulement ; (c) en aller-retour seulement.
+
+- **Réponses de JoVenGer (17/10)** : 1 (a) l'arbre appelle le Lua à chaque point ; 2 (a) chacun part du point le plus
+  proche, Scriptorium donne le départ pour espacer ses gardes ; **3 (b) à chaque pause, il se tourne vers le dehors** ;
+  4 (a) en boucle par défaut, en aller-retour sur demande.
+
+### V73 d 2, fait (17/10) : la ronde
+- **La tenue « ronde »** (`hommes.tenir`) : `chemin` (2 à 32 points du monde, copié), `aller_retour`, `depart` ; refus
+  `chemin_invalide` (sans chemin, un seul point, plus de 32, un point sans x ou sans y, un départ hors du chemin ou non
+  entier). Une autre activité ne garde pas de chemin. `memes_tenues` compare le chemin point par point.
+- **Le départ** (règle ajoutée en codant, à confirmer en jeu) : le point `depart` vaut pour l'ordre donné quand la tenue est
+  posée ; ensuite (rechargement, secours, reprise après une règle plus forte), le point le plus proche de l'homme :
+  ses gardes restent espacés, et aucun ne retraverse le camp pour revenir à son point de départ.
+- **Le pas** (`hommes.pas_de_ronde`, confié à la liaison au démarrage des hommes) : le point suivant (boucle, ou
+  demi-tour aux deux bouts) ; la pause tirée au hasard du socle, en mémoire (6 s ± 4, longue une fois sur 5 : 20 s ± 8,
+  jamais sous 500 ms) ; **le point regardé pendant la pause : à `regard_m` (10 m) vers le dehors, du centre du camp à
+  travers le point atteint** (réponse 3 b ; sans camp, le point suivant) ; une arrivée n'est comptée que si l'homme est à
+  moins de `secours_arrivee_m` (3 m) du point.
+- **La liaison** : l'ordre « ronde » pose le premier point puis l'activité 13 ; `liaison.au_point_de_ronde(entite,
+  donnees)` pose le point suivant et le regard, écrit `ronde_pause`, retient le but et compte les pas, une ligne au
+  journal par pas ; sans accroche ni pas, rien ; une erreur, au journal. Le poste d'essai dit en plus l'écart au but
+  de l'ordre et les pas de ronde (la mesure promise en V73 d 1).
+- **Le secours** : le but d'un rondier est son point visé ; son compte repart de zéro à chaque arrivée depuis le
+  battement d'avant, ou s'il est au point quitté (sa pause) ; bloqué sans arrivée, il est posé près du point visé.
+- **La branche 13** : debout ; puis, tant que l'ordre tient : la marche (1 m ± 0,5, délai de la marche), « arrivées »
+  + 1, la pause par défaut (2 s), l'appel `pcall(function() Scriptorium.jeu.au_point_de_ronde(entity, data) end)`, le
+  `Turn` vers le regard, l'attente de `$ronde_pause` ; le pouls en parallèle.
+- **Valeurs en données** : sept dans `hommes.reglages` (`ronde_points_max`, `ronde_pause_ms`, `ronde_pause_ecart_ms`,
+  `ronde_longue_ms`, `ronde_longue_ecart_ms`, `ronde_longue_sur`, `ronde_pause_min_ms`) ; deux dans `hommes.cerveau`
+  (`ronde_arret_cm`, `ronde_ecart_cm` ; 38 variables de cerveau) ; la section « rondes » au catalogue (vingt-sept
+  sections), la ronde d'essai `pourtour` en `rayon_m` (16) et `nombre_de_points` (12), réglables.
+- Commandes d'essai `essai_tenir_ronde` (les deux premiers hommes, partis des points 1 et 7) et `essai_lacher_ronde`
+  (136 commandes).
+- **Banc** : 7 557 vérifications (dont 2 000 et plus pour les pauses) ; sept essais (la tenue et le registre ; le départ, la boucle, l'aller-retour ; les pauses sur 1 000 pas,
+  le même hasard ; le regard vers le dehors ; le secours ; le rechargement et l'accroche ; le garde-fou de la ronde
+  d'essai, le meuble le plus proche à 2,7 m) ; la liaison sur un faux moteur (le point, le regard, la pause, le
+  journal ; sans accroche, sans pas, une panne, une entité absente) ; contrôle statique de la branche 13 et des appels
+  au Lua (sous `pcall`, sans commentaire, sur une ligne). Contrôle d'absence : toujours 32 lignes de forme.
+- Garde-fous éprouvés par sept erreurs injectées, toutes attrapées : l'appel sans `pcall`, un commentaire dans l'appel, le
+  `Turn` retiré, la pause non écrite par la liaison, le regard tourné vers le point suivant, le secours de la ronde
+  retiré, le départ donné jamais pris.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
@@ -815,9 +878,10 @@ arrivées).
   `journee_du_socle` (vrai).
 - V73 d 1 : `hommes.reglages.regard_m` (10) ; `hommes.cerveau.poste_arret_cm` (50), `poste_ecart_cm` (10),
   `poste_geste_ms` (60 000), `poste_geste_ecart_ms` (30 000).
-- V73 d 2 (proposé) : `hommes.reglages.ronde_points_max` (32), `ronde_pause_ms` (6 000), `ronde_pause_ecart_ms`
-  (4 000), `ronde_longue_ms` (20 000), `ronde_longue_ecart_ms` (8 000), `ronde_longue_sur` (5) ;
-  `hommes.cerveau.ronde_arret_cm` (100), `ronde_ecart_cm` (50) ; la table `hommes.rondes` (la ronde d'essai).
+- V73 d 2 : `hommes.reglages.ronde_points_max` (32), `ronde_pause_ms` (6 000), `ronde_pause_ecart_ms` (4 000),
+  `ronde_longue_ms` (20 000), `ronde_longue_ecart_ms` (8 000), `ronde_longue_sur` (5), `ronde_pause_min_ms` (500) ;
+  `hommes.cerveau.ronde_arret_cm` (100), `ronde_ecart_cm` (50) ; la table `hommes.rondes` (section « rondes » : la
+  ronde d'essai, `rayon_m` 16, `nombre_de_points` 12).
 
 ## Essais au banc (`essais/lua/essai_hommes.lua`)
 - Une activité de siège donne l'ordre 10 sur la bonne place ; de lit, l'ordre 11 ; de point, l'ordre 9 avec le point.

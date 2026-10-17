@@ -2371,12 +2371,18 @@ liaison.ordres_des_places = { siege = 10, lit = 11 }
 -- entre son cap et ce point). En mémoire seulement.
 liaison.regards = {}
 
+-- Fiche 15, V73 d 2 : le dernier but posé chez chaque personnage (par l'ordre, ou par le pas de la ronde), pour le poste
+-- d'essai, qui dit l'écart entre l'homme et ce but ; et ses pas de ronde. En mémoire seulement.
+liaison.buts = {}
+liaison.pas_de_ronde_vus = {}
+
 -- « regard » (fiche 15, V73 d 1) : un point ; l'homme tient un poste (ordre 12) : il marche jusqu'à « position », puis
 -- se tourne vers ce point et s'y tient.
 function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard)
   local entite = entite_nommee(identifiant)
   local ligne
   liaison.regards[identifiant] = nil
+  liaison.buts[identifiant] = nil
   if not entite then
     ligne = "introuvable"
   else
@@ -2389,6 +2395,19 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       ligne = "attendre sur place ; " .. poser_l_activite(entite, 0)
     elseif not position then
       ligne = "sans but"
+    elseif activite == "ronde" then
+      -- La ronde (fiche 15, V73 d 2) : le premier point posé, puis l'activité 13 ; l'arbre appelle ensuite
+      -- liaison.au_point_de_ronde à chaque point.
+      local this_lu, this = pcall(function() return entite.this end)
+      local point = liaison.au_sol(position)
+      local pose = this_lu and type(this) == "table"
+        and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+      if pose then
+        liaison.buts[identifiant] = point
+        ligne = string.format("ronde, premier point posé (%.1f, %.1f) ; ", point.x, point.y) .. poser_l_activite(entite, 13)
+      else
+        ligne = "ronde refusée ; " .. poser_l_activite(entite, 9)
+      end
     elseif regard then
       -- Tenir un poste : le poste et le point regardé posés d'abord, puis l'activité ; l'homme marche, et ne se tourne
       -- qu'une fois arrivé (relecture du pair : montré trop tôt, un homme glissait).
@@ -2400,7 +2419,7 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
           XGenAIModule.SetBrainVariable(this.id, "scriptorium_regard", vers)
         end)
       if pose then
-        liaison.regards[identifiant] = vers
+        liaison.regards[identifiant], liaison.buts[identifiant] = vers, point
         ligne = string.format("poste, point posé (%.1f, %.1f), regard posé (%.1f, %.1f) ; ", point.x, point.y, vers.x, vers.y)
           .. poser_l_activite(entite, 12)
       else
@@ -2411,12 +2430,55 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       local point = liaison.au_sol(position)
       local pose = this_lu and type(this) == "table"
         and pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+      if pose then
+        liaison.buts[identifiant] = point
+      end
       ligne = "marche, point " .. (pose and string.format("posé (%.1f, %.1f)", point.x, point.y) or "refusé") .. " ; "
         .. poser_l_activite(entite, 9)
     end
   end
   liaison.journal("Ordre à " .. tostring(identifiant) .. " : " .. activite .. " (" .. tostring(lieu) .. ") : " .. ligne)
   return ligne
+end
+
+-- La ronde (fiche 15, V73 d 2) : la fonction des hommes qui donne le pas suivant, confiée au démarrage (la liaison
+-- n'appelle aucun morceau).
+liaison.pas_de_ronde = nil
+
+function liaison.accrocher_la_ronde(fonction)
+  liaison.pas_de_ronde = fonction
+end
+
+-- Appelée par l'arbre de la vie du camp (branche 13) à chaque point de la ronde, sous pcall dans l'arbre même
+-- (relecture du pair : une erreur non attrapée casse la branche, et l'homme se fige). « entite » : le personnage qui
+-- joue l'arbre ; « donnees » : les variables de l'arbre. Pose le point suivant et le point regardé dans son cerveau, et
+-- écrit la pause dans « ronde_pause » (« 6000ms ») ; sans pas (homme inconnu, plus de ronde), rien : l'arbre garde sa
+-- pause par défaut. Une ligne au journal par pas ; une erreur, écrite au journal.
+function liaison.au_point_de_ronde(entite, donnees)
+  local fait, erreur = pcall(function()
+    local nom = entite:GetName()
+    if not liaison.pas_de_ronde then
+      liaison.journal("Ronde de " .. tostring(nom) .. " : aucune accroche des hommes")
+      return
+    end
+    local pas, raison = liaison.pas_de_ronde(nom)
+    if not pas then
+      liaison.journal("Ronde de " .. tostring(nom) .. " : aucun pas (" .. tostring(raison) .. ")")
+      return
+    end
+    local point, vers = liaison.au_sol(pas.point), liaison.au_sol(pas.regard)
+    XGenAIModule.SetBrainVariable(entite.this.id, "scriptorium_essai_point", point)
+    XGenAIModule.SetBrainVariable(entite.this.id, "scriptorium_regard", vers)
+    donnees.ronde_pause = string.format("%dms", pas.pause_ms)
+    liaison.buts[nom], liaison.regards[nom] = point, vers
+    liaison.pas_de_ronde_vus[nom] = (liaison.pas_de_ronde_vus[nom] or 0) + 1
+    liaison.journal(string.format("Ronde de %s : pas %d, au point %d (à %s m), vers le point %d (%.1f, %.1f), pause %d ms%s",
+      nom, pas.pas, pas.ici, pas.ecart and string.format("%.1f", pas.ecart) or "?", pas.suivant, point.x, point.y,
+      pas.pause_ms, pas.longue and " (longue)" or ""))
+  end)
+  if not fait then
+    liaison.journal("Ronde : erreur au point : " .. tostring(erreur))
+  end
 end
 
 -- L'écart, au sol, entre un personnage et le but de son ordre (fiche 15 : le secours de l'homme bloqué), ou nil.
@@ -2525,7 +2587,12 @@ function liaison.voir_sur_la_place(qui, identifiant)
     local vers_le_regard = math.deg(math.atan2(regard.x - ici.x, regard.y - ici.y)) % 360
     ecart_de_cap = math.abs((cap - vers_le_regard + 180) % 360 - 180)
   end
-  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
+  -- Fiche 15, V73 d 2 : l'écart au but de son ordre (le poste, le point de la ronde), et ses pas de ronde.
+  local but, ecart_au_but = liaison.buts[qui], nil
+  if but and ici_lu and type(ici) == "table" then
+    ecart_au_but = math.sqrt((ici.x - but.x) ^ 2 + (ici.y - but.y) ^ 2)
+  end
+  return string.format("à %s m de sa place (libre %s, bloquée %s) ; assis %s, couchés %s, approches %s, tours %s ; activité %s, ordres donnés %s, pouls %s, lancements %s, arrêts %s, arrivées %s, combats %s, fins de combat %s ; cap %s°, écart au regard %s°, en poste %s ; à %s m de son but, pas de ronde %s ; cerveau garde %s ms, tour %s ms ; %s ; âme %s",
     ecart and string.format("%.2f", ecart) or "?", siege_libre, siege_bloque,
     variable("scriptorium_essai_assis"), variable("scriptorium_essai_couche"), variable("scriptorium_essai_approche"),
     variable("scriptorium_essai_vivant"),
@@ -2534,6 +2601,7 @@ function liaison.voir_sur_la_place(qui, identifiant)
     variable("scriptorium_essai_combats"), variable("scriptorium_fins_de_combat"),
     cap and string.format("%.0f", cap) or "?", ecart_de_cap and string.format("%.0f", ecart_de_cap) or "-",
     variable("scriptorium_en_poste"),
+    ecart_au_but and string.format("%.2f", ecart_au_but) or "-", tostring(liaison.pas_de_ronde_vus[qui] or 0),
     variable("scriptorium_cerveau_garde_ms"), variable("scriptorium_cerveau_tour_ms"), table.concat(contextes, " "),
     ame_lue and tostring(ame) or "?")
 end

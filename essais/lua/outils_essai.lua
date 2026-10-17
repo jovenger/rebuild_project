@@ -44,6 +44,8 @@ function depart()
     Scriptorium.hommes.fins_de_combat_vues = {}
     Scriptorium.hommes.lancements_vus = {}
     Scriptorium.hommes.garde_de_la_tenue_rang = 0
+    Scriptorium.hommes.en_ronde = {}
+    Scriptorium.hommes.hasard_de_la_ronde = nil
   end
   -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
   -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().

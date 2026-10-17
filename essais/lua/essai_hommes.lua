@@ -1423,3 +1423,242 @@ essai("factionnaire (fiche 15, V73 d 1) : chaque poste de garde par défaut est 
       .. rayon .. " m)")
   end
 end)
+
+-- Fiche 15, V73 d 2 : la ronde (réponses a, a, b et a de JoVenGer du 17/10). camp.point rend aussi le cap : entre
+-- parenthèses, seul le point entre dans le chemin.
+local function chemin_carre(cote)
+  return { (camp.point(0, cote, 0)), (camp.point(cote, 0, 0)), (camp.point(0, -cote, 0)), (camp.point(-cote, 0, 0)) }
+end
+
+local function rondier(heure)
+  preparer(5000, 100, heure or 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  return id, hommes.fiche(id)
+end
+
+essai("ronde (fiche 15, V73 d 2) : la tenue veut un chemin de 2 à 32 points ; copiée, gardée au registre, comparée point par point", function()
+  local id = rondier(10)
+  local function refus(quoi, message)
+    local ok, raison = hommes.tenir(id, "ronde", quoi)
+    verifier(not ok and raison == "chemin_invalide", message .. " : refusé (" .. tostring(raison) .. ")")
+  end
+  refus({ activite = "ronde", lieu = "r", fin = "liberation" }, "sans chemin")
+  refus({ activite = "ronde", lieu = "r", chemin = { (camp.point(1, 1, 0)) }, fin = "liberation" }, "un seul point")
+  local trop = {}
+  for i = 1, hommes.reglages.ronde_points_max + 1 do trop[i] = (camp.point(i, 0, 0)) end
+  refus({ activite = "ronde", lieu = "r", chemin = trop, fin = "liberation" }, "33 points")
+  refus({ activite = "ronde", lieu = "r", chemin = { (camp.point(1, 1, 0)), { y = 2 } }, fin = "liberation" }, "un point sans x")
+  refus({ activite = "ronde", lieu = "r", chemin = chemin_carre(8), depart = 5, fin = "liberation" }, "un départ hors du chemin")
+  refus({ activite = "ronde", lieu = "r", chemin = chemin_carre(8), depart = 1.5, fin = "liberation" }, "un départ non entier")
+  egal(hommes.qui_tient(id, 10), "journee", "rien n'est posé")
+  local chemin = chemin_carre(8)
+  local ecrit = FauxJeu.registre_stocke
+  verifier(hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, fin = "liberation" }), "tenu par la ronde")
+  verifier(FauxJeu.registre_stocke ~= ecrit, "la tenue est écrite au registre")
+  local a = hommes.activite_de(id, 10)
+  egal(a.activite, "ronde", "en ronde")
+  egal(#a.chemin, 4, "son chemin")
+  egal(a.regard, nil, "aucun regard à l'ordre")
+  egal(a.aller_retour, nil, "en boucle par défaut")
+  chemin[1].x = 999
+  verifier(a.chemin[1].x ~= 999, "le chemin de la tenue est une copie")
+  -- Reposée à l'identique : rien d'écrit ; le chemin changé d'un point : écrit.
+  ecrit = FauxJeu.registre_stocke
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin_carre(8), fin = "liberation" })
+  egal(FauxJeu.registre_stocke, ecrit, "reposée à l'identique : rien d'écrit")
+  local change = chemin_carre(8)
+  change[3] = (camp.point(0, -9, 0))
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = change, fin = "liberation" })
+  verifier(FauxJeu.registre_stocke ~= ecrit, "un point changé : écrit")
+  -- Relue après rechargement du registre.
+  local chaine, objets = FauxJeu.registre_stocke, FauxJeu.objets_existants
+  depart()
+  FauxJeu.heure = 10
+  FauxJeu.registre_stocke, FauxJeu.objets_existants = chaine, objets
+  local relue = hommes.activite_de(id, 10)
+  egal(relue.activite, "ronde", "relue : en ronde")
+  egal(relue.chemin and #relue.chemin, 4, "relue : quatre points")
+  pres(relue.chemin and relue.chemin[3].y, change[3].y, "relue : le point changé")
+  -- Une autre activité ne garde pas de chemin.
+  hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = (camp.point(0, 12, 0)), chemin = change, fin = "liberation" })
+  egal(hommes.fiche(id).tenues.garde.chemin, nil, "une garde n'a pas de chemin")
+end)
+
+essai("ronde (fiche 15, V73 d 2) : le premier point, celui de départ, sinon le plus proche ; la boucle ; l'aller-retour", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  FauxJeu.positions[f.personnage] = { x = 7, y = 1, z = 0 }   -- près du point 2 (8, 0)
+  FauxJeu.ordres = {}
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, fin = "liberation" })
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(o and o.activite, "ronde", "l'ordre de ronde part sur-le-champ")
+  pres(o and o.position.x, 8, "il part du point le plus proche (x)")
+  pres(o and o.position.y, 0, "il part du point le plus proche (y)")
+  -- La boucle : 2, 3, 4, puis 1, puis 2.
+  local vus = {}
+  for _ = 1, 5 do
+    local pas = hommes.pas_de_ronde(f.personnage)
+    table.insert(vus, pas and pas.suivant)
+  end
+  egal(table.concat(vus, ","), "3,4,1,2,3", "en boucle")
+  -- Le départ donné.
+  hommes.lacher(id, "ronde")
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r2", chemin = chemin, depart = 4, fin = "liberation" })
+  o = FauxJeu.ordres[#FauxJeu.ordres]
+  pres(o and o.position.x, -8, "le départ donné (x)")
+  -- L'aller-retour, demi-tour aux deux bouts.
+  vus = {}
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r3", chemin = chemin, depart = 2, aller_retour = true, fin = "liberation" })
+  for _ = 1, 7 do
+    local pas = hommes.pas_de_ronde(f.personnage)
+    table.insert(vus, pas and pas.suivant)
+  end
+  egal(table.concat(vus, ","), "3,4,3,2,1,2,3", "en aller-retour")
+  -- Deux points en aller-retour : de l'un à l'autre.
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r4", chemin = { chemin[1], chemin[2] }, depart = 1,
+    aller_retour = true, fin = "liberation" })
+  vus = {}
+  for _ = 1, 4 do
+    local pas = hommes.pas_de_ronde(f.personnage)
+    table.insert(vus, pas and pas.suivant)
+  end
+  egal(table.concat(vus, ","), "2,1,2,1", "deux points en aller-retour")
+  -- Plus de ronde, ou un inconnu : aucun pas.
+  hommes.lacher(id, "ronde")
+  egal(hommes.pas_de_ronde(f.personnage), nil, "plus de ronde : aucun pas")
+  egal(hommes.pas_de_ronde("personne"), nil, "un inconnu : aucun pas")
+end)
+
+essai("ronde (fiche 15, V73 d 2) : les pauses dans leurs bornes, une longue sur cinq, le même hasard rend les mêmes", function()
+  local id, f = rondier(10)
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin_carre(8), depart = 1, fin = "liberation" })
+  local r = hommes.reglages
+  local function suite(n)
+    hommes.hasard_de_la_ronde = nil
+    local pauses, longues = {}, 0
+    for i = 1, n do
+      local pas = hommes.pas_de_ronde(f.personnage)
+      pauses[i] = pas.pause_ms
+      if pas.longue then
+        longues = longues + 1
+        verifier(pas.pause_ms >= r.ronde_longue_ms - r.ronde_longue_ecart_ms and pas.pause_ms <= r.ronde_longue_ms + r.ronde_longue_ecart_ms,
+          "pause longue dans ses bornes : " .. pas.pause_ms)
+      else
+        verifier(pas.pause_ms >= r.ronde_pause_ms - r.ronde_pause_ecart_ms and pas.pause_ms <= r.ronde_pause_ms + r.ronde_pause_ecart_ms,
+          "pause courte dans ses bornes : " .. pas.pause_ms)
+      end
+      verifier(pas.pause_ms == math.floor(pas.pause_ms) and pas.pause_ms >= r.ronde_pause_min_ms, "pause entière, au moins le plancher")
+    end
+    return pauses, longues
+  end
+  local premieres, longues = suite(1000)
+  verifier(longues >= 150 and longues <= 250, "sur 1 000 pas, une longue sur cinq environ : " .. longues)
+  local secondes = suite(1000)
+  egal(table.concat(secondes, ",", 1, 50), table.concat(premieres, ",", 1, 50), "le même hasard rend les mêmes pauses")
+  -- Le plancher : un écart plus grand que la pause ne donne jamais moins que le plancher.
+  local avant = r.ronde_pause_ecart_ms
+  r.ronde_pause_ecart_ms = 9000
+  suite(200)
+  r.ronde_pause_ecart_ms = avant
+end)
+
+essai("ronde (fiche 15, V73 d 2) : à chaque pause, il regarde vers le dehors ; sans camp, vers le point suivant", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  local pas = hommes.pas_de_ronde(f.personnage)
+  local d = hommes.reglages.regard_m
+  pres(pas.regard.x, chemin[1].x, "au point 1 (nord), regard au nord (x)")
+  pres(pas.regard.y, chemin[1].y + d, "au point 1 (nord), regard au nord (y)")
+  pas = hommes.pas_de_ronde(f.personnage)
+  pres(pas.regard.x, chemin[2].x + d, "au point 2 (est), regard à l'est (x)")
+  verifier(camp.lever(), "camp levé")
+  pas = hommes.pas_de_ronde(f.personnage)
+  pres(pas.regard.x, pas.point.x, "sans camp, le regard est le point suivant (x)")
+  pres(pas.regard.y, pas.point.y, "sans camp, le regard est le point suivant (y)")
+end)
+
+essai("ronde (fiche 15, V73 d 2) : un rondier qui arrive à ses points ou fait sa pause n'est jamais posé ; bloqué, posé près du point visé", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  FauxJeu.positions[f.personnage] = { x = 0, y = 7.5, z = 0 }
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  FauxJeu.secours = {}
+  hommes.battre()
+  -- Il tourne : à chaque battement, il est arrivé à un point de plus, ou il fait sa pause au point quitté.
+  for k = 1, 8 do
+    local p = chemin[(k - 1) % 4 + 1]
+    FauxJeu.positions[f.personnage] = { x = p.x + 0.4, y = p.y, z = 0 }
+    hommes.pas_de_ronde(f.personnage)
+    hommes.battre()
+    hommes.battre()   -- toujours en pause au point quitté, 30 s plus tard
+  end
+  egal(#FauxJeu.secours, 0, "deux tours et des pauses : aucun secours")
+  -- Une marche abandonnée (un pas loin du point) ne compte pas d'arrivée.
+  local r = hommes.en_ronde[id]
+  local arrivees = r.arrivees
+  FauxJeu.positions[f.personnage] = { x = 40, y = 40, z = 0 }
+  hommes.pas_de_ronde(f.personnage)
+  egal(r.arrivees, arrivees, "un pas loin du point : aucune arrivée comptée")
+  -- Bloqué entre deux points, sans arriver nulle part : posé près du point visé.
+  local vise = chemin[r.vise]
+  hommes.battre()
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "bloqué, sans arrivée : un secours")
+  local ou = FauxJeu.secours[1] and FauxJeu.secours[1].position
+  pres(ou and ou.x, vise.x, "posé près du point visé (x)")
+  pres(ou and ou.y, vise.y, "posé près du point visé (y)")
+end)
+
+essai("ronde (fiche 15, V73 d 2) : au rechargement, l'ordre redonné repart du point le plus proche ; les hommes confient le pas à la liaison", function()
+  local id, f = rondier(10)
+  local chemin = chemin_carre(8)
+  hommes.tenir(id, "ronde", { activite = "ronde", lieu = "r", chemin = chemin, depart = 1, fin = "liberation" })
+  hommes.pas_de_ronde(f.personnage)
+  FauxJeu.positions[f.personnage] = { x = -7, y = 0.5, z = 0 }
+  FauxJeu.ordres = {}
+  hommes.relancer()
+  hommes.battre()
+  local o = nil
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.activite == "ronde" then o = ordre end
+  end
+  pres(o and o.position.x, -8, "repart du point le plus proche (x)")
+  egal(hommes.en_ronde[id] and hommes.en_ronde[id].vise, 4, "visé : le point 4")
+  FauxJeu.pas_de_ronde = nil
+  for _, m in ipairs(Scriptorium.morceaux) do
+    if m.nom == "hommes" and m.demarrage then m.demarrage() end
+  end
+  egal(FauxJeu.pas_de_ronde, hommes.pas_de_ronde, "au démarrage, les hommes confient le pas de la ronde à la liaison")
+end)
+
+essai("ronde (fiche 15, V73 d 2) : la ronde d'essai est à l'écart des meubles, segment par segment, et dans la palissade", function()
+  local ecart = camp.reglages.ecart_d_abord
+  local rayon = Scriptorium.enceinte.reglages.rayon
+  local r = hommes.rondes.pourtour
+  local n = r.nombre_de_points
+  verifier(n >= 2 and n <= hommes.reglages.ronde_points_max, "le nombre de points tient dans la borne")
+  local points = {}
+  for i = 1, n do
+    local cap = math.rad((i - 1) * 360 / n)
+    points[i] = { x = r.rayon_m * math.sin(cap), y = r.rayon_m * math.cos(cap) }
+  end
+  local function au_segment(p, a, b)
+    local dx, dy = b.x - a.x, b.y - a.y
+    local t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)
+    t = math.max(0, math.min(1, t))
+    return math.sqrt((p.x - a.x - t * dx) ^ 2 + (p.y - a.y - t * dy) ^ 2)
+  end
+  local plus_pres = math.huge
+  for i = 1, n do
+    local a, b = points[i], points[i % n + 1]
+    for _, e in ipairs(camp.plan) do
+      local d = au_segment(e, a, b)
+      plus_pres = math.min(plus_pres, d)
+      verifier(d >= ecart, "segment " .. i .. " à " .. string.format("%.1f", d) .. " m de « " .. e.nom .. " » : au moins " .. ecart .. " m")
+    end
+    verifier(r.rayon_m + ecart <= rayon, "point " .. i .. " en dedans de la palissade (rayon " .. rayon .. " m)")
+  end
+  verifier(plus_pres >= 2.6, "le meuble le plus proche à " .. string.format("%.2f", plus_pres) .. " m (fiche : 2,7 m)")
+end)
+

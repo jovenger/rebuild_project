@@ -231,6 +231,8 @@ function faux.ordonner(identifiant, activite, position, lieu, place, sorte, rega
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
                               place = place, sorte = sorte, regard = regard })
 end
+-- La ronde (fiche 15, V73 d 2) : la fonction confiée par les hommes, que la vraie liaison appelle à chaque point.
+function faux.accrocher_la_ronde(fonction) faux.pas_de_ronde = fonction end
 -- Les positions des personnages (posées par les essais) et les secours (fiche 15).
 function faux.ecart_au_but(identifiant, but)
   local ici = faux.positions and faux.positions[identifiant]

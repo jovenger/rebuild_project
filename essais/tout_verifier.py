@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 134:
-        erreur("ordres : %d commandes lues dans poste.lua, 134 attendues" % len(connues))
+    if len(connues) != 136:
+        erreur("ordres : %d commandes lues dans poste.lua, 136 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -408,6 +408,55 @@ def verifier_identifiants():
         if l.lire_registre() ~= nil then return "une tranche d'une autre partie n'est pas refusée" end
         GameToken.valeurs["scriptorium_socle.registre.2"] = juste
         if l.lire_registre() ~= gros then return "registre non relu une fois la tranche rendue" end
+        -- La ronde (fiche 15, V73 d 2) : appelée par l'arbre, la liaison pose le point suivant et le regard, et écrit la
+        -- pause dans les variables de l'arbre ; sans accroche, sans pas, ou sur une erreur, rien ne casse, et le journal
+        -- le dit.
+        local lignes, journal_d_origine = {}, System.LogAlways
+        System.LogAlways = function(texte) table.insert(lignes, texte) end
+        XGenAIModule = { variables = {} }
+        function XGenAIModule.SetBrainVariable(id, nom, valeur) XGenAIModule.variables[nom] = valeur end
+        local rondier = { this = { id = "wuid_rondier" } }
+        function rondier:GetName() return "scriptorium_rondier" end
+        local donnees = { ronde_pause = "2000ms" }
+        l.pas_de_ronde = nil
+        l.au_point_de_ronde(rondier, donnees)
+        if donnees.ronde_pause ~= "2000ms" or XGenAIModule.variables.scriptorium_essai_point then
+          return "ronde sans accroche : quelque chose a été posé"
+        end
+        l.accrocher_la_ronde(function(nom)
+          if nom ~= "scriptorium_rondier" then return nil, "homme inconnu" end
+          return { point = { x = 3, y = 4 }, regard = { x = 10, y = 0 }, pause_ms = 6500, longue = true, ici = 1,
+                   suivant = 2, pas = 1, ecart = 0.4 }
+        end)
+        l.au_point_de_ronde(rondier, donnees)
+        local pose, vers = XGenAIModule.variables.scriptorium_essai_point, XGenAIModule.variables.scriptorium_regard
+        if donnees.ronde_pause ~= "6500ms" then return "pause de la ronde : " .. tostring(donnees.ronde_pause) end
+        if not pose or pose.x ~= 3 or pose.y ~= 4 or pose.z ~= 7 then return "point de la ronde mal posé" end
+        if not vers or vers.x ~= 10 or vers.y ~= 0 or vers.z ~= 7 then return "regard de la ronde mal posé" end
+        if l.buts["scriptorium_rondier"] ~= pose or l.regards["scriptorium_rondier"] ~= vers then
+          return "but ou regard de la ronde non retenus pour le poste d'essai"
+        end
+        if l.pas_de_ronde_vus["scriptorium_rondier"] ~= 1 then return "pas de ronde non comptés" end
+        if not string.find(lignes[#lignes], "pas 1, au point 1 (à 0.4 m), vers le point 2 (3.0, 4.0), pause 6500 ms (longue)", 1, true) then
+          return "ligne du pas de ronde : " .. tostring(lignes[#lignes])
+        end
+        local autre = { this = { id = "wuid_autre" } }
+        function autre:GetName() return "scriptorium_autre" end
+        XGenAIModule.variables = {}
+        donnees.ronde_pause = "2000ms"
+        l.au_point_de_ronde(autre, donnees)
+        if donnees.ronde_pause ~= "2000ms" or XGenAIModule.variables.scriptorium_essai_point then
+          return "un homme sans ronde a reçu un pas"
+        end
+        if not string.find(lignes[#lignes], "aucun pas (homme inconnu)", 1, true) then return "sans pas, rien n'est dit" end
+        l.accrocher_la_ronde(function() error("panne") end)
+        l.au_point_de_ronde(rondier, donnees)
+        if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une erreur de la ronde n'est pas écrite" end
+        l.au_point_de_ronde(nil, donnees)
+        if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une entité absente n'est pas dite" end
+        XGenAIModule = nil
+        l.pas_de_ronde = nil
+        System.LogAlways = journal_d_origine
         l.ecrire_registre("{a=2}")
         l.memoire.registre = nil
         if l.lire_registre() ~= "{a=2}" then return "un registre plus court n'est pas relu" end
@@ -1047,6 +1096,32 @@ def verifier_la_vie_du_camp():
                              r'<SuppressFailure>\s*' + tourne, branche[1])):
         erreur("vie du camp : la branche 12 (tenir un poste) doit marcher au poste, se tourner vers $scriptorium_regard "
                "avant de se dire « en poste », et de nouveau après chaque geste")
+    # Fiche 15, V73 d 2 (la ronde) : la liaison donne l'ordre 13 et sait recevoir l'appel de l'arbre ; la branche 13
+    # marche au point, compte l'arrivée, met la pause par défaut, appelle la liaison sous pcall (relecture du pair : une
+    # erreur non attrapée casse la branche) au nom de la table du socle, se tourne vers le dehors, puis attend la pause
+    # écrite par le Lua. Aucun commentaire Lua dans un appel de l'arbre (le pair : « -- » coupe tout le reste, en silence).
+    chemin = re.search(r'^Scriptorium\.chemin = "([A-Za-z_.]+)"', lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")), re.M)
+    appel = '<ExecuteLua code="pcall(function() %s.jeu.au_point_de_ronde(entity, data) end)" />' % (chemin.group(1) if chemin else "?")
+    if ("poser_l_activite(entite, 13)" not in liaison or "function liaison.au_point_de_ronde(entite, donnees)" not in liaison
+            or 'donnees.ronde_pause = string.format("%dms", pas.pause_ms)' not in liaison):
+        erreur("vie du camp : la liaison doit donner l'ordre 13 et écrire la pause de la ronde (liaison.au_point_de_ronde)")
+    branche = comportements.split("$scriptorium_activite == 13", 1)
+    motif = (r'destinationSpecification="\$scriptorium_essai_point"[^>]*stopWithinDistance="\$ronde_arret" '
+             r'stopDistanceVariation="\$ronde_ecart"[^>]*/>[\s\S]*?'
+             r'<Expression expressions="\$scriptorium_essai_arrive = \$scriptorium_essai_arrive \+ 1" />\s*'
+             r'</Sequence>\s*</SuppressFailure>\s*<Expression expressions="\$ronde_pause = \$sortie" />\s*'
+             r'<SuppressFailure>\s*' + re.escape(appel) + r'\s*</SuppressFailure>\s*<SuppressFailure>\s*' + tourne
+             + r'\s*</SuppressFailure>\s*<Wait duration="\$ronde_pause" ')
+    if len(branche) != 2 or not re.search(motif, branche[1]):
+        erreur("vie du camp : la branche 13 (la ronde) doit marcher au point, compter l'arrivée, appeler "
+               "%s.jeu.au_point_de_ronde sous pcall, se tourner vers $scriptorium_regard, puis attendre $ronde_pause"
+               % (chemin.group(1) if chemin else "?"))
+    if '<Variable name="ronde_pause" type="_string"' not in comportements:
+        erreur("vie du camp : la variable de l'arbre ronde_pause (_string) n'est pas déclarée")
+    for nom, texte in arbres.items():
+        for code in re.findall(r'<ExecuteLua code="([^"]*)"', texte):
+            if "--" in code or "&#10;" in code:
+                erreur("vie du camp : %s : un appel au Lua avec un commentaire ou sur plusieurs lignes : %s" % (nom, code))
     return len(donnees), len(employees)
 
 

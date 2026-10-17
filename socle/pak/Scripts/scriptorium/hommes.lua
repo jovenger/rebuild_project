@@ -33,6 +33,17 @@ hommes.reglages = {
   duree_tour_de_garde = 3,    -- heures
   -- Le factionnaire (fiche 15, V73 d 1) : il se tient face à un point de regard, à tant de mètres devant son poste.
   regard_m = 10,
+  -- La ronde (fiche 15, V73 d 2, réponses a, a, b et a de JoVenGer du 17/10) : un chemin de 2 à « ronde_points_max »
+  -- points ; à chaque point, une pause courte (« ronde_pause_ms », plus ou moins « ronde_pause_ecart_ms »), longue une
+  -- fois sur « ronde_longue_sur » (« ronde_longue_ms », plus ou moins « ronde_longue_ecart_ms »), tirée au hasard du
+  -- socle, jamais sous « ronde_pause_min_ms » ; pendant la pause, l'homme se tourne vers le dehors (à « regard_m »).
+  ronde_points_max = 32,
+  ronde_pause_ms = 6000,
+  ronde_pause_ecart_ms = 4000,
+  ronde_longue_ms = 20000,
+  ronde_longue_ecart_ms = 8000,
+  ronde_longue_sur = 5,
+  ronde_pause_min_ms = 500,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -91,6 +102,10 @@ hommes.cerveau = {
   poste_ecart_cm = 10,
   poste_geste_ms = 60000,
   poste_geste_ecart_ms = 30000,
+  -- La ronde (fiche 15, V73 d 2) : l'arrêt à chaque point (principe d'Alex, transmis par le pair : 1 m, plus ou moins
+  -- 0,5).
+  ronde_arret_cm = 100,
+  ronde_ecart_cm = 50,
   -- Le plafond de relances (fiche 15, V73 b 2, proposition du pair) : au plus « relances_max » lancements de la vie du
   -- camp par fenêtre de « relances_fenetre_ms » ; au-delà, plus aucun pendant une fenêtre entière, et une ligne au journal.
   relances_max = 3,
@@ -185,6 +200,14 @@ hommes.postes_de_garde = {
   { x = 12, y = 0, cap = 90 },
   { x = 0, y = -12, cap = 180 },
   { x = -12, y = 0, cap = 270 },
+}
+
+-- Les rondes du socle (fiche 15, V73 d 2), autour de l'ancre : pour la commande d'essai seulement ; celles de
+-- Scriptorium viennent par la tenue « ronde ». « pourtour » : un cercle de « nombre_de_points » à « rayon_m » du centre
+-- (à 12 m, deux segments passeraient à moins de 2,4 m d'une tente et d'un banc du niveau 3 ; à 16 m, la palissade est
+-- à 4 m).
+hommes.rondes = {
+  pourtour = { rayon_m = 16, nombre_de_points = 12 },
 }
 
 -- Noms d'époque (Bohême vers 1400). Prénoms et surnoms se combinent sans se répéter.
@@ -1232,6 +1255,24 @@ local function regard_du_poste(position, cap)
   return { x = position.x + distance * dx, y = position.y + distance * dy, z = position.z }
 end
 
+-- La ronde (fiche 15, V73 d 2) : un chemin est une liste de 2 à « ronde_points_max » points du monde, chacun avec x et y
+-- (z facultatif). Rend une copie, ou (nil, raison).
+local function copie_du_chemin(chemin)
+  local maxi = tonumber(hommes.reglages.ronde_points_max) or 0
+  if type(chemin) ~= "table" or #chemin < 2 or #chemin > maxi then
+    return nil, "de 2 à " .. maxi .. " points"
+  end
+  local copie = {}
+  for i = 1, #chemin do
+    local p = chemin[i]
+    if type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or (p.z ~= nil and type(p.z) ~= "number") then
+      return nil, "point " .. i .. " sans x ou sans y"
+    end
+    copie[i] = { x = p.x, y = p.y, z = p.z }
+  end
+  return copie
+end
+
 -- Retient une somme sur les prochaines soldes (amende).
 function hommes.retenir(id, montant)
   local f = donnees().liste[id]
@@ -1282,6 +1323,8 @@ function hommes.activite_de(id, heure)
     resultat.regle, resultat.activite, resultat.lieu = regle, tenue.activite, tenue.lieu
     resultat.position, resultat.cap, resultat.fin = tenue.position, tenue.cap, tenue.fin
     resultat.ne_pas_rhabiller = tenue.ne_pas_rhabiller
+    -- V73 d 2 : une ronde suit son chemin, en boucle ou en aller-retour, depuis son point de départ s'il est donné.
+    resultat.chemin, resultat.aller_retour, resultat.depart = tenue.chemin, tenue.aller_retour, tenue.depart
     -- V73 d 1 : une garde se tient face au dehors (le cap de la tenue, sinon du centre du camp vers le poste).
     if tenue.activite == "garde" then
       resultat.regard = regard_du_poste(tenue.position, tenue.cap)
@@ -1456,6 +1499,82 @@ end
 -- registre reste sous 65 535 octets) : id -> { reste, bloque_s, secours, signale, resume }.
 hommes.suivi = {}
 
+-- La ronde de chaque homme (fiche 15, V73 d 2), en mémoire seulement : le cerveau repart de zéro au chargement, et
+-- l'ordre redonné repart du point le plus proche. { resume, vise, quitte, sens, pas, arrivees } ; et le hasard des
+-- pauses (aucune règle ne dépend de sa suite).
+hommes.en_ronde = {}
+hommes.hasard_de_la_ronde = nil
+
+local function tirer_la_pause()
+  if not Scriptorium.hasard_en_ordre(hommes.hasard_de_la_ronde) then
+    hommes.hasard_de_la_ronde = Scriptorium.hasard_depuis(7373)
+  end
+  return Scriptorium.tirer(hommes.hasard_de_la_ronde)
+end
+
+-- Le point du chemin le plus proche du personnage (le premier, si rien n'est lisible).
+local function point_le_plus_proche(personnage, chemin)
+  local choisi, meilleur = 1, nil
+  for i, p in ipairs(chemin) do
+    local d = jeu().ecart_au_but(personnage, p)
+    if d and (meilleur == nil or d < meilleur) then
+      choisi, meilleur = i, d
+    end
+  end
+  return choisi
+end
+
+-- Service pour la liaison (fiche 15, V73 d 2) : le personnage est arrivé à un point de sa ronde (l'arbre appelle le Lua
+-- à chaque point). Rend { point, regard, pause_ms, longue, ici, suivant, pas, ecart } : le point suivant ; le point
+-- regardé pendant la pause (vers le dehors, réponse 3 b de JoVenGer ; sans camp, le point suivant) ; la pause ; le point
+-- atteint et l'écart de l'homme à ce point. Sinon (nil, raison) : l'arbre garde sa pause par défaut et finit au
+-- changement d'ordre.
+function hommes.pas_de_ronde(personnage)
+  local d = donnees()
+  local id = nil
+  for _, autre in ipairs(d.ordre) do
+    if d.liste[autre].personnage == personnage then
+      id = autre
+    end
+  end
+  if not id then
+    return nil, "homme inconnu"
+  end
+  local r = hommes.en_ronde[id]
+  local a = hommes.activite_de(id, jeu().heure_du_jeu())
+  if not r or not a or a.activite ~= "ronde" or type(a.chemin) ~= "table" then
+    return nil, "pas de ronde"
+  end
+  local chemin, n = a.chemin, #a.chemin
+  local ici = math.min(r.vise, n)
+  local suivant
+  if a.aller_retour then
+    local sens = r.sens or 1
+    if ici + sens > n or ici + sens < 1 then
+      sens = -sens
+    end
+    suivant, r.sens = ici + sens, sens
+  else
+    suivant = ici % n + 1
+  end
+  -- Une arrivée vraie (le secours en tient compte) : à moins de « secours_arrivee_m » du point ; une marche abandonnée
+  -- passe au point suivant sans compter d'arrivée.
+  local ecart = jeu().ecart_au_but(personnage, chemin[ici])
+  if ecart and ecart <= hommes.reglages.secours_arrivee_m then
+    r.arrivees = (r.arrivees or 0) + 1
+  end
+  r.quitte, r.vise, r.pas = ici, suivant, (r.pas or 0) + 1
+  local reglages = hommes.reglages
+  local sur = tonumber(reglages.ronde_longue_sur) or 0
+  local longue = sur >= 1 and tirer_la_pause() * sur < 1
+  local base = longue and reglages.ronde_longue_ms or reglages.ronde_pause_ms
+  local ecart_de_pause = longue and reglages.ronde_longue_ecart_ms or reglages.ronde_pause_ecart_ms
+  local pause = math.floor(base + (2 * tirer_la_pause() - 1) * ecart_de_pause + 0.5)
+  pause = math.max(tonumber(reglages.ronde_pause_min_ms) or 0, pause)
+  return { point = chemin[suivant], regard = regard_du_poste(chemin[ici], nil) or chemin[suivant], pause_ms = pause,
+           longue = longue, ici = ici, suivant = suivant, pas = r.pas, ecart = ecart }
+end
+
 -- Ce que l'ordre vise (fiche 15, V73 a) : une place du camp (siège, lit) se prend par son objet du jeu ; tout le reste est
 -- un point où marcher. Rend (position, objet de la place, sorte de la place).
 local function but_de(a)
@@ -1474,10 +1593,27 @@ end
 local function secourir(id, f, a, rapport)
   -- « Rapproché » : l'écart restant jusqu'au but a baissé (règle de JoVenGer : au moins 1 m en 30 s).
   local but = a.position
+  -- La ronde (fiche 15, V73 d 2) : le but est le point visé.
+  local r = hommes.en_ronde[id]
+  local de_ronde = a.activite == "ronde" and r ~= nil and type(a.chemin) == "table"
+  if de_ronde then
+    but = a.chemin[math.min(r.vise, #a.chemin)]
+  end
   local reste = but and jeu().ecart_au_but(f.personnage, but)
   local s = hommes.suivi[id]
   if not reste or not s then
     return
+  end
+  -- Un rondier avance tant qu'il arrive à ses points (une arrivée depuis le dernier battement), ou qu'il fait sa pause
+  -- au point quitté : son compte repart de zéro.
+  if de_ronde then
+    local quitte = r.quitte and a.chemin[math.min(r.quitte, #a.chemin)]
+    local au_quitte = quitte and jeu().ecart_au_but(f.personnage, quitte)
+    if (r.arrivees or 0) ~= (s.arrivees_vues or 0) or (au_quitte and au_quitte <= hommes.reglages.secours_arrivee_m) then
+      s.arrivees_vues = r.arrivees or 0
+      s.reste, s.bloque_s = reste, 0
+      return
+    end
   end
   if reste <= hommes.reglages.secours_arrivee_m then
     s.reste, s.bloque_s = reste, 0
@@ -1514,7 +1650,7 @@ local function secourir(id, f, a, rapport)
   end
   s.secours, s.bloque_s = s.secours + 1, 0
   local _, objet = but_de(a)
-  local ou = objet and camp().abord_de(a.lieu) or but
+  local ou = (not de_ronde and objet) and camp().abord_de(a.lieu) or but
   jeu().journal("Hommes : « " .. f.nom .. " » bloqué vers « " .. tostring(a.lieu) .. " », secours "
                 .. s.secours .. " : " .. tostring(jeu().poser_en_secours(f.personnage, ou)))
   f.derniere_activite = nil
@@ -1631,8 +1767,9 @@ end
 
 -- L'ordre d'un homme, seulement quand son activité change : un geste (fiche 15, V73 a), plus de téléportation ; sinon,
 -- au battement, le secours de l'homme bloqué. « sans_secours » : l'ordre redonné sur-le-champ par l'arbitre, hors
--- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel).
-local function ordonner_un_homme(d, id, heure, rapport, sans_secours)
+-- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel). « a_la_pose » :
+-- l'ordre donné quand la tenue est posée (la ronde part alors de son point de départ, fiche 15, V73 d 2).
+local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   local f = d.liste[id]
   if not f or not f.personnage then
     return
@@ -1641,6 +1778,16 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours)
   local resume = a.activite .. "@" .. tostring(a.lieu)
   if f.derniere_activite ~= resume then
     local position, objet, sorte = but_de(a)
+    -- La ronde (fiche 15, V73 d 2) : à la pose de la tenue, le point de départ (Scriptorium espace ses gardes, réponse
+    -- 2 a de JoVenGer) ; sinon, et ensuite (rechargement, secours, reprise après une règle plus forte), le point le plus
+    -- proche de l'homme : les gardes restent espacés, aucun ne retraverse le camp.
+    if a.activite == "ronde" and type(a.chemin) == "table" then
+      local premier = (a_la_pose and a.depart) or point_le_plus_proche(f.personnage, a.chemin)
+      hommes.en_ronde[id] = { resume = resume, vise = premier, sens = 1, pas = 0, arrivees = 0 }
+      position = a.chemin[premier]
+    else
+      hommes.en_ronde[id] = nil
+    end
     jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
@@ -1753,9 +1900,25 @@ local function memes_points(a, b)
   return a.x == b.x and a.y == b.y and a.z == b.z
 end
 
+local function memes_chemins(a, b)
+  if a == nil or b == nil then
+    return a == b
+  end
+  if #a ~= #b then
+    return false
+  end
+  for i = 1, #a do
+    if not memes_points(a[i], b[i]) then
+      return false
+    end
+  end
+  return true
+end
+
 local function memes_tenues(a, b)
   return a.activite == b.activite and a.lieu == b.lieu and a.cap == b.cap and a.fin == b.fin
     and a.ne_pas_rhabiller == b.ne_pas_rhabiller and memes_points(a.position, b.position)
+    and a.aller_retour == b.aller_retour and a.depart == b.depart and memes_chemins(a.chemin, b.chemin)
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -1763,7 +1926,9 @@ end
 -- lâche, borné par sûreté à « tenue_max_h ») ; rien (jusqu'au prochain changement de tranche, réponse 4 a). Une règle
 -- plus faible ne reprend pas un homme qu'une plus forte tient : sa tenue reste posée, et prend effet quand la plus forte
 -- le lâche. Reposer la même règle la met à jour sans la rajeunir. L'ordre est redonné sur-le-champ si l'activité de
--- l'homme change. Rend vrai, ou (faux, raison).
+-- l'homme change. L'activité « ronde » (fiche 15, V73 d 2) veut aussi « chemin » (2 à « ronde_points_max » points du
+-- monde ; Scriptorium, qui garde ses rondes dans le repère du camp, les redonne à chaque fondation), et accepte
+-- « aller_retour » (sinon en boucle) et « depart » (le numéro du premier point). Rend vrai, ou (faux, raison).
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
   local f = d.liste[id]
@@ -1784,16 +1949,29 @@ function hommes.tenir(id, regle, quoi)
   elseif fin ~= "liberation" and type(fin) ~= "number" then
     return refuser("fin_invalide", tostring(fin))
   end
+  local chemin, depart = nil, nil
+  if quoi.activite == "ronde" then
+    local raison
+    chemin, raison = copie_du_chemin(quoi.chemin)
+    if not chemin then
+      return refuser("chemin_invalide", raison)
+    end
+    depart = quoi.depart
+    if depart ~= nil and (type(depart) ~= "number" or depart ~= math.floor(depart) or depart < 1 or depart > #chemin) then
+      return refuser("chemin_invalide", "départ " .. tostring(depart))
+    end
+  end
   f.tenues = f.tenues or {}
   local avant = f.tenues[regle]
   -- « ne_pas_rhabiller » : une règle qui veut l'homme dévêtu (le bain) ; la garde de la tenue le saute (fiche 13).
   local tenue = { activite = quoi.activite, lieu = quoi.lieu, position = quoi.position, cap = quoi.cap, fin = fin,
-                  depuis = avant and avant.depuis or heure, ne_pas_rhabiller = (quoi.ne_pas_rhabiller == true) or nil }
+                  depuis = avant and avant.depuis or heure, ne_pas_rhabiller = (quoi.ne_pas_rhabiller == true) or nil,
+                  chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
   end
-  ordonner_un_homme(d, id, heure, nil, true)
+  ordonner_un_homme(d, id, heure, nil, true, true)
   return true
 end
 
@@ -1899,6 +2077,7 @@ end
 function hommes.relancer()
   local d = donnees()
   hommes.suivi = {}
+  hommes.en_ronde = {}
   hommes.cerveaux_regles = {}
   hommes.arrets_vus = {}
   hommes.fins_de_combat_vues = {}
@@ -2015,4 +2194,8 @@ end
 
 Scriptorium.declarer_morceau("hommes", function()
   -- Le battement est lancé par le poste d'essai ou par le socle une fois la partie chargée.
+  -- La ronde (fiche 15, V73 d 2) : la liaison, appelée par l'arbre à chaque point, demande le pas suivant aux hommes.
+  if jeu() and jeu().accrocher_la_ronde then
+    jeu().accrocher_la_ronde(hommes.pas_de_ronde)
+  end
 end)

@@ -665,6 +665,46 @@ function poste.essai_lacher_garde()
   return ok == true
 end
 
+-- Fiche 15, V73 d 2 : les deux premiers hommes du camp sur la ronde d'essai « pourtour », partis de deux points opposés
+-- (Scriptorium espace ses gardes en donnant le départ, réponse 2 a de JoVenGer), jusqu'à libération.
+function poste.essai_tenir_ronde()
+  local r = Scriptorium.hommes.rondes.pourtour
+  local n = r.nombre_de_points
+  local chemin = {}
+  for i = 1, n do
+    local cap = (i - 1) * 360 / n
+    chemin[i] = Scriptorium.camp.point(r.rayon_m * math.sin(math.rad(cap)), r.rayon_m * math.cos(math.rad(cap)), 0)
+    if not chemin[i] then
+      jeu().journal("Poste : ronde d'essai sans camp")
+      return false
+    end
+  end
+  local ids, tenus = Scriptorium.hommes.liste(), 0
+  for k = 1, math.min(2, #ids) do
+    local f = Scriptorium.hommes.fiche(ids[k])
+    local depart = (k - 1) * math.floor(n / 2) + 1
+    local ok, raison = Scriptorium.hommes.tenir(ids[k], "ronde", { activite = "ronde", lieu = "pourtour", chemin = chemin,
+      depart = depart, fin = "liberation" })
+    jeu().journal("Poste : " .. f.nom .. ", tenu par la ronde « pourtour », départ au point " .. depart .. " : "
+      .. tostring(ok) .. " " .. tostring(raison or ""))
+    if ok then
+      tenus = tenus + 1
+    end
+  end
+  return tenus > 0
+end
+
+function poste.essai_lacher_ronde()
+  local lache = 0
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    if Scriptorium.hommes.lacher(id, "ronde") then
+      lache = lache + 1
+    end
+  end
+  jeu().journal("Poste : ronde lâchée pour " .. lache .. " homme(s)")
+  return lache > 0
+end
+
 -- Qui tient chaque homme : la règle, l'activité, le lieu, la fin.
 function poste.essai_qui_tient()
   local hommes = Scriptorium.hommes
@@ -1461,6 +1501,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_lacher_rassemblement", fonction = function() return poste.essai_lacher_rassemblement() end, aide = "Le rassemblement du premier homme lâché (V73 b 3)" },
   { nom = "scriptorium_essai_tenir_garde", fonction = function() return poste.essai_tenir_garde() end, aide = "Le premier homme tenu par la garde au poste 1 : il y marche et se tient face au dehors (V73 d 1)" },
   { nom = "scriptorium_essai_lacher_garde", fonction = function() return poste.essai_lacher_garde() end, aide = "La garde du premier homme lâchée (V73 d 1)" },
+  { nom = "scriptorium_essai_tenir_ronde", fonction = function() return poste.essai_tenir_ronde() end, aide = "Les deux premiers hommes sur la ronde d'essai, partis de deux points opposés (V73 d 2)" },
+  { nom = "scriptorium_essai_lacher_ronde", fonction = function() return poste.essai_lacher_ronde() end, aide = "La ronde lâchée pour tous (V73 d 2)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
