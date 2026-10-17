@@ -239,7 +239,8 @@
 | 473 deux fois, puis quinze sauts d'Henry (six de 200 m, neuf de 40 m ; un dans un hameau clos) | V73 f 3 b (le grand saut des cavaliers) | normal (dix-sept fois) |
 | 473, puis deux poses d'Henry (1 188 m et 31 m, à Přítoky) | V73 f 3 b (les intérieurs) | normal (trois fois) |
 | 473, puis deux sauts d'Henry (40 m) | V73 g 0 (la sonde du rechargement) | normal (trois fois) |
-- Au total : 3 écrans noirs sur 112 chargements ou poses observés ; 1 sur 102 depuis la séparation. **Rien n'est conclu** : il
+| 473, puis deux sauts d'Henry (40 m) et trois poses (1 188 m, 6 m, 6 m, à Přítoky) | V73 g (le gardien, la liaison relue, la porte) | normal (six fois) |
+- Au total : 3 écrans noirs sur 118 chargements ou poses observés ; 1 sur 108 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un

@@ -2509,6 +2509,21 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   pas remis à zéro entre deux essais (`outils_essai`). 11 erreurs injectées, toutes attrapées (une après avoir réglé la
   limite par regard à 1 dans l'essai).
 
+### Vu en jeu (17/10, bf9b02e, une séance regroupée, `playline3` 473)
+- **Sous le sol** : Jan posé 20 m sous le terrain (31,7 pour un terrain à 51,7) ; 5,6 s après, le gardien le voit à
+  −28,3 (il tombait) et le repêche au sol, **immortel : oui**. Puis le gardien le voit **figé à 3,4 m de son but**
+  (l'exercice), le **relance**, et 4 s plus tard « repart (1,8 m) : **relance utile** ». Le gardien vu une fois, propre.
+- **L'homme « endormi »** (`Activate(0)` et IA en sommeil) **n'est pas figé** : il marche quand même jusqu'à la corvée.
+  Cette provocation ne vaut rien ; le figé a été vu sur Jan.
+- **La liaison relue dans le jeu ouvert** (avec les hommes) : « liaison relu (sonde 2) », réveil, camp et hommes
+  redressés sans rien refaire ; sa mémoire gardée (le dernier chargement réel est encore lu par `essai_carte_voir`).
+- **La porte** (Přítoky) : l'intérieur trouvé par les rayons (82 points sous un toit ; choisi à 6 m du crieur, plancher
+  à 107,34) ; Henry posé dedans, relu à 0,0 m (un bâtiment sombre à deux portes cintrées). L'escorte (Ondřej, seul :
+  les deux autres tenus par le rassemblement de l'essai précédent) vient **dans l'embrasure** à 3 ou 4 m d'Henry, et
+  **ressort** avec lui. Non vu : un intérieur profond (plus loin que sa distance de suite), l'escalier, l'étage
+  (liste de JoVenGer).
+- Séance fermée par `fin_essai` ; écran normal à chaque chargement et pose.
+
 ### Essai en jeu : grille (une séance, avec la porte)
 1. Un homme posé 20 m sous le terrain (commande d'essai) : repêché en moins de 8 s, immortel puis l'effet retiré.
 2. Un homme endormi (commande d'essai : `Activate(0)`) loin de son but : figé, relancé, la relance utile.
