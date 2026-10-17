@@ -99,6 +99,18 @@ le chemin du retour, entre à cheval et descend.
   - À reprendre plus tard : l'attente de renaissance n'a pas de borne (un joueur qui fixe la route bloque le retour) ;
     l'heure d'arrivée est comptée depuis le centre du camp, pas depuis le point où la colonne a disparu ; Henry qui
     rejoint le lieu pendant « dehors » y trouve les brigands sans nos hommes.
+- **L'issue tranchée par passes** (règle scellée de JoVenGer « bataille_au_loin », 24/09, transmise par le pair le
+  17/10 : « laisser le jeu en décider selon la puissance de chacun », « rien n'est écrit d'avance ») : au loin, pour la
+  bataille du camp quand la règle tranche et pour l'embuscade d'une patrouille. Accroche `bataille.issue_au_loin(nous,
+  sorte, effectif, bonus)` : à chaque passe un camp perd un homme, tiré au sort avec une chance de tomber qui suit le
+  rapport des forces encore debout ; nos hommes tombent dans l'ordre de chute (rang avant, moindre jugement) ; fin quand
+  un camp n'a plus personne. Chaque tombé : mort avec `part_des_morts` (0,5), blessé sinon. Le butin : tout si la bande
+  tombe, rien sinon. L'issue dit ce qui s'est passé (victoire sans perte, avec pertes, repoussée si la moitié des leurs
+  est tombée, défaite). La force d'un homme (accroche `bataille.force_d_un_homme`, où Scriptorium mettra l'expérience) :
+  le poids du rôle, le palier (`bataille.paliers` : 1 ; 1,25 ; 1,5), l'usure, le caractère (aguerrissement, courage,
+  fatigue) et le moral ; le sang-froid y entre par le moral (réponse prise d'office : pas de second facteur). Au banc,
+  400 batailles par effectif (3 archers) : contre 2 brigands 371 victoires, 3 : 308, 4 : 233, 6 : 81, 9 : 7.
+  Henry sur place : le vrai combat du jeu, rien de calculé (les blessés y restent encore une part fixe : à reprendre).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 

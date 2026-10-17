@@ -45,7 +45,14 @@ bataille.reglages = {
   poste_alerte_m = 35,
   poste_engagement_m = 80,
   poste_fuite_m = 300,
+  -- L'issue tranchée (règle scellée de JoVenGer « bataille_au_loin », 24/09 : « laisser le jeu en décider selon la
+  -- puissance de chacun », « rien n'est écrit d'avance ») : chaque homme tombé l'est mort avec cette chance, blessé
+  -- sinon.
+  part_des_morts = 0.5,
 }
+
+-- La force d'un homme selon son palier (recrue, confirmé, vétéran) : un facteur, réglable.
+bataille.paliers = { palier_1 = 1, palier_2 = 1.25, palier_3 = 1.5 }
 
 -- Butin par tête doublé à la validation de la fiche par JoVenGer (14/10).
 bataille.sortes = {
@@ -63,12 +70,15 @@ bataille.roles = {
   archer        = { poids = 2, rang = "arriere" },
 }
 
--- Issues, du meilleur au pire : rapport de force minimal, pertes, moral, part du butin.
+-- Issues, du meilleur au pire : ce qu'elles font au moral, la part du butin, et, pour le combat vu dans le jeu (où seuls
+-- les morts se lisent), la part de blessés. L'issue tranchée par la règle se joue par passes (bataille.issue_au_loin) :
+-- elle dit ce qui s'est passé (victoire sans perte, victoire avec pertes, repoussée : nos hommes tombés mais la moitié
+-- au moins des leurs aussi, défaite), pas un barème.
 bataille.issues = {
-  { nom = "victoire", rapport = 1.5, morts = 0, blesses = 0.15, moral = 10, butin = 1.0, cle = "ui_scriptorium_bataille_victoire" },
-  { nom = "victoire_couteuse", rapport = 1.0, morts = 0.10, blesses = 0.30, moral = 5, butin = 0.6, cle = "ui_scriptorium_bataille_victoire_couteuse" },
-  { nom = "repoussee", rapport = 0.7, morts = 0.20, blesses = 0.40, moral = -5, butin = 0.2, cle = "ui_scriptorium_bataille_repoussee" },
-  { nom = "defaite", rapport = 0, morts = 0.35, blesses = 0.40, moral = -15, butin = 0, cle = "ui_scriptorium_bataille_defaite" },
+  { nom = "victoire", morts = 0, blesses = 0.15, moral = 10, butin = 1.0, cle = "ui_scriptorium_bataille_victoire" },
+  { nom = "victoire_couteuse", morts = 0.10, blesses = 0.30, moral = 5, butin = 0.6, cle = "ui_scriptorium_bataille_victoire_couteuse" },
+  { nom = "repoussee", morts = 0.20, blesses = 0.40, moral = -5, butin = 0.2, cle = "ui_scriptorium_bataille_repoussee" },
+  { nom = "defaite", morts = 0.35, blesses = 0.40, moral = -15, butin = 0, cle = "ui_scriptorium_bataille_defaite" },
 }
 
 local function jeu()
@@ -546,17 +556,8 @@ local function arriver(d, b)
   end
 end
 
-local function choisir_issue(rapport)
-  for _, issue in ipairs(bataille.issues) do
-    if rapport >= issue.rapport then
-      return issue
-    end
-  end
-  return bataille.issues[#bataille.issues]
-end
-
 -- Applique l'issue : morts, blessés, moral, pillage, butin. Rend le résultat.
-local function appliquer(d, b, issue, morts_par_le_jeu)
+local function appliquer(d, b, issue, morts_par_le_jeu, blesses_donnes, gagne)
   local resultat = { bande = b.id, sorte = b.sorte, effectif = b.effectif, issue = issue.nom,
                      morts = {}, blesses = {}, butin = 0, part_coffre = 0, pillage = 0, moment = jeu().heure_du_jeu() }
   -- Les combattants encore là, rang avant d'abord (il tombe le premier).
@@ -587,15 +588,22 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
     end
     if not mort then table.insert(survivants, id) end
   end
-  local nombre_blesses = math.min(#survivants, math.floor(#survivants * issue.blesses + 0.5))
-  -- Les blessés sont pris au hasard parmi les survivants.
-  local candidats = {}
-  for i, id in ipairs(survivants) do candidats[i] = id end
-  for _ = 1, nombre_blesses do
-    local k = math.floor(tirage(d) * #candidats) + 1
-    local id = table.remove(candidats, k)
-    local jours = 2 + math.floor(tirage(d) * 4)
-    table.insert(resultat.blesses, { id = id, jours = jours })
+  if blesses_donnes then
+    -- Par passes : les blessés sont ceux qui sont tombés sans mourir.
+    for _, blesse in ipairs(blesses_donnes) do
+      table.insert(resultat.blesses, blesse)
+    end
+  else
+    local nombre_blesses = math.min(#survivants, math.floor(#survivants * issue.blesses + 0.5))
+    -- Les blessés sont pris au hasard parmi les survivants.
+    local candidats = {}
+    for i, id in ipairs(survivants) do candidats[i] = id end
+    for _ = 1, nombre_blesses do
+      local k = math.floor(tirage(d) * #candidats) + 1
+      local id = table.remove(candidats, k)
+      local jours = 2 + math.floor(tirage(d) * 4)
+      table.insert(resultat.blesses, { id = id, jours = jours })
+    end
   end
   -- L'équipement des combattants s'use.
   if Scriptorium.atelier and Scriptorium.atelier.user_apres_bataille then
@@ -626,7 +634,9 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
     end
   end
   -- Butin, partagé selon la coutume.
-  local butin = math.floor((b.butin_du_camp or b.effectif * bataille.sortes[b.sorte].butin_par_tete) * issue.butin)
+  -- Par passes, le butin est ce qui s'est passé : tout si la bande est tombée, rien sinon.
+  local part = (gagne == nil) and issue.butin or (gagne and 1 or 0)
+  local butin = math.floor((b.butin_du_camp or b.effectif * bataille.sortes[b.sorte].butin_par_tete) * part)
   if butin > 0 then
     coffre().encaisser(butin, "butin")
     local part_hommes = math.floor(butin / 2)
@@ -648,6 +658,30 @@ local function appliquer(d, b, issue, morts_par_le_jeu)
   while #d.resultats > bataille.reglages.journal_gardes do
     table.remove(d.resultats, 1)
   end
+  return resultat
+end
+
+-- Trancher une bande par passes (bataille.issue_au_loin) contre ces combattants : morts ou blessés selon
+-- « part_des_morts », puis l'issue qui dit ce qui s'est passé. Rend le résultat d'« appliquer », avec les passes.
+local function trancher_par_passes(d, b, combattants, bonus)
+  local r = bataille.issue_au_loin(combattants, b.sorte, b.effectif, bonus)
+  local morts, blesses = {}, {}
+  for _, id in ipairs(r.tombes) do
+    if tirage(d) < bataille.reglages.part_des_morts then
+      table.insert(morts, id)
+    else
+      table.insert(blesses, { id = id, jours = 2 + math.floor(tirage(d) * 4) })
+    end
+  end
+  local issue
+  if r.gagne then
+    issue = (#r.tombes == 0) and bataille.issues[1] or bataille.issues[2]
+  else
+    issue = (r.eux_tombes * 2 >= b.effectif) and bataille.issues[3] or bataille.issues[4]
+  end
+  b.combattants = combattants
+  local resultat = appliquer(d, b, issue, morts, blesses, r.gagne)
+  resultat.passes, resultat.eux_tombes = r.passes, r.eux_tombes
   return resultat
 end
 
@@ -687,12 +721,12 @@ function bataille.resoudre_par_la_regle(id)
   if not b or b.etat ~= "au_contact" then
     return nil
   end
-  local notre = bataille.force_des_notres()
-  local leur = bataille.force_de_la_bande(b)
-  local rapport = (leur > 0) and (notre / leur) or 10
-  local issue = choisir_issue(rapport)
-  local resultat = appliquer(d, b, issue, nil)
-  resultat.rapport = rapport
+  local combattants = {}
+  for _, h in ipairs(b.combattants or {}) do
+    if bataille.force_d_un_homme(h) > 0 then table.insert(combattants, h) end
+  end
+  local bonus = (Scriptorium.enceinte and Scriptorium.enceinte.bonus) and Scriptorium.enceinte.bonus() or 1
+  local resultat = trancher_par_passes(d, b, combattants, bonus)
   finir(d, b, resultat)
   enregistrer()
   return resultat
@@ -700,27 +734,71 @@ end
 
 -- Une escarmouche loin du camp (embuscade de patrouille) : les seuls hommes donnés,
 -- sans enceinte, tranchée tout de suite par la règle. Rend le résultat.
+-- La force d'un homme (accroche : Scriptorium y met l'expérience de l'homme) : le poids de son rôle, son palier, son
+-- équipement (l'usure), son caractère (aguerrissement, courage, sang-froid, fatigue) et son moral ; 0 s'il ne combat
+-- pas (rôle hors combat, blessé). Le sang-froid y entre par le moral (une perte de moral amortie, fiche 11).
+function bataille.force_d_un_homme(id)
+  local f = hommes().fiche(id)
+  local role = f and bataille.roles[f.role]
+  if not role or f.blessure > 0 then
+    return 0
+  end
+  local facteur = bataille.paliers["palier_" .. tostring(f.palier or 1)] or 1
+  if Scriptorium.atelier and Scriptorium.atelier.facteur_de then
+    facteur = facteur * Scriptorium.atelier.facteur_de(id)
+  end
+  if Scriptorium.caractere then
+    facteur = facteur * Scriptorium.caractere.facteur_de_combat(id)
+  end
+  return role.poids * facteur * (0.7 + 0.5 * f.moral / 100)
+end
+
 -- La force d'une liste d'hommes (une patrouille, une colonne), et ceux qui combattent : les rôles de combat, valides.
 function bataille.force_de(ids)
   local combattants = {}
-  local force, moral, nombre = 0, 0, 0
+  local force = 0
   for _, homme in ipairs(ids) do
-    local f = hommes().fiche(homme)
-    if f and bataille.roles[f.role] and f.blessure == 0 then
+    local sienne = bataille.force_d_un_homme(homme)
+    if sienne > 0 then
       table.insert(combattants, homme)
-      local facteur = (Scriptorium.atelier and Scriptorium.atelier.facteur_de) and Scriptorium.atelier.facteur_de(homme) or 1
-      if Scriptorium.caractere then
-        facteur = facteur * Scriptorium.caractere.facteur_de_combat(homme)
-      end
-      force = force + bataille.roles[f.role].poids * facteur
-      moral = moral + f.moral
-      nombre = nombre + 1
+      force = force + sienne
     end
   end
-  if nombre > 0 then
-    force = force * (0.7 + 0.5 * (moral / nombre) / 100)
-  end
   return force, combattants
+end
+
+-- L'issue tranchée, par passes (accroche ; règle scellée de JoVenGer « bataille_au_loin », méthode de Scriptorium) : à
+-- chaque passe, un camp perd un homme, tiré au sort avec une chance de tomber qui suit le rapport des forces encore
+-- debout ; nos hommes tombent dans leur ordre de chute (le rang avant, puis le moindre jugement, fiche 11) ; la fin quand
+-- un camp n'a plus personne debout. « bonus » : celui de l'enceinte, au camp. Rend { gagne, tombes (nos hommes, dans
+-- l'ordre), debout, eux_tombes, eux_debout, passes }.
+function bataille.issue_au_loin(nous, sorte, effectif, bonus)
+  local debout = {}
+  for i, id in ipairs(nous) do debout[i] = id end
+  if Scriptorium.caractere then
+    debout = Scriptorium.caractere.ordre_de_chute(debout)
+  end
+  local force_de_chacun = {}
+  for _, id in ipairs(debout) do
+    force_de_chacun[id] = bataille.force_d_un_homme(id) * (bonus or 1)
+  end
+  local poids = bataille.sortes[sorte] and bataille.sortes[sorte].poids or 1
+  local eux, tombes, passes = effectif, {}, 0
+  while #debout > 0 and eux > 0 do
+    passes = passes + 1
+    local notre = 0
+    for _, id in ipairs(debout) do
+      notre = notre + force_de_chacun[id]
+    end
+    local leur = eux * poids
+    if bataille.tirage() < leur / (notre + leur) then
+      table.insert(tombes, table.remove(debout, 1))
+    else
+      eux = eux - 1
+    end
+  end
+  return { gagne = eux == 0 and #debout > 0, tombes = tombes, debout = debout, eux_tombes = effectif - eux,
+           eux_debout = eux, passes = passes }
 end
 
 function bataille.escarmouche(ids, sorte, effectif)
@@ -730,15 +808,10 @@ function bataille.escarmouche(ids, sorte, effectif)
   local b = { id = id, sorte = sorte, effectif = effectif, direction = 0, levee = jeu().heure_du_jeu(),
               arrivee = jeu().heure_du_jeu(), etat = "au_contact", contact = jeu().heure_du_jeu(),
               personnages = nil, combattants = {} }
-  local force
-  force, b.combattants = bataille.force_de(ids)
-  local leur = bataille.force_de_la_bande(b)
-  local rapport = (leur > 0) and (force / leur) or 10
-  local issue = choisir_issue(rapport)
+  local _, combattants = bataille.force_de(ids)
   d.bandes[id] = b
   table.insert(d.ordre, id)
-  local resultat = appliquer(d, b, issue, nil)
-  resultat.rapport = rapport
+  local resultat = trancher_par_passes(d, b, combattants, 1)
   b.etat = "finie"
   b.fin = jeu().heure_du_jeu()
   b.issue = resultat.issue
@@ -851,16 +924,13 @@ function bataille.trancher_la_bande_postee(id, ids)
   if b.personnages then
     b.effectif = jeu().ennemis_vivants(b.personnages)
   end
-  local force
-  force, b.combattants = bataille.force_de(ids)
+  local _, combattants = bataille.force_de(ids)
   b.contact = b.contact or jeu().heure_du_jeu()
-  local leur = bataille.force_de_la_bande(b)
-  local rapport = (leur > 0) and (force / leur) or 10
-  local resultat = appliquer(d, b, choisir_issue(rapport), nil)
-  resultat.rapport = rapport
+  local resultat = trancher_par_passes(d, b, combattants, 1)
   finir(d, b, resultat)
   enregistrer()
-  jeu().journal(string.format("Bataille : « %s » tranchée au loin, rapport de force %.2f", id, rapport))
+  jeu().journal(string.format("Bataille : « %s » tranchée au loin en %d passes, %d des leurs tombés", id, resultat.passes,
+    resultat.eux_tombes))
   return resultat
 end
 

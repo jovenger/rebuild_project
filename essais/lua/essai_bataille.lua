@@ -129,28 +129,42 @@ essai("bataille : forces, moral et poids des sortes", function()
   egal(bataille.force_de_la_bande({ sorte = "deserteurs", effectif = 5 }), 4, "cinq déserteurs")
 end)
 
-essai("bataille : la règle tranche quand le jeu ne fait pas venir la bande ; les quatre issues", function()
+-- Règle scellée de JoVenGer « bataille_au_loin » (relecture du pair, 17/10) : la règle tranche par passes
+-- (bataille.issue_au_loin, une accroche) ; l'issue dit ce qui s'est passé. Ici l'accroche est remplacée par des passes
+-- écrites d'avance, pour lire chaque issue.
+essai("bataille : la règle tranche par passes quand le jeu ne fait pas venir la bande ; l'issue dit ce qui s'est passé", function()
   local cas = {
-    -- Force des nôtres : 3 + 3 + 2 + 2,5 + 2 = 12,5 (moral 60 : × 1).
-    { effectif = 1, issue = "victoire" },
-    { effectif = 10, issue = "victoire_couteuse" },
-    { effectif = 15, issue = "repoussee" },
-    { effectif = 20, issue = "defaite" },
+    { gagne = true, tombes = 0, eux_tombes = 10, issue = "victoire" },
+    { gagne = true, tombes = 1, eux_tombes = 10, issue = "victoire_couteuse" },
+    { gagne = false, tombes = 5, eux_tombes = 5, issue = "repoussee" },
+    { gagne = false, tombes = 5, eux_tombes = 4, issue = "defaite" },
   }
+  local ancienne = bataille.issue_au_loin
   for _, c in ipairs(cas) do
     local ids = preparer(1000, 10, { "homme_d_armes", "homme_d_armes", "pavoisier", "arbaletrier", "archer" })
+    bataille.issue_au_loin = function(nous)
+      local tombes, debout = {}, {}
+      for i, id in ipairs(nous) do
+        if i <= c.tombes then table.insert(tombes, id) else table.insert(debout, id) end
+      end
+      return { gagne = c.gagne, tombes = tombes, debout = debout, eux_tombes = c.eux_tombes, eux_debout = 10 - c.eux_tombes,
+               passes = c.tombes + c.eux_tombes }
+    end
     FauxJeu.refuser_ennemis = true
-    bataille.lever_une_bande({ sorte = "brigands", effectif = c.effectif, direction = 0, delai = 0 })
+    bataille.lever_une_bande({ sorte = "brigands", effectif = 10, direction = 0, delai = 0 })
     local rapport = bataille.battre()
     egal(rapport.arrivees, 1, "arrivée")
     egal(rapport.finies, 1, "finie tout de suite par la règle")
     local resultats = bataille.resultats()
-    egal(resultats[1].issue, c.issue, "issue pour " .. c.effectif .. " brigands")
+    egal(resultats[1].issue, c.issue, "issue : " .. c.issue)
     egal(#bataille.bandes(), 0, "plus de bande en cours")
     for _, id in ipairs(hommes.liste()) do
       egal(hommes.activite_de(id, 10).activite == "bataille", false, "affectation levée pour " .. id)
     end
+    egal(resultats[1].morts + resultats[1].blesses, c.tombes, "les tombés, morts ou blessés : ce qui s'est passé")
+    egal(resultats[1].butin > 0, c.gagne, "le butin seulement si la bande est tombée")
   end
+  bataille.issue_au_loin = ancienne
 end)
 
 essai("bataille : victoire, blessés et moral, butin partagé au livre", function()
@@ -160,9 +174,10 @@ essai("bataille : victoire, blessés et moral, butin partagé au livre", functio
   bataille.lever_une_bande({ sorte = "coumans", effectif = 2, direction = 180, delai = 0 })
   bataille.battre()
   local r = bataille.resultats()[1]
+  -- Six contre deux Coumans : par passes, la victoire n'est pas écrite d'avance ; la graine de ce banc la donne sans perte.
   egal(r.issue, "victoire", "victoire")
   egal(r.morts, 0, "aucun mort")
-  egal(r.blesses, 1, "15 % de six : un blessé")
+  egal(r.blesses, 0, "personne n'est tombé : aucun blessé")
   egal(r.butin, 48, "deux Coumans à vingt-quatre")
   egal(r.part_coffre, 48 - 24 - 8, "le coffre garde le reste")
   local livre = coffre.livre(3)
@@ -172,7 +187,7 @@ essai("bataille : victoire, blessés et moral, butin partagé au livre", functio
   egal(coffre.solde(), 1000 + 16, "solde du coffre")
   egal(hommes.fiche(ids[2]).moral, 70, "moral + 10")
   local blesses = hommes.effectif().blesses
-  egal(blesses, 1, "un blessé sur les fiches")
+  egal(blesses, 0, "aucun blessé sur les fiches")
   local vus = messages()
   verifier(contient(vus, "@ui_scriptorium_bataille_victoire"), "victoire annoncée")
   verifier(contient(vus, "@ui_scriptorium_bataille_butin"), "butin annoncé")
@@ -180,6 +195,7 @@ end)
 
 essai("bataille : défaite, morts au rang avant, pillage du coffre, pas de butin", function()
   local ids = preparer(400, 10, { "homme_d_armes", "pavoisier", "archer", "archer" })
+  bataille.reglages.part_des_morts = 1   -- chaque homme tombé meurt : l'ordre de chute se lit sur les fiches
   FauxJeu.refuser_ennemis = true
   bataille.lever_une_bande({ sorte = "coumans", effectif = 30, direction = 0, delai = 0 })
   bataille.battre()
@@ -194,6 +210,27 @@ essai("bataille : défaite, morts au rang avant, pillage du coffre, pas de butin
   egal(#hommes.anciens(), r.morts, "les morts sont dans les anciens")
   egal(hommes.anciens()[1].cause, "mort", "cause")
   verifier(hommes.fiche(ids[4]) == nil or hommes.fiche(ids[4]).moral == 45, "moral − 15 pour les survivants")
+  bataille.reglages.part_des_morts = 0.5
+end)
+
+-- Règle scellée de JoVenGer « bataille_au_loin » (relecture du pair, 17/10) : 400 batailles tirées, dans les deux sens ;
+-- le plus fort gagne le plus souvent, jamais toujours ; le faible gagne parfois.
+essai("bataille : 400 batailles par passes ; le plus fort gagne le plus souvent, jamais toujours ; le faible parfois", function()
+  local ids = preparer(1000, 10, { "archer", "archer", "archer" })
+  local function victoires(sorte, effectif)
+    local n = 0
+    for k = 1, 400 do
+      bataille.fixer_la_graine(7000 + k)
+      if bataille.issue_au_loin(ids, sorte, effectif).gagne then n = n + 1 end
+    end
+    return n
+  end
+  -- Trois archers (force 2 chacun, moral 60 : × 1) : 6 contre 3 brigands (3), puis contre 9 brigands (9).
+  local fort = victoires("brigands", 3)
+  local faible = victoires("brigands", 9)
+  verifier(fort > 240 and fort < 400, "plus forts : gagnent le plus souvent, jamais toujours (" .. fort .. " sur 400)")
+  verifier(faible > 0 and faible < 160, "plus faibles : gagnent parfois (" .. faible .. " sur 400)")
+
 end)
 
 essai("bataille : fin par le jeu, les ennemis tombent, nos morts sont ceux que le jeu dit", function()

@@ -109,7 +109,7 @@ essai("réglages : signe, parts, heures, entiers, taux", function()
   verifier(lignes_avec("(pas_entier)") == 2, "entier reste entier, même une heure d'avance (limite validée)")
   verifier(lignes_avec("(pas_un_nombre)") == 1, "un mot")
   r = poser({ discipline = { reputation_exaction = -8 }, rangs = { soudoyer = 1.2 }, bandes = { brigands = { poids = 1.25 } },
-              issues = { victoire_couteuse = { rapport = 1.2 } }, hommes = { heure_repas = 6 } })
+              paliers = { palier_2 = 1.3 }, hommes = { heure_repas = 6 } })
   egal(r.refuses, 0, "négatif restant négatif, taux décimaux, heure entière")
   egal(Scriptorium.discipline.reglages.reputation_exaction, -8, "perte de réputation réglée")
   egal(hommes.rangs.soudoyer, 1.2, "multiplicateur de rang décimal")
@@ -227,7 +227,7 @@ essai("réglages : chaque valeur du catalogue est un nombre relevé, et chaque s
     verifier(type(morceau) == "table" and type(morceau[entree.table]) == "table", "table de " .. entree.section)
     sections = sections + 1
   end
-  egal(sections, 34, "trente-quatre sections (le socle, depuis V72 ; le cerveau et les priorités de l'arbitre, depuis le 16/10 ; les rondes et les formations, depuis le 17/10 ; les interrupteurs et les deux journées, fiche 16 ; les camps de bandits, fiche 17)")
+  egal(sections, 35, "trente-cinq sections (le socle, depuis V72 ; le cerveau et les priorités de l'arbitre, depuis le 16/10 ; les rondes et les formations, depuis le 17/10 ; les interrupteurs et les deux journées, fiche 16 ; les camps de bandits et les paliers, fiche 17)")
   verifier(reglages.relever_les_valeurs_validees() > 100, "plus de cent valeurs réglables")
   egal(reglages.valeur_en_place("prix.vivres"), 2, "prix des vivres")
   egal(reglages.valeur_validee("issues.victoire.cle"), nil, "un texte n'est pas relevé")
