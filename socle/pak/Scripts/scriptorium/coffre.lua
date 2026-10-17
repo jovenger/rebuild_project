@@ -70,7 +70,7 @@ local function donnees()
 end
 
 local function enregistrer()
-  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.enregistrer("coffre")
 end
 
 -- ---------------------------------------------------------------- contrôles

@@ -319,9 +319,12 @@ function Scriptorium.battre()
       end
     end
   end
-  -- Fiche 01 : l'écriture du registre mise en attente pendant ce battement.
-  if Scriptorium.registre and Scriptorium.registre.en_attente then
-    local ok, erreur = pcall(Scriptorium.registre.vider)
+  -- Fiche 01 : les cases changées sans être nommées, puis l'écriture mise en attente pendant ce battement.
+  if Scriptorium.registre then
+    local ok, erreur = pcall(function()
+      Scriptorium.registre.surveiller()
+      Scriptorium.registre.vider()
+    end)
     if not ok then
       rapport.erreurs = rapport.erreurs + 1
       journal("Registre : écriture en attente en erreur : " .. tostring(erreur))

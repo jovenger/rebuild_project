@@ -222,7 +222,7 @@ essai("registre (fiche 01, le pair, 17/10) : les écritures regroupées, une au 
     verifier(FauxJeu.registre_stocke ~= avant, "écrite au battement")
     d.n = 2
     FauxJeu.temps = 100.6
-    verifier(registre.enregistrer(true) ~= nil, "forcée : écrite tout de suite")
+    verifier(registre.enregistrer(nil, true) ~= nil, "forcée : écrite tout de suite")
     d.n = 3
     FauxJeu.temps = 103
     verifier(registre.enregistrer() ~= nil, "l'intervalle passé : tout de suite")
@@ -230,4 +230,85 @@ essai("registre (fiche 01, le pair, 17/10) : les écritures regroupées, une au 
   Scriptorium.noyau.reglages.registre_intervalle_s = ancien
   registre.en_attente = false
   verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
+essai("registre par case (fiche 01) : seule la case nommée s'écrit ; l'index seulement s'il change ; case inconnue gardée ; repli sans nom", function()
+  depart()
+  local registre = Scriptorium.registre
+  registre.declarer_case("essai_a", 1, function() return { n = 0 } end)
+  registre.declarer_case("essai_b", 1, function() return { n = 0 } end)
+  registre.enregistrer(nil, true)
+  -- Une case d'une autre version, écrite à la main dans la partie.
+  local index = registre.deserialiser(FauxJeu.registre_jetons.index)
+  table.insert(index.cases, "inconnue")
+  FauxJeu.registre_jetons.index = registre.serialiser(index)
+  FauxJeu.registre_jetons.cases.inconnue = registre.serialiser({ version = 9, donnees = { x = 1 } })
+  registre.invalider()
+  registre.charger()
+  registre.lire("essai_a").n = 5
+  FauxJeu.cases_ecrites, FauxJeu.index_ecrits = {}, 0
+  egal(registre.enregistrer("essai_a"), 1, "une case écrite")
+  egal(#FauxJeu.cases_ecrites, 1, "une seule")
+  egal(FauxJeu.cases_ecrites[1], "essai_a", "la nommée")
+  egal(FauxJeu.index_ecrits, 0, "l'index inchangé : pas réécrit")
+  verifier(FauxJeu.registre_jetons.cases.inconnue ~= nil, "la case inconnue gardée")
+  verifier(string.find(FauxJeu.registre_jetons.index, "inconnue", 1, true), "et dans l'index")
+  FauxJeu.cases_ecrites = {}
+  registre.enregistrer()
+  verifier(#FauxJeu.cases_ecrites >= 2, "sans nom : toutes les cases déclarées")
+  egal(FauxJeu.registre_jetons.cases.inconnue, registre.serialiser({ version = 9, donnees = { x = 1 } }), "l'inconnue jamais réécrite")
+  local ok, erreur = pcall(registre.enregistrer, "pas_une_case")
+  verifier(not ok and string.find(tostring(erreur), "case inconnue", 1, true), "une case non déclarée : erreur")
+  registre.invalider()
+  egal(registre.lire("essai_a").n, 5, "relue")
+end)
+
+essai("registre par case (fiche 01) : l'ancien flux relu puis réécrit par case ; une case illisible seule remise à neuf", function()
+  depart()
+  local registre = Scriptorium.registre
+  registre.declarer_case("essai_c", 1, function() return { n = 0 } end)
+  registre.declarer_case("essai_d", 1, function() return { n = 0 } end)
+  FauxJeu.registre_stocke = registre.serialiser({ format = registre.format, cases = {
+    essai_c = { version = 1, donnees = { n = 3 } }, essai_d = { version = 1, donnees = { n = 4 } },
+    ancienne = { version = 1, donnees = { y = 2 } } } })
+  registre.invalider()
+  egal(registre.lire("essai_c").n, 3, "l'ancien flux relu")
+  registre.lire("essai_c").n = 30
+  registre.enregistrer("essai_c")
+  verifier(FauxJeu.registre_jetons.index ~= nil, "l'index posé")
+  egal(FauxJeu.registre_jetons.ancien, nil, "l'ancien flux vidé")
+  verifier(FauxJeu.registre_jetons.cases.essai_d ~= nil, "toutes les cases réécrites à la migration")
+  verifier(FauxJeu.registre_jetons.cases.ancienne ~= nil, "même celle que le socle ne connaît pas")
+  -- Une case abîmée : elle seule est remise à neuf.
+  FauxJeu.registre_jetons.cases.essai_d = "{abime"
+  registre.invalider()
+  egal(registre.lire("essai_c").n, 30, "l'autre case intacte")
+  egal(registre.lire("essai_d").n, 0, "l'abîmée remise à neuf")
+  egal(registre.etat_de("essai_d"), "abimee", "notée abîmée")
+end)
+
+essai("registre par case (fiche 01) : à la fin du battement, une case changée sans être nommée est écrite ; une case non surveillée, non", function()
+  depart()
+  local registre = Scriptorium.registre
+  registre.declarer_case("essai_e", 1, function() return { n = 0 } end)
+  registre.declarer_case("essai_f", 1, function() return { n = 0 } end, nil, { surveillee = false })
+  registre.enregistrer(nil, true)
+  registre.lire("essai_e").n = 7
+  registre.lire("essai_f").n = 8
+  FauxJeu.cases_ecrites = {}
+  Scriptorium.battre()
+  local e, f = false, false
+  for _, nom in ipairs(FauxJeu.cases_ecrites) do
+    if nom == "essai_e" then e = true end
+    if nom == "essai_f" then f = true end
+  end
+  verifier(e, "la surveillée, changée : écrite au battement")
+  verifier(not f, "la non surveillée : pas écrite")
+  FauxJeu.cases_ecrites = {}
+  Scriptorium.battre()
+  local encore = false
+  for _, nom in ipairs(FauxJeu.cases_ecrites) do
+    if nom == "essai_e" then encore = true end
+  end
+  verifier(not encore, "inchangée : pas réécrite")
 end)

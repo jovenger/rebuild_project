@@ -146,7 +146,7 @@ local function donnees()
 end
 
 local function enregistrer()
-  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.enregistrer("caractere")
 end
 
 -- Le hasard du caractère, avec sa propre graine : il ne dérange pas celui des batailles.

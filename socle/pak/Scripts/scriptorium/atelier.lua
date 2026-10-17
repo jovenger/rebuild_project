@@ -48,7 +48,7 @@ local function donnees()
 end
 
 local function enregistrer()
-  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.enregistrer("atelier")
 end
 
 local function refuser(raison, detail)

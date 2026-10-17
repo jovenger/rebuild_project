@@ -32,12 +32,12 @@ function poste.essai_registre()
   end
   local donnees = registre.lire("essai")
   donnees.appels = donnees.appels + 1
-  local chaine = registre.enregistrer(true)
+  local ecrites = registre.enregistrer("essai", true)
   registre.invalider()
   local rapport = registre.charger()
   local relu = registre.lire("essai")
   jeu().journal("Poste : registre, appels = " .. relu.appels .. ", source = " .. rapport.source
-                .. ", longueur = " .. #chaine)
+                .. ", longueur = " .. #(registre.chaine_de_la_case("essai") or "") .. ", cases écrites = " .. tostring(ecrites))
   Scriptorium.bandeau.annoncer("ui_scriptorium_essai_registre", { importance = "nouvelle", duree = 4 })
   return relu.appels, rapport
 end
@@ -59,7 +59,7 @@ end
 -- Registre : ce que le jeu garde de ses tranches ; et les calculs du socle qui doivent rester justes dans le Lua du
 -- jeu (simple précision).
 function poste.essai_registre_tranches()
-  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.enregistrer(nil, true)
   for _, ligne in ipairs(jeu().decrire_le_registre()) do
     jeu().journal("Poste : registre, " .. ligne)
   end

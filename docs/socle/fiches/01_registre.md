@@ -47,3 +47,26 @@ de toute taille ; l'ensemble est écrit en tranches de 30 000 caractères, jamai
 écritures sont donc regroupées : une au plus par `registre_intervalle_s` secondes réelles (réglage du noyau, 2 s) ; une
 demande plus rapprochée attend, et le battement commun la vide ; `registre.enregistrer(true)` écrit tout de suite. Au
 banc, l'intervalle vaut 0 (écritures immédiates), sauf l'essai du regroupement. Non vérifié en jeu.
+
+## L'écriture par case (demande du pair, 17/10 ; conception relue)
+
+Avec les valeurs de Scriptorium dedans, réécrire tout le registre à chaque changement ferait un à-coup régulier. Le
+registre s'écrit donc **par case** :
+- **Un index léger** (format 2) : la liste des noms de cases, réécrit seulement quand la liste change ; l'identité de
+  la partie et sa marque portent sur lui.
+- **Une chaîne par case** (`{ version, donnees }`, clés triées), écrite dans ses propres jetons en tranches (même
+  identité, même somme de contrôle, même borne de 65 535 octets par jeton) ; une case qui rétrécit vide ses tranches en
+  trop. Une case illisible (tranche manquante, somme fausse) ne perd plus tout le registre : elle seule est remise à
+  neuf (ou reprise de la mémoire de secours), et le journal la nomme.
+- **`registre.enregistrer(nom)`** marque la case nommée ; seules les cases marquées sont sérialisées et écrites
+  (regroupées comme avant : au plus une écriture par `registre_intervalle_s`, l'attente vidée au battement ;
+  `enregistrer(nom, true)` force). **Sans nom : toutes les cases**, une ligne au journal (le repli, cher). Chaque
+  morceau nomme sa case ; Scriptorium nommera les siennes. Un nom de case est un nom de jeton : lettres, chiffres, `_`.
+- **Les cases inconnues** (d'une version plus récente, ou de Scriptorium avant sa déclaration) restent dans l'index et
+  dans leurs jetons, jamais réécrites.
+- **L'ancien format** (format 1, un seul flux) se lit toujours : à la première écriture, toutes ses cases sont écrites
+  par case, l'index posé, l'ancien flux vidé.
+- **Le détecteur des oublis** (au banc seulement, réglage `registre_detecteur`) : à chaque écriture, une case changée
+  sans être nommée est écrite quand même et dénoncée au journal ; le banc entier doit n'en dénoncer aucune.
+- **Le journal des écritures** (réglage `registre_journal`, éteint par défaut) : une ligne par écriture réelle (cases,
+  octets, tranches, durée).

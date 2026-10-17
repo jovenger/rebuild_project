@@ -7,16 +7,21 @@
 --   par_defaut : fonction qui rend les données d'une case neuve
 --   migrations : { [1] = fonction(donnees) -> donnees de version 2, [2] = …, … }
 -- Scriptorium.registre.lire(nom) rend la table vivante de la case (chargée au besoin).
--- Scriptorium.registre.enregistrer() écrit tout dans la partie ; charger() relit tout.
+-- Scriptorium.registre.enregistrer(nom) écrit la case nommée (sans nom : toutes) ; charger() relit tout. Fiche 01 :
+-- l'écriture par case (un index léger, une chaîne et ses jetons par case).
 
 local Scriptorium = Scriptorium
 
 local registre = {}
 Scriptorium.registre = registre
 
-registre.format = 1   -- version de l'enveloppe { format, cases }
+registre.format = 1   -- version de l'enveloppe { format, cases } de l'ancien flux unique (encore lu)
+registre.format_de_l_index = 2   -- fiche 01 : l'index des cases écrites chacune à part
 
 local cases, ordre, charge, contenu_stocke, dernier_rapport
+-- Fiche 01, l'écriture par case : les noms de l'index lu, l'index écrit, les cases marquées, la dernière chaîne écrite de
+-- chaque case (le détecteur), et la migration de l'ancien flux à faire.
+local noms_stockes, index_ecrit, marquees, dernieres_chaines, migration_a_faire, sans_nom_dit
 
 local function jeu()
   return Scriptorium.jeu
@@ -34,6 +39,9 @@ function registre.remettre_a_zero()
   charge = false
   contenu_stocke = nil
   dernier_rapport = nil
+  noms_stockes, index_ecrit, marquees, dernieres_chaines = {}, nil, {}, {}
+  migration_a_faire, sans_nom_dit = false, false
+  registre.en_attente = false
 end
 registre.remettre_a_zero()
 
@@ -168,7 +176,9 @@ local function charger_case(case, stocke, rapport)
   end
 end
 
-function registre.declarer_case(nom, version, par_defaut, migrations)
+-- « options » (fiche 01) : { surveillee = false } : la case n'est pas comparée à la fin de chaque battement (une grosse
+-- case de Scriptorium, qui nomme elle-même ses écritures). Par défaut, surveillée : rien ne se perd.
+function registre.declarer_case(nom, version, par_defaut, migrations, options)
   assert(type(nom) == "string" and nom ~= "", "registre : nom de case manquant")
   assert(type(version) == "number" and version >= 1 and math.floor(version) == version,
          "registre : version de case invalide pour " .. tostring(nom))
@@ -177,36 +187,80 @@ function registre.declarer_case(nom, version, par_defaut, migrations)
     error("registre : case déjà déclarée : " .. nom)
   end
   local case = { nom = nom, version = version, par_defaut = par_defaut,
-                 migrations = migrations or {}, donnees = nil, etat = "non_chargee" }
+                 migrations = migrations or {}, donnees = nil, etat = "non_chargee",
+                 surveillee = not (type(options) == "table" and options.surveillee == false) }
   cases[nom] = case
   table.insert(ordre, nom)
   if charge then
     -- Déclarée après le chargement : on la sert tout de suite depuis le contenu lu.
     local rapport = { chargees = 0, neuves = 0, migrees = 0, abimees = 0 }
-    charger_case(case, contenu_stocke and contenu_stocke[nom] or nil, rapport)
+    charger_case(case, contenu_stocke and contenu_stocke[nom], rapport)
   end
   return case
 end
 
--- Relit tout depuis la partie (ou depuis « chaine » si elle est donnée). Rend un rapport.
+-- Fiche 01 : l'index lu (format 2) : la liste des cases, chacune relue dans ses jetons. Une case listée mais absente ou
+-- illisible est notée « false » (elle seule sera remise à neuf). Rend vrai si l'index est lu.
+local function lire_par_case(rapport)
+  local index = jeu().lire_index and jeu().lire_index() or nil
+  if index == nil then
+    return false
+  end
+  local valeur, erreur = registre.deserialiser(index)
+  if not (valeur and valeur.format == registre.format_de_l_index and type(valeur.cases) == "table") then
+    rapport.source = "illisible"
+    jeu().journal("Registre : index illisible, tout est remis à neuf (" .. tostring(erreur or "enveloppe inconnue") .. ")")
+    return true
+  end
+  contenu_stocke = {}
+  for _, nom in ipairs(valeur.cases) do
+    if type(nom) == "string" then
+      noms_stockes[nom] = true
+      local chaine_de_la_case = jeu().lire_case(nom)
+      local stocke, raison = nil, "absente"
+      if chaine_de_la_case ~= nil then
+        stocke, raison = registre.deserialiser(chaine_de_la_case)
+      end
+      if stocke then
+        contenu_stocke[nom] = stocke
+        dernieres_chaines[nom] = chaine_de_la_case
+      else
+        contenu_stocke[nom] = false
+        jeu().journal("Registre : case « " .. nom .. " » illisible (" .. tostring(raison) .. ")")
+      end
+    end
+  end
+  index_ecrit = index
+  rapport.source = "lu"
+  return true
+end
+
+-- Relit tout depuis la partie (ou depuis « chaine », un ancien flux unique, si elle est donnée). Rend un rapport.
 function registre.charger(chaine)
   local rapport = { chargees = 0, neuves = 0, migrees = 0, abimees = 0, source = "vide" }
-  if chaine == nil then
-    chaine = jeu().lire_registre()
-  end
   contenu_stocke = nil
-  if chaine ~= nil then
-    local valeur, erreur = registre.deserialiser(chaine)
-    if valeur and valeur.format == registre.format and type(valeur.cases) == "table" then
-      contenu_stocke = valeur.cases
-      rapport.source = "lu"
-    else
-      rapport.source = "illisible"
-      jeu().journal("Registre : contenu illisible, tout est remis à neuf (" .. tostring(erreur or "enveloppe inconnue") .. ")")
+  noms_stockes, index_ecrit, marquees, dernieres_chaines, migration_a_faire = {}, nil, {}, {}, false
+  local par_case = chaine == nil and lire_par_case(rapport)
+  if not par_case then
+    if chaine == nil then
+      chaine = jeu().lire_registre()
+    end
+    if chaine ~= nil then
+      local valeur, erreur = registre.deserialiser(chaine)
+      if valeur and valeur.format == registre.format and type(valeur.cases) == "table" then
+        contenu_stocke = valeur.cases
+        rapport.source = "lu"
+        -- Fiche 01 : l'ancien flux unique : à la première écriture, tout est réécrit par case.
+        migration_a_faire = true
+        for nom in pairs(valeur.cases) do noms_stockes[nom] = true end
+      else
+        rapport.source = "illisible"
+        jeu().journal("Registre : contenu illisible, tout est remis à neuf (" .. tostring(erreur or "enveloppe inconnue") .. ")")
+      end
     end
   end
   for _, nom in ipairs(ordre) do
-    charger_case(cases[nom], contenu_stocke and contenu_stocke[nom] or nil, rapport)
+    charger_case(cases[nom], contenu_stocke and contenu_stocke[nom], rapport)
   end
   charge = true
   dernier_rapport = rapport
@@ -222,6 +276,8 @@ end
 function registre.invalider()
   charge = false
   contenu_stocke = nil
+  noms_stockes, index_ecrit, marquees, dernieres_chaines, migration_a_faire = {}, nil, {}, {}, false
+  registre.en_attente = false
   for _, nom in ipairs(ordre) do
     cases[nom].donnees = nil
     cases[nom].etat = "non_chargee"
@@ -260,44 +316,100 @@ function registre.remettre_a_neuf(nom)
   return case.donnees
 end
 
--- Fiche 01 (demande du pair, 17/10 : Scriptorium écrit plusieurs clés à chaque battement) : chaque écriture sérialise
--- tout le registre (mesuré au banc : 10 000 clés, 1 Mo, 34 ms ; 50 000 clés, 5 Mo, 203 ms) et le réécrit en tranches.
--- Les écritures sont donc regroupées : une écriture au plus par « registre_intervalle_s » secondes réelles (réglage du
--- noyau) ; une demande plus rapprochée est mise en attente, et le battement commun la vide (registre.vider). « forcer »
--- écrit tout de suite. Rend la chaîne écrite, ou nil si l'écriture attend.
+-- Fiche 01 (demandes du pair, 17/10 : Scriptorium écrit plusieurs clés à chaque battement) : l'écriture PAR CASE et
+-- REGROUPÉE. Seules les cases marquées sont sérialisées et écrites, chacune dans ses jetons ; l'index (la liste des
+-- cases) seulement quand il change. Une écriture au plus par « registre_intervalle_s » secondes réelles (réglage du
+-- noyau) ; une demande plus rapprochée attend, et le battement commun la vide (registre.vider). Mesuré au banc avant
+-- l'écriture par case : 10 000 clés, 1 Mo, 34 ms ; 50 000 clés, 5 Mo, 203 ms.
 registre.en_attente = false
 local derniere_ecriture = nil
+
+local function reglage(nom)
+  return tonumber(Scriptorium.noyau and Scriptorium.noyau.reglages and Scriptorium.noyau.reglages[nom]) or 0
+end
+
+local function chaine_de(case)
+  return registre.serialiser({ version = case.version, donnees = case.donnees })
+end
 
 local function ecrire_maintenant()
   if not charge then
     registre.charger()
   end
-  local contenu = { format = registre.format, cases = {} }
-  if contenu_stocke then
-    for nom, stocke in pairs(contenu_stocke) do
-      if not cases[nom] then
-        contenu.cases[nom] = stocke
+  local debut = jeu().maintenant and jeu().maintenant() or nil
+  -- L'ancien flux : toutes ses cases connues sont réécrites (avant de le vider), pas seulement les nommées.
+  if migration_a_faire then
+    for nom in pairs(contenu_stocke or {}) do
+      if cases[nom] and cases[nom].donnees ~= nil then
+        marquees[nom] = true
       end
     end
   end
+  local ecrites, octets = 0, 0
   for _, nom in ipairs(ordre) do
     local case = cases[nom]
-    if case.donnees ~= nil then
-      contenu.cases[nom] = { version = case.version, donnees = case.donnees }
+    if marquees[nom] and case.donnees ~= nil then
+      local chaine = chaine_de(case)
+      jeu().ecrire_case(nom, chaine)
+      dernieres_chaines[nom] = chaine
+      noms_stockes[nom] = true
+      ecrites, octets = ecrites + 1, octets + #chaine
     end
   end
-  local chaine = registre.serialiser(contenu)
-  jeu().ecrire_registre(chaine)
+  -- L'ancien flux unique : ses cases inconnues du socle sont écrites chacune à part, une fois ; puis il est vidé.
+  if migration_a_faire then
+    for nom, stocke in pairs(contenu_stocke or {}) do
+      -- Inconnue du socle, ou connue mais jamais lue (ses données pas encore chargées) : telle quelle.
+      if (not cases[nom] or cases[nom].donnees == nil) and type(stocke) == "table" then
+        local chaine = registre.serialiser(stocke)
+        jeu().ecrire_case(nom, chaine)
+        ecrites, octets = ecrites + 1, octets + #chaine
+      end
+    end
+  end
+  local noms = {}
+  for nom in pairs(noms_stockes) do table.insert(noms, nom) end
+  table.sort(noms)
+  local index = registre.serialiser({ format = registre.format_de_l_index, cases = noms })
+  if index ~= index_ecrit then
+    jeu().ecrire_index(index)
+    index_ecrit = index
+  end
+  if migration_a_faire then
+    jeu().effacer_l_ancien_registre()
+    migration_a_faire = false
+    jeu().journal("Registre : l'ancien flux réécrit par case (" .. #noms .. " case(s))")
+  end
+  marquees = {}
   registre.en_attente = false
   derniere_ecriture = jeu().maintenant and jeu().maintenant() or nil
-  return chaine
+  if reglage("registre_journal") == 1 then
+    jeu().journal(string.format("Registre : écrit, %d case(s), %d octets, %s ms", ecrites, octets,
+      (debut and derniere_ecriture) and string.format("%.1f", (derniere_ecriture - debut) * 1000) or "?"))
+  end
+  return ecrites
 end
 
-function registre.enregistrer(forcer)
-  local intervalle = tonumber(Scriptorium.noyau and Scriptorium.noyau.reglages
-                              and Scriptorium.noyau.reglages.registre_intervalle_s) or 0
+-- Marque la case nommée (sans nom : toutes, une ligne au journal la première fois), puis écrit, ou met en attente.
+-- « forcer » écrit tout de suite. Rend le nombre de cases écrites, ou nil si l'écriture attend.
+function registre.enregistrer(nom, forcer)
+  if not charge then
+    registre.charger()
+  end
+  if nom == nil then
+    for _, n in ipairs(ordre) do marquees[n] = true end
+    if not sans_nom_dit then
+      sans_nom_dit = true
+      jeu().journal("Registre : enregistrer sans nom de case : toutes les cases sont écrites (nommer sa case)")
+    end
+  elseif cases[nom] then
+    marquees[nom] = true
+  else
+    error("registre : case inconnue : " .. tostring(nom))
+  end
+  local intervalle = reglage("registre_intervalle_s")
   local t = jeu().maintenant and jeu().maintenant() or nil
-  if forcer or intervalle <= 0 or not t or not derniere_ecriture or t < derniere_ecriture
+  if forcer or migration_a_faire or intervalle <= 0 or not t or not derniere_ecriture or t < derniere_ecriture
       or t - derniere_ecriture >= intervalle then
     return ecrire_maintenant()
   end
@@ -305,12 +417,45 @@ function registre.enregistrer(forcer)
   return nil
 end
 
--- Vide l'écriture en attente (le battement commun). Rend la chaîne écrite, ou nil.
+-- Vide l'écriture en attente (le battement commun). Rend le nombre de cases écrites, ou nil.
 function registre.vider()
   if registre.en_attente then
     return ecrire_maintenant()
   end
   return nil
+end
+
+-- Fiche 01 (relecture, 17/10) : à la fin de chaque battement, chaque case surveillée (déjà chargée) est comparée à sa
+-- dernière chaîne écrite ; changée sans avoir été nommée (le moral, la dernière activité…), elle est marquée, puis
+-- écrite (au plus une fois par intervalle, sinon au battement suivant). Rend le nombre de cases marquées ainsi.
+function registre.surveiller()
+  if not charge then
+    return 0
+  end
+  local nouvelles = 0
+  for _, nom in ipairs(ordre) do
+    local case = cases[nom]
+    if case.surveillee and case.donnees ~= nil and not marquees[nom] and chaine_de(case) ~= dernieres_chaines[nom] then
+      marquees[nom] = true
+      nouvelles = nouvelles + 1
+    end
+  end
+  if next(marquees) ~= nil then
+    local intervalle = reglage("registre_intervalle_s")
+    local t = jeu().maintenant and jeu().maintenant() or nil
+    if intervalle <= 0 or not t or not derniere_ecriture or t < derniere_ecriture or t - derniere_ecriture >= intervalle then
+      ecrire_maintenant()
+    else
+      registre.en_attente = true
+    end
+  end
+  return nouvelles
+end
+
+-- La chaîne de la case telle qu'elle serait écrite (pour le poste d'essai et les essais), ou nil.
+function registre.chaine_de_la_case(nom)
+  local case = cases[nom]
+  return case and case.donnees ~= nil and chaine_de(case) or nil
 end
 
 function registre.dernier_rapport()

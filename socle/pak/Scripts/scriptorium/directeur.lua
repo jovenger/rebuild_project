@@ -58,7 +58,7 @@ local function donnees()
 end
 
 local function enregistrer()
-  Scriptorium.registre.enregistrer()
+  Scriptorium.registre.enregistrer("directeur")
 end
 
 local function refuser(raison, detail)

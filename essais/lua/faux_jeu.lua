@@ -7,7 +7,6 @@ local faux = {
   en_ecran = nil,
   journal_lignes = {},
   dialogue = false,
-  registre_stocke = nil,
   minuteries = {},      -- { ms, fonction }
   commandes = {},       -- { nom, code, aide }
   bourse_henry = 0,     -- groschen dans la bourse d'Henry
@@ -66,6 +65,7 @@ function faux.remettre_a_zero()
   faux.journal_lignes = {}
   faux.dialogue = false
   faux.registre_stocke = nil
+  faux.cases_ecrites = {}
   faux.minuteries = {}
   faux.commandes = {}
   faux.bourse_henry = 0
@@ -125,8 +125,25 @@ function faux.minuterie(ms, fonction)
   table.insert(faux.minuteries, { ms = ms, fonction = fonction })
   return #faux.minuteries
 end
-function faux.lire_registre() return faux.registre_stocke end
-function faux.ecrire_registre(chaine) faux.registre_stocke = chaine end
+-- Fiche 01, le registre par case : l'index, la chaîne de chaque case, et l'ancien flux unique (encore lu).
+-- « registre_stocke » (lu par les essais d'avant) est une PHOTO de ce qui est stocké, au format de l'ancien flux ; y poser
+-- une chaîne la rend au jeu comme un ancien flux (le registre la relit puis la migre) : les essais d'avant éprouvent
+-- ainsi la migration.
+faux.registre_jetons = { index = nil, cases = {}, ancien = nil }
+faux.cases_ecrites = {}
+function faux.lire_registre() return faux.registre_jetons.ancien end
+function faux.ecrire_registre(chaine) faux.registre_jetons.ancien = chaine end
+function faux.lire_index() return faux.registre_jetons.index end
+function faux.ecrire_index(chaine)
+  faux.registre_jetons.index = chaine
+  faux.index_ecrits = (faux.index_ecrits or 0) + 1
+end
+function faux.lire_case(nom) return faux.registre_jetons.cases[nom] end
+function faux.ecrire_case(nom, chaine)
+  faux.registre_jetons.cases[nom] = chaine
+  table.insert(faux.cases_ecrites, nom)
+end
+function faux.effacer_l_ancien_registre() faux.registre_jetons.ancien = nil end
 function faux.commande(nom, code, aide) table.insert(faux.commandes, { nom = nom, code = code, aide = aide }) end
 function faux.lire_ordres()
   faux.lectures_ordres = faux.lectures_ordres + 1
@@ -599,11 +616,45 @@ Scriptorium.jeu = faux
 -- Au banc, le réveil se fait tout de suite à l'entrée en partie (le noyau garde une table déjà posée) ; l'attente de
 -- 30 s du jeu a son propre essai (essai_noyau.lua).
 Scriptorium.noyau = { reglages = { delai_du_reveil_s = 0, guet_du_chargement_s = 10, argent_d_henry_max = 1000000,
-                                    registre_intervalle_s = 0 } }
+                                    registre_intervalle_s = 0, registre_journal = 0 } }
 -- Fiche 16 : au banc, les règles du socle sont éprouvées allumées (le noyau garde cette table) ; les essais des
 -- interrupteurs les éteignent un à un.
 Scriptorium.noyau.interrupteurs = { solde_de_la_semaine = 1, aguerrissement = 1, rangs_du_socle = 1, usure_en_points = 1,
   fautes_a_l_aube = 1, rencontres_de_patrouille = 1, contrats_a_duree = 1, exactions = 1, baisse_du_risque = 1, repas_du_socle = 1,
   chevaux_de_la_compagnie = 1, un_lit_par_homme = 1 }
+local function photo_du_registre()
+  local j = faux.registre_jetons
+  if j.index == nil then
+    return j.ancien
+  end
+  local registre = Scriptorium.registre
+  local index = registre.deserialiser(j.index)
+  local contenu = { format = registre.format, cases = {} }
+  for _, nom in ipairs(index and index.cases or {}) do
+    local chaine = j.cases[nom]
+    local valeur = chaine and registre.deserialiser(chaine)
+    if valeur then
+      contenu.cases[nom] = valeur
+    end
+  end
+  return registre.serialiser(contenu)
+end
+
+setmetatable(faux, {
+  __index = function(_, cle)
+    if cle == "registre_stocke" then
+      return photo_du_registre()
+    end
+    return nil
+  end,
+  __newindex = function(table_, cle, valeur)
+    if cle == "registre_stocke" then
+      faux.registre_jetons = { index = nil, cases = {}, ancien = valeur }
+    else
+      rawset(table_, cle, valeur)
+    end
+  end,
+})
+
 FauxJeu = faux
 return faux
