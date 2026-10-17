@@ -1330,6 +1330,32 @@ function hommes.embaucher(contrat)
   return id
 end
 
+-- Fiche 18, 5 b : rendre un homme parlable (Henry peut lui parler ; le dialogue de Scriptorium s'y greffe par l'accroche
+-- « quand_on_lui_parle »). Rend vrai, ou faux et la raison.
+function hommes.rendre_parlable(id, oui)
+  local f = donnees().liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  f.parlable = oui and true or nil
+  if f.personnage and jeu().rendre_parlable then
+    jeu().rendre_parlable(f.personnage, oui and true or false)
+  end
+  enregistrer()
+  return true
+end
+
+-- Accroche (fiche 18, 5 b ; le dialogue de Scriptorium la remplace) : Henry parle à un homme parlable. Par défaut, une
+-- ligne au journal et une annonce.
+function hommes.quand_on_lui_parle(id)
+  local f = donnees().liste[id]
+  if not f then
+    return
+  end
+  jeu().journal("Hommes : Henry parle à « " .. f.nom .. " »")
+  annoncer("ui_scriptorium_hommes_vous_ecoute", { complement = f.nom })
+end
+
 -- Fiche 18, 5 a : faire venir plusieurs hommes du même contrat (N soldats d'un rang, N archers) ; s'arrête au premier
 -- refus. Rend la liste des engagés, et la raison d'un refus.
 function hommes.faire_venir_des_hommes(ordre)
@@ -2760,6 +2786,10 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   if not f or not f.personnage then
     return
   end
+  -- Fiche 18, 5 b : reposé à chaque battement (une entité refaite au chargement perd « Parler »).
+  if f.parlable and jeu().rendre_parlable then
+    jeu().rendre_parlable(f.personnage, true)
+  end
   preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
   local a = Scriptorium.avis(hommes, "activite_de", id, heure)
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
@@ -3841,6 +3871,17 @@ Scriptorium.declarer_morceau("hommes", function()
   -- La ronde (fiche 15, V73 d 2) : la liaison, appelée par l'arbre à chaque point, demande le pas suivant aux hommes.
   if jeu() and jeu().accrocher_la_ronde then
     jeu().accrocher_la_ronde(function(personnage) return Scriptorium.avis(hommes, "pas_de_ronde", personnage) end)
+  end
+  -- Fiche 18, 5 b : « Parler » à un homme parlable ; la liaison donne le personnage, l'accroche reçoit l'homme.
+  if jeu() and jeu().accrocher_la_parole then
+    jeu().accrocher_la_parole(function(personnage)
+      local d = donnees()
+      for _, id in ipairs(d.ordre) do
+        if d.liste[id].personnage == personnage then
+          return hommes.quand_on_lui_parle(id)
+        end
+      end
+    end)
   end
   -- L'allure du chef monté (V73 f 2 f) : la liaison, appelée par l'arbre toutes les 300 ms, demande l'allure aux hommes.
   if jeu() and jeu().accrocher_l_allure then

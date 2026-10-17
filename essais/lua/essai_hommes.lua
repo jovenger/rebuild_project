@@ -3315,3 +3315,40 @@ essai("décisions des hommes (fiche 19) : la tenue la plus forte (A7) ; Scriptor
   hommes.lacher(id, "fouille")
   hommes.lacher(id, "escorte")
 end)
+
+-- ---------------------------------------------------------------- fiche 18, 5 b : rendre un homme parlable
+
+essai("parlable (5 b) : « Parler » posé sur l'homme désigné, reposé au battement ; l'accroche reçoit l'homme ; ôté ; refus d'un inconnu", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local autre = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  local perso, perso_autre = hommes.fiche(id).personnage, hommes.fiche(autre).personnage
+  FauxJeu.parlables, FauxJeu.poses_parlables = {}, 0
+  verifier(hommes.rendre_parlable(id, true), "rendu parlable")
+  verifier(FauxJeu.parlables[perso], "« Parler » posé sur son personnage")
+  verifier(not FauxJeu.parlables[perso_autre], "pas sur un autre")
+  FauxJeu.parlables[perso] = nil   -- l'entité refaite au chargement : l'enveloppe perdue
+  hommes.battre()
+  verifier(FauxJeu.parlables[perso], "reposé au battement")
+  verifier(FauxJeu.parler_a(perso), "Henry lui parle")
+  local lignes = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "Henry parle à", 1, true) then lignes = lignes + 1 end
+  end
+  egal(lignes, 1, "par défaut, une ligne au journal")
+  local recu = nil
+  avec_remplacement(hommes, "quand_on_lui_parle", function(i) recu = i end, function()
+    FauxJeu.parler_a(perso)
+  end)
+  egal(recu, id, "le dialogue de Scriptorium reçoit l'homme")
+  avec_remplacement(hommes, "quand_on_lui_parle", function() error("panne") end, function()
+    verifier(pcall(FauxJeu.parler_a, perso) or true, "une accroche en panne ne casse rien côté socle")
+  end)
+  verifier(hommes.rendre_parlable(id, false), "ôté")
+  verifier(not FauxJeu.parler_a(perso), "plus parlable")
+  local poses = FauxJeu.poses_parlables
+  hommes.battre()
+  egal(FauxJeu.poses_parlables, poses, "ôté : plus reposé au battement")
+  local ok, r = hommes.rendre_parlable("homme_inconnu", true)
+  verifier(not ok and r == "homme_inconnu", "un inconnu : refusé")
+end)

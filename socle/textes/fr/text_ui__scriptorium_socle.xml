@@ -20,6 +20,7 @@
   <Row><Cell>ui_scriptorium_camp_dresse</Cell><Cell>Le camp est dressé.</Cell><Cell>Le camp est dressé.</Cell></Row>
   <Row><Cell>ui_scriptorium_camp_agrandi</Cell><Cell>Le camp s'est agrandi.</Cell><Cell>Le camp s'est agrandi.</Cell></Row>
   <Row><Cell>ui_scriptorium_camp_leve</Cell><Cell>Le camp est levé.</Cell><Cell>Le camp est levé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_vous_ecoute</Cell><Cell>Il vous écoute :</Cell><Cell>Il vous écoute :</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_rejoint</Cell><Cell>Un homme a rejoint la Compagnie :</Cell><Cell>Un homme a rejoint la Compagnie :</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_pas_de_lit</Cell><Cell>Pas de paillasse libre : agrandissez le camp.</Cell><Cell>Pas de paillasse libre : agrandissez le camp.</Cell></Row>
   <Row><Cell>ui_scriptorium_hommes_solde_payee</Cell><Cell>La solde a été payée :</Cell><Cell>La solde a été payée :</Cell></Row>

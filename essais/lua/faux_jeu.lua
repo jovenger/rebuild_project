@@ -286,6 +286,18 @@ function faux.henry_voit(point, seuil)
 end
 -- La ronde (fiche 15, V73 d 2) : la fonction confiée par les hommes, que la vraie liaison appelle à chaque point.
 function faux.accrocher_la_ronde(fonction) faux.pas_de_ronde = fonction end
+-- Fiche 18, 5 b : les personnages parlables ; « parler_a » joue Henry qui appuie sur « Parler ».
+function faux.accrocher_la_parole(fonction) faux.parole = fonction end
+function faux.rendre_parlable(identifiant, oui)
+  faux.parlables = faux.parlables or {}
+  faux.poses_parlables = (faux.poses_parlables or 0) + 1
+  faux.parlables[identifiant] = oui and true or nil
+  return true
+end
+function faux.parler_a(identifiant)
+  if faux.parlables and faux.parlables[identifiant] and faux.parole then faux.parole(identifiant) return true end
+  return false
+end
 -- Les positions des personnages (posées par les essais) et les secours (fiche 15).
 function faux.ecart_au_but(identifiant, but)
   local ici = faux.positions and faux.positions[identifiant]

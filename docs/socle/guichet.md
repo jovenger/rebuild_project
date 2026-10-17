@@ -129,7 +129,7 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 | F83 | `GiveMoney` | donner de l'argent a Henry | `Scriptorium.jeu.donner_groschen_a_henry(montant)` (crédit simple, sans toucher au coffre : Scriptorium a déjà débité la source, l'amende d'un duel ; relecture du pair) |
 | F84 | `HireCustomCompanion` | 1 dossier(s) | `Scriptorium.hommes.embaucher(contrat)` (champs `nom` et `ame` : le compagnon nommé, né sur l'âme donnée, fiche 18) |
 | F85 | `HorsesSet` | 1 dossier(s) | pas utile : à cheval ou non se dit à chaque sortie (`Scriptorium.hommes.tenir(id, regle, quoi)`, « a_cheval ») |
-| F86 | `InjectInteraction` | 1 dossier(s) | pas utile : les dialogues restent à Scriptorium (NOTE §5) |
+| F86 | `InjectInteraction` | 1 dossier(s) | `Scriptorium.hommes.rendre_parlable(id, oui)` (« Parler » posé sur l'homme ; l'accroche `Scriptorium.hommes.quand_on_lui_parle(id)` reçoit l'homme, le dialogue de Scriptorium la remplace ; fiche 18, 5 b) |
 | F87 | `IsMercInSortie` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` |
 | F88 | `IsNavGotoActive` | 1 dossier(s) | `Scriptorium.hommes.qui_tient(id, heure)` |
 | F89 | `IsRecentAttacker` | 1 dossier(s) | pas utile : l'ennemi est la bande levée (`Scriptorium.bataille.bande(id)`), pas un attaquant noté |
@@ -346,11 +346,11 @@ Contrat lu : `CONTRAT_DU_SOCLE.md`, empreinte sha256 5db5c6bda121dc16.
 
 | valeur | lignes | accroches | fonctions | données | retouches |
 |---|---|---|---|---|---|
-| service existant | 199 | 35 | 73 | 79 | 12 |
+| service existant | 200 | 35 | 74 | 79 | 12 |
 | à ouvrir | 0 | 0 | 0 | 0 | 0 |
 | étape 4 | 0 | 0 | 0 | 0 | 0 |
 | étape 5 | 27 | 2 | 5 | 16 | 4 |
-| pas utile | 91 | 3 | 29 | 49 | 10 |
+| pas utile | 90 | 3 | 28 | 49 | 10 |
 | réglage | 20 | 0 | 4 | 15 | 1 |
 | **total** | 337 | 40 | 111 | 159 | 27 |
 

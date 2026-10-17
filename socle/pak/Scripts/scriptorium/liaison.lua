@@ -2919,6 +2919,78 @@ end
 -- n'appelle aucun morceau).
 liaison.pas_de_ronde = liaison.pas_de_ronde
 
+-- Fiche 18, 5 b : un personnage parlable. Le jeu ne met « Parler » (Scripts/Entities/AI/Shared/BasicAIActions.lua,
+-- GetActions) que si un dialogue existe pour son âme ; le socle enveloppe GetActions sur l'instance de l'entité (jamais
+-- la classe) et y ajoute « Parler » (Scripts/Utils/InteractorAction.lua : Action, AddInteractorAction ; interaction
+-- inr_talk), qui appelle la fonction accrochée par les hommes avec l'identifiant du personnage. Une entité refaite au
+-- chargement perd l'enveloppe : les hommes la reposent (sans effet si elle y est).
+function liaison.accrocher_la_parole(fonction)
+  liaison.parole = fonction
+end
+
+local function quand_on_parle(identifiant)
+  if type(liaison.parole) ~= "function" then
+    return
+  end
+  local ok, erreur = pcall(liaison.parole, identifiant)
+  if not ok then
+    liaison.journal("Parole : « " .. identifiant .. " » : accroche en erreur : " .. tostring(erreur))
+  end
+end
+
+local function peut_parler(entite)
+  local ok, oui = pcall(function()
+    return entite.actor:IsDead() == false and entite.actor:IsUnconscious() == false and not entite.soul:IsInCombatMode()
+  end)
+  return ok and oui == true
+end
+
+function liaison.rendre_parlable(identifiant, oui)
+  local entite = entite_nommee(identifiant)
+  if not entite then
+    return false
+  end
+  if not oui then
+    if rawget(entite, "scriptorium_parlable") then
+      entite.GetActions = entite.scriptorium_actions_d_origine
+      entite.scriptorium_parlable, entite.scriptorium_actions_d_origine = nil, nil
+      liaison.journal("Parole : « " .. identifiant .. " » n'est plus parlable")
+    end
+    return true
+  end
+  if rawget(entite, "scriptorium_parlable") then
+    return true
+  end
+  if type(Action) ~= "function" or type(AddInteractorAction) ~= "function" or inr_talk == nil then
+    liaison.journal("Parole : Action, AddInteractorAction ou inr_talk absents : « " .. identifiant .. " » pas parlable")
+    return false
+  end
+  local d_origine = rawget(entite, "GetActions")
+  local origine = entite.GetActions
+  entite.scriptorium_actions_d_origine = d_origine
+  entite.scriptorium_parlable = true
+  entite.GetActions = function(soi, utilisateur, premier_seul)
+    local sortie = (type(origine) == "function" and origine(soi, utilisateur, premier_seul)) or {}
+    local ok, erreur = pcall(function()
+      if type(sortie) ~= "table" or (premier_seul and #sortie > 0) or not peut_parler(soi) then
+        return
+      end
+      for _, a in ipairs(sortie) do
+        if a.action == "talk" then return end
+      end
+      AddInteractorAction(sortie, premier_seul, Action():hint("@ui_hud_talk"):action("talk"):uiOrder(0)
+        :func(function() quand_on_parle(identifiant) end):interaction(inr_talk):enabled(true))
+    end)
+    if not ok and not soi.scriptorium_parole_en_erreur then
+      soi.scriptorium_parole_en_erreur = true
+      liaison.journal("Parole : « " .. identifiant .. " » : « Parler » non ajouté : " .. tostring(erreur))
+    end
+    return sortie
+  end
+  liaison.journal("Parole : « " .. identifiant .. " » parlable")
+  return true
+end
+
 function liaison.accrocher_la_ronde(fonction)
   liaison.pas_de_ronde = fonction
 end

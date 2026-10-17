@@ -37,3 +37,27 @@ Relecture du pair (17/10, l'argent pour la prise) :
   pas (chez Scriptorium, on dort en relève ; les tentes sont à JoVenGer) ; une ligne au journal.
 - **Les semaines** (réponse prise d'office) : les contrats à durée éteints (`contrats_a_duree`), `semaines` est
   facultatif et vaut le plus long contrat (`hommes.reglages.semaines_max`) ; donné, il reste vérifié.
+
+## 5 b — Rendre un homme parlable
+
+Recherche (règle du 15/10) : deux recherches (GitHub, Nexus) sans exemple pour KCD2. Source réelle : les scripts du jeu
+(`Scripts.pak`, lecture seule) : `Scripts/Entities/AI/Shared/BasicAIActions.lua` (`GetActions` construit les actions
+d'un personnage ; « Parler » y est ajouté par `AddInteractorAction` avec `Action():hint("@ui_hud_talk"):action("talk")
+:interaction(inr_talk)` seulement si `actor:CanTalk` — un dialogue existe pour son âme — et hors combat) et
+`Scripts/Utils/InteractorAction.lua` (`Action`, `AddInteractorAction`).
+
+Comportement :
+- `hommes.rendre_parlable(id, oui)` : la fiche garde `parlable` ; l'entité de l'homme reçoit « Parler » tant qu'il est
+  vivant, conscient et hors combat, s'il n'a pas déjà « Parler » (un dialogue du jeu ou de Scriptorium). Reposé à chaque
+  battement (une entité refaite au chargement perd l'enveloppe) ; rien n'est écrit dans les fichiers ni dans la classe du
+  jeu : seulement l'instance de l'entité.
+- Henry appuie sur « Parler » : l'accroche `hommes.quand_on_lui_parle(id)` (appelée par la table sous `pcall` ; le
+  dialogue de Scriptorium la remplace). Par défaut, une ligne au journal et une annonce (« … vous écoute »).
+- Une enveloppe en erreur rend les actions d'origine (jamais d'actions cassées) ; une ligne au journal, une fois.
+- Réponses prises d'office : parlable pour l'homme qu'on désigne (pas tous d'office) ; le Directeur plus tard (sa
+  Gestion du camp est à Scriptorium).
+- Contrôle d'absence : `GetActions` (le nom que le moteur appelle sur l'entité) est aussi chez Alex. Décision de JoVenGer
+  du 17/10 (par le pair) : une liste fermée de « noms du jeu admis » dans `tout_verifier.py`, un nom n'y entrant que
+  s'il est défini comme fonction dans `Data/Scripts.pak` du jeu de base (vérifié à chaque passage ; refusé sans le jeu),
+  au plus un (`GetActions`), affiché au rapport. Un nom de plus se demande à JoVenGer.
+- Au banc : posé, reposé au battement, l'accroche reçoit l'homme, ôté, inconnu refusé. Non vérifié en jeu.

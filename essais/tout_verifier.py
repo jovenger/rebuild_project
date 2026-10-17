@@ -1019,7 +1019,8 @@ def verifier_noms():
 REPRISE_DE_LA_TABLE = "local Scriptorium = Scriptorium"
 NOMS_DU_MOTEUR = {"properties": "Properties des classes d'entités, properties de System.SpawnEntity",
                   "name": "Name de la classe sociale (soul:GetSocialClass().Name, Scripts/Utils/EntityUtils.lua)",
-                  "horse": "le composant horse des chevaux (horse:HasRider, Scripts/Entities/AI/Horse.lua)"}
+                  "horse": "le composant horse des chevaux (horse:HasRider, Scripts/Entities/AI/Horse.lua)",
+                  "action": "Action() et sa méthode action() (Scripts/Utils/InteractorAction.lua ; « Parler », fiche 18, 5 b)"}
 
 
 def lignes_de_code(texte):
@@ -1194,6 +1195,37 @@ def verifier_le_filtre_des_formes():
             erreur("filtre des lignes de forme : ligne admise à tort : " + ligne)
 
 
+# Les noms du jeu admis (décision de JoVenGer du 17/10, transmise par le pair) : une liste fermée de noms que le moteur
+# appelle sur une entité et qu'Alex emploie aussi. Un nom n'y est admis que s'il est DÉFINI comme fonction dans les
+# scripts du jeu de base (vérifié dans Data/Scripts.pak à chaque passage ; sans le jeu, refusé), affiché au rapport. Au
+# plus un ; un nom de plus se demande à JoVenGer, on ne relève jamais la borne seul.
+NOMS_DU_JEU_ADMIS = {"GetActions": "les actions d'un personnage, BasicAIActions:GetActions "
+                                   "(Scripts/Entities/AI/Shared/BasicAIActions.lua) ; « Parler », fiche 18, 5 b"}
+NOMS_DU_JEU_AU_PLUS = 1
+
+
+def noms_du_jeu_admis():
+    """Les noms de NOMS_DU_JEU_ADMIS définis comme fonction dans Data/Scripts.pak du jeu de base. Rend { nom : fichier
+    du jeu }. Sans le jeu, aucun."""
+    pak = os.path.join(JEU, "Data", "Scripts.pak")
+    trouves = {}
+    if not os.path.exists(pak):
+        return trouves
+    motifs = {nom: re.compile(r"\bfunction\s+[A-Za-z_][A-Za-z0-9_.]*[.:]" + re.escape(nom) + r"\s*\(")
+              for nom in NOMS_DU_JEU_ADMIS}
+    with zipfile.ZipFile(pak) as archive:
+        for info in archive.infolist():
+            if not info.filename.lower().endswith(".lua"):
+                continue
+            texte = archive.open(info).read().decode("utf-8", "replace")
+            for nom, motif in motifs.items():
+                if nom not in trouves and motif.search(texte):
+                    trouves[nom] = info.filename
+            if len(trouves) == len(motifs):
+                break
+    return trouves
+
+
 def formes_du_jeu(lignes_d_alex):
     """Les lignes XML du socle communes avec Alex qui sont des lignes de forme (est_une_ligne_de_forme) et figurent
     aussi, telles quelles, dans les fichiers XML du jeu de base (lecture seule, en mémoire : rien n'est extrait), à
@@ -1299,6 +1331,15 @@ def controle_absence(strict):
     if len(relations) > RELATIONS_DU_JEU_AU_PLUS:
         erreur("contrôle d'absence : %d relations du jeu, plus que les %d admises" % (len(relations), RELATIONS_DU_JEU_AU_PLUS))
 
+    if len(NOMS_DU_JEU_ADMIS) > NOMS_DU_JEU_AU_PLUS:
+        erreur("contrôle d'absence : %d noms du jeu admis, plus que les %d permis par JoVenGer"
+               % (len(NOMS_DU_JEU_ADMIS), NOMS_DU_JEU_AU_PLUS))
+    admis = noms_du_jeu_admis()
+    noms_admis = {outil_empreintes.empreinte(nom) for nom in admis}
+    socle["noms"] = socle["noms"] - noms_admis
+    for nom, fichier in sorted(admis.items()):
+        print("   nom du jeu admis : %s (défini dans %s) : %s" % (nom, fichier, NOMS_DU_JEU_ADMIS[nom]))
+
     resultats = {}
     for nom in ("fichiers", "chemins", "lignes", "noms", "cles", "textes"):
         communs = socle[nom] & alex[nom]
@@ -1306,6 +1347,7 @@ def controle_absence(strict):
         if communs:
             erreur("contrôle d'absence : %d %s en commun avec Alex" % (len(communs), nom))
     resultats["lignes de forme du jeu"] = len(formes)
+    resultats["noms du jeu admis"] = len(admis)
     resultats["relations du jeu"] = len(relations)
     if resultats["lignes"] or resultats["noms"] or resultats["textes"]:
         # Nommer les coupables, pour corriger vite.
@@ -1320,7 +1362,7 @@ def controle_absence(strict):
                     erreur("  ligne d'Alex : %s:%d" % (relatif(chemin), numero))
             if extension == ".lua":
                 for identifiant in set(outil_empreintes.noms_du_lua(texte)):
-                    if outil_empreintes.empreinte(identifiant) in alex["noms"]:
+                    if outil_empreintes.empreinte(identifiant) in alex["noms"] and identifiant not in admis:
                         erreur("  nom d'Alex : %s : %s" % (relatif(chemin), identifiant))
             if extension == ".xml":
                 cles, textes = outil_empreintes.cellules_du_xml(texte)
