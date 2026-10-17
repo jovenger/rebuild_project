@@ -137,8 +137,8 @@ end
 
 -- Fiche 15, V73 g 0 (la sonde du rechargement, piste du pair) : nos morceaux relus dans le jeu ouvert, depuis les copies
 -- posées par outils/recharger.py, sans relancer le jeu. Seulement les morceaux dont les données vivent au registre et
--- qui n'ont pas de boucle à eux (ni le noyau, ni la liaison, ni le registre, ni le bandeau, ni les réglages, ni le
--- poste). Les chevaux passagers sont retirés d'abord ; puis la sortie et l'entrée en partie, comme un chargement :
+-- qui n'ont pas de boucle à eux (ni le noyau, ni le registre, ni le bandeau, ni les réglages, ni le poste) ; et la
+-- liaison, pour ses fonctions seulement (elle garde sa table et sa mémoire), relue la première. Les chevaux passagers sont retirés d'abord ; puis la sortie et l'entrée en partie, comme un chargement :
 -- les anciennes boucles s'éteignent (génération), le réveil relance chaque morceau 30 s après.
 poste.morceaux_rechargeables = { coffre = true, camp = true, hommes = true, bataille = true, directeur = true,
                                  enceinte = true, atelier = true, patrouilles = true, discipline = true, caractere = true }
@@ -151,7 +151,9 @@ function poste.essai_recharger()
   end
   local a_charger = {}
   for _, nom in ipairs(liste) do
-    if poste.morceaux_rechargeables[nom] then
+    if nom == "liaison" then
+      table.insert(a_charger, 1, nom)
+    elseif poste.morceaux_rechargeables[nom] then
       table.insert(a_charger, nom)
     else
       jeu().journal("Poste : rechargement : « " .. tostring(nom) .. " » refusé (pas rechargeable)")

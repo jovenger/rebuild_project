@@ -15,7 +15,7 @@ import sys
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCES = os.path.join(RACINE, "socle", "pak", "Scripts", "scriptorium")
-RECHARGEABLES = ("coffre", "camp", "hommes", "bataille", "directeur", "enceinte", "atelier", "patrouilles",
+RECHARGEABLES = ("liaison", "coffre", "camp", "hommes", "bataille", "directeur", "enceinte", "atelier", "patrouilles",
                  "discipline", "caractere")
 
 sys.path.insert(0, os.path.join(RACINE, "noyau"))

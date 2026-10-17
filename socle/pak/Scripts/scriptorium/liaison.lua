@@ -7,7 +7,13 @@
 
 local Scriptorium = Scriptorium
 
-local liaison = {}
+-- V73 g 0 (le rechargement, demande du pair) : relue dans le jeu ouvert (outils/recharger.py), la liaison reprend sa
+-- table : sa mémoire, ses écouteurs, ses accroches et ses relevés sont gardés ; seules ses fonctions et ses constantes
+-- sont remplacées. Son état de fichier vit dans « etat_du_fichier », jamais remis à zéro par une relecture.
+local liaison = Scriptorium.liaison_reelle or {}
+liaison.etat_du_fichier = liaison.etat_du_fichier
+  or { forme_du_dialogue = nil, poses_fermees = {}, identite_de_la_partie = nil, jeton_essaye = false, tranches_ecrites = 0 }
+local etat_du_fichier = liaison.etat_du_fichier
 
 -- Mémoire de secours pour le registre, le temps que le mécanisme de sauvegarde
 -- du jeu soit confirmé : elle ne survit pas à la fermeture du jeu.
@@ -15,9 +21,9 @@ local liaison = {}
 -- au passage d'une carte à l'autre, et n'est jamais vidée à l'entrée en partie) ; « carte » et « carte_d_avant » : la
 -- carte lue à l'entrée en partie, et celle de l'entrée précédente ; « heure_ecrite » : l'heure du jeu de la dernière
 -- écriture du registre.
-liaison.memoire = { registre = nil, identite = nil, carte = nil, carte_d_avant = nil, heure_ecrite = nil }
+liaison.memoire = liaison.memoire or { registre = nil, identite = nil, carte = nil, carte_d_avant = nil, heure_ecrite = nil }
 -- La règle du passage, accrochée par le noyau (sans elle, aucun passage n'est cru).
-liaison.passage_croyable = nil
+liaison.passage_croyable = liaison.passage_croyable
 function liaison.accrocher_le_passage(fonction)
   liaison.passage_croyable = fonction
 end
@@ -73,7 +79,6 @@ end
 -- DialogModule.IsSoulInDialog existe dans le Lua du jeu, mais aucun script du jeu ne l'appelle : la forme
 -- de son argument est à vérifier en jeu (V6). On essaie l'âme d'Henry, son identifiant d'entité, puis son
 -- WUID ; la première forme qui rend un booléen est gardée et dite au journal. Hors partie, rien n'est décidé.
-local forme_du_dialogue = nil
 local formes_du_dialogue = {
   { nom = "l'âme", argument = function() return player.soul end },
   { nom = "l'identifiant d'entité", argument = function() return player.id end },
@@ -81,21 +86,21 @@ local formes_du_dialogue = {
 }
 
 function liaison.dialogue_en_cours()
-  if forme_du_dialogue == false or not liaison.partie_en_cours() then
+  if etat_du_fichier.forme_du_dialogue == false or not liaison.partie_en_cours() then
     return false
   end
-  local formes = forme_du_dialogue and { forme_du_dialogue } or formes_du_dialogue
+  local formes = etat_du_fichier.forme_du_dialogue and { etat_du_fichier.forme_du_dialogue } or formes_du_dialogue
   for _, forme in ipairs(formes) do
     local ok, resultat = pcall(function() return DialogModule.IsSoulInDialog(forme.argument()) end)
     if ok and type(resultat) == "boolean" then
-      if not forme_du_dialogue then
-        forme_du_dialogue = forme
+      if not etat_du_fichier.forme_du_dialogue then
+        etat_du_fichier.forme_du_dialogue = forme
         liaison.journal("Dialogue : IsSoulInDialog répond avec " .. forme.nom)
       end
       return resultat
     end
   end
-  forme_du_dialogue = false
+  etat_du_fichier.forme_du_dialogue = false
   liaison.journal("Dialogue : IsSoulInDialog ne répond à aucune forme ; le bandeau n'attendra pas les dialogues")
   return false
 end
@@ -488,12 +493,11 @@ function liaison.decrire_objet(identifiant)
 end
 
 -- Pose « fermée » de chaque porte posée, gardée à son premier mouvement (voir liaison.changer_porte).
-local poses_fermees = {}
 
 -- Retire un objet posé par le socle.
 -- À vérifier en jeu : System.RemoveEntity.
 function liaison.retirer_objet(identifiant)
-  poses_fermees[identifiant] = nil
+  etat_du_fichier.poses_fermees[identifiant] = nil
   local entite = entite_nommee(identifiant)
   if entite then
     pcall(System.RemoveEntity, entite.id)
@@ -523,9 +527,6 @@ liaison.prefixe_de_la_marque = "scriptorium_registre_"
 -- s'écrit donc au-delà de 65 535 octets, essais compris : poser_un_jeton refuse.
 liaison.taille_des_tranches = 30000
 liaison.plus_long_jeton = 65535
-local identite_de_la_partie = nil
-local jeton_essaye = false
-local tranches_ecrites = 0
 
 local function jeton(nom)
   local ok, valeur = pcall(function() return GameToken.GetToken(nom) end)
@@ -611,13 +612,13 @@ local function ecrire_le_jeton(identite, chaine)
       poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i),
                          string.format("%s|%d|", identite, i) .. string.sub(chaine, (i - 1) * taille + 1, i * taille))
     end
-    for i = n + 1, tranches_ecrites do
+    for i = n + 1, etat_du_fichier.tranches_ecrites do
       poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i), "")
     end
     poser_un_jeton(liaison.nom_du_jeton, liaison.entete_du_registre(identite, n, chaine))
   end)
   if ok then
-    tranches_ecrites = n
+    etat_du_fichier.tranches_ecrites = n
   end
   return ok, erreur, n
 end
@@ -712,7 +713,7 @@ function liaison.lire_registre()
     end
   end
   if marquee then
-    identite_de_la_partie = identite
+    etat_du_fichier.identite_de_la_partie = identite
     liaison.memoire.identite = identite
     if raison then
       liaison.journal("Registre : en tranches, refusé (" .. raison .. ")")
@@ -724,7 +725,7 @@ function liaison.lire_registre()
     liaison.identite_ignoree = identite
     liaison.journal("Registre : jeton d'une autre partie (" .. identite .. "), ignoré")
   end
-  identite_de_la_partie = nil
+  etat_du_fichier.identite_de_la_partie = nil
   return liaison.memoire.registre
 end
 
@@ -733,7 +734,7 @@ local function marquer_la_partie()
   local identite = string.format("p%d_%d", os.time(), math.random(100000, 999999))
   local pose = poser_la_marque(identite)
   if pose then
-    identite_de_la_partie = identite
+    etat_du_fichier.identite_de_la_partie = identite
     liaison.memoire.identite = identite
     liaison.journal("Registre : partie marquée (" .. identite .. ")")
     return true
@@ -746,14 +747,14 @@ end
 function liaison.ecrire_registre(chaine)
   liaison.memoire.registre = chaine
   liaison.memoire.heure_ecrite = liaison.heure_du_jeu()
-  if not (identite_de_la_partie and entite_nommee(liaison.prefixe_de_la_marque .. identite_de_la_partie)) then
+  if not (etat_du_fichier.identite_de_la_partie and entite_nommee(liaison.prefixe_de_la_marque .. etat_du_fichier.identite_de_la_partie)) then
     if not marquer_la_partie() then
       return
     end
   end
-  local ok, erreur, n = ecrire_le_jeton(identite_de_la_partie, chaine)
-  if not jeton_essaye then
-    jeton_essaye = true
+  local ok, erreur, n = ecrire_le_jeton(etat_du_fichier.identite_de_la_partie, chaine)
+  if not etat_du_fichier.jeton_essaye then
+    etat_du_fichier.jeton_essaye = true
     local _, relu, raison = lire_le_jeton()
     if ok and relu == chaine then
       liaison.journal("Registre : jeton du jeu en service (" .. #chaine .. " caractères, " .. n .. " tranche(s))")
@@ -1830,8 +1831,8 @@ end
 -- Jusqu'à V49, c'était un simple arbre qui marchait vers un point lu dans une variable de son cerveau
 -- (scriptorium_essai_point, vec3) : point A posé à la naissance (8 m à gauche d'Henry), point B par un ordre.
 liaison.ame_du_marcheur = "3241c366-db25-47da-9710-f621eb79554e"   -- scriptorium_essai_marcheur
-liaison.marcheur = nil
-liaison.point_vise = nil
+liaison.marcheur = liaison.marcheur
+liaison.point_vise = liaison.point_vise
 
 local function pres_d_henry(devant, a_droite)
   local henry = liaison.position_du_joueur()
@@ -1874,7 +1875,7 @@ end
 
 -- L'adversaire d'essai : même âme et même cerveau que le marcheur, posé à 6 m devant Henry ; son point visé est sa
 -- place de naissance (il y reste). Rend son nom et une ligne.
-liaison.adversaire = nil
+liaison.adversaire = liaison.adversaire
 
 liaison.ame_du_brigand_d_essai = "edd4e924-20ea-441e-8048-e8d73aee4bca"   -- scriptorium_essai_brigand : notre cerveau, faction de brigands
 
@@ -2028,7 +2029,7 @@ liaison.ame_du_brigand_du_jeu = "08994591-c246-401d-bcd9-ca5d0fe1ddd7"   -- kopa
 -- Un brigand plus léger (V54) : kopa_man_16 porte une armure complète et n'a jamais été blessé (V43 à V53) ; celui-ci a
 -- le plus bas niveau de combat des brigands de Kuttenberg au cerveau npc_basic (combat_level 0.1 dans soul__kkop.xml).
 liaison.ame_du_brigand_leger = "74aea673-42aa-4e0d-b861-cc5d56a44574"   -- kkop_bandit_7, camp de Kopec Vysoká
-liaison.brigand_du_jeu = nil
+liaison.brigand_du_jeu = liaison.brigand_du_jeu
 
 -- « ame » : l'âme du brigand ; celle de kopa_man_16 par défaut.
 -- « position » (facultative, V73 b 1) : posé sur une place libre près de ce point ; sinon, 8 m devant Henry.
@@ -2128,7 +2129,7 @@ end
 
 -- Le contrôle : le même coup sur l'habitant de la carte le plus proche. S'il ne réagit pas non plus, le coup ne prouve
 -- rien sur le brigand.
-liaison.habitant_frappe = nil
+liaison.habitant_frappe = liaison.habitant_frappe
 
 function liaison.henry_frappe_un_habitant(points)
   local habitant, distance = habitant_le_plus_proche()
@@ -2202,7 +2203,7 @@ end
 -- Le garde du jeu (V49) : une âme de garde de Kuttenberg faite pour être appelée par le jeu (extraGuards, cerveau
 -- npc_basic), née par script à 4 m d'Henry, sur sa gauche, et éveillée. Vient-il défendre Henry contre le brigand du jeu ?
 liaison.ame_du_garde_du_jeu = "0e1aba06-82de-4270-b0ec-46a8b4744abc"   -- extraGuards_kutnaHora_soldiers_guards_7
-liaison.garde_du_jeu = nil
+liaison.garde_du_jeu = liaison.garde_du_jeu
 
 function liaison.poser_le_garde_du_jeu()
   local nom, erreur = faire_naitre("NPC", "scriptorium_essai_garde_du_jeu", pres_d_henry(2, -4), liaison.cap_du_joueur(),
@@ -2414,8 +2415,8 @@ end
 -- l'objet : son gabarit (Libs/Tables/ai/smartEntity/SmartEntity__so_sitPlace.xml, __so_bed.xml) porte un comportement
 -- « use » (AI/world/so_sitPlace.xml, so_bed.xml : liens « bench », puis StanceElement sur $__object.id), et un personnage
 -- le joue par CallBehavior sur l'objet (AI/crime/mournOnBench.xml). Nos comportements font de même (V62).
-liaison.objet_vise = nil
-liaison.sieges_d_essai = {}
+liaison.objet_vise = liaison.objet_vise
+liaison.sieges_d_essai = liaison.sieges_d_essai or {}
 
 local function sorte_de(e)
   local p = type(e.Properties) == "table" and e.Properties or {}
@@ -2644,16 +2645,16 @@ liaison.ordres_des_places = { siege = 10, lit = 11 }
 
 -- Fiche 15, V73 d 1 : le dernier point de regard posé chez chaque personnage (pour le poste d'essai, qui dit l'écart
 -- entre son cap et ce point). En mémoire seulement.
-liaison.regards = {}
+liaison.regards = liaison.regards or {}
 
 -- Fiche 15, V73 d 2 : le dernier but posé chez chaque personnage (par l'ordre, ou par le pas de la ronde), pour le poste
 -- d'essai, qui dit l'écart entre l'homme et ce but ; et ses pas de ronde. En mémoire seulement.
-liaison.buts = {}
-liaison.pas_de_ronde_vus = {}
+liaison.buts = liaison.buts or {}
+liaison.pas_de_ronde_vus = liaison.pas_de_ronde_vus or {}
 -- Fiche 15, V73 f 1 : le chef que suit chaque personnage (« henry » ou un identifiant), pour le poste d'essai.
-liaison.chefs = {}
+liaison.chefs = liaison.chefs or {}
 -- Fiche 15, V73 f 1 bis : le modèle de formation que mène chaque chef de formation, lu par son arbre (ordre 15).
-liaison.formations_menees = {}
+liaison.formations_menees = liaison.formations_menees or {}
 
 -- Appelée par l'arbre de la vie du camp (branche 15) sous pcall : écrit dans « formation_nom » le modèle que ce chef
 -- mène ; une ligne au journal ; une erreur, au journal.
@@ -2810,7 +2811,7 @@ end
 
 -- La ronde (fiche 15, V73 d 2) : la fonction des hommes qui donne le pas suivant, confiée au démarrage (la liaison
 -- n'appelle aucun morceau).
-liaison.pas_de_ronde = nil
+liaison.pas_de_ronde = liaison.pas_de_ronde
 
 function liaison.accrocher_la_ronde(fonction)
   liaison.pas_de_ronde = fonction
@@ -2854,11 +2855,11 @@ end
 -- Scripts/Entities/Physics/AnimObject.lua ; sans horloge lisible, la cadence de l'arbre) ; deux relevés à moins de 0,15 s
 -- gardent la vitesse d'avant. L'écart du cavalier à son chef corrige ; la règle est celle des hommes (accrochée). Écrit
 -- « allure_code » pour l'arbre ; une ligne au journal seulement quand l'allure change.
-liaison.allure_choisie = nil
-liaison.vitesse_filtree = nil
-liaison.allures_relevees = {}
+liaison.allure_choisie = liaison.allure_choisie
+liaison.vitesse_filtree = liaison.vitesse_filtree
+liaison.allures_relevees = liaison.allures_relevees or {}
 -- V73 f 2 g (relecture du pair) : une mesure par homme suivi, partagée par tous ceux qui le suivent.
-liaison.vitesses_des_chefs = {}
+liaison.vitesses_des_chefs = liaison.vitesses_des_chefs or {}
 liaison.noms_des_allures = { [-1] = "tenir", [0] = "pas", [1] = "course", [2] = "trot rapide", [3] = "galop" }
 
 function liaison.accrocher_l_allure(fonction, filtre)
@@ -3642,7 +3643,7 @@ end
 -- La cible de l'archer (V72 b) : une âme du brigand d'essai (notre cerveau, faction ennemie publique de Kuttenberg ; il
 -- ne réagit pas, V48), née directement à « devant » m devant Henry (repère de poser_devant_henry), sur une place
 -- regardée libre à l'image avant l'ordre (V72 a : personne dans un meuble du camp), et qui y reste.
-liaison.cible_de_l_archer = nil
+liaison.cible_de_l_archer = liaison.cible_de_l_archer
 
 function liaison.poser_la_cible_de_l_archer(devant)
   local point = liaison.point_devant_henry(devant)
@@ -3927,10 +3928,10 @@ function liaison.changer_porte(identifiant, etat)
     return
   end
   local ok, erreur = pcall(function()
-    local fermee = poses_fermees[identifiant]
+    local fermee = etat_du_fichier.poses_fermees[identifiant]
     if not fermee then
       fermee = { angle = entite:GetWorldAngles().z }
-      poses_fermees[identifiant] = fermee
+      etat_du_fichier.poses_fermees[identifiant] = fermee
     end
     local angle = fermee.angle
     if etat == "ouverte" then
@@ -3954,7 +3955,7 @@ end
 -- jamais, ni au menu ni en partie ; une minuterie posée à l'événement System « OnGameplayStarted » tire en
 -- partie. Le jeu accepte aussi l'abonnement à « OnGameplayEnded » (à vérifier en jeu : qu'il arrive au
 -- retour au menu). Les fonctions rendues sont appelées sans argument.
-liaison.ecouteur = {}
+liaison.ecouteur = liaison.ecouteur or {}
 
 -- Fiche 15, V73 f 3 a (la sonde de la carte) : la carte où l'on est. Aucun script du jeu ne lit son nom (et, d'après le
 -- pair, le jeu n'en expose aucun au Lua) : une seule lecture de nom, la variable du moteur « sv_map », sous pcall ;
@@ -3987,7 +3988,7 @@ end
 
 -- Les événements de chargement du groupe « System » (documentation de CryEngine 5, « UI Action ») : une ligne au
 -- journal avec leurs arguments tels quels et ce que dit Game.IsLoadingEngineSaveGame ; le dernier gardé.
-liaison.dernier_chargement = nil
+liaison.dernier_chargement = liaison.dernier_chargement
 liaison.evenements_de_chargement = { "OnLoadingStart", "OnLoadingComplete", "OnLoadingError", "OnUnloadStart",
                                      "OnUnloadComplete" }
 

@@ -305,7 +305,7 @@ essai("poste : le rechargement d'essai relit les morceaux permis, retire les che
   local poste = Scriptorium.poste
   FauxJeu.rechargement = nil
   verifier(not poste.essai_recharger(), "sans liste : rien")
-  FauxJeu.rechargement = { liste = { "liaison", "noyau" } }
+  FauxJeu.rechargement = { liste = { "noyau", "registre" } }
   verifier(not poste.essai_recharger(), "rien de rechargeable : rien")
   FauxJeu.chevaux, FauxJeu.chevaux_retires = {}, {}
   Scriptorium.hommes.montures = { homme_1 = { cheval = "cheval_essai" } }
@@ -314,7 +314,7 @@ essai("poste : le rechargement d'essai relit les morceaux permis, retire les che
   local generation = Scriptorium.generation
   FauxJeu.rechargement = { liste = { "hommes", "liaison", "directeur" } }
   verifier(poste.essai_recharger(), "rechargement fait")
-  egal(table.concat(FauxJeu.morceaux_charges, ","), "hommes,directeur", "hommes et Directeur relus, pas la liaison")
+  egal(table.concat(FauxJeu.morceaux_charges, ","), "liaison,hommes,directeur", "la liaison relue la première, puis hommes et Directeur")
   egal(FauxJeu.chevaux_retires[1], "cheval_essai", "le cheval passager retiré")
   egal(Scriptorium.generation, generation + 2, "sortie et entrée en partie")
   verifier(Scriptorium.en_partie, "toujours en partie")

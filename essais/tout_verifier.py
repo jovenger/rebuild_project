@@ -768,6 +768,21 @@ def verifier_identifiants():
         local identite = string.match(GameToken.valeurs["scriptorium_socle.registre"], "^([%w_]+)|")
         GameToken.valeurs["scriptorium_socle.registre"] = identite .. "|{ancien=1}"
         if l.lire_registre() ~= "{ancien=1}" then return "l'ancien format en un seul jeton n'est plus lu" end
+        -- V73 g 0 : la liaison relue (outils/recharger.py) garde sa table, sa mémoire, ses relevés et son état de
+        -- fichier ; ses fonctions sont remplacées ; le registre se relit ensuite comme avant.
+        local identite_relue = l.etat_du_fichier.identite_de_la_partie
+        l.memoire.carte = "relue"
+        l.chefs["essai_relecture"] = 7
+        l.carte_courante = "remplacee"
+        local morceau_l, erreur_l = loadfile("socle/pak/Scripts/scriptorium/liaison.lua")
+        if not morceau_l then return "relecture : liaison.lua illisible : " .. tostring(erreur_l) end
+        morceau_l()
+        if Scriptorium.liaison_reelle ~= l then return "relecture : la table de la liaison a changé" end
+        if l.memoire.carte ~= "relue" or l.chefs["essai_relecture"] ~= 7 then return "relecture : la mémoire perdue" end
+        if l.etat_du_fichier.identite_de_la_partie ~= identite_relue then return "relecture : l'identité de la partie perdue" end
+        if type(l.carte_courante) ~= "function" then return "relecture : une fonction non remplacée" end
+        if l.lire_registre() ~= "{ancien=1}" then return "relecture : le registre ne se relit plus" end
+        l.memoire.carte, l.chefs["essai_relecture"] = nil, nil
         GameToken = nil
         return "ok"
     end)()""")
