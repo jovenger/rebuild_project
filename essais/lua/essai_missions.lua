@@ -513,3 +513,22 @@ essai("missions : tranchée, l'issue s'applique aux vrais personnages ; survivan
   bataille.issue_au_loin, bataille.reglages.part_des_morts = ancienne, part
   finir()
 end)
+
+-- Vu en jeu le 17/10 : au retour, le point de la colonne change ; l'ordre de la tête doit être redonné.
+essai("missions (4 b) : le point de la colonne changé redonne l'ordre à sa tête", function()
+  local ids = preparer_la_mission()
+  for _, h in ipairs(ids) do
+    hommes.tenir(h, "mission", { activite = "suivre", lieu = "colonne", vers = { x = 0, y = 200, z = 0 }, a_cheval = true,
+      formation = "followNPC", fin = "liberation" })
+  end
+  local tete = hommes.fiche(ids[1]).personnage
+  FauxJeu.ordres = {}
+  hommes.tenir(ids[1], "mission", { activite = "suivre", lieu = "colonne", vers = { x = 0, y = 15, z = 0 }, a_cheval = true,
+    formation = "followNPC", fin = "liberation" })
+  local vers_le_camp = nil
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == tete and o.position and o.position.y == 15 then vers_le_camp = o end
+  end
+  verifier(vers_le_camp ~= nil, "la tête reçoit l'ordre vers le nouveau point")
+  finir()
+end)

@@ -1724,6 +1724,8 @@ function hommes.activite_de(id, heure)
         end
         if resultat.vers and resultat.chef == nil then
           resultat.position = { x = tenue.vers.x, y = tenue.vers.y, z = tenue.vers.z }
+          -- Vu en jeu le 17/10 : le point changé (l'aller, puis le retour) doit redonner l'ordre à la tête.
+          resultat.signature = resultat.signature .. string.format("@%.1f,%.1f", tenue.vers.x, tenue.vers.y)
         else
           resultat.position = (resultat.chef == "henry") and jeu().position_du_joueur()
             or jeu().position_du_personnage(resultat.chef)
