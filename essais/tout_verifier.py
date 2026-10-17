@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 141:
-        erreur("ordres : %d commandes lues dans poste.lua, 141 attendues" % len(connues))
+    if len(connues) != 143:
+        erreur("ordres : %d commandes lues dans poste.lua, 143 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -454,6 +454,26 @@ def verifier_identifiants():
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une erreur de la ronde n'est pas écrite" end
         l.au_point_de_ronde(nil, donnees)
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une entité absente n'est pas dite" end
+        -- Le rassemblement (fiche 15, V73 e) : l'ordre de poste écrit l'allure, 1 en courant, 0 sinon (une garde qui suit
+        -- un briefing ne court pas).
+        System.entites["scriptorium_rondier"] = rondier
+        XGenAIModule.variables = {}
+        local but_avant, regard_avant = l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"]
+        l.ordonner("scriptorium_rondier", "rassemblement", { x = 1, y = 1 }, "briefing", nil, nil, { x = 2, y = 2 }, "course")
+        if XGenAIModule.variables.scriptorium_allure ~= 1 then return "rassemblement : allure " .. tostring(XGenAIModule.variables.scriptorium_allure) end
+        if not string.find(lignes[#lignes], "en courant", 1, true) then return "l'ordre ne dit pas « en courant »" end
+        l.ordonner("scriptorium_rondier", "garde", { x = 1, y = 1 }, "poste_1", nil, nil, { x = 2, y = 2 })
+        if XGenAIModule.variables.scriptorium_allure ~= 0 then return "garde : allure " .. tostring(XGenAIModule.variables.scriptorium_allure) end
+        System.entites["scriptorium_rondier"] = nil
+        l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
+        -- La vue d'Henry : à moins de 60° de son regard, il voit ; derrière lui, non ; sans Henry, rien de lisible.
+        player = { GetWorldPos = function() return { x = 0, y = 0, z = 0 } end,
+                   GetWorldAngles = function() return { x = 0, y = 0, z = 0 } end }   -- face au nord
+        if l.henry_voit({ x = 1, y = 10 }, 0.5) ~= true then return "Henry ne voit pas devant lui" end
+        if l.henry_voit({ x = 10, y = 1 }, 0.5) ~= false then return "Henry voit à 84° de son regard" end
+        if l.henry_voit({ x = 0, y = -10 }, 0.5) ~= false then return "Henry voit derrière lui" end
+        player = nil
+        if l.henry_voit({ x = 1, y = 10 }, 0.5) ~= nil then return "sans Henry, une vue est rendue" end
         -- La lecture du poste d'essai (voir_sur_la_place) sur ce rondier : l'écart au but et les pas de ronde, sans
         -- erreur de format (sinon la seule lecture de la séance manquerait en jeu).
         function XGenAIModule.GetBrainVariable(id, nom) return 0 end
@@ -1126,6 +1146,21 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : la branche 13 (la ronde) doit marcher au point, compter l'arrivée, appeler "
                "%s.jeu.au_point_de_ronde sous pcall, se tourner vers $scriptorium_regard, puis attendre $ronde_pause"
                % (chemin.group(1) if chemin else "?"))
+    # Fiche 15, V73 e (le rassemblement) : la branche 12 écrit l'allure sous condition, sous la forme du jeu
+    # (`$speed = $enum:movementSpeed.run`, AI/crime/followhelpingnpc.xml), et la donne au Move ; la liaison l'écrit avec
+    # le point et le regard.
+    branche12 = comportements.split("$scriptorium_activite == 12", 1)
+    allure = (r'<Expression expressions="\$allure = \$enum:movementSpeed\.walk" />\s*'
+              r'<IfCondition condition="\$scriptorium_allure == 1" failOnCondition="false">\s*'
+              r'<Expression expressions="\$allure = \$enum:movementSpeed\.run" />\s*</IfCondition>[\s\S]*?'
+              r'<Move destinationSpecification="\$scriptorium_essai_point"[^>]*speed="\$allure" stopWithinDistance="\$poste_arret"')
+    if len(branche12) != 2 or not re.search(allure, branche12[1].split("$scriptorium_activite == 13")[0]):
+        erreur("vie du camp : la branche 12 doit écrire l'allure (marche, puis course si $scriptorium_allure == 1) et la "
+               "donner au Move du poste")
+    if '<Variable name="allure" type="enum:movementSpeed"' not in comportements:
+        erreur("vie du camp : la variable de l'arbre allure (enum:movementSpeed) n'est pas déclarée")
+    if '"scriptorium_allure", allure == "course" and 1 or 0' not in liaison:
+        erreur("vie du camp : la liaison doit écrire scriptorium_allure à chaque ordre de poste")
     if '<Variable name="ronde_pause" type="_string"' not in comportements:
         erreur("vie du camp : la variable de l'arbre ronde_pause (_string) n'est pas déclarée")
     for nom, texte in arbres.items():

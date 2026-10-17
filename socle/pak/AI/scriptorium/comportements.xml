@@ -24,6 +24,7 @@
       <Variable name="ronde_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="ronde_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="ronde_pause" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="allure" type="enum:movementSpeed" values="" isPersistent="0" form="single" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
@@ -201,10 +202,14 @@
                             </Parallel>
                           </StanceElement>
                         </SuppressFailure>
+                        <Expression expressions="$allure = $enum:movementSpeed.walk" />
+                        <IfCondition condition="$scriptorium_allure == 1" failOnCondition="false">
+                          <Expression expressions="$allure = $enum:movementSpeed.run" />
+                        </IfCondition>
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
-                              <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                              <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="$allure" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
                               <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />

@@ -1058,7 +1058,7 @@ toutes les 2 à 3 s (écart au but, pas, regard).
   long d'un chemin de points (`AI/move/moveinformation_tagpointroute.xml`, à lire d'abord), qui suivent des points du
   niveau : il faudrait poser des points à nous, plus lourd.
 
-## V73 e — le rassemblement (17/10, envoyé au pair ; réponses recommandées prises d'office)
+## V73 e — le rassemblement (17/10, relu par le pair ; réponses recommandées prises d'office)
 
 ### Le périmètre
 - **Le mécanisme** : rejoindre une place sur un **arc autour d'un centre**, face au centre ou au dehors, en courant ou en
@@ -1135,9 +1135,8 @@ toutes les 2 à 3 s (écart au but, pas, regard).
    `$allure = $enum:movementSpeed.run` ; le `Move` prend `speed="$allure"`. Le reste ne change pas (le `Turn` vers le
    regard, le pouls, le geste « regarder autour » le jour : question 2).
 6. **Les 150 m** (`secours_loin_m`, 150) : au-delà, le secours n'attend pas le délai ; il reste compté (au plus
-   `secours_max`), jamais en combat ni en conversation, jamais pour un homme encore assis à sa place d'avant. « Hors de
-   la vue d'Henry si possible » (conversation Scriptorium) : le socle ne le vérifie pas (aucune lecture de la vue d'Henry
-   n'est éprouvée) ; c'est noté.
+   `secours_max`), jamais en combat ni en conversation, jamais pour un homme encore assis à sa place d'avant ; seulement
+   pour un but au camp, et jamais sous les yeux d'Henry (ci-dessous, d'après la relecture du pair).
 - **Valeurs en données** : `hommes.reglages.rassemblement_rayon_m` (3), `rassemblement_ouverture` (120),
   `secours_loin_m` (150) ; `hommes.points.briefing`, le centre d'essai (−10 ; −3, cap 270, à l'ouest du camp, à
   l'écart des meubles) ; une variable de cerveau de plus, `scriptorium_allure` (39).
@@ -1151,7 +1150,9 @@ toutes les 2 à 3 s (écart au but, pas, regard).
   même ; un lâché : les autres se resserrent, un ordre chacun.
 - L'allure : « course » par défaut, « marche » si la tenue le dit ; la garde n'en a pas ; les valeurs refusées.
 - La liaison (faux moteur) : l'allure 1 avec un rassemblement, 0 avec une garde.
-- Les 150 m : à 151 m, posé au premier battement ; à 149 m, pas avant le délai.
+- Les 150 m : à 151 m, posé au premier battement ; à 149 m, pas avant le délai ; un but hors du camp (60 m du centre) :
+  jamais avant le délai. La vue d'Henry : sous ses yeux, le secours attend, une ligne au journal ; il détourne le regard,
+  le secours pose ; sans lecture, il pose.
 - Contrôles statiques : la branche 12 écrit l'allure sous condition et la donne au `Move` ; la variable d'arbre et la
   variable de cerveau déclarées ; la liaison écrit `scriptorium_allure`. Le garde-fou : les places du briefing d'essai,
   pour un à neuf hommes, à l'écart des meubles du plan (2,4 m) et en dedans de la palissade.
@@ -1168,6 +1169,31 @@ convoqués l'un après l'autre, à 3 s d'écart, autour du centre d'essai ; une 
 5. Les 150 m : au banc seulement (dit tel quel).
 - Décompte de l'écran noir (fiche 14).
 
+### Relecture du pair (17/10)
+- Les places sur l'arc et la signature de l'ordre : bien vues ; le second arc 1,2 m derrière : un bon défaut (aucun rang
+  chez Scriptorium ; l'anneau d'alerte, 34 à 48 postes, ce sont des places de garde).
+- **La course chez Alex** (principe) : l'attribut `speed` du `Move`, écrit en clair (`Walk` le plus souvent, `Run`,
+  `Sprint`, `Dash`) ; notre variable d'enum vient du jeu. Les pièges de la course après une levée viennent de
+  Scriptorium (le suivi de chaque convoqué, l'homme sorti de sa routine qui se fige) : la grille les vise.
+- **Les 150 m pour toutes les activités : un vrai piège.** Les sorties sont légitimement à plus de 150 m (un homme de
+  métier en ville ou au bois, une troupe en mission, le coursier) : les poser d'un coup les ramènerait au camp.
+  **Seulement pour un but au camp** (rassemblement, poste, ronde, repas, travail au camp) ; jamais une sortie, une
+  mission, ni suivre Henry, qui a sa propre règle des 60 m.
+- **« Hors de la vue d'Henry » se vérifie** (Scriptorium le fait déjà, `arrivee_des_recrues`) : la direction du regard
+  d'Henry contre la direction vers le point ; un cosinus au-dessus de 0,5 (Henry regarde à moins de 60° du point) : on
+  ne pose pas là, on attend (ou un autre point qu'il ne voit pas).
+- **Pour la ronde de nuit** (piste 2 bis, essayée par Alex dans un fichier d'essai seulement, donc sans preuve) : un
+  `Parallel` dont une branche fait une seule marche sans fin vers une variable de but, et l'autre, toutes les 150 ms
+  environ, regarde la distance au but et donne le point suivant avant l'arrivée (« couper le virage ») : la marche
+  change de but sans s'arrêter. À vérifier en jeu, à l'essai de nuit.
+
+### Ce qui change, d'après la relecture
+- **Les 150 m** : seulement si le but de l'ordre est **au camp**, à moins de `secours_loin_camp_m` (50 m) de son centre ;
+  sans camp, jamais. Une sortie, une mission, une patrouille au loin n'y sont donc jamais soumises.
+- **Le secours ne pose jamais un homme sous les yeux d'Henry** (tout secours, pas seulement les 150 m) : la liaison dit
+  si Henry regarde à moins de 60° de l'endroit (`secours_vue_cos`, 0,5, le cosinus de l'angle) ; alors le secours
+  attend le battement suivant, une ligne au journal la première fois. Sans lecture (pas d'Henry), il pose comme avant.
+
 ### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
 1. **La forme** : (a) un arc autour d'un centre, rayon et ouverture donnés par la tenue, face au centre ou au dehors,
    un second arc quand le premier est plein (Recommandé : couvre le briefing, l'anneau et le cercle des duels) ; (b) des
@@ -1177,8 +1203,39 @@ convoqués l'un après l'autre, à 3 s d'écart, autour du centre d'essai ; une 
    pendant un discours de 40 s n'est pas choquant) ; (b) aucun geste. **Prise : (a).**
 3. **L'allure** : (a) donnée par la tenue, la course par défaut pour un rassemblement (Recommandé : le briefing en
    courant, le duel en marchant) ; (b) toujours en courant. **Prise : (a).**
-4. **Les 150 m** : (a) maintenant, pour toutes les activités, comme validé le 16/10 (Recommandé) ; (b) seulement pour le
-   rassemblement ; (c) plus tard. **Prise : (a).**
+4. **Les 150 m** (revue après la relecture du pair) : (a) maintenant, seulement pour un but au camp (à moins de 50 m de
+   son centre), jamais une sortie (Recommandé, avec le pair) ; (b) pour toutes les activités ; (c) plus tard.
+   **Prise : (a).**
+5. **Hors de la vue d'Henry** : (a) vérifié pour tout secours : Henry regarde à moins de 60° de l'endroit, le secours
+   attend (Recommandé, avec le pair : c'est la règle de Scriptorium) ; (b) seulement pour les 150 m ; (c) non vérifié.
+   **Prise : (a).**
+
+### V73 e, fait (17/10) : le rassemblement
+- **La tenue « rassemblement » avec un centre** (`hommes.tenir`) : `centre`, `cap`, `rayon` (3), `ouverture` (120), `face`
+  (« centre » ou « dehors »), `allure` (« course » par défaut, ou « marche ») ; refus `rassemblement_invalide` ; sans
+  centre, une marche au point comme avant. `memes_tenues` compare le centre et les options.
+- **Les places** (`place_sur_l_arc`) : les hommes que tient le même rassemblement (même lieu, leur tenue la plus forte),
+  dans l'ordre du camp, répartis sur l'arc ; l'écart entre deux places est une corde d'au moins `ecart_entre_hommes`
+  (1,2 m) ; le surplus passe sur un second arc, 1,2 m plus loin. Le regard : le centre, ou le dehors à `regard_m`.
+- **La signature de l'ordre** porte la place (« rassemblement@briefing#2/3 ») ; poser ou lâcher une tenue redonne l'ordre
+  sur-le-champ à chaque homme d'un rassemblement dont la place change (`redonner_au_rassemblement`) ; un homme pris par
+  une règle plus forte quitte l'arc, les autres se resserrent au battement.
+- **La course** : la liaison écrit `scriptorium_allure` (1 en courant, 0 sinon) avec le point et le regard de l'ordre 12,
+  et dit « en courant » au journal ; la branche 12 écrit `` (marche, puis course sous condition) et le `Move` du
+  poste prend `speed=""`. 39 variables de cerveau.
+- **Les 150 m** : au-delà de `secours_loin_m` d'un but à moins de `secours_loin_camp_m` (50 m) du centre du camp, le
+  secours n'attend pas le délai ; une sortie, jamais. **La vue d'Henry** (`liaison.henry_voit`, cosinus au-dessus de
+  `secours_vue_cos`, 0,5) : sous ses yeux, aucun secours, une ligne au journal la première fois. La ligne du secours dit
+  la distance.
+- **Poste d'essai** : `essai_briefing` (convoque l'homme suivant autour de `hommes.points.briefing`, en courant, face au
+  centre) et `essai_rompre` (143 commandes).
+- **Banc** : 7 815 vérifications ; six essais de plus (les places, le cercle, le dehors, les neuf hommes sur deux arcs ;
+  les convocations une à une et le lâcher ; l'allure, les refus, sans centre, la garde ; les 150 m, au camp et en
+  sortie ; la vue d'Henry ; le garde-fou du briefing d'essai pour un à neuf hommes) ; la liaison sur faux moteur (l'allure,
+  la vue d'Henry). Une ligne de la liaison, identique à une ligne d'Alex (`local d = math.sqrt(dx * dx + dy * dy)`), est
+  réécrite à notre façon (contrôle d'absence : 0 ; formes du jeu : 32). Garde-fous éprouvés par cinq erreurs injectées,
+  toutes attrapées : la course jamais écrite, la place hors de la signature, les 150 m pour une sortie, la vue d'Henry
+  ignorée, aucun second arc.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

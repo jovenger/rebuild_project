@@ -53,6 +53,7 @@ local faux = {
 function faux.remettre_a_zero()
   faux.temps = 0
   faux.positions = {}
+  faux.vue_d_henry = nil
   faux.secours = {}
   faux.occupations = {}
   faux.variables_du_cerveau = {}
@@ -227,9 +228,14 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
-function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard)
+function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure)
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
-                              place = place, sorte = sorte, regard = regard })
+                              place = place, sorte = sorte, regard = regard, allure = allure })
+end
+-- La vue d'Henry (fiche 15, V73 e) : par défaut, rien de lisible (nil) ; un essai peut poser « vue_d_henry ».
+function faux.henry_voit(point, seuil)
+  if faux.vue_d_henry then return faux.vue_d_henry(point, seuil) end
+  return nil
 end
 -- La ronde (fiche 15, V73 d 2) : la fonction confiée par les hommes, que la vraie liaison appelle à chaque point.
 function faux.accrocher_la_ronde(fonction) faux.pas_de_ronde = fonction end

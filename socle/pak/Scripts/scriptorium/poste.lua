@@ -761,6 +761,42 @@ function poste.essai_ronde_sans_pause()
   return ok == true
 end
 
+-- Fiche 15, V73 e : le briefing d'essai. Chaque appel convoque l'homme suivant (pas encore tenu par le briefing) autour
+-- du centre d'essai, en courant, face au centre ; les places se recalculent à chaque convocation.
+function poste.essai_briefing()
+  local p = Scriptorium.hommes.points.briefing
+  local centre, cap = Scriptorium.camp.point(p.x, p.y, p.cap)
+  if not centre then
+    jeu().journal("Poste : briefing d'essai sans camp")
+    return false
+  end
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    local f = Scriptorium.hommes.fiche(id)
+    if not (f.tenues and f.tenues.rassemblement) then
+      local ok, raison = Scriptorium.hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "briefing",
+        centre = centre, cap = cap, fin = "liberation" })
+      jeu().journal("Poste : " .. f.nom .. " convoqué au briefing : " .. tostring(ok) .. " " .. tostring(raison or ""))
+      return ok == true
+    end
+  end
+  jeu().journal("Poste : tous sont déjà convoqués")
+  return false
+end
+
+-- « Rompez ! » : le rassemblement lâché pour tous ceux qu'il tenait.
+function poste.essai_rompre()
+  local n = 0
+  for _, id in ipairs(Scriptorium.hommes.liste()) do
+    local f = Scriptorium.hommes.fiche(id)
+    local tenu = f and f.tenues and f.tenues.rassemblement ~= nil
+    if Scriptorium.hommes.lacher(id, "rassemblement") and tenu then
+      n = n + 1
+    end
+  end
+  jeu().journal("Poste : rompez, " .. n .. " homme(s)")
+  return n > 0
+end
+
 function poste.essai_lacher_ronde()
   -- Seuls comptent les hommes qui étaient tenus par la ronde (lâcher une tenue absente rend vrai aussi).
   local lache = 0
@@ -1578,6 +1614,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_rassembler_rondiers", fonction = function() return poste.essai_rassembler_rondiers(true) end, aide = "Les deux premiers hommes tenus par un rassemblement à la corvée (V73 d 2 bis)" },
   { nom = "scriptorium_essai_lacher_rondiers", fonction = function() return poste.essai_rassembler_rondiers(false) end, aide = "Le rassemblement des deux premiers hommes lâché : leur ronde reprend (V73 d 2 bis)" },
   { nom = "scriptorium_essai_ronde_sans_pause", fonction = function() return poste.essai_ronde_sans_pause() end, aide = "Le second rondier sans pause (V73 d 2 bis)" },
+  { nom = "scriptorium_essai_briefing", fonction = function() return poste.essai_briefing() end, aide = "Convoque l'homme suivant au briefing d'essai, en courant, face au centre (V73 e)" },
+  { nom = "scriptorium_essai_rompre", fonction = function() return poste.essai_rompre() end, aide = "Rompez : le rassemblement lâché pour tous (V73 e)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },

@@ -20,6 +20,13 @@ hommes.reglages = {
   secours_arrivee_m = 3,
   secours_max = 2,
   secours_assis_m = 1.5,
+  -- Fiche 15, V73 e (réponse 1 a de JoVenGer du 16/10, revue avec le pair le 17/10) : un homme à plus de « secours_loin_m »
+  -- d'un but qui est au camp (à moins de « secours_loin_camp_m » de son centre) est secouru sans attendre le délai ; une
+  -- sortie n'y est jamais soumise. Aucun secours ne pose un homme sous les yeux d'Henry : le cosinus entre son regard et
+  -- la direction de l'endroit au-dessus de « secours_vue_cos » (0,5 : à moins de 60°), le secours attend.
+  secours_loin_m = 150,
+  secours_loin_camp_m = 50,
+  secours_vue_cos = 0.5,
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -44,6 +51,11 @@ hommes.reglages = {
   ronde_longue_ecart_ms = 8000,
   ronde_longue_sur = 5,
   ronde_pause_min_ms = 500,
+  -- Le rassemblement (fiche 15, V73 e, réponses recommandées prises d'office le 17/10) : sans autre indication de la
+  -- tenue, un arc de « rassemblement_ouverture » degrés à « rassemblement_rayon_m » du centre (le briefing de
+  -- Scriptorium : un demi-cercle à 3 m, de −60° à +60°).
+  rassemblement_rayon_m = 3,
+  rassemblement_ouverture = 120,
   anciens_gardes = 50,
   semaines_min = 1,
   semaines_max = 52,
@@ -192,6 +204,9 @@ hommes.points = {
   corvee = { x = -4, y = 6, cap = 0 },
   feu = { x = 0, y = 2.2, cap = 180 },
   des = { x = -2.5, y = -1.5, cap = 45 },   -- un coin près du feu, pour les dés de la veillée (fiche 11)
+  -- Le centre du briefing d'essai (fiche 15, V73 e), à l'ouest du camp, l'arc tourné vers le camp : ses places, pour un à
+  -- neuf hommes, sont à l'écart des meubles (vérifié au banc).
+  briefing = { x = -15, y = 0, cap = 90 },
 }
 
 -- Postes de garde, autour du camp.
@@ -1295,6 +1310,49 @@ local function copie_du_chemin(chemin)
   return copie
 end
 
+-- Le rassemblement (fiche 15, V73 e) : la place « i » de « n » hommes sur l'arc d'une tenue, et le point qu'elle regarde
+-- (le centre, ou le dehors à « regard_m »). Les places s'écartent d'au moins « ecart_entre_hommes » (corde) ; ce qui ne
+-- tient pas sur l'arc passe sur un second arc, « ecart_entre_hommes » plus loin, et ainsi de suite.
+local function place_sur_l_arc(tenue, i, n)
+  local r = hommes.reglages
+  local rayon = tonumber(tenue.rayon) or r.rassemblement_rayon_m
+  local ouverture = tonumber(tenue.ouverture) or r.rassemblement_ouverture
+  local ecart = math.max(0.5, tonumber(r.ecart_entre_hommes) or 1.2)
+  local cap = tonumber(tenue.cap) or 0
+  local c = tenue.centre
+  local rang, restants, arc = i, n, rayon
+  local sur_cet_arc
+  while true do
+    local pas = 2 * math.asin(math.min(1, ecart / (2 * arc)))
+    local capacite
+    if ouverture >= 360 then
+      capacite = math.max(1, math.floor(2 * math.pi / pas + 1e-9))
+    else
+      capacite = math.floor(math.rad(ouverture) / pas + 1e-9) + 1
+    end
+    sur_cet_arc = math.min(capacite, restants)
+    if rang <= sur_cet_arc then
+      break
+    end
+    rang, restants, arc = rang - sur_cet_arc, restants - sur_cet_arc, arc + ecart
+  end
+  local angle
+  if ouverture >= 360 then
+    angle = cap + (rang - 1) * 360 / sur_cet_arc
+  elseif sur_cet_arc == 1 then
+    angle = cap
+  else
+    angle = cap - ouverture / 2 + (rang - 1) * ouverture / (sur_cet_arc - 1)
+  end
+  local dx, dy = math.sin(math.rad(angle)), math.cos(math.rad(angle))
+  local position = { x = c.x + arc * dx, y = c.y + arc * dy, z = c.z }
+  if tenue.face == "dehors" then
+    local d = tonumber(r.regard_m) or 0
+    return position, { x = position.x + d * dx, y = position.y + d * dy, z = c.z }
+  end
+  return position, { x = c.x, y = c.y, z = c.z }
+end
+
 -- Retient une somme sur les prochaines soldes (amende).
 function hommes.retenir(id, montant)
   local f = donnees().liste[id]
@@ -1351,6 +1409,25 @@ function hommes.activite_de(id, heure)
     -- V73 d 1 : une garde se tient face au dehors (le cap de la tenue, sinon du centre du camp vers le poste).
     if tenue.activite == "garde" then
       resultat.regard = regard_du_poste(tenue.position, tenue.cap)
+    end
+    -- V73 e : un rassemblement avec un centre donne à chacun sa place sur l'arc, parmi les hommes que tient le même
+    -- rassemblement (même lieu), dans l'ordre du camp ; la place entre dans la signature de l'ordre.
+    if tenue.activite == "rassemblement" and tenue.centre then
+      local rang, nombre = 0, 0
+      for _, autre in ipairs(d.ordre) do
+        local _, t2 = tenue_la_plus_forte(d.liste[autre])
+        if t2 and t2.activite == "rassemblement" and t2.centre and t2.lieu == tenue.lieu then
+          nombre = nombre + 1
+          if autre == id then
+            rang = nombre
+          end
+        end
+      end
+      if rang > 0 then
+        resultat.position, resultat.regard = place_sur_l_arc(tenue, rang, nombre)
+        resultat.allure = tenue.allure or "course"
+        resultat.signature = rang .. "/" .. nombre
+      end
     end
     return resultat
   end
@@ -1681,6 +1758,16 @@ local function secourir(id, f, a, rapport)
     s.bloque_s = 0
   end
   s.reste = reste
+  -- Trop loin d'un but au camp (V73 e, réponse 1 a du 16/10 revue avec le pair) : le secours n'attend pas le délai ; une
+  -- sortie (un but à plus de « secours_loin_camp_m » du centre du camp) n'y est jamais soumise.
+  local loin = tonumber(hommes.reglages.secours_loin_m) or 0
+  if loin > 0 and reste > loin then
+    local centre = camp().point(0, 0, 0)
+    local au_camp = centre and math.sqrt((but.x - centre.x) ^ 2 + (but.y - centre.y) ^ 2) <= hommes.reglages.secours_loin_camp_m
+    if au_camp then
+      s.bloque_s = math.max(s.bloque_s, hommes.reglages.secours_delai_s)
+    end
+  end
   if s.bloque_s < hommes.reglages.secours_delai_s then
     return
   end
@@ -1692,11 +1779,22 @@ local function secourir(id, f, a, rapport)
     end
     return
   end
-  s.secours, s.bloque_s = s.secours + 1, 0
   local _, objet = but_de(a)
   local ou = (not de_ronde and objet) and camp().abord_de(a.lieu) or but
-  jeu().journal("Hommes : « " .. f.nom .. " » bloqué vers « " .. tostring(a.lieu) .. " », secours "
-                .. s.secours .. " : " .. tostring(jeu().poser_en_secours(f.personnage, ou)))
+  -- Jamais sous les yeux d'Henry (V73 e, relecture du pair : la règle de Scriptorium) : il regarde à moins de 60° de
+  -- l'endroit, le secours attend le battement suivant ; sans lecture, il pose.
+  if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true then
+    if not s.vu_par_henry then
+      s.vu_par_henry = true
+      jeu().journal("Hommes : « " .. f.nom .. " » à secourir, mais Henry regarde l'endroit : le secours attend")
+    end
+    return
+  end
+  s.vu_par_henry = nil
+  s.secours, s.bloque_s = s.secours + 1, 0
+  jeu().journal("Hommes : « " .. f.nom .. " » bloqué vers « " .. tostring(a.lieu) .. " » à "
+                .. string.format("%.0f", reste) .. " m, secours " .. s.secours .. " : "
+                .. tostring(jeu().poser_en_secours(f.personnage, ou)))
   f.derniere_activite = nil
   hommes.raisons_de_reprise[id] = "secours"
   rapport.secours = (rapport.secours or 0) + 1
@@ -1820,7 +1918,8 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     return
   end
   local a = hommes.activite_de(id, heure)
-  local resume = a.activite .. "@" .. tostring(a.lieu)
+  -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
+  local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
   if f.derniere_activite ~= resume then
     local position, objet, sorte = but_de(a)
     -- La ronde (fiche 15, V73 d 2) : à la pose de la tenue, le point de départ (Scriptorium espace ses gardes, réponse
@@ -1853,7 +1952,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       position = a.chemin[premier]
     end
     hommes.raisons_de_reprise[id] = nil
-    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard)
+    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
@@ -1965,6 +2064,18 @@ local function memes_points(a, b)
   return a.x == b.x and a.y == b.y and a.z == b.z
 end
 
+-- Le rassemblement (V73 e) : poser ou lâcher une tenue peut déplacer les places de l'arc ; chacun des hommes d'un
+-- rassemblement dont la place a changé reçoit son ordre sur-le-champ (les autres n'en reçoivent pas : même signature).
+local function redonner_au_rassemblement(d, heure)
+  for _, autre in ipairs(d.ordre) do
+    local f = d.liste[autre]
+    local _, t = tenue_la_plus_forte(f)
+    if t and t.activite == "rassemblement" and t.centre then
+      ordonner_un_homme(d, autre, heure, nil, true)
+    end
+  end
+end
+
 local function memes_chemins(a, b)
   if a == nil or b == nil then
     return a == b
@@ -1984,7 +2095,8 @@ local function memes_tenues(a, b)
   return a.activite == b.activite and a.lieu == b.lieu and a.cap == b.cap and a.fin == b.fin
     and a.ne_pas_rhabiller == b.ne_pas_rhabiller and memes_points(a.position, b.position)
     and a.aller_retour == b.aller_retour and a.depart == b.depart and a.pauses == b.pauses
-    and memes_chemins(a.chemin, b.chemin)
+    and memes_chemins(a.chemin, b.chemin) and memes_points(a.centre, b.centre) and a.rayon == b.rayon
+    and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -1995,7 +2107,9 @@ end
 -- l'homme change. L'activité « ronde » (fiche 15, V73 d 2) veut aussi « chemin » (2 à « ronde_points_max » points du
 -- monde ; Scriptorium, qui garde ses rondes dans le repère du camp, les redonne à chaque fondation), et accepte
 -- « aller_retour » (sinon en boucle), « depart » (le numéro du premier point, à la pose) et « pauses » (à faux : sans
--- pause, V73 d 2 bis). Rend vrai, ou (faux, raison).
+-- pause, V73 d 2 bis). Le rassemblement (V73 e) accepte « centre » (un point du monde), et alors « cap » (le milieu de
+-- l'arc vu du centre), « rayon », « ouverture » (degrés, 360 : un cercle), « face » (« centre » ou « dehors ») et
+-- « allure » (« course » ou « marche ») ; sans centre, il reste une marche au point. Rend vrai, ou (faux, raison).
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
   local f = d.liste[id]
@@ -2031,6 +2145,31 @@ function hommes.tenir(id, regle, quoi)
       return refuser("chemin_invalide", "pauses " .. tostring(quoi.pauses))
     end
   end
+  -- Le rassemblement avec un centre (V73 e) : un arc autour du centre ; sans centre, une marche au point, comme avant.
+  local arc = nil
+  if quoi.activite == "rassemblement" and quoi.centre ~= nil then
+    local c = quoi.centre
+    if type(c) ~= "table" or type(c.x) ~= "number" or type(c.y) ~= "number" or (c.z ~= nil and type(c.z) ~= "number") then
+      return refuser("rassemblement_invalide", "centre")
+    end
+    if quoi.rayon ~= nil and (type(quoi.rayon) ~= "number" or quoi.rayon <= 0) then
+      return refuser("rassemblement_invalide", "rayon " .. tostring(quoi.rayon))
+    end
+    if quoi.ouverture ~= nil and (type(quoi.ouverture) ~= "number" or quoi.ouverture <= 0 or quoi.ouverture > 360) then
+      return refuser("rassemblement_invalide", "ouverture " .. tostring(quoi.ouverture))
+    end
+    if quoi.cap ~= nil and type(quoi.cap) ~= "number" then
+      return refuser("rassemblement_invalide", "cap " .. tostring(quoi.cap))
+    end
+    if quoi.face ~= nil and quoi.face ~= "centre" and quoi.face ~= "dehors" then
+      return refuser("rassemblement_invalide", "face " .. tostring(quoi.face))
+    end
+    if quoi.allure ~= nil and quoi.allure ~= "course" and quoi.allure ~= "marche" then
+      return refuser("rassemblement_invalide", "allure " .. tostring(quoi.allure))
+    end
+    arc = { centre = { x = c.x, y = c.y, z = c.z }, rayon = quoi.rayon, ouverture = quoi.ouverture, face = quoi.face,
+            allure = quoi.allure }
+  end
   -- « pauses » n'est écrit que s'il vaut faux (le défaut, avec pauses, n'écrit rien).
   local pauses = nil
   if chemin and quoi.pauses == false then
@@ -2042,12 +2181,14 @@ function hommes.tenir(id, regle, quoi)
   local tenue = { activite = quoi.activite, lieu = quoi.lieu, position = quoi.position, cap = quoi.cap, fin = fin,
                   depuis = avant and avant.depuis or heure, ne_pas_rhabiller = (quoi.ne_pas_rhabiller == true) or nil,
                   chemin = chemin, aller_retour = (chemin and quoi.aller_retour == true) or nil, depart = depart,
-                  pauses = pauses }
+                  pauses = pauses, centre = arc and arc.centre, rayon = arc and arc.rayon,
+                  ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure }
   f.tenues[regle] = tenue
   if not avant or not memes_tenues(avant, tenue) then
     enregistrer()
   end
   ordonner_un_homme(d, id, heure, nil, true, true)
+  redonner_au_rassemblement(d, heure)
   return true
 end
 
@@ -2065,6 +2206,7 @@ function hommes.lacher(id, regle)
   f.tenues[regle] = nil
   enregistrer()
   ordonner_un_homme(d, id, jeu().heure_du_jeu(), nil, true)
+  redonner_au_rassemblement(d, jeu().heure_du_jeu())
   return true
 end
 

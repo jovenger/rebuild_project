@@ -1827,3 +1827,238 @@ essai("ronde (fiche 15, V73 d 2 bis) : sans pause, ni arrêt ni demi-tour ; l'op
   verifier(hommes.pas_de_ronde(f.personnage).pause_ms >= hommes.reglages.ronde_pause_min_ms, "les pauses reviennent")
 end)
 
+-- Fiche 15, V73 e : le rassemblement en arc, la course, les 150 m, la vue d'Henry (réponses recommandées prises d'office
+-- le 17/10, relecture du pair).
+local function convoquer(id, quoi)
+  quoi = quoi or {}
+  local centre = quoi.centre or (camp.point(0, -6, 0))
+  return hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = quoi.lieu or "briefing", centre = centre,
+    cap = quoi.cap or 180, rayon = quoi.rayon, ouverture = quoi.ouverture, face = quoi.face, allure = quoi.allure,
+    fin = "liberation" })
+end
+
+local function distance(a, b)
+  return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2)
+end
+
+local function dernier_ordre_de(personnage)
+  local o = nil
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.identifiant == personnage then o = ordre end
+  end
+  return o
+end
+
+essai("rassemblement (fiche 15, V73 e) : les places sur l'arc, face au centre ; un cercle ; face au dehors ; neuf hommes sur deux arcs, jamais à moins de 1,2 m", function()
+  preparer(5000, 100, 10)
+  local ids = {}
+  for i = 1, 3 do ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 }) end
+  local centre = camp.point(0, -6, 0)
+  verifier(convoquer(ids[1], { centre = centre }), "convoqué")
+  local a = hommes.activite_de(ids[1], 10)
+  pres(a.position.x, centre.x, "seul : au milieu de l'arc (x)")
+  pres(a.position.y, centre.y - 3, "seul : au milieu de l'arc, à 3 m, au cap 180 (y)")
+  pres(a.regard.x, centre.x, "face au centre (x)")
+  pres(a.regard.y, centre.y, "face au centre (y)")
+  egal(a.allure, "course", "en courant par défaut")
+  egal(a.signature, "1/1", "la place dans la signature")
+  convoquer(ids[2], { centre = centre })
+  convoquer(ids[3], { centre = centre })
+  local places = {}
+  for i = 1, 3 do places[i] = hommes.activite_de(ids[i], 10).position end
+  -- Cap 180, ouverture 120 : de 120° à 240°.
+  pres(places[1].x, centre.x + 3 * math.sin(math.rad(120)), "le premier à 120° (x)")
+  pres(places[2].x, centre.x, "le deuxième au milieu (x)")
+  pres(places[3].x, centre.x + 3 * math.sin(math.rad(240)), "le troisième à 240° (x)")
+  for i = 1, 3 do pres(distance(places[i], centre), 3, "à 3 m du centre (" .. i .. ")") end
+  -- Un cercle entier de quatre, face au dehors.
+  depart()
+  preparer(5000, 100, 10)
+  ids = {}
+  for i = 1, 4 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  end
+  for i = 1, 4 do convoquer(ids[i], { centre = centre, cap = 0, ouverture = 360, rayon = 5, face = "dehors" }) end
+  for i = 1, 4 do
+    local b = hommes.activite_de(ids[i], 10)
+    local angle = (i - 1) * 90
+    pres(b.position.x, centre.x + 5 * math.sin(math.rad(angle)), "cercle : place " .. i .. " (x)")
+    pres(b.position.y, centre.y + 5 * math.cos(math.rad(angle)), "cercle : place " .. i .. " (y)")
+    pres(distance(b.regard, centre), 5 + hommes.reglages.regard_m, "face au dehors : le regard plus loin du centre (" .. i .. ")")
+  end
+  -- Neuf hommes sur 3 m et 120° : un second arc ; jamais deux à moins de 1,2 m.
+  depart()
+  preparer(5000, 100, 10)
+  ids = {}
+  camp.agrandir()
+  camp.agrandir()   -- assez de paillasses pour neuf hommes
+  for i = 1, 9 do ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 }) end
+  for i = 1, 9 do verifier(convoquer(ids[i], { centre = centre }), "neuf hommes : " .. i .. " convoqué") end
+  local loin = 0
+  places = {}
+  for i = 1, 9 do
+    places[i] = hommes.activite_de(ids[i], 10).position
+    if distance(places[i], centre) > 3.5 then loin = loin + 1 end
+  end
+  verifier(loin > 0, "un second arc, plus loin : " .. loin .. " homme(s)")
+  for i = 1, 9 do
+    for j = i + 1, 9 do
+      verifier(distance(places[i], places[j]) >= hommes.reglages.ecart_entre_hommes - 1e-6,
+        "places " .. i .. " et " .. j .. " à " .. string.format("%.2f", distance(places[i], places[j])) .. " m")
+    end
+  end
+end)
+
+essai("rassemblement (fiche 15, V73 e) : convoqués l'un après l'autre, chacun reçoit son ordre à chaque place nouvelle ; un lâché, les autres se resserrent", function()
+  preparer(5000, 100, 10)
+  local ids, personnages = {}, {}
+  for i = 1, 3 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    personnages[i] = hommes.fiche(ids[i]).personnage
+  end
+  hommes.battre()
+  local centre = camp.point(0, -6, 0)
+  for n = 1, 3 do
+    FauxJeu.ordres = {}
+    convoquer(ids[n], { centre = centre })
+    for i = 1, n do
+      local o = dernier_ordre_de(personnages[i])
+      verifier(o ~= nil and o.activite == "rassemblement", n .. " convoqué(s) : un ordre pour l'homme " .. i)
+      local place = hommes.activite_de(ids[i], 10).position
+      verifier(o ~= nil and distance(o.position, place) < 0.01, n .. " convoqué(s) : l'homme " .. i .. " va à sa place du moment")
+      egal(o and o.allure, "course", "l'ordre est en courant")
+      verifier(o ~= nil and o.regard ~= nil, "l'ordre porte le regard")
+    end
+  end
+  -- Reconvoquer le même : rien ne change, aucun ordre.
+  FauxJeu.ordres = {}
+  convoquer(ids[2], { centre = centre })
+  egal(#FauxJeu.ordres, 0, "la même tenue reposée : aucun ordre")
+  -- Le deuxième lâché : il rejoint sa tranche, les deux autres se resserrent (un ordre chacun).
+  FauxJeu.ordres = {}
+  hommes.lacher(ids[2], "rassemblement")
+  verifier(dernier_ordre_de(personnages[2]) ~= nil and dernier_ordre_de(personnages[2]).activite ~= "rassemblement", "le lâché rejoint sa tranche")
+  egal(#FauxJeu.ordres, 3, "trois ordres : le lâché et les deux autres")
+  egal(hommes.activite_de(ids[1], 10).signature, "1/2", "le premier : 1 sur 2")
+  egal(hommes.activite_de(ids[3], 10).signature, "2/2", "le troisième : 2 sur 2")
+  -- Un homme pris par une bataille quitte l'arc ; au battement, les autres se resserrent.
+  hommes.tenir(ids[1], "bataille", { activite = "bataille", lieu = "rang", position = point_d_essai(), fin = "liberation" })
+  egal(hommes.activite_de(ids[3], 10).signature, "1/1", "la bataille a pris le premier : le troisième seul")
+end)
+
+essai("rassemblement (fiche 15, V73 e) : l'allure, les valeurs refusées, sans centre une marche comme avant ; la garde ne court pas", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local centre = camp.point(0, -6, 0)
+  for _, mauvais in ipairs({ { rayon = 0 }, { rayon = "3" }, { ouverture = 0 }, { ouverture = 400 }, { face = "nord" },
+                             { allure = "galop" }, { cap = "sud" } }) do
+    mauvais.centre = centre
+    local ok, raison = convoquer(id, mauvais)
+    verifier(not ok and raison == "rassemblement_invalide", "refusé : " .. tostring(next(mauvais)))
+  end
+  local ok, raison = hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "b", centre = { y = 2 }, fin = "liberation" })
+  verifier(not ok and raison == "rassemblement_invalide", "un centre sans x : refusé")
+  convoquer(id, { centre = centre, allure = "marche" })
+  egal(hommes.activite_de(id, 10).allure, "marche", "au pas si la tenue le dit")
+  hommes.lacher(id, "rassemblement")
+  hommes.tenir(id, "rassemblement", { activite = "rassemblement", lieu = "corvee", position = point_d_essai(), fin = "liberation" })
+  local a = hommes.activite_de(id, 10)
+  egal(a.regard, nil, "sans centre : aucun regard")
+  egal(a.allure, nil, "sans centre : aucune allure")
+  egal(a.signature, nil, "sans centre : aucune place")
+  hommes.lacher(id, "rassemblement")
+  FauxJeu.ordres = {}
+  hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = camp.point(0, 12, 0), fin = "liberation" })
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(o and o.allure, nil, "la garde ne court pas")
+end)
+
+essai("secours (fiche 15, V73 e) : au-delà de 150 m d'un but au camp, posé au premier battement ; une sortie, jamais avant le délai", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  local centre = camp.point(0, -6, 0)
+  convoquer(id, { centre = centre })
+  local place = hommes.activite_de(id, 10).position
+  FauxJeu.secours = {}
+  FauxJeu.positions[f.personnage] = { x = place.x + 151, y = place.y, z = 0 }
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "à 151 m d'un but au camp : posé au premier battement")
+  -- À 149 m : le délai d'abord.
+  depart()
+  preparer(5000, 100, 10)
+  id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  f = hommes.fiche(id)
+  convoquer(id, { centre = centre })
+  place = hommes.activite_de(id, 10).position
+  FauxJeu.secours = {}
+  FauxJeu.positions[f.personnage] = { x = place.x + 149, y = place.y, z = 0 }
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "à 149 m : pas au premier battement")
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "à 149 m : après le délai sans progrès")
+  -- Une sortie : un but à 60 m du centre du camp, l'homme à 200 m de son but : jamais avant le délai.
+  depart()
+  preparer(5000, 100, 10)
+  id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  f = hommes.fiche(id)
+  local dehors = camp.point(0, 60, 0)
+  hommes.tenir(id, "patrouille", { activite = "patrouille", lieu = "loin", position = dehors, fin = "liberation" })
+  FauxJeu.secours = {}
+  FauxJeu.positions[f.personnage] = { x = dehors.x + 200, y = dehors.y, z = 0 }
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "une sortie à 200 m : pas au premier battement")
+end)
+
+essai("secours (fiche 15, V73 e) : jamais sous les yeux d'Henry ; il détourne le regard, le secours pose ; sans lecture, il pose", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  convoquer(id, { centre = camp.point(0, -6, 0) })
+  local place = hommes.activite_de(id, 10).position
+  FauxJeu.secours, FauxJeu.journal_lignes = {}, {}
+  local seuils = {}
+  FauxJeu.vue_d_henry = function(point, seuil) table.insert(seuils, seuil) return true end
+  FauxJeu.positions[f.personnage] = { x = place.x + 151, y = place.y, z = 0 }
+  hommes.battre()
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "Henry regarde l'endroit : aucun secours")
+  egal(seuils[1], hommes.reglages.secours_vue_cos, "le seuil de la vue vient du catalogue")
+  egal(lignes_contenant("Henry regarde l'endroit : le secours attend"), 1, "une ligne, une seule fois")
+  FauxJeu.vue_d_henry = function() return false end
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "il détourne le regard : posé")
+  FauxJeu.vue_d_henry = nil
+  FauxJeu.positions[f.personnage] = { x = place.x + 151, y = place.y, z = 0 }
+  hommes.battre()   -- l'ordre redonné après le premier secours
+  hommes.battre()
+  egal(#FauxJeu.secours, 2, "sans lecture de la vue : posé")
+end)
+
+essai("rassemblement (fiche 15, V73 e) : les places du briefing d'essai, pour un à neuf hommes, à l'écart des meubles et dans la palissade", function()
+  local ecart = camp.reglages.ecart_d_abord
+  local rayon = Scriptorium.enceinte.reglages.rayon
+  local p = hommes.points.briefing
+  for n = 1, 9 do
+    depart()
+    preparer(5000, 100, 10)
+    local ids = {}
+    camp.agrandir()
+    camp.agrandir()   -- assez de paillasses pour neuf hommes
+    for i = 1, n do ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 }) end
+    local centre, cap = camp.point(p.x, p.y, p.cap)
+    for i = 1, n do
+      hommes.tenir(ids[i], "rassemblement", { activite = "rassemblement", lieu = "briefing", centre = centre, cap = cap, fin = "liberation" })
+    end
+    local plus_pres = math.huge
+    for i = 1, n do
+      local q = hommes.activite_de(ids[i], 10).position
+      for _, e in ipairs(camp.plan) do
+        plus_pres = math.min(plus_pres, distance(q, e))
+      end
+      verifier(math.sqrt(q.x ^ 2 + q.y ^ 2) + ecart <= rayon, n .. " hommes : la place " .. i .. " en dedans de la palissade")
+    end
+    verifier(plus_pres >= ecart, n .. " hommes : le meuble le plus proche à " .. string.format("%.2f", plus_pres) .. " m")
+  end
+end)
+

@@ -2377,8 +2377,9 @@ liaison.buts = {}
 liaison.pas_de_ronde_vus = {}
 
 -- « regard » (fiche 15, V73 d 1) : un point ; l'homme tient un poste (ordre 12) : il marche jusqu'à « position », puis
--- se tourne vers ce point et s'y tient.
-function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard)
+-- se tourne vers ce point et s'y tient. « allure » (V73 e) : « course » le fait courir jusqu'au poste (variable de
+-- cerveau scriptorium_allure, 1 ; remise à 0 à chaque autre ordre de poste).
+function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure)
   local entite = entite_nommee(identifiant)
   local ligne
   liaison.regards[identifiant] = nil
@@ -2417,11 +2418,12 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
         and pcall(function()
           XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point)
           XGenAIModule.SetBrainVariable(this.id, "scriptorium_regard", vers)
+          XGenAIModule.SetBrainVariable(this.id, "scriptorium_allure", allure == "course" and 1 or 0)
         end)
       if pose then
         liaison.regards[identifiant], liaison.buts[identifiant] = vers, point
-        ligne = string.format("poste, point posé (%.1f, %.1f), regard posé (%.1f, %.1f) ; ", point.x, point.y, vers.x, vers.y)
-          .. poser_l_activite(entite, 12)
+        ligne = string.format("poste, point posé (%.1f, %.1f), regard posé (%.1f, %.1f)%s ; ", point.x, point.y, vers.x,
+          vers.y, allure == "course" and ", en courant" or "") .. poser_l_activite(entite, 12)
       else
         ligne = "poste refusé ; " .. poser_l_activite(entite, 9)
       end
@@ -2479,6 +2481,26 @@ function liaison.au_point_de_ronde(entite, donnees)
   if not fait then
     liaison.journal("Ronde : erreur au point : " .. tostring(erreur))
   end
+end
+
+-- Fiche 15, V73 e (relecture du pair ; la règle de Scriptorium, `arrivee_des_recrues`) : Henry voit-il ce point ? Vrai si
+-- le cosinus entre la direction de son regard (ses angles dans le monde) et la direction du point dépasse « seuil » ;
+-- nil si rien n'est lisible (pas d'Henry).
+function liaison.henry_voit(point, seuil)
+  local lu, voit = pcall(function()
+    local ici, angles = player:GetWorldPos(), player:GetWorldAngles()
+    local cap = cap_depuis_moteur(angles.z)
+    local dx, dy = point.x - ici.x, point.y - ici.y
+    local jusqu_au_point = math.sqrt(dx ^ 2 + dy ^ 2)
+    if jusqu_au_point < 0.1 then
+      return true
+    end
+    return (dx * math.sin(math.rad(cap)) + dy * math.cos(math.rad(cap))) / jusqu_au_point > seuil
+  end)
+  if lu then
+    return voit
+  end
+  return nil
 end
 
 -- L'écart, au sol, entre un personnage et le but de son ordre (fiche 15 : le secours de l'homme bloqué), ou nil.
