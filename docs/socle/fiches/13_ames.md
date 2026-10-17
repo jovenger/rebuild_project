@@ -547,6 +547,10 @@
 - **Issue 2, en partie** : les trois, assis 6 min, une capture toutes les 90 s, sont toujours habillés. Mais aucun ne
   s'est dévêtu sans combat pendant ce temps : la garde en tournant n'a pas été vue rhabiller quelqu'un (elle l'est au
   banc). À regarder aux prochaines séances : un homme dévêtu sans combat, et rhabillé dans le tour qui suit.
+- **Vu en V73 d 2 (17/10)** : l'archer, à l'exercice, sans combat ni changement d'ordre, habillé sur deux vues d'un tour
+  de vue puis torse nu sur les deux suivantes (arc et carquois gardés ; état « prêt », 13 pièces dans son sac) ; 90 s
+  plus tard, rhabillé. Aucune ligne au journal (le tour est silencieux) : sans doute par le tour (trois hommes, un par
+  battement), non prouvé. La cause du déshabillage reste à chercher, si JoVenGer le veut.
 - La garde de la tenue est en place ; la cause du déshabillage reste à chercher, si JoVenGer le veut.
 - **Changement visible, contrepartie de « jamais au lit »** : un homme au lit (embauché la nuit, ou blessé au repos dans
   son lit) n'est équipé, rhabillé ou changé de grade qu'à son lever ; l'accroche « après le rhabillage » de Scriptorium

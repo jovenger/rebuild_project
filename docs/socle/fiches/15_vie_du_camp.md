@@ -878,6 +878,32 @@ arrivées).
   `Turn` retiré, la pause non écrite par la liaison, le regard tourné vers le point suivant, le secours de la ronde
   retiré, le départ donné jamais pris.
 
+### Mesuré en V73 d 2 (17/10) : la ronde, acquise
+- **Issue 0** : les trois hommes à l'exercice, 20 valeurs écrites dans chaque cerveau (les deux de la ronde comprises),
+  un lancement chacun, pouls qui avance ; la lecture nouvelle « à x m de son but » marche (2,1 à 2,6 m à l'exercice,
+  arrêt de la marche à 2 m ± 0,5).
+- **Issue 1, l'appel** : `ExecuteLua` est joué dans notre interruption, et `entity` est bien le personnage (la liaison le
+  retrouve par son nom, aucun nom à accorder) : une ligne « pas de ronde » à chaque point, 33 pas en environ 4 min pour
+  deux rondiers, aucune erreur, aucun « aucun pas ».
+- **Issue 2** : arrivée à 1,2 à 1,7 m du point ; les pauses écrites par le Lua sont tenues par le `Wait` de l'arbre
+  (lues aux heures des relevés : 4,4 s puis 27 s pour Jan) ; de 2,2 à 27,2 s, 9 longues sur 33 (une sur cinq attendue :
+  6,6 ± 2,3) ; arrivées = pas + 1 chez les deux : aucun point sauté.
+- **Issue 3** : **à chaque pause, tourné vers le dehors** (écart au regard de 0 à 8° dans les relevés de pause) ; aucune
+  glissade : l'écart au but suivant reste fixe pendant toute la pause, alors que le point visé vient de changer.
+- **Issues 4 et 5** : la boucle vue (Mikuláš du point 12 au point 1) ; les deux rondiers, chacun son pas, aucun ne
+  bloque l'autre.
+- **Issue 6** : la ronde lâchée, un ordre chacun (compteur 2 → 3), retour à l'exercice en environ 13 s, aucune relance.
+- **Issue 7** : le troisième homme suit sa journée (exercice), un lancement.
+- **En passant** : l'archer, hors de la ronde, torse nu sans combat (habillé sur deux vues, dévêtu sur les deux
+  suivantes du même tour de vue), puis rhabillé en moins de 90 s, sans ligne au journal (le tour de la garde de la
+  tenue est silencieux) : sans doute par le tour, non prouvé (fiche 13).
+- **Pas vu en jeu** : l'aller-retour, la nuit, le secours d'un rondier (coupé ; prouvé au banc), la reprise après un
+  rechargement (la règle du départ), une marche abandonnée (point sauté).
+- **À faire confirmer par JoVenGer** : la règle du départ ajoutée en codant (après un rechargement, un secours ou une
+  règle plus forte, le point le plus proche) ; et la proposition du pair, une accroche « ronde reprise » (l'homme, le
+  point de reprise) par laquelle Scriptorium redonnerait lui-même le départ, donc l'espacement de ses six gardes de
+  quart ; sans accroche prise, le défaut s'applique.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

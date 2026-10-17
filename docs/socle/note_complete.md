@@ -41,7 +41,7 @@
 - Les captures d'essai vont dans `D:\socle_captures\captures` (le disque C était plein) ; ni séance ni sauvegarde
   d'essai sous 1 Go libre sur C (garde dans les outils).
 
-## Où on en est (16/10)
+## Où on en est (17/10)
 - Fait et vérifié : bandeau, registre, coffre, camp, hommes, batailles, Directeur, enceinte, atelier, patrouilles,
   discipline, réglages par fichier, caractère ; fiches 00 à 14.
 - Vu en jeu : nos hommes naissent sur nos âmes et notre cerveau, marchent, s'assoient, se couchent, se battent sur
@@ -51,15 +51,16 @@
 - Vu en jeu (16/10, fiches 12 et 15) : un seul comportement long, la « vie du camp » ; les hommes marchent,
   s'assoient face au feu et se couchent par notre propre posture, se lèvent à l'ordre et ne sont plus rassis ; repas à
   midi, corvée à 13 h ; le comportement revient après un rechargement.
+- Vu en jeu (16 et 17/10, fiche 15) : l'arbitre des ordres par tenues (V73 b) ; la garde de la tenue ; l'ancre du camp ;
+  le factionnaire, face au dehors (V73 d 1) ; la ronde, l'arbre appelant le Lua à chaque point, pauses tirées par le
+  socle, tourné vers le dehors à chaque pause (V73 d 2).
 - Les valeurs de l'arbre (attentes, distances d'arrêt, délais) suivent le catalogue (section « cerveau »), réglables
   en pleine partie.
-- Ouvert : l'écran noir intermittent (3 sur 44 chargements, 1 sur 34 depuis les correctifs ; décompte dans la fiche 14,
+- Ouvert : l'écran noir intermittent (3 sur 45 chargements, 1 sur 35 depuis les correctifs ; décompte dans la fiche 14,
   à poursuivre à chaque séance).
 
 ## La suite (`plan_d_action.md`)
-1. Le modèle durable est fini (valeurs en données, lever du lit, lits dans leur tente) ; la levée courte après une
-   reprise est couverte par la tranche (voie lourde en réserve). Suite : V73 b, l'arbitre, avec le plafond de relances
-   du pair, puis la garde, le rassemblement, suivre Henry. Ensuite, les comportements suivants de la vie du camp (étape 1 :
-   arbitre, garde, rassemblement, suivre Henry), toujours après relecture de `CARTE_DES_REGLES.md` et de
-   `NOTE_METIERS.md`.
+1. L'arbitre (V73 b), la garde de la tenue, l'ancre du camp, le factionnaire (V73 d 1) et la ronde (V73 d 2) sont faits
+   et vus en jeu. Suite : V73 e, le rassemblement, puis V73 f, suivre Henry (à cheval), puis le gardien des hommes ;
+   toujours après relecture de `CARTE_DES_REGLES.md` et de `NOTE_METIERS.md`.
 2. Puis les étapes 2 à 8 de la note de JoVenGer ; la bascule seulement sur son ordre.
