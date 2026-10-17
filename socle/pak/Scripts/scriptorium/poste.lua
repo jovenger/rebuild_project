@@ -922,6 +922,57 @@ function poste.essai_directeur_objets()
   return ok == true and #objets > 0
 end
 
+-- Fiche 01, la mesure de l'écriture par case (demande du pair) : une case d'essai d'environ 500 Ko, déterministe (graine
+-- fixe), écrite de force ; le temps, les octets et les tranches au journal ; puis une petite modification d'une autre
+-- case : une seule case écrite. Après « Sauvegarder et quitter » et rechargement : essai_registre_gros_relire.
+local function contenu_gros()
+  local d = { lignes = {} }
+  for i = 1, 6000 do
+    d.lignes[i] = { cle = "scriptorium_valeur_" .. i, valeur = (i * 7919) % 104729, texte = "une valeur de Scriptorium n° " .. i }
+  end
+  return d
+end
+
+function poste.essai_registre_gros()
+  local registre = Scriptorium.registre
+  if not registre.etat_de("essai_gros") then
+    registre.declarer_case("essai_gros", 1, function() return {} end)
+  end
+  local d = registre.lire("essai_gros")
+  d.lignes = contenu_gros().lignes
+  local debut = jeu().maintenant()
+  local ecrites = registre.enregistrer("essai_gros", true)
+  local duree = (jeu().maintenant() - debut) * 1000
+  local taille = #(registre.chaine_de_la_case("essai_gros") or "")
+  jeu().journal(string.format("Poste : registre gros, %d octets, %d tranche(s), écrit en %.1f ms (%s case(s))", taille,
+    math.ceil(taille / 30000), duree, tostring(ecrites)))
+  if not registre.etat_de("essai") then
+    registre.declarer_case("essai", 1, function() return { appels = 0 } end)
+  end
+  registre.lire("essai").appels = (registre.lire("essai").appels or 0) + 1
+  debut = jeu().maintenant()
+  ecrites = registre.enregistrer("essai", true)
+  jeu().journal(string.format("Poste : registre, une petite case : %s case(s) écrite(s) en %.1f ms", tostring(ecrites),
+    (jeu().maintenant() - debut) * 1000))
+  for _, ligne in ipairs(jeu().decrire_le_registre()) do
+    jeu().journal("Poste : registre, " .. ligne)
+  end
+  return ecrites ~= nil
+end
+
+function poste.essai_registre_gros_relire()
+  local registre = Scriptorium.registre
+  if not registre.etat_de("essai_gros") then
+    registre.declarer_case("essai_gros", 1, function() return {} end)
+  end
+  local relu = registre.lire("essai_gros")
+  local attendu = contenu_gros()
+  local intact = registre.serialiser({ relu.lignes or {} }) == registre.serialiser({ attendu.lignes })
+  jeu().journal(string.format("Poste : registre gros relu : %d ligne(s), intact = %s, état %s", #(relu.lignes or {}),
+    tostring(intact), tostring(registre.etat_de("essai_gros"))))
+  return intact
+end
+
 -- Diagnostic du combat figé (relecture du pair, 17/10) : trois brigands, du nord, au prochain battement.
 function poste.essai_bataille_trois()
   local id, raison = Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 3, direction = 0, delai = 0 })
@@ -2594,6 +2645,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_sortie", fonction = function() return poste.essai_sortie() end, aide = "Deux hommes sortent à cheval à 80 m et rentrent (fiche 18, 5 d)" },
   { nom = "scriptorium_essai_sortie_loin", fonction = function() return poste.essai_sortie_loin() end, aide = "Deux hommes sortent à cheval à 600 m derrière Henry (la sortie au loin)" },
   { nom = "scriptorium_essai_directeur_objets", fonction = function() return poste.essai_directeur_objets() end, aide = "Le Directeur habillé des pièces d'un homme équipé (D67, D69)" },
+  { nom = "scriptorium_essai_registre_gros", fonction = function() return poste.essai_registre_gros() end, aide = "Une case d'essai de 500 Ko écrite, le temps mesuré ; puis une petite case (fiche 01)" },
+  { nom = "scriptorium_essai_registre_gros_relire", fonction = function() return poste.essai_registre_gros_relire() end, aide = "La case d'essai de 500 Ko relue après rechargement, intacte ou non" },
   { nom = "scriptorium_essai_bataille_trois", fonction = function() return poste.essai_bataille_trois() end, aide = "Lève une bande de trois brigands venant du nord (diagnostic du combat)" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

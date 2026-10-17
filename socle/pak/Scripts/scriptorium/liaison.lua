@@ -22,6 +22,8 @@ local etat_du_fichier = liaison.etat_du_fichier
 -- carte lue à l'entrée en partie, et celle de l'entrée précédente ; « heure_ecrite » : l'heure du jeu de la dernière
 -- écriture du registre.
 liaison.memoire = liaison.memoire or { registre = nil, identite = nil, carte = nil, carte_d_avant = nil, heure_ecrite = nil }
+-- Fiche 01, l'écriture par case : la mémoire de secours de l'index et de chaque case.
+liaison.memoire.cases = liaison.memoire.cases or {}
 -- La règle du passage, accrochée par le noyau (sans elle, aucun passage n'est cru).
 liaison.passage_croyable = liaison.passage_croyable
 function liaison.accrocher_le_passage(fonction)
@@ -571,10 +573,11 @@ local function somme_de(chaine)
   return somme
 end
 
--- Rend l'identité et les données du registre (recollées s'il est en tranches), ou nil. « raison » : pourquoi un
--- registre en tranches est refusé (tranche manquante, d'une autre partie, longueur ou somme fausse).
-local function lire_le_jeton()
-  local valeur = jeton(liaison.nom_du_jeton)
+-- Rend l'identité et les données d'un flux (« nom » : son jeton d'en-tête ; recollées s'il est en tranches), ou nil.
+-- « raison » : pourquoi un flux en tranches est refusé (tranche manquante, d'une autre partie, longueur ou somme fausse).
+-- Fiche 01 : l'ancien registre, l'index et chaque case sont des flux.
+local function lire_un_flux(nom_du_flux)
+  local valeur = jeton(nom_du_flux)
   if not valeur then
     return nil, nil
   end
@@ -588,7 +591,7 @@ local function lire_le_jeton()
   end
   local morceaux = {}
   for i = 1, tonumber(n) do
-    local tranche = jeton(string.format("%s.%d", liaison.nom_du_jeton, i))
+    local tranche = jeton(string.format("%s.%d", nom_du_flux, i))
     local de_qui, numero, texte = string.match(tranche or "", "^([%w_]+)|(%d+)|(.*)$")
     if de_qui ~= identite or tonumber(numero) ~= i then
       return identite, nil, "tranche " .. i .. " manquante ou d'une autre partie"
@@ -602,6 +605,10 @@ local function lire_le_jeton()
   return identite, donnees
 end
 
+local function lire_le_jeton()
+  return lire_un_flux(liaison.nom_du_jeton)
+end
+
 -- Écrit le registre en tranches : les tranches d'abord, l'en-tête ensuite ; les tranches d'une écriture plus longue
 -- sont vidées. Les nombres s'écrivent par « %d » : le Lua du jeu écrit 1 000 000 « 1e+06 » quand on le colle à une
 -- chaîne. Rend vrai, ou faux et l'erreur.
@@ -609,19 +616,31 @@ function liaison.entete_du_registre(identite, n, chaine)
   return string.format("%s|tranches|%d|%d|%d", identite, n, #chaine, somme_de(chaine))
 end
 
-local function ecrire_le_jeton(identite, chaine)
+-- Fiche 01 : un flux nommé (l'index, une case) ; les tranches en trop d'une écriture plus longue, vidées (comptées par
+-- flux).
+local function ecrire_un_flux(nom_du_flux, identite, chaine)
+  etat_du_fichier.tranches_par_flux = etat_du_fichier.tranches_par_flux or {}
   local taille = liaison.taille_des_tranches
   local n = math.max(1, math.ceil(#chaine / taille))
+  local avant = etat_du_fichier.tranches_par_flux[nom_du_flux] or 0
   local ok, erreur = pcall(function()
     for i = 1, n do
-      poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i),
+      poser_un_jeton(string.format("%s.%d", nom_du_flux, i),
                          string.format("%s|%d|", identite, i) .. string.sub(chaine, (i - 1) * taille + 1, i * taille))
     end
-    for i = n + 1, etat_du_fichier.tranches_ecrites do
-      poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i), "")
+    for i = n + 1, avant do
+      poser_un_jeton(string.format("%s.%d", nom_du_flux, i), "")
     end
-    poser_un_jeton(liaison.nom_du_jeton, liaison.entete_du_registre(identite, n, chaine))
+    poser_un_jeton(nom_du_flux, liaison.entete_du_registre(identite, n, chaine))
   end)
+  if ok then
+    etat_du_fichier.tranches_par_flux[nom_du_flux] = n
+  end
+  return ok, erreur, n
+end
+
+local function ecrire_le_jeton(identite, chaine)
+  local ok, erreur, n = ecrire_un_flux(liaison.nom_du_jeton, identite, chaine)
   if ok then
     etat_du_fichier.tranches_ecrites = n
   end
@@ -657,6 +676,14 @@ end
 -- le journal.
 function liaison.decrire_le_registre()
   local lignes = {}
+  -- Fiche 01 : l'index et chaque case (en-tête : identité, tranches, longueur).
+  local index = jeton(liaison.nom_de_l_index)
+  table.insert(lignes, "index : " .. (index and (string.format("%d car., « ", #index) .. string.sub(index, 1, 80) .. " »") or "absent"))
+  local _, contenu = lire_un_flux(liaison.nom_de_l_index)
+  for nom in string.gmatch(contenu or "", '%]="([%w_]+)"') do
+    local entete = jeton(liaison.prefixe_des_cases .. nom)
+    table.insert(lignes, "case « " .. nom .. " » : " .. (entete and string.sub(entete, 1, 80) or "absente"))
+  end
   local entete = jeton(liaison.nom_du_jeton)
   table.insert(lignes, "en-tête : " .. (entete and (string.format("%d car., « ", #entete) .. string.sub(entete, 1, 80) .. " »") or "absent"))
   local n = entete and tonumber(string.match(entete, "|tranches|(%d+)|")) or 0
@@ -700,8 +727,8 @@ end
 -- le jeton n'est pas remis à zéro quand on charge une sauvegarde qui n'en a pas (V4), et une partie étrangère ou une
 -- ancienne sauvegarde d'avant le camp ne doit pas en hériter. Limite connue : une partie étrangère sans jeton, chargée
 -- sur l'autre carte moins de 10 jours en avant. Non vérifié en jeu (passage à faire par JoVenGer).
-function liaison.lire_registre()
-  local identite, donnees, raison = lire_le_jeton()
+-- L'identité d'un flux est-elle celle de cette partie (sa marque est là, ou un passage de carte croyable) ?
+local function croire(identite)
   local marquee = identite and entite_nommee(liaison.prefixe_de_la_marque .. identite) ~= nil
   if identite and not marquee and identite == liaison.memoire.identite then
     local avant, ici = liaison.memoire.carte_d_avant, liaison.memoire.carte
@@ -717,6 +744,12 @@ function liaison.lire_registre()
                       .. (carte_changee and "horloge hors de la fenêtre" or "même carte") .. " : jeton ignoré")
     end
   end
+  return marquee
+end
+
+function liaison.lire_registre()
+  local identite, donnees, raison = lire_le_jeton()
+  local marquee = croire(identite)
   if marquee then
     etat_du_fichier.identite_de_la_partie = identite
     liaison.memoire.identite = identite
@@ -769,6 +802,104 @@ function liaison.ecrire_registre(chaine)
     end
   end
 end
+
+-- ---------------------------------------------------------------- fiche 01 : le registre par case
+-- Un index (la liste des cases) et un flux par case, chacun en tranches, tous portant l'identité de la partie ; la
+-- croyance en l'identité (sa marque, ou un passage de carte croyable) se décide sur l'index ; une case d'une autre
+-- partie, ou abîmée, est refusée seule (la mémoire de secours la remplace).
+liaison.nom_de_l_index = "scriptorium_socle.index"
+liaison.prefixe_des_cases = "scriptorium_socle.case."
+
+-- L'index de cette partie, ou nil (pas d'index : le registre relit l'ancien flux).
+function liaison.lire_index()
+  local identite, donnees, raison = lire_un_flux(liaison.nom_de_l_index)
+  if not identite then
+    return liaison.memoire.liste_des_cases
+  end
+  if croire(identite) then
+    etat_du_fichier.identite_de_la_partie = identite
+    liaison.memoire.identite = identite
+    if raison then
+      liaison.journal("Registre : index en tranches, refusé (" .. raison .. ")")
+      return liaison.memoire.liste_des_cases
+    end
+    return donnees
+  end
+  if identite ~= liaison.identite_ignoree then
+    liaison.identite_ignoree = identite
+    liaison.journal("Registre : index d'une autre partie (" .. identite .. "), ignoré")
+  end
+  return liaison.memoire.liste_des_cases
+end
+
+function liaison.lire_case(nom)
+  local identite, donnees, raison = lire_un_flux(liaison.prefixe_des_cases .. nom)
+  if identite and identite == etat_du_fichier.identite_de_la_partie and not raison then
+    return donnees
+  end
+  if identite and (raison or identite ~= etat_du_fichier.identite_de_la_partie) then
+    liaison.journal("Registre : case « " .. nom .. " » refusée (" .. tostring(raison or ("d'une autre partie : " .. identite)) .. ")")
+  end
+  return liaison.memoire.cases[nom]
+end
+
+-- La partie marquée (une identité et sa marque dans le monde), sinon marquée maintenant. Rend vrai si elle l'est.
+local function partie_marquee()
+  if etat_du_fichier.identite_de_la_partie and entite_nommee(liaison.prefixe_de_la_marque .. etat_du_fichier.identite_de_la_partie) then
+    return true
+  end
+  return marquer_la_partie()
+end
+
+function liaison.ecrire_index(chaine)
+  liaison.memoire.liste_des_cases = chaine
+  liaison.memoire.heure_ecrite = liaison.heure_du_jeu()
+  if not partie_marquee() then
+    return
+  end
+  local ok, erreur, n = ecrire_un_flux(liaison.nom_de_l_index, etat_du_fichier.identite_de_la_partie, chaine)
+  if not etat_du_fichier.index_essaye then
+    etat_du_fichier.index_essaye = true
+    local _, relu, raison = lire_un_flux(liaison.nom_de_l_index)
+    if ok and relu == chaine then
+      liaison.journal("Registre : index par case en service (" .. #chaine .. " caractères, " .. n .. " tranche(s))")
+    else
+      liaison.journal("Registre : index refusé (" .. tostring(ok and (raison or "relu différent") or erreur)
+                      .. ") ; mémoire de secours seule")
+    end
+  end
+end
+
+function liaison.ecrire_case(nom, chaine)
+  liaison.memoire.cases[nom] = chaine
+  liaison.memoire.heure_ecrite = liaison.heure_du_jeu()
+  if not partie_marquee() then
+    return
+  end
+  local ok, erreur = ecrire_un_flux(liaison.prefixe_des_cases .. nom, etat_du_fichier.identite_de_la_partie, chaine)
+  if not ok then
+    liaison.journal("Registre : case « " .. nom .. " » non écrite : " .. tostring(erreur))
+  end
+end
+
+-- L'ancien flux unique, vidé (en-tête et tranches) une fois réécrit par case.
+function liaison.effacer_l_ancien_registre()
+  local entete = jeton(liaison.nom_du_jeton)
+  local n = entete and tonumber(string.match(entete, "|tranches|(%d+)|")) or 0
+  local ok, erreur = pcall(function()
+    for i = 1, n do
+      poser_un_jeton(string.format("%s.%d", liaison.nom_du_jeton, i), "")
+    end
+    if entete then
+      poser_un_jeton(liaison.nom_du_jeton, "")
+    end
+  end)
+  liaison.memoire.registre = nil
+  if not ok then
+    liaison.journal("Registre : ancien flux non vidé : " .. tostring(erreur))
+  end
+end
+
 -- Position et cap d'Henry (cap de boussole), pour fonder le camp là où il se tient.
 -- Vu en jeu le 14/10 : player:GetWorldPos() et player:GetWorldAngles() répondent ; z est en radians.
 function liaison.position_du_joueur()
@@ -4413,6 +4544,7 @@ function liaison.ecouter_la_partie(a_l_entree, a_la_sortie)
   -- La mémoire de secours ne passe jamais d'une partie à l'autre : vidée à chaque entrée, avant la relecture.
   liaison.ecouteur.SurEntreeEnPartie = function()
     liaison.memoire.registre = nil
+    liaison.memoire.liste_des_cases, liaison.memoire.cases = nil, {}
     -- V73 f 3 a : la carte lue, une ligne au journal ; V73 f 3 b : gardée en mémoire avec celle d'avant.
     local carte, source = liaison.carte_courante()
     liaison.journal("Carte : " .. tostring(carte) .. " (" .. tostring(source) .. ")")
