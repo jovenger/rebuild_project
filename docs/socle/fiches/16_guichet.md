@@ -19,6 +19,16 @@ la règle de JoVenGer du 17/10 (la plus juste pour la réalité du camp gagne, l
   ouvrir au guichet : 3 b).
 - Au banc : les essais d'avant allument tout (leur comportement ne change pas) ; un essai par interrupteur éteint.
 
-## 3 b — Le guichet lui-même (à suivre)
-- La liste des services et des accroches, d'après la note de JoVenGer et ce que la conversation Scriptorium prépare
-  (missions, embauche, métiers).
+## 3 b — Le guichet lui-même
+- **L'horloge (17/10)** : la journée des hommes (`hommes.journee`) et celle du Directeur (`directeur.journee`) sont des
+  listes à nom, réglables par le fichier (sections `journee` et `journee_du_directeur`, chemins comme
+  `journee.sommeil.a`). Scriptorium y pose son réveil (7 h) et son coucher (22 h). La nuit (garde de nuit) est la
+  tranche du sommeil, plus une heure écrite en dur. Une journée boiteuse (trou, tranche vide, deux fois la même
+  activité de suite, autre chose que 24 h) est refusée en entier : `Scriptorium.journee_valable`. Plusieurs valeurs se
+  posent ensemble (`regler.py journee.sommeil.a=7 journee.lever.de=7 …`).
+- **Le jour de repos (réponse du pair, 17/10)** : tout le camp le même jour, un jour sur cinq, calculé par Scriptorium,
+  rien dans la partie. Le socle n'a besoin que de l'accroche « une mission peut-elle partir ? » (étape 4), que
+  Scriptorium enveloppe pour dire non.
+- La liste de ce que Scriptorium attend (missions, embauche, métiers) est arrivée du pair le 17/10 : elle se traite aux
+  étapes 4 et 5 (sources : `NOTE_POUR_LE_SOCLE.md` parties 6 et 7, `NOTE_METIERS.md`, `CONTRAT_DU_SOCLE.md`, en lecture
+  seule, sans en reprendre aucun nom).

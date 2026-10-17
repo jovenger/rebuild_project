@@ -16,12 +16,17 @@ directeur.prix = {
 -- Coût d'un agrandissement du camp, par niveau gagné.
 directeur.agrandissement = { bois = 30, groschen = 100 }
 
--- Sa journée : de (inclus) à (exclu), lieu du camp.
+-- Sa journée : de (inclus) à (exclu), lieu du camp. Réglable par le fichier (section « journee_du_directeur »,
+-- fiche 16, 3 b).
 directeur.journee = {
-  { de = 6, a = 20, activite = "comptes", lieu = "coffre_camp" },
-  { de = 20, a = 22, activite = "veillee", lieu = "feu_central" },
-  { de = 22, a = 6, activite = "sommeil", lieu = "lit_directeur" },
+  { nom = "comptes", de = 6, a = 20, activite = "comptes", lieu = "coffre_camp" },
+  { nom = "veillee", de = 20, a = 22, activite = "veillee", lieu = "feu_central" },
+  { nom = "sommeil", de = 22, a = 6, activite = "sommeil", lieu = "lit_directeur" },
 }
+
+function directeur.verifier_journee()
+  return Scriptorium.journee_valable(directeur.journee)
+end
 
 local function jeu()
   return Scriptorium.jeu

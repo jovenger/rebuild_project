@@ -319,16 +319,18 @@ hommes.niveaux_de_moral = {
   { seuil = 0, nom = "abattu" },
 }
 
--- La journée, par tranches d'heures (de inclus, a exclu ; la dernière passe minuit).
+-- La journée, par tranches d'heures (de inclus, a exclu ; la dernière passe minuit). Réglable par le fichier (section
+-- « journee », fiche 16, 3 b : l'horloge de Scriptorium) ; chaque tranche a un nom pour son chemin ; la nuit est la
+-- tranche du sommeil.
 hommes.journee = {
-  { de = 5, a = 7, activite = "lever" },
-  { de = 7, a = 8, activite = "repas" },
-  { de = 8, a = 12, activite = "exercice" },
-  { de = 12, a = 13, activite = "repas" },
-  { de = 13, a = 18, activite = "corvee" },
-  { de = 18, a = 19, activite = "repas" },
-  { de = 19, a = 22, activite = "veillee" },
-  { de = 22, a = 5, activite = "sommeil" },
+  { nom = "lever", de = 5, a = 7, activite = "lever" },
+  { nom = "repas_du_matin", de = 7, a = 8, activite = "repas" },
+  { nom = "exercice", de = 8, a = 12, activite = "exercice" },
+  { nom = "repas_de_midi", de = 12, a = 13, activite = "repas" },
+  { nom = "corvee", de = 13, a = 18, activite = "corvee" },
+  { nom = "repas_du_soir", de = 18, a = 19, activite = "repas" },
+  { nom = "veillee", de = 19, a = 22, activite = "veillee" },
+  { nom = "sommeil", de = 22, a = 5, activite = "sommeil" },
 }
 
 -- Points du camp où se font les activités, par rapport à l'ancre.
@@ -1343,8 +1345,25 @@ local function tranche_de(heure_du_jour)
   return hommes.journee[#hommes.journee]
 end
 
+local function dans_la_tranche(t, heure_du_jour)
+  if t.de < t.a then
+    return heure_du_jour >= t.de and heure_du_jour < t.a
+  end
+  return heure_du_jour >= t.de or heure_du_jour < t.a
+end
+
+-- La nuit : la tranche du sommeil de la journée (22 h - 5 h par défaut ; fiche 16, 3 b).
 local function est_nuit(heure_du_jour)
-  return heure_du_jour >= 22 or heure_du_jour < hommes.reglages.heure_lever
+  for _, t in ipairs(hommes.journee) do
+    if t.activite == "sommeil" and dans_la_tranche(t, heure_du_jour) then
+      return true
+    end
+  end
+  return false
+end
+
+function hommes.verifier_journee()
+  return Scriptorium.journee_valable(hommes.journee)
 end
 
 -- ---------------------------------------------------------------- l'arbitre des ordres (fiche 15, V73 b 3)

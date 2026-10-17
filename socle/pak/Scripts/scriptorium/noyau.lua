@@ -52,6 +52,36 @@ function Scriptorium.actif(nom)
   return valeur == 1
 end
 
+-- Une journée en tranches (fiche 16, 3 b : l'horloge de Scriptorium la pose par le fichier de réglages) est-elle
+-- valable ? Chaque tranche dure, commence où finit la précédente, deux tranches qui se suivent changent d'activité
+-- (chaque changement doit donner un nouvel ordre), et l'ensemble fait 24 h. Rend vrai, ou faux et la raison.
+function Scriptorium.journee_valable(tranches)
+  if type(tranches) ~= "table" or #tranches < 2 then
+    return false, "journee_trop_courte"
+  end
+  local total = 0
+  for i, t in ipairs(tranches) do
+    local suivante = tranches[i % #tranches + 1]
+    if type(t.de) ~= "number" or type(t.a) ~= "number" or t.de < 0 or t.de >= 24 or t.a < 0 or t.a >= 24 then
+      return false, "heure_hors_du_jour"
+    end
+    if t.a == t.de then
+      return false, "tranche_vide"
+    end
+    if suivante.de ~= t.a then
+      return false, "trou_dans_la_journee"
+    end
+    if suivante.activite == t.activite then
+      return false, "meme_activite_de_suite"
+    end
+    total = total + (t.a - t.de) % 24
+  end
+  if total ~= 24 then
+    return false, "journee_de_plus_de_24_h"
+  end
+  return true
+end
+
 function Scriptorium.passage_croyable(avant_h, maintenant_h)
   local jours = tonumber(Scriptorium.noyau.reglages.passage_jours_max) or 10
   return type(avant_h) == "number" and type(maintenant_h) == "number" and maintenant_h >= avant_h

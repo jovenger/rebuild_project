@@ -227,8 +227,55 @@ essai("réglages : chaque valeur du catalogue est un nombre relevé, et chaque s
     verifier(type(morceau) == "table" and type(morceau[entree.table]) == "table", "table de " .. entree.section)
     sections = sections + 1
   end
-  egal(sections, 29, "vingt-neuf sections (le socle, depuis V72 ; le cerveau et les priorités de l'arbitre, depuis le 16/10 ; les rondes et les formations, depuis le 17/10 ; les interrupteurs, fiche 16)")
+  egal(sections, 31, "trente et une sections (le socle, depuis V72 ; le cerveau et les priorités de l'arbitre, depuis le 16/10 ; les rondes et les formations, depuis le 17/10 ; les interrupteurs et les deux journées, fiche 16)")
   verifier(reglages.relever_les_valeurs_validees() > 100, "plus de cent valeurs réglables")
   egal(reglages.valeur_en_place("prix.vivres"), 2, "prix des vivres")
   egal(reglages.valeur_validee("issues.victoire.cle"), nil, "un texte n'est pas relevé")
+end)
+
+-- Fiche 16, 3 b : l'horloge de Scriptorium pose la journée par le fichier (réveil 7 h, coucher 22 h) ; une journée qui
+-- ne tient pas (trou, deux fois la même activité de suite, plus de 24 h) est refusée en entier.
+essai("réglages : la journée des hommes et celle du Directeur, posées par le fichier ; une journée boiteuse refusée", function()
+  depart_avec_caractere()
+  FauxJeu.heure = 10
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  coffre.encaisser(5000, "butin")
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local function gardes_a(heure)
+    hommes.reglages.postes_garde_jour, hommes.reglages.hommes_par_poste_jour = 1, 1
+    local n = #hommes.gardes(heure)
+    hommes.reglages.postes_garde_jour = 0
+    return n
+  end
+  hommes.reglages.postes_garde_jour, hommes.reglages.postes_garde_nuit = 0, 0
+  egal(hommes.activite_de(id, 6.5).activite, "lever", "6 h 30 : le lever du socle")
+  egal(gardes_a(6.5), 1, "6 h 30 : le jour, une garde")
+  local r = poser({ journee = { sommeil = { a = 7 }, lever = { de = 7, a = 8 }, repas_du_matin = { de = 8, a = 9 },
+                                exercice = { de = 9 } },
+                    journee_du_directeur = { sommeil = { a = 7 }, comptes = { de = 7 } } })
+  egal(r.refuses, 0, "réveil à 7 h : accepté")
+  egal(hommes.activite_de(id, 6.5).activite, "sommeil", "6 h 30 : il dort")
+  egal(gardes_a(6.5), 0, "6 h 30 : la nuit, aucune garde de nuit au réglage")
+  egal(hommes.activite_de(id, 7.5).activite, "lever", "7 h 30 : le lever")
+  egal(Scriptorium.directeur.journee[3].a, 7, "le Directeur dort jusqu'à 7 h")
+  r = poser({ journee = { sommeil = { a = 7 } } })
+  egal(r.refuses, 1, "un trou entre le sommeil et le lever : refusé")
+  verifier(lignes_avec("(trou_dans_la_journee)") == 1, "raison")
+  egal(hommes.journee[8].a, 5, "le sommeil revenu à 5 h")
+  egal(Scriptorium.directeur.journee[3].a, 6, "le Directeur aussi, son réglage retiré")
+  r = poser({ journee = { repas_de_midi = { de = 11, a = 12 }, exercice = { a = 11 }, corvee = { de = 12 } } })
+  egal(r.refuses, 0, "midi décalé, sans trou : accepté")
+  r = poser({ journee = { sommeil = { de = 21 } } })
+  egal(r.refuses, 1, "le sommeil commence avant la fin de la veillée : refusé")
+  egal(hommes.journee[8].de, 22, "coucher validé")
+  for _, cas in ipairs({
+    { { nom = "a", de = 5, a = 5, activite = "x" }, { nom = "b", de = 5, a = 5, activite = "y" } },
+    { { nom = "a", de = 5, a = 12, activite = "x" }, { nom = "b", de = 12, a = 5, activite = "x" } },
+    { { nom = "a", de = 5, a = 12, activite = "x" }, { nom = "b", de = 12, a = 25, activite = "y" } },
+    { { nom = "a", de = 0, a = 12, activite = "x" }, { nom = "b", de = 12, a = 0, activite = "y" }, { nom = "c", de = 0, a = 0, activite = "z" } },
+  }) do
+    verifier(not Scriptorium.journee_valable(cas), "journée boiteuse refusée")
+  end
+  verifier(Scriptorium.journee_valable(hommes.journee), "la journée en place est valable")
+  verifier(Scriptorium.journee_valable(Scriptorium.directeur.journee), "celle du Directeur aussi")
 end)
