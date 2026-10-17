@@ -184,6 +184,7 @@ hommes.priorites = {
   bataille = 1,
   rassemblement = 2,
   escorte = 2,
+  mission = 2,
   soins = 3,
   bains = 3,
   garde = 4,
@@ -687,7 +688,7 @@ function hommes.point_pres_d_henry()
   return repli
 end
 
-local function faire_venir(d, f, pres_d_henry)
+local function faire_venir(d, f, pres_d_henry, ici)
   local present = f.personnage and jeu().personnage_existe(f.personnage)
   if present and f.ame then
     return true
@@ -707,8 +708,10 @@ local function faire_venir(d, f, pres_d_henry)
       f.personnage = nil
     end
   end
-  local position = nil
-  if pres_d_henry then
+  local position = ici
+  if position then
+    -- Fiche 17 : un homme qui rentre de mission renaît au point donné.
+  elseif pres_d_henry then
     position = hommes.point_pres_d_henry()
   elseif camp().est_fonde() then
     position = camp().point(hommes.points.feu.x, hommes.points.feu.y, hommes.points.feu.cap)
@@ -1637,17 +1640,19 @@ function hommes.activite_de(id, heure)
     -- le premier suit le chef de la tenue (Henry, le Directeur ou un homme), chacun suit le précédent ; le rang entre dans
     -- la signature de l'ordre.
     if tenue.activite == "suivre" then
-      local rang, nombre, precedent = 0, 0, nil
+      -- Fiche 17 : « tete » (le chef d'une mission, le colonel de Scriptorium) passe en tête de sa colonne.
+      local membres = {}
       for _, autre in ipairs(d.ordre) do
         local _, t2 = tenue_la_plus_forte(d.liste[autre])
         if t2 and t2.activite == "suivre" and t2.lieu == tenue.lieu then
-          nombre = nombre + 1
-          if autre == id then
-            rang = nombre
-          end
-          if rang == 0 then
-            precedent = autre
-          end
+          table.insert(membres, (autre == tenue.tete) and 1 or #membres + 1, autre)
+        end
+      end
+      local rang, nombre, precedent = 0, #membres, nil
+      for i, autre in ipairs(membres) do
+        if autre == id then
+          rang = i
+          precedent = membres[i - 1]
         end
       end
       if rang > 0 then
@@ -1666,13 +1671,7 @@ function hommes.activite_de(id, heure)
           if du_directeur then
             chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
           else
-            local tete = nil
-            for _, autre in ipairs(d.ordre) do
-              local _, t2 = tenue_la_plus_forte(d.liste[autre])
-              if not tete and t2 and t2.activite == "suivre" and t2.lieu == tenue.lieu then
-                tete = autre
-              end
-            end
+            local tete = membres[1]
             chef = tete and d.liste[tete].personnage
           end
           resultat.suivi = { mode = "formation" }
@@ -3218,6 +3217,7 @@ local function memes_tenues(a, b)
     and a.ouverture == b.ouverture and a.face == b.face and a.allure == b.allure and a.chef == b.chef
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
+    and a.tete == b.tete
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).
@@ -3302,6 +3302,9 @@ function hommes.tenir(id, regle, quoi)
   if quoi.activite == "suivre" and quoi.formation ~= nil and not hommes.formations[quoi.formation] then
     return refuser("escorte_invalide", "formation " .. tostring(quoi.formation))
   end
+  if quoi.tete ~= nil and (quoi.activite ~= "suivre" or not d.liste[quoi.tete]) then
+    return refuser("colonne_invalide", "tête " .. tostring(quoi.tete))
+  end
   local vers = nil
   if quoi.vers ~= nil then
     local v = quoi.vers
@@ -3328,6 +3331,7 @@ function hommes.tenir(id, regle, quoi)
                   pauses = pauses, centre = arc and arc.centre, rayon = arc and arc.rayon,
                   ouverture = arc and arc.ouverture, face = arc and arc.face, allure = arc and arc.allure,
                   chef = (quoi.activite == "suivre") and quoi.chef or nil, vers = vers,
+                  tete = (quoi.activite == "suivre") and quoi.tete or nil,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
                   a_cheval = (quoi.activite == "suivre" and (quoi.a_cheval == true or quoi.a_cheval == "comme_henry"))
@@ -3436,7 +3440,10 @@ function hommes.redresser()
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
     local present = f.personnage and jeu().personnage_existe(f.personnage)
-    if not present or not f.ame then
+    if f.dehors then
+      -- Fiche 17 : en mission, hors du monde ; il rentre par sa mission.
+      laisses = laisses + 1
+    elseif not present or not f.ame then
       if sur_place or en_escorte(f) then
         if faire_venir(d, f, not sur_place) then revenus = revenus + 1 else manquants = manquants + 1 end
       else
@@ -3453,6 +3460,50 @@ function hommes.redresser()
   jeu().journal("Hommes : redressés, " .. revenus .. " revenu(s), " .. manquants .. " manquant(s)"
                 .. (laisses > 0 and (", " .. laisses .. " laissé(s) au camp (autre carte)") or ""))
   return revenus, manquants
+end
+
+-- Fiche 17, 4 b : un homme « dehors » (une mission loin d'Henry) : son personnage et son cheval retirés du monde, sa
+-- fiche gardée au registre ; il n'est ni refait, ni de garde, ni à défendre le camp. Rend vrai, ou faux et la raison.
+function hommes.mettre_dehors(id, motif)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  local m = hommes.montures[id]
+  if m and m.cheval then
+    jeu().retirer_cheval(m.cheval)
+  end
+  hommes.montures[id] = nil
+  if f.personnage then
+    jeu().renvoyer_homme(f.personnage)
+    f.personnage = nil
+  end
+  f.dehors = tostring(motif or "dehors")
+  f.derniere_activite = nil
+  enregistrer()
+  jeu().journal("Hommes : « " .. f.nom .. " » dehors (" .. f.dehors .. ")")
+  return true
+end
+
+-- Il rentre : il renaît au point donné (hors de la vue d'Henry : à qui l'appelle d'y veiller) ; sans point, près
+-- d'Henry. Rend vrai, ou faux.
+function hommes.faire_rentrer(id, position)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f or not f.dehors then
+    return refuser("pas_dehors", tostring(id))
+  end
+  f.dehors = nil
+  local venu = faire_venir(d, f, position == nil, position)
+  enregistrer()
+  jeu().journal("Hommes : « " .. f.nom .. " » rentre" .. (venu and "" or " (le jeu ne l'a pas fait venir : au registre)"))
+  return venu
+end
+
+function hommes.est_dehors(id)
+  local f = donnees().liste[id]
+  return f ~= nil and f.dehors ~= nil
 end
 
 -- Entrée en partie (nouvelle ou chargée). Vu en jeu le 15/10 (V56) : après « Sauvegarder et quitter » puis

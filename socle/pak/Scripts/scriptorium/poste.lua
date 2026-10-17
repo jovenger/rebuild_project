@@ -472,6 +472,37 @@ function poste.essai_colonne_vers_le_camp_de_bandits()
   return n > 0
 end
 
+-- Fiche 17, 4 b : une mission d'essai des trois premiers hommes (le premier en chef) vers un lieu posé à « distance »
+-- mètres devant Henry : à 120 m, Henry voit le combat ; à 450 m, la colonne passe dehors et l'issue se calcule.
+function poste.essai_mission(distance)
+  local point = jeu().point_devant_henry(distance)
+  local carte = jeu().carte_courante and (jeu().carte_courante()) or nil
+  if not point or not carte then
+    jeu().journal("Poste : mission : ni point devant Henry ni carte lisibles")
+    return false
+  end
+  poste.camps_d_essai = poste.camps_d_essai + 1
+  local nom = "essai_" .. poste.camps_d_essai
+  Scriptorium.missions.ajouter_un_lieu(nom, carte, point, 0)
+  local hommes = {}
+  for k, id in ipairs(Scriptorium.hommes.liste()) do
+    if k <= 3 then table.insert(hommes, id) end
+  end
+  local id, raison = Scriptorium.missions.prendre_une_mission({ lieu = nom, hommes = hommes, chef = hommes[1] })
+  jeu().journal("Poste : mission = " .. tostring(id) .. (raison and (" (" .. raison .. ")") or ""))
+  poste.battre_les_hommes()
+  return id
+end
+
+-- Les missions en cours, et le rapport des finies.
+function poste.essai_missions()
+  for _, m in ipairs(Scriptorium.missions.en_cours()) do
+    jeu().journal("Poste : « " .. m.id .. " » vers « " .. m.lieu .. " » : " .. m.etat .. ", " .. #m.hommes .. " homme(s)"
+                  .. (m.issue and (", issue " .. m.issue) or ""))
+  end
+  return true
+end
+
 function poste.essai_lever_les_camps()
   local n = 0
   for _, c in ipairs(Scriptorium.missions.camps()) do
@@ -2112,6 +2143,9 @@ poste.commandes = {
   { nom = "scriptorium_essai_camps_de_bandits", fonction = function() return poste.essai_camps_de_bandits() end, aide = "Les camps de bandits, leur bande et ses ennemis debout" },
   { nom = "scriptorium_essai_vers_le_camp_de_bandits", fonction = function() return poste.essai_vers_le_camp_de_bandits() end, aide = "Pose Henry à 50 m au sud du premier camp de bandits" },
   { nom = "scriptorium_essai_colonne_vers_le_camp_de_bandits", fonction = function() return poste.essai_colonne_vers_le_camp_de_bandits() end, aide = "Les trois premiers hommes, à cheval, menés vers le lieu du camp de bandits" },
+  { nom = "scriptorium_essai_mission_pres", fonction = function() return poste.essai_mission(120) end, aide = "Mission des trois premiers hommes vers un camp de bandits à 120 m devant Henry" },
+  { nom = "scriptorium_essai_mission_loin", fonction = function() return poste.essai_mission(450) end, aide = "Mission des trois premiers hommes vers un camp de bandits à 450 m devant Henry (issue au loin)" },
+  { nom = "scriptorium_essai_missions", fonction = function() return poste.essai_missions() end, aide = "Les missions en cours" },
   { nom = "scriptorium_essai_lever_les_camps", fonction = function() return poste.essai_lever_les_camps() end, aide = "Lève tous les camps de bandits" },
   { nom = "scriptorium_essai_sonder", fonction = function() return poste.essai_sonder() end, aide = "Ce que le jeu dit des ennemis au contact et de nos hommes" },
   { nom = "scriptorium_essai_rapprocher", fonction = function() return poste.essai_rapprocher() end, aide = "Pose la bande au contact à 18 m devant le camp" },

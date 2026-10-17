@@ -254,7 +254,8 @@ function bataille.combattants()
   for _, id in ipairs(hommes().liste()) do
     local f = hommes().fiche(id)
     local role = bataille.roles[f.role]
-    if role and f.blessure == 0 then
+    -- Fiche 17 : un homme dehors (en mission, hors du monde) ne défend pas le camp.
+    if role and f.blessure == 0 and not f.dehors then
       if role.rang == "avant" then table.insert(avant, id) else table.insert(arriere, id) end
     end
   end
@@ -699,18 +700,14 @@ end
 
 -- Une escarmouche loin du camp (embuscade de patrouille) : les seuls hommes donnés,
 -- sans enceinte, tranchée tout de suite par la règle. Rend le résultat.
-function bataille.escarmouche(ids, sorte, effectif)
-  local d = donnees()
-  local id = "escarmouche_" .. d.prochaine
-  d.prochaine = d.prochaine + 1
-  local b = { id = id, sorte = sorte, effectif = effectif, direction = 0, levee = jeu().heure_du_jeu(),
-              arrivee = jeu().heure_du_jeu(), etat = "au_contact", contact = jeu().heure_du_jeu(),
-              personnages = nil, combattants = {} }
+-- La force d'une liste d'hommes (une patrouille, une colonne), et ceux qui combattent : les rôles de combat, valides.
+function bataille.force_de(ids)
+  local combattants = {}
   local force, moral, nombre = 0, 0, 0
   for _, homme in ipairs(ids) do
     local f = hommes().fiche(homme)
     if f and bataille.roles[f.role] and f.blessure == 0 then
-      table.insert(b.combattants, homme)
+      table.insert(combattants, homme)
       local facteur = (Scriptorium.atelier and Scriptorium.atelier.facteur_de) and Scriptorium.atelier.facteur_de(homme) or 1
       if Scriptorium.caractere then
         facteur = facteur * Scriptorium.caractere.facteur_de_combat(homme)
@@ -723,6 +720,18 @@ function bataille.escarmouche(ids, sorte, effectif)
   if nombre > 0 then
     force = force * (0.7 + 0.5 * (moral / nombre) / 100)
   end
+  return force, combattants
+end
+
+function bataille.escarmouche(ids, sorte, effectif)
+  local d = donnees()
+  local id = "escarmouche_" .. d.prochaine
+  d.prochaine = d.prochaine + 1
+  local b = { id = id, sorte = sorte, effectif = effectif, direction = 0, levee = jeu().heure_du_jeu(),
+              arrivee = jeu().heure_du_jeu(), etat = "au_contact", contact = jeu().heure_du_jeu(),
+              personnages = nil, combattants = {} }
+  local force
+  force, b.combattants = bataille.force_de(ids)
   local leur = bataille.force_de_la_bande(b)
   local rapport = (leur > 0) and (force / leur) or 10
   local issue = choisir_issue(rapport)
@@ -829,6 +838,30 @@ local function garder_le_poste(b)
     return true
   end
   return change
+end
+
+-- Fiche 17, 4 b : l'issue au loin d'une bande postée contre une colonne (Henry à plus de « henry_loin_m ») : la force de
+-- ces hommes contre celle de la bande (ses ennemis encore debout s'ils sont nés), par la règle. Rend le résultat, ou nil.
+function bataille.trancher_la_bande_postee(id, ids)
+  local d = donnees()
+  local b = d.bandes[id]
+  if not b or not b.postee or b.etat == "finie" then
+    return nil
+  end
+  if b.personnages then
+    b.effectif = jeu().ennemis_vivants(b.personnages)
+  end
+  local force
+  force, b.combattants = bataille.force_de(ids)
+  b.contact = b.contact or jeu().heure_du_jeu()
+  local leur = bataille.force_de_la_bande(b)
+  local rapport = (leur > 0) and (force / leur) or 10
+  local resultat = appliquer(d, b, choisir_issue(rapport), nil)
+  resultat.rapport = rapport
+  finir(d, b, resultat)
+  enregistrer()
+  jeu().journal(string.format("Bataille : « %s » tranchée au loin, rapport de force %.2f", id, rapport))
+  return resultat
 end
 
 -- L'issue par le jeu : les ennemis vivants et nos morts constatés.

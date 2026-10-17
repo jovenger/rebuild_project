@@ -272,3 +272,144 @@ essai("missions : engagés contre une bande postée, nos hommes n'ont aucun poin
   end
   finir()
 end)
+
+-- ---------------------------------------------------------------- tranche 2 : la mission
+
+local function preparer_la_mission(roles)
+  local ids = preparer(roles or { "homme_d_armes", "homme_d_armes", "archer" })
+  for i, id in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(id).personnage] = { x = i, y = 0, z = 0 }
+  end
+  return ids
+end
+
+essai("missions (4 b) : prendre une mission ; refus : repos (accroche), lieu, hommes, chef hors colonne ; le niveau selon la force", function()
+  local ids = preparer_la_mission()
+  local ancienne = missions.peut_partir
+  missions.peut_partir = function() return false, "jour_de_repos" end
+  local id, raison = missions.prendre_une_mission({ lieu = "gue", hommes = ids })
+  verifier(not id and raison == "ne_peut_partir", "le jour de repos : refusée")
+  missions.peut_partir = ancienne
+  verifier(not missions.prendre_une_mission({ lieu = "nulle_part", hommes = ids }), "lieu inconnu")
+  verifier(not missions.prendre_une_mission({ lieu = "gue", hommes = {} }), "sans hommes")
+  verifier(not missions.prendre_une_mission({ lieu = "gue", hommes = { "personne" } }), "un homme inconnu")
+  verifier(not missions.prendre_une_mission({ lieu = "gue", hommes = { ids[1] }, chef = ids[2] }), "chef hors colonne")
+  egal(missions.niveau_pour(0, "gue"), "petit", "sans force : le plus petit")
+  egal(missions.niveau_pour(1000, "gue"), "grand", "une grande force : le plus grand")
+  id = missions.prendre_une_mission({ lieu = "gue", hommes = ids, chef = ids[3] })
+  verifier(id, "partie")
+  local m = missions.mission(id)
+  egal(m.etat, "aller", "à l'aller")
+  egal(m.chef, ids[3], "son chef")
+  egal(#missions.camps(), 1, "le camp de bandits dressé au lieu")
+  for _, h in ipairs(ids) do
+    egal(hommes.qui_tient(h), "mission", "tenu par la mission")
+  end
+  local a3, a1 = hommes.activite_de(ids[3], 10), hommes.activite_de(ids[1], 10)
+  verifier(a3.suivi and a3.suivi.vers == true, "le chef mène vers le lieu")
+  egal(a1.chef, hommes.fiche(ids[3]).personnage, "le premier homme suit le chef")
+  verifier(not missions.prendre_une_mission({ lieu = "gue", hommes = ids }), "les mêmes hommes : déjà pris")
+  finir()
+end)
+
+essai("missions (4 b) : loin d'Henry, dehors ; l'issue au loin à l'heure d'arrivée ; renaît sur le chemin, rentre, rapport une fois", function()
+  local ids = preparer_la_mission()
+  missions.ajouter_un_lieu("loin", "trosky", { x = 0, y = 1200, z = 0 }, 0)
+  local rapports = {}
+  local ancienne = missions.rapport_de_mission
+  missions.rapport_de_mission = function(r) table.insert(rapports, r) return ancienne(r) end
+  FauxJeu.position_joueur = { x = 0, y = 0, z = 0 }
+  local id = missions.prendre_une_mission({ lieu = "loin", hommes = ids })
+  battre()
+  egal(missions.mission(id).etat, "aller", "près d'Henry : dans le monde")
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 400, z = 0 }
+  end
+  FauxJeu.vue_d_henry = function() return true end
+  battre()
+  egal(missions.mission(id).etat, "aller", "à 400 m mais dans son regard : pas encore dehors")
+  FauxJeu.vue_d_henry = function() return false end
+  local renvoyes = #FauxJeu.personnages_renvoyes
+  battre()
+  egal(missions.mission(id).etat, "dehors_aller", "à 400 m, hors de son regard : dehors")
+  for _, h in ipairs(ids) do
+    verifier(hommes.est_dehors(h), "dehors")
+    egal(hommes.fiche(h).personnage, nil, "son personnage retiré")
+  end
+  verifier(#FauxJeu.personnages_renvoyes > renvoyes, "retirés du monde")
+  local _, manquants = hommes.redresser()
+  egal(manquants, 0, "le redressement ne les refait pas")
+  local avant, _ = bataille.combattants()
+  egal(#avant, 0, "ils ne défendent pas le camp")
+  FauxJeu.heure = 10 + 0.05
+  battre()
+  egal(missions.mission(id).etat, "dehors_aller", "pas encore au lieu (1 200 m à 12 km/h : 0,1 h)")
+  local solde = coffre.solde()
+  FauxJeu.heure = 10 + 0.11
+  battre()
+  egal(missions.mission(id).etat, "dehors_retour", "au lieu : l'issue calculée")
+  verifier(missions.mission(id).issue ~= nil, "une issue")
+  egal(bataille.bande(missions.camp(missions.mission(id).camp).bande).etat, "finie", "la bande du camp tranchée")
+  FauxJeu.heure = 10 + 0.25
+  battre()
+  local m = missions.mission(id)
+  egal(m.etat, "retour", "de retour : il renaît")
+  for _, h in ipairs(m.hommes) do
+    verifier(not hommes.est_dehors(h) and hommes.fiche(h).personnage ~= nil, "rentré dans le monde")
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 5, z = 0 }
+  end
+  battre()
+  egal(#missions.en_cours(), 0, "rentrée : finie")
+  egal(#rapports, 1, "un rapport")
+  egal(rapports[1].lieu, "loin", "du bon lieu")
+  for _, h in ipairs(m.hommes) do
+    verifier(hommes.qui_tient(h) ~= "mission", "lâché par la mission")
+  end
+  battre()
+  egal(#rapports, 1, "une seule fois")
+  missions.rapport_de_mission = ancienne
+  finir()
+end)
+
+essai("missions (4 b) : avec Henry près du lieu, le combat sur place ; vaincu, la colonne rentre à cheval", function()
+  local ids = preparer_la_mission()
+  local id = missions.mission(missions.prendre_une_mission({ lieu = "gue", hommes = ids })).id
+  FauxJeu.position_joueur = { x = 0, y = 100, z = 0 }
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  local c = missions.camp(missions.mission(id).camp)
+  egal(bataille.bande(c.bande).etat, "au_contact", "au lieu : le combat")
+  for _, e in ipairs(bataille.bande(c.bande).personnages) do
+    FauxJeu.ennemis_vivants_par_id[e] = nil
+  end
+  battre()
+  battre()
+  local m = missions.mission(id)
+  egal(m.etat, "retour", "vaincu : retour")
+  egal(m.issue, "victoire", "victoire")
+  verifier(hommes.activite_de(ids[1], 10).suivi.vers == true, "la colonne mène vers le camp")
+  finir()
+end)
+
+essai("missions : le registre ne garde que les derniers camps levés (« gardes »)", function()
+  preparer()
+  missions.reglages.gardes = 2
+  local debout = missions.dresser_un_camp("gue", "petit")
+  for k = 1, 4 do
+    missions.ajouter_un_lieu("l" .. k, "trosky", { x = 0, y = 200 + k * 50, z = 0 }, 0)
+    missions.lever_un_camp(missions.dresser_un_camp("l" .. k, "petit"))
+  end
+  battre()
+  local gardes = 0
+  for k = 1, 4 do
+    if missions.camp("camp_de_bandits_" .. (k + 1)) then gardes = gardes + 1 end
+  end
+  egal(gardes, 2, "deux camps levés gardés")
+  verifier(missions.camp("camp_de_bandits_5") ~= nil, "les plus récents")
+  verifier(missions.camp(debout) ~= nil, "le camp debout, le plus ancien, jamais retiré")
+  missions.reglages.gardes = 20
+  finir()
+end)

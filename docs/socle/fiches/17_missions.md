@@ -74,6 +74,24 @@ le chemin du retour, entre à cheval et descend.
   gardien) ; la tenue « bataille » portait le point du camp : un ordre de marche redonné après le retrait du cheval
   écrasait l'attaque, et le combat s'enlisait (4 brigands sur 4 debout après plusieurs minutes, trois « figé malgré 2
   relances »). Contre une bande postée, la tenue ne porte plus de point. **Non vérifié en jeu** : le combat corrigé.
+- **La mission** (réponses prises d'office, consigne du 17/10) :
+  - `missions.prendre_une_mission({ lieu, hommes, chef, niveau })` : refus si l'accroche `missions.peut_partir(ordre)`
+    dit non (le jour de repos de Scriptorium), lieu inconnu, homme indisponible (blessé, dehors, tenu plus fort), chef
+    hors de la colonne. Le niveau, sinon donné : `missions.niveau_pour(force, lieu)` (accroche ; le plus grand niveau
+    dont la force, × `marge_de_force` 1,5, ne dépasse pas celle de la colonne, `bataille.force_de(ids)`). Le camp de
+    bandits est dressé au lieu (un lieu déjà pris : refus, la réservation viendra en tranche 3).
+  - La colonne : règle « mission » (rang 2, sous la bataille), à cheval, le chef en tête (`tete`), vers le lieu.
+  - **Loin d'Henry** (chacun à plus de `henry_loin_m` 300 m et hors de son regard) : « dehors » (`hommes.mettre_dehors` :
+    personnage et cheval retirés, ni refait, ni garde, ni défense du camp) ; au lieu à l'heure calculée (distance /
+    `vitesse_m_par_h`, 12 km/h) : `bataille.trancher_la_bande_postee` (force contre force, pertes, butin, partage) ; de
+    retour à l'heure calculée : renaissance à `retour_naissance_m` (150 m) du camp sur le chemin du lieu, hors du
+    regard d'Henry (sinon on attend), puis à cheval vers le camp.
+  - **Avec Henry** : le combat sur place (tranche 1), puis le retour à cheval.
+  - Rentrée (un homme à moins de `arrivee_m` du centre) : lâchée, chevaux retirés, l'accroche
+    `missions.rapport_de_mission(r)` une fois (issue, morts, blessés, butin). Camp levé pendant la mission : rentrés près
+    d'Henry, mission finie. Le registre garde les `gardes` (20) derniers camps levés et missions finies (trois erreurs
+    injectées attrapées).
+  - **Non vérifié en jeu** : la mission entière (le prochain essai, regroupé avec le combat corrigé).
 - À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
   combat peut de même écraser l'attaque (à relire en séance).
 
