@@ -2739,75 +2739,124 @@ essai("autre carte (fiche 15, V73 f 3 b) : le camp, l'enceinte et les hommes du 
   Scriptorium.directeur.suivre(false)
 end)
 
-essai("grand saut (fiche 15, V73 f 3 b) : à plus de 150 m de son chef, le cavalier descend ; son cheval retiré au battement d'après l'ordre à pied ; rattrapé ; revenu, un nouveau cheval", function()
+essai("grand saut (fiche 15, V73 f 3 b) : au bond d'Henry, la colonne descend tout de suite ; 3 s après, chevaux retirés, posés derrière Henry, nouveaux chevaux ; le battement en filet", function()
   preparer(5000, 100, 10)
-  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
-  local p = hommes.fiche(id).personnage
-  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  local ids, perso = {}, {}
+  for i = 1, 2 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+    perso[i] = hommes.fiche(ids[i]).personnage
+    FauxJeu.positions[perso[i]] = { x = 100 + 10 * i, y = 0, z = 0 }
+  end
   FauxJeu.position_joueur, FauxJeu.cap_joueur = { x = 100, y = 10, z = 0 }, 0
   hommes.battre()
-  FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.manquees = {}, {}, {}
-  hommes.tenir(id, "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
-  local cheval1 = hommes.montures[id] and hommes.montures[id].cheval
-  verifier(cheval1 ~= nil, "son cheval")
+  FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.manquees, FauxJeu.henry_cheval = {}, {}, {}, false
+  for i = 1, 2 do
+    hommes.tenir(ids[i], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
+  end
+  local c1, c2 = hommes.montures[ids[1]].cheval, hommes.montures[ids[2]].cheval
+  verifier(c1 ~= nil and c2 ~= nil, "deux chevaux")
   hommes.battre()
-  local o = dernier_ordre_de(p)
-  egal(o and o.suivi and o.suivi.mode, "cheval", "il suit à cheval")
-  -- À 120 m : rien (le rattrapage ne pose jamais un cavalier).
-  FauxJeu.position_joueur = { x = 100, y = 120, z = 0 }
+  egal(hommes.activite_de(ids[2], 10).chef, perso[1], "le second suit le premier")
+  -- Pas de bond : 30 m entre deux veilles.
+  hommes.veiller_henry()
+  FauxJeu.position_joueur = { x = 100, y = 40, z = 0 }
+  FauxJeu.secours = {}
+  hommes.veiller_henry()
+  verifier(not hommes.montures[ids[1]].saut, "30 m en une veille : pas de bond")
+  verifier(not journal_contient("bond d'Henry"), "30 m : aucune ligne de bond au journal")
+  -- Le bond : 400 m. Le premier est loin de son chef, le second suit le premier : les deux descendent tout de suite.
+  local n_minuteries = #FauxJeu.minuteries
+  FauxJeu.position_joueur = { x = 100, y = 440, z = 0 }
+  hommes.veiller_henry()
+  verifier(journal_contient("bond d'Henry de 400 m : 2 cavalier(s) en grand saut"), "le bond au journal")
+  verifier(journal_contient("suit « " .. hommes.fiche(ids[1]).nom .. " » : il descend (grand saut)"), "le second saute avec son chef")
+  for i = 1, 2 do
+    verifier(hommes.montures[ids[i]].saut, "l'homme " .. i .. " en saut")
+    local o = dernier_ordre_de(perso[i])
+    verifier(o and not (o.suivi and o.suivi.mode == "cheval"), "l'homme " .. i .. " : l'ordre à pied tout de suite")
+  end
+  verifier(FauxJeu.chevaux[c1] ~= nil and FauxJeu.chevaux[c2] ~= nil, "les chevaux restent pendant la descente")
+  egal(#FauxJeu.secours, 0, "pas encore de pose")
+  egal(#FauxJeu.minuteries, n_minuteries + 1, "une minuterie")
+  local mt = FauxJeu.minuteries[#FauxJeu.minuteries]
+  egal(mt.ms, 3000, "trois secondes pour descendre")
+  -- Un battement avant la minuterie : le filet ne retire rien si tôt.
+  hommes.battre()
+  verifier(FauxJeu.chevaux[c1] ~= nil, "un battement tout de suite après : le cheval reste")
+  -- La minuterie : chevaux retirés, posés derrière Henry, saut fini, nouveaux chevaux, ordre à cheval.
+  Scriptorium.en_partie = true
+  mt.fonction()
+  Scriptorium.en_partie = false
+  verifier(FauxJeu.chevaux[c1] == nil and FauxJeu.chevaux[c2] == nil, "les deux chevaux retirés")
+  egal(#FauxJeu.secours, 2, "les deux posés")
+  pres(FauxJeu.secours[1].position.y, 436, "4 m derrière Henry")
+  for i = 1, 2 do
+    local m = hommes.montures[ids[i]]
+    verifier(not m.saut, "l'homme " .. i .. " : saut fini")
+    verifier(m.cheval ~= nil and m.cheval ~= c1 and m.cheval ~= c2, "l'homme " .. i .. " : un nouveau cheval")
+    local o = dernier_ordre_de(perso[i])
+    egal(o and o.suivi and o.suivi.mode, "cheval", "l'homme " .. i .. " : de nouveau à cheval")
+  end
+  -- Sous les yeux d'Henry à la fin : cheval retiré, il attend ; le battement le rattrape ensuite, puis un nouveau cheval.
+  local c3 = hommes.montures[ids[1]].cheval
+  FauxJeu.positions[perso[1]] = { x = 100, y = 440, z = 0 }
+  FauxJeu.position_joueur = { x = 100, y = 900, z = 0 }
+  FauxJeu.vue_d_henry = function() return true end
+  hommes.veiller_henry()
+  Scriptorium.en_partie = true
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  Scriptorium.en_partie = false
+  verifier(FauxJeu.chevaux[c3] == nil, "sous ses yeux : le cheval retiré quand même")
+  verifier(hommes.montures[ids[1]].saut, "pas posé : toujours en saut")
+  FauxJeu.vue_d_henry = nil
   FauxJeu.secours = {}
   hommes.battre()
-  verifier(not hommes.montures[id].saut, "à 120 m : pas de saut")
-  -- Henry à 400 m : le saut ; le cheval reste tant qu'il n'a pas eu l'ordre à pied.
-  FauxJeu.position_joueur = { x = 100, y = 400, z = 0 }
   hommes.battre()
-  verifier(hommes.montures[id].saut, "à 400 m : le saut")
-  verifier(journal_contient("il descend, son cheval sera retiré (grand saut)"), "une ligne au journal")
-  verifier(FauxJeu.chevaux[cheval1] ~= nil, "le cheval est encore là")
-  hommes.battre()
-  o = dernier_ordre_de(p)
-  verifier(o and not (o.suivi and o.suivi.mode == "cheval"), "l'ordre redonné à pied")
-  verifier(FauxJeu.chevaux[cheval1] ~= nil, "le cheval reste le battement de l'ordre")
-  egal(#FauxJeu.secours, 0, "pas encore de pose")
-  hommes.battre()
-  verifier(FauxJeu.chevaux[cheval1] == nil, "le cheval retiré au battement suivant")
-  egal(FauxJeu.chevaux_retires[#FauxJeu.chevaux_retires], cheval1, "c'est son cheval")
-  egal(#FauxJeu.secours, 1, "à pied et loin : rattrapé")
-  verifier(hommes.montures[id].cheval == nil, "pas de nouveau cheval pendant le saut")
-  -- Revenu près de son chef : le saut fini, un nouveau cheval, l'ordre à cheval.
-  FauxJeu.positions[p] = { x = 100, y = 394, z = 0 }
+  verifier(#FauxJeu.secours >= 1, "le battement le rattrape")
   for _ = 1, 3 do hommes.battre() end
-  verifier(not hommes.montures[id].saut, "le saut fini")
-  local cheval2 = hommes.montures[id].cheval
-  verifier(cheval2 ~= nil and cheval2 ~= cheval1, "un nouveau cheval")
-  o = dernier_ordre_de(p)
-  egal(o and o.suivi and o.suivi.mode, "cheval", "de nouveau à cheval")
+  verifier(not hommes.montures[ids[1]].saut, "revenu : saut fini")
+  verifier(hommes.montures[ids[1]].cheval ~= nil, "un nouveau cheval")
+  -- Le filet, si la minuterie ne tire pas : le cheval n'est retiré qu'au deuxième battement après l'ordre à pied.
+  local c4 = hommes.montures[ids[1]].cheval
+  FauxJeu.positions[perso[1]] = { x = 100, y = 896, z = 0 }
+  FauxJeu.positions[perso[2]] = { x = 100, y = 896, z = 0 }
+  for _ = 1, 2 do hommes.battre() end
+  FauxJeu.position_joueur = { x = 100, y = 1400, z = 0 }
+  hommes.battre()
+  verifier(hommes.montures[ids[1]].saut, "vu au battement : en saut")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[c4] ~= nil, "le battement suivant : le cheval reste")
+  hommes.battre()
+  verifier(FauxJeu.chevaux[c4] == nil, "le deuxième battement : le cheval retiré")
   -- Le Directeur, de même.
   verifier(Scriptorium.directeur.installer(), "Directeur installé")
   local dir = Scriptorium.directeur.personnage()
+  FauxJeu.position_joueur = { x = 100, y = 400, z = 0 }
+  hommes.veiller_henry()
   FauxJeu.positions[dir] = { x = 100, y = 390, z = 0 }
   verifier(Scriptorium.directeur.suivre(true, nil, true), "le Directeur suit à cheval")
   local cd = hommes.montures.directeur and hommes.montures.directeur.cheval
   verifier(cd ~= nil, "son cheval")
   Scriptorium.directeur.battre()
   FauxJeu.position_joueur = { x = 100, y = 800, z = 0 }
+  hommes.veiller_henry()
+  verifier(hommes.montures.directeur.saut, "le Directeur en saut au bond")
+  local o = dernier_ordre_de(dir)
+  verifier(o and not (o.suivi and o.suivi.mode == "cheval"), "son ordre à pied tout de suite")
+  verifier(FauxJeu.chevaux[cd] ~= nil, "son cheval encore là")
   FauxJeu.secours = {}
   Scriptorium.directeur.battre()
-  verifier(hommes.montures.directeur.saut, "le Directeur à 410 m : le saut")
-  Scriptorium.directeur.battre()
-  o = dernier_ordre_de(dir)
-  verifier(o and not (o.suivi and o.suivi.mode == "cheval"), "son ordre redonné à pied")
-  verifier(FauxJeu.chevaux[cd] ~= nil, "son cheval encore là")
-  hommes.battre()
+  egal(#FauxJeu.secours, 0, "un battement pendant sa descente : pas de pose")
+  Scriptorium.en_partie = true
+  FauxJeu.minuteries[#FauxJeu.minuteries].fonction()
+  Scriptorium.en_partie = false
   verifier(FauxJeu.chevaux[cd] == nil, "son cheval retiré")
-  Scriptorium.directeur.battre()
-  verifier(#FauxJeu.secours >= 1, "à pied et loin : rattrapé")
-  FauxJeu.positions[dir] = { x = 100, y = 794, z = 0 }
-  for _ = 1, 3 do Scriptorium.directeur.battre() end
-  verifier(not hommes.montures.directeur.saut, "son saut fini")
+  verifier(not hommes.montures.directeur.saut, "posé : son saut fini")
   verifier(hommes.montures.directeur.cheval ~= nil and hommes.montures.directeur.cheval ~= cd, "un nouveau cheval")
+  o = dernier_ordre_de(dir)
+  egal(o and o.suivi and o.suivi.mode, "cheval", "de nouveau à cheval")
   Scriptorium.directeur.suivre(false)
-  FauxJeu.manquees = nil
+  FauxJeu.manquees, FauxJeu.henry_cheval = nil, nil
 end)
 
 -- Fiche 15, V73 f 2 f : l'allure du chef monté (principe d'Alex, relu par le pair : la marge contre l'hésitation).

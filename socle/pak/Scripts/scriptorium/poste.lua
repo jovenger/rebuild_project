@@ -135,6 +135,14 @@ function poste.essai_aller(cap)
   return ok
 end
 
+-- Fiche 15, V73 f 3 b : le bond d'Henry (comme un voyage rapide) : posé 200 mètres devant lui, pour le grand saut des
+-- cavaliers ; l'heure du bond au journal (la latence se lit jusqu'à la pose de l'escorte).
+function poste.essai_grand_saut()
+  local ok, compte_rendu = jeu().deplacer_le_joueur(200, nil)
+  jeu().journal("Poste : bond d'Henry de 200 m = " .. tostring(ok) .. " (" .. tostring(compte_rendu) .. ")")
+  return ok
+end
+
 -- Henry : posé sur le terrain d'essai (un pré dégagé hors du campement du jeu, liaison.terrain_d_essai).
 -- Le camp du socle est levé avant, pour ne pas le laisser derrière soi.
 function poste.essai_terrain_d_essai()
@@ -1801,6 +1809,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_escorte_a_cheval", fonction = function() return poste.essai_escorte_a_cheval() end, aide = "Le premier homme suit Henry sur le cheval d'essai (V73 f 2 a)" },
   { nom = "scriptorium_essai_retirer_cheval", fonction = function() return poste.essai_retirer_cheval() end, aide = "Le cheval d'essai retiré (V73 f 2 a)" },
   { nom = "scriptorium_essai_troupe_a_cheval", fonction = function() return poste.essai_troupe_a_cheval() end, aide = "Les trois premiers hommes suivent Henry à cheval, en formation followNPC (V73 f 2 b)" },
+  { nom = "scriptorium_essai_grand_saut", fonction = function() return poste.essai_grand_saut() end, aide = "Pose Henry deux cents mètres devant lui (le grand saut, V73 f 3 b)" },
   { nom = "scriptorium_essai_carte_voir", fonction = function() return poste.essai_carte_voir() end, aide = "La carte lue et le dernier chargement vu (V73 f 3 a)" },
   { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },
   { nom = "scriptorium_essai_escorte_comme_henry", fonction = function() return poste.essai_escorte_comme_henry() end, aide = "Les trois premiers hommes suivent Henry, à cheval quand il l'est (V73 f 2 d)" },

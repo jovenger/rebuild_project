@@ -2301,36 +2301,51 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
    une bataille qui arrive pendant qu'Henry est sur l'autre carte ne fait naître aucune bande (la règle tranche) ; une
    bande déjà au contact n'est pas lue d'une autre carte (la règle tranche à son heure, `duree_max_contact`).
 4. **À cheval** : rien de plus : l'escorte refaite à pied retrouve son cheval passager par la règle habituelle.
-5. **Le grand saut sur une même carte**, en trois battements (jamais un cheval retiré sous son cavalier) :
-   - battement N : un cavalier (homme ou Directeur) **monté** à plus de `cheval_saut_m` (150) de son chef est mis « en
-     saut » (une ligne au journal) ; plus de cheval dans son rôle ;
-   - N + 1 : son ordre est redonné **à pied** (il descend, vu en jeu en V73 f 2 d : l'ordre à pied fait descendre en
-     4 s environ) ;
-   - N + 2 : son cheval est retiré, puis le rattrapage ordinaire à pied le pose derrière Henry, hors de sa vue ;
-   - revenu à moins de `suivi_loin_m` (60) de son chef : le saut finit, un nouveau cheval naît (un nom neuf,
-     `…_saut1`), l'ordre est redonné à cheval.
-   - **Latence** : le battement est de 30 s, donc 60 à 90 s entre le saut d'Henry et la pose de l'homme, puis 30 à 60 s
-     de plus pour son nouveau cheval. Signalé à JoVenGer ; plus court demanderait une veille à part (non fait).
+5. **Le grand saut, rapide** (relecture du pair : « l'escorte voyage avec lui » ; cible : posée en moins de 10 s ;
+   jamais un cheval retiré sous son cavalier) :
+   - **le signe** : la veille d'Henry (une seconde) garde sa position ; un **bond** de plus de `henry_bond_m` (50) entre
+     deux veilles (voyage rapide, téléport ; au galop, 20 m au plus) lance le saut (une ligne au journal). Un faux bond
+     (une saccade) ne fait rien : seuls les cavaliers loin de leur chef sautent ;
+   - **tout de suite** : chaque cavalier (homme ou Directeur) **monté**, en sortie, à plus de `cheval_saut_m` (150) de son
+     chef, et ceux qui suivent l'un d'eux (la colonne saute ensemble ; les chefs lus avant tout saut), sont mis en saut :
+     leur ordre est redonné **à pied** (ils descendent : vu en jeu en V73 f 2 d, environ 4 s) ;
+   - **`saut_descente_ms` (3000) plus tard**, par minuterie : leurs chevaux sont retirés, eux posés derrière Henry (hors
+     de sa vue), leur saut finit, leur ordre est redonné (un nouveau cheval naît près de chacun, un nom neuf
+     `…_saut1`) ;
+   - **sous les yeux d'Henry** à ce moment : le cheval est retiré, l'homme reste en saut ; le rattrapage du battement le
+     pose quand Henry détourne les yeux, puis, revenu près de son chef, un nouveau cheval ;
+   - **le filet** du battement (30 s) : un cavalier loin de son chef sans bond vu lance le même saut ; si la minuterie
+     ne tire pas, le cheval est retiré au deuxième battement après l'ordre à pied (jamais plus tôt) ; un cavalier en
+     saut dont le cheval est encore là n'est jamais rattrapé (homme et Directeur).
+   - **Latence attendue** : 1 s (la veille) + 3 s = 4 s environ ; à mesurer en jeu. Le voyage rapide par la carte, et
+     s'il donne un `OnLoadingComplete` (second signe possible, demandé par le pair) : à voir par JoVenGer.
 6. **Qui passe** reste la décision de Scriptorium : ce sont les tenues posées par le guichet.
 
 ### Règles en données (catalogue)
-- `hommes.reglages` : `escorte_derriere_m` 6, `cheval_saut_m` 150.
+- `hommes.reglages` : `escorte_derriere_m` 6, `cheval_saut_m` 150, `henry_bond_m` 50, `saut_descente_ms` 3000 (toute la
+  table est réglable par la section `hommes` ; les trois en mètres acceptent les décimales, `taux`).
 
 ### Essais au banc (faits, tout passe)
 - `essai_hommes.lua` : « autre carte » (le camp, l'enceinte et leurs relances ne bougent pas ; seule l'escorte est
   refaite, à 6 m derrière Henry ; trois battements n'y font naître personne ; l'embauche va au registre ; le Directeur
   laissé, puis refait s'il suit ; une place de biais si le droit derrière est sous ses yeux ; au retour tout paraît) ;
-  « grand saut » (rien à 120 m ; à 400 m le saut ; le cheval reste le battement de l'ordre à pied ; retiré au suivant ;
-  rattrapé ; revenu, un nouveau cheval ; le Directeur de même). Les anciens essais « jamais posé seul à cheval » passent
-  à 120 m (entre le rattrapage et le saut) pour garder leur sens.
+  « grand saut » (30 m en une veille : rien ; un bond de 400 m : la colonne de deux descend tout de suite, le second
+  parce qu'il suit le premier ; un battement pendant la descente ne pose personne ; la minuterie de 3 s : chevaux
+  retirés, posés 4 m derrière Henry, nouveaux chevaux, ordre à cheval ; sous les yeux d'Henry : en saut, rattrapé
+  ensuite ; le filet : cheval retiré au deuxième battement seulement ; le Directeur de même). Les anciens essais
+  « jamais posé seul à cheval » passent à 120 m (entre le rattrapage et le saut) pour garder leur sens.
 - `essai_camp.lua` : la carte prise sur preuve, et rien sans objet ici. `essai_bataille.lua` : aucune bande née
   ailleurs, la règle tranche ; au contact, rien lu de l'autre carte.
-- Erreurs injectées : 11 sur le premier jet, toutes attrapées ; 7 sur les gardes ajoutées à la relecture.
+- Erreurs injectées : 11 sur le premier jet, toutes attrapées ; 7 sur les gardes ajoutées à la relecture ; 9 sur le
+  saut rapide (une passait : le seuil du bond ignoré ; l'essai vérifie depuis qu'aucune ligne de bond ne s'écrit à
+  30 m ; refaite, attrapée).
 
 ### Essai en jeu : grille
-1. **Le grand saut d'un cavalier**, le point à voir d'abord : à l'ordre à pied, l'homme est-il descendu **avant** le
-   battement du retrait de son cheval ? Puis : posé derrière Henry hors de sa vue, un nouveau cheval, la monte.
-2. Les sauts d'Henry de plus de 150 m sur la même carte (`tour.ps1` ou téléport du poste), escorte à cheval.
+1. **Le grand saut**, par `scriptorium_essai_grand_saut` (Henry posé 200 m devant lui, comme un voyage rapide ; commande
+   ajoutée, 158 en tout) avec la troupe à cheval : le point à voir d'abord : l'homme est-il descendu **avant** le retrait
+   de son cheval (3 s) ? Puis : posé derrière Henry hors de sa vue, un nouveau cheval, la monte. **La latence** se lit au
+   journal, de la ligne du bond à celle de la pose (cible du pair : moins de 10 s).
+2. Le filet : quatre `aller_nord` de 40 m (pas de bond) : le saut vu au battement.
 - **À vérifier par JoVenGer** : un vrai passage Trosky ↔ Kuttenberg avec une escorte (et charger d'abord la Partie 4
   sur la carte du camp, pour qu'il prenne sa carte).
 
@@ -2351,9 +2366,13 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   ordres) : corrigé par la marque « ordre donné en saut ».
 - `en_escorte` lisait une fonction locale déclarée plus loin (lue comme globale vide en Lua) : déplacée.
 - Les relances (camp « tout reposer », enceinte), l'embauche et la bataille n'étaient pas gardées : ajoutées.
-- `cheval_saut_m` manquait au catalogue : ajouté. Le banc n'a pas de contrôle de complétude du catalogue pour
-  `hommes.reglages` (trou noté, pas élargi ici).
+- `cheval_saut_m` : déjà réglable (toute la table `hommes.reglages` l'est) ; ajouté aux `taux` (décimales permises).
 - Le saut du Directeur se déclenchait aussi à pied (son cheval encore là après la descente d'Henry) : seulement monté.
+- Après ba0906c, relecture du pair : 60 à 90 s, c'est trop long (Henry arriverait seul, l'escorte surgirait une
+  minute et demie après) ; deux remèdes, pris tous les deux : le saut lancé au bond d'Henry (veille d'une seconde, et
+  non le relevé écarté de la boucle d'allure, qui ne tourne que dans le cerveau des cavaliers montés) ; la suite par
+  minuterie de 3 s. L'essai a montré un défaut de plus, corrigé : le rattrapage du battement posait un cavalier en saut
+  dont le cheval n'était pas encore retiré.
 
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;

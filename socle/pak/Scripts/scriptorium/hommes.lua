@@ -123,6 +123,11 @@ hommes.reglages = {
   -- son cheval est retiré, il est rattrapé à pied, puis un nouveau cheval naît près de lui.
   escorte_derriere_m = 6,
   cheval_saut_m = 150,
+  -- Le saut rapide (relecture du pair : l'escorte voyage avec Henry) : un bond d'Henry de plus de « henry_bond_m » entre
+  -- deux veilles (une seconde) lance le saut tout de suite ; « saut_descente_ms » après l'ordre à pied, le cheval est
+  -- retiré et le cavalier posé derrière Henry.
+  henry_bond_m = 50,
+  saut_descente_ms = 3000,
   allure_perdu_m = 13,
   allure_rang_m = 6,
   anciens_gardes = 50,
@@ -1964,7 +1969,15 @@ function hommes.rattraper(personnage, chef, nom)
   if not ecart or ecart <= loin or jeu().occupation_de(personnage) then
     return false
   end
+  return hommes.poser_derriere_henry(personnage, nom, "à " .. string.format("%.0f", ecart) .. " m de son chef")
+end
+
+-- Posé « suivi_derriere_m » derrière Henry, jamais sous ses yeux (dit une fois qu'il attend). Rend vrai s'il est posé.
+function hommes.poser_derriere_henry(personnage, nom, motif)
   local henry, cap = jeu().position_du_joueur(), jeu().cap_du_joueur()
+  if not henry then
+    return false
+  end
   local recul = tonumber(hommes.reglages.suivi_derriere_m) or 0
   local ou = { x = henry.x - recul * math.sin(math.rad(cap)), y = henry.y - recul * math.cos(math.rad(cap)), z = henry.z }
   if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true then
@@ -1975,7 +1988,7 @@ function hommes.rattraper(personnage, chef, nom)
     return false
   end
   hommes.rattrapages_en_attente[personnage] = nil
-  jeu().journal("Hommes : « " .. tostring(nom) .. " » à " .. string.format("%.0f", ecart) .. " m de son chef, rattrapé "
+  jeu().journal("Hommes : « " .. tostring(nom) .. " » " .. motif .. ", rattrapé "
                 .. string.format("%g", recul) .. " m derrière Henry : " .. tostring(jeu().poser_en_secours(personnage, ou)))
   return true
 end
@@ -1992,6 +2005,10 @@ local function secourir(id, f, a, rapport)
       if hommes.saut_du_cavalier(id, f.personnage, a.chef, f.nom) then
         f.derniere_activite = nil
       end
+      return
+    end
+    -- En saut, son cheval pas encore retiré : il descend peut-être encore ; jamais posé (la fin du saut s'en charge).
+    if hommes.montures[id] and hommes.montures[id].saut and hommes.montures[id].cheval then
       return
     end
     -- En saut et à pied : revenu près de son chef, un nouveau cheval (son ordre redonné).
@@ -2378,10 +2395,10 @@ function hommes.suivi_du_directeur(role, formation)
   return suivi_a_cheval("directeur", p.personnage, role, formation)
 end
 
--- Le grand saut d'un cavalier (V73 f 3 b) : à plus de « cheval_saut_m » de son chef (le voyage rapide d'Henry), il
--- descend d'abord (sa monture « en saut » : son ordre suivant est à pied) ; puis, son cheval retiré au battement suivant
--- (personne dessus), il est rattrapé à pied ; revenu près de son chef (moins de « suivi_loin_m »), un nouveau cheval
--- naît près de lui. Rend vrai si le cavalier vient d'être mis en saut (son ordre est à redonner).
+-- Le grand saut d'un cavalier (V73 f 3 b), vu au battement (le filet ; le bond d'Henry le voit en une seconde) : à plus
+-- de « cheval_saut_m » de son chef, le saut rapide est lancé (hommes.lancer_les_sauts) ; un cavalier encore en saut (la
+-- pose attendait qu'Henry détourne les yeux), revenu près de son chef (moins de « suivi_loin_m »), finit son saut : un
+-- nouveau cheval naît près de lui. Rend vrai si son ordre est à redonner.
 function hommes.saut_du_cavalier(cle, personnage, chef, nom)
   local m = hommes.montures[cle]
   if not (m and personnage and chef) then
@@ -2393,20 +2410,17 @@ function hommes.saut_du_cavalier(cle, personnage, chef, nom)
     return false
   end
   if not m.saut and m.cheval and ecart > hommes.reglages.cheval_saut_m then
-    m.saut, m.saut_ordonne = true, nil
-    jeu().journal("Hommes : « " .. tostring(nom) .. " » à " .. string.format("%.0f", ecart)
-                  .. " m de son chef : il descend, son cheval sera retiré (grand saut)")
-    return true
+    return hommes.lancer_les_sauts() > 0
   end
   if m.saut and ecart < hommes.reglages.suivi_loin_m then
-    m.saut, m.saut_ordonne, m.sauts = nil, nil, (m.sauts or 0) + 1
+    m.saut, m.saut_ordonne, m.saut_vu, m.sauts = nil, nil, nil, (m.sauts or 0) + 1
     jeu().journal("Hommes : « " .. tostring(nom) .. " » revenu près de son chef : un nouveau cheval")
     return true
   end
   return false
 end
 
--- L'ordre à pied d'un cavalier en saut est donné (son cheval sera retiré au battement suivant).
+-- L'ordre à pied d'un cavalier en saut est donné (son cheval sera retiré après sa descente).
 function hommes.ordre_donne_en_saut(cle)
   local m = hommes.montures[cle]
   if m and m.saut then
@@ -2417,9 +2431,12 @@ end
 local function veiller_aux_montures(d)
   for id, m in pairs(hommes.montures) do
     local f, en_sortie = porteur(id, d)
-    -- V73 f 3 b : un cavalier en saut a eu un battement pour descendre depuis son ordre à pied : son cheval est retiré
-    -- (jamais avant cet ordre : le battement d'ici passe avant les ordres).
+    -- V73 f 3 b : le filet, si la minuterie du saut n'a pas tiré : un cavalier en saut a eu un battement entier pour
+    -- descendre depuis son ordre à pied (vu deux fois ici) : son cheval est retiré.
     if m.saut and m.saut_ordonne and m.cheval then
+      m.saut_vu = (m.saut_vu or 0) + 1
+    end
+    if m.saut and m.saut_ordonne and m.cheval and m.saut_vu >= 2 then
       jeu().retirer_cheval(m.cheval)
       jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré (grand saut de « " .. tostring(f and f.nom or id) .. " »)")
       m.cheval = nil
@@ -2528,6 +2545,123 @@ end
 -- « henry_descente_lectures » lectures de suite (l'anti-rebond : une lecture « monté » remet le compte à zéro) ; une
 -- lecture illisible ne change rien. À chaque changement, une ligne au journal et l'ordre redonné aux hommes dont
 -- l'escorte suit Henry « comme Henry » ; à la descente, l'abandon des montes manquées est oublié. Rend la lecture.
+-- Le saut rapide (V73 f 3 b, relecture du pair). Les cavaliers en sortie à plus de « cheval_saut_m » de leur chef, et
+-- ceux qui suivent l'un d'eux (la colonne saute ensemble), sont mis en saut : leur ordre est redonné à pied tout de suite
+-- (ils descendent) ; « saut_descente_ms » plus tard, hommes.finir_les_sauts. Les chefs sont lus avant tout saut. Rend le
+-- nombre de cavaliers mis en saut.
+local function redonner_l_ordre(d, cle, heure)
+  if cle == "directeur" then
+    if Scriptorium.directeur then
+      Scriptorium.directeur.redonner_l_ordre()
+    end
+  elseif d.liste[cle] then
+    d.liste[cle].derniere_activite = nil
+    ordonner_un_homme(d, cle, heure, nil, true)
+  end
+end
+
+function hommes.lancer_les_sauts()
+  local d = donnees()
+  local heure = jeu().heure_du_jeu()
+  local candidats, par_personnage = {}, {}
+  for cle, m in pairs(hommes.montures) do
+    local f, en_sortie = porteur(cle, d)
+    if f and f.personnage and en_sortie and m.cheval and not m.saut and not m.abandon then
+      local a
+      if cle == "directeur" then
+        a = Scriptorium.directeur.activite(heure)
+      else
+        a = hommes.activite_de(cle, heure)
+      end
+      if a and a.activite == "suivre" and a.chef and a.suivi and a.suivi.mode == "cheval" then
+        candidats[cle] = { f = f, chef = a.chef }
+        par_personnage[f.personnage] = cle
+      end
+    end
+  end
+  local sautent = {}
+  for cle, c in pairs(candidats) do
+    local la = (c.chef == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(c.chef)
+    local ecart = la and jeu().ecart_au_but(c.f.personnage, la)
+    if ecart and ecart > hommes.reglages.cheval_saut_m then
+      sautent[cle] = "à " .. string.format("%.0f", ecart) .. " m de son chef"
+    end
+  end
+  local change = true
+  while change do
+    change = false
+    for cle, c in pairs(candidats) do
+      local devant = par_personnage[c.chef]
+      if not sautent[cle] and devant and sautent[devant] then
+        sautent[cle], change = "suit « " .. tostring(candidats[devant].f.nom) .. " »", true
+      end
+    end
+  end
+  local n = 0
+  for cle, motif in pairs(sautent) do
+    local m = hommes.montures[cle]
+    m.saut, m.saut_ordonne, m.saut_vu = true, nil, nil
+    n = n + 1
+    jeu().journal("Hommes : « " .. tostring(candidats[cle].f.nom) .. " » " .. motif .. " : il descend (grand saut)")
+    redonner_l_ordre(d, cle, heure)
+  end
+  if n > 0 then
+    local generation = Scriptorium.generation
+    jeu().minuterie(hommes.reglages.saut_descente_ms, function()
+      if generation == Scriptorium.generation and Scriptorium.en_partie then
+        local ok, erreur = pcall(hommes.finir_les_sauts)
+        if not ok then
+          jeu().journal("Hommes : fin des sauts en erreur : " .. tostring(erreur))
+        end
+      end
+    end)
+  end
+  return n
+end
+
+-- La fin du saut rapide : chaque cavalier en saut qui a eu son ordre à pied perd son cheval, puis il est posé derrière
+-- Henry (jamais sous ses yeux : sinon il attend, et le battement le rattrape ensuite) ; posé, son saut finit et son ordre
+-- est redonné (un nouveau cheval naît près de lui). Rend le nombre de cavaliers posés.
+function hommes.finir_les_sauts()
+  local d = donnees()
+  local heure = jeu().heure_du_jeu()
+  local poses = 0
+  for cle, m in pairs(hommes.montures) do
+    if m.saut and m.saut_ordonne then
+      local f = porteur(cle, d)
+      if m.cheval then
+        jeu().retirer_cheval(m.cheval)
+        jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré (grand saut de « " .. tostring(f and f.nom or cle) .. " »)")
+        m.cheval = nil
+      end
+      if f and f.personnage and hommes.poser_derriere_henry(f.personnage, f.nom, "en grand saut") then
+        m.saut, m.saut_ordonne, m.saut_vu, m.sauts = nil, nil, nil, (m.sauts or 0) + 1
+        poses = poses + 1
+        redonner_l_ordre(d, cle, heure)
+      end
+    end
+  end
+  return poses
+end
+
+-- Le bond d'Henry (V73 f 3 b) : sa position a bougé de plus de « henry_bond_m » depuis la veille précédente (le voyage
+-- rapide, un téléport) : le saut rapide est lancé. Rend vrai s'il y a eu un bond.
+function hommes.guetter_le_bond()
+  local ici = jeu().position_du_joueur()
+  local avant = hommes.henry_derniere_position
+  hommes.henry_derniere_position = ici and { x = ici.x, y = ici.y, z = ici.z } or nil
+  if not (ici and avant) then
+    return false
+  end
+  local bond = math.sqrt((ici.x - avant.x) ^ 2 + (ici.y - avant.y) ^ 2)
+  if bond <= hommes.reglages.henry_bond_m then
+    return false
+  end
+  jeu().journal("Hommes : bond d'Henry de " .. string.format("%.0f", bond) .. " m : "
+                .. hommes.lancer_les_sauts() .. " cavalier(s) en grand saut")
+  return true
+end
+
 function hommes.veiller_henry()
   local lu
   if hommes.henry_force ~= nil then
@@ -2569,6 +2703,7 @@ function hommes.veiller_henry()
       Scriptorium.directeur.battre()
     end
   end
+  hommes.guetter_le_bond()
   return lu
 end
 
@@ -2960,6 +3095,7 @@ function hommes.relancer()
   hommes.en_ronde = {}
   hommes.montures = {}
   hommes.henry_monte, hommes.henry_pied_lectures = false, 0
+  hommes.henry_derniere_position = nil
   hommes.lancer_la_veille_d_henry()
   hommes.raisons_de_reprise = {}
   hommes.cerveaux_regles = {}

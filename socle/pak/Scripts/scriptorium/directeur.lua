@@ -98,6 +98,12 @@ function directeur.est_installe()
   return donnees().installe
 end
 
+-- Son ordre redonné tout de suite (le saut rapide, V73 f 3 b).
+function directeur.redonner_l_ordre()
+  donnees().derniere_activite = nil
+  return directeur.battre()
+end
+
 function directeur.installer()
   local d = donnees()
   if not camp().est_fonde() then
@@ -251,6 +257,8 @@ function directeur.battre()
     -- V73 f 3 b : le grand saut : il descend (ou, revenu, remonte) ; son ordre redonné.
     d.derniere_activite = nil
   elseif a and a.activite == "suivre" and not (a.suivi and a.suivi.mode == "cheval") and Scriptorium.hommes
+      and not (Scriptorium.hommes.montures.directeur and Scriptorium.hommes.montures.directeur.saut
+               and Scriptorium.hommes.montures.directeur.cheval)
       and Scriptorium.hommes.rattraper(d.personnage, a.chef, "Directeur") then
     -- Le rattrapage (V73 f 1) : posé derrière Henry, son ordre redonné au battement suivant.
     d.derniere_activite = nil
