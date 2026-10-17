@@ -2446,6 +2446,56 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   tout retrait (attentes, puis abandon) ; rien ne saute ni ne disparaît sous les yeux d'Henry. Ajout de ma part : la vue
   bornée à `saut_vue_m`, sans quoi un cavalier à un kilomètre dans la direction du regard « se verrait ».
 
+## V73 g — le gardien des hommes, version simple (17/10, envoyé au pair ; réponses recommandées prises d'office)
+
+### Le périmètre (le nécessaire de JoVenGer, 17/10 : une version simple qui marche, vue une fois)
+- L'idée validée n° 1 : un contrôle régulier que chaque homme vit ; sinon il est remis d'aplomb seul, au journal.
+- Ce qui existe déjà et reste tel quel : la relance de la vie du camp par le pouls (le switch de l'arbre, fiche 12), le
+  secours de l'homme bloqué (deux battements sans progrès, posé près de son but, `secours_max`), le rattrapage des
+  suiveurs, le grand saut des cavaliers.
+- **Ce pas** : deux cas que rien ne voit aujourd'hui, par une veille de 4 s : l'homme **sous le sol** et l'homme
+  **figé**. Les leçons de Scriptorium, transmises par le pair (sans lecture de ses fichiers).
+
+### Comment c'est fait
+1. **La veille du gardien** : une minuterie de `gardien_cadence_ms` (4000), une par partie (éteinte au changement de
+   génération, comme la veille d'Henry), lancée à la relance des hommes ; une erreur est dite au journal, trois fois au
+   plus. Elle regarde chaque homme présent.
+2. **Sous le sol** : l'homme est à plus de `gardien_sous_sol_m` (5) sous l'altitude du terrain à sa place,
+   `gardien_sous_sol_regards` (2) regards de suite : il est **repêché** : immortel le temps de la pose (l'effet du jeu
+   « immortality_nonpersistent », `imm=1`, posé par `soul:AddBuff`, la forme des scripts du jeu), posé au sol (la pose du
+   secours, à l'altitude du terrain, sur une place libre), l'effet retiré `gardien_immortel_ms` (15 000) après, par son
+   identifiant seulement (une immortalité donnée par une autre règle reste). Jamais s'il suit Henry et qu'Henry est
+   lui-même sous le sol (une grotte, une mission) ; au plus `gardien_repeches_max` (3) fois par homme et par partie,
+   puis une ligne « laissé ».
+3. **Figé** (la définition de Scriptorium) : il a un but (la position de son activité), n'est ni en combat ni en
+   conversation, ni en suite (« suivre » : le rattrapage) ni en bataille (un archer qui tire depuis sa place ne déclare
+   pas de cible) ; il est à plus de `fige_but_m` (2,5) de son but et a bougé de moins de `fige_bouge_m` (0,5) depuis le
+   regard précédent ; son ordre a au moins `fige_ordre_regards` (2) regards (il a eu le temps de partir).
+4. **La relance** : le personnage réveillé (`Activate` et `AI.AutoDisable` à 0, comme à la naissance), puis son ordre
+   redonné avec un nouveau numéro : la garde de l'arbre coupe l'action en cours et relit l'activité (c'est « remplacer
+   l'arbre en cours, puis relancer »). Bornée : `fige_relances_max` (2) par homme et par ordre, jamais deux en
+   `fige_regards_entre` (2) regards (8 s), `fige_par_regard` (6) au plus par regard. **Utile** si l'homme a fait plus de
+   `fige_utile_m` (1,5) au regard suivant. Au journal : chaque relance, chaque relance utile, et « toujours figé après
+   2 relances : laissé au secours ». Les compteurs (relances, utiles, repêchages) sont lus par `essai_hommes_voir`.
+
+### Règles en données (catalogue)
+- `hommes.reglages` : `gardien_cadence_ms` 4000, `gardien_sous_sol_m` 5, `gardien_sous_sol_regards` 2,
+  `gardien_immortel_ms` 15 000, `gardien_repeches_max` 3, `fige_but_m` 2,5, `fige_bouge_m` 0,5, `fige_utile_m` 1,5,
+  `fige_relances_max` 2, `fige_regards_entre` 2, `fige_par_regard` 6, `fige_ordre_regards` 2.
+
+### Essai en jeu : grille (une séance, avec la porte)
+1. Un homme posé 20 m sous le terrain (commande d'essai) : repêché en moins de 8 s, immortel puis l'effet retiré.
+2. Un homme endormi (commande d'essai : `Activate(0)`) loin de son but : figé, relancé, la relance utile.
+
+### Questions (réponses recommandées prises d'office, consigne de JoVenGer du 17/10)
+1. **Le Directeur** : (a) plus tard (Recommandé : version simple) ; (b) tout de suite. **Prise : (a)**, à reprendre.
+2. **Repêcher loin du camp** : (a) oui, sauf s'il suit Henry et qu'Henry est sous le sol (Recommandé) ; (b) seulement au
+   camp. **Prise : (a).**
+
+### À reprendre plus tard
+- Le Directeur ; l'archer tombé d'une tour (sa place est sur la plateforme : la pose du secours le met au sol) ; la
+  relance par interruption de l'arbre (le switch) si le nouvel ordre ne suffit pas.
+
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).

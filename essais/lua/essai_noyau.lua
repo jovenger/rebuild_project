@@ -34,7 +34,7 @@ essai("noyau : tout prêt -> « le socle est prêt » au joueur, et les commande
   FauxJeu.entrer_en_partie()
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_socle_pret", "prêt annoncé à l'entrée en partie")
-  egal(#FauxJeu.commandes, 161, "cent soixante et une commandes de console")
+  egal(#FauxJeu.commandes, 162, "cent soixante-deux commandes de console")
   egal(FauxJeu.commandes[1].nom, "scriptorium_essai_bandeau", "nom de la première commande")
 end)
 
@@ -294,4 +294,34 @@ essai("noyau : un passage de carte n'est croyable que si l'horloge a avancé, de
   Scriptorium.noyau.reglages.passage_jours_max = 1
   verifier(not Scriptorium.passage_croyable(100, 130), "réglé à un jour : trente heures, non")
   Scriptorium.noyau.reglages.passage_jours_max = avant
+end)
+
+-- Fiche 15, V73 g 0 (la sonde du rechargement) : seuls les morceaux rechargeables sont relus ; les chevaux passagers
+-- retirés ; la sortie et l'entrée en partie (deux générations), le réveil à venir.
+essai("poste : le rechargement d'essai relit les morceaux permis, retire les chevaux, refait l'entrée en partie", function()
+  depart()
+  Scriptorium.demarrer()
+  FauxJeu.entrer_en_partie()
+  local poste = Scriptorium.poste
+  FauxJeu.rechargement = nil
+  verifier(not poste.essai_recharger(), "sans liste : rien")
+  FauxJeu.rechargement = { liste = { "liaison", "noyau" } }
+  verifier(not poste.essai_recharger(), "rien de rechargeable : rien")
+  FauxJeu.chevaux, FauxJeu.chevaux_retires = {}, {}
+  Scriptorium.hommes.montures = { homme_1 = { cheval = "cheval_essai" } }
+  FauxJeu.chevaux.cheval_essai = { x = 0, y = 0, z = 0 }
+  FauxJeu.morceaux_charges = {}
+  local generation = Scriptorium.generation
+  FauxJeu.rechargement = { liste = { "hommes", "liaison", "directeur" } }
+  verifier(poste.essai_recharger(), "rechargement fait")
+  egal(table.concat(FauxJeu.morceaux_charges, ","), "hommes,directeur", "hommes et Directeur relus, pas la liaison")
+  egal(FauxJeu.chevaux_retires[1], "cheval_essai", "le cheval passager retiré")
+  egal(Scriptorium.generation, generation + 2, "sortie et entrée en partie")
+  verifier(Scriptorium.en_partie, "toujours en partie")
+  FauxJeu.rechargement = { liste = { "camp" }, refus = { camp = "erreur de syntaxe" } }
+  verifier(not poste.essai_recharger(), "un morceau en erreur : dit")
+  Scriptorium.hommes.montures = {}
+  FauxJeu.rechargement, FauxJeu.morceaux_charges = nil, nil
+  Scriptorium.arreter_le_battement()
+  FauxJeu.sortir_de_partie()
 end)

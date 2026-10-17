@@ -135,6 +135,63 @@ function poste.essai_aller(cap)
   return ok
 end
 
+-- Fiche 15, V73 g 0 (la sonde du rechargement, piste du pair) : nos morceaux relus dans le jeu ouvert, depuis les copies
+-- posées par outils/recharger.py, sans relancer le jeu. Seulement les morceaux dont les données vivent au registre et
+-- qui n'ont pas de boucle à eux (ni le noyau, ni la liaison, ni le registre, ni le bandeau, ni les réglages, ni le
+-- poste). Les chevaux passagers sont retirés d'abord ; puis la sortie et l'entrée en partie, comme un chargement :
+-- les anciennes boucles s'éteignent (génération), le réveil relance chaque morceau 30 s après.
+poste.morceaux_rechargeables = { coffre = true, camp = true, hommes = true, bataille = true, directeur = true,
+                                 enceinte = true, atelier = true, patrouilles = true, discipline = true, caractere = true }
+
+function poste.essai_recharger()
+  local liste, chemin, raison = jeu().liste_du_rechargement()
+  if type(liste) ~= "table" then
+    jeu().journal("Poste : rechargement : pas de liste (" .. tostring(chemin) .. " " .. tostring(raison) .. ")")
+    return false
+  end
+  local a_charger = {}
+  for _, nom in ipairs(liste) do
+    if poste.morceaux_rechargeables[nom] then
+      table.insert(a_charger, nom)
+    else
+      jeu().journal("Poste : rechargement : « " .. tostring(nom) .. " » refusé (pas rechargeable)")
+    end
+  end
+  if #a_charger == 0 then
+    return false
+  end
+  local chevaux = 0
+  for _, m in pairs(Scriptorium.hommes and Scriptorium.hommes.montures or {}) do
+    if m.cheval then
+      jeu().retirer_cheval(m.cheval)
+      chevaux = chevaux + 1
+    end
+  end
+  Scriptorium.sortir_de_partie()
+  local recharges = {}
+  for _, nom in ipairs(a_charger) do
+    local ok, quoi = jeu().charger_un_morceau(nom)
+    if ok then
+      for _, morceau in ipairs(Scriptorium.morceaux) do
+        if morceau.nom == nom then
+          local demarre, erreur = pcall(morceau.demarrage)
+          morceau.pret, morceau.erreur = demarre, demarre and nil or tostring(erreur)
+          ok = demarre
+          quoi = demarre and quoi or tostring(erreur)
+        end
+      end
+    end
+    jeu().journal("Poste : rechargement de « " .. nom .. " » : " .. (ok and "fait" or "ÉCHEC") .. " (" .. tostring(quoi) .. ")")
+    if ok then
+      table.insert(recharges, nom)
+    end
+  end
+  Scriptorium.entrer_en_partie()
+  jeu().journal("Poste : rechargement : " .. #recharges .. " morceau(x) (" .. table.concat(recharges, ", ") .. "), "
+                .. chevaux .. " cheval(aux) retiré(s) ; réveil à venir")
+  return #recharges == #a_charger
+end
+
 -- Fiche 15, V73 f 3 b : le bond d'Henry (comme un voyage rapide) : posé 200 mètres devant lui, pour le grand saut des
 -- cavaliers ; l'heure du bond au journal (la latence se lit jusqu'à la pose de l'escorte).
 function poste.essai_grand_saut()
@@ -1849,6 +1906,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_auberge_dehors", fonction = function() return poste.essai_lieu("auberge_dehors") end, aide = "Pose Henry devant l'auberge de Přítoky (les intérieurs, V73 f 3 b)" },
   { nom = "scriptorium_essai_auberge_dedans", fonction = function() return poste.essai_lieu("auberge_dedans") end, aide = "Pose Henry dans l'auberge de Přítoky, au rez-de-chaussée (V73 f 3 b)" },
   { nom = "scriptorium_essai_auberge_etage", fonction = function() return poste.essai_auberge_etage() end, aide = "Cherche l'étage de l'auberge de Přítoky par un rayon et y pose Henry (V73 f 3 b)" },
+  { nom = "scriptorium_essai_recharger", fonction = function() return poste.essai_recharger() end, aide = "Relit nos morceaux Lua posés par outils/recharger.py, sans relancer le jeu (sonde V73 g 0)" },
   { nom = "scriptorium_essai_grand_saut", fonction = function() return poste.essai_grand_saut() end, aide = "Pose Henry deux cents mètres devant lui (le grand saut, V73 f 3 b)" },
   { nom = "scriptorium_essai_carte_voir", fonction = function() return poste.essai_carte_voir() end, aide = "La carte lue et le dernier chargement vu (V73 f 3 a)" },
   { nom = "scriptorium_essai_directeur_a_cheval", fonction = function() return poste.essai_directeur_a_cheval() end, aide = "Le Directeur mène la formation followNPC, à cheval quand Henry l'est, trois hommes derrière lui (V73 f 2 e)" },

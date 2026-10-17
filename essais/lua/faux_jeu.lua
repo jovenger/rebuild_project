@@ -372,6 +372,18 @@ function faux.faire_venir_directeur(position, ame)
   return identifiant
 end
 function faux.position_du_joueur() return faux.position_joueur end
+-- V73 g 0 : le rechargement d'essai (« rechargement » posé par les essais : { liste = {…}, refus = { nom = raison } }).
+function faux.liste_du_rechargement()
+  if not faux.rechargement then return nil end
+  return faux.rechargement.liste, "essai"
+end
+function faux.charger_un_morceau(nom)
+  local refus = faux.rechargement and faux.rechargement.refus and faux.rechargement.refus[nom]
+  if refus then return false, refus end
+  faux.morceaux_charges = faux.morceaux_charges or {}
+  table.insert(faux.morceaux_charges, nom)
+  return true, "essai/" .. nom
+end
 -- V73 f 3 b : le plancher sous un point (« plancher » posé par les essais), sinon rien touché.
 function faux.plancher_sous(x, y, z_depart, profondeur)
   if faux.plancher then return faux.plancher(x, y, z_depart, profondeur) end

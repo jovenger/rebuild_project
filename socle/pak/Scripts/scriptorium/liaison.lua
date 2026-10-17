@@ -152,6 +152,40 @@ function liaison.lire_reglages()
   return lire_fichier_de_donnees(liaison.chemins_des_reglages)
 end
 
+-- Le rechargement d'essai (V73 g 0, la sonde ; piste du pair) : des copies de nos morceaux posées par
+-- outils/recharger.py dans le dossier du mod, et leur liste (« liste.lua » : return { "hommes", … }), lues par loadfile
+-- comme les ordres. Un morceau est exécuté dans l'environnement du jeu (il se déclare de nouveau au noyau).
+liaison.dossiers_du_rechargement = { "Mods/scriptorium_socle/recharge/", "../../Mods/scriptorium_socle/recharge/" }
+
+function liaison.liste_du_rechargement()
+  local chemins = {}
+  for _, dossier in ipairs(liaison.dossiers_du_rechargement) do
+    table.insert(chemins, dossier .. "liste.lua")
+  end
+  return lire_fichier_de_donnees(chemins)
+end
+
+-- Rend (vrai, chemin) si le morceau a été relu et exécuté, sinon (faux, raison).
+function liaison.charger_un_morceau(nom)
+  if type(nom) ~= "string" or not string.match(nom, "^[a-z_]+$") then
+    return false, "nom refusé"
+  end
+  for _, dossier in ipairs(liaison.dossiers_du_rechargement) do
+    local chemin = dossier .. nom .. ".lua"
+    local morceau, erreur = loadfile(chemin)
+    if morceau then
+      local ok, raison = pcall(morceau)
+      if ok then
+        return true, chemin
+      end
+      return false, chemin .. " : " .. tostring(raison)
+    elseif erreur and not string.find(erreur, "cannot open", 1, true) then
+      return false, chemin .. " : " .. tostring(erreur)
+    end
+  end
+  return false, "fichier introuvable"
+end
+
 -- Heure du jeu, en heures, pour dater le livre de comptes.
 -- À vérifier en jeu : Calendar.GetWorldTime() (secondes de jeu ?). En attendant, 0 si absent.
 function liaison.heure_du_jeu()
