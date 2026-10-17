@@ -306,7 +306,8 @@ local function liberer_les_hommes(b)
   end
 end
 
--- L'attaque (étape 2) : chaque combattant sans cible vivante reçoit l'ordre d'attaque contre un ennemi vivant, en
+-- L'attaque (étape 2) : chaque combattant qui ne se bat pas (vu en jeu le 17/10 : son combat fini, il retourne à son
+-- rang et ne repart pas) reçoit l'ordre d'attaque : sa cible si elle vit encore, sinon un autre ennemi vivant, en
 -- tourniquet. Rend le nombre d'ordres donnés.
 local function lancer_l_attaque(b)
   if not bataille.reglages.attaque_au_contact or type(b.personnages) ~= "table" then
@@ -326,12 +327,13 @@ local function lancer_l_attaque(b)
   for _, id in ipairs(b.combattants or {}) do
     local f = hommes().fiche(id)
     local cible = b.cibles[id]
-    if f and f.personnage and not jeu().personnage_mort(f.personnage)
-        and (cible == nil or jeu().ennemis_vivants({ cible }) == 0) then
-      k = k % #vivants + 1
-      b.cibles[id] = vivants[k]
-      jeu().journal("Bataille : « " .. f.nom .. " » attaque « " .. vivants[k] .. " » : "
-                    .. tostring(jeu().ordonner_l_attaque(vivants[k], f.personnage)))
+    if f and f.personnage and not jeu().personnage_mort(f.personnage) and jeu().occupation_de(f.personnage) ~= "combat" then
+      if cible == nil or jeu().ennemis_vivants({ cible }) == 0 then
+        k = k % #vivants + 1
+        b.cibles[id] = vivants[k]
+      end
+      jeu().journal("Bataille : « " .. f.nom .. " » attaque « " .. b.cibles[id] .. " » : "
+                    .. tostring(jeu().ordonner_l_attaque(b.cibles[id], f.personnage)))
       donnes = donnes + 1
     end
   end

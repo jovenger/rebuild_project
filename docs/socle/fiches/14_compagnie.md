@@ -240,7 +240,8 @@
 | 473, puis deux poses d'Henry (1 188 m et 31 m, à Přítoky) | V73 f 3 b (les intérieurs) | normal (trois fois) |
 | 473, puis deux sauts d'Henry (40 m) | V73 g 0 (la sonde du rechargement) | normal (trois fois) |
 | 473, puis deux sauts d'Henry (40 m) et trois poses (1 188 m, 6 m, 6 m, à Přítoky) | V73 g (le gardien, la liaison relue, la porte) | normal (six fois) |
-- Au total : 3 écrans noirs sur 118 chargements ou poses observés ; 1 sur 108 depuis la séparation. **Rien n'est conclu** : il
+| 473, puis deux sauts d'Henry (40 m) et deux poses près de la bande | Étape 2 (les bandes) | normal (cinq fois) |
+- Au total : 3 écrans noirs sur 123 chargements ou poses observés ; 1 sur 113 depuis la séparation. **Rien n'est conclu** : il
   faut plusieurs séances propres de suite ; chaque séance suivante est ajoutée ici.
 - Ce que le pair a transmis (16/10) : ni Scriptorium ni Alex n'ont connu cet écran noir. Alex repère un menu ou un fondu
   quand l'heure du monde se fige ; **ici l'heure avançait**, ce repère ne l'aurait pas vu. Le Lua du jeu n'offre qu'un
@@ -332,6 +333,27 @@
    (b) seulement nos hommes. **Prise : (a).**
 2. **Combien d'âmes par sorte ?** (a) une (Recommandé : le nécessaire ; plusieurs personnes peuvent partager une âme,
    vu en V18) ; (b) plusieurs, pour varier les visages. **Prise : (a)**, (b) reporté.
+
+### Vu en jeu (17/10, 0100eff puis la bataille rechargée, `playline3` 473)
+- **Bande 1** (5 brigands, nos âmes) : nés éveillés (« Ennemi … : Activate = true ») ; au contact, nos trois hommes
+  reçoivent l'ordre d'attaque (« arme tirée, cible posée, ordre 8 ») ; ils se battent (1 à 3 combats chacun), tuent des
+  brigands, et une nouvelle cible est donnée quand la leur tombe. **Défaut vu** : son combat fini, l'homme retourne à
+  son rang et ne repart pas tant que sa cible vit : deux brigands sont restés debout ; la règle a tranché à deux heures
+  de contact (« victoire coûteuse, 0 mort, 1 blessé, butin 48 »). **Corrigé** : l'attaque est redonnée à chaque
+  battement à tout combattant qui ne se bat pas (banc, puis la bataille rechargée dans le jeu ouvert).
+- **Bande 2** (après la correction) : l'attaque redonnée toutes les 30 s aux deux combattants qui ne se battaient pas
+  (Jan, blessé, n'était plus combattant) ; poursuites dans le pré. Séance arrêtée avant la fin (consigne : ne pas
+  peaufiner).
+- **La bande ne prend aucune initiative** : elle se défend et fuit, mais n'attaque ni nos hommes, ni Henry posé à
+  12 m. Henry n'est donc pas attaqué (la réponse 1 a n'est pas tenue).
+- Séance fermée par `fin_essai`, écran normal.
+
+### À reprendre plus tard
+- **L'initiative de la bande** (attaquer nos hommes et Henry d'elle-même) : la ligne `player -1`, retirée, existe telle
+  quelle dans le jeu (`kutnohorsko_enemies_bandits_naBylance_archery`) ; les formes admises du contrôle d'absence sont
+  au plafond (32) ; rien ne prouve qu'elle suffirait (la bande n'attaque pas non plus nos hommes, hostiles des deux
+  côtés). Question posée au pair.
+- La fin par le jeu (tous les brigands tombés) avec la correction ; une bande de Coumans.
 
 ### Reporté (le nécessaire de JoVenGer)
 - Les apparences propres ; le caractère porté par l'âme ; les métiers et la réserve « femmes » vus en jeu ; la

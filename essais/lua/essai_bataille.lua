@@ -356,15 +356,23 @@ essai("bataille (étape 2) : au contact, chaque combattant attaque un ennemi viv
   egal(FauxJeu.attaques[1].cible, e1, "le premier sur le premier ennemi")
   egal(FauxJeu.attaques[2].cible, e2, "le deuxième sur le deuxième")
   egal(FauxJeu.attaques[3].cible, e1, "en tourniquet")
+  -- Vu en jeu le 17/10 : son combat fini, l'homme retourne à son rang ; l'attaque lui est redonnée à chaque battement
+  -- tant qu'il ne se bat pas ; jamais à celui qui se bat.
+  local perso = {}
+  for i = 1, 4 do perso[i] = FauxJeu.attaques[i].attaquant end
   FauxJeu.ennemis_vivants_par_id[e1] = false
+  FauxJeu.occupations[perso[2]] = "combat"
   FauxJeu.heure = 10.5
   bataille.battre()
-  egal(#FauxJeu.attaques, 6, "les deux dont la cible est tombée en reçoivent une autre")
-  egal(FauxJeu.attaques[5].cible, e2, "le dernier vivant")
-  egal(FauxJeu.attaques[6].cible, e2, "le dernier vivant")
+  egal(#FauxJeu.attaques, 7, "les trois qui ne se battent pas reçoivent l'ordre ; pas celui qui se bat")
+  egal(FauxJeu.attaques[5].cible, e2, "sa cible tombée : le dernier vivant")
+  egal(FauxJeu.attaques[6].cible, e2, "sa cible vivante : la même")
+  egal(FauxJeu.attaques[7].cible, e2, "sa cible tombée : le dernier vivant")
+  for i = 1, 4 do FauxJeu.occupations[perso[i]] = "combat" end
   FauxJeu.heure = 11
   bataille.battre()
-  egal(#FauxJeu.attaques, 6, "rien de changé : pas d'ordre de plus")
+  egal(#FauxJeu.attaques, 7, "tous se battent : pas d'ordre de plus")
+  for i = 1, 4 do FauxJeu.occupations[perso[i]] = nil end
   -- L'interrupteur.
   preparer(1000, 10, { "homme_d_armes", "pavoisier" })
   FauxJeu.attaques = {}

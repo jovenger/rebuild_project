@@ -370,9 +370,11 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   registre, le bandeau, les réglages, le poste ; ni les arbres XML ni les tables). Fiche 15, V73 g 0.
 - **Fin de l'étape 1, vue en jeu** (bf9b02e) : le gardien des hommes en version simple (sous le sol repêché, figé
   relancé, relance utile), la liaison relisible dans le jeu ouvert, la porte (l'escorte dans l'embrasure, puis dehors).
-- **Suite** : le nécessaire de JoVenGer (`plan_d_action.md`, en tête), point 2 : nos personnages, nos âmes, notre
-  faction (juste ce qu'il faut pour que les hommes, le Directeur et les bandes existent et se battent du bon côté) ; puis
-  le guichet, les missions, l'embauche et les métiers, la bascule. À vérifier par JoVenGer : le passage Trosky ↔ Kuttenberg
+- **Étape 2, vue en jeu** (0100eff et la bataille rechargée) : les bandes sur nos âmes (copiées sur des âmes du jeu),
+  leur faction, éveillées ; nos hommes les attaquent, l'attaque redonnée à chaque battement ; la bataille se clôt.
+  À reprendre : l'initiative de la bande (elle n'attaque ni nos hommes ni Henry d'elle-même ; fiche 14).
+- **Suite** : le nécessaire de JoVenGer (`plan_d_action.md`, en tête), point 3 : le guichet (brancher Scriptorium sur
+  le socle, le tableau des règles en double) ; puis les missions, l'embauche et les métiers, la bascule. À vérifier par JoVenGer : le passage Trosky ↔ Kuttenberg
   (avec une sauvegarde portant un camp du socle d'avant ba0906c : la charger d'abord sur la carte du camp), la vraie monte d'Henry, le voyage rapide par la carte, et les intérieurs (l'escorte à pied dans une auberge : porte, escalier, étage).
 - **À faire après V73 b (JoVenGer, 16/10, transmis par le pair)** : le camp ne suit jamais Henry. Vérifier que, une fois
   fondé, le camp se repose depuis l'ancre gardée au registre (origine et cap), jamais depuis Henry ; essai au banc et en
@@ -380,7 +382,7 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
   La règle de Scriptorium pour choisir le lieu (`camp_selon_le_terrain`) : on ne s'en mêle pas (JoVenGer).
 - **Ensuite** : V73 b (l'arbitre des priorités, et l'attaque sur un homme assis), V73 d (la garde), V73 e (le
   rassemblement), V73 f (suivre Henry, à cheval), le gardien des hommes, puis les étapes 2 à 8.
-- **Écran noir** : 1 sur 108 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
+- **Écran noir** : 1 sur 113 chargements ou poses depuis la séparation (V73 c 9, non reproduit en reprenant la même sauvegarde ;
   décompte et observations dans la fiche 14, à poursuivre).
 
 ## 7. Ce qui reste à faire
