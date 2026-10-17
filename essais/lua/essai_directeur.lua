@@ -297,3 +297,22 @@ essai("directeur (5 c, D67, D69) : sa tenue et ses armes données par Scriptoriu
   egal(#FauxJeu.equipements, 1, "une seule fois par personnage")
   verifier(directeur.donner_les_objets({}), "liste vide : sa tenue de naissance")
 end)
+
+essai("directeur (5 c) : à l'entrée en partie, ses objets donnés reportés ; s'il en manque, recréés", function()
+  preparer(1000, 10)
+  directeur.battre()
+  local CAPE = "cccccccc-1111-2222-3333-444444444445"
+  directeur.donner_les_objets({ CAPE })
+  directeur.battre()
+  directeur.battre()
+  local perso = directeur.personnage()
+  FauxJeu.equipements = {}
+  FauxJeu.inventaires[perso] = { { objet = CAPE, nombre = 1 } }
+  directeur.relancer()
+  directeur.battre()
+  egal(#FauxJeu.equipements, 0, "rien ne manque : seulement reportés, rien recréé")
+  FauxJeu.inventaires[perso] = {}
+  directeur.relancer()
+  directeur.battre()
+  egal(#FauxJeu.equipements, 1, "un objet manque : recréés")
+end)

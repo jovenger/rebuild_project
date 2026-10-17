@@ -336,7 +336,7 @@ local function ecrire_maintenant()
   if not charge then
     registre.charger()
   end
-  local debut = jeu().maintenant and jeu().maintenant() or nil
+  local debut = jeu().chrono and (jeu().chrono()) or nil
   -- L'ancien flux : toutes ses cases connues sont réécrites (avant de le vider), pas seulement les nommées.
   if migration_a_faire then
     for nom in pairs(contenu_stocke or {}) do
@@ -384,8 +384,9 @@ local function ecrire_maintenant()
   registre.en_attente = false
   derniere_ecriture = jeu().maintenant and jeu().maintenant() or nil
   if reglage("registre_journal") == 1 then
+    local fin = jeu().chrono and (jeu().chrono()) or nil
     jeu().journal(string.format("Registre : écrit, %d case(s), %d octets, %s ms", ecrites, octets,
-      (debut and derniere_ecriture) and string.format("%.1f", (derniere_ecriture - debut) * 1000) or "?"))
+      (debut and fin) and string.format("%.1f", (fin - debut) * 1000) or "?"))
   end
   return ecrites
 end

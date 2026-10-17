@@ -113,6 +113,7 @@ function faux.remettre_a_zero()
 end
 
 function faux.maintenant() return faux.temps end
+function faux.chrono() return faux.temps, "faux" end
 function faux.avancer(secondes) faux.temps = faux.temps + secondes end
 function faux.journal(texte) table.insert(faux.journal_lignes, tostring(texte)) end
 function faux.afficher(texte, duree, complement)

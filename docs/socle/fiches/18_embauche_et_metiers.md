@@ -161,3 +161,7 @@ garde la ronde, ses durées et le décor ; le socle fournit le geste tenu et la 
   ce qui reste à Scriptorium ; 93 pas utiles avec leur raison ; 23 réglages ; 0 à ouvrir).
 - **Reste ouvert** (dit au pair) : le poste partagé avec Henry (Henry passe avant, par l'interaction ; l'enveloppe sur
   l'instance d'une fonction du jeu peut demander un second « nom du jeu admis » : à JoVenGer).
+- **Vu en jeu le 17/10 (séance sauvegardée puis rechargée)** : la sortie lointaine (dehors loin d'Henry, arrivée et
+  retour calculés, renaissance sur le chemin du camp, rapport « faite ») ; le Directeur habillé de ses objets (7 créés,
+  7 portés) ; après rechargement, le poste de prière reposé et repris, l'admis retrouvé et mené, jamais refait. Ajouté
+  ensuite : à l'entrée en partie, le Directeur remet ses objets (recréés s'il en manque, sans doublon) ; non vu en jeu.

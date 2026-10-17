@@ -30,7 +30,7 @@ Scriptorium.noyau = Scriptorium.noyau or {}
 -- « registre_intervalle_s » (fiche 01, le pair, 17/10) : une écriture du registre au plus par tant de secondes réelles.
 Scriptorium.noyau.reglages = Scriptorium.noyau.reglages
   or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10, argent_d_henry_max = 1000000,
-       registre_intervalle_s = 2 }
+       registre_intervalle_s = 2, registre_journal = 0 }
 
 -- La règle du passage (V73 f 3 b), accrochée à la liaison : l'horloge (heures du jeu) a avancé, de
 -- « passage_jours_max » au plus.

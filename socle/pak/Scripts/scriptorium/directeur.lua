@@ -127,6 +127,17 @@ local function habiller(d)
   end
   local portes = {}
   for i, piece in ipairs(d.objets) do portes[i] = piece.objet end
+  -- Remis à l'entrée en partie : s'il en manque, tout est recréé (ses pièces de naissance et les restes retirés d'abord,
+  -- donc sans doublon) ; sinon, seulement reportés.
+  if d.habille_pour == d.personnage and d.second_passage_pour ~= d.personnage then
+    for _, objet in ipairs(portes) do
+      if (tonumber(jeu().compter_objet(d.personnage, objet)) or 0) == 0 then
+        d.habille_pour = nil
+        jeu().journal("Directeur : un objet donné manque (" .. objet .. ") : ses objets recréés")
+        break
+      end
+    end
+  end
   if d.habille_pour ~= d.personnage then
     local recreer = {}
     for i, piece in ipairs(d.objets) do recreer[i] = { objet = piece.objet, etat = piece.etat } end
@@ -201,6 +212,8 @@ end
 -- à la sauvegarde, V56), et il revient s'il manque.
 function directeur.relancer()
   donnees().derniere_activite = nil
+  -- Fiche 18, 5 c : à l'entrée en partie, ses objets donnés remis (le jeu lui en ôte au chargement, comme aux hommes).
+  donnees().second_passage_pour = nil
   return directeur.redresser()
 end
 

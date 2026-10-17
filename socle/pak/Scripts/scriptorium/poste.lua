@@ -940,20 +940,20 @@ function poste.essai_registre_gros()
   end
   local d = registre.lire("essai_gros")
   d.lignes = contenu_gros().lignes
-  local debut = jeu().maintenant()
+  local debut, source = jeu().chrono()
   local ecrites = registre.enregistrer("essai_gros", true)
-  local duree = (jeu().maintenant() - debut) * 1000
+  local duree = ((jeu().chrono()) - debut) * 1000
   local taille = #(registre.chaine_de_la_case("essai_gros") or "")
-  jeu().journal(string.format("Poste : registre gros, %d octets, %d tranche(s), écrit en %.1f ms (%s case(s))", taille,
-    math.ceil(taille / 30000), duree, tostring(ecrites)))
+  jeu().journal(string.format("Poste : registre gros, %d octets, %d tranche(s), écrit en %.1f ms (%s case(s) ; horloge %s)",
+    taille, math.ceil(taille / 30000), duree, tostring(ecrites), tostring(source)))
   if not registre.etat_de("essai") then
     registre.declarer_case("essai", 1, function() return { appels = 0 } end)
   end
   registre.lire("essai").appels = (registre.lire("essai").appels or 0) + 1
-  debut = jeu().maintenant()
+  debut = jeu().chrono()
   ecrites = registre.enregistrer("essai", true)
   jeu().journal(string.format("Poste : registre, une petite case : %s case(s) écrite(s) en %.1f ms", tostring(ecrites),
-    (jeu().maintenant() - debut) * 1000))
+    ((jeu().chrono()) - debut) * 1000))
   for _, ligne in ipairs(jeu().decrire_le_registre()) do
     jeu().journal("Poste : registre, " .. ligne)
   end

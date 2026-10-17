@@ -35,6 +35,19 @@ function liaison.maintenant()
   return System.GetCurrTime()
 end
 
+-- Fiche 01 (vu en jeu le 17/10 : System.GetCurrTime n'avance pas pendant une image, une écriture y durait « 0,0 ms ») :
+-- une horloge fine pour mesurer une durée dans la même image : os.clock (temps de calcul) s'il existe, sinon l'horloge
+-- du moteur. Rend les secondes et le nom de la source.
+function liaison.chrono()
+  if os and type(os.clock) == "function" then
+    local ok, t = pcall(os.clock)
+    if ok and type(t) == "number" then
+      return t, "os.clock"
+    end
+  end
+  return System.GetCurrTime(), "System.GetCurrTime"
+end
+
 -- Journal du jeu (fichier de journal et console), jamais l'écran du joueur.
 function liaison.journal(texte)
   System.LogAlways("[Scriptorium] " .. tostring(texte))

@@ -70,3 +70,12 @@ registre s'écrit donc **par case** :
   sans être nommée est écrite quand même et dénoncée au journal ; le banc entier doit n'en dénoncer aucune.
 - **Le journal des écritures** (réglage `registre_journal`, éteint par défaut) : une ligne par écriture réelle (cases,
   octets, tranches, durée).
+
+**Vu en jeu le 17/10** (playline3, sauvegardée puis rechargée) : l'index par case en service dès la première écriture ;
+13 cases, dont une case d'essai de 644 372 octets en 22 tranches ; une petite modification n'écrit qu'une case ;
+« Sauvegarder et quitter », rechargement : toutes les cases relues, aucune refusée, la case de 644 Ko relue intacte
+(6 000 lignes comparées). La durée d'une écriture n'a pas été mesurée (l'horloge du moteur n'avance pas pendant une
+image : « 0,0 ms ») ; `liaison.chrono` (os.clock) est ajoutée pour la mesure suivante.
+**Relecture (17/10)** : le détecteur d'oublis à chaque écriture dénonçait surtout des cases en cours de modification ;
+il est remplacé par la surveillance à la fin du battement (sûre par construction). Un vrai défaut attrapé au banc : à
+la migration de l'ancien flux, une case connue non nommée n'était pas réécrite alors que le flux était vidé ; corrigé.
