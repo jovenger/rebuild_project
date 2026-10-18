@@ -59,4 +59,10 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
   sur la quête) ; le port d'entrée de la quête est le nôtre (« eveil »).
 - Le contrôle d'absence admet à part les lignes de nos quêtes et de Storm identiques mot pour mot aux fichiers du
   jeu de la même famille (13 : en-têtes, `ObjectiveValueTypes`, la tâche « roles », l'en-tête d'un Dialogue,
-  `Response Role="HENRY"`) : réponse prise d'office, à revoir par JoVenGer.
+  `Response Role="HENRY"`) : **validé par JoVenGer le 18/10** (questions à cocher).
+
+## Décisions de JoVenGer (18/10, questions à cocher)
+- Les 13 lignes identiques au jeu : admises.
+- Le « Parler » du jeu absent : attendre le principe d'Alex par le pair, et essayer sur une partie neuve d'essai.
+- L'annonce « une bande approche » sans guetteur : silencieuse (seul un garde qui a vu donne l'alerte à l'écran).
+- La bascule : après les dialogues vus en jeu.
