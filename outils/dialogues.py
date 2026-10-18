@@ -314,10 +314,10 @@ def fichiers(donnees):
         '<?xml version="1.0"?>', "<storm>", "  <tasks>", '    <task name="roles" class="roles">',
         '      <source path="%s\\roles.xml" />' % PROJET, "    </task>", "  </tasks>", "</storm>", ""])
     # Principe transmis par le pair (18/10) : une règle par âme, un seul hasName (le nom exact de l'âme), le nom de la
-    # règle est celui de l'âme ; les âmes de nos réserves (combattants, gens de métier, femmes) reçoivent le rôle des
+    # règle est celui de l'âme ; les âmes de nos réserves (combattants, gens de métier, femmes, compagnons nommés) reçoivent le rôle des
     # hommes, celle du Directeur le sien.
     with open(TABLE_DES_AMES, "r", encoding="ascii") as f:
-        ames = sorted(set(re.findall(r'soul_name="(scriptorium_(?:combattant|metier|femme)_[0-9_]+)"', f.read())))
+        ames = sorted(set(re.findall(r'soul_name="(scriptorium_(?:combattant|metier|femme|compagnon)_[0-9_]+)"', f.read())))
     if not ames:
         raise SystemExit("REFUS : aucune âme de réserve dans " + TABLE_DES_AMES)
     regles = []

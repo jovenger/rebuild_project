@@ -41,6 +41,7 @@ reglages.catalogue = {
   { section = "exemptions_des_metiers", morceau = "hommes", table = "exemptions_des_metiers" },
   { section = "rangs", morceau = "hommes", table = "rangs", taux = { soudoyer = true, dizainier = true, capitaine = true } },
   { section = "equipement", morceau = "hommes", table = "equipement", parts = { etat_neuf = true } },
+  { section = "compagnons", morceau = "hommes", table = "compagnons" },
   { section = "paliers", morceau = "bataille", table = "paliers", taux = { palier_1 = true, palier_2 = true, palier_3 = true } },
   { section = "bataille", morceau = "bataille", table = "reglages", parts = { part_des_morts = true },
     taux = { bande_vise_henry_m = true, relance_bouge_m = true, relance_pres_m = true, poste_vue_m = true,

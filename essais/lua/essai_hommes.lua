@@ -967,6 +967,43 @@ essai("équipement : famille inconnue refusée ; sans famille, une des six est t
   egal(hommes.equipement.familles[famille] ~= nil, true, "une des six familles")
 end)
 
+essai("compagnons nommés (18/10) : 31 fiches, une âme chacun ; l'embauche donne son âme et sa famille ; une âme portée est refusée ; les familles des compagnons ne sont jamais tirées", function()
+  egal(#hommes.compagnons, 31, "trente et un compagnons")
+  local ames, noms = {}, 0
+  for _, c in ipairs(hommes.compagnons) do
+    verifier(not ames[c.ame], "âme unique : " .. c.nom)
+    ames[c.ame] = true
+    verifier(hommes.roles[c.role] ~= nil, "rôle connu : " .. c.nom)
+    verifier(c.famille == nil or hommes.equipement.familles[c.famille] ~= nil, "famille connue : " .. c.nom)
+    verifier((c.role == "homme_d_armes") == (c.famille ~= nil), "une famille pour les hommes d'armes seulement : " .. c.nom)
+    egal(hommes.compagnons_nommes[c.nom], c, "le service nom -> fiche : " .. c.nom)
+    noms = noms + 1
+  end
+  egal(noms, 31, "trente et un noms")
+  preparer(200, 10, 10)
+  local c = hommes.compagnons_nommes["István Kovács"]
+  -- L'appel exact de la prise, sans « semaines » (contrats à durée éteints, comme dans le jeu par défaut).
+  Scriptorium.noyau.interrupteurs.contrats_a_duree = 0
+  local id = hommes.embaucher({ nom = c.nom, ame = c.ame, role = c.role, famille = c.famille, palier = c.palier, prime = 0 })
+  verifier(id, "István embauché")
+  local f = hommes.fiche(id)
+  egal(f.nom, "István Kovács", "son nom")
+  egal(f.ame, c.ame, "son âme")
+  egal(f.famille, "sabre", "sa famille")
+  egal(f.equipement.armes, "sabre_3_01", "le sabre du palier 3")
+  local id2, raison, detail = hommes.embaucher({ nom = c.nom, ame = string.upper(c.ame), role = c.role, famille = c.famille, palier = 3, prime = 0 })
+  egal(id2, false, "une seconde fois : refusé")
+  egal(raison, "ame_deja_portee", "raison")
+  for _ = 1, 30 do
+    local autre = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+    if autre then
+      verifier(hommes.equipement.familles[hommes.fiche(autre).famille].tirage ~= 0, "jamais une famille de compagnon au tirage")
+      hommes.renvoyer(autre)
+    end
+  end
+  Scriptorium.noyau.interrupteurs.contrats_a_duree = 1
+end)
+
 -- Fiche 13, la garde de la tenue (réponses a et a de JoVenGer du 16/10) : le moteur ôte parfois sa tenue à un homme en
 -- pleine partie ; le socle lui fait remettre ses propres pièces.
 local function lignes_contenant(texte)

@@ -1922,6 +1922,254 @@
         <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
       </operations>
     </rule>
+    <rule name="scriptorium_compagnon_01">
+      <selectors>
+        <hasName name="scriptorium_compagnon_01" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_02">
+      <selectors>
+        <hasName name="scriptorium_compagnon_02" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_03">
+      <selectors>
+        <hasName name="scriptorium_compagnon_03" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_04">
+      <selectors>
+        <hasName name="scriptorium_compagnon_04" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_05">
+      <selectors>
+        <hasName name="scriptorium_compagnon_05" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_06">
+      <selectors>
+        <hasName name="scriptorium_compagnon_06" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_07">
+      <selectors>
+        <hasName name="scriptorium_compagnon_07" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_08">
+      <selectors>
+        <hasName name="scriptorium_compagnon_08" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_09">
+      <selectors>
+        <hasName name="scriptorium_compagnon_09" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_10">
+      <selectors>
+        <hasName name="scriptorium_compagnon_10" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_11">
+      <selectors>
+        <hasName name="scriptorium_compagnon_11" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_12">
+      <selectors>
+        <hasName name="scriptorium_compagnon_12" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_13">
+      <selectors>
+        <hasName name="scriptorium_compagnon_13" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_14">
+      <selectors>
+        <hasName name="scriptorium_compagnon_14" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_15">
+      <selectors>
+        <hasName name="scriptorium_compagnon_15" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_16">
+      <selectors>
+        <hasName name="scriptorium_compagnon_16" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_17">
+      <selectors>
+        <hasName name="scriptorium_compagnon_17" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_18">
+      <selectors>
+        <hasName name="scriptorium_compagnon_18" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_19">
+      <selectors>
+        <hasName name="scriptorium_compagnon_19" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_20">
+      <selectors>
+        <hasName name="scriptorium_compagnon_20" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_21">
+      <selectors>
+        <hasName name="scriptorium_compagnon_21" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_22">
+      <selectors>
+        <hasName name="scriptorium_compagnon_22" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_23">
+      <selectors>
+        <hasName name="scriptorium_compagnon_23" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_24">
+      <selectors>
+        <hasName name="scriptorium_compagnon_24" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_25">
+      <selectors>
+        <hasName name="scriptorium_compagnon_25" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_26">
+      <selectors>
+        <hasName name="scriptorium_compagnon_26" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_27">
+      <selectors>
+        <hasName name="scriptorium_compagnon_27" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_28">
+      <selectors>
+        <hasName name="scriptorium_compagnon_28" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_29">
+      <selectors>
+        <hasName name="scriptorium_compagnon_29" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_30">
+      <selectors>
+        <hasName name="scriptorium_compagnon_30" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_compagnon_31">
+      <selectors>
+        <hasName name="scriptorium_compagnon_31" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
     <rule name="scriptorium_femme_01">
       <selectors>
         <hasName name="scriptorium_femme_01" />

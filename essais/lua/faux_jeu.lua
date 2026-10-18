@@ -562,6 +562,14 @@ local function prereglages_d_essai()
       pieces[nom] = { nom .. "_arme", nom .. "_seconde" }
     end
   end
+  -- Les sortes des compagnons nommés (18/10), aux niveaux que le jeu offre.
+  for sorte, niveaux in pairs({ mace = { 1, 2, 3 }, hammer = { 2, 3, 4 }, sabre = { 1, 3 }, sword = { 2, 3, 4 },
+                                huntingsword = { 1, 2, 3, 4, 5 } }) do
+    for _, n in ipairs(niveaux) do
+      local nom = string.format("%s_%d_01", sorte, n)
+      pieces[nom] = { nom .. "_arme" }
+    end
+  end
   for _, nom in ipairs({ "mace_shield_2_02", "mace_shield_2_03", "mace_shield_3_04", "mace_shield_4_02", "axe_shield_3_02",
                          "axe_shield_3_03", "axe_shield_4_02", "huntingsword_shield_3_01", "huntingsword_shield_3_02",
                          "huntingsword_shield_4_01" }) do

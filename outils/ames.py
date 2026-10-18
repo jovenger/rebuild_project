@@ -101,6 +101,24 @@ RESERVES = [
     # Le Directeur garde le personnage qu'il avait (extraGuards_dummy_6), avec la classe des soldats.
     {"reserve": "directeur", "code": 4, "paliers": [1], "personnages": ["char_GENERIC_MAN_GUARD_08"],
      "classe": "33", "archetype": "0", "niveaux": [None], "voix": "Guards"},
+    # Les 31 compagnons nommés (demande du pair, liste validée par JoVenGer le 18/10, Scriptorium
+    # docs/socle/COMPAGNONS.md) : une âme chacun, numéro = rang dans la liste (hommes.compagnons_nommes), un visage
+    # fixe pris hors des trois palettes (aucun jumeau avec les hommes ordinaires ni entre eux), classe des soldats,
+    # niveau du palier 3. Code 7 (le code 6 est celui des rôles, outils/dialogues.py). L'âge suit le surnom quand il y
+    # en a un (le Vieux, le Chevalier déchu : âgés ; le Chauve : un prêtre ; Ulrich der Rote : la voix allemande).
+    {"reserve": "compagnon", "code": 7, "paliers": [31], "personnages": [
+        "char_GENERIC_MAN_ROMA_01", "char_GENERIC_MAN_ROMA_02", "char_GENERIC_MAN_NOBLEMAN_01",
+        "char_GENERIC_MAN_JEW_03", "char_GENERIC_MAN_PRIEST_02", "char_GENERIC_MAN_NOBLEMAN_04",
+        "char_GENERIC_MAN_MARKET_POTTER_CZECH_01", "char_GENERIC_MAN_PRIEST_01", "char_GENERIC_MAN_NOBLEMAN_11",
+        "char_GENERIC_MAN_MERCHANT_JEW_01", "char_GENERIC_MAN_NOBLEMAN_07", "char_GENERIC_MAN_ROMA_03",
+        "char_GENERIC_MAN_JEW_04", "char_GENERIC_MAN_NOBLEMAN_03", "char_GENERIC_MAN_PRIEST_06",
+        "char_GENERIC_MAN_NOBLEMAN_08", "char_GENERIC_MAN_PRIEST_03", "char_GENERIC_MAN_MERCHANT_ROMANI_01",
+        "char_GENERIC_MAN_NOBLEMAN_05", "char_GENERIC_MAN_NOBLEMAN_10", "char_GENERIC_MAN_PRIEST_07",
+        "char_GENERIC_MAN_JEW_02", "char_GENERIC_MAN_MERCHANT_JEW_03", "char_GENERIC_MAN_PRIEST_09",
+        "char_GENERIC_MAN_NOBLEMAN_09", "char_GENERIC_MAN_PRIEST_08", "char_GENERIC_MAN_JEW_01",
+        "char_GENERIC_MAN_MERCHANT_JEW_02", "char_GENERIC_MAN_PRIEST_04", "char_GENERIC_MAN_NOBLEMAN_06",
+        "char_GENERIC_MAN_NOBLEMAN_12"],
+     "classe": "33", "archetype": "0", "niveaux": ["0.7"]},
 ]
 
 
@@ -211,6 +229,14 @@ def lignes_des_reserves(personnages):
             if p not in personnages:
                 raise SystemExit("REFUS : personnage introuvable dans le jeu : " + p)
         print("  réserve %s : %d visages" % (r["reserve"], len(choix)))
+        if len(set(choix)) != len(choix):
+            raise SystemExit("REFUS : un visage deux fois dans la réserve " + r["reserve"])
+        for autre in RESERVES:
+            if autre is not r:
+                autres = autre.get("personnages") or palette(personnages, autre["familles"])
+                commun = sorted(set(choix) & set(autres))
+                if commun and r["reserve"] == "compagnon":
+                    raise SystemExit("REFUS : visage de compagnon déjà pris par la réserve %s : %s" % (autre["reserve"], commun[0]))
         rang = 0
         for palier, taille in enumerate(r["paliers"], start=1):
             for numero in range(1, taille + 1):

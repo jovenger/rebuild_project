@@ -28,7 +28,10 @@ FIN = "-- FIN DES PIÈCES"
 
 # Les sortes de préréglages du jeu retenues (fiche 13, section validée) : tenues de soldat et les six familles.
 TENUES = re.compile(r"^soldier_generic_[1-6]_\d+$")
-FAMILLES = re.compile(r"^(sword_shield|axe_shield|longsword|mace_shield|axe|polearm)_[2-6]_\d+$")
+FAMILLES = re.compile(r"^((sword_shield|axe_shield|longsword|mace_shield|axe|polearm)_[2-6]"
+                      # Les compagnons nommés (demande du pair, liste validée par JoVenGer le 18/10) : cinq sortes de plus,
+                      # données par contrat seulement (hors du tirage des hommes ordinaires).
+                      r"|(mace|hammer|sabre|sword|huntingsword)_[1-6])_\d+$")
 # Les préréglages à pavois peint (réponse 3 de JoVenGer), dont trois hors des six familles.
 PAVOIS = ["mace_shield_2_02", "mace_shield_2_03", "mace_shield_3_04", "mace_shield_4_02", "axe_shield_3_02",
           "axe_shield_3_03", "axe_shield_4_02", "huntingsword_shield_3_01", "huntingsword_shield_3_02",

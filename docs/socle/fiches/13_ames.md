@@ -617,3 +617,23 @@
   (relevé au moteur : les PNJ dont `guidSharedSoulId` est cette âme) : raison `ame_deja_portee`, une ligne au journal.
   Les âmes du jeu n'y sont pas soumises (des brigands du jeu en partagent une, voulu).
 - Non vérifié en jeu.
+
+## Les 31 compagnons nommés (demande du pair, liste validée par JoVenGer le 18/10/2026)
+- Source : Scriptorium `docs/socle/COMPAGNONS.md` (nom, surnom, arme, prix ; le prix est payé au coffre par Scriptorium).
+- Réserve « compagnon » (code 7 ; le code 6 est celui des rôles) : 31 âmes, numéro = rang dans la liste ; un visage fixe
+  chacun, hors des trois palettes (personnages génériques du jeu de base : 11 nobles, 8 prêtres, 4 juifs, 3 marchands
+  juifs, 3 Roms, 1 marchand rom, 1 potier ; aucun jumeau) ; classe des soldats (le jeu affiche « Soldat »), niveau 0.7.
+  L'âge suit le surnom : le Vieux et le Chevalier déchu ont un visage âgé, le Chauve un visage de prêtre, Ulrich der
+  Rote la voix allemande. `outils/ames.py` refuse un visage de compagnon pris ailleurs ou deux fois.
+- Règles Storm : comme les autres réserves (ils peuvent parler).
+- Service pour la prise : `hommes.compagnons_nommes[nom] = { nom, surnom, ame, role, famille, palier = 3 }` (les mêmes
+  fiches que `hommes.compagnons`, liste à nom réglable, section « compagnons »). Embauche :
+  `hommes.embaucher({ nom, ame, role, famille, palier = 3, prime = 0 })` ; une âme déjà portée dans la Compagnie est
+  refusée (`ame_deja_portee`).
+- Armes : cinq familles de plus, données par contrat seulement (`tirage = 0`, jamais tirées pour un homme ordinaire) :
+  masse (mace), marteau (hammer), sabre, epee (sword, l'épée seule), epee_courte (huntingsword). Plus proches, faute de
+  préréglage du jeu : hache à deux mains -> hache ; arbalète et dague -> arbaletrier (son assemblage porte une épée
+  courte) ; épée et dague -> epee ; arc long -> archer.
+- Le nom affiché au-dessus de la tête reste « Soldat » (classe sociale) : un nom propre à l'écran demanderait un
+  personnage Skald à nous par compagnon (question posée au pair).
+- Non vérifié en jeu.

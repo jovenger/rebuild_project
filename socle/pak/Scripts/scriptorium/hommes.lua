@@ -310,6 +310,13 @@ hommes.equipement = {
     masse_bouclier = { sorte = "mace_shield", palier_1 = { de = 2, a = 3 }, palier_2 = { de = 4, a = 4 }, palier_3 = { de = 5, a = 6 } },
     hache          = { sorte = "axe", palier_1 = { de = 2, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 5, a = 5 } },
     arme_d_hast    = { sorte = "polearm", palier_1 = { de = 2, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 4, a = 6 } },
+    -- Les compagnons nommés (18/10, liste validée par JoVenGer) : cinq familles de plus, données par contrat seulement
+    -- (tirage = 0 : jamais tirées pour un homme ordinaire ; les six familles d'origine restent les seules tirées).
+    masse          = { sorte = "mace", palier_1 = { de = 1, a = 1 }, palier_2 = { de = 2, a = 2 }, palier_3 = { de = 3, a = 3 }, tirage = 0 },
+    marteau        = { sorte = "hammer", palier_1 = { de = 2, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 4, a = 4 }, tirage = 0 },
+    sabre          = { sorte = "sabre", palier_1 = { de = 1, a = 1 }, palier_2 = { de = 1, a = 1 }, palier_3 = { de = 3, a = 3 }, tirage = 0 },
+    epee           = { sorte = "sword", palier_1 = { de = 2, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 4, a = 4 }, tirage = 0 },
+    epee_courte    = { sorte = "huntingsword", palier_1 = { de = 1, a = 2 }, palier_2 = { de = 3, a = 3 }, palier_3 = { de = 4, a = 5 }, tirage = 0 },
   },
   pavois = {
     palier_1 = { "mace_shield_2_02", "mace_shield_2_03" },
@@ -329,6 +336,53 @@ hommes.equipement = {
     },
   },
 }
+
+-- Les 31 compagnons nommés (demande du pair ; liste validée par JoVenGer le 18/10, Scriptorium docs/socle/COMPAGNONS.md) :
+-- chacun son âme (réserve « compagnon », outils/ames.py : numéro = rang dans cette liste, un visage fixe hors des
+-- palettes), son rôle et sa famille d'armes. Familles les plus proches, faute de préréglage du jeu : la hache à deux
+-- mains -> « hache » ; l'arbalète et la dague -> « arbaletrier » (son assemblage porte une épée courte) ; l'épée et la
+-- dague -> « epee » (l'épée seule) ; l'arc long -> « archer ». La prise embauche ainsi :
+-- hommes.embaucher({ nom = c.nom, ame = c.ame, role = c.role, famille = c.famille, palier = c.palier, prime = 0 }) ;
+-- le prix est payé au coffre par Scriptorium. Liste à nom : réglable par le fichier (section « compagnons »).
+hommes.compagnons = {
+  { nom = "Vítek Lísek", surnom = "le Renard", ame = "5c7a5c7a-0007-4001-8000-000000000001", role = "archer", palier = 3 },
+  { nom = "Matouš Kos", surnom = "le Merle", ame = "5c7a5c7a-0007-4001-8000-000000000002", role = "homme_d_armes", famille = "epee_courte", palier = 3 },
+  { nom = "Ondra z Mýta", ame = "5c7a5c7a-0007-4001-8000-000000000003", role = "homme_d_armes", famille = "arme_d_hast", palier = 3 },
+  { nom = "Kuneš Bradatý", surnom = "le Barbu", ame = "5c7a5c7a-0007-4001-8000-000000000004", role = "homme_d_armes", famille = "hache", palier = 3 },
+  { nom = "Petr Šeptal", surnom = "le Chuchoteur", ame = "5c7a5c7a-0007-4001-8000-000000000005", role = "arbaletrier", palier = 3 },
+  { nom = "Hroznata", ame = "5c7a5c7a-0007-4001-8000-000000000006", role = "homme_d_armes", famille = "masse", palier = 3 },
+  { nom = "Jakub Vrba", ame = "5c7a5c7a-0007-4001-8000-000000000007", role = "arbaletrier", palier = 3 },
+  { nom = "Radim Tichý", surnom = "le Silencieux", ame = "5c7a5c7a-0007-4001-8000-000000000008", role = "homme_d_armes", famille = "epee_bouclier", palier = 3 },
+  { nom = "Ulrich der Rote", surnom = "le Rouge", ame = "5c7a5c7a-0007-4001-8000-000000000009", role = "homme_d_armes", famille = "epee_longue", palier = 3 },
+  { nom = "Bartoš Kulhavý", surnom = "le Boiteux", ame = "5c7a5c7a-0007-4001-8000-00000000000a", role = "arbaletrier", palier = 3 },
+  { nom = "Zdeněk Medvěd", surnom = "l'Ours", ame = "5c7a5c7a-0007-4001-8000-00000000000b", role = "homme_d_armes", famille = "hache", palier = 3 },
+  { nom = "Mikeš Šídlo", surnom = "l'Alêne", ame = "5c7a5c7a-0007-4001-8000-00000000000c", role = "archer", palier = 3 },
+  { nom = "Václav Hrbek", surnom = "le Bossu", ame = "5c7a5c7a-0007-4001-8000-00000000000d", role = "homme_d_armes", famille = "masse_bouclier", palier = 3 },
+  { nom = "Ctibor z Hlinska", ame = "5c7a5c7a-0007-4001-8000-00000000000e", role = "homme_d_armes", famille = "epee_longue", palier = 3 },
+  { nom = "Lukáš Čáp", surnom = "la Cigogne", ame = "5c7a5c7a-0007-4001-8000-00000000000f", role = "homme_d_armes", famille = "arme_d_hast", palier = 3 },
+  { nom = "Gerhard Schwab", surnom = "le Souabe", ame = "5c7a5c7a-0007-4001-8000-000000000010", role = "homme_d_armes", famille = "epee_bouclier", palier = 3 },
+  { nom = "Dobeš Kamenný", surnom = "le Roc", ame = "5c7a5c7a-0007-4001-8000-000000000011", role = "homme_d_armes", famille = "masse", palier = 3 },
+  { nom = "Ješek Sokol", surnom = "le Faucon", ame = "5c7a5c7a-0007-4001-8000-000000000012", role = "archer", palier = 3 },
+  { nom = "Mařík z Kutné Hory", ame = "5c7a5c7a-0007-4001-8000-000000000013", role = "arbaletrier", palier = 3 },
+  { nom = "Sigmund Eisenhart", surnom = "Cœur de fer", ame = "5c7a5c7a-0007-4001-8000-000000000014", role = "homme_d_armes", famille = "epee_longue", palier = 3 },
+  { nom = "Prokop Holý", surnom = "le Chauve", ame = "5c7a5c7a-0007-4001-8000-000000000015", role = "homme_d_armes", famille = "hache", palier = 3 },
+  { nom = "Hanuš Šťastný", surnom = "le Chanceux", ame = "5c7a5c7a-0007-4001-8000-000000000016", role = "homme_d_armes", famille = "epee_bouclier", palier = 3 },
+  { nom = "István Kovács", surnom = "le Hongrois", ame = "5c7a5c7a-0007-4001-8000-000000000017", role = "homme_d_armes", famille = "sabre", palier = 3 },
+  { nom = "Bořek Hromovec", surnom = "le Tonnerre", ame = "5c7a5c7a-0007-4001-8000-000000000018", role = "homme_d_armes", famille = "marteau", palier = 3 },
+  { nom = "Heřman z Lipé", ame = "5c7a5c7a-0007-4001-8000-000000000019", role = "homme_d_armes", famille = "epee_longue", palier = 3 },
+  { nom = "Tobiáš Rychlý", surnom = "le Rapide", ame = "5c7a5c7a-0007-4001-8000-00000000001a", role = "homme_d_armes", famille = "epee", palier = 3 },
+  { nom = "Mstidruh", ame = "5c7a5c7a-0007-4001-8000-00000000001b", role = "homme_d_armes", famille = "hache", palier = 3 },
+  { nom = "Wojciech z Krakova", surnom = "le Polonais", ame = "5c7a5c7a-0007-4001-8000-00000000001c", role = "homme_d_armes", famille = "arme_d_hast", palier = 3 },
+  { nom = "Smil Železný", surnom = "de Fer", ame = "5c7a5c7a-0007-4001-8000-00000000001d", role = "homme_d_armes", famille = "masse_bouclier", palier = 3 },
+  { nom = "Konrád", surnom = "le Chevalier déchu", ame = "5c7a5c7a-0007-4001-8000-00000000001e", role = "homme_d_armes", famille = "epee_longue", palier = 3 },
+  { nom = "Vok Starý", surnom = "le Vieux, maître d'armes", ame = "5c7a5c7a-0007-4001-8000-00000000001f", role = "homme_d_armes", famille = "epee_longue", palier = 3 },
+}
+
+-- Le service lisible pour la prise : nom -> la fiche du compagnon (les mêmes tables que hommes.compagnons).
+hommes.compagnons_nommes = {}
+for _, c in ipairs(hommes.compagnons) do
+  hommes.compagnons_nommes[c.nom] = c
+end
 
 -- Les niveaux de moral.
 hommes.niveaux_de_moral = {
@@ -954,8 +1008,10 @@ end
 
 local function noms_des_familles()
   local noms = {}
-  for nom in pairs(hommes.equipement.familles) do
-    table.insert(noms, nom)
+  for nom, famille in pairs(hommes.equipement.familles) do
+    if famille.tirage ~= 0 then
+      table.insert(noms, nom)
+    end
   end
   table.sort(noms)
   return noms
@@ -1293,6 +1349,15 @@ function hommes.embaucher(contrat)
   end
   if contrat.ame ~= nil and (type(contrat.ame) ~= "string" or not string.match(contrat.ame, "^%x+%-%x+%-%x+%-%x+%-%x+$")) then
     return refuser("ame_invalide", tostring(contrat.ame))
+  end
+  -- Règle du pair (18/10) : jamais deux hommes sur une même âme (un compagnon nommé ne s'embauche qu'une fois).
+  if contrat.ame ~= nil then
+    for _, autre in ipairs(d.ordre) do
+      local sienne = d.liste[autre].ame
+      if sienne and string.lower(sienne) == string.lower(contrat.ame) then
+        return refuser("ame_deja_portee", autre)
+      end
+    end
   end
   local p = contrat.position
   if p ~= nil and (type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number") then
