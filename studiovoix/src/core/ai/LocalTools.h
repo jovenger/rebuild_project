@@ -20,8 +20,8 @@ struct ToolDef
     juce::String description;   // à quoi ça sert, poids, durée
     juce::String url;           // adresse pour ce système (vide = indisponible sur ce système)
     juce::String fileName;      // nom du fichier dans le dossier outils
-    juce::int64 size = 0;       // taille attendue en octets (0 = inconnue)
-    juce::String sha256;        // empreinte attendue (hexadécimal minuscule, vide = non relevée)
+    juce::int64 size = 0;       // taille attendue du téléchargement en octets (0 = inconnue) ; pour une archive : taille du zip
+    juce::String sha256;        // empreinte attendue du téléchargement (hexadécimal minuscule, vide = non relevée) ; archive : zip
     bool executable = false;    // binaire à lancer (sinon modèle lu par le programme)
     bool archive = false;       // téléchargement = archive zip, extraite dans outils/<id>/ ; fileName = binaire à y trouver
     juce::String licence;
@@ -42,6 +42,8 @@ struct Progress
     std::atomic<float> fraction { 0.0f };          // 0..1 (0 si la taille totale est inconnue)
     std::atomic<juce::int64> downloaded { 0 };
     std::atomic<bool> cancel { false };
+    juce::int64 downloadSize = 0;      // renseignés par install() après téléchargement : taille et SHA-256 du fichier reçu
+    juce::String downloadSha256;       // (pour une archive : ceux du zip, qui sont les valeurs à épingler)
 };
 
 /** Télécharge dans un fichier temporaire, vérifie taille et SHA-256, installe. Bloquant : hors du fil d'interface. */

@@ -644,9 +644,11 @@ int main (int argc, char* argv[])
                     code = 1;
                     continue;
                 }
+                // Valeurs a epingler = celles du fichier telecharge (pour une archive : le zip, pas le binaire extrait).
                 const auto f = sv::ai::local::toolFile (t);
-                std::cout << t.id << " : " << f.getSize() << " octets, sha256 " << sv::ai::local::sha256Of (f)
-                          << (t.sha256.isNotEmpty() ? (t.sha256 == sv::ai::local::sha256Of (f) ? " (conforme)" : " (DIFFERENT de l'empreinte epinglee)") : " (a epingler)") << "\n";
+                std::cout << t.id << " : " << p.downloadSize << " octets, sha256 " << p.downloadSha256
+                          << (t.sha256.isNotEmpty() ? (t.sha256 == p.downloadSha256 ? " (conforme)" : " (DIFFERENT de l'empreinte epinglee)") : " (a epingler)")
+                          << (t.archive ? " [archive ; binaire extrait " + std::to_string (f.getSize()) + " octets]" : "") << "\n";
             }
         }
         else if (cmd == "assistant")

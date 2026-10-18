@@ -64,6 +64,8 @@ namespace
 #if JUCE_WINDOWS
                 t.url = "https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-bin-x64.zip";
                 t.fileName = "whisper-cli.exe";
+                t.size = 3675974;   // archive zip (relevé CI build 58)
+                t.sha256 = "0d2eca299c248f965bd0341bcb219db4b433c7f0c0ce2200d4df85765e8156a9";
 #else
                 t.fileName = "whisper-cli";
 #endif
@@ -122,7 +124,8 @@ juce::File toolFile (const ToolDef& t)
 bool isInstalled (const ToolDef& t)
 {
     const auto f = toolFile (t);
-    return f.existsAsFile() && (t.size <= 0 || f.getSize() == t.size);
+    // La taille épinglée est celle du téléchargement : pour une archive, c'est le zip, pas le binaire extrait.
+    return f.existsAsFile() && (t.archive || t.size <= 0 || f.getSize() == t.size);
 }
 
 juce::String sha256Of (const juce::File& f)
@@ -221,6 +224,8 @@ bool install (const ToolDef& t, Progress& progress, juce::String& error)
         return false;
     }
     const auto digest = sha256Of (temp);
+    progress.downloadSize = size;
+    progress.downloadSha256 = digest;
     if (t.sha256.isNotEmpty())
     {
         if (digest != t.sha256.toLowerCase())

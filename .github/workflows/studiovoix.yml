@@ -108,7 +108,7 @@ jobs:
         shell: pwsh
         run: |
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/sevagh/demucs.cpp demucs-src
-          cmake -S demucs-src -B demucs-build -DCMAKE_BUILD_TYPE=Release
+          cmake -S demucs-src -B demucs-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build demucs-build --config Release --parallel
           Get-ChildItem -Recurse demucs-build -Include *.exe,*.dll | Select-Object FullName, Length
 

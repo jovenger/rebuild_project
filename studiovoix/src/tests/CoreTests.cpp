@@ -888,6 +888,19 @@ public:
             const auto f = toolsDir.getChildFile ("x.bin");
             f.replaceWithText ("StudioVoix");
             expect (ai::local::sha256Of (f) == juce::SHA256 ("StudioVoix", 10).toHexString().toLowerCase() && ai::local::sha256Of (toolsDir.getChildFile ("absent")).isEmpty(), "sha256");
+            // Archive : la taille épinglée est celle du zip ; le binaire extrait (autre taille, sous-dossier) compte comme installé.
+            ai::local::ToolDef arc;
+            arc.id = "arc";
+            arc.name = "arc";
+            arc.fileName = "arc-bin.txt";
+            arc.archive = true;
+            arc.size = 123456;
+            arc.url = "https://exemple.invalide/arc.zip";
+            expect (! ai::local::isInstalled (arc), "archive absente");
+            toolsDir.getChildFile ("arc").getChildFile ("Release").createDirectory();
+            toolsDir.getChildFile ("arc").getChildFile ("Release").getChildFile ("arc-bin.txt").replaceWithText ("x");
+            expect (ai::local::isInstalled (arc) && ai::local::toolFile (arc).getParentDirectory().getFileName() == "Release",
+                    "archive : binaire trouvé dans le sous-dossier, taille du zip non comparée au binaire"_u8);
 #if JUCE_LINUX || JUCE_MAC
             // Sous-processus : un script en guise d'outil installé.
             ai::local::ToolDef fake;

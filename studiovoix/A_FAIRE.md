@@ -17,11 +17,12 @@ comment les automatismes doivent être faits, ordre proposé.
   reconnaissance des paroles (whisper-cli + modèle base), mastering par référence à l'export. Les téléchargements et
   l'exécution réelle des outils sont impossibles depuis l'environnement de développement (réseau bloqué) ; seule la CI
   Windows a téléchargé les outils et relevé leurs empreintes.
-- Demucs (séparation d'instru) : compilation expérimentale de demucs.cpp lancée en CI ; si elle réussit sous MSVC,
-  livrer le binaire dans l'installateur IA et ajouter le modèle (ggml htdemucs) au catalogue d'outils.
+- Demucs (séparation d'instru) : compilation expérimentale de demucs.cpp en CI. Build 58 : la configuration CMake a
+  échoué (CMakeLists de demucs.cpp trop ancien pour CMake 4 : « Compatibility with CMake < 3.5 has been removed ») ;
+  corrigé avec `-DCMAKE_POLICY_VERSION_MINIMUM=3.5`, résultat au build suivant. Si MSVC compile, livrer le binaire dans
+  l'installateur IA et ajouter le modèle (ggml htdemucs) au catalogue d'outils.
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.
-- whisper-cli : empreinte de l'archive à épingler après le relevé de la CI (build 55).
 
 ## Autres points en attente
 
