@@ -21,3 +21,9 @@ revérifier au moment de l'achat. StudioVoix utilise WASAPI (pas d'ASIO dans cet
   pas annulée proprement (risque de plantage à la fermeture, sans perte du projet).
 - Volume, panoramique, muet et solo des pistes ne créent pas d'étape d'annulation.
 - Fermeture de session Windows avec la fenêtre Paramètres ouverte : plantage possible à la fermeture.
+- Tempo : erreurs de double / moitié / 2/3 sur certains tempos de synthèse (150 lu 75, 132 lu 88,
+  175 lu 87,5, 60 lu 120). Le BPM se corrige à la main (clic sur le BPM). Correctif à valider sur de
+  vrais morceaux (autocorrélation aux décalages fractionnaires) : le lissage testé cassait 160 BPM.
+- « Meilleure prise par phrase » : les créneaux sont l'union des phrases de toutes les prises ; avec
+  des prises complètes qui se recouvrent, une seule prise gagne tout le morceau (pas de vrai comping).
+- Voix sous 70 Hz non suivie par la détection de hauteur (descendre à 55 Hz coûte +27 % de calcul).
