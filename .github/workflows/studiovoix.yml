@@ -8,6 +8,13 @@ on:
       - '.github/workflows/studiovoix.yml'
   workflow_dispatch:
 
+# Un seul run par branche : un nouveau commit annule le run précédent. Évite les builds inutiles et le refus
+# « HTTP 403: Resource not accessible by integration » à la création de release, observé uniquement sur les runs dont
+# le commit avait été dépassé par un push pendant leur exécution (builds 61, 62, 65, 66 ; jamais sur les autres).
+concurrency:
+  group: studiovoix-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: ${{ matrix.name }}
