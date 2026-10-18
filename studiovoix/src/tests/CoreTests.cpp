@@ -926,9 +926,22 @@ public:
             auto res = ai::local::cleanWithDeepFilter (x, 48000.0, dir.getChildFile ("cache"));
             expect (! res.applied && res.note.contains ("non install") && x == a, "sans outil : audio intact, raison donnée : " + res.note);
             // Résultat déjà en cache : utilisé sans l'outil installé ? Non : l'outil est exigé ; on simule son installation.
-            const auto fakeTool = toolsDir.getChildFile (ai::local::findTool ("deep-filter")->fileName);
-            fakeTool.replaceWithText ("faux");
-            expect (ai::local::deepFilterAvailable(), "outil « installé »"_u8);
+            // Faux outil à la taille attendue (épinglée sous Windows) : « installé » aux yeux du catalogue.
+            const auto* dfDef = ai::local::findTool ("deep-filter");
+            const auto fakeTool = toolsDir.getChildFile (dfDef->fileName);
+            {
+                juce::FileOutputStream fos (fakeTool);
+                expect (fos.openedOk(), "faux outil ouvert");
+                const juce::int64 want = std::max<juce::int64> (4, dfDef->size);
+                std::vector<char> zeros (static_cast<size_t> (1 << 20), 0);
+                for (juce::int64 done = 0; done < want;)
+                {
+                    const auto chunk = static_cast<size_t> (std::min<juce::int64> (want - done, static_cast<juce::int64> (zeros.size())));
+                    fos.write (zeros.data(), chunk);
+                    done += static_cast<juce::int64> (chunk);
+                }
+            }
+            expect (ai::local::deepFilterAvailable(), "outil « installé » ("_u8 + juce::String (fakeTool.getSize()) + " octets)");
             Mono cleaned (4800, 0.1f);
             juce::String err;
             const auto cache = dir.getChildFile ("cache");
