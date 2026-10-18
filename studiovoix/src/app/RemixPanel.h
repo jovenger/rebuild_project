@@ -38,6 +38,17 @@ private:
         generateBtn { juce::String (juce::CharPointer_UTF8 ("Générer backs / harmonies...")) }, assistantBtn { "Appliquer" };
     juce::TextEditor assistantText;
     std::unique_ptr<juce::FileChooser> chooser;
+
+    // Inserts VST3 de la piste : une ligne par plugin (nom = ouvrir, B = contourner, X = retirer).
+    struct PluginRow
+    {
+        juce::TextButton open, bypass { "B" }, remove { "X" };
+    };
+    juce::Label pluginsTitle;
+    juce::TextButton addPluginBtn { "+ Plugin VST3..." };
+    std::vector<std::unique_ptr<PluginRow>> pluginRows;
+    void rebuildPluginRows (const project::Track& t);
+    void modifyPlugins (const std::function<void (std::vector<plugins::PluginSlot>&)>& change, const juce::String& undoLabel);
     int shownTrack = -1;
     bool updating = false;
     bool dragging = false;   // glisser (ou molette, que JUCE présente comme un glisser) en cours

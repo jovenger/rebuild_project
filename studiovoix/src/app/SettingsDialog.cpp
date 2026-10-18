@@ -1,5 +1,7 @@
 #include "SettingsDialog.h"
 
+#include "PluginManager.h"
+
 #include "core/Log.h"
 
 namespace sv::app
@@ -14,7 +16,7 @@ SettingsDialog::SettingsDialog (Session& s)
       deviceSelector (s.engine().deviceManager(), 1, 2, 2, 2, false, false, false, false)
 {
     for (auto* c : std::initializer_list<juce::Component*> { &deviceSelector, &latencyInfo, &offsetL, &calibResult, &levelResult, &inputL, &trimL,
-                                                             &countL, &aiTitle, &aiInfo, &textKeyL, &modelL, &musicKeyL, &updateL, &offset, &trim,
+                                                             &countL, &aiTitle, &aiInfo, &textKeyL, &modelL, &musicKeyL, &updateL, &pluginTitle, &pluginStatus, &scanPlugins, &pluginFolderBtn, &offset, &trim,
                                                              &calibrate, &resetCalib, &levelTest, &openLogs, &closeBtn, &monitoring, &propose, &aiEnabled,
                                                              &inputMode, &textKey, &model, &musicKey, &updateToken })
         addAndMakeVisible (*c);
@@ -118,6 +120,33 @@ SettingsDialog::SettingsDialog (Session& s)
                             "au dépôt, permission Contents en lecture seule. Le bouton Mise à jour (en haut à droite) l'utilise."_u8);
     updateToken.onTextChange = [this] { session.settings().setUpdateToken (updateToken.getText()); };
 
+    pluginTitle.setText ("Plugins VST3 (facultatif)", juce::dontSendNotification);
+    pluginTitle.setFont (juce::FontOptions (14.0f, juce::Font::bold));
+    pluginStatus.setFont (juce::FontOptions (11.0f));
+    pluginStatus.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
+    scanPlugins.setTooltip ("Cherche les plugins d'effet VST3 installés (dossiers standard de Windows + dossier en plus). "
+                            "Ils s'ajoutent ensuite piste par piste dans l'onglet Voix IA."_u8);
+    scanPlugins.onClick = [this]
+    {
+        PluginManager::instance().scan (juce::File (session.settings().props().getValue ("vst3Folder")));
+        refreshPluginStatus();
+    };
+    pluginFolderBtn.onClick = [this]
+    {
+        auto chooserPtr = std::make_shared<juce::FileChooser> ("Dossier de plugins VST3 en plus", juce::File (session.settings().props().getValue ("vst3Folder")));
+        chooserPtr->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                                 [this, chooserPtr] (const juce::FileChooser& fc)
+                                 {
+                                     if (fc.getResult() != juce::File())
+                                     {
+                                         session.settings().props().setValue ("vst3Folder", fc.getResult().getFullPathName());
+                                         refreshPluginStatus();
+                                     }
+                                 });
+    };
+    PluginManager::instance().addChangeListener (this);
+    refreshPluginStatus();
+
     closeBtn.onClick = [this]
     {
         session.settings().save();
@@ -126,12 +155,13 @@ SettingsDialog::SettingsDialog (Session& s)
     };
     refreshLatency();
     startTimer (100);
-    setSize (760, 890);
+    setSize (760, 960);
 }
 
 SettingsDialog::~SettingsDialog()
 {
     stopTimer();
+    PluginManager::instance().removeChangeListener (this);
     auto state = session.engine().deviceManager().createStateXml();
     session.settings().setAudioDeviceState (state.get());
     session.settings().save();
@@ -251,9 +281,26 @@ void SettingsDialog::resized()
     a = row();
     updateL.setBounds (a.removeFromLeft (180));
     updateToken.setBounds (a);
+    r.removeFromTop (8);
+    pluginTitle.setBounds (row (22));
+    a = row (28);
+    scanPlugins.setBounds (a.removeFromLeft (240));
+    a.removeFromLeft (8);
+    pluginFolderBtn.setBounds (a.removeFromLeft (150));
+    pluginStatus.setBounds (row (20));
     auto bottom = r.removeFromBottom (30);
     closeBtn.setBounds (bottom.removeFromRight (100));
     openLogs.setBounds (bottom.removeFromLeft (240));
+}
+
+void SettingsDialog::changeListenerCallback (juce::ChangeBroadcaster*) { refreshPluginStatus(); }
+
+void SettingsDialog::refreshPluginStatus()
+{
+    const auto folder = session.settings().props().getValue ("vst3Folder");
+    pluginStatus.setText (PluginManager::instance().scanStatus() + (folder.isNotEmpty() ? " — dossier en plus : "_u8 + folder : juce::String()),
+                          juce::dontSendNotification);
+    scanPlugins.setEnabled (! PluginManager::instance().isScanning());
 }
 
 void SettingsDialog::show (Session& session)

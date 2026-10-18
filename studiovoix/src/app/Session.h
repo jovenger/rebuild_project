@@ -47,6 +47,8 @@ public:
     /** Panneau de la piste : brut (aucun effet, hors mix auto) ou traité dans un style (vide = style du projet).
         Pour l'instru : non brute = creux sous la voix (mix auto). */
     void setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId);
+    /** Inserts VST3 d'une piste (ajout, retrait, état, contournement) ; rendu recalculé. */
+    void setTrackPlugins (int trackId, std::vector<plugins::PluginSlot> slots, const juce::String& undoLabel);
     /** Correction automatique sur toutes les pistes enregistrées / importées (pas l'instru, pas les générées). */
     void correctAllTracks();
     /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer.
@@ -66,6 +68,8 @@ public:
     /** Déplace l'audio d'une piste sur la timeline (glisser du bloc) : takeId = prise, -1 = fichier source
         (instru, piste générée). Le début ne passe jamais avant 0. */
     void moveTrackAudio (int trackId, int takeId, double deltaSec);
+    /** Cale l'audio de la piste au début du morceau (la première prise à 0 s, les autres gardent leurs écarts). */
+    void moveTrackAudioToStart (int trackId);
     /** Supprime plusieurs pistes en une seule étape d'annulation. */
     void removeTracks (const std::vector<int>& trackIds);
 

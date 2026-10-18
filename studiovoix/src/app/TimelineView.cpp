@@ -542,6 +542,20 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
     }
 }
 
+double TimelineView::clipStartSec (const project::Track& t, int takeId) const
+{
+    const double sr = session.project().sampleRate;
+    if (takeId >= 0)
+    {
+        for (const auto& tk : t.takes)
+            if (tk.id == takeId)
+                return tk.regionStart / sr;
+        return 0.0;
+    }
+    auto r = session.renderFor (t.id);
+    return r != nullptr ? r->startSample / sr : t.sourceStart / sr;
+}
+
 bool TimelineView::clipAt (const project::Track& t, double sec, int& takeId) const
 {
     const double sr = session.project().sampleRate;
@@ -575,7 +589,27 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
         case Drag::Playhead: session.setPositionSec (t); break;
         case Drag::Punch:    punchIn = std::min (dragAnchor, t); punchOut = std::max (dragAnchor, t); break;
         case Drag::Loop:     loopA = std::min (dragAnchor, t); loopB = std::max (dragAnchor, t); break;
-        case Drag::Clip:     clipOffsetSec = xToSec (e.x) - dragAnchor; break;
+        case Drag::Clip:
+        {
+            double off = xToSec (e.x) - dragAnchor;
+            double clipStart = 0.0;
+            if (const auto* tr = session.project().findTrack (clipTrack))
+                clipStart = clipStartSec (*tr, clipTake);
+            off = std::max (off, -clipStart);                       // jamais avant le début du morceau
+            const double newStart = clipStart + off;
+            const double snapPx = 8.0 / pxPerSec;                   // aimant : 8 pixels
+            if (newStart < snapPx * 2.0)
+                off = -clipStart;                                   // au début exactement
+            else if (const auto& tempo = session.project().tempo; tempo.bpm > 0.0)
+            {
+                const double beat = 60.0 / tempo.bpm;
+                const double nearest = tempo.firstBeatSec + std::round ((newStart - tempo.firstBeatSec) / beat) * beat;
+                if (std::abs (nearest - newStart) < snapPx && nearest >= 0.0)
+                    off = nearest - clipStart;
+            }
+            clipOffsetSec = off;
+            break;
+        }
         case Drag::None:     break;
     }
     repaint();
@@ -650,6 +684,8 @@ void TimelineView::showTrackMenu (int trackId)
     juce::PopupMenu m;
     m.addSectionHeader (t->name);
     m.addItem (10, "Nouvelle piste...");
+    if (! t->takes.empty() || t->sourceFile.isNotEmpty())
+        m.addItem (12, "Caler l'audio au début du morceau (0 s)"_u8);
     if (t->isRecordable())
         m.addItem (11, session.armedTrack() == trackId ? juce::String ("Désarmer la piste"_u8)
                                                        : juce::String ("Armer la piste (le micro enregistre ici)"_u8));
@@ -680,6 +716,8 @@ void TimelineView::showTrackMenu (int trackId)
             showNewTrackDialog (*s);
         else if (r == 11)
             s->armTrack (s->armedTrack() == trackId ? -1 : trackId);
+        else if (r == 12)
+            s->moveTrackAudioToStart (trackId);
         else if (r == 1 || r == 2)
             s->updateTrack (trackId, [r] (project::Track& tr) { tr.comp = r == 2 ? project::CompMode::Best : project::CompMode::Latest; }, true,
                             "Mode d'assemblage des prises");

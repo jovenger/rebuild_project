@@ -63,7 +63,6 @@ set(SV_COMMON_DEFINITIONS
     JUCE_USE_LAME_AUDIO_FORMAT=1
     JUCE_USE_FLAC=1
     JUCE_USE_OGGVORBIS=1
-    JUCE_PLUGINHOST_VST3=0
     JUCE_PLUGINHOST_LADSPA=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1
     JUCE_DISPLAY_SPLASH_SCREEN=0
@@ -92,7 +91,7 @@ if(SV_BUILD_CLI)
         src/tests/CoreTests.cpp)
 
     target_include_directories(studiovoix_cli PRIVATE src)
-    target_compile_definitions(studiovoix_cli PRIVATE ${SV_COMMON_DEFINITIONS})
+    target_compile_definitions(studiovoix_cli PRIVATE ${SV_COMMON_DEFINITIONS} JUCE_PLUGINHOST_VST3=0)
     target_link_libraries(studiovoix_cli
         PRIVATE
             ${SV_CORE_MODULES}
@@ -130,17 +129,20 @@ if(SV_BUILD_APP)
         src/app/ExportDialog.cpp
         src/app/AiPanel.cpp
         src/app/UpdateManager.cpp
-        src/app/NewTrackDialog.cpp)
+        src/app/NewTrackDialog.cpp
+        src/app/PluginManager.cpp)
 
     target_include_directories(StudioVoix PRIVATE src)
     target_compile_definitions(StudioVoix PRIVATE
         ${SV_COMMON_DEFINITIONS}
+        JUCE_PLUGINHOST_VST3=1
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:StudioVoix,JUCE_PRODUCT_NAME>"
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:StudioVoix,JUCE_VERSION>")
     target_link_libraries(StudioVoix
         PRIVATE
             ${SV_CORE_MODULES}
             juce::juce_audio_devices
+            juce::juce_audio_processors
             juce::juce_audio_utils
             juce::juce_gui_basics
             juce::juce_gui_extra

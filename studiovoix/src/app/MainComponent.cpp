@@ -305,6 +305,11 @@ namespace
                         session.undo();
                         if (session.project().findTrack (leadId)->takes.front().regionStart != before)
                         { fail ("annulation du déplacement"_u8); return; }
+                        session.moveTrackAudio (leadId, session.project().findTrack (leadId)->takes.front().id, 2.0);
+                        session.moveTrackAudioToStart (leadId);
+                        if (session.project().findTrack (leadId)->takes.front().regionStart != 0) { fail ("caler au début"_u8); return; }
+                        session.undo();
+                        session.undo();
                         log ("étape 6 ter : prise déplacée de 1,5 s sur la timeline puis remise en place"_u8);
                     }
                     log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée ; cliquer une piste l'arme"_u8);

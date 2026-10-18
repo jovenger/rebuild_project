@@ -1,6 +1,7 @@
 #include "RemixPanel.h"
 
 #include "GenerateDialog.h"
+#include "PluginManager.h"
 #include "StyleMenu.h"
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/Log.h"
@@ -31,6 +32,22 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     roleLabel.setText ("Type", juce::dontSendNotification);
     addAndMakeVisible (treatmentLabel);
     addAndMakeVisible (treatmentBox);
+    addAndMakeVisible (pluginsTitle);
+    addAndMakeVisible (addPluginBtn);
+    pluginsTitle.setText ("Plugins VST3", juce::dontSendNotification);
+    pluginsTitle.setFont (juce::FontOptions (13.0f, juce::Font::bold));
+    addPluginBtn.setTooltip ("Ajoute un plugin d'effet VST3 installé sur ce PC, appliqué après les effets du style. "
+                             "Recherche des plugins : Paramètres."_u8);
+    addPluginBtn.onClick = [this]
+    {
+        PluginManager::instance().showAddMenu (&addPluginBtn, [this] (const juce::PluginDescription& d)
+        {
+            plugins::PluginSlot slot;
+            slot.identifier = d.createIdentifierString();
+            slot.name = d.name;
+            modifyPlugins ([slot] (std::vector<plugins::PluginSlot>& v) { v.push_back (slot); }, "Ajout du plugin " + d.name);
+        });
+    };
     treatmentLabel.setText ("Style", juce::dontSendNotification);
     treatmentLabel.setFont (juce::FontOptions (14.0f, juce::Font::bold));
     treatmentBox.setTooltip ("Aucun = le son tel quel, sans effet ni mix auto. Choisis un style : tous les réglages de ce style "
@@ -200,6 +217,74 @@ void RemixPanel::applyAssistant()
     assistantText.clear();
 }
 
+void RemixPanel::modifyPlugins (const std::function<void (std::vector<plugins::PluginSlot>&)>& change, const juce::String& undoLabel)
+{
+    const auto* t = session.project().findTrack (shownTrack);
+    if (t == nullptr)
+        return;
+    auto slots = t->plugins;
+    change (slots);
+    session.setTrackPlugins (shownTrack, std::move (slots), undoLabel);
+}
+
+void RemixPanel::rebuildPluginRows (const project::Track& t)
+{
+    if (pluginRows.size() != t.plugins.size())
+    {
+        pluginRows.clear();
+        for (size_t i = 0; i < t.plugins.size(); ++i)
+        {
+            auto row = std::make_unique<PluginRow>();
+            const int index = static_cast<int> (i);
+            row->open.onClick = [this, index]
+            {
+                const auto* tr = session.project().findTrack (shownTrack);
+                if (tr == nullptr || index >= static_cast<int> (tr->plugins.size()))
+                    return;
+                const int trackId = shownTrack;
+                juce::WeakReference<Session> weak (&session);
+                PluginManager::instance().openEditor (tr->plugins[static_cast<size_t> (index)], [weak, trackId, index] (const juce::MemoryBlock& state)
+                {
+                    auto* s = weak.get();
+                    if (s == nullptr)
+                        return;
+                    const auto* tr2 = s->project().findTrack (trackId);
+                    if (tr2 == nullptr || index >= static_cast<int> (tr2->plugins.size()))
+                        return;
+                    auto slots = tr2->plugins;
+                    slots[static_cast<size_t> (index)].state = state;
+                    s->setTrackPlugins (trackId, std::move (slots), "Réglage du plugin "_u8 + tr2->plugins[static_cast<size_t> (index)].name);
+                });
+            };
+            row->bypass.setClickingTogglesState (true);
+            row->bypass.setColour (juce::TextButton::buttonOnColourId, juce::Colours::orange);
+            row->bypass.setTooltip ("Contourner ce plugin");
+            row->bypass.onClick = [this, index]
+            {
+                if (updating) return;
+                modifyPlugins ([index] (std::vector<plugins::PluginSlot>& v) { if (index < static_cast<int> (v.size())) v[static_cast<size_t> (index)].bypass = ! v[static_cast<size_t> (index)].bypass; },
+                               "Contournement du plugin");
+            };
+            row->remove.setTooltip ("Retirer ce plugin");
+            row->remove.onClick = [this, index]
+            {
+                modifyPlugins ([index] (std::vector<plugins::PluginSlot>& v) { if (index < static_cast<int> (v.size())) v.erase (v.begin() + index); },
+                               "Retrait du plugin");
+            };
+            for (auto* b : { &row->open, &row->bypass, &row->remove })
+                addAndMakeVisible (*b);
+            pluginRows.push_back (std::move (row));
+        }
+        resized();
+    }
+    for (size_t i = 0; i < pluginRows.size(); ++i)
+    {
+        pluginRows[i]->open.setButtonText (juce::String (static_cast<int> (i) + 1) + ". " + t.plugins[i].name);
+        pluginRows[i]->open.setTooltip ("Ouvrir la fenêtre du plugin (ses réglages sont repris à la fermeture)"_u8);
+        pluginRows[i]->bypass.setToggleState (t.plugins[i].bypass, juce::dontSendNotification);
+    }
+}
+
 void RemixPanel::fillTreatmentBox (bool instru)
 {
     treatmentForInstru = instru;
@@ -237,6 +322,14 @@ void RemixPanel::refresh()
     generateBtn.setEnabled (t != nullptr && t->role == style::Role::Lead && ! t->raw);
     treatmentBox.setVisible (t != nullptr && ! t->isGenerated());
     treatmentLabel.setVisible (treatmentBox.isVisible());
+    addPluginBtn.setEnabled (t != nullptr);
+    if (t != nullptr)
+        rebuildPluginRows (*t);
+    else if (! pluginRows.empty())
+    {
+        pluginRows.clear();
+        resized();
+    }
     if (t == nullptr)
     {
         title.setText ("Aucune piste sélectionnée"_u8, juce::dontSendNotification);
@@ -283,6 +376,8 @@ void RemixPanel::refresh()
     }
     if (session.project().referenceFile.isNotEmpty())
         txt << "\nRéférence : "_u8 << juce::File (session.project().referenceFile).getFileName();
+    if (auto r = session.renderFor (shownTrack); r != nullptr && ! r->pluginNotes.isEmpty())
+        txt << "\nPlugins : " << r->pluginNotes.joinIntoString (" > ");
     if (vocal && t->raw)
     {
         txt << "\n\nAucun effet : le son tel quel, hors mix auto. Choisis un style dans « Style » ci-dessus : tous les réglages "
@@ -352,6 +447,19 @@ void RemixPanel::resized()
     a.removeFromLeft (6);
     loadPresetBtn.setBounds (a);
     generateBtn.setBounds (row (32));
+    r.removeFromTop (4);
+    a = row (24);
+    pluginsTitle.setBounds (a.removeFromLeft (110));
+    addPluginBtn.setBounds (a.removeFromLeft (150));
+    for (auto& pr : pluginRows)
+    {
+        a = row (24);
+        pr->remove.setBounds (a.removeFromRight (26));
+        a.removeFromRight (3);
+        pr->bypass.setBounds (a.removeFromRight (26));
+        a.removeFromRight (3);
+        pr->open.setBounds (a);
+    }
     r.removeFromTop (6);
     a = row (26);
     assistantBtn.setBounds (a.removeFromRight (80));

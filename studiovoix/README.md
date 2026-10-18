@@ -87,11 +87,21 @@ puis mix auto. Le panneau Voix IA affiche les défauts constatés et les correct
 **Son polyphonique** (chœurs à plusieurs voix, piano, morceau entier) : la correction de justesse est coupée
 automatiquement, qu'on choisisse un style ou la correction — elle ferait des « vagues » sur ce type de son.
 
+**Plugins VST3** : Paramètres → « Rechercher les plugins VST3 » (dossiers standard de Windows + un dossier en
+plus au choix). Sur une piste, onglet Voix IA → « + Plugin VST3… » : le plugin s'applique après les effets du
+style (ou sur le son brut), dans l'ordre de la liste ; clic sur son nom → sa fenêtre s'ouvre, ses réglages sont
+repris à la fermeture et la piste est recalculée ; B = contourner, X = retirer. La latence déclarée par le plugin
+est compensée. Les plugins qui plantent à la recherche sont mis de côté au lancement suivant.
+
+**Son propre** : le nettoyage comprend un débruitage spectral (profil de bruit appris sur les silences : souffle,
+ronflement, bruit de pièce) et un dé-écrêtage (passages saturés reconstruits).
+
 **Plusieurs pistes à la fois** : Ctrl enfoncé + clic sur chaque piste (elles restent sélectionnées), puis clic droit →
 « Supprimer les N pistes » (ou touche Suppr). Ctrl+Z revient en arrière.
 
 **Déplacer un bloc audio** : glisser la prise ou le fichier sur sa piste ; il suit la souris et se place au
-relâchement (jamais avant 0 s).
+relâchement. Il ne peut jamais dépasser le début (0 s) et s'aimante au début et aux temps de la grille quand il
+en est proche ; clic droit → « Caler au début du morceau » le remet exactement à 0 s.
 
 Autres fonctions : punch-in (zone sur la timeline), boucle, métronome, marqueurs, prises multiples avec
 comping automatique (meilleure prise par phrase), copie d'un refrain sur les refrains identiques,

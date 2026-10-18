@@ -3,6 +3,7 @@
 #include "AppSettings.h"
 #include "AudioEngine.h"
 #include "MainComponent.h"
+#include "PluginManager.h"
 #include "Session.h"
 #include "core/Log.h"
 
@@ -82,6 +83,7 @@ public:
             }
         }
 #endif
+        sv::app::PluginManager::instance();   // hôte VST3 : liste connue chargée, fabrique d'instances enregistrée
         settings = std::make_unique<sv::app::AppSettings>();
         engine = std::make_unique<sv::app::AudioEngine>();
         auto saved = settings->audioDeviceState();
@@ -103,6 +105,7 @@ public:
     void shutdown() override
     {
         SV_LOG_INFO (kMod, "Fermeture de StudioVoix");
+        sv::app::PluginManager::instance().closeAllEditors();
         if (engine != nullptr && settings != nullptr)
         {
             auto state = engine->deviceManager().createStateXml();

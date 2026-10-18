@@ -587,6 +587,18 @@ void Session::armTrack (int trackId)
                             : juce::String ("Aucune piste armée : R enregistre sur la piste sélectionnée"_u8));
 }
 
+void Session::setTrackPlugins (int trackId, std::vector<plugins::PluginSlot> slots, const juce::String& undoLabel)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return;
+    juce::StringArray names;
+    for (const auto& s : slots)
+        names.add (s.name + (s.bypass ? " (contourné)"_u8 : juce::String()));
+    SV_LOG_INFO (kMod, "Plugins de « "_u8 + t->name + " » : " + (names.isEmpty() ? juce::String ("aucun") : names.joinIntoString (" > ")));
+    updateTrack (trackId, [s = std::move (slots)] (project::Track& tr) { tr.plugins = s; }, true, undoLabel);
+}
+
 void Session::correctAllTracks()
 {
     std::vector<int> ids;
@@ -652,6 +664,36 @@ void Session::moveTrackAudio (int trackId, int takeId, double deltaSec)
     }, true, "Déplacement sur la timeline"_u8);
     SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » : " + what + " déplacé(e) de "_u8 + juce::String (deltaSec, 2) + " s");
     setStatus ("« "_u8 + t->name + " » déplacée de "_u8 + juce::String (deltaSec, 2) + " s (Ctrl+Z pour annuler)");
+}
+
+void Session::moveTrackAudioToStart (int trackId)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    long first = -1;
+    for (const auto& tk : t->takes)
+        first = first < 0 ? tk.regionStart : std::min (first, tk.regionStart);
+    if (t->takes.empty() && t->sourceFile.isNotEmpty())
+        first = t->sourceStart;
+    if (first <= 0)
+    {
+        setStatus ("« "_u8 + t->name + " » est déjà au début"_u8);
+        return;
+    }
+    updateTrack (trackId, [first] (project::Track& tr)
+    {
+        for (auto& tk : tr.takes)
+        {
+            tk.startSample -= first;
+            tk.regionStart -= first;
+            tk.regionEnd -= first;
+        }
+        if (tr.takes.empty())
+            tr.sourceStart = 0;
+    }, true, "Caler au début"_u8);
+    SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » calée au début (-"_u8 + juce::String (first / proj.sampleRate, 2) + " s)");
+    setStatus ("« "_u8 + t->name + " » calée au début du morceau (Ctrl+Z pour annuler)"_u8);
 }
 
 void Session::removeTracks (const std::vector<int>& trackIds)

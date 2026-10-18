@@ -101,6 +101,7 @@ private:
     double dragAnchor = 0.0;
     int clipTrack = -1, clipTake = -1;   // bloc audio en cours de déplacement
     double clipOffsetSec = 0.0;          // décalage provisoire (affiché pendant le glisser)
+    double clipStartSec (const project::Track& t, int takeId) const;
     /** Prise (ou fichier source : -1) sous le point (x, piste) ; false si rien. */
     bool clipAt (const project::Track& t, double sec, int& takeId) const;
     int lastPlayheadX = -1;
