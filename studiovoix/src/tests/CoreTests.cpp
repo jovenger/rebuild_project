@@ -621,6 +621,17 @@ public:
                     "acoustique : moins d'autotune que rap melodique");
             expect (style::styleFromId ("rap_melodique") == style::Style::RapMelodique && style::styleFromId ("inconnu") == style::Style::Rap,
                     "ids des nouveaux styles");
+            {
+                std::vector<int> seen (static_cast<size_t> (style::Style::Count), 0);
+                for (const auto& g : style::styleGroups())
+                    for (const auto st : g.styles)
+                        ++seen[static_cast<size_t> (st)];
+                for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
+                    expectEquals (seen[static_cast<size_t> (i)], 1, "style dans une seule famille : " + style::styleId (static_cast<style::Style> (i)));
+            }
+            expect (style::makeParams (style::Style::RapHardcore, style::Role::Lead, {}).comp.ratio
+                    > style::makeParams (style::Style::RapConscient, style::Role::Lead, {}).comp.ratio,
+                    "hardcore : plus compresse que conscient");
             for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
             {
                 const auto st = static_cast<style::Style> (i);

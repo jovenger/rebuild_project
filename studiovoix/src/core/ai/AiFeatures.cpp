@@ -76,7 +76,8 @@ namespace
     const juce::String kSystemEngineer =
         "Tu es l'ingénieur du son intégré au logiciel StudioVoix (enregistrement de voix sur instru : rap, trap, pop urbaine, "_u8
         "R&B, drill, afro, rock, latino, rap mélodique, boom bap, pop, variété, dancehall, zouk / kompa, amapiano, gospel, "_u8
-        "électro / house, acoustique / folk). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "_u8
+        "électro / house, acoustique / folk, rap conscient, rap hardcore, cloud rap, rage, plugg, emo rap, afro trap, lo-fi, "_u8
+        "phonk, jersey club, raï, bouyon, funk brésilien, afro house, country). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "_u8
         "0,5 = réglage de base du style. autotune : 0 = aucun, 0,5 = style, 1 = effet robot. presence : 0 = voix chaude/sombre, "_u8
         "1 = voix brillante et devant. space : quantité de réverb + délai (0 = sec). energy : compression + saturation. "_u8
         "level : volume de la piste (0,5 = normal, ±12 dB). reverbTrim / delayTrim : ajustement fin de la réverb ou du délai seuls "_u8
@@ -464,6 +465,21 @@ InstruBrief briefFromStyle (style::Style st)
         case style::Style::Gospel:     b.bpmMin = 65;  b.bpmMax = 95;  b.energy = 0.5f; b.minor = false; b.prompt = "Gospel soul instrumental, Hammond organ, piano chords, live drums, warm bass"; break;
         case style::Style::Electro:    b.bpmMin = 120; b.bpmMax = 128; b.energy = 0.8f; b.prompt = "House dance instrumental, four-on-the-floor kick, sidechained synth chords, driving bassline"; break;
         case style::Style::Acoustique: b.bpmMin = 70;  b.bpmMax = 110; b.energy = 0.35f; b.minor = false; b.prompt = "Acoustic folk instrumental, fingerpicked acoustic guitar, soft percussion, warm and intimate"; break;
+        case style::Style::RapConscient: b.bpmMin = 80; b.bpmMax = 95; b.energy = 0.5f; b.prompt = "Conscious hip-hop instrumental, soulful piano or strings sample, crisp boom bap drums, deep bass"; break;
+        case style::Style::RapHardcore: b.bpmMin = 130; b.bpmMax = 150; b.energy = 0.9f; b.prompt = "Hard aggressive rap instrumental, distorted 808, menacing dark synths, heavy hard-hitting drums"; break;
+        case style::Style::CloudRap: b.bpmMin = 120; b.bpmMax = 150; b.energy = 0.45f; b.prompt = "Cloud rap instrumental, dreamy ambient pads, reverb-drenched melodies, soft 808, airy hi-hats"; break;
+        case style::Style::Rage: b.bpmMin = 145; b.bpmMax = 165; b.energy = 0.95f; b.prompt = "Rage rap instrumental, distorted supersaw synth leads, hard 808, aggressive fast hi-hats"; break;
+        case style::Style::Plugg: b.bpmMin = 140; b.bpmMax = 160; b.energy = 0.55f; b.prompt = "Pluggnb instrumental, bright bell melodies, soft sliding 808, plugg hi-hats, dreamy chords"; break;
+        case style::Style::EmoRap: b.bpmMin = 120; b.bpmMax = 150; b.energy = 0.55f; b.prompt = "Emo rap instrumental, sad clean electric guitar loop, soft 808, melancholic mood"; break;
+        case style::Style::AfroTrap: b.bpmMin = 100; b.bpmMax = 120; b.energy = 0.8f; b.prompt = "Afro trap instrumental, afrobeat percussion over trap drums, 808 bass, catchy synth melody"; break;
+        case style::Style::LoFi: b.bpmMin = 70; b.bpmMax = 90; b.energy = 0.3f; b.prompt = "Lo-fi hip-hop instrumental, dusty jazzy piano chords, vinyl crackle, laid-back swung drums"; break;
+        case style::Style::Phonk: b.bpmMin = 130; b.bpmMax = 160; b.energy = 0.85f; b.prompt = "Drift phonk instrumental, distorted cowbell melody, heavy 808, Memphis-style vocal chops"; break;
+        case style::Style::JerseyClub: b.bpmMin = 135; b.bpmMax = 145; b.energy = 0.9f; b.prompt = "Jersey club instrumental, bouncy triplet kick pattern, bed squeak samples, chopped vocal hooks"; break;
+        case style::Style::Rai: b.bpmMin = 95; b.bpmMax = 120; b.energy = 0.7f; b.prompt = "Modern rai instrumental, oriental synth lead, darbuka percussion, mandole, urban drums"; break;
+        case style::Style::Bouyon: b.bpmMin = 150; b.bpmMax = 165; b.energy = 0.95f; b.prompt = "Bouyon instrumental, fast Caribbean carnival groove, punchy synth bass, energetic percussion"; break;
+        case style::Style::FunkBresilien: b.bpmMin = 125; b.bpmMax = 135; b.energy = 0.9f; b.prompt = "Brazilian funk instrumental, tamborzao beat, heavy distorted bass, baile funk percussion"; break;
+        case style::Style::AfroHouse: b.bpmMin = 120; b.bpmMax = 124; b.energy = 0.7f; b.prompt = "Afro house instrumental, tribal percussion, deep hypnotic bassline, organic chants, four-on-the-floor"; break;
+        case style::Style::Country: b.bpmMin = 75; b.bpmMax = 115; b.energy = 0.55f; b.minor = false; b.prompt = "Modern country instrumental, acoustic and electric guitars, pedal steel, live drums, warm bass"; break;
         case style::Style::Afro:
         case style::Style::Count:      b.bpmMin = 100; b.bpmMax = 116; b.energy = 0.65f; b.prompt = "Afrobeats instrumental, log drums, percussive groove, bright guitar and synths"; break;
     }

@@ -29,6 +29,21 @@ namespace
         { "gospel", "Gospel / Soul" },
         { "electro", "Électro / House" },
         { "acoustique", "Acoustique / Folk" },
+        { "rap_conscient", "Rap conscient" },
+        { "rap_hardcore", "Rap hardcore" },
+        { "cloud_rap", "Cloud rap" },
+        { "rage", "Rage" },
+        { "plugg", "Plugg / Pluggnb" },
+        { "emo_rap", "Emo rap" },
+        { "afro_trap", "Afro trap" },
+        { "lofi", "Rap lo-fi / Chill" },
+        { "phonk", "Phonk" },
+        { "jersey_club", "Jersey club" },
+        { "rai", "Raï / Raï'n'B" },
+        { "bouyon", "Bouyon" },
+        { "funk_bresilien", "Funk brésilien" },
+        { "afro_house", "Afro house" },
+        { "country", "Country" },
     };
     static_assert (std::size (kStyles) == static_cast<size_t> (Style::Count), "un nom par style");
     constexpr int kLastStyle = static_cast<int> (Style::Count) - 1;
@@ -292,6 +307,201 @@ namespace
                 p.delay.send = 0.06f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;
                 p.outputDb = -14.0f;
                 break;
+            case Style::RapConscient:
+                // Texte avant tout : voix naturelle et intelligible, présence marquée, presque sèche.
+                p.pitch = { true, 0.1f, 90.0f, 0.9f };
+                p.clean.hpfHz = 85.0f;
+                p.eq = { 85.0f, 200.0f, 0.5f, 300.0f, -2.0f, 1.0f, 3000.0f, 3.5f, 0.9f, 12000.0f, 1.5f, 0.0f };
+                p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.0f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 2.0f, 0.2f, 0.1f };
+                p.reverb.send = 0.07f; p.reverb.roomSize = 0.35f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 20.0f;
+                p.delay.send = 0.06f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.15f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::RapHardcore:
+                // Voix agressive et collée devant : compression très forte et rapide, saturation poussée, sèche.
+                p.pitch = { true, 0.1f, 80.0f, 0.8f };
+                p.clean.hpfHz = 110.0f;
+                p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.5f, 1.0f, 2500.0f, 4.5f, 1.0f, 12000.0f, 2.0f, 0.0f };
+                p.comp = { -16.0f, 8.0f, 4.0f, 1.0f, 40.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -24.0f, 3.0f, 8.0f, 10.0f, 120.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 9.0f, 0.5f, 0.25f };
+                p.reverb.send = 0.05f; p.reverb.roomSize = 0.25f; p.reverb.damping = 0.65f; p.reverb.preDelayMs = 10.0f;
+                p.delay.send = 0.08f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.15f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::CloudRap:
+                // Voix aérienne noyée dans l'espace : beaucoup d'air, réverb longue, délai croche pointée.
+                p.pitch = { true, 0.85f, 15.0f, 0.3f };
+                p.clean.hpfHz = 110.0f;
+                p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 2.0f, 0.8f, 12000.0f, 5.0f, 0.0f };
+                p.comp = { -22.0f, 4.0f, 6.0f, 6.0f, 100.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.sat = { 2.0f, 0.2f, 0.1f };
+                p.reverb.send = 0.38f; p.reverb.roomSize = 0.85f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 50.0f;
+                p.delay.send = 0.25f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.45f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Rage:
+                // Autotune à fond, voix distordue et très compressée pour tenir face aux synthés saturés.
+                p.pitch = { true, 1.0f, 3.0f, 0.0f };
+                p.clean.hpfHz = 120.0f;
+                p.eq = { 120.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
+                p.comp = { -24.0f, 8.0f, 4.0f, 1.0f, 40.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 10.0f, 0.55f, 0.2f };
+                p.reverb.send = 0.12f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 20.0f;
+                p.delay.send = 0.18f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Plugg:
+                // Voix douce et chantée, autotune serré mais lisse, réverb moyenne, délai noire ping-pong.
+                p.pitch = { true, 0.9f, 10.0f, 0.2f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 4.0f, 0.0f };
+                p.comp = { -22.0f, 4.0f, 6.0f, 5.0f, 80.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6800.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 2.5f, 0.2f, 0.1f };
+                p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
+                p.delay.send = 0.18f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.3f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::EmoRap:
+                // Rap chanté mélancolique : autotune présent, voix un peu granuleuse, réverb et délai en fin de phrase.
+                p.pitch = { true, 0.85f, 12.0f, 0.3f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 3.0f, 0.0f };
+                p.comp = { -22.0f, 5.0f, 6.0f, 5.0f, 80.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 4.0f, 0.3f, 0.15f };
+                p.reverb.send = 0.28f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 35.0f;
+                p.delay.send = 0.2f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.35f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::AfroTrap:
+                // Énergie trap sur groove afro : autotune marqué, voix devant, échos croche.
+                p.pitch = { true, 0.85f, 12.0f, 0.3f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 3.5f, 0.0f };
+                p.comp = { -21.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -27.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 4.5f, 0.3f, 0.15f };
+                p.reverb.send = 0.16f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
+                p.delay.send = 0.16f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::LoFi:
+                // Voix chaude et feutrée : aigus adoucis (coupe-haut), saturation façon bande, compression douce.
+                p.pitch = { true, 0.3f, 50.0f, 0.8f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 1.0f, 300.0f, -1.5f, 1.0f, 3000.0f, 1.0f, 0.8f, 10000.0f, -1.0f, 11000.0f };
+                p.comp = { -22.0f, 3.0f, 8.0f, 12.0f, 140.0f, 0.0f, 1.0f, true };
+                p.comp2 = { -28.0f, 1.8f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6000.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 3.0f, 0.3f, 0.3f };
+                p.reverb.send = 0.2f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 25.0f;
+                p.delay.send = 0.1f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.25f;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Phonk:
+                // Voix sombre façon Memphis : bande étroite (coupe-bas et coupe-haut), très saturée, sans autotune.
+                p.pitch = { false, 0.0f, 100.0f, 1.0f };
+                p.clean.hpfHz = 150.0f;
+                p.eq = { 150.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 2500.0f, 4.0f, 1.0f, 10000.0f, -2.0f, 9000.0f };
+                p.comp = { -18.0f, 8.0f, 4.0f, 2.0f, 50.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6000.0f, 0.5f, 10.0f, -8.0f };
+                p.sat = { 10.0f, 0.5f, 0.3f };
+                p.reverb.send = 0.12f; p.reverb.roomSize = 0.45f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 15.0f;
+                p.delay.send = 0.15f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.3f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::JerseyClub:
+                // Voix brillante et rebondissante : autotune, beaucoup d'air, compression rapide, échos croche.
+                p.pitch = { true, 0.8f, 10.0f, 0.2f };
+                p.clean.hpfHz = 110.0f;
+                p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.5f, 0.0f };
+                p.comp = { -22.0f, 5.0f, 6.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.sat = { 3.5f, 0.25f, 0.1f };
+                p.reverb.send = 0.14f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 20.0f;
+                p.delay.send = 0.15f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.25f; p.delay.pingPong = true; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Rai:
+                // Autotune très rapide qui suit les mélismes, voix brillante, grande réverb et délai croche pointée.
+                p.pitch = { true, 0.95f, 5.0f, 0.1f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3000.0f, 3.0f, 0.9f, 12000.0f, 3.5f, 0.0f };
+                p.comp = { -22.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 3.0f, 0.25f, 0.1f };
+                p.reverb.send = 0.3f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 30.0f;
+                p.delay.send = 0.22f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.35f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Bouyon:
+                // Carnaval rapide : voix criée très en avant, compression forte, saturation, peu d'espace.
+                p.pitch = { true, 0.8f, 10.0f, 0.3f };
+                p.clean.hpfHz = 110.0f;
+                p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 4.0f, 1.0f, 12000.0f, 3.0f, 0.0f };
+                p.comp = { -21.0f, 6.0f, 4.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -27.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.65f, 10.0f, -8.0f };
+                p.sat = { 6.0f, 0.4f, 0.15f };
+                p.reverb.send = 0.1f; p.reverb.roomSize = 0.4f; p.reverb.damping = 0.55f; p.reverb.preDelayMs = 15.0f;
+                p.delay.send = 0.15f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.25f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::FunkBresilien:
+                // Baile funk : voix scandée, sèche et saturée, compression très forte.
+                p.pitch = { true, 0.5f, 20.0f, 0.5f };
+                p.clean.hpfHz = 120.0f;
+                p.eq = { 120.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 4.0f, 1.0f, 12000.0f, 2.0f, 0.0f };
+                p.comp = { -18.0f, 8.0f, 4.0f, 2.0f, 50.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 8.0f, 0.45f, 0.2f };
+                p.reverb.send = 0.06f; p.reverb.roomSize = 0.3f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 10.0f;
+                p.delay.send = 0.1f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.2f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::AfroHouse:
+                // Voix posée dans un grand espace : réverb longue, délai croche pointée ping-pong, justesse discrète.
+                p.pitch = { true, 0.5f, 25.0f, 0.5f };
+                p.clean.hpfHz = 110.0f;
+                p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 4.0f, 0.0f };
+                p.comp = { -21.0f, 4.0f, 6.0f, 6.0f, 100.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -27.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6800.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 2.0f, 0.2f, 0.1f };
+                p.reverb.send = 0.32f; p.reverb.roomSize = 0.8f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 45.0f;
+                p.delay.send = 0.25f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.45f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Country:
+                // Voix naturelle et chaleureuse, doublée, slapback court typique, réverb moyenne.
+                p.pitch = { true, 0.3f, 50.0f, 0.8f };
+                p.clean.hpfHz = 80.0f;
+                p.eq = { 80.0f, 200.0f, 1.0f, 300.0f, -2.0f, 1.0f, 3000.0f, 2.5f, 0.8f, 12000.0f, 2.5f, 0.0f };
+                p.comp = { -20.0f, 4.0f, 6.0f, 10.0f, 120.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 2.0f, 0.2f, 0.1f };
+                p.reverb.send = 0.18f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
+                p.delay.send = 0.12f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;
+                p.outputDb = -14.0f;
+                break;
         }
         return p;
     }
@@ -438,6 +648,21 @@ namespace
     }
 }
 
+const std::vector<StyleGroup>& styleGroups()
+{
+    static const std::vector<StyleGroup> groups = {
+        { "Rap", { Style::Rap, Style::RapConscient, Style::RapHardcore, Style::BoomBap, Style::Trap, Style::Drill,
+                   Style::RapMelodique, Style::CloudRap, Style::Rage, Style::Plugg, Style::EmoRap, Style::AfroTrap,
+                   Style::LoFi, Style::Phonk, Style::JerseyClub } },
+        { "Chant / Pop / R&B", { Style::PopUrbaine, Style::Pop, Style::RnB, Style::Gospel, Style::Variete, Style::Rai,
+                                 Style::Rock, Style::Acoustique, Style::Country } },
+        { "Afro / Caraïbes / Latino", { Style::Afro, Style::Amapiano, Style::Dancehall, Style::Bouyon, Style::Zouk,
+                                        Style::Latino, Style::FunkBresilien } },
+        { "Électro", { Style::Electro, Style::AfroHouse } },
+    };
+    return groups;
+}
+
 juce::String styleId (Style s) { return kStyles[juce::jlimit (0, kLastStyle, static_cast<int> (s))].id; }
 juce::String styleName (Style s) { return juce::String (juce::CharPointer_UTF8 (kStyles[juce::jlimit (0, kLastStyle, static_cast<int> (s))].name)); }
 
@@ -522,6 +747,21 @@ GenerationDefaults generationDefaults (Style s)
         case Style::Gospel:     g = { 1, 2, false, true, true, 0.6f, 1, 0.3f }; break;
         case Style::Electro:    g = { 2, 1, true, false, true, 0.6f, 2, 0.2f }; break;
         case Style::Acoustique: g = { 1, 1, false, false, false, 0.0f, 1, 0.1f }; break;
+        case Style::RapConscient: g = { 1, 0, true, false, false, 0.0f, 2, 0.2f }; break;
+        case Style::RapHardcore: g = { 2, 0, true, true, false, 0.0f, 2, 0.6f }; break;
+        case Style::CloudRap: g = { 1, 1, false, true, true, 0.8f, 2, 0.4f }; break;
+        case Style::Rage: g = { 2, 0, true, true, false, 0.0f, 2, 0.75f }; break;
+        case Style::Plugg: g = { 1, 1, true, true, true, 0.5f, 2, 0.5f }; break;
+        case Style::EmoRap: g = { 2, 1, true, true, true, 0.6f, 2, 0.4f }; break;
+        case Style::AfroTrap: g = { 2, 1, true, true, false, 0.0f, 2, 0.65f }; break;
+        case Style::LoFi: g = { 1, 0, false, false, true, 0.5f, 1, 0.2f }; break;
+        case Style::Phonk: g = { 2, 0, true, true, false, 0.0f, 2, 0.5f }; break;
+        case Style::JerseyClub: g = { 2, 1, true, true, false, 0.0f, 2, 0.6f }; break;
+        case Style::Rai: g = { 1, 2, false, true, true, 0.5f, 2, 0.4f }; break;
+        case Style::Bouyon: g = { 2, 0, true, true, false, 0.0f, 2, 0.7f }; break;
+        case Style::FunkBresilien: g = { 2, 0, true, true, false, 0.0f, 1, 0.7f }; break;
+        case Style::AfroHouse: g = { 1, 2, false, true, true, 0.7f, 2, 0.3f }; break;
+        case Style::Country: g = { 2, 1, false, false, false, 0.0f, 1, 0.1f }; break;
         case Style::Afro:
         case Style::Count:      g = { 1, 2, false, true, true, 0.6f, 2, 0.5f }; break;
     }
@@ -549,6 +789,21 @@ MasterTone masterTone (Style s)
         case Style::Gospel:     return { 1.0f, 1.0f, 1.0f };
         case Style::Electro:    return { 1.5f, 1.5f, 0.0f };
         case Style::Acoustique: return { 0.0f, 1.0f, 1.5f };
+        case Style::RapConscient: return { 1.0f, 0.5f, 2.0f };
+        case Style::RapHardcore: return { 1.5f, 0.5f, 1.5f };
+        case Style::CloudRap: return { 1.0f, 1.0f, 0.0f };
+        case Style::Rage: return { 1.5f, 1.5f, 0.0f };
+        case Style::Plugg: return { 1.5f, 1.0f, 0.5f };
+        case Style::EmoRap: return { 1.0f, 1.0f, 0.5f };
+        case Style::AfroTrap: return { 1.5f, 1.0f, 1.0f };
+        case Style::LoFi: return { 1.0f, -1.0f, 0.5f };
+        case Style::Phonk: return { 2.0f, 0.0f, 0.0f };
+        case Style::JerseyClub: return { 1.5f, 1.5f, 0.5f };
+        case Style::Rai: return { 1.0f, 1.0f, 1.0f };
+        case Style::Bouyon: return { 1.5f, 1.0f, 0.5f };
+        case Style::FunkBresilien: return { 2.0f, 1.0f, 0.5f };
+        case Style::AfroHouse: return { 1.5f, 1.0f, 0.0f };
+        case Style::Country: return { 0.5f, 1.0f, 1.5f };
         case Style::Afro:
         case Style::Count:      return { 1.0f, 1.0f, 1.0f };
     }

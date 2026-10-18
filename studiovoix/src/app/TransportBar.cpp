@@ -1,5 +1,7 @@
 #include "TransportBar.h"
 
+#include "StyleMenu.h"
+
 #include "core/Log.h"
 #include "core/analysis/KeyDetector.h"
 
@@ -78,8 +80,7 @@ TransportBar::TransportBar (Session& s) : session (s)
         keyBox.addItem (analysis::pitchClassName (pc) + " majeur", 1 + pc);
         keyBox.addItem (analysis::pitchClassName (pc) + " mineur", 13 + pc);
     }
-    for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
-        styleBox.addItem (style::styleName (static_cast<style::Style> (i)), i + 1);
+    fillStyleBox (styleBox);
 
     newBtn.onClick = [this] { if (onNew) onNew(); };
     openBtn.onClick = [this] { if (onOpen) onOpen(); };
@@ -222,6 +223,6 @@ void TransportBar::resized()
     keyBox.setBounds (row2.removeFromLeft (130));
     row2.removeFromLeft (8);
     styleTitle.setBounds (row2.removeFromLeft (40));
-    styleBox.setBounds (row2.removeFromLeft (140));
+    styleBox.setBounds (row2.removeFromLeft (165));
 }
 } // namespace sv::app

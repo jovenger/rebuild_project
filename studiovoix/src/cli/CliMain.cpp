@@ -81,7 +81,9 @@ void usage()
                  "  assistant <phrase>                     teste l'assistant texte\n"
                  "  presets                                effets pre-regles de chaque style (Markdown)\n"
                  "styles : rap trap pop_urbaine rnb drill afro rock latino rap_melodique boom_bap pop\n"
-                 "         variete dancehall zouk amapiano gospel electro acoustique\n"
+                 "         variete dancehall zouk amapiano gospel electro acoustique rap_conscient\n"
+                 "         rap_hardcore cloud_rap rage plugg emo_rap afro_trap lofi phonk jersey_club\n"
+                 "         rai bouyon funk_bresilien afro_house country\n"
                  "cibles : spotify youtube apple tiktok fort none\n";
 }
 
@@ -302,9 +304,11 @@ int cmdDemo (const Args& args)
 int cmdPresets()
 {
     // Sortie Markdown reprise telle quelle dans le README (valeurs lues dans le code, pas recopiées à la main).
-    for (int i = 0; i < static_cast<int> (sv::style::Style::Count); ++i)
+    for (const auto& group : sv::style::styleGroups())
+    for (const auto st : group.styles)
     {
-        const auto st = static_cast<sv::style::Style> (i);
+        if (st == group.styles.front())
+            std::cout << "**Famille " << juce::String (juce::CharPointer_UTF8 (group.name)) << "**\n\n";
         std::cout << "### " << sv::style::styleName (st) << "\n\n";
         for (const auto& line : juce::StringArray::fromLines (sv::dsp::describeChain (sv::style::makeParams (st, sv::style::Role::Lead, {}))))
             std::cout << "- " << line << "\n";

@@ -6,6 +6,8 @@
 
 #include <juce_core/juce_core.h>
 
+#include <vector>
+
 // Profils de style : réglages de départ de la chaîne vocale pour chaque style et chaque rôle de piste.
 // Ce sont des points de départ raisonnables, à affiner à l'oreille.
 namespace sv::style
@@ -16,6 +18,8 @@ enum class Style
 {
     Rap = 0, Trap, PopUrbaine, RnB, Drill, Afro, Rock, Latino,
     RapMelodique, BoomBap, Pop, Variete, Dancehall, Zouk, Amapiano, Gospel, Electro, Acoustique,
+    RapConscient, RapHardcore, CloudRap, Rage, Plugg, EmoRap, AfroTrap, LoFi, Phonk, JerseyClub, Rai, Bouyon,
+    FunkBresilien, AfroHouse, Country,
     Count
 };
 
@@ -31,6 +35,14 @@ enum class Role
     ManualBack,    // back enregistré à la main
     Count
 };
+
+/** Familles affichées dans les listes (chaque style apparaît dans exactement une famille). */
+struct StyleGroup
+{
+    const char* name;   // UTF-8
+    std::vector<Style> styles;
+};
+const std::vector<StyleGroup>& styleGroups();
 
 juce::String styleId (Style s);           // identifiant stable ("trap")
 juce::String styleName (Style s);         // nom affiché ("Trap")

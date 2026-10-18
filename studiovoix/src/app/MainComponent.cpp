@@ -3,6 +3,7 @@
 #include "ExportDialog.h"
 #include "GenerateDialog.h"
 #include "SettingsDialog.h"
+#include "StyleMenu.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -393,12 +394,12 @@ void MainComponent::doNew()
 {
     auto* w = new juce::AlertWindow ("Nouveau projet", "Nom du projet :", juce::MessageBoxIconType::QuestionIcon);
     w->addTextEditor ("name", "Mon morceau");
-    juce::StringArray styles;
-    for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
-        styles.add (style::styleName (static_cast<style::Style> (i)));
-    w->addComboBox ("style", styles, "Style");
+    w->addComboBox ("style", {}, "Style");
     if (auto* box = w->getComboBoxComponent ("style"))
-        box->setSelectedItemIndex (static_cast<int> (session.project().style), juce::dontSendNotification);
+    {
+        fillStyleBox (*box);
+        box->setSelectedId (static_cast<int> (session.project().style) + 1, juce::dontSendNotification);
+    }
     w->addTextBlock ("Autotune, EQ, compresseurs, de-esser, saturation, réverb et délai sont réglés automatiquement "
                      "pour ce style (modifiable ensuite dans la barre du haut et l'onglet Voix IA)."_u8);
     w->addButton ("Créer"_u8, 1, juce::KeyPress (juce::KeyPress::returnKey));
@@ -408,7 +409,7 @@ void MainComponent::doNew()
     {
         const auto name = w->getTextEditorContents ("name").trim();
         const auto* box = w->getComboBoxComponent ("style");
-        const int styleIndex = box != nullptr ? box->getSelectedItemIndex() : -1;
+        const int styleIndex = box != nullptr ? box->getSelectedId() - 1 : -1;   // id = indice du style + 1
         delete w;
         if (safe == nullptr || r != 1 || name.isEmpty())
             return;
