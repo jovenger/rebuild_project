@@ -68,6 +68,7 @@ set(SV_CORE_SOURCES
     src/core/assistant/CommandParser.cpp
     src/core/ai/AiClient.cpp
     src/core/ai/AiFeatures.cpp
+    src/core/ai/LocalTools.cpp
     src/core/project/Project.cpp
     src/core/project/Renderer.cpp
     src/core/update/Updater.cpp)
@@ -140,6 +141,7 @@ if(SV_BUILD_APP)
         src/app/TransportBar.cpp
         src/app/Theme.cpp
         src/app/WelcomeView.cpp
+        src/app/LocalAiPanel.cpp
         src/app/TimelineView.cpp
         src/app/RemixPanel.cpp
         src/app/LyricsPanel.cpp

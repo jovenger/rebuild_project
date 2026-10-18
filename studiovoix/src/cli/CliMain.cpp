@@ -8,6 +8,7 @@
 //   studiovoix_cli master <mix> [--target spotify] -o <sortie.wav>
 
 #include "core/AudioIO.h"
+#include "core/ai/LocalTools.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -81,6 +82,8 @@ void usage()
                  "  master <mix> [--target t] -o sortie.wav\n"
                  "  assistant <phrase>                     teste l'assistant texte\n"
                  "  presets                                effets pre-regles de chaque style (Markdown)\n"
+                 "  outils                                 outils d'IA locale connus et leur etat\n"
+                 "  outils-empreintes [--dossier d]        telecharge chaque outil et affiche taille + SHA-256 (CI)\n"
                  "styles : rap trap pop_urbaine rnb drill afro rock latino rap_melodique boom_bap pop\n"
                  "         variete dancehall zouk amapiano gospel electro acoustique rap_conscient\n"
                  "         rap_hardcore cloud_rap rage plugg emo_rap afro_trap lofi phonk jersey_club\n"
@@ -612,6 +615,40 @@ int main (int argc, char* argv[])
         else if (cmd == "master")  code = cmdMaster (args);
         else if (cmd == "artefacts") code = cmdArtefacts (args);
         else if (cmd == "presets") code = cmdPresets();
+        else if (cmd == "outils")
+        {
+            for (const auto& t : sv::ai::local::tools())
+                std::cout << sv::ai::local::describe (t) << (t.url.isEmpty() ? "" : "  <- " + t.url) << "\n";
+            code = 0;
+        }
+        else if (cmd == "outils-empreintes")
+        {
+            // Relevé par la CI : chaque outil est téléchargé puis sa taille et son empreinte sont affichées, à épingler
+            // dans LocalTools.cpp. Un outil introuvable n'arrête pas les autres (code 1 à la fin).
+            const auto folder = args.has ("dossier") ? juce::File (args.get ("dossier"))
+                                                     : juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_outils");
+            sv::ai::local::setToolsFolder (folder);
+            code = 0;
+            for (const auto& t : sv::ai::local::tools())
+            {
+                if (t.url.isEmpty())
+                {
+                    std::cout << t.id << " : indisponible sur ce systeme\n";
+                    continue;
+                }
+                sv::ai::local::Progress p;
+                juce::String err;
+                if (! sv::ai::local::install (t, p, err))
+                {
+                    std::cout << t.id << " : ECHEC " << err << "\n";
+                    code = 1;
+                    continue;
+                }
+                const auto f = sv::ai::local::toolFile (t);
+                std::cout << t.id << " : " << f.getSize() << " octets, sha256 " << sv::ai::local::sha256Of (f)
+                          << (t.sha256.isNotEmpty() ? (t.sha256 == sv::ai::local::sha256Of (f) ? " (conforme)" : " (DIFFERENT de l'empreinte epinglee)") : " (a epingler)") << "\n";
+            }
+        }
         else if (cmd == "assistant")
         {
             const auto text = args.positional.joinIntoString (" ");

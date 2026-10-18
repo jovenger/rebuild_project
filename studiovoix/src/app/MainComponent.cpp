@@ -7,6 +7,9 @@
 #include "StyleMenu.h"
 #include "Theme.h"
 #include "WelcomeView.h"
+#if SV_EDITION_IA
+ #include "LocalAiPanel.h"
+#endif
 #include "core/Log.h"
 
 namespace sv::app
@@ -34,6 +37,10 @@ MainComponent::MainComponent (Session& s)
     tabs.addTab ("Paroles", tabColour, lyrics, true);
     tabs.addTab ("Mix & Master", tabColour, mixPanel, true);
     tabs.addTab ("IA", tabColour, aiPanel, true);
+#if SV_EDITION_IA
+    localAi = new LocalAiPanel (session);
+    tabs.addTab ("IA locale", tabColour, localAi, true);
+#endif
     tabs.setTabBarDepth (28);
 
     statusBar.setFont (juce::FontOptions (13.0f));

@@ -65,6 +65,7 @@ private:
     LyricsPanel* lyrics = nullptr;
     MixPanel* mixPanel = nullptr;
     AiPanel* aiPanel = nullptr;
+    class LocalAiPanel* localAi = nullptr;   // édition IA : outils libres téléchargés à la demande
     juce::Label statusBar;
     juce::TextButton homeBtn { "Accueil" };
     std::unique_ptr<class WelcomeView> welcome;   // écran d'accueil (cartes), par-dessus le studio

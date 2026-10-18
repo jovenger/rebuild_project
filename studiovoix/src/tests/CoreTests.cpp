@@ -5,6 +5,7 @@
 
 #include "core/AudioIO.h"
 #include "core/plugins/ChainStages.h"
+#include "core/ai/LocalTools.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -822,6 +823,49 @@ public:
                     && q.findTrack (leadId)->stages.at ("eq").state == lead.stages.at ("eq").state, "chaîne réglée à la main enregistrée"_u8);
         expectEquals (static_cast<int> (q.listVersions().size()), 1);
         expectEquals (q.armedTrackId, leadId);
+
+        beginTest ("Outils d'IA locale : catalogue, dossier, empreinte, lancement d'un sous-processus");
+        {
+            const auto& list = ai::local::tools();
+            expect (list.size() >= 2 && ai::local::findTool ("deep-filter") != nullptr && ai::local::findTool ("whisper-base") != nullptr, "catalogue");
+            for (const auto& t : list)
+                expect (t.id.isNotEmpty() && t.name.isNotEmpty() && t.fileName.isNotEmpty() && t.url.startsWith ("https://") && t.licence.isNotEmpty()
+                            && ! t.description.containsChar (0xC3),
+                        "outil complet : " + t.id);
+            const auto toolsDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_outils_test_" + juce::String (juce::Time::currentTimeMillis()));
+            toolsDir.createDirectory();
+            ai::local::setToolsFolder (toolsDir);
+            expect (ai::local::toolsFolder() == toolsDir);
+            const auto* df = ai::local::findTool ("deep-filter");
+            expect (! ai::local::isInstalled (*df) && ai::local::describe (*df).contains ("non install"), "absent : " + ai::local::describe (*df));
+            juce::String out;
+            int code = 0;
+            expect (! ai::local::run (*df, { "--version" }, out, code, 2000) && out.contains ("absent"), "lancement d'un outil absent refusé"_u8);
+            // Empreinte : même résultat que juce::SHA256 sur un contenu connu.
+            const auto f = toolsDir.getChildFile ("x.bin");
+            f.replaceWithText ("StudioVoix");
+            expect (ai::local::sha256Of (f) == juce::SHA256 ("StudioVoix", 10).toHexString().toLowerCase() && ai::local::sha256Of (toolsDir.getChildFile ("absent")).isEmpty(), "sha256");
+#if JUCE_LINUX || JUCE_MAC
+            // Sous-processus : un script en guise d'outil installé.
+            ai::local::ToolDef fake;
+            fake.id = "echo";
+            fake.name = "echo";
+            fake.fileName = "echo-test.sh";
+            fake.executable = true;
+            fake.url = "https://exemple.invalide/echo";
+            const auto script = toolsDir.getChildFile (fake.fileName);
+            script.replaceWithText ("#!/bin/sh\necho bonjour $1\nexit 3\n", false, false, "\n");   // fins de ligne Unix (shebang)
+            script.setExecutePermission (true);
+            expect (ai::local::isInstalled (fake) && ai::local::run (fake, { "studio" }, out, code, 5000) && out.contains ("bonjour studio") && code == 3,
+                    "sous-processus : sortie [" + out.trim() + "], code " + juce::String (code));
+            script.replaceWithText ("#!/bin/sh\nsleep 5\n", false, false, "\n");
+            script.setExecutePermission (true);   // la réécriture crée un nouveau fichier
+            expect (! ai::local::run (fake, {}, out, code, 500) && out.contains ("lai"), "délai dépassé : processus arrêté ("_u8 + out + ")");
+            expect (ai::local::remove (fake) && ! ai::local::isInstalled (fake), "suppression");
+#endif
+            ai::local::setToolsFolder (juce::File());
+            toolsDir.deleteRecursively();
+        }
 
         beginTest ("Chaine visible : etapes <-> reglages (aller-retour, contournement, reglage manuel, sauvegarde)");
         {

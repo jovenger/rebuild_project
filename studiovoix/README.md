@@ -29,6 +29,11 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
   réglages séparés (`StudioVoix IA`) : les deux programmes s'installent côte à côte et ouvrent les mêmes projets.
   Chaque programme ne se met à jour que vers les versions de son édition.
 
+  Dans StudioVoix IA, l'onglet **IA locale** liste les briques (DeepFilterNet, modèle Whisper « base »…) avec leur
+  état et leur poids ; **Installer** les télécharge dans `%APPDATA%\StudioVoix IA\outils` (fichier temporaire,
+  taille et empreinte SHA-256 vérifiées quand elle est connue, journal détaillé), **Supprimer** les retire. Les
+  empreintes sont relevées par la CI (`studiovoix_cli outils-empreintes`) puis épinglées dans le programme.
+
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 
 ## Premier lancement
