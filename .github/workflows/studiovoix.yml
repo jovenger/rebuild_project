@@ -144,7 +144,7 @@ jobs:
           present=inconnu
           for i in 1 2 3; do
             if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
-              present=non; grep -qx "demucs_mt.exe" <<< "$names" && present=oui; break
+              present=non; grep -qx "demucs_mt.exe" <<< "$names" && grep -qx "demucs_mt_avx2.exe" <<< "$names" && present=oui; break
             elif grep -qi "not found" <<< "$names"; then
               present=non; break
             fi
@@ -163,6 +163,8 @@ jobs:
           # Makefiles refuse un sh.exe dans le PATH.
           gcc --version
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/sevagh/demucs.cpp demucs-src
+          # Deux variantes : x86-64-v2 (tout processeur depuis ~2009) et x86-64-v3 (AVX2, ~2× plus rapide avec Eigen) ;
+          # le programme choisit selon le processeur (juce::SystemStats::hasAVX2).
           sed -i 's/-march=native/-march=x86-64-v2 -mtune=generic/' demucs-src/CMakeLists.txt
           grep -n "march" demucs-src/CMakeLists.txt
           # libnyquist/wavpack appelle l'intrinsèque MSVC _BitScanReverse sous _WIN32 sans inclure <intrin.h> (GCC MinGW
@@ -172,11 +174,14 @@ jobs:
           # Sous Windows std::filesystem::path ne se convertit pas implicitement en std::string (build 63).
           sed -i 's/write_audio_file(target_waveform, p_target);/write_audio_file(target_waveform, p_target.string());/' demucs-src/cli-apps/demucs_mt.cpp
           grep -n "p_target.string" demucs-src/cli-apps/demucs_mt.cpp
-          cmake -S demucs-src -B demucs-build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" \
-            -DUSE_OPENBLAS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
-            "-DCMAKE_EXE_LINKER_FLAGS=-static -static-libgcc -static-libstdc++"
-          cmake --build demucs-build --parallel --target demucs_mt.cpp.main
-          find demucs-build -name "*.exe" -o -name "*.dll" | xargs ls -l
+          for variant in v2 v3; do
+            sed -i "s/-march=x86-64-v[23]/-march=x86-64-$variant/" demucs-src/CMakeLists.txt
+            cmake -S demucs-src -B "demucs-build-$variant" -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" \
+              -DUSE_OPENBLAS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+              "-DCMAKE_EXE_LINKER_FLAGS=-static -static-libgcc -static-libstdc++"
+            cmake --build "demucs-build-$variant" --parallel --target demucs_mt.cpp.main
+          done
+          find demucs-build-v2 demucs-build-v3 -name "*.exe" -o -name "*.dll" | xargs ls -l
 
       - name: Artefact Demucs (expérimental)
         if: matrix.edition == 'ON'
@@ -185,8 +190,7 @@ jobs:
         with:
           name: demucs-experimental
           path: |
-            demucs-build/**/*.exe
-            demucs-build/**/*.dll
+            demucs-build-*/demucs_mt.cpp.main.exe
           if-no-files-found: warn
 
       - name: Publication de l'outil Demucs (release « outils-ia », téléchargée par l'onglet IA locale)
@@ -197,17 +201,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          exe=$(find demucs-build -name "demucs_mt.cpp.main.exe" | head -1)
-          if [ -z "$exe" ]; then echo "pas de binaire Demucs compilé : rien à publier"; exit 0; fi
-          cp "$exe" demucs_mt.exe
-          ls -l demucs_mt.exe
-          sha256sum demucs_mt.exe
+          if [ ! -f demucs-build-v2/demucs_mt.cpp.main.exe ] || [ ! -f demucs-build-v3/demucs_mt.cpp.main.exe ]; then
+            echo "binaires Demucs incomplets : rien à publier"; exit 0
+          fi
+          cp demucs-build-v2/demucs_mt.cpp.main.exe demucs_mt.exe
+          cp demucs-build-v3/demucs_mt.cpp.main.exe demucs_mt_avx2.exe
+          ls -l demucs_mt.exe demucs_mt_avx2.exe
+          sha256sum demucs_mt.exe demucs_mt_avx2.exe
           # Jamais d'écrasement d'un asset existant sans [demucs] dans le commit : l'empreinte est épinglée dans le
           # programme (le binaire MinGW n'est pas reproductible à l'octet). État inconnu (gh en échec) = on ne publie pas.
           present=inconnu
           for i in 1 2 3; do
             if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
-              present=non; grep -qx "demucs_mt.exe" <<< "$names" && present=oui; break
+              present=non; grep -qx "demucs_mt.exe" <<< "$names" && grep -qx "demucs_mt_avx2.exe" <<< "$names" && present=oui; break
             elif grep -qi "not found" <<< "$names"; then
               present=release-absente; break
             fi
@@ -221,8 +227,8 @@ jobs:
               --notes "demucs_mt.exe : demucs.cpp (licence MIT, https://github.com/sevagh/demucs.cpp) compilé avec GCC MinGW, statique, x86-64-v2. Téléchargé par StudioVoix IA (onglet IA locale)." \
               --latest=false
           fi
-          gh release upload outils-ia demucs_mt.exe --repo "$GITHUB_REPOSITORY" --clobber
-          echo "PUBLIÉ : ré-épingler dans LocalTools.cpp la taille et le SHA-256 ci-dessus"
+          gh release upload outils-ia demucs_mt.exe demucs_mt_avx2.exe --repo "$GITHUB_REPOSITORY" --clobber
+          echo "PUBLIÉ : ré-épingler dans LocalTools.cpp les tailles et SHA-256 ci-dessus (deux variantes)"
 
       - name: Journal des tests
         if: always()

@@ -82,10 +82,15 @@ namespace
                 t.licence = "MIT";
                 t.executable = true;
 #if JUCE_WINDOWS
-                t.url = "https://github.com/jovenger/rebuild_project/releases/download/outils-ia/demucs_mt.exe";
-                t.fileName = "demucs_mt.exe";
-                t.size = 6327386;   // asset de la release outils-ia (republié au build 69) ; remplacé seulement si le commit porte le marqueur demucs entre crochets
-                t.sha256 = "eea504e905aa13acbbbc370d8b59c989b5df515e8effd414edf4c09592968266";
+                // Deux variantes compilées par la CI : AVX2 (x86-64-v3, nettement plus rapide) pour les processeurs récents,
+                // sinon x86-64-v2 (tout PC depuis ~2009). Tailles et SHA-256 relevés par la CI ; les assets ne sont
+                // remplacés que sur demande (marqueur demucs entre crochets dans le message de commit).
+                const bool avx2 = juce::SystemStats::hasAVX2();
+                t.description += avx2 ? " Version AVX2 (processeur récent)."_u8 : " Version compatible tous processeurs (sans AVX2)."_u8;
+                t.url = juce::String ("https://github.com/jovenger/rebuild_project/releases/download/outils-ia/") + (avx2 ? "demucs_mt_avx2.exe" : "demucs_mt.exe");
+                t.fileName = avx2 ? "demucs_mt_avx2.exe" : "demucs_mt.exe";
+                t.size = 0;        // à épingler après le relevé CI de la republication (deux variantes)
+                t.sha256 = "";
 #else
                 t.fileName = "demucs_mt";
 #endif
