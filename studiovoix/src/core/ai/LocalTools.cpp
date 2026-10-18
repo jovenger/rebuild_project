@@ -89,8 +89,9 @@ namespace
                 t.description += avx2 ? " Version AVX2 (processeur récent)."_u8 : " Version compatible tous processeurs (sans AVX2)."_u8;
                 t.url = juce::String ("https://github.com/jovenger/rebuild_project/releases/download/outils-ia/") + (avx2 ? "demucs_mt_avx2.exe" : "demucs_mt.exe");
                 t.fileName = avx2 ? "demucs_mt_avx2.exe" : "demucs_mt.exe";
-                t.size = 0;        // à épingler après le relevé CI de la republication (deux variantes)
-                t.sha256 = "";
+                t.size = avx2 ? 6474736 : 6327386;   // assets de la release outils-ia (build 73)
+                t.sha256 = avx2 ? "40cfc9ddfa16421c1a126484d0ea1fbaccd1afcebe5d149d9ba545226a20f0be"
+                                : "86aeec834a42de27b0cd91c9cd090bf09be2817e77de52de3d1760219d260d63";
 #else
                 t.fileName = "demucs_mt";
 #endif

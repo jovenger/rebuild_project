@@ -50,8 +50,10 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
   (Demucs v4 Hybrid Transformer, 4 sources) découpe l'instru en quatre pistes brutes — batterie, basse, autres
   instruments, voix — placées au même endroit que l'instru, qui est coupée (M pour la rétablir, Ctrl+Z pour annuler) ;
   chaque partie se traite ensuite comme une piste instrument (style, chaîne visible, orchestre). Pistes mono (format des
-  prises du projet). Plusieurs minutes de calcul sur le processeur. Outils : binaire `demucs_mt.exe` compilé par la CI
-  (release GitHub `outils-ia`) et modèle `ggml-model-htdemucs-4s-f16.bin` (84 Mo), à installer dans IA locale.
+  prises du projet). Calcul long sur le processeur : mesuré en CI à environ 5 fois la durée du morceau sur 4 cœurs avec
+  la variante compatible (sans AVX2) ; la variante AVX2, choisie automatiquement sur les processeurs récents, est plus
+  rapide. Outils : binaire `demucs_mt.exe` ou `demucs_mt_avx2.exe` compilé par la CI (release GitHub `outils-ia`,
+  empreintes épinglées) et modèle `ggml-model-htdemucs-4s-f16.bin` (84 Mo), à installer dans IA locale.
 
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 

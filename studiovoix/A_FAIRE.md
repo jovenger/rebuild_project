@@ -24,11 +24,11 @@ comment les automatismes doivent être faits, ordre proposé.
   que si l'asset manque ou si le commit contient `[demucs]` (ré-épingler alors l'empreinte). Historique des essais :
   58 CMake 4 ; 59 MSVC ; 60 PowerShell « =3.5 » ; 61 bash + Ninja ; 63 wavpack `<intrin.h>` ; 64 `path` → `string`.
   Exécution réelle vérifiée par la CI Windows (`studiovoix_cli outils-essai` sur la démo, build 66) : deep-filter OK
-  (2,5 s), whisper-cli OK (4 s, 0 mot : voix de démo synthétique) ; demucs_mt : empreinte ré-épinglée sur l'asset
-  courant (republié aux builds 65 puis 69 — ce dernier parce que le message de commit contenait le marqueur de
-  republication), exécution réelle au build suivant. Reste à vérifier sur le PC de Yann : un
-  vrai morceau (qualité de la séparation, vitesse x86-64-v2 sans AVX2, plusieurs minutes attendues) ; parties en mono
-  (prises du projet) — stéréo à envisager.
+  (2,5 s), whisper-cli OK (4 s, 0 mot : voix de démo synthétique) ; demucs_mt OK (build 72 : 39,4 s d'audio séparées
+  en 196,9 s sur 4 fils, variante compatible ; partie voix quasi muette sur une instru sans voix). Build 73 : deux
+  variantes publiées (compatible x86-64-v2 et AVX2), choisies selon le processeur, empreintes épinglées ; l'étape
+  d'essai réel est désormais bloquante. Reste à vérifier sur le PC de Yann : un vrai morceau (qualité de la
+  séparation, vitesse réelle) ; parties en mono (prises du projet) — stéréo à envisager.
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.
 
