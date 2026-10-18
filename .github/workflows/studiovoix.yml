@@ -102,6 +102,27 @@ jobs:
         run: |
           ./build/studiovoix_cli_artefacts/Release/studiovoix_cli outils-empreintes --dossier "$RUNNER_TEMP/sv_outils" || echo "relevé incomplet (voir ci-dessus)"
 
+      - name: Demucs (demucs.cpp) — compilation expérimentale pour l'édition IA
+        if: matrix.edition == 'ON'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/sevagh/demucs.cpp demucs-src
+          cmake -S demucs-src -B demucs-build -DCMAKE_BUILD_TYPE=Release
+          cmake --build demucs-build --config Release --parallel
+          Get-ChildItem -Recurse demucs-build -Include *.exe,*.dll | Select-Object FullName, Length
+
+      - name: Artefact Demucs (expérimental)
+        if: matrix.edition == 'ON'
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: demucs-experimental
+          path: |
+            demucs-build/**/*.exe
+            demucs-build/**/*.dll
+          if-no-files-found: warn
+
       - name: Journal des tests
         if: always()
         shell: bash

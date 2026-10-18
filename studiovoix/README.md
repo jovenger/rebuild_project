@@ -132,6 +132,11 @@ ad-libs −9, ambiance −14, instrument enregistré −4), bornée à −8 / +6
 mais son niveau est géré aussi, comme l'équilibre voix / instru : le niveau n'est pas un effet.
 Le panneau Voix IA affiche « Orchestre : gain auto ± x dB », la barre du haut la sonie du mixage (« Mix −14,0 LUFS »).
 
+**Mastering par référence** (panneau Mix, actif dès qu'un morceau de référence est choisi dans Voix IA) : à l'export,
+le spectre du mixage (tiers d'octave) est rapproché de celui du morceau de référence (5 dB max par bande, 60 Hz à
+16 kHz), comme le fait Matchering ; la destination « Comme le morceau de référence » vise en plus sa sonie (bornée
+−24 à −6 LUFS). Rapport d'export : correction maximale par bande.
+
 **Bus voix** (panneau Mix, activé par défaut) : toutes les voix (principale, doublages, backs, ad-libs, harmonies,
 ambiance) sont additionnées à part puis passent **ensemble** dans un même compresseur « colle » (RMS lié, seuil −20 dB,
 2:1, genou 6 dB, attaque 30 ms, relâche 200 ms, 1 à 4 dB de réduction), comme sur une console : les voix sonnent comme un

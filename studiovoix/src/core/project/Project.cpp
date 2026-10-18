@@ -205,6 +205,7 @@ juce::var Project::toVar() const
     root->setProperty ("masterEnabled", masterEnabled);
     root->setProperty ("autoMixEnabled", autoMixEnabled);
     root->setProperty ("vocalBusEnabled", vocalBusEnabled);
+    root->setProperty ("referenceMaster", referenceMaster);
     root->setProperty ("duckingDb", duckingDb);
     root->setProperty ("referenceFile", referenceFile);
     root->setProperty ("adLibFolder", adLibFolder);
@@ -346,6 +347,7 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
     p.masterEnabled = getB (v, "masterEnabled", true);
     p.autoMixEnabled = getB (v, "autoMixEnabled", true);
     p.vocalBusEnabled = getB (v, "vocalBusEnabled", true);
+    p.referenceMaster = getB (v, "referenceMaster", true);
     p.duckingDb = static_cast<float> (juce::jlimit (0.0, 6.0, getD (v, "duckingDb", 2.5)));
     p.referenceFile = getS (v, "referenceFile");
     p.adLibFolder = getS (v, "adLibFolder");

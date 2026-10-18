@@ -7,7 +7,7 @@ namespace sv::app
 {
 MixPanel::MixPanel (Session& s) : session (s)
 {
-    for (auto* c : std::initializer_list<juce::Component*> { &autoMix, &vocalBus, &master, &ducking, &duckingL, &targetL, &sectionsL, &versionsL, &adlibL,
+    for (auto* c : std::initializer_list<juce::Component*> { &autoMix, &vocalBus, &refMaster, &master, &ducking, &duckingL, &targetL, &sectionsL, &versionsL, &adlibL,
                                                              &info, &target, &sections, &versions, &copySection, &restore, &adlibBtn, &reanalyse })
         addAndMakeVisible (*c);
 
@@ -28,6 +28,13 @@ MixPanel::MixPanel (Session& s) : session (s)
     {
         if (! updating)
             session.updateProject ([v = vocalBus.getToggleState()] (project::Project& p) { p.vocalBusEnabled = v; }, false, "Bus voix");
+    };
+    refMaster.setTooltip ("À l'export : le spectre du mixage (par tiers d'octave) est rapproché de celui du morceau de référence choisi dans "
+                          "Voix IA, 5 dB max par bande. Choisis la destination « Comme le morceau de référence » pour viser aussi sa sonie."_u8);
+    refMaster.onClick = [this]
+    {
+        if (! updating)
+            session.updateProject ([v = refMaster.getToggleState()] (project::Project& p) { p.referenceMaster = v; }, false, "Mastering par référence"_u8);
     };
     master.onClick = [this]
     {
@@ -97,6 +104,8 @@ void MixPanel::refresh()
     const auto& p = session.project();
     autoMix.setToggleState (p.autoMixEnabled, juce::dontSendNotification);
     vocalBus.setToggleState (p.vocalBusEnabled, juce::dontSendNotification);
+    refMaster.setToggleState (p.referenceMaster, juce::dontSendNotification);
+    refMaster.setEnabled (p.referenceFile.isNotEmpty());
     master.setToggleState (p.masterEnabled, juce::dontSendNotification);
     ducking.setValue (p.duckingDb, juce::dontSendNotification);
     target.setSelectedId (static_cast<int> (p.target) + 1, juce::dontSendNotification);
@@ -145,6 +154,7 @@ void MixPanel::resized()
     auto row = [&r] (int h = 26) { auto x = r.removeFromTop (h); r.removeFromTop (4); return x; };
     autoMix.setBounds (row());
     vocalBus.setBounds (row());
+    refMaster.setBounds (row());
     auto a = row();
     duckingL.setBounds (a.removeFromLeft (190));
     ducking.setBounds (a);

@@ -97,7 +97,10 @@ dsp::AnalysisContext makeContext (const project::Project& p, AudioCache& cache)
         juce::String err;
         const juce::File ref (p.referenceFile);
         if (auto st = cache.stereo (ref, p.sampleRate, err))
+        {
             ctx.reference = analysis::averageSpectrum (audio::toMono (*st), p.sampleRate);
+            ctx.referenceLufs = loudness::integratedLufs (*st, p.sampleRate);
+        }
         else
             SV_LOG_WARN (kMod, "Morceau de référence illisible : "_u8 + err);
     }
@@ -604,6 +607,16 @@ ExportReport exportProject (const project::Project& p, const RenderSet& renders,
     ms.highShelfDb = tone.highShelfDb;
     // MP3 : l'encodage ajoute des crêtes, on vise -2 dBTP au lieu de -1.
     ms.extraHeadroomDb = options.format == audio::FileFormat::Mp3_320 ? 1.0f : 0.0f;
+    if (p.referenceFile.isNotEmpty() && (p.referenceMaster || p.target == dsp::LoudnessTarget::Reference))
+    {
+        // Mastering par référence : spectre et sonie du morceau de référence (relu ici, le cache de rendu n'est pas transmis).
+        AudioCache refCache;
+        const auto ctx = makeContext (p, refCache);
+        ms.reference = ctx.reference;
+        ms.referenceLufs = ctx.referenceLufs;
+        ms.referenceStrength = p.referenceMaster && ctx.reference.valid() ? 0.7f : 0.0f;
+        SV_LOG_INFO (kMod, "Export : mastering par référence "_u8 + (ctx.reference.valid() ? "actif (" + juce::String (ctx.referenceLufs, 1) + " LUFS)" : juce::String ("impossible, référence illisible"_u8)));
+    }
     Stereo mastered = dsp::master (mixBuf, p.sampleRate, ms, rep.master);
     if (! ms.enabled)
     {

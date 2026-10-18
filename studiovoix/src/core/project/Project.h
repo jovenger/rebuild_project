@@ -122,6 +122,7 @@ struct Project
     bool masterEnabled = true;
     bool autoMixEnabled = true;
     bool vocalBusEnabled = true;     // bus voix : toutes les voix passent ensemble dans le compresseur « colle »
+    bool referenceMaster = true;     // mastering par référence (spectre du morceau de référence) quand une référence est choisie
     float duckingDb = 2.5f;
     juce::String referenceFile;      // morceau de référence (chemin absolu)
     juce::StringArray loadWarnings;  // réparations faites au chargement (non enregistré)

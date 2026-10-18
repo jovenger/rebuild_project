@@ -1,5 +1,6 @@
 #include "MasterChain.h"
 
+#include "../AudioIO.h"
 #include "../Log.h"
 #include "../Loudness.h"
 #include "Processors.h"
@@ -22,6 +23,7 @@ TargetInfo targetInfo (LoudnessTarget t)
         case LoudnessTarget::AppleMusic: return { "apple", "Apple Music (-16 LUFS)", -16.0f, -1.0f };
         case LoudnessTarget::TikTok:     return { "tiktok", "TikTok / Instagram (-14 LUFS)", -14.0f, -1.0f };
         case LoudnessTarget::Fort:       return { "fort", juce::String (juce::CharPointer_UTF8 ("Fort / club (-9 LUFS)")), -9.0f, -1.0f };
+        case LoudnessTarget::Reference:  return { "reference", juce::String (juce::CharPointer_UTF8 ("Comme le morceau de référence")), -14.0f, -1.0f };
         case LoudnessTarget::None:
         case LoudnessTarget::Count:      return { "none", "Sans normalisation (limiteur seul)", 0.0f, -1.0f };
     }
@@ -165,8 +167,37 @@ Stereo master (const Stereo& mix, double sampleRate, const MasterSettings& setti
         std::copy (ch.begin(), ch.end(), out.getWritePointer (c));
     }
 
+    // 2 bis) Mastering par référence : spectre du mixage rapproché de celui du morceau de référence (tiers d'octave,
+    //        5 dB max par bande, graves sous 60 Hz et aigus au-dessus de 16 kHz laissés tels quels).
+    if (settings.referenceStrength > 0.001f && settings.reference.valid())
+    {
+        const auto mine = analysis::averageSpectrum (audio::toMono (out), sampleRate);
+        const auto curve = analysis::matchCurve (mine, settings.reference, 5.0f, 60.0f, 16000.0f, settings.referenceStrength);
+        float maxAbs = 0.0f;
+        for (const float g : curve)
+            maxAbs = std::max (maxAbs, std::abs (g));
+        if (maxAbs > 0.1f && curve.size() == mine.centersHz.size())
+        {
+            for (int c = 0; c < 2; ++c)
+            {
+                Mono ch (out.getReadPointer (c), out.getReadPointer (c) + n);
+                applyCurveEq (ch, sampleRate, mine.centersHz, curve);
+                std::copy (ch.begin(), ch.end(), out.getWritePointer (c));
+            }
+            report.referenceEqMaxDb = maxAbs;
+        }
+        SV_LOG_INFO (kMod, "Mastering par référence : correction max "_u8 + juce::String (maxAbs, 1) + " dB par bande (force "
+                           + juce::String (settings.referenceStrength, 2) + ")");
+    }
+
     // 3) Normalisation + limiteur, itératif (la limitation réduit la sonie).
-    const auto info = targetInfo (settings.target);
+    auto info = targetInfo (settings.target);
+    if (settings.target == LoudnessTarget::Reference)
+    {
+        // Sonie du morceau de référence (bornée : un morceau mal mesuré ne doit pas écraser ni éteindre le mix).
+        info.lufs = settings.referenceLufs > -60.0 ? juce::jlimit (-24.0f, -6.0f, static_cast<float> (settings.referenceLufs)) : -14.0f;
+        SV_LOG_INFO (kMod, "Sonie visée = morceau de référence : "_u8 + juce::String (info.lufs, 1) + " LUFS");
+    }
     const bool normalise = settings.target != LoudnessTarget::None;
     const double pre = loudness::integratedLufs (out, sampleRate);
     double gainDb = normalise && pre > -70.0 ? info.lufs - pre : 0.0;

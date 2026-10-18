@@ -476,6 +476,43 @@ public:
             expect (rep.truePeakDb <= info.ceilingDbTp + 0.15, "crête vraie sous le plafond"_u8);
             expect (! audio::hasNonFinite (out.getReadPointer (0), static_cast<size_t> (out.getNumSamples())));
         }
+        beginTest ("Mastering par reference : spectre rapproche, sonie du morceau de reference");
+        {
+            // Référence = le même instru, mais avec 6 dB d'aigus en plus au-dessus de 3 kHz : le master doit remonter les aigus.
+            const Mono mono = audio::toMono (instru);
+            auto ref = analysis::averageSpectrum (mono, kSr);
+            for (size_t i = 0; i < ref.centersHz.size(); ++i)
+                if (ref.centersHz[i] >= 3000.0f && ref.centersHz[i] <= 12000.0f)
+                    ref.levelsDb[i] += 6.0f;
+            dsp::MasterSettings ms;
+            ms.target = dsp::LoudnessTarget::Reference;
+            ms.reference = ref;
+            ms.referenceStrength = 1.0f;
+            ms.referenceLufs = -11.0;
+            dsp::MasterReport rep;
+            const auto out = dsp::master (instru, kSr, ms, rep);
+            expect (rep.referenceEqMaxDb > 2.0f && rep.referenceEqMaxDb <= 5.01f, "correction par bande : "_u8 + juce::String (rep.referenceEqMaxDb, 1) + " dB");
+            expectWithinAbsoluteError (rep.outputLufs, -11.0, 0.6);
+            auto tilt = [&] (const Stereo& s)
+            {
+                const auto sp = analysis::averageSpectrum (audio::toMono (s), kSr);
+                double hi = 0.0, lo = 0.0;
+                int nh = 0, nl = 0;
+                for (size_t i = 0; i < sp.centersHz.size(); ++i)
+                {
+                    if (sp.centersHz[i] >= 3000.0f && sp.centersHz[i] <= 12000.0f) { hi += sp.levelsDb[i]; ++nh; }
+                    else if (sp.centersHz[i] >= 100.0f && sp.centersHz[i] <= 1000.0f) { lo += sp.levelsDb[i]; ++nl; }
+                }
+                return hi / std::max (1, nh) - lo / std::max (1, nl);
+            };
+            const double before = tilt (instru), after = tilt (out);
+            expect (after > before + 2.0, "aigus remontés vers la référence : "_u8 + juce::String (before, 1) + " -> " + juce::String (after, 1) + " dB");
+            ms.referenceLufs = -120.0;   // référence sans sonie connue : repli -14
+            dsp::master (instru, kSr, ms, rep);
+            expectWithinAbsoluteError (rep.outputLufs, -14.0, 0.6);
+            expect (dsp::targetFromId ("reference") == dsp::LoudnessTarget::Reference && ! dsp::targetInfo (dsp::LoudnessTarget::Reference).name.containsChar (0xC3), "cible reference");
+        }
+
         beginTest ("Mastering : mix quasi silencieux non amplifie");
         {
             juce::Random rnd (7);

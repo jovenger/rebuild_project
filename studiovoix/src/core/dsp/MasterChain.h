@@ -1,12 +1,13 @@
 #pragma once
 
 #include "../Types.h"
+#include "../analysis/SpectrumAnalyzer.h"
 
-// Mastering automatique : compression de cohésion, couleur par style, limiteur à anticipation
-// et normalisation de sonie selon la plateforme visée.
+// Mastering automatique : compression de cohésion, couleur par style, mastering par référence (spectre et sonie du
+// morceau de référence, comme Matchering), limiteur à anticipation et normalisation de sonie selon la plateforme visée.
 namespace sv::dsp
 {
-enum class LoudnessTarget { Spotify = 0, YouTube, AppleMusic, TikTok, Fort, None, Count };
+enum class LoudnessTarget { Spotify = 0, YouTube, AppleMusic, TikTok, Fort, None, Reference, Count };
 
 struct TargetInfo
 {
@@ -27,6 +28,12 @@ struct MasterSettings
     float lowShelfDb = 0.0f;    // 100 Hz
     float highShelfDb = 0.0f;   // 10 kHz
     float extraHeadroomDb = 0.0f;   // marge sous le plafond de crête vraie (format avec perte : MP3)
+    // Mastering par référence : le spectre du mixage (tiers d'octave) est rapproché de celui du morceau de référence,
+    // referenceStrength (0 = rien, 1 = égalisation complète, 5 dB max par bande) ; avec la cible Reference, la sonie
+    // visée est celle du morceau (referenceLufs).
+    analysis::BandSpectrum reference;
+    float referenceStrength = 0.0f;
+    double referenceLufs = -120.0;
 };
 
 struct MasterReport
@@ -38,6 +45,7 @@ struct MasterReport
     float limiterMaxGrDb = 0.0f;
     int iterations = 0;
     int hardClippedSamples = 0;
+    float referenceEqMaxDb = 0.0f;   // plus grande correction de bande du mastering par référence (0 = non appliqué)
 };
 
 /** Limiteur stéréo lié, anticipation lookaheadMs. Retourne la réduction maximale (dB). */

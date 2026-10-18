@@ -1114,7 +1114,10 @@ void Session::refreshContext()
     const juce::String refPath = proj.referenceFile;
     // Le spectre de référence n'est repris que s'il vient du même fichier (sinon : vide jusqu'au nouveau calcul).
     if (context != nullptr && refPath.isNotEmpty() && refPath == contextRefPath)
+    {
         ctx->reference = context->reference;
+        ctx->referenceLufs = context->referenceLufs;
+    }
     context = ctx;
 
     if (refPath.isEmpty())
@@ -1137,7 +1140,8 @@ void Session::refreshContext()
         auto st = cachePtr->stereo (juce::File (refPath), sr, err);
         auto spectrum = std::make_shared<analysis::BandSpectrum> (st != nullptr ? analysis::averageSpectrum (audio::toMono (*st), sr)
                                                                                  : analysis::BandSpectrum());
-        juce::MessageManager::callAsync ([weak, spectrum, refPath, err, ep]
+        const double refLufs = st != nullptr ? loudness::integratedLufs (*st, sr) : -120.0;
+        juce::MessageManager::callAsync ([weak, spectrum, refPath, err, ep, refLufs]
         {
             if (auto* s = weak.get(); s != nullptr && ep == s->epoch)
             {
@@ -1152,6 +1156,8 @@ void Session::refreshContext()
                 }
                 auto c = std::make_shared<dsp::AnalysisContext> (*s->context);
                 c->reference = *spectrum;
+                c->referenceLufs = refLufs;
+                SV_LOG_INFO (kMod, "Morceau de référence : "_u8 + juce::String (refLufs, 1) + " LUFS");
                 s->context = c;
                 s->contextRefPath = refPath;
                 for (const auto& t : s->proj.tracks)

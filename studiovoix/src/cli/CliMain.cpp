@@ -88,7 +88,7 @@ void usage()
                  "         variete dancehall zouk amapiano gospel electro acoustique rap_conscient\n"
                  "         rap_hardcore cloud_rap rage plugg emo_rap afro_trap lofi phonk jersey_club\n"
                  "         rai bouyon funk_bresilien afro_house country\n"
-                 "cibles : spotify youtube apple tiktok fort none\n";
+                 "cibles : spotify youtube apple tiktok fort none reference\n";
 }
 
 struct InstruAnalysis

@@ -17,6 +17,7 @@ struct AnalysisContext
     MusicalKey key;
     TempoInfo tempo;
     analysis::BandSpectrum reference;   // spectre du morceau de référence (optionnel)
+    double referenceLufs = -120.0;      // sonie intégrée du morceau de référence (mastering par référence)
 };
 
 struct VocalReport
