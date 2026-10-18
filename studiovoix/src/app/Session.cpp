@@ -127,7 +127,7 @@ bool Session::newProject (const juce::String& name, juce::String& error, style::
     auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
     if (appSettings.hasUserPreset (created.style))
         lead.macros = appSettings.userPreset (created.style);
-    lead.raw = true;                  // aucun effet tant qu'un style n'est pas choisi sur la piste
+    lead.raw = false;                 // traitée d'emblée par le style du projet (tout automatique) ; « Brut » pour écouter sans effet
     created.armedTrackId = lead.id;   // le micro enregistre sur la voix principale tant qu'on n'arme pas une autre piste
     if (! created.save (error))
     {
@@ -421,10 +421,7 @@ void Session::importVoice (const juce::File& file, int trackId, double startSec)
         return;
     }
     pushUndo ("Import d'une voix");
-    // Fichier importé dans une piste vide sans style choisi : brut (aucun effet) jusqu'au choix d'un style.
-    const bool becomesRaw = t->takes.empty() && t->styleId.isEmpty();
-    if (becomesRaw)
-        t->raw = true;
+    // Fichier importé : traité d'emblée par le style de la piste (ou du projet) ; « Brut » pour écouter sans effet.
     if (! addTakeFromAudio (trackId, data, startSec, err))
     {
         setStatus ("Copie de la voix impossible : " + err);
@@ -498,9 +495,7 @@ int Session::importAsNewTrack (const juce::File& file, style::Role role, const j
         setStatus ("Fichier illisible (" + file.getFileName() + ") : " + err);
         return -1;
     }
-    const int id = addUserTrack (role, name);   // une seule étape d'annulation : la piste et sa prise
-    if (auto* nt = proj.findTrack (id))
-        nt->raw = true;   // déposé = brut : aucun effet ni mix auto tant qu'aucun style n'est choisi
+    const int id = addUserTrack (role, name);   // une seule étape d'annulation : la piste et sa prise ; traitée par le style du projet
     if (! addTakeFromAudio (id, data, startSec, err))
     {
         SV_LOG_ERROR (kMod, "Copie du fichier déposé impossible : "_u8 + err);
@@ -510,7 +505,7 @@ int Session::importAsNewTrack (const juce::File& file, style::Role role, const j
     SV_LOG_INFO (kMod, "Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " ("
                        + juce::String (static_cast<double> (data.size()) / proj.sampleRate, 1) + " s) en "
                        + juce::String (juce::roundToInt (juce::Time::getMillisecondCounterHiRes() - t0)) + " ms");
-    setStatus ("Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " : brute, sans effet — clique dessus et choisis un style à droite"_u8);
+    setStatus ("Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " : traitée par le style du projet (« Brut » pour l'écouter sans effet, « ⋯ » pour tout le reste)"_u8);
     return id;
 }
 
@@ -542,10 +537,8 @@ int Session::addUserTrack (style::Role role, const juce::String& name)
         markDirty();
         rebuildPlayState();
     }
-    if (auto* nt = proj.findTrack (trackId))
-        nt->raw = true;   // nouvelle piste = brute (aucun effet, curseurs à 0) jusqu'au choix d'un style
     proj.armedTrackId = trackId;
-    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ") : brute, sélectionnée et armée"_u8);
+    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ") : traitée par le style du projet, sélectionnée et armée"_u8);
     setStatus ("Piste « "_u8 + name + " » ajoutée, brute (aucun effet) et armée : R pour enregistrer ; « Effets » à droite pour choisir un style"_u8);
     return trackId;
 }
@@ -941,7 +934,7 @@ void Session::separateInstru()
             for (const auto& [name, data] : parts)
             {
                 auto& t = s->proj.addTrack (style::Role::Instrument, juce::String::fromUTF8 (name));
-                t.raw = true;   // brute : aucun effet tant qu'aucun style n'est choisi
+                t.raw = false;  // traitée comme un instrument (nettoyage, niveau), « Brut » pour l'écouter telle quelle
                 juce::String err;
                 if (s->addTakeFromAudio (t.id, *data, startSec, err))
                     ++created;

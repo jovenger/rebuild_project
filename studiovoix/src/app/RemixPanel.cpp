@@ -1,5 +1,7 @@
 #include "RemixPanel.h"
 
+#include <optional>
+
 #include "GenerateDialog.h"
 #include "PluginManager.h"
 #include "StyleMenu.h"
@@ -140,7 +142,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
         if (v && ! ai::local::deepFilterAvailable())   // outil absent : téléchargé à la demande, puis les voix sont recalculées
         {
             juce::WeakReference<Session> weak (&session);
-            session.ensureToolsThen ({ "deep-filter" }, "Nettoyage IA"_u8, [weak] { if (auto* s = weak.get()) s->updateProject ([] (project::Project&) {}, true, {}); });
+            session.ensureToolsThen ({ "deep-filter" }, "Nettoyage IA"_u8, [weak] { if (auto* ss = weak.get()) ss->updateProject ([] (project::Project&) {}, true, {}); });
         }
     };
 #endif
@@ -547,17 +549,33 @@ void RemixPanel::openStageEditor (const juce::String& stageId)
     slot.state = it != t->stages.end() && it->second.state.getSize() > 0 ? it->second.state : plugins::stageState (*st, chainParams (*t, false));
     const int trackId = shownTrack;
     juce::WeakReference<Session> weak (&session);
-    SV_LOG_INFO ("VoixIA", "Chaîne de « "_u8 + t->name + " » : réglages de l'étape "_u8 + stageId + " ouverts"_u8);
-    PluginManager::instance().openEditor (slot, [weak, trackId, stageId] (const juce::MemoryBlock& state)
-    {
-        auto* s = weak.get();
-        if (s == nullptr)
-            return;
-        plugins::StageOverride ov;
-        ov.bypass = false;
-        ov.state = state;
-        s->setTrackStage (trackId, stageId, &ov, "Réglage de l'étape "_u8 + stageId);
-    });
+    // Réglage de départ : remis en place à la fermeture avant l'étape d'annulation, pour que « Annuler » revienne au point initial.
+    std::optional<plugins::StageOverride> original;
+    if (it != t->stages.end())
+        original = it->second;
+    SV_LOG_INFO ("VoixIA", "Chaîne de « "_u8 + t->name + " » : réglages de l'étape "_u8 + stageId + " ouverts (en direct)"_u8);
+    PluginManager::instance().openEditor (slot,
+        [weak, trackId, stageId, original] (const juce::MemoryBlock& state)   // fermeture : une seule étape d'annulation
+        {
+            auto* s = weak.get();
+            if (s == nullptr)
+                return;
+            s->setTrackStage (trackId, stageId, original.has_value() ? &*original : nullptr, {});
+            plugins::StageOverride ov;
+            ov.bypass = false;
+            ov.state = state;
+            s->setTrackStage (trackId, stageId, &ov, "Réglage de l'étape "_u8 + stageId);
+        },
+        [weak, trackId, stageId] (const juce::MemoryBlock& state)   // en direct : sans étape d'annulation
+        {
+            auto* s = weak.get();
+            if (s == nullptr)
+                return;
+            plugins::StageOverride ov;
+            ov.bypass = false;
+            ov.state = state;
+            s->setTrackStage (trackId, stageId, &ov, {});
+        });
 }
 
 void RemixPanel::showStageMenu (const juce::String& stageId)

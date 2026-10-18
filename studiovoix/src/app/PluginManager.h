@@ -35,7 +35,10 @@ public:
     void showAddMenu (juce::Component* anchor, std::function<void (const plugins::PluginSlot&)> onChosen);
 
     /** Ouvre la fenêtre d'un plugin avec son état ; onClosed reçoit le nouvel état à la fermeture. */
-    void openEditor (const plugins::PluginSlot& slot, std::function<void (const juce::MemoryBlock& newState)> onClosed);
+    /** onChanged (facultatif) : appelé en direct (250 ms après le dernier mouvement d'un curseur) pour un effet intégré ;
+        onClosed : état final à la fermeture. */
+    void openEditor (const plugins::PluginSlot& slot, std::function<void (const juce::MemoryBlock& newState)> onClosed,
+                     std::function<void (const juce::MemoryBlock& newState)> onChanged = {});
     void closeAllEditors();
 
     static juce::File pluginsFile();

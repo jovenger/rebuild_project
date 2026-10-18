@@ -19,6 +19,12 @@ branchements pour zéro retard, placement, réglages Windows, dépannage).
 
 Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
 
+**Tout automatique dès le départ** : chaque piste voix (nouvelle, enregistrée ou déposée) est traitée par le style du
+projet immédiatement — plus de piste « brute » à activer à la main ; le bouton **Brut** de l'en-tête sert à écouter
+sans effet. Les réglages d'une case de la chaîne (clic sur « Compresseur », « Réverb »…) s'appliquent **en direct**
+pendant qu'on bouge les curseurs (recalcul de la piste en quelques secondes, « [Calcul en cours] » en bas), et une
+seule étape d'annulation à la fermeture.
+
 **Prise en main pratique** : tout ce qui concerne une piste est **sur la piste** — bouton « ⋯ » (ou clic droit) sur son
 en-tête : importer un fichier dans la piste, remplacer l'instru, style et effets (panneau de droite), reconnaître les
 paroles (IA), nettoyage IA de la voix, séparer l'instru en quatre pistes (IA), couper / fondus / supprimer un bloc,

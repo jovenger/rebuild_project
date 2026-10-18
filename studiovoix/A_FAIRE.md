@@ -17,6 +17,10 @@ comment les automatismes doivent être faits, ordre proposé.
   style et effets, paroles IA, nettoyage IA, séparation IA, blocs, armer, ordre, renommer, supprimer) ; téléchargement
   des outils IA à la demande depuis l'action (boîte « Télécharger et continuer », progression en bas, action enchaînée) ;
   onglets renommés (Piste, Paroles, Mix & Master, Assistant, Outils IA) ; aide d'étapes dans la timeline vide.
+- Fait (build 76), retour « rien ne fonctionne » : cause = toute piste voix naissait « brute » (effets, curseurs et
+  cases grisés tant qu'un style n'était pas choisi dans la liste « Type ») et les réglages d'une case ne s'appliquaient
+  qu'à la fermeture de la fenêtre. Désormais : pistes traitées par le style du projet dès le départ (« Brut » = écoute
+  sans effet), réglages de case appliqués en direct (250 ms après le dernier mouvement, une seule étape d'annulation).
 - À faire selon le prochain retour : panneau « Piste » adapté à l'instru (remplacer, séparer, caler) ; bouton
   « Séparer » visible sur l'en-tête de l'instru ; sélection du style directement dans l'en-tête de piste ; réduire la
   barre du haut (Nouveau / Ouvrir / Sauver dans l'accueil) ; glisser-déposer d'un fichier sur une piste existante.

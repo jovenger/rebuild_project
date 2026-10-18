@@ -73,13 +73,14 @@ namespace
     };
 
     // Fenêtre de réglage d'un effet intégré : un curseur par paramètre ; l'état (JSON) est repris à la fermeture.
-    class InternalEditorWindow final : public juce::DocumentWindow
+    class InternalEditorWindow final : public juce::DocumentWindow, private juce::Timer
     {
     public:
         InternalEditorWindow (const plugins::InternalPluginDef& def, juce::MemoryBlock initialState,
-                              std::function<void (const juce::MemoryBlock&)> onClosed, std::function<void (InternalEditorWindow*)> onDestroy)
+                              std::function<void (const juce::MemoryBlock&)> onClosed, std::function<void (InternalEditorWindow*)> onDestroy,
+                              std::function<void (const juce::MemoryBlock&)> onChanged)
             : juce::DocumentWindow (juce::String (juce::CharPointer_UTF8 (def.name)), theme::card, DocumentWindow::closeButton),
-              definition (def), state (std::move (initialState)), closed (std::move (onClosed)), destroy (std::move (onDestroy))
+              definition (def), state (std::move (initialState)), closed (std::move (onClosed)), destroy (std::move (onDestroy)), changed (std::move (onChanged))
         {
             setUsingNativeTitleBar (true);
             auto* content = new juce::Component();
@@ -98,13 +99,19 @@ namespace
                 slider->setDoubleClickReturnValue (true, p.def);
                 slider->setBounds (280, y, 360, rowH - 6);
                 const juce::String id (p.id);
-                slider->onValueChange = [this, slider, id] { state = plugins::withInternalParam (definition, state, id, static_cast<float> (slider->getValue())); };
+                slider->onValueChange = [this, slider, id]
+                {
+                    state = plugins::withInternalParam (definition, state, id, static_cast<float> (slider->getValue()));
+                    if (changed)
+                        startTimer (250);   // appliqué en direct, 250 ms après le dernier mouvement
+                };
                 content->addAndMakeVisible (slider);
                 labels.add (label);
                 sliders.add (slider);
                 y += rowH;
             }
-            auto* hint = new juce::Label ({}, "Les réglages s'appliquent à la fermeture de cette fenêtre (double-clic sur un curseur = valeur de départ)."_u8);
+            auto* hint = new juce::Label ({}, changed ? "Les réglages s'appliquent en direct (la piste est recalculée en quelques secondes). Double-clic sur un curseur = valeur de départ."_u8
+                                                      : "Les réglages s'appliquent à la fermeture de cette fenêtre (double-clic sur un curseur = valeur de départ)."_u8);
             hint->setFont (juce::FontOptions (11.0f));
             hint->setColour (juce::Label::textColourId, juce::Colours::lightgrey);
             hint->setBounds (10, y + 4, 630, 20);
@@ -119,6 +126,7 @@ namespace
 
         void closeButtonPressed() override
         {
+            stopTimer();
             SV_LOG_INFO (kMod, "Réglages de « "_u8 + getName() + " » repris : "_u8 + state.toString());
             if (closed)
                 closed (state);
@@ -127,12 +135,19 @@ namespace
         }
 
     private:
+        void timerCallback() override
+        {
+            stopTimer();
+            if (changed)
+                changed (state);
+        }
         const plugins::InternalPluginDef& definition;
         juce::MemoryBlock state;
         juce::OwnedArray<juce::Label> labels;
         juce::OwnedArray<juce::Slider> sliders;
         std::function<void (const juce::MemoryBlock&)> closed;
         std::function<void (InternalEditorWindow*)> destroy;
+        std::function<void (const juce::MemoryBlock&)> changed;
     };
 
     class EditorWindow final : public juce::DocumentWindow
@@ -364,18 +379,19 @@ void PluginManager::showAddMenu (juce::Component* anchor, std::function<void (co
     });
 }
 
-void PluginManager::openEditor (const plugins::PluginSlot& slot, std::function<void (const juce::MemoryBlock&)> onClosed)
+void PluginManager::openEditor (const plugins::PluginSlot& slot, std::function<void (const juce::MemoryBlock&)> onClosed,
+                                std::function<void (const juce::MemoryBlock&)> onChanged)
 {
     if (const auto* def = plugins::findInternal (slot.identifier))
     {
-        SV_LOG_INFO (kMod, "Réglages de « "_u8 + slot.name + " » ouverts"_u8);
+        SV_LOG_INFO (kMod, "Réglages de « "_u8 + slot.name + " » ouverts"_u8 + (onChanged ? " (application en direct)"_u8 : juce::String()));
         editors.push_back (std::make_unique<InternalEditorWindow> (*def, slot.state, std::move (onClosed), [this] (InternalEditorWindow* w)
         {
             juce::MessageManager::callAsync ([this, w]
             {
                 editors.erase (std::remove_if (editors.begin(), editors.end(), [w] (const auto& p) { return p.get() == w; }), editors.end());
             });
-        }));
+        }, std::move (onChanged)));
         return;
     }
     juce::String err;
