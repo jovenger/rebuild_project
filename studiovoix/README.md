@@ -137,12 +137,17 @@ une licence commerciale JUCE est nécessaire.**
 
 ## État
 
-Vérifié automatiquement (CI Windows MSVC + Linux GCC) : compilation, 240 vérifications de tests, auto-test de
-l'application (import, analyse, rendu, génération, annuler/rétablir, export à −14,00 LUFS).
+Vérifié automatiquement (CI Windows MSVC + Linux GCC) :
+
+- compilation, 242 vérifications de tests ;
+- auto-test de l'application : import, analyse, rendu, génération, annuler/rétablir, export à −14,00 LUFS,
+  prise annulée pendant son traitement, réouverture du projet pendant des calculs ;
+- installateur Windows : installation silencieuse, tests lancés depuis le dossier installé, désinstallation.
 
 **Non vérifié** (pas de matériel ni de clé dans l'environnement de développement) :
 
 - carte son réelle, latence réelle et recalage sur du vrai matériel ;
+- carte débranchée pendant une prise, changement de fréquence, récupération après un vrai plantage ;
 - qualité d'écoute des traitements et des pistes générées ;
 - appels réels aux API Claude et ElevenLabs ;
 - export MP3 avec `lame.exe`.

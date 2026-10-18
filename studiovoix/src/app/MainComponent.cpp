@@ -279,17 +279,17 @@ namespace
                     next();
                     break;
                 case 9:
-                    if (! session.isBusy())
-                        return;
                     {
                         int running = 0;
                         for (const auto& t : session.project().tracks)
                             running += session.trackStatus (t.id).startsWith ("Traitement") ? 1 : 0;
-                        if (running == 0)
+                        // Rendus très courts (petite démo) : après 10 s sans en voir un en cours, on rouvre quand même.
+                        if (running == 0 && juce::Time::currentTimeMillis() - stepStart < 10000)
                             return;
                         const auto folder = session.project().folder;
                         if (! session.openProject (folder, false, err)) { fail ("réouverture : " + err); return; }
-                        log ("étape 9 : projet rouvert pendant "_u8 + juce::String (running) + " rendu(s) en cours");
+                        log (running > 0 ? "étape 9 : projet rouvert pendant "_u8 + juce::String (running) + " rendu(s) en cours"
+                                         : "étape 9 : aucun rendu vu en cours (fenêtre manquée), projet rouvert quand même"_u8);
                     }
                     next();
                     break;
