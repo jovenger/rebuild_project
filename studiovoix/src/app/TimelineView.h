@@ -26,6 +26,8 @@ public:
     void resized() override;
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;   // glisser verticalement = changer l'ordre des pistes
+    void mouseUp (const juce::MouseEvent& e) override;
     int trackId() const { return id; }
 
 private:
@@ -38,6 +40,7 @@ private:
     LevelMeter meter;
     float meterLevel = 0.0f;
     bool updating = false;
+    bool reordering = false;   // glisser en cours : une seule étape d'annulation pour tout le geste
 };
 
 class TimelineView final : public juce::Component
@@ -67,6 +70,17 @@ public:
 
     /** Menu clic droit d'une piste (aussi depuis son en-tête). */
     void openTrackMenu (int trackId) { showTrackMenu (trackId, -1, -1.0); }
+    /** Glisser vertical d'un en-tête : la piste suit la souris (une seule étape d'annulation par geste). */
+    void dragTrackHeader (int trackId, int yInTimeline, bool first);
+
+    /** Édition au clavier : S = couper, Suppr = effacer la zone / le bloc, Ctrl+C / X / V. */
+    bool hasEditSelection() const { return selTrack >= 0 && (selB > selA || selTake >= 0); }
+    void editSplit();
+    void editDelete();
+    void editCopy();
+    void editCut();
+    void editPaste();
+    void clearSelection();
 
     double punchInSec() const { return punchIn; }
     double punchOutSec() const { return punchOut; }
@@ -106,7 +120,12 @@ private:
     double viewStart = 0.0;
     int scrollY = 0;
     double punchIn = 0.0, punchOut = 0.0, loopA = 0.0, loopB = 0.0;
-    enum class Drag { None, Playhead, Punch, Loop, Clip, HeaderEdge, RowEdge, ClipEdgeL, ClipEdgeR, FadeIn, FadeOut } drag = Drag::None;
+    enum class Drag { None, Playhead, Punch, Loop, Clip, HeaderEdge, RowEdge, ClipEdgeL, ClipEdgeR, FadeIn, FadeOut, Range } drag = Drag::None;
+    // Sélection : zone [selA, selB] (s) sur la piste selTrack, ou un bloc (selTake). Un clic sans glisser = tête de lecture.
+    int selTrack = -1, selTake = -1;
+    double selA = 0.0, selB = 0.0;
+    juce::Point<int> rangeStart;
+    bool rangeMoved = false;
     // Édition d'un bloc en cours (bords, fondus) : valeurs provisoires affichées, le projet est modifié au relâchement.
     long editStart = 0, editEnd = 0, editFadeIn = 0, editFadeOut = 0, editFileLen = 0;
     static constexpr int kHandle = 7;   // taille (px) des poignées de fondu, en haut du bloc

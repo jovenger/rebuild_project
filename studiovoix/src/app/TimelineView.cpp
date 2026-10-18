@@ -202,6 +202,31 @@ void TrackHeader::mouseDown (const juce::MouseEvent& e)
             tv->openTrackMenu (id);
 }
 
+void TrackHeader::mouseDrag (const juce::MouseEvent& e)
+{
+    if (e.mods.isPopupMenu() || session.isRecording())
+        return;
+    if (! reordering && std::abs (e.getDistanceFromDragStartY()) < 8)
+        return;
+    if (auto* tv = findParentComponentOfClass<TimelineView>())
+    {
+        const bool first = ! reordering;
+        reordering = true;
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        tv->dragTrackHeader (id, e.getEventRelativeTo (tv).y, first);
+    }
+}
+
+void TrackHeader::mouseUp (const juce::MouseEvent&)
+{
+    if (reordering)
+    {
+        reordering = false;
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+        session.setStatus ("Ordre des pistes modifié (Ctrl+Z pour annuler)"_u8);
+    }
+}
+
 void TrackHeader::resized()
 {
     auto r = getLocalBounds().reduced (8, 3);
@@ -238,6 +263,99 @@ TimelineView::TimelineView (Session& s) : session (s)
     trackHeight = juce::jlimit (40, 260, session.settings().props().getIntValue ("timelineTrackHeight", kDefaultTrackHeight));
     SV_LOG_INFO ("Timeline", "Disposition : en-têtes "_u8 + juce::String (headerWidth) + " px, pistes " + juce::String (trackHeight) + " px");
     refresh();
+}
+
+void TimelineView::dragTrackHeader (int trackId, int yInTimeline, bool first)
+{
+    const auto& tracks = session.project().tracks;
+    int current = -1;
+    for (size_t i = 0; i < tracks.size(); ++i)
+        if (tracks[i].id == trackId)
+            current = static_cast<int> (i);
+    if (current < 0)
+        return;
+    const int target = juce::jlimit (0, static_cast<int> (tracks.size()) - 1, (yInTimeline - kRulerHeight + scrollY) / std::max (1, trackHeight));
+    if (target != current)
+        session.moveTrack (trackId, target, first ? juce::String ("Ordre des pistes"_u8) : juce::String());
+    else if (first)
+        session.moveTrack (trackId, current, juce::String());   // rien à faire : aucune étape d'annulation
+}
+
+void TimelineView::clearSelection()
+{
+    if (selTrack < 0 && selTake < 0)
+        return;
+    selTrack = -1;
+    selTake = -1;
+    selA = selB = 0.0;
+    repaint();
+}
+
+void TimelineView::editSplit()
+{
+    const int trackId = selTrack >= 0 ? selTrack : session.selectedTrack();
+    if (trackId < 0)
+        return;
+    if (selTrack >= 0 && selB > selA)
+    {
+        // Zone sélectionnée : coupe aux deux bords (le milieu devient un bloc à part).
+        session.splitTrackAt (trackId, selA);
+        session.splitTrackAt (trackId, selB);
+        SV_LOG_INFO ("Timeline", "Coupe aux bords de la zone "_u8 + juce::String (selA, 2) + "-" + juce::String (selB, 2) + " s");
+        return;
+    }
+    session.splitTrackAt (trackId, session.positionSec());
+}
+
+void TimelineView::editDelete()
+{
+    if (selTrack < 0)
+        return;
+    if (selB > selA)
+        session.cutRange (selTrack, selA, selB, false);
+    else if (selTake >= 0)
+        session.removeTake (selTrack, selTake);
+    clearSelection();
+}
+
+void TimelineView::editCopy()
+{
+    if (selTrack < 0)
+        return;
+    if (selB > selA)
+        session.copyRange (selTrack, selA, selB);
+    else if (selTake >= 0)
+    {
+        if (const auto* t = session.project().findTrack (selTrack))
+            if (const auto* tk = project::findTake (const_cast<project::Track&> (*t), selTake))
+                session.copyRange (selTrack, tk->regionStart / session.project().sampleRate, tk->regionEnd / session.project().sampleRate);
+    }
+}
+
+void TimelineView::editCut()
+{
+    if (selTrack < 0)
+        return;
+    if (selB > selA)
+        session.cutRange (selTrack, selA, selB, true);
+    else if (selTake >= 0)
+    {
+        editCopy();
+        session.removeTake (selTrack, selTake);
+    }
+    clearSelection();
+}
+
+void TimelineView::editPaste()
+{
+    const int trackId = selTrack >= 0 ? selTrack : session.selectedTrack();
+    if (trackId < 0)
+    {
+        session.setStatus ("Coller : sélectionne d'abord une piste"_u8);
+        return;
+    }
+    // À la tête de lecture, ou au début de la zone sélectionnée si elle existe.
+    session.pasteClipboard (trackId, selTrack >= 0 && selB > selA ? selA : session.positionSec());
 }
 
 bool TimelineView::overRowEdge (juce::Point<int> p, int& rowTop) const
@@ -469,6 +587,25 @@ void TimelineView::paint (juce::Graphics& g)
             g.drawText (st.isNotEmpty() ? st : juce::String ("Vide — arme la piste (rond rouge) et appuie sur REC"_u8),
                         headerWidth + 10, y, 600, trackHeight, juce::Justification::centredLeft);
         }
+        if (selTrack == t.id)
+        {
+            if (selB > selA)
+            {
+                const int x1 = secToX (selA), x2 = secToX (selB);
+                g.setColour (juce::Colours::white.withAlpha (0.18f));
+                g.fillRect (x1, y, std::max (1, x2 - x1), trackHeight);
+                g.setColour (juce::Colours::white.withAlpha (0.7f));
+                g.drawRect (x1, y, std::max (1, x2 - x1), trackHeight);
+            }
+            else if (selTake >= 0)
+                for (const auto& tk : t.takes)
+                    if (tk.id == selTake)
+                    {
+                        const int x1 = secToX (tk.regionStart / p.sampleRate), x2 = secToX (tk.regionEnd / p.sampleRate);
+                        g.setColour (juce::Colours::white.withAlpha (0.9f));
+                        g.drawRect (x1, y + 2, std::max (1, x2 - x1), trackHeight - 4, 2);
+                    }
+        }
         g.setColour (juce::Colours::black);
         g.drawHorizontalLine (y + trackHeight - 1, static_cast<float> (headerWidth), static_cast<float> (w));
     }
@@ -559,7 +696,8 @@ void TimelineView::paint (juce::Graphics& g)
     g.fillRect (0, 0, headerWidth, kRulerHeight);
     g.setColour (juce::Colours::grey);
     g.setFont (10.0f);
-    g.drawFittedText ("Clic = position | Maj+glisser = punch | Alt+glisser = boucle\nDouble-clic section = copier | Ctrl+molette = zoom",
+    g.drawFittedText ("Clic = position | Glisser = zone | Maj+glisser = punch | Alt+glisser = boucle\n"
+                      "S = couper | Suppr = effacer | Ctrl+C / X / V | Ctrl+molette = zoom | En-tête : glisser = ordre",
                       4, 2, headerWidth - 8, kRulerHeight - 4, juce::Justification::topLeft, 3);
 
     // Tête de lecture
@@ -681,6 +819,17 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
                 return;
             }
         }
+        if (! session.isRecording() && (e.mods.isCtrlDown() || e.mods.isCommandDown()))
+        {
+            drag = Drag::Range;
+            selTrack = id;
+            selTake = -1;
+            selA = selB = std::max (0.0, t);
+            rangeStart = e.getPosition();
+            rangeMoved = false;
+            repaint();
+            return;
+        }
         if (! session.isRecording() && ! e.mods.isAnyModifierKeyDown() && clipAt (track, t, takeId))
         {
             drag = Drag::Clip;
@@ -689,10 +838,24 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
             clipOffsetSec = 0.0;
             dragAnchor = xToSec (e.x);
             setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+            selTrack = id;      // le bloc cliqué devient le bloc sélectionné (Suppr, Ctrl+C / X)
+            selTake = takeId;
+            selA = selB = 0.0;
+            repaint();
             return;
         }
-        if (! session.isRecording())
-            session.setPositionSec (t);
+        if (! session.isRecording() && ! e.mods.isAnyModifierKeyDown())
+        {
+            // Glisser dans le vide = sélection d'une zone ; clic sans glisser = tête de lecture (au relâchement).
+            drag = Drag::Range;
+            selTrack = id;
+            selTake = -1;
+            selA = selB = std::max (0.0, t);
+            rangeStart = e.getPosition();
+            rangeMoved = false;
+            repaint();
+            return;
+        }
     }
 }
 
@@ -764,6 +927,27 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
             clipOffsetSec = off;
             break;
         }
+        case Drag::Range:
+        {
+            if (! rangeMoved && std::abs (e.x - rangeStart.x) < 4)
+                break;
+            rangeMoved = true;
+            const double a = std::max (0.0, xToSec (rangeStart.x)), b = std::max (0.0, t);
+            selA = std::min (a, b);
+            selB = std::max (a, b);
+            // Aimant aux temps de la grille et aux bords des blocs (8 px).
+            const double snapSec = 8.0 / pxPerSec;
+            if (const auto* tr = session.project().findTrack (selTrack))
+            {
+                const double sr = session.project().sampleRate;
+                for (double* edge : { &selA, &selB })
+                    for (const auto& tk : tr->takes)
+                        for (const double cand : { tk.regionStart / sr, tk.regionEnd / sr })
+                            if (std::abs (cand - *edge) < snapSec)
+                                *edge = cand;
+            }
+            break;
+        }
         case Drag::ClipEdgeL:
         case Drag::ClipEdgeR:
         case Drag::FadeIn:
@@ -808,6 +992,28 @@ void TimelineView::mouseUp (const juce::MouseEvent&)
         SV_LOG_INFO ("Timeline", "Disposition mémorisée : en-têtes "_u8 + juce::String (headerWidth) + " px, pistes " + juce::String (trackHeight) + " px");
         drag = Drag::None;
         setMouseCursor (juce::MouseCursor::NormalCursor);
+        return;
+    }
+    if (drag == Drag::Range)
+    {
+        drag = Drag::None;
+        if (! rangeMoved)
+        {
+            // Clic simple : tête de lecture, sélection effacée.
+            const double t = std::max (0.0, xToSec (rangeStart.x));
+            clearSelection();
+            if (! session.isRecording())
+                session.setPositionSec (t);
+            return;
+        }
+        if (selB - selA < 0.001)
+            clearSelection();
+        else
+        {
+            SV_LOG_INFO ("Timeline", "Zone sélectionnée "_u8 + juce::String (selA, 2) + "-" + juce::String (selB, 2) + " s sur la piste #" + juce::String (selTrack));
+            session.setStatus ("Zone "_u8 + juce::String (selB - selA, 2) + " s : S = couper aux bords, Suppr = effacer, Ctrl+C / X = copier / couper, Ctrl+V = coller"_u8);
+        }
+        repaint();
         return;
     }
     if (drag == Drag::ClipEdgeL || drag == Drag::ClipEdgeR || drag == Drag::FadeIn || drag == Drag::FadeOut)
@@ -907,6 +1113,8 @@ void TimelineView::showTrackMenu (int trackId, int takeId, double atSec)
     m.addItem (10, "Nouvelle piste...");
     if (! t->takes.empty() || t->sourceFile.isNotEmpty())
         m.addItem (12, "Caler l'audio au début du morceau (0 s)"_u8);
+    m.addItem (13, "Monter la piste"_u8);
+    m.addItem (14, "Descendre la piste"_u8);
     if (t->isRecordable())
         m.addItem (11, session.armedTrack() == trackId ? juce::String ("Désarmer la piste"_u8)
                                                        : juce::String ("Armer la piste (le micro enregistre ici)"_u8));
@@ -951,6 +1159,13 @@ void TimelineView::showTrackMenu (int trackId, int takeId, double atSec)
             s->armTrack (s->armedTrack() == trackId ? -1 : trackId);
         else if (r == 12)
             s->moveTrackAudioToStart (trackId);
+        else if (r == 13 || r == 14)
+        {
+            const auto& tracks = s->project().tracks;
+            for (size_t i = 0; i < tracks.size(); ++i)
+                if (tracks[i].id == trackId)
+                    s->moveTrack (trackId, static_cast<int> (i) + (r == 13 ? -1 : 1), "Ordre des pistes"_u8);
+        }
         else if (r == 1 || r == 2)
             s->updateTrack (trackId, [r] (project::Track& tr) { tr.comp = r == 2 ? project::CompMode::Best : project::CompMode::Latest; }, true,
                             "Mode d'assemblage des prises");

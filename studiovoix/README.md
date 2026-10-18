@@ -168,6 +168,15 @@ Le panneau Voix IA indique l'instrument reconnu et les corrections faites.
 relâchement. Il ne peut jamais dépasser le début (0 s) et s'aimante au début et aux temps de la grille quand il
 en est proche ; clic droit → « Caler au début du morceau » le remet exactement à 0 s.
 
+**Sélectionner une zone** : glisser la souris dans le vide d'une piste (ou Ctrl+glisser, même sur un bloc) ; la zone
+s'aimante aux bords des blocs. Puis **S** la coupe aux deux bords, **Suppr** l'efface (les blocs voisins ne bougent
+pas), **Ctrl+C / Ctrl+X** la copient / coupent, **Ctrl+V** la colle à la tête de lecture sur la piste sélectionnée (ce
+qui se trouvait sous la zone collée est remplacé ; les fichiers audio ne sont jamais modifiés). Un clic sur un bloc le
+sélectionne (cadre blanc) : Suppr, Ctrl+C / X agissent alors sur ce bloc. Un clic sans glisser place la tête de lecture.
+
+**Ordre des pistes** : glisser l'en-tête d'une piste vers le haut ou le bas (ou clic droit → « Monter / Descendre la
+piste »). Ctrl+Z revient en arrière.
+
 **Éditer un bloc** (prise enregistrée ou fichier importé sur une piste voix) : tirer un **bord** du bloc le rogne
 (jamais au-delà du fichier, 50 ms au minimum) ; les deux **carrés blancs** en haut du bloc (piste sélectionnée) sont
 les poignées de **fondu d'entrée / de sortie** (courbe en cosinus, dessinées en triangle) ; clic droit sur le bloc →
@@ -195,6 +204,10 @@ piste dans cette colonne (hauteur de toutes les pistes, 40–260 px) ; mémoris�
 | Ctrl+O | Ouvrir |
 | Ctrl+Z / Ctrl+Y (ou Ctrl+Maj+Z) | Annuler / rétablir |
 | Ctrl+E | Exporter |
+| S | Couper le(s) bloc(s) à la tête de lecture (ou aux deux bords de la zone sélectionnée) |
+| Suppr | Effacer la zone ou le bloc sélectionné (sinon : supprimer la piste) |
+| Ctrl+C / Ctrl+X / Ctrl+V | Copier / couper la zone ou le bloc sélectionné ; coller à la tête de lecture sur la piste sélectionnée |
+| Échap | Annuler la sélection |
 
 ## Pré-réglages par style
 

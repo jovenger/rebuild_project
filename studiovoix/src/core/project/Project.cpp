@@ -673,4 +673,114 @@ bool removeTake (Track& t, int takeId)
     SV_LOG_INFO (kMod, "Prise #" + juce::String (takeId) + " supprimée de la piste « "_u8 + t.name + " »"_u8);
     return true;
 }
+int cutRange (Track& t, long a, long b, int& nextTakeId)
+{
+    if (b <= a)
+        return 0;
+    int touched = 0;
+    std::vector<Take> kept;
+    for (const auto& tk : t.takes)
+    {
+        if (tk.regionEnd <= a || tk.regionStart >= b)
+        {
+            kept.push_back (tk);
+            continue;
+        }
+        ++touched;
+        if (tk.regionStart < a)
+        {
+            Take left = tk;
+            left.regionEnd = a;
+            left.fadeOut = 0;
+            left.fadeIn = std::min (left.fadeIn, left.regionEnd - left.regionStart);
+            kept.push_back (left);
+        }
+        if (tk.regionEnd > b)
+        {
+            Take right = tk;
+            right.regionStart = b;
+            right.fadeIn = 0;
+            right.fadeOut = std::min (right.fadeOut, right.regionEnd - right.regionStart);
+            if (tk.regionStart < a)
+                right.id = nextTakeId++;   // la gauche garde l'identifiant
+            kept.push_back (right);
+        }
+    }
+    t.takes = std::move (kept);
+    SV_LOG_INFO (kMod, "Zone "_u8 + juce::String (a) + "-" + juce::String (b) + " retirée de la piste « "_u8 + t.name + " » : " + juce::String (touched) + " prise(s) touchée(s)"_u8);
+    return touched;
+}
+
+std::vector<Take> copyRange (const Track& t, long a, long b)
+{
+    std::vector<Take> clip;
+    if (b <= a)
+        return clip;
+    for (const auto& tk : t.takes)
+    {
+        if (tk.regionEnd <= a || tk.regionStart >= b)
+            continue;
+        Take c = tk;
+        c.regionStart = std::max (tk.regionStart, a) - a;
+        c.regionEnd = std::min (tk.regionEnd, b) - a;
+        c.startSample = tk.startSample - a;
+        if (tk.regionStart < a)
+            c.fadeIn = 0;
+        if (tk.regionEnd > b)
+            c.fadeOut = 0;
+        c.fadeIn = std::min (c.fadeIn, c.regionEnd - c.regionStart);
+        c.fadeOut = std::min (c.fadeOut, c.regionEnd - c.regionStart - c.fadeIn);
+        clip.push_back (c);
+    }
+    SV_LOG_INFO (kMod, "Zone "_u8 + juce::String (a) + "-" + juce::String (b) + " copiée depuis « "_u8 + t.name + " » : " + juce::String (static_cast<int> (clip.size())) + " prise(s)");
+    return clip;
+}
+
+long clipLength (const std::vector<Take>& clip)
+{
+    long len = 0;
+    for (const auto& c : clip)
+        len = std::max (len, c.regionEnd);
+    return len;
+}
+
+int pasteTakes (Track& t, const std::vector<Take>& clip, long at, int& nextTakeId)
+{
+    if (clip.empty() || at < 0)
+        return 0;
+    cutRange (t, at, at + clipLength (clip), nextTakeId);
+    int n = 0;
+    for (const auto& c : clip)
+    {
+        Take p = c;
+        p.id = nextTakeId++;
+        p.startSample = c.startSample + at;
+        p.regionStart = c.regionStart + at;
+        p.regionEnd = c.regionEnd + at;
+        p.createdMs = juce::Time::currentTimeMillis();
+        if (p.regionEnd > p.regionStart && p.file.isNotEmpty())
+        {
+            t.takes.push_back (p);
+            ++n;
+        }
+    }
+    SV_LOG_INFO (kMod, juce::String (n) + " prise(s) collée(s) à "_u8 + juce::String (at) + " sur « "_u8 + t.name + " »"_u8);
+    return n;
+}
+
+bool Project::moveTrack (int id, int newIndex)
+{
+    const auto it = std::find_if (tracks.begin(), tracks.end(), [id] (const Track& t) { return t.id == id; });
+    if (it == tracks.end() || tracks.empty())
+        return false;
+    const int from = static_cast<int> (it - tracks.begin());
+    const int to = juce::jlimit (0, static_cast<int> (tracks.size()) - 1, newIndex);
+    if (from == to)
+        return false;
+    Track moved = std::move (*it);
+    tracks.erase (it);
+    tracks.insert (tracks.begin() + to, std::move (moved));
+    SV_LOG_INFO (kMod, "Piste #" + juce::String (id) + " déplacée de la position "_u8 + juce::String (from + 1) + " à "_u8 + juce::String (to + 1));
+    return true;
+}
 } // namespace sv::project

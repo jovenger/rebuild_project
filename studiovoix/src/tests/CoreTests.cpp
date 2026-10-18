@@ -917,6 +917,57 @@ public:
             expect (maxStep < 0.001f, "fondus sans clic (saut max "_u8 + juce::String (maxStep, 5) + ")");
         }
 
+        beginTest ("Zones : effacer, copier, coller ; ordre des pistes");
+        {
+            project::Track tr;
+            tr.name = "Voix";
+            project::Take a;
+            a.id = 1;
+            a.file = "a.wav";
+            a.startSample = 0;
+            a.regionStart = 0;
+            a.regionEnd = 48000;
+            a.fadeIn = 480;
+            a.fadeOut = 480;
+            tr.takes.push_back (a);
+            int nextId = 2;
+            // Effacer le milieu : deux blocs restent, la gauche garde l'id et son fondu d'entrée, la droite est neuve.
+            expect (project::cutRange (tr, 10000, 20000, nextId) == 1 && tr.takes.size() == 2, "zone retirée : 2 blocs"_u8);
+            expect (tr.takes[0].id == 1 && tr.takes[0].regionEnd == 10000 && tr.takes[0].fadeIn == 480 && tr.takes[0].fadeOut == 0
+                        && tr.takes[1].id == 2 && tr.takes[1].regionStart == 20000 && tr.takes[1].regionEnd == 48000 && tr.takes[1].fadeOut == 480,
+                    "bords de la zone : blocs rognés, fondus conservés aux bords extérieurs"_u8);
+            expect (project::cutRange (tr, 60000, 70000, nextId) == 0 && tr.takes.size() == 2, "zone hors des blocs : rien"_u8);
+            // Copier une zone qui chevauche les deux blocs : prises relatives au début de la zone.
+            const auto clip = project::copyRange (tr, 5000, 25000);
+            expect (clip.size() == 2 && clip[0].regionStart == 0 && clip[0].regionEnd == 5000 && clip[0].startSample == -5000 && clip[0].fadeIn == 0
+                        && clip[1].regionStart == 15000 && clip[1].regionEnd == 20000 && clip[1].fadeOut == 0,
+                    "copie relative : "_u8 + juce::String (static_cast<int> (clip.size())) + " prise(s)");
+            expect (project::clipLength (clip) == 20000, "longueur du presse-papiers"_u8);
+            // Coller à 100000 : nouveaux ids, positions décalées, le fichier d'origine reste le même.
+            expect (project::pasteTakes (tr, clip, 100000, nextId) == 2 && tr.takes.size() == 4, "collage : 2 prises ajoutées"_u8);
+            const auto& p1 = tr.takes[2];
+            const auto& p2 = tr.takes[3];
+            expect (p1.id == 3 && p1.regionStart == 100000 && p1.regionEnd == 105000 && p1.startSample == 95000 && p1.file == "a.wav"
+                        && p2.id == 4 && p2.regionStart == 115000 && p2.regionEnd == 120000,
+                    "prises collées : positions et ids"_u8);
+            // Coller par-dessus un bloc : ce qui est dessous est retiré sur la longueur collée (collage qui remplace).
+            expect (project::pasteTakes (tr, clip, 30000, nextId) == 2, "second collage");
+            bool overlap = false;
+            for (const auto& x : tr.takes)
+                if (x.id <= 2 && x.regionStart < 50000 && x.regionEnd > 30000)
+                    overlap = true;
+            expect (! overlap, "les anciens blocs ne recouvrent plus la zone collée"_u8);
+            expect (project::pasteTakes (tr, {}, 0, nextId) == 0 && project::pasteTakes (tr, clip, -1, nextId) == 0, "collage vide ou avant 0 : rien"_u8);
+
+            project::Project op;
+            const int i1 = op.addTrack (style::Role::Instru, "Instru").id;
+            const int i2 = op.addTrack (style::Role::Lead, "Voix").id;
+            const int i3 = op.addTrack (style::Role::Double, "Doublage").id;
+            expect (op.moveTrack (i3, 0) && op.tracks[0].id == i3 && op.tracks[1].id == i1 && op.tracks[2].id == i2, "piste montée en tête"_u8);
+            expect (op.moveTrack (i3, 99) && op.tracks[2].id == i3, "index borné : en dernier"_u8);
+            expect (! op.moveTrack (i3, 2) && ! op.moveTrack (42, 0), "déjà en place / piste inconnue : rien"_u8);
+        }
+
         beginTest ("Pistes ajoutees a la main : instrument, piste armee");
         {
             juce::var v;

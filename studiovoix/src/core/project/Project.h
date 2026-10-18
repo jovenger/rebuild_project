@@ -85,6 +85,17 @@ bool trimTake (Track& t, int takeId, long newStart, long newEnd, long fileLength
 bool setTakeFades (Track& t, int takeId, long fadeIn, long fadeOut);
 bool removeTake (Track& t, int takeId);
 
+/** Zone [a, b) (échantillons absolus) : retirée de toutes les prises (coupe aux bords, milieu supprimé, le reste ne
+    bouge pas). Retourne le nombre de prises touchées. */
+int cutRange (Track& t, long a, long b, int& nextTakeId);
+/** Copie la zone [a, b) : prises rognées à la zone, positions relatives au début de la zone (prêtes à coller). */
+std::vector<Take> copyRange (const Track& t, long a, long b);
+/** Colle des prises relatives à la position at : ce qui s'y trouvait est d'abord retiré sur la longueur collée, puis
+    les prises reçoivent de nouveaux identifiants. Retourne le nombre de prises collées. */
+int pasteTakes (Track& t, const std::vector<Take>& clip, long at, int& nextTakeId);
+/** Longueur (échantillons) d'un presse-papiers relatif (fin de la dernière zone). */
+long clipLength (const std::vector<Take>& clip);
+
 struct Marker
 {
     double timeSec = 0.0;
@@ -130,6 +141,8 @@ struct Project
     const Track* findTrack (int id) const;
     Track& addTrack (style::Role role, const juce::String& trackName);
     bool removeTrack (int id);
+    /** Déplace une piste à l'index newIndex dans l'ordre d'affichage (borné). */
+    bool moveTrack (int id, int newIndex);
     int leadTrackId() const;
     const Track* instruTrack() const;
     /** Style qui traite cette piste : le sien s'il est choisi, sinon celui du projet. */

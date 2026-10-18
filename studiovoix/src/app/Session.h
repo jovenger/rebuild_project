@@ -78,6 +78,15 @@ public:
     void removeTake (int trackId, int takeId);
     /** Longueur (échantillons) du fichier d'une prise, 0 si illisible : borne du rognage vers l'extérieur. */
     long takeFileLength (int trackId, int takeId);
+    /** Coupe tous les blocs de la piste au point donné (S). */
+    void splitTrackAt (int trackId, double atSec);
+    /** Zone sélectionnée : retirer (Suppr), copier (Ctrl+C), couper = copier + retirer (Ctrl+X), coller à la position (Ctrl+V). */
+    void cutRange (int trackId, double aSec, double bSec, bool copyFirst);
+    void copyRange (int trackId, double aSec, double bSec);
+    void pasteClipboard (int trackId, double atSec);
+    bool hasClipboard() const { return ! clipboard.empty(); }
+    /** Ordre des pistes : index d'affichage visé. undoLabel vide = pas d'étape d'annulation (glisser en cours). */
+    void moveTrack (int trackId, int newIndex, const juce::String& undoLabel);
     /** Cale l'audio de la piste au début du morceau (la première prise à 0 s, les autres gardent leurs écarts). */
     void moveTrackAudioToStart (int trackId);
     /** Supprime plusieurs pistes en une seule étape d'annulation. */
@@ -173,6 +182,7 @@ private:
     AppSettings& appSettings;
     project::Project proj;
     render::AudioCache cache;
+    std::vector<project::Take> clipboard;   // zone copiée (prises relatives au début de la zone)
     render::RenderSet renders;
     render::MixState mixState;
     std::shared_ptr<const dsp::AnalysisContext> context;

@@ -743,6 +743,9 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
         if ((c == 'z' || c == 'y') && dynamic_cast<juce::TextEditor*> (juce::Component::getCurrentlyFocusedComponent()) != nullptr)
             return true;
         if (c == 's') { doSave(); return true; }
+        if (c == 'c') { timeline.editCopy(); return true; }
+        if (c == 'x') { timeline.editCut(); return true; }
+        if (c == 'v') { timeline.editPaste(); return true; }
         if (c == 'z' && mods.isShiftDown()) { session.redo(); return true; }
         if (c == 'z') { session.undo(); return true; }
         if (c == 'y') { session.redo(); return true; }
@@ -751,9 +754,25 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
         return false;
     }
     const auto c = juce::CharacterFunctions::toLowerCase (key.getTextCharacter());
+    if (key == juce::KeyPress::escapeKey)
+    {
+        timeline.clearSelection();
+        return true;
+    }
+    if (c == 's')
+    {
+        timeline.editSplit();
+        return true;
+    }
     if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
     {
-        // Suppr : supprime les pistes sélectionnées (jamais pendant une prise, jamais dans un champ de texte : voir plus haut).
+        // Suppr : d'abord la zone ou le bloc sélectionné sur la timeline ; sinon les pistes sélectionnées
+        // (jamais pendant une prise, jamais dans un champ de texte : voir plus haut).
+        if (! session.isRecording() && timeline.hasEditSelection())
+        {
+            timeline.editDelete();
+            return true;
+        }
         if (session.isRecording() || session.selectedTrackIds().empty())
             return false;
         const std::vector<int> ids (session.selectedTrackIds().begin(), session.selectedTrackIds().end());

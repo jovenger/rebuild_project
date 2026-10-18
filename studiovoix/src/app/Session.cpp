@@ -753,6 +753,87 @@ long Session::takeFileLength (int trackId, int takeId)
     return static_cast<long> (data->size());
 }
 
+void Session::splitTrackAt (int trackId, double atSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long at = static_cast<long> (std::llround (atSec * proj.sampleRate));
+    std::vector<int> ids;
+    for (const auto& tk : t->takes)
+        if (at > tk.regionStart && at < tk.regionEnd)
+            ids.push_back (tk.id);
+    if (ids.empty())
+    {
+        setStatus ("Rien à couper à "_u8 + juce::String (atSec, 2) + " s : place la tête de lecture sur un bloc"_u8);
+        return;
+    }
+    updateTrack (trackId, [&] (project::Track& tr)
+    {
+        for (const int id : ids)
+            project::splitTake (tr, id, at, proj.nextTakeId);
+    }, true, "Couper (S)"_u8);
+    setStatus (juce::String (static_cast<int> (ids.size())) + " bloc(s) coupé(s) à "_u8 + juce::String (atSec, 2) + " s (Ctrl+Z pour annuler)");
+}
+
+void Session::cutRange (int trackId, double aSec, double bSec, bool copyFirst)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording() || bSec <= aSec)
+        return;
+    const long a = static_cast<long> (std::llround (aSec * proj.sampleRate)), b = static_cast<long> (std::llround (bSec * proj.sampleRate));
+    if (copyFirst)
+        clipboard = project::copyRange (*t, a, b);
+    int touched = 0;
+    updateTrack (trackId, [&] (project::Track& tr) { touched = project::cutRange (tr, a, b, proj.nextTakeId); }, true,
+                 copyFirst ? "Couper la zone (Ctrl+X)"_u8 : "Effacer la zone (Suppr)"_u8);
+    setStatus (touched == 0 ? juce::String ("Aucun bloc dans la zone sélectionnée"_u8)
+                            : "Zone "_u8 + juce::String (aSec, 2) + " - " + juce::String (bSec, 2) + " s "
+                                  + (copyFirst ? "coupée (Ctrl+V pour la coller)"_u8 : "effacée (Ctrl+Z pour annuler)"_u8));
+}
+
+void Session::copyRange (int trackId, double aSec, double bSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || bSec <= aSec)
+        return;
+    const long a = static_cast<long> (std::llround (aSec * proj.sampleRate)), b = static_cast<long> (std::llround (bSec * proj.sampleRate));
+    clipboard = project::copyRange (*t, a, b);
+    setStatus (clipboard.empty() ? juce::String ("Aucun bloc dans la zone sélectionnée"_u8)
+                                 : "Zone "_u8 + juce::String (bSec - aSec, 2) + " s copiée : Ctrl+V la colle à la tête de lecture sur la piste sélectionnée"_u8);
+}
+
+void Session::pasteClipboard (int trackId, double atSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    if (clipboard.empty())
+    {
+        setStatus ("Rien à coller : sélectionne une zone puis Ctrl+C"_u8);
+        return;
+    }
+    if (! t->isVocal())
+    {
+        setStatus ("Coller : choisis une piste voix ou instrument (pas l'instru importée)"_u8);
+        return;
+    }
+    const long at = static_cast<long> (std::llround (std::max (0.0, atSec) * proj.sampleRate));
+    int n = 0;
+    updateTrack (trackId, [&] (project::Track& tr) { n = project::pasteTakes (tr, clipboard, at, proj.nextTakeId); }, true, "Coller (Ctrl+V)"_u8);
+    setStatus (juce::String (n) + " bloc(s) collé(s) à "_u8 + juce::String (atSec, 2) + " s sur « "_u8 + t->name + " » (Ctrl+Z pour annuler)"_u8);
+}
+
+void Session::moveTrack (int trackId, int newIndex, const juce::String& undoLabel)
+{
+    if (proj.findTrack (trackId) == nullptr)
+        return;
+    bool moved = false;
+    updateProject ([&] (project::Project& p) { moved = p.moveTrack (trackId, newIndex); }, false, undoLabel);
+    if (moved)
+        sendChangeMessage();
+}
+
 void Session::moveTrackAudioToStart (int trackId)
 {
     const auto* t = proj.findTrack (trackId);
