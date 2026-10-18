@@ -676,3 +676,7 @@
 - Cause probable du 18/10 : le rhabillage du colonel par Scriptorium (il ôte les habits et pose un préréglage du jeu) ;
   le pair retire ces gestes directs : la tenue est gardée par le socle seul, Scriptorium passera ses décisions.
 - Non vérifié en jeu.
+- Service `hommes.reequiper(id)` (demande du pair, 18/10, pour la tenue propre du colonel) : le choix d'équipement est
+  refait par la décision remplaçable `choix_de_l_equipement`, sans changer de palier ; les anciennes pièces sont
+  offertes à l'accroche `piece_otee` une fois le nouveau porté (comme `changer_de_palier`, qui passe par le même chemin,
+  `hommes.reequiper_la_fiche`).

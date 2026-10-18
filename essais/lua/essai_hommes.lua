@@ -984,6 +984,24 @@ essai("équipement (18/10) : le filet de la tenue de corps ; un homme prêt qui 
   egal(hommes.fiche(id).equipement.etat, "pret", "de nouveau prêt")
 end)
 
+essai("équipement (18/10) : hommes.reequiper refait le choix au même palier, les anciennes pièces offertes à piece_otee", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  egal(hommes.fiche(id).equipement.etat, "pret", "prêt")
+  local ancien = hommes.choix_de_l_equipement
+  hommes.choix_de_l_equipement = function(i)
+    if i == id then return { tenue = "soldier_generic_4_01", armes = "axe_3_01", munitions = 0 } end
+  end
+  verifier(hommes.reequiper(id), "rééquipé")
+  egal(hommes.fiche(id).palier, 2, "palier inchangé")
+  egal(hommes.fiche(id).equipement.tenue, "soldier_generic_4_01", "la tenue de la décision")
+  egal(hommes.fiche(id).equipement.etat, "a_equiper", "à équiper au battement")
+  verifier(not hommes.reequiper("inconnu"), "un inconnu refusé")
+  hommes.choix_de_l_equipement = ancien
+end)
+
 essai("équipement : famille inconnue refusée ; sans famille, une des six est tirée et gardée", function()
   preparer(200, 10, 10)
   local id, raison = hommes.embaucher({ role = "homme_d_armes", semaines = 4, famille = "fronde" })

@@ -4534,6 +4534,15 @@ function hommes.changer_de_palier(id, palier)
   if palier == f.palier then
     return true
   end
+  f.palier = palier
+  hommes.reequiper_la_fiche(d, f)
+  jeu().journal("Hommes : « " .. f.nom .. " » passe au palier " .. palier)
+  return true
+end
+
+-- Le choix d'équipement refait (décision remplaçable « choix_de_l_equipement »), à son palier : les pièces de l'ancien
+-- choix sont offertes à l'accroche « piece_otee » une fois le nouveau porté (comme un changement de palier).
+function hommes.reequiper_la_fiche(d, f)
   local e = f.equipement
   local anciennes = {}
   if e and (e.etat == "pret" or e.etat == "a_rhabiller" or e.etat == "a_completer") then
@@ -4543,13 +4552,31 @@ function hommes.changer_de_palier(id, palier)
       end
     end
   end
-  f.palier = palier
-  if est_combattant(f) and choisir_l_equipement(d, f) then
+  local refait = false
+  if est_combattant(f) and not f.admis and choisir_l_equipement(d, f) then
     f.equipement.otees = {}
     f.equipement.anciennes = #anciennes > 0 and anciennes or nil
+    refait = true
   end
   enregistrer()
-  jeu().journal("Hommes : « " .. f.nom .. " » passe au palier " .. palier)
+  return refait
+end
+
+-- Service pour Scriptorium (demande du pair, 18/10 : la tenue propre du colonel) : rééquiper un homme sans changer son
+-- palier. Rend vrai (équipé au battement), ou faux et la raison.
+function hommes.reequiper(id)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if not est_combattant(f) or f.admis then
+    return refuser("pas_d_equipement_du_socle", f.nom)
+  end
+  if not hommes.reequiper_la_fiche(d, f) then
+    return refuser("choix_impossible", f.nom)
+  end
+  jeu().journal("Hommes : « " .. f.nom .. " » sera rééquipé (palier " .. tostring(f.palier) .. ")")
   return true
 end
 
