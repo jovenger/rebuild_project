@@ -109,22 +109,34 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     if (! step (0.60f)) return result;
 
     // 6) Égalisation (+ correction d'après la référence).
-    applyEq (x, sampleRate, params.eq);
-    if (params.referenceEq && context.reference.valid())
     {
-        const auto mine = analysis::averageSpectrum (x, sampleRate);
-        const auto curve = analysis::matchCurve (mine, context.reference, 4.0f, 150.0f, 14000.0f, params.referenceStrength);
-        if (! curve.empty())
-            applyCurveEq (x, sampleRate, mine.centersHz, curve);
+        log::ScopedTimer t (kMod, "égalisation"_u8);
+        applyEq (x, sampleRate, params.eq);
+        if (params.referenceEq && context.reference.valid())
+        {
+            const auto mine = analysis::averageSpectrum (x, sampleRate);
+            const auto curve = analysis::matchCurve (mine, context.reference, 4.0f, 150.0f, 14000.0f, params.referenceStrength);
+            if (! curve.empty())
+                applyCurveEq (x, sampleRate, mine.centersHz, curve);
+        }
     }
     if (! step (0.65f)) return result;
 
     // 7) Compression, de-esser, saturation.
-    result.report.compGrDb = compress (x, sampleRate, params.comp);
-    if (params.comp2.ratio > 1.0f)
-        result.report.compGrDb += compress (x, sampleRate, params.comp2);
-    result.report.deEssGrDb = deEss (x, sampleRate, params.deEss);
-    saturate (x, sampleRate, params.sat);
+    {
+        log::ScopedTimer t (kMod, "compression");
+        result.report.compGrDb = compress (x, sampleRate, params.comp);
+        if (params.comp2.ratio > 1.0f)
+            result.report.compGrDb += compress (x, sampleRate, params.comp2);
+    }
+    {
+        log::ScopedTimer t (kMod, "de-esser");
+        result.report.deEssGrDb = deEss (x, sampleRate, params.deEss);
+    }
+    {
+        log::ScopedTimer t (kMod, "saturation");
+        saturate (x, sampleRate, params.sat);
+    }
     if (! step (0.75f)) return result;
 
     // 8) Niveau de sortie.
@@ -136,17 +148,23 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     result.audio = placeStereo (x, sampleRate, params.pan, params.width, params.dryGain);
     if (! step (0.80f)) return result;
 
-    const auto rev = reverbReturn (x, sampleRate, params.reverb);
-    for (int c = 0; c < 2; ++c)
-        result.audio.addFrom (c, 0, rev, c, 0, result.audio.getNumSamples());
+    {
+        log::ScopedTimer t (kMod, "réverbération"_u8);
+        const auto rev = reverbReturn (x, sampleRate, params.reverb);
+        for (int c = 0; c < 2; ++c)
+            result.audio.addFrom (c, 0, rev, c, 0, result.audio.getNumSamples());
+    }
     if (! step (0.90f)) return result;
 
-    std::vector<float> env;
-    if (params.delay.throwsOnly)
-        env = phraseEndThrowEnvelope (x.size(), sampleRate, result.va);
-    const auto del = delayReturn (x, sampleRate, context.tempo.bpm, params.delay, env);
-    for (int c = 0; c < 2; ++c)
-        result.audio.addFrom (c, 0, del, c, 0, result.audio.getNumSamples());
+    {
+        log::ScopedTimer t (kMod, "délai"_u8);
+        std::vector<float> env;
+        if (params.delay.throwsOnly)
+            env = phraseEndThrowEnvelope (x.size(), sampleRate, result.va);
+        const auto del = delayReturn (x, sampleRate, context.tempo.bpm, params.delay, env);
+        for (int c = 0; c < 2; ++c)
+            result.audio.addFrom (c, 0, del, c, 0, result.audio.getNumSamples());
+    }
 
     for (int c = 0; c < 2; ++c)
         audio::sanitize (result.audio.getWritePointer (c), static_cast<size_t> (result.audio.getNumSamples()));
