@@ -139,6 +139,8 @@ jobs:
           # manque dans la release « outils-ia » ou si le message de commit contient [demucs] (penser alors à
           # ré-épingler taille et SHA-256 affichés par l'étape de publication). Si GitHub ne répond pas (403
           # intermittents, build 65), on considère l'asset présent : ne jamais écraser un binaire épinglé par erreur.
+          # Attention : le marqueur est cherché tel quel dans tout le message — ne pas l'écrire dans un commit ordinaire
+          # (le build 69 a republié le binaire parce que son message décrivait la règle).
           present=inconnu
           for i in 1 2 3; do
             if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
