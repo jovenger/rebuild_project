@@ -32,7 +32,8 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
   Dans StudioVoix IA, l'onglet **IA locale** liste les briques (DeepFilterNet, modèle Whisper « base »…) avec leur
   état et leur poids ; **Installer** les télécharge dans `%APPDATA%\StudioVoix IA\outils` (fichier temporaire,
   taille et empreinte SHA-256 vérifiées quand elle est connue, journal détaillé), **Supprimer** les retire. Les
-  empreintes sont relevées par la CI (`studiovoix_cli outils-empreintes`) puis épinglées dans le programme.
+  empreintes sont relevées par la CI (`studiovoix_cli outils-empreintes`) puis épinglées dans le programme ; la CI
+  Windows exécute ensuite vraiment les trois outils sur la démo (`studiovoix_cli outils-essai`, artefact `essai-ia`).
 
   **Nettoyage IA** (StudioVoix IA, onglet Voix IA) : une fois DeepFilterNet installé, chaque piste voix traitée par un
   style passe d'abord dans le réseau (souffle, bruit de pièce, ronflement), puis dans la chaîne du style ; résultat mis
