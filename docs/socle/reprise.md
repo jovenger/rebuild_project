@@ -430,6 +430,45 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **Leçon** : un commit est parti avec le banc en échec (13aee49, réparé par 9539c82) : commit seulement par « && » après
   « tout passe ».
 
+## 6 septies. Où reprendre (pause du 18/10/2026, vers 3 h 50, demandée par JoVenGer : PC éteint)
+
+État : banc vert, tout commité et poussé, mod propre installé, jeu fermé, ordre des mods remis (scriptorium,
+scriptorium_regles, scriptorium_lumiere), « Continuer » reprend la partie de JoVenGer (playline1). Aucune sonde dans
+l'arbre de travail.
+
+**1. « Parler » des dialogues (fiche 21) — en cours, bloqué.**
+- Établi en jeu : les règles Storm s'appliquent à nos hommes (mêmes métarôles qu'un villageois) ; `actor:CanTalk(henry)`
+  est VRAI pour eux (version actuelle : rôles avec role_id, une règle Storm par âme, arbres complets) et ils ne sont pas
+  en mode combat ; donc rôles, Storm et quête sont reconnus.
+- MAIS à la visée (notre « Parler » de secours retiré), le jeu affiche « Soldat » et aucune action : `GetActions` du jeu
+  rend une liste vide (`user.actor:CanInteractWith` faux, ou un retour anticipé).
+- Écarté : la copie des propriétés à la naissance (un homme « brut » fait pareil) ; les branches 'dialogMailbox' de
+  l'interrupteur du jeu (essayées, sans effet seules) ; la vie du camp (premier temps de la sonde du pair : un homme
+  brut dont l'interrupteur ne lance PAS la vie du camp n'a toujours pas « Parler »).
+- PIÈGE : ne jamais juger un essai sur la ligne « Henry parle à » : notre secours ajoute « talk » quand le jeu n'en met
+  pas. Seul l'écran, secours retiré (`scriptorium_essai_parlable_fin`), fait foi.
+- Suite proposée par le pair (sonde en trois temps) : temps 1 fait (négatif) ; temps 2 (vie du camp sans hôte) et
+  temps 3 (vie du camp par l'interruption d'attaque du jeu) n'ont plus de sens si le temps 1 est négatif : redemander
+  au pair d'autres pistes (différences restantes avec ses dames des bains : personnage Skald à nous + skald_character2role,
+  classe NPC_Female, classe sociale, autre).
+- Les sondes employées sont dans le dossier de travail de la session (scratchpad : sonde_metaroles.py,
+  sonde_parle.py, sonde_brut.py, sonde_sans_vie.py ; essai_ordres_avec_boite.xml dans %TEMP%) : à réappliquer pour
+  sonder, jamais à commiter.
+
+**2. Fait au banc, à voir en jeu (prochaine séance regroupée)** :
+- geste ancré (`siege`, `assis`) et arme tirée (`arme_tiree`) ;
+- les cinq points de la bascule : `pillage_du_socle`, accroche `apres_l_equipement`, `camp.place_pour`,
+  `enceinte.place_valable`, activité « affronter » (`cible`, `arme`, `jusqu_a`) ;
+- `bandeau.annoncer_texte` ; âmes sans jumeaux (71 / 50 / 30 visages).
+
+**3. Liste de JoVenGer** : `a_verifier_par_jovenger.md` (voyage rapide, Trosky ↔ Kuttenberg, monte d'Henry, escalier,
+poste partagé à une forge de jour, écran noir ; puis « après la bascule »). La bascule attend « Parler », puis son ordre.
+
+**4. Règles de séance ajoutées le 18/10** : à chaque fin de séance, écrire « fenêtre ouverte » au pair et attendre
+« fenêtre rendue » avant de relancer le jeu ; la partie neuve d'essai (playline4) est rangée par `sauvegardes.ps1`
+(le nuage Steam la remet au lancement : `fin_essai` la range jeu ouvert) ; commit seulement par « && » après
+« tout passe ».
+
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
 3. dialogue du Directeur et Gestion du camp à l'écran ; 4. quête de fond ; 5. voix et icônes ; 6. essais en jeu restants ;
