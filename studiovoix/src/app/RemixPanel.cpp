@@ -6,6 +6,7 @@
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/VocalChain.h"
 #include "core/plugins/ChainStages.h"
+#include "Theme.h"
 #include "core/Log.h"
 #include "core/assistant/CommandParser.h"
 
@@ -453,7 +454,7 @@ void RemixPanel::refresh()
 
 void RemixPanel::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff1e2228));
+    g.fillAll (theme::panel);
 }
 
 style::VocalParams RemixPanel::chainParams (const project::Track& t, bool withOverrides) const

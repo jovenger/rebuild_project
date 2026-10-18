@@ -5,6 +5,7 @@
 #include "NewTrackDialog.h"
 #include "SettingsDialog.h"
 #include "StyleMenu.h"
+#include "Theme.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -27,7 +28,7 @@ MainComponent::MainComponent (Session& s)
     lyrics = new LyricsPanel (session);
     mixPanel = new MixPanel (session);
     aiPanel = new AiPanel (session);
-    const auto tabColour = juce::Colour (0xff1e2228);
+    const auto tabColour = theme::panel;
     tabs.addTab ("Voix IA", tabColour, remix, true);
     tabs.addTab ("Paroles", tabColour, lyrics, true);
     tabs.addTab ("Mix & Master", tabColour, mixPanel, true);
@@ -35,7 +36,8 @@ MainComponent::MainComponent (Session& s)
     tabs.setTabBarDepth (28);
 
     statusBar.setFont (juce::FontOptions (13.0f));
-    statusBar.setColour (juce::Label::backgroundColourId, juce::Colour (0xff101317));
+    statusBar.setColour (juce::Label::backgroundColourId, theme::panel);
+    statusBar.setColour (juce::Label::textColourId, theme::textDim);
 
     transport.onNew = [this] { doNew(); };
     transport.onOpen = [this] { doOpen(); };
@@ -846,7 +848,7 @@ void MainComponent::timerCallback()
 
 void MainComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff15181c));
+    g.fillAll (theme::bg);
 }
 
 void MainComponent::resized()

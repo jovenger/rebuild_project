@@ -1,5 +1,6 @@
 #include "GenerateDialog.h"
 
+#include "Theme.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -82,7 +83,7 @@ void GenerateDialog::close()
 
 void GenerateDialog::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff23282f));
+    g.fillAll (theme::card);
 }
 
 void GenerateDialog::resized()
@@ -122,7 +123,7 @@ void GenerateDialog::show (Session& session, int leadTrackId)
     juce::DialogWindow::LaunchOptions o;
     o.content.setOwned (new GenerateDialog (session, leadTrackId));
     o.dialogTitle = "Générer les pistes d'accompagnement"_u8;
-    o.dialogBackgroundColour = juce::Colour (0xff23282f);
+    o.dialogBackgroundColour = theme::card;
     o.escapeKeyTriggersCloseButton = true;
     o.useNativeTitleBar = true;
     o.resizable = false;

@@ -2,6 +2,7 @@
 
 #include "PluginManager.h"
 
+#include "Theme.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -234,7 +235,7 @@ void SettingsDialog::timerCallback()
 
 void SettingsDialog::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff23282f));
+    g.fillAll (theme::card);
 }
 
 void SettingsDialog::resized()
@@ -308,7 +309,7 @@ void SettingsDialog::show (Session& session)
     juce::DialogWindow::LaunchOptions o;
     o.content.setOwned (new SettingsDialog (session));
     o.dialogTitle = "Paramètres"_u8;
-    o.dialogBackgroundColour = juce::Colour (0xff23282f);
+    o.dialogBackgroundColour = theme::card;
     o.escapeKeyTriggersCloseButton = true;
     o.useNativeTitleBar = true;
     o.resizable = true;

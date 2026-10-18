@@ -1,5 +1,6 @@
 #include "MixPanel.h"
 
+#include "Theme.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -135,7 +136,7 @@ void MixPanel::refresh()
 
 void MixPanel::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff1e2228));
+    g.fillAll (theme::panel);
 }
 
 void MixPanel::resized()

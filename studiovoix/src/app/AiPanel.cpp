@@ -1,5 +1,6 @@
 #include "AiPanel.h"
 
+#include "Theme.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -21,7 +22,7 @@ namespace
         e.setReadOnly (true);
         e.setScrollbarsShown (true);
         e.setFont (juce::FontOptions (12.0f));
-        e.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xff15181c));
+        e.setColour (juce::TextEditor::backgroundColourId, theme::bg);
     }
 }
 
@@ -491,7 +492,7 @@ void AiPanel::refresh()
 
 void AiPanel::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff1e2228));
+    g.fillAll (theme::panel);
 }
 
 void AiPanel::resized()

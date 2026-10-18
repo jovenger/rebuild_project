@@ -2,6 +2,7 @@
 
 #include "StyleMenu.h"
 
+#include "Theme.h"
 #include "core/Log.h"
 #include "core/analysis/KeyDetector.h"
 
@@ -49,6 +50,10 @@ TransportBar::TransportBar (Session& s) : session (s)
 {
     for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn, &undoBtn, &redoBtn, &homeBtn, &playBtn, &stopBtn, &recBtn, &updateBtn, &correctBtn })
         addAndMakeVisible (*b);
+    // Rôles visuels : lecture et ingénieur du son en accent, REC en rouge.
+    theme::setButtonKind (playBtn, "primary");
+    theme::setButtonKind (correctBtn, "primary");
+    theme::setButtonKind (recBtn, "danger");
     for (auto* t : { &punch, &loop, &metronome })
         addAndMakeVisible (*t);
     for (auto* c : { &countdown, &keyBox, &styleBox })
@@ -189,8 +194,8 @@ void TransportBar::updateTime()
 
 void TransportBar::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff1e2228));
-    g.setColour (juce::Colours::black);
+    g.fillAll (theme::panel);
+    g.setColour (theme::line);
     g.drawLine (0.0f, static_cast<float> (getHeight()) - 0.5f, static_cast<float> (getWidth()), static_cast<float> (getHeight()) - 0.5f);
 }
 

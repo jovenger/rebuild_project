@@ -1,6 +1,7 @@
 #include "PluginManager.h"
 
 #include "AppSettings.h"
+#include "Theme.h"
 #include "core/Log.h"
 #include "core/plugins/InternalPlugins.h"
 
@@ -77,7 +78,7 @@ namespace
     public:
         InternalEditorWindow (const plugins::InternalPluginDef& def, juce::MemoryBlock initialState,
                               std::function<void (const juce::MemoryBlock&)> onClosed, std::function<void (InternalEditorWindow*)> onDestroy)
-            : juce::DocumentWindow (juce::String (juce::CharPointer_UTF8 (def.name)), juce::Colour (0xff23282f), DocumentWindow::closeButton),
+            : juce::DocumentWindow (juce::String (juce::CharPointer_UTF8 (def.name)), theme::card, DocumentWindow::closeButton),
               definition (def), state (std::move (initialState)), closed (std::move (onClosed)), destroy (std::move (onDestroy))
         {
             setUsingNativeTitleBar (true);
@@ -139,7 +140,7 @@ namespace
     public:
         EditorWindow (std::unique_ptr<juce::AudioPluginInstance> inst, const juce::String& title,
                       std::function<void (const juce::MemoryBlock&)> onClosed, std::function<void (EditorWindow*)> onDestroy)
-            : juce::DocumentWindow (title, juce::Colour (0xff23282f), DocumentWindow::closeButton),
+            : juce::DocumentWindow (title, theme::card, DocumentWindow::closeButton),
               instance (std::move (inst)), closed (std::move (onClosed)), destroy (std::move (onDestroy))
         {
             setUsingNativeTitleBar (true);

@@ -1,6 +1,7 @@
 #include "TimelineView.h"
 
 #include "NewTrackDialog.h"
+#include "Theme.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -41,7 +42,7 @@ void RecArmButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
     const float d = std::min (r.getWidth(), r.getHeight());
     const auto c = r.withSizeKeepingCentre (d, d);
     const bool on = getToggleState();
-    const auto red = juce::Colour (0xffe53935);
+    const auto red = theme::danger;
     g.setColour (on ? (down ? red.darker (0.3f) : red) : (down ? juce::Colour (0xff5a2a2a) : juce::Colour (0xff3a2a2a)));
     g.fillEllipse (c);
     g.setColour (on ? juce::Colours::white.withAlpha (0.85f) : red);
@@ -177,19 +178,17 @@ void TrackHeader::paint (juce::Graphics& g)
 {
     const auto* t = session.project().findTrack (id);
     const bool selected = session.isTrackSelected (id);
-    g.fillAll (selected ? juce::Colour (0xff2f3a48) : juce::Colour (0xff23282f));
+    const auto r = getLocalBounds().toFloat().reduced (1.0f);
+    g.setColour (selected ? theme::selection : theme::card);
+    g.fillRoundedRectangle (r, theme::radius);
     if (t != nullptr)
     {
         g.setColour (roleColour (t->role));
-        g.fillRect (0, 0, 5, getHeight());
+        g.fillRoundedRectangle (r.withWidth (10.0f), theme::radius);
+        g.fillRect (r.withWidth (5.0f).withX (r.getX() + 5.0f));
     }
-    g.setColour (juce::Colours::black);
-    g.drawRect (getLocalBounds());
-    if (session.armedTrack() == id)
-    {
-        g.setColour (juce::Colour (0xffe53935));
-        g.drawRect (getLocalBounds(), 2);
-    }
+    g.setColour (session.armedTrack() == id ? theme::danger : (selected ? theme::accent.withAlpha (0.7f) : theme::line));
+    g.drawRoundedRectangle (r, theme::radius, session.armedTrack() == id ? 2.0f : 1.0f);
 }
 
 void TrackHeader::mouseDown (const juce::MouseEvent& e)
@@ -495,7 +494,7 @@ const TimelineView::WaveCache* TimelineView::waveFor (const project::Track& t)
 void TimelineView::paint (juce::Graphics& g)
 {
     const auto& p = session.project();
-    g.fillAll (juce::Colour (0xff15181c));
+    g.fillAll (theme::bg);
     const int w = getWidth();
     const auto clip = g.getClipBounds();   // tête de lecture : seule une bande étroite est à redessiner
 
@@ -509,7 +508,7 @@ void TimelineView::paint (juce::Graphics& g)
         if (y + trackHeight < kRulerHeight || y > getHeight() || y + trackHeight < clip.getY() || y > clip.getBottom())
             continue;
         const bool selected = session.isTrackSelected (t.id);
-        g.setColour (selected ? juce::Colour (0xff1f2630) : (i % 2 == 0 ? juce::Colour (0xff181c21) : juce::Colour (0xff1b1f25)));
+        g.setColour (selected ? theme::selection.withAlpha (0.55f) : (i % 2 == 0 ? theme::bg.brighter (0.035f) : theme::bg.brighter (0.06f)));
         g.fillRect (headerWidth, y, w - headerWidth, trackHeight);
 
         // Bloc en cours de déplacement : dessiné décalé (le projet n'est modifié qu'au relâchement).
@@ -692,12 +691,12 @@ void TimelineView::paint (juce::Graphics& g)
     }
 
     // Coin haut gauche : aide
-    g.setColour (juce::Colour (0xff1e2228));
+    g.setColour (theme::panel);
     g.fillRect (0, 0, headerWidth, kRulerHeight);
     g.setColour (juce::Colours::grey);
     g.setFont (10.0f);
     g.drawFittedText ("Clic = position | Glisser = zone | Maj+glisser = punch | Alt+glisser = boucle\n"
-                      "S = couper | Suppr = effacer | Ctrl+C / X / V | Ctrl+molette = zoom | En-tête : glisser = ordre",
+                      "S = couper | Suppr = effacer | Ctrl+C / X / V | Ctrl+molette = zoom | En-tête : glisser = ordre"_u8,
                       4, 2, headerWidth - 8, kRulerHeight - 4, juce::Justification::topLeft, 3);
 
     // Tête de lecture
