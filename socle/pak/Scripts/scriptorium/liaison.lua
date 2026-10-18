@@ -1892,7 +1892,8 @@ end
 -- À vérifier en jeu : entite.actor:IsDead(), ou entite.soul:GetHealth() == 0.
 function liaison.personnage_mort(identifiant)
   local ok, mort = pcall(function()
-    local entite = entite_nommee(identifiant)
+    -- La bascule (l'affrontement, 18/10) : « henry » est le joueur.
+    local entite = (identifiant == "henry") and player or entite_nommee(identifiant)
     if entite == nil then return true end
     if entite.actor and entite.actor.IsDead then return entite.actor:IsDead() end
     if entite.soul and entite.soul.GetHealth then return entite.soul:GetHealth() <= 0 end
@@ -2566,7 +2567,9 @@ end
 -- l'interruption « attaque » du jeu contre cette cible, sans aucun coup. Rend une ligne.
 -- « cible » : le nom de l'entité à attaquer ; le brigand du jeu par défaut (V51 : l'adversaire, qui ne se défend pas).
 -- « attaquant » : le marcheur par défaut ; un de nos hommes (même cerveau) pour V71 d (voir ce qu'il prend en main).
-function liaison.ordonner_l_attaque(cible, attaquant)
+-- « options » (la bascule, l'affrontement, 18/10) : { arme = false } : à mains nues, l'arme n'est pas tirée par nous
+-- (le jeu peut encore la tirer de lui-même : à voir en jeu).
+function liaison.ordonner_l_attaque(cible, attaquant, options)
   -- Étape 2 : la cible « henry » est le joueur (la bande l'attaque s'il est là).
   local qui = entite_nommee(attaquant or liaison.marcheur)
   local contre = (cible == "henry") and player or entite_nommee(cible or liaison.brigand_du_jeu)
@@ -2577,7 +2580,10 @@ function liaison.ordonner_l_attaque(cible, attaquant)
   end
   -- Vu en V51, V52 : sans arme tirée, il engage sans blesser ; l'ordre d'attaque la fait donc tirer (human:DrawWeapon,
   -- comme Scripts/Debug/CombatDebug.lua du jeu après la naissance de ses combattants).
-  local tiree, refus = pcall(function() qui.human:DrawWeapon() end)
+  local tiree, refus = false, "mains nues"
+  if not (type(options) == "table" and options.arme == false) then
+    tiree, refus = pcall(function() qui.human:DrawWeapon() end)
+  end
   local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
   local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 8) end)
   return "attaque : arme " .. (tiree and "tirée" or ("non tirée : " .. tostring(refus))) .. ", cible "
@@ -4139,7 +4145,7 @@ end
 -- Fiche 17 (vu en jeu le 17/10 : Jan, assommé au combat, ne remontait pas à cheval) : le personnage est-il inconscient ?
 -- (actor:IsUnconscious, lu par la sonde du combat.) Vrai, faux, ou nil s'il ne se lit pas.
 function liaison.personnage_inconscient(identifiant)
-  local entite = entite_nommee(identifiant)
+  local entite = (identifiant == "henry") and player or entite_nommee(identifiant)
   if not entite or type(entite.actor) ~= "table" then
     return nil
   end

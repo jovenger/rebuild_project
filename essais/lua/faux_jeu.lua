@@ -439,9 +439,9 @@ function faux.faire_venir_ennemis(sorte, effectif, position, cap)
   return liste
 end
 -- Étape 2 : les ordres d'attaque donnés (cible, attaquant).
-function faux.ordonner_l_attaque(cible, attaquant)
+function faux.ordonner_l_attaque(cible, attaquant, options)
   faux.attaques = faux.attaques or {}
-  table.insert(faux.attaques, { cible = cible, attaquant = attaquant })
+  table.insert(faux.attaques, { cible = cible, attaquant = attaquant, options = options })
   return "attaque : essai"
 end
 function faux.ennemis_vivants(liste)

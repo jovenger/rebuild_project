@@ -1986,6 +1986,13 @@ function hommes.activite_de(id, heure)
         resultat.regard = { x = tenue.position.x + 5 * math.sin(r), y = tenue.position.y + 5 * math.cos(r), z = tenue.position.z }
       end
     end
+    -- La bascule (l'affrontement, 18/10) : la cible, l'arme, la fin ; le lieu nomme la cible (la signature de l'ordre).
+    if tenue.activite == "affronter" then
+      resultat.cible, resultat.arme, resultat.jusqu_a = tenue.cible, not tenue.mains_nues, tenue.jusqu_a
+      resultat.lieu = "affronter/" .. tenue.cible
+      resultat.position = (tenue.cible == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(tenue.cible)
+      return resultat
+    end
     -- Fiche 18, 5 c, tranche 4 : la station prise par Henry : l'homme cède la place et attend à côté.
     local station = tenue.partage and hommes.stations[tenue.partage]
     if station and station.prise then
@@ -3068,7 +3075,13 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       position = a.chemin[premier]
     end
     hommes.raisons_de_reprise[id] = nil
-    jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi)
+    if a.activite == "affronter" then
+      -- L'attaque imposée à ce personnage (l'interruption d'attaque, comme la bataille), jamais une bataille.
+      jeu().journal("Hommes : « " .. f.nom .. " » affronte « " .. tostring(a.cible) .. " » (" .. (a.arme and "à l'arme" or "à mains nues")
+                    .. ", jusqu'à " .. tostring(a.jusqu_a) .. ") : " .. tostring(jeu().ordonner_l_attaque(a.cible, f.personnage, { arme = a.arme })))
+    else
+      jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi)
+    end
     hommes.ordre_donne_en_saut(id)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
     local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
@@ -3523,6 +3536,9 @@ function hommes.battre()
   veiller_aux_montures(d)
   -- Fiche 18, 5 c, tranche 4 : les stations partagées avec Henry (définies plus bas, appelées par la table).
   hommes.veiller_les_stations(d, heure)
+  -- La bascule (l'affrontement, 18/10) : la cible à terre, la tenue se lâche ; sinon l'attaque est redonnée à qui ne se
+  -- bat plus.
+  hommes.veiller_les_affrontements(d)
   if #d.ordre == 0 and #d.anciens == 0 then
     return rapport
   end
@@ -3645,6 +3661,7 @@ local function memes_tenues(a, b)
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
     and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste and a.partage == b.partage
     and a.siege == b.siege and a.assis == b.assis and a.arme_tiree == b.arme_tiree
+    and a.cible == b.cible and a.mains_nues == b.mains_nues and a.jusqu_a == b.jusqu_a
 end
 
 -- L'objet du jeu d'un « siege » de geste (demande du pair, 18/10) : une place du camp (son objet où s'asseoir), un poste
@@ -3768,6 +3785,17 @@ function hommes.tenir(id, regle, quoi)
       return refuser("geste_invalide", "objet introuvable : " .. quoi.siege)
     end
   end
+  -- La bascule (demande du pair, 18/10 : duels, pugilat, conspiration de Scriptorium) : affronter un personnage précis
+  -- (« henry » compris), à l'arme ou à mains nues, jusqu'à ce qu'il soit assommé ou mort ; jamais une bataille.
+  if quoi.activite == "affronter" then
+    if type(quoi.cible) ~= "string" or quoi.cible == "" or (quoi.arme ~= nil and type(quoi.arme) ~= "boolean")
+        or (quoi.jusqu_a ~= nil and quoi.jusqu_a ~= "assomme" and quoi.jusqu_a ~= "mort") then
+      return refuser("affrontement_invalide", tostring(quoi.cible))
+    end
+    if quoi.cible ~= "henry" and jeu().personnage_mort(quoi.cible) then
+      return refuser("affrontement_invalide", "cible absente ou morte : " .. quoi.cible)
+    end
+  end
   -- Fiche 18, 5 c, tranche 4 : la station partagée avec Henry, une station surveillée.
   if quoi.partage ~= nil and not (type(quoi.partage) == "string" and hommes.stations[quoi.partage]) then
     return refuser("station_inconnue", tostring(quoi.partage))
@@ -3796,6 +3824,9 @@ function hommes.tenir(id, regle, quoi)
                   siege = (quoi.activite == "geste") and quoi.siege or nil,
                   assis = (quoi.activite == "geste") and quoi.assis or nil,
                   arme_tiree = (quoi.activite == "geste" and quoi.arme_tiree == true) or nil,
+                  cible = (quoi.activite == "affronter") and quoi.cible or nil,
+                  mains_nues = (quoi.activite == "affronter" and quoi.arme == false) or nil,
+                  jusqu_a = (quoi.activite == "affronter") and (quoi.jusqu_a or "assomme") or nil,
                   partage = quoi.partage,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,
@@ -4003,6 +4034,28 @@ local function veiller_les_stations(d, heure)
   end
 end
 hommes.veiller_les_stations = veiller_les_stations
+
+-- La bascule (l'affrontement, 18/10) : pour chaque homme tenu à affronter : la cible à terre (assommée ou morte selon
+-- « jusqu_a » ; morte suffit toujours), la tenue est lâchée, une ligne au journal ; sinon, s'il ne se bat pas, son ordre
+-- est redonné au battement (comme la bataille relance qui ne se bat pas).
+function hommes.veiller_les_affrontements(d)
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    for regle, t in pairs(f and f.tenues or {}) do
+      if t.activite == "affronter" and t.cible then
+        local morte = jeu().personnage_mort(t.cible)
+        local a_terre = morte or (t.jusqu_a == "assomme" and jeu().personnage_inconscient(t.cible) == true)
+        if a_terre then
+          jeu().journal("Hommes : « " .. f.nom .. " » a mis « " .. t.cible .. " » à terre (" .. (morte and "mort" or "assommé")
+                        .. ") : l'affrontement est fini")
+          hommes.lacher(id, regle)
+        elseif f.personnage and jeu().occupation_de(f.personnage) ~= "combat" then
+          f.derniere_activite = nil
+        end
+      end
+    end
+  end
+end
 
 -- Service (réponse 3 a de JoVenGer, V73 b) : exempter un homme d'une règle, par exemple un compagnon de la garde de nuit
 -- (« garde_de_nuit ») ; l'arbitre et la garde du socle ne la lui donnent plus, et sa tenue de cette règle tombe. « oui »

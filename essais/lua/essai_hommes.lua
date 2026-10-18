@@ -832,6 +832,44 @@ essai("hommes (la bascule, 18/10) : la décision « place_pour » donne le sièg
   Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
 end)
 
+essai("hommes (la bascule, 18/10) : affronter un personnage précis, à l'arme ou à mains nues ; la tenue se lâche quand la cible est à terre ; Henry peut être la cible ; jamais une bataille", function()
+  preparer(10000, 500, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  local b = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  hommes.battre()
+  local pa, pb = hommes.fiche(a).personnage, hommes.fiche(b).personnage
+  verifier(not hommes.tenir(a, "travail", { activite = "affronter", fin = "liberation" }), "sans cible : refusé")
+  verifier(not hommes.tenir(a, "travail", { activite = "affronter", cible = pb, jusqu_a = "demain", fin = "liberation" }), "fin boiteuse : refusée")
+  FauxJeu.attaques = {}
+  verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = pb, arme = false, fin = "liberation" }), "pugilat tenu")
+  egal(#FauxJeu.attaques, 1, "l'attaque imposée")
+  egal(FauxJeu.attaques[1].cible, pb, "contre la cible")
+  egal(FauxJeu.attaques[1].attaquant, pa, "par l'homme")
+  verifier(FauxJeu.attaques[1].options.arme == false, "à mains nues")
+  egal(#Scriptorium.bataille.bandes(), 0, "aucune bande, aucune bataille")
+  -- La cible assommée : jusqu'à « assomme » (par défaut), c'est fini.
+  FauxJeu.inconscients = { [pb] = true }
+  hommes.battre()
+  verifier(hommes.activite_de(a, 10).activite ~= "affronter", "la tenue est lâchée")
+  FauxJeu.inconscients = nil
+  -- Jusqu'à la mort : assommée ne suffit pas.
+  verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = pb, jusqu_a = "mort", fin = "liberation" }), "duel à mort tenu")
+  FauxJeu.inconscients = { [pb] = true }
+  hommes.battre()
+  egal(hommes.activite_de(a, 10).activite, "affronter", "assommée seulement : il continue")
+  FauxJeu.personnages_morts[pb] = true
+  hommes.battre()
+  verifier(hommes.activite_de(a, 10).activite ~= "affronter", "morte : fini")
+  FauxJeu.inconscients = nil
+  -- Henry comme cible.
+  FauxJeu.attaques = {}
+  verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = "henry", fin = "liberation" }), "un duel contre Henry")
+  egal(FauxJeu.attaques[#FauxJeu.attaques].cible, "henry", "la cible est Henry")
+  verifier(FauxJeu.attaques[#FauxJeu.attaques].options.arme, "à l'arme par défaut")
+  hommes.lacher(a, "travail")
+  FauxJeu.attaques = nil
+end)
+
 essai("hommes : palier plein, l'âme du palier le plus proche ; jamais de refus faute d'âme", function()
   preparer(10000, 0, 10)
   camp.agrandir()
