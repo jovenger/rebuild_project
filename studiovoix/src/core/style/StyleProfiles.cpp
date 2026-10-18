@@ -80,19 +80,19 @@ namespace
         switch (s)
         {
             case Style::Rap:
-                p.pitch = { true, 0.15f, 80.0f, 0.8f };
+                p.pitch = { true, 0.75f, 60.0f, 0.8f };   // nettoyage transparent : 40-80 ms, 70-90 % (Ghostnote)
                 p.clean.hpfHz = 90.0f;
                 p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 4000.0f, 3.0f, 0.9f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 5.0f, 80.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
+                p.deEss = { 6000.0f, 0.6f, 6.0f, -8.0f };   // coupure 5,5-6 kHz, 4-6 dB (Ghostnote)
                 p.sat = { 3.0f, 0.3f, 0.1f };
-                p.reverb.send = 0.08f; p.reverb.roomSize = 0.35f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 20.0f;
+                p.reverb.send = 0.08f; p.reverb.roomSize = 0.35f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 25.0f; p.reverb.hpfHz = 400.0f; p.reverb.lpfHz = 7000.0f;
                 p.delay.send = 0.10f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.2f; p.delay.throwsOnly = true;
                 p.outputDb = -14.0f;
                 break;
             case Style::Trap:
-                p.pitch = { true, 1.0f, 5.0f, 0.0f };
+                p.pitch = { true, 1.0f, 2.0f, 0.0f };   // hard-tune : 0-5 ms, 100 % (Ghostnote, Antares)
                 p.clean.hpfHz = 100.0f;
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -22.0f, 6.0f, 6.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
@@ -116,19 +116,19 @@ namespace
                 p.outputDb = -14.0f;
                 break;
             case Style::RnB:
-                p.pitch = { true, 0.5f, 40.0f, 0.7f };
-                p.clean.hpfHz = 80.0f;
+                p.pitch = { true, 0.6f, 40.0f, 0.7f };   // 20-60 ms : vibrato et glissés conservés
+                p.clean.hpfHz = 70.0f;   // 60-80 Hz : la chaleur reste (Rys Up)
                 p.eq = { 80.0f, 200.0f, 1.5f, 350.0f, -1.5f, 1.0f, 3000.0f, 1.5f, 0.8f, 11000.0f, 3.0f, 0.0f };
                 p.comp = { -22.0f, 3.0f, 8.0f, 15.0f, 150.0f, 0.0f, 0.85f, true };
                 p.comp2 = { -28.0f, 1.8f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
-                p.deEss = { 7000.0f, 0.8f, 6.0f, -8.0f };
-                p.sat = { 2.0f, 0.2f, 0.1f };
-                p.reverb.send = 0.30f; p.reverb.roomSize = 0.75f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 40.0f;
-                p.delay.send = 0.15f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f;
+                p.deEss = { 7000.0f, 0.6f, 4.0f, -8.0f };   // 3-5 dB max : les sifflantes restent naturelles (Rys Up)
+                p.sat = { 2.0f, 0.15f, 0.1f };
+                p.reverb.send = 0.30f; p.reverb.roomSize = 0.75f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 45.0f; p.reverb.lpfHz = 7000.0f;
+                p.delay.send = 0.15f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f; p.delay.lpfHz = 5000.0f;
                 p.outputDb = -14.0f;
                 break;
             case Style::Drill:
-                p.pitch = { true, 0.6f, 15.0f, 0.2f };
+                p.pitch = { true, 0.85f, 12.0f, 0.2f };   // mélodique serré : 10-20 ms
                 p.clean.hpfHz = 110.0f;
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 2500.0f, 4.0f, 1.0f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -20.0f, 6.0f, 4.0f, 2.0f, 50.0f, 0.0f, 1.0f, false };
@@ -141,15 +141,15 @@ namespace
                 break;
             case Style::Afro:
             case Style::Count:
-                p.pitch = { true, 0.8f, 15.0f, 0.3f };
+                p.pitch = { true, 0.9f, 20.0f, 0.15f };   // 10-30 ms, humanize bas (Antares Afrobeats)
                 p.clean.hpfHz = 90.0f;
-                p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 4.0f, 0.0f };
-                p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };
+                p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3000.0f, 2.5f, 0.9f, 10000.0f, 3.5f, 0.0f };
+                p.comp = { -20.0f, 3.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };   // 3:1, 4-6 dB : la conversation reste
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
                 p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.25f, 0.1f };
-                p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
-                p.delay.send = 0.20f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.35f; p.delay.pingPong = true;
+                p.reverb.send = 0.22f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;   // plate courte 0,8-1,5 s
+                p.delay.send = 0.22f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;   // lancer à la noire sur le dernier mot
                 p.outputDb = -14.0f;
                 break;
             case Style::Rock:
@@ -194,7 +194,7 @@ namespace
             case Style::BoomBap:
                 // Rap old school : voix naturelle sans autotune, corps dans le bas-médium, compression qui laisse passer
                 // l'attaque, saturation chaude, pièce courte presque sèche.
-                p.pitch = { false, 0.0f, 100.0f, 1.0f };
+                p.pitch = { true, 0.5f, 100.0f, 1.0f };   // seules les voyelles longues qui dérivent sont tenues (bars parlés : Ghostnote)
                 p.clean.hpfHz = 80.0f;
                 p.eq = { 80.0f, 200.0f, 1.0f, 350.0f, -2.0f, 1.0f, 3000.0f, 3.5f, 0.9f, 12000.0f, 1.0f, 0.0f };
                 p.comp = { -18.0f, 4.0f, 6.0f, 10.0f, 100.0f, 0.0f, 1.0f, false };
@@ -312,7 +312,7 @@ namespace
                 break;
             case Style::RapConscient:
                 // Texte avant tout : voix naturelle et intelligible, présence marquée, presque sèche.
-                p.pitch = { true, 0.1f, 90.0f, 0.9f };
+                p.pitch = { true, 0.7f, 80.0f, 0.9f };   // nettoyage transparent 40-80 ms, 70-90 % (Ghostnote) : la dérive part, le débit reste
                 p.clean.hpfHz = 85.0f;
                 p.eq = { 85.0f, 200.0f, 0.5f, 300.0f, -2.0f, 1.0f, 3000.0f, 3.5f, 0.9f, 12000.0f, 1.5f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };
@@ -325,7 +325,7 @@ namespace
                 break;
             case Style::RapHardcore:
                 // Voix agressive et collée devant : compression très forte et rapide, saturation poussée, sèche.
-                p.pitch = { true, 0.1f, 80.0f, 0.8f };
+                p.pitch = { true, 0.6f, 70.0f, 0.8f };
                 p.clean.hpfHz = 110.0f;
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.5f, 1.0f, 2500.0f, 4.5f, 1.0f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -16.0f, 8.0f, 4.0f, 1.0f, 40.0f, 0.0f, 1.0f, false };

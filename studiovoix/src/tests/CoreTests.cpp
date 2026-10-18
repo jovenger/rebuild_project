@@ -620,13 +620,14 @@ public:
                 expectEquals (chains.size(), static_cast<int> (style::Style::Count), "un pré-réglage distinct par style"_u8);
                 expect (dsp::describeChain (style::makeParams (style::Style::Trap, style::Role::Lead, {})).contains ("Autotune : effet marqué"_u8),
                         "trap : autotune marqué"_u8);
-                expect (dsp::describeChain (style::makeParams (style::Style::Rap, style::Role::Lead, {})).contains ("Autotune : léger"_u8),
-                        "rap : autotune léger"_u8);
+                // Rap parlé : nettoyage transparent (40-80 ms, 70-90 %) — lent, donc naturel, mais pas « léger ».
+                const auto rapP = style::makeParams (style::Style::Rap, style::Role::Lead, {}).pitch;
+                expect (rapP.enabled && rapP.retuneMs >= 40.0f && rapP.amount >= 0.6f && rapP.amount <= 0.9f, "rap : nettoyage transparent"_u8);
             }
             dsp::AnalysisContext ctx;
             ctx.key = key;
             ctx.tempo.bpm = 100.0;
-            expect (! style::makeParams (style::Style::BoomBap, style::Role::Lead, {}).pitch.enabled, "boom bap : pas d'autotune");
+            expect (style::makeParams (style::Style::BoomBap, style::Role::Lead, {}).pitch.retuneMs >= 90.0f, "boom bap : autotune le plus lent (voyelles longues seulement)");
             expect (style::makeParams (style::Style::Acoustique, style::Role::Lead, {}).pitch.amount
                     < style::makeParams (style::Style::RapMelodique, style::Role::Lead, {}).pitch.amount,
                     "acoustique : moins d'autotune que rap melodique");
@@ -1295,7 +1296,7 @@ public:
             const auto rnb = style::makeParams (style::Style::RnB, style::Role::Lead, {});
             const auto trap = style::makeParams (style::Style::Trap, style::Role::Lead, {});
             const auto posRapC = style::styleMacros (rapC), posRnb = style::styleMacros (rnb), posTrap = style::styleMacros (trap);
-            expect (std::abs (posRapC.autotune - rapC.pitch.amount) < 1e-4f && posRapC.autotune < 0.3f, "rap conscient : autotune léger "_u8 + juce::String (posRapC.autotune, 2));
+            expect (std::abs (posRapC.autotune - rapC.pitch.amount) < 1e-4f && posRapC.autotune < 0.8f && rapC.pitch.retuneMs >= 60.0f, "rap conscient : nettoyage transparent "_u8 + juce::String (posRapC.autotune, 2));
             expect (posTrap.autotune > posRapC.autotune + 0.2f, "trap : bien plus d'autotune que le rap conscient ("_u8 + juce::String (posTrap.autotune, 2) + ")");
             expect (posRnb.space > posRapC.space, "R&B : plus d'espace que le rap conscient ("_u8 + juce::String (posRnb.space, 2) + " vs " + juce::String (posRapC.space, 2) + ")");
             expect (posRapC.presence > 0.5f, "rap conscient : présence au-dessus du milieu ("_u8 + juce::String (posRapC.presence, 2) + ")");
