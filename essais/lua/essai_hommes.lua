@@ -967,6 +967,27 @@ essai("équipement : famille inconnue refusée ; sans famille, une des six est t
   egal(hommes.equipement.familles[famille] ~= nil, true, "une des six familles")
 end)
 
+essai("noms (18/10) : chaque homme prend le nom de son âme ; un nom de contrat passe devant ; sans âme libre, l'intitulé de repli, puis le nom de l'âme reçue", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local f = hommes.fiche(id)
+  verifier(f.ame ~= nil, "l'âme tirée dès l'embauche")
+  egal(f.nom, hommes.nom_de_l_ame(f.ame), "le nom de son âme")
+  local id2 = hommes.embaucher({ role = "homme_d_armes", semaines = 4, nom = "Zbyněk" })
+  egal(hommes.fiche(id2).nom, "Zbyněk", "le nom du contrat")
+  local tailles = FauxJeu.tailles_paliers.metier
+  FauxJeu.tailles_paliers.metier = { 0 }
+  local id3 = hommes.embaucher({ role = "cuisinier", semaines = 4 })
+  egal(hommes.fiche(id3).nom, hommes.nom_de_repli, "sans âme libre : l'intitulé de repli")
+  egal(hommes.nom_de_repli, "Homme de la Compagnie", "l'intitulé décidé")
+  FauxJeu.tailles_paliers.metier = tailles
+  hommes.redresser()
+  local f3 = hommes.fiche(id3)
+  verifier(f3.ame ~= nil, "une âme reçue plus tard")
+  egal(f3.nom, hommes.nom_de_l_ame(f3.ame), "et son nom")
+  egal(hommes.nom_de_femme(1), "Anna la Rousse", "les noms des femmes")
+end)
+
 essai("personnel mené (18/10) : un personnage hors de la Compagnie tenu par nos ordres ; jamais dans l'effectif ; lâché, il n'est plus mené ; disparu, oublié", function()
   preparer(200, 10, 10)
   FauxJeu.personnages_existants["dame_des_bains"] = true

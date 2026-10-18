@@ -243,6 +243,14 @@ function faux.ame_de(reserve, palier, numero)
   if not taille or numero < 1 or numero > taille then return nil end
   return "ame_" .. reserve .. "_" .. palier .. "_" .. numero
 end
+-- La réserve et le rang d'une âme (même forme que la liaison).
+function faux.rang_de_l_ame(ame)
+  local reserve, palier, numero = string.match(tostring(ame), "^ame_(%a+)_(%d+)_(%d+)$")
+  if not reserve or not faux.tailles_paliers[reserve] then return nil end
+  local rang = tonumber(numero) - 1
+  for p = 1, tonumber(palier) - 1 do rang = rang + faux.tailles_paliers[reserve][p] end
+  return reserve, rang
+end
 -- Pas de jumeaux : le visage d'une âme, « réserve:rang mod visages » quand faux.visages[réserve] est posé (sinon nil).
 function faux.visage_de(ame)
   local reserve, palier, numero = string.match(tostring(ame), "^ame_(%a+)_(%d+)_(%d+)$")

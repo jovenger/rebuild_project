@@ -451,6 +451,13 @@ hommes.surnoms = {
   "Kladivo", "le Rouge", "de Sázava", "Vlk", "le Long", "Sekera", "de Talmberk", "Hrom",
   "le Borgne", "Kozel", "de Rataje", "Medvěd", "le Taciturne", "Šíp", "de Skalice", "Holub",
 }
+-- Les femmes (réserve « femme ») : leurs prénoms et surnoms, combinés de même.
+hommes.prenoms_de_femmes = {
+  "Anna", "Markéta", "Dorota", "Kateřina", "Alžběta", "Ludmila", "Johana", "Barbora", "Mandalena", "Eliška",
+}
+hommes.surnoms_de_femmes = { "la Rousse", "de Ledeč", "Vlková", "la Douce", "de Sázava", "Holubová" }
+-- Décision de JoVenGer (18/10, transmise par le pair) : l'intitulé de repli, partout où un nom manquerait.
+hommes.nom_de_repli = "Homme de la Compagnie"
 
 local function jeu()
   return Scriptorium.jeu
@@ -577,10 +584,39 @@ function hommes.nom_d_epoque(i)
   return hommes.prenoms[r % np + 1] .. " " .. hommes.surnoms[(r + decalage) % ns + 1]
 end
 
-local function nom_suivant(d)
-  local i = d.prochain_nom
-  d.prochain_nom = i + 1
-  return hommes.nom_d_epoque(i)
+-- La même combinaison pour les femmes.
+function hommes.nom_de_femme(i)
+  local np, ns = #hommes.prenoms_de_femmes, #hommes.surnoms_de_femmes
+  local tranche = np * ns / pgcd(np, ns)
+  local k = (i - 1) % (np * ns)
+  local decalage, r = math.floor(k / tranche), k % tranche
+  return hommes.prenoms_de_femmes[r % np + 1] .. " " .. hommes.surnoms_de_femmes[(r + decalage) % ns + 1]
+end
+
+-- Décision de JoVenGer (18/10, transmise par le pair) : chaque homme son nom, fixé par son âme (le jeu l'affiche
+-- au-dessus de sa tête par le personnage de l'âme, outils/ames.py) : les combattants puis les gens de métier suivent les
+-- noms d'époque, les femmes les leurs, les compagnons nommés leur liste. Le nom d'une âme de nos réserves, ou nil.
+-- essais/tout_verifier.py vérifie que ce nom est celui que la table des textes donne au personnage de l'âme.
+function hommes.nom_de_l_ame(ame)
+  local reserve, rang = nil, nil
+  if jeu().rang_de_l_ame then
+    reserve, rang = jeu().rang_de_l_ame(ame)
+  end
+  if reserve == "combattant" then
+    return hommes.nom_d_epoque(rang + 1)
+  elseif reserve == "metier" then
+    local combattants = 0
+    for _, n in ipairs(jeu().paliers_de("combattant")) do
+      combattants = combattants + n
+    end
+    return hommes.nom_d_epoque(combattants + rang + 1)
+  elseif reserve == "femme" then
+    return hommes.nom_de_femme(rang + 1)
+  elseif reserve == "compagnon" then
+    local c = hommes.compagnons[rang + 1]
+    return c and c.nom or nil
+  end
+  return nil
 end
 
 -- ---------------------------------------------------------------- lecture
@@ -827,6 +863,10 @@ local function faire_venir(d, f, pres_d_henry, ici)
         f.personnage = nil
       end
       return present and true or false
+    end
+    -- Resté sans nom faute d'âme à l'embauche : il prend celui de l'âme qu'il reçoit enfin.
+    if f.nom == hommes.nom_de_repli then
+      f.nom = hommes.nom_de_l_ame(f.ame) or hommes.nom_de_repli
     end
     if present then
       jeu().journal("Hommes : « " .. f.nom .. " » renaît sur une âme à nous")
@@ -1458,7 +1498,7 @@ function hommes.embaucher(contrat)
   d.prochain = d.prochain + 1
   local f = {
     id = id,
-    nom = contrat.nom or nom_suivant(d),
+    nom = contrat.nom,
     role = contrat.role,
     rang = "soudoyer",
     palier = palier,
@@ -1474,6 +1514,12 @@ function hommes.embaucher(contrat)
     retenue = 0,
     famille = contrat.famille,
   }
+  -- Chaque homme son nom, celui de son âme (décision de JoVenGer, 18/10) : l'âme est tirée dès l'embauche ; un nom donné
+  -- par le contrat (compagnon nommé, reprise) passe devant ; sans âme libre ni nom donné, l'intitulé de repli.
+  if not f.ame and not deja_ne then
+    f.ame = choisir_ame(d, f)
+  end
+  f.nom = f.nom or (f.ame and hommes.nom_de_l_ame(f.ame)) or hommes.nom_de_repli
   if prime > 0 then
     local ok = coffre().payer(prime, "prime")
     if not ok then

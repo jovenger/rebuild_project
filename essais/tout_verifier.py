@@ -869,14 +869,40 @@ def verifier_ames():
     end)()""").split("\n"):
         ame, visage = ligne.split("|")
         visage_de[ame] = visage
-    personnage_du_visage, visage_du_personnage = {}, {}
+    # Vu en jeu le 18/10 : le visage suit l'âme, pas le personnage ; l'accord visage <-> personnage ne se vérifie plus.
+    # Chaque homme son nom (décision de JoVenGer, 18/10) : chaque âme des réserves nommées pointe vers un personnage à
+    # nous (table des personnages) dont le nom affiché (clé ui_name_string_name, table des textes) est celui que
+    # hommes.nom_de_l_ame donne à l'âme, et deux âmes n'ont jamais le même nom.
+    lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "hommes.lua")))
+    lua.execute("Scriptorium.jeu = Scriptorium.liaison_reelle")
+    personnages = {}
+    chemin_des_personnages = os.path.join(PAK, "Libs", "Tables", "skald", "skald_character__scriptorium_socle.xml")
+    if os.path.exists(chemin_des_personnages):
+        for s in ET.parse(chemin_des_personnages).getroot().iter("skald_character"):
+            personnages[s.attrib.get("skald_character_name")] = s.attrib.get("ui_name_string_name")
+    textes_des_noms = {}
+    chemin_des_textes = os.path.join(SOCLE, "textes", "fr", "text_ui_soul__scriptorium_socle.xml")
+    if os.path.exists(chemin_des_textes):
+        for rangee in ET.parse(chemin_des_textes).getroot().iter("Row"):
+            cellules = [(c.text or "").strip() for c in rangee.findall("Cell")]
+            if len(cellules) == 3:
+                textes_des_noms[cellules[0]] = cellules[2]
+    nom_lua = lua.eval("function(ame) return Scriptorium.hommes.nom_de_l_ame(ame) end")
+    noms_vus, nommees = {}, 0
     for a in ames:
-        v = visage_de.get(a.get("soul_id", "").lower())
-        if v is None:
+        attendu = nom_lua(a.get("soul_id", ""))
+        if attendu is None:
             continue
-        p = a.get("skald_character_name")
-        if personnage_du_visage.setdefault(v, p) != p or visage_du_personnage.setdefault(p, v) != v:
-            erreur("âmes : visage %s et personnage %s mal accordés entre la liaison et la table" % (v, p))
+        nommees += 1
+        cle = personnages.get(a.get("skald_character_name"))
+        affiche = textes_des_noms.get(cle)
+        if affiche != attendu:
+            erreur("âmes : %s affiche « %s », hommes.nom_de_l_ame dit « %s »" % (a.get("soul_name"), affiche, attendu))
+        if attendu in noms_vus:
+            erreur("âmes : nom « %s » pour %s et %s" % (attendu, noms_vus[attendu], a.get("soul_name")))
+        noms_vus[attendu] = a.get("soul_name")
+    if nommees == 0:
+        erreur("âmes : aucune âme nommée")
     noms = [a.get("soul_name") for a in ames]
     ids = [a.get("soul_id", "").lower() for a in ames]
     if len(set(noms)) != len(noms) or len(set(ids)) != len(ids):
@@ -1121,6 +1147,11 @@ def verifier_textes():
         for numero, ligne in enumerate(lire(chemin).splitlines(), 1):
             for cle in MOTIF_CLE.findall(ligne):
                 employees.setdefault(cle, []).append("%s:%d" % (relatif(chemin), numero))
+    # Chaque homme son nom (18/10) : les clés des noms sont employées par la table des personnages (outils/ames.py).
+    for chemin in fichiers(os.path.join(PAK, "Libs", "Tables", "skald"), {".xml"}):
+        for numero, ligne in enumerate(lire(chemin).splitlines(), 1):
+            for cle in re.findall(r'_string_name="(ui_scriptorium_[A-Za-z0-9_]+)"', ligne):
+                employees.setdefault(cle, []).append("%s:%d" % (relatif(chemin), numero))
     # Fiche 21 : les clés des dialogues sont employées par nos fichiers de quêtes (StringName), écrits par
     # outils/dialogues.py, qui doivent être à jour.
     for chemin in fichiers(os.path.join(PAK, "Quests"), {".xml"}):
@@ -1191,7 +1222,7 @@ JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
 
 
-FORMES_ADMISES_AU_PLUS = 34   # 18/10 : 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue) ; 34 avec </ProcessMessage> (les branches 'dialogMailbox', fiche 21 ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+FORMES_ADMISES_AU_PLUS = 36   # 18/10 : 36 avec <skald_characters version="1"> et sa fermante (la table des personnages nommés ; revue) ; 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue) ; 34 avec </ProcessMessage> (les branches 'dialogMailbox', fiche 21 ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
 # (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; 27 avec EntityContext ; revues)
 # (16/10, V73 d 1 : 32 avec « <Else canSkip="1"> », la branche « sinon » de IsNightTimeOfDay, telle quelle dans
 # AI/events/randomEventsBehaviors.xml du jeu ; revue)

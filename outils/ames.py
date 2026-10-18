@@ -29,6 +29,13 @@ import zipfile
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "rpg", "soul__scriptorium_socle.xml")
 TABLE_DES_FACTIONS = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "rpg", "FactionTree__scriptorium_socle.xml")
+# Chaque homme son nom (décision de JoVenGer, 18/10, transmise par le pair) : un personnage du jeu à nous par âme des
+# réserves (copie du personnage générique tiré, avec la clé de son nom affiché), et le texte de cette clé. Vu en jeu le
+# 18/10 : le nom s'affiche au-dessus de la tête, et le visage suit l'âme, pas le personnage (aucun visage perdu).
+TABLE_DES_PERSONNAGES = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "skald", "skald_character__scriptorium_socle.xml")
+TEXTES_DES_NOMS = os.path.join(RACINE, "socle", "textes", "fr", "text_ui_soul__scriptorium_socle.xml")
+HOMMES_LUA = os.path.join(RACINE, "socle", "pak", "Scripts", "scriptorium", "hommes.lua")
+RESERVES_NOMMEES = ("combattant", "metier", "femme", "compagnon")
 
 PREFIXE = "5c7a5c7a"
 NOTRE_CERVEAU = "b8a850d0-47c6-44a1-872e-ce7efcf4b9f9"
@@ -138,6 +145,10 @@ def lire_le_jeu(jeu):
     chemin = os.path.join(jeu, "Data", "Tables.pak")
     with zipfile.ZipFile(chemin) as tables:
         personnages = tables.read("Libs/Tables/skald/skald_character.xml").decode("utf-8", "replace")
+        fiches = {}
+        for balise in re.findall(r"<skald_character\s[^>]*>", personnages):
+            attributs = dict(re.findall(r'(\w+)="([^"]*)"', balise))
+            fiches[attributs.get("skald_character_name")] = attributs
         ames = set()
         factions = set()
         modeles = {}
@@ -153,7 +164,7 @@ def lire_le_jeu(jeu):
             if re.search(r"libs/tables/rpg/factiontree(__[^/]+)?\.xml$", nom, re.I):
                 texte = tables.read(nom).decode("utf-8", "replace")
                 factions.update(re.findall(r'<Faction\s[^>]*?Name="([^"]+)"', texte))
-    return set(re.findall(r'skald_character_name="([^"]+)"', personnages)), ames, factions, modeles
+    return set(re.findall(r'skald_character_name="([^"]+)"', personnages)), ames, factions, modeles, fiches
 
 
 def texte_des_factions(fin):
@@ -262,6 +273,106 @@ def lignes_des_reserves(personnages):
     return lignes
 
 
+def listes_de_hommes_lua():
+    """Les listes de noms de hommes.lua (la même source que le jeu) : prénoms, surnoms, ceux des femmes, compagnons."""
+    with open(HOMMES_LUA, "r", encoding="utf-8") as f:
+        texte = f.read()
+
+    def liste(nom):
+        bloc = re.search(r"^hommes\.%s = \{(.*?)\}" % nom, texte, re.S | re.M)
+        if not bloc:
+            raise SystemExit("REFUS : liste hommes.%s introuvable dans hommes.lua" % nom)
+        return re.findall(r'"([^"]+)"', bloc.group(1))
+    bloc = texte.split("\nhommes.compagnons = {", 1)[1].split("\n}", 1)[0]
+    compagnons = re.findall(r'^  \{ nom = "([^"]+)"', bloc, re.M)
+    return liste("prenoms"), liste("surnoms"), liste("prenoms_de_femmes"), liste("surnoms_de_femmes"), compagnons
+
+
+def nom_combine(prenoms, surnoms, i):
+    """hommes.nom_d_epoque et hommes.nom_de_femme, à l'identique."""
+    np, ns = len(prenoms), len(surnoms)
+    a, b = np, ns
+    while b:
+        a, b = b, a % b
+    tranche = np * ns // a
+    k = (i - 1) % (np * ns)
+    decalage, reste = k // tranche, k % tranche
+    return prenoms[reste % np] + " " + surnoms[(reste + decalage) % ns]
+
+
+def noms_des_reserves():
+    """soul_name -> nom affiché, pour les réserves nommées ; même calcul que hommes.nom_de_l_ame."""
+    prenoms, surnoms, prenoms_f, surnoms_f, compagnons = listes_de_hommes_lua()
+    noms = {}
+    combattants = sum(sum(r["paliers"]) for r in RESERVES if r["reserve"] == "combattant")
+    for r in RESERVES:
+        if r["reserve"] not in RESERVES_NOMMEES:
+            continue
+        rang = 0
+        for palier, taille in enumerate(r["paliers"], start=1):
+            for numero in range(1, taille + 1):
+                ame = nom_de_l_ame(r["reserve"], palier, numero, len(r["paliers"]))
+                if r["reserve"] == "combattant":
+                    noms[ame] = nom_combine(prenoms, surnoms, rang + 1)
+                elif r["reserve"] == "metier":
+                    noms[ame] = nom_combine(prenoms, surnoms, combattants + rang + 1)
+                elif r["reserve"] == "femme":
+                    noms[ame] = nom_combine(prenoms_f, surnoms_f, rang + 1)
+                else:
+                    if rang >= len(compagnons):
+                        raise SystemExit("REFUS : plus d'âmes de compagnon que de compagnons dans hommes.lua")
+                    noms[ame] = compagnons[rang]
+                rang += 1
+    vus, doubles = set(), set()
+    for n in noms.values():
+        if n in vus:
+            doubles.add(n)
+        vus.add(n)
+    if doubles:
+        raise SystemExit("REFUS : noms en double : " + ", ".join(sorted(doubles)[:5]))
+    return noms
+
+
+def ecrire_les_personnages(lignes_des_ames, fiches, fin):
+    """Chaque âme d'une réserve nommée pointe vers son personnage ; rend les lignes d'âmes réécrites."""
+    noms = noms_des_reserves()
+    personnages, textes, sorties = [], [], []
+    for l in lignes_des_ames:
+        a = dict(re.findall(r'(\w+)="([^"]*)"', l))
+        ame = a.get("soul_name")
+        if ame not in noms:
+            sorties.append(l)
+            continue
+        suffixe = ame[len("scriptorium_"):]
+        modele = fiches.get(a["skald_character_name"])
+        if modele is None:
+            raise SystemExit("REFUS : personnage modèle introuvable : " + a["skald_character_name"])
+        p = dict(modele)
+        p["skald_character_name"] = "char_scriptorium_" + suffixe
+        p["skald_character_full_name_string_name"] = "ui_scriptorium_ame_" + suffixe
+        p["ui_name_string_name"] = "ui_scriptorium_ame_" + suffixe
+        personnages.append("    <skald_character " + " ".join('%s="%s"' % (c, p[c]) for c in sorted(p)) + " />")
+        nom = noms[ame].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        textes.append("  <Row><Cell>ui_scriptorium_ame_%s</Cell><Cell>%s</Cell><Cell>%s</Cell></Row>" % (suffixe, nom, nom))
+        a["skald_character_name"] = p["skald_character_name"]
+        sorties.append(ligne(a))
+    table = fin.join(['<?xml version="1.0" encoding="us-ascii"?>',
+                      '<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" '
+                      'xsi:noNamespaceSchemaLocation="../database.xsd">', '  <skald_characters version="1">']
+                     + personnages + ["  </skald_characters>", "</database>", ""])
+    os.makedirs(os.path.dirname(TABLE_DES_PERSONNAGES), exist_ok=True)
+    ecrire_si_change(TABLE_DES_PERSONNAGES, table, "Table des personnages (%d)" % len(personnages))
+    texte = "\n".join(["<Table>"] + textes + ["</Table>", ""])
+    ancien = open(TEXTES_DES_NOMS, encoding="utf-8").read() if os.path.isfile(TEXTES_DES_NOMS) else None
+    if ancien != texte:
+        with open(TEXTES_DES_NOMS, "w", encoding="utf-8", newline="\n") as f:
+            f.write(texte)
+        print("Textes des noms écrits (%d)" % len(textes))
+    else:
+        print("Textes des noms : déjà à jour")
+    return sorties
+
+
 def principal(arguments):
     if "--jeu" not in arguments or arguments.index("--jeu") + 1 >= len(arguments):
         print(__doc__)
@@ -270,7 +381,7 @@ def principal(arguments):
     if not os.path.isfile(os.path.join(jeu, "Data", "Tables.pak")):
         print("REFUS : Tables.pak introuvable sous " + jeu)
         return 2
-    personnages, ames_du_jeu, factions_du_jeu, modeles = lire_le_jeu(jeu)
+    personnages, ames_du_jeu, factions_du_jeu, modeles, fiches = lire_le_jeu(jeu)
     pris = sorted(i for i in ames_du_jeu if i.startswith(PREFIXE))
     if pris:
         print("REFUS : le préfixe %s est déjà pris par le jeu : %s" % (PREFIXE, ", ".join(pris[:5])))
@@ -293,7 +404,7 @@ def principal(arguments):
     anciennes = texte.split(fin)
     # Les âmes d'essai (hors réserves) sont gardées telles quelles, dans leur ordre.
     gardees = [l for l in anciennes if "<soul " in l and ('soul_id="' + PREFIXE) not in l]
-    neuves = lignes_des_reserves(personnages) + lignes_des_bandes(modeles, personnages)
+    neuves = ecrire_les_personnages(lignes_des_reserves(personnages), fiches, fin) + lignes_des_bandes(modeles, personnages)
     tete = [l for l in anciennes if "<soul " not in l and "</souls>" not in l and "</database>" not in l and l.strip()]
     sortie = tete + gardees + neuves + ["  </souls>", "</database>", ""]
     nouveau = fin.join(sortie)

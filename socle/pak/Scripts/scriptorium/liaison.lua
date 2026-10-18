@@ -1251,8 +1251,8 @@ function liaison.ame_de(reserve, palier, numero)
   return string.format("5c7a5c7a-%04x-4%03x-8000-%012x", r.code, palier, numero)
 end
 
--- Le visage d'une âme de nos réserves : « réserve:numéro du visage » (deux âmes au même visage sont des jumeaux), ou nil.
-function liaison.visage_de(ame)
+-- La réserve d'une âme et son rang dans la réserve (compté sur tous ses paliers, à partir de 0), ou nil.
+function liaison.rang_de_l_ame(ame)
   local code, palier, numero = string.match(string.lower(tostring(ame)), "^5c7a5c7a%-(%x%x%x%x)%-4(%x%x%x)%-8000%-(%x+)$")
   if not code then
     return nil
@@ -1264,10 +1264,20 @@ function liaison.visage_de(ame)
       for p = 1, palier - 1 do
         rang = rang + r.paliers[p]
       end
-      return nom .. ":" .. (rang % r.visages)
+      return nom, rang
     end
   end
   return nil
+end
+
+-- Le visage d'une âme de nos réserves : « réserve:numéro du visage » (deux âmes au même visage sont des jumeaux), ou nil.
+-- Vu en jeu le 18/10 : le visage suit l'âme, pas le personnage du jeu ; ce numéro ne sert plus qu'au tirage.
+function liaison.visage_de(ame)
+  local reserve, rang = liaison.rang_de_l_ame(ame)
+  if not reserve then
+    return nil
+  end
+  return reserve .. ":" .. (rang % liaison.reserves_d_ames[reserve].visages)
 end
 
 -- Le nombre d'âmes de chaque palier d'une réserve (une copie), ou une liste vide.
