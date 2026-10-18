@@ -45,7 +45,7 @@ void LevelMeter::paint (juce::Graphics& g)
 
 TransportBar::TransportBar (Session& s) : session (s)
 {
-    for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn, &undoBtn, &redoBtn, &homeBtn, &playBtn, &stopBtn, &recBtn })
+    for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn, &undoBtn, &redoBtn, &homeBtn, &playBtn, &stopBtn, &recBtn, &updateBtn })
         addAndMakeVisible (*b);
     for (auto* t : { &punch, &loop, &metronome })
         addAndMakeVisible (*t);
@@ -89,6 +89,8 @@ TransportBar::TransportBar (Session& s) : session (s)
     voiceBtn.onClick = [this] { if (onImportVoice) onImportVoice(); };
     voiceBtn.setTooltip ("Importer une voix déjà enregistrée dans la piste sélectionnée"_u8);
     exportBtn.onClick = [this] { if (onExport) onExport(); };
+    updateBtn.onClick = [this] { if (onUpdate) onUpdate(); };
+    setUpdateButton ("Mise à jour"_u8, "Vérifier s'il existe une nouvelle version"_u8, false, true);
     settingsBtn.onClick = [this] { if (onSettings) onSettings(); };
     undoBtn.onClick = [this] { session.undo(); };
     redoBtn.onClick = [this] { session.redo(); };
@@ -179,6 +181,23 @@ void TransportBar::paint (juce::Graphics& g)
     g.drawLine (0.0f, static_cast<float> (getHeight()) - 0.5f, static_cast<float> (getWidth()), static_cast<float> (getHeight()) - 0.5f);
 }
 
+void TransportBar::setUpdateButton (const juce::String& text, const juce::String& tooltip, bool highlight, bool enabled)
+{
+    updateBtn.setButtonText (text);
+    updateBtn.setTooltip (tooltip);
+    updateBtn.setEnabled (enabled);
+    if (highlight)
+    {
+        updateBtn.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff2e7d32));
+        updateBtn.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
+    }
+    else
+    {
+        updateBtn.removeColour (juce::TextButton::buttonColourId);
+        updateBtn.removeColour (juce::TextButton::textColourOffId);
+    }
+}
+
 void TransportBar::resized()
 {
     auto r = getLocalBounds().reduced (6, 4);
@@ -196,6 +215,8 @@ void TransportBar::resized()
     row1.removeFromLeft (4);
     redoBtn.setBounds (row1.removeFromLeft (80));
     row1.removeFromLeft (12);
+    updateBtn.setBounds (row1.removeFromRight (170));
+    row1.removeFromRight (8);
     inputMeter.setBounds (row1.removeFromRight (220));
     row1.removeFromRight (8);
     autoGainLabel.setBounds (row1.removeFromRight (140));

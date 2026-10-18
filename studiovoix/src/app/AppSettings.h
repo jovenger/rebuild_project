@@ -62,6 +62,9 @@ public:
     void setMusicAiKey (const juce::String& key);
     bool aiEnabled() const;
     void setAiEnabled (bool b);
+    /** Jeton GitHub en lecture seule (facultatif) : nécessaire pour les mises à jour tant que le dépôt est privé. */
+    juce::String updateToken() const;
+    void setUpdateToken (const juce::String& token);
     /** Styles sur mesure créés par l'IA (tableau JSON). */
     juce::var customStyles() const;
     void setCustomStyles (const juce::var& list);

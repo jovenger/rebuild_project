@@ -105,6 +105,8 @@ juce::String AppSettings::musicAiKey() const { return file->getValue ("musicAiKe
 void AppSettings::setMusicAiKey (const juce::String& key) { file->setValue ("musicAiKey", key.trim()); }
 bool AppSettings::aiEnabled() const { return file->getBoolValue ("aiEnabled", false); }
 void AppSettings::setAiEnabled (bool b) { file->setValue ("aiEnabled", b); }
+juce::String AppSettings::updateToken() const { return file->getValue ("updateToken"); }
+void AppSettings::setUpdateToken (const juce::String& token) { file->setValue ("updateToken", token.trim()); }
 
 juce::var AppSettings::customStyles() const
 {

@@ -25,6 +25,9 @@
 #include "core/gen/TakeComper.h"
 #include "core/project/Project.h"
 #include "core/project/Renderer.h"
+#include "core/update/Updater.h"
+
+#include <juce_cryptography/juce_cryptography.h>
 
 #include <set>
 
@@ -1004,6 +1007,77 @@ public:
     }
 };
 
+class UpdateTests final : public juce::UnitTest
+{
+public:
+    UpdateTests() : juce::UnitTest ("Mises a jour (hors ligne)", "studiovoix") {}
+
+    static juce::String releaseJson (const juce::String& assetName, juce::int64 size, const juce::String& digest,
+                                     const juce::String& url = "https://api.github.com/repos/jovenger/rebuild_project/releases/assets/42")
+    {
+        return "{\"tag_name\":\"studiovoix-build57\",\"name\":\"StudioVoix build 57\",\"draft\":false,\"body\":\"Nouveaux styles\\nDétails\","
+               "\"assets\":[{\"name\":\"notes.txt\",\"url\":\"" + url + "\",\"size\":10},"
+               "{\"name\":\"" + assetName + "\",\"url\":\"" + url + "\",\"browser_download_url\":\"https://github.com/x/y/releases/download/t/a.exe\","
+               "\"size\":" + juce::String (size) + (digest.isNotEmpty() ? ",\"digest\":\"" + digest + "\"" : juce::String()) + "}]}";
+    }
+
+    void runTest() override
+    {
+        beginTest ("Numero de build et lecture de la release GitHub");
+        {
+            expectEquals (update::buildFromName ("StudioVoix-Setup-0.1.0-build57.exe"), 57);
+            expectEquals (update::buildFromName ("studiovoix-build123"), 123);
+            expectEquals (update::buildFromName ("StudioVoix-Setup-0.1.0.exe"), 0);
+            expectEquals (update::buildFromName ("build-x build9"), 9);
+            const juce::String sha (juce::String::repeatedString ("ab", 32));
+            auto r = update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 5600000, "sha256:" + sha.toUpperCase()));
+            expect (r.ok, r.error);
+            expectEquals (r.build, 57);
+            expectEquals (r.sha256, sha);
+            expect (r.size == 5600000);
+            expect (r.notes.startsWith ("Nouveaux styles"));
+            r = update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 5600000, {}));
+            expect (r.ok && r.sha256.isEmpty(), "sans empreinte : accepté, vérification par taille");
+            expect (! update::parseRelease (releaseJson ("Autre.zip", 5600000, {})).ok, "pas d'installateur");
+            expect (! update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 500, {})).ok, "taille absurde");
+            expect (! update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 5600000, {}, "https://exemple.com/a.exe")).ok,
+                    "adresse hors API GitHub refusée");
+            expect (! update::parseRelease ("[1,2]").ok && ! update::parseRelease ("pas du json").ok, "réponse illisible");
+            expect (! update::parseRelease ("{\"draft\":true,\"assets\":[]}").ok, "brouillon ignoré");
+            expect (update::describeHttpError (404, false).contains ("jeton"), "404 sans jeton : explique le jeton");
+            expect (! update::describeHttpError (401, true).containsChar (0xC3), "accents des messages");
+            expect (update::installerArguments (juce::File ("C:/t/log.txt")).contains ("/RELANCER=1"), "relance demandée à l'installateur");
+        }
+        beginTest ("Verification de l'installateur telecharge");
+        {
+            const auto f = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_update_test.exe");
+            juce::MemoryBlock data;
+            data.append ("MZ", 2);
+            for (int i = 0; i < 200000; ++i)
+                data.append (&i, 1);
+            expect (f.replaceWithData (data.getData(), data.getSize()));
+            update::ReleaseInfo rel;
+            rel.ok = true;
+            rel.size = static_cast<juce::int64> (data.getSize());
+            rel.sha256 = juce::SHA256 (data).toHexString().toLowerCase();
+            juce::String err;
+            expect (update::verifyInstaller (f, rel, err), err);
+            auto wrongSha = rel;
+            wrongSha.sha256 = juce::String::repeatedString ("0", 64);
+            expect (! update::verifyInstaller (f, wrongSha, err) && err.contains ("SHA-256"), "empreinte différente refusée");
+            auto wrongSize = rel;
+            wrongSize.size += 1;
+            expect (! update::verifyInstaller (f, wrongSize, err), "taille différente refusée");
+            data[0] = 'X';
+            expect (f.replaceWithData (data.getData(), data.getSize()));
+            auto noSha = rel;
+            noSha.sha256.clear();
+            expect (! update::verifyInstaller (f, noSha, err), "fichier qui n'est pas un exécutable refusé");
+            f.deleteFile();
+        }
+    }
+};
+
 // Instances statiques : enregistrement automatique auprès de juce::UnitTest.
 static LoudnessTests loudnessTests;
 static ResampleTests resampleTests;
@@ -1016,6 +1090,7 @@ static GeneratorTests generatorTests;
 static CompTests compTests;
 static ProjectTests projectTests;
 static AiTests aiTests;
+static UpdateTests updateTests;
 
 int runAllTests()
 {

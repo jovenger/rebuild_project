@@ -54,5 +54,32 @@ Name: "{autodesktop}\StudioVoix"; Filename: "{app}\StudioVoix.exe"; Tasks: deskt
 [Run]
 Filename: "{app}\docs\GUIDE_MATERIEL.html"; Description: "Ouvrir le guide du matériel (micro, casque, branchements)"; Flags: postinstall shellexec skipifsilent nowait
 Filename: "{app}\StudioVoix.exe"; Description: "{cm:LaunchProgram,StudioVoix}"; Flags: postinstall skipifsilent nowait unchecked
+; Mise à jour depuis le programme (/RELANCER=1) : relance automatique après l'installation silencieuse.
+Filename: "{app}\StudioVoix.exe"; Flags: nowait runasoriginaluser; Check: RelancerApresMiseAJour
 
-; Les projets (Documents\StudioVoix), réglages et journaux (%APPDATA%\StudioVoix) ne sont jamais supprimés.
+[Code]
+// Mise à jour lancée par StudioVoix : le programme se ferme juste après avoir lancé l'installateur.
+// On attend que son verrou nommé (InterProcessLock JUCE « StudioVoix_en_cours ») disparaisse, 30 s au plus.
+function RelancerApresMiseAJour: Boolean;
+begin
+  Result := ExpandConstant('{param:RELANCER|0}') = '1';
+end;
+
+function InitializeSetup: Boolean;
+var
+  Attente: Integer;
+begin
+  Result := True;
+  if RelancerApresMiseAJour then
+  begin
+    Attente := 0;
+    while CheckForMutexes('Global\StudioVoix_en_cours,Local\StudioVoix_en_cours') and (Attente < 60) do
+    begin
+      Sleep(500);
+      Attente := Attente + 1;
+    end;
+    Log(Format('Mise à jour : attente de la fermeture de StudioVoix %d x 500 ms', [Attente]));
+  end;
+end;
+
+// Les projets (Documents\StudioVoix), réglages et journaux (%APPDATA%\StudioVoix) ne sont jamais supprimés.

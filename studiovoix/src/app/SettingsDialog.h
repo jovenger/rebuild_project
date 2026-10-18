@@ -23,7 +23,7 @@ private:
 
     Session& session;
     juce::AudioDeviceSelectorComponent deviceSelector;
-    juce::Label latencyInfo, offsetL, calibResult, levelResult, inputL, trimL, countL, aiTitle, aiInfo, textKeyL, modelL, musicKeyL;
+    juce::Label latencyInfo, offsetL, calibResult, levelResult, inputL, trimL, countL, aiTitle, aiInfo, textKeyL, modelL, musicKeyL, updateL;
     juce::Slider offset, trim;
     void refreshCalibrationText();
 
@@ -32,7 +32,7 @@ private:
     juce::ToggleButton monitoring { "M'entendre à travers le logiciel (sinon : retour direct du micro, 0 ms)"_u8 },
         propose { "Proposer la génération des backs après chaque prise"_u8 }, aiEnabled { "Activer l'IA connectée (facultatif)"_u8 };
     juce::ComboBox inputMode;
-    juce::TextEditor textKey, model, musicKey;
+    juce::TextEditor textKey, model, musicKey, updateToken;
     bool levelTesting = false;
     juce::int64 levelTestEnd = 0;
     float levelTestPeak = 0.0f;

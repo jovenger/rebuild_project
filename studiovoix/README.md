@@ -583,6 +583,28 @@ Avec une clé (**Paramètres** → IA, clés masquées et stockées uniquement s
 Seul du texte est envoyé (paroles, réglages, mesures du mix). Aucun son n'est traité à distance.
 Les appels sont facturés par le fournisseur sur ton compte.
 
+## Mises à jour (bouton en haut à droite)
+
+Plus besoin de désinstaller / réinstaller : chaque compilation de la CI publie une nouvelle version
+(« release » GitHub `studiovoix-build<N>` avec l'installateur).
+
+- Le programme vérifie au démarrage puis toutes les 30 min ; le bouton **Mise à jour** passe au vert
+  (« Mise à jour dispo ! ») quand une version plus récente existe.
+- Clic → confirmation → téléchargement en arrière-plan (on peut continuer à travailler) → vérification
+  (taille, empreinte SHA-256 publiée par GitHub, en-tête d'exécutable Windows) → le projet est enregistré,
+  StudioVoix se ferme, l'installateur attend sa fermeture, installe par-dessus puis **relance le programme**.
+- Jamais pendant un enregistrement : le bouton « Installer maintenant » attend que la prise soit finie.
+- Projets, réglages, « Mon son » et journaux sont conservés.
+- Journal de l'installation : `%APPDATA%\StudioVoix\logs\installation_build<N>.log`.
+
+**Dépôt privé** : GitHub n'autorise le téléchargement qu'avec un jeton. Une seule fois :
+1. github.com → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token.
+2. Repository access : *Only select repositories* → `rebuild_project` ; Permissions → **Contents : Read-only** (rien d'autre).
+3. Copier le jeton dans StudioVoix → **Paramètres** → « Jeton GitHub (mises à jour) ».
+
+Sans jeton et dépôt privé, le bouton affiche « Mise à jour (!) » avec l'explication. Si le dépôt devient public,
+aucun jeton n'est nécessaire.
+
 ## Fichiers
 
 - Projet : `projet.svx` + `audio/` (prises, pistes générées) + `historique/` (versions) + `exports/`.

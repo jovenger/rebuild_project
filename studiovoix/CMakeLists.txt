@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(SV_BUILD_APP "Construire l'application graphique" ON)
 option(SV_BUILD_CLI "Construire l'outil en ligne de commande (inclut les tests)" ON)
+# Numéro de build (CI : numéro d'exécution GitHub Actions) ; sert à détecter les mises à jour. 0 = compilation locale.
+set(SV_BUILD_NUMBER 0 CACHE STRING "Numéro de build de StudioVoix")
 
 # ---------------------------------------------------------------------------
 # JUCE : version épinglée 9.0.4 (licence AGPLv3 ou licence commerciale JUCE 9).
@@ -46,7 +48,8 @@ set(SV_CORE_SOURCES
     src/core/ai/AiClient.cpp
     src/core/ai/AiFeatures.cpp
     src/core/project/Project.cpp
-    src/core/project/Renderer.cpp)
+    src/core/project/Renderer.cpp
+    src/core/update/Updater.cpp)
 
 set(SV_COMMON_DEFINITIONS
     JUCE_WEB_BROWSER=0
@@ -59,7 +62,8 @@ set(SV_COMMON_DEFINITIONS
     JUCE_PLUGINHOST_VST3=0
     JUCE_PLUGINHOST_LADSPA=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1
-    JUCE_DISPLAY_SPLASH_SCREEN=0)
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    SV_BUILD_NUMBER=${SV_BUILD_NUMBER})
 
 set(SV_CORE_MODULES
     juce::juce_core
@@ -67,6 +71,7 @@ set(SV_CORE_MODULES
     juce::juce_events
     juce::juce_audio_basics
     juce::juce_audio_formats
+    juce::juce_cryptography
     juce::juce_dsp)
 
 if(SV_BUILD_CLI)
@@ -118,7 +123,8 @@ if(SV_BUILD_APP)
         src/app/GenerateDialog.cpp
         src/app/SettingsDialog.cpp
         src/app/ExportDialog.cpp
-        src/app/AiPanel.cpp)
+        src/app/AiPanel.cpp
+        src/app/UpdateManager.cpp)
 
     target_include_directories(StudioVoix PRIVATE src)
     target_compile_definitions(StudioVoix PRIVATE

@@ -15,7 +15,7 @@ revérifier au moment de l'achat. StudioVoix utilise WASAPI (pas d'ASIO dans cet
 
 ## Écartés pour l'instant (relecture de code, à décider)
 
-- Clés API stockées en clair dans `%APPDATA%\StudioVoix\StudioVoix.settings` : les chiffrer avec DPAPI
+- Clés API et jeton GitHub de mise à jour stockés en clair dans `%APPDATA%\StudioVoix\StudioVoix.settings` : les chiffrer avec DPAPI
   (Windows) serait plus sûr ; non fait (dépendance système et changement de format des réglages).
 - Fermer l'application pendant une génération d'instru IA (jusqu'à plusieurs minutes) : la tâche n'est
   pas annulée proprement (risque de plantage à la fermeture, sans perte du projet).

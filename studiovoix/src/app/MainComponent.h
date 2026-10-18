@@ -9,6 +9,7 @@
 #include "Session.h"
 #include "TimelineView.h"
 #include "TransportBar.h"
+#include "UpdateManager.h"
 
 namespace sv::app
 {
@@ -42,8 +43,12 @@ private:
     void createDefaultProject();
     void showMessage (const juce::String& title, const juce::String& text);
     void startSelfTest (const juce::StringArray& args);
+    void onUpdateClicked();
+    void onUpdateStateChanged();
+    void installUpdateAndRestart();
 
     Session& session;
+    UpdateManager updates { session.settings() };
     TransportBar transport;
     TimelineView timeline;
     juce::TabbedComponent tabs { juce::TabbedButtonBar::TabsAtTop };

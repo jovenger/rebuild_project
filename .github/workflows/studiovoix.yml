@@ -23,6 +23,8 @@ jobs:
             generator: '-G Ninja'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    permissions:
+      contents: write   # publication de la release (mise à jour automatique depuis le programme)
 
     steps:
       - uses: actions/checkout@v5
@@ -35,7 +37,7 @@ jobs:
             libxinerama-dev libxcursor-dev libxcomposite-dev libxext-dev libxi-dev libfreetype-dev libfontconfig1-dev xvfb
 
       - name: Configuration
-        run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }}
+        run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }} -DSV_BUILD_NUMBER=${{ github.run_number }}
         env:
           SV_BUILD_APP: ON
 
@@ -108,6 +110,28 @@ jobs:
           }
           & (Join-Path $inst 'studiovoix_cli.exe') test
           if ($LASTEXITCODE -ne 0) { throw "tests depuis le dossier installé : code $LASTEXITCODE" }
+
+          # Mise à jour comme depuis le bouton du programme : installateur lancé pendant que StudioVoix tourne,
+          # il doit attendre sa fermeture (verrou nommé), installer par-dessus, puis relancer le programme.
+          $exe = Join-Path $inst 'StudioVoix.exe'
+          $app = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 8
+          if ($app.HasExited) { throw "StudioVoix s'est fermé tout seul au démarrage (code $($app.ExitCode))" }
+          $upd = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/CLOSEAPPLICATIONS','/RELANCER=1','/CURRENTUSER','/LOG=update.log' -PassThru
+          Start-Sleep -Seconds 4
+          if ($upd.HasExited) { Get-Content update.log -Tail 40; throw "l'installateur n'a pas attendu la fermeture du programme" }
+          [void]$app.CloseMainWindow()
+          if (-not $app.WaitForExit(15000)) { Stop-Process -Id $app.Id -Force; Write-Host "fermeture forcée du programme" }
+          if (-not $upd.WaitForExit(120000)) { throw "mise à jour : délai dépassé" }
+          if ($upd.ExitCode -ne 0) { Get-Content update.log -Tail 40; throw "mise à jour : code $($upd.ExitCode)" }
+          Select-String -Path update.log -Pattern 'attente de la fermeture' | ForEach-Object { Write-Host $_.Line }
+          $relaunched = $null
+          for ($i = 0; $i -lt 30 -and -not $relaunched; $i++) { Start-Sleep -Seconds 1; $relaunched = Get-Process -Name StudioVoix -ErrorAction SilentlyContinue }
+          if (-not $relaunched) { Get-Content update.log -Tail 40; throw "le programme n'a pas été relancé après la mise à jour" }
+          Write-Host "Mise à jour par-dessus + relance OK (PID $($relaunched.Id))"
+          $relaunched | ForEach-Object { [void]$_.CloseMainWindow() }
+          Start-Sleep -Seconds 5
+          Get-Process -Name StudioVoix -ErrorAction SilentlyContinue | Stop-Process -Force
           $u = Start-Process -FilePath (Join-Path $inst 'unins000.exe') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw "désinstallation : code $($u.ExitCode)" }
           Write-Host "Installation, tests et désinstallation OK"
@@ -129,3 +153,17 @@ jobs:
           name: StudioVoix-Setup
           path: build/installer/StudioVoix-Setup-*.exe
           if-no-files-found: error
+
+      - name: Publication de la mise à jour (release GitHub, lue par le bouton « Mise à jour »)
+        if: runner.os == 'Windows' && github.event_name == 'push'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Get-ChildItem build/installer/StudioVoix-Setup-*.exe | Select-Object -First 1).FullName
+          $tag = "studiovoix-build${{ github.run_number }}"
+          git log -1 --format=%B | Out-File -Encoding utf8 notes.md
+          gh release create $tag $setup --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "StudioVoix build ${{ github.run_number }}" --notes-file notes.md --latest
+          if ($LASTEXITCODE -ne 0) { throw "publication de la release : code $LASTEXITCODE" }
+          gh release view $tag --repo "${{ github.repository }}" --json tagName,assets --jq '.tagName + " : " + (.assets | map(.name + " (" + (.size|tostring) + " octets)") | join(", "))'

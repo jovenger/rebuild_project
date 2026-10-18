@@ -54,6 +54,9 @@ public:
         const auto logFile = sv::app::AppSettings::logsFolder().getChildFile ("studiovoix_" + juce::Time::getCurrentTime().formatted ("%Y%m%d") + ".log");
         sv::log::init (logFile, sv::log::Level::Debug, false);
         juce::SystemStats::setApplicationCrashHandler (onCrash);
+        // Verrou nommé tenu tant que le programme tourne : l'installateur de mise à jour attend qu'il soit libéré.
+        if (! runningLock.enter (0))
+            SV_LOG_WARN (kMod, "Verrou « StudioVoix_en_cours » déjà pris (autre instance ?)"_u8);
         SV_LOG_INFO (kMod, "Démarrage de StudioVoix "_u8 + getApplicationVersion() + " (" + juce::SystemStats::getOperatingSystemName()
                            + ", " + juce::String (juce::SystemStats::getNumCpus()) + " coeurs, " + juce::String (juce::SystemStats::getMemorySizeInMegabytes())
                            + " Mo) — journal : "_u8 + logFile.getFullPathName());
@@ -102,6 +105,7 @@ public:
     void anotherInstanceStarted (const juce::String&) override {}
 
 private:
+    juce::InterProcessLock runningLock { "StudioVoix_en_cours" };
     std::unique_ptr<sv::app::AppSettings> settings;
     std::unique_ptr<sv::app::AudioEngine> engine;
     std::unique_ptr<sv::app::Session> session;

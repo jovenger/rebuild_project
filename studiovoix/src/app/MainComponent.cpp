@@ -52,6 +52,8 @@ MainComponent::MainComponent (Session& s)
         SettingsDialog::show (session);
     };
     transport.onRecord = [this] { doRecord(); };
+    transport.onUpdate = [this] { onUpdateClicked(); };
+    updates.onChange = [this] { onUpdateStateChanged(); };
     transport.onLoopToggled = [this]
     {
         session.setLoopRegion (transport.loopEnabled(), timeline.loopStartSec(), timeline.loopEndSec());
@@ -77,6 +79,7 @@ MainComponent::MainComponent (Session& s)
 MainComponent::~MainComponent()
 {
     stopTimer();
+    updates.onChange = nullptr;
     selfTest.reset();
     session.removeChangeListener (this);
     session.onLeadTakeReady = nullptr;
@@ -92,9 +95,10 @@ void MainComponent::startup (const juce::String& commandLine)
         a = a.unquoted();
     if (args.size() >= 3 && args[0] == "--selftest")
     {
-        startSelfTest (args);
+        startSelfTest (args);   // pas de vérification de mise à jour pendant l'auto-test (aucun accès réseau)
         return;
     }
+    updates.start();
     const juce::File arg (commandLine.unquoted().trim());
     if (commandLine.isNotEmpty() && arg.exists())
     {
@@ -378,6 +382,117 @@ void MainComponent::openProjectWithRecovery (const juce::File& folder, bool atSt
         if (atStartup)
             createDefaultProject();   // sinon le projet courant reste ouvert
     }
+}
+
+// --- Mises à jour --------------------------------------------------------------------------
+void MainComponent::onUpdateClicked()
+{
+    switch (updates.state())
+    {
+        case UpdateManager::State::Available:
+        {
+            const auto& rel = updates.latest();
+            SV_LOG_INFO (kMod, "Mise à jour demandée : build "_u8 + juce::String (rel.build));
+            juce::Component::SafePointer<MainComponent> safe (this);
+            juce::AlertWindow::showAsync (juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::QuestionIcon)
+                                              .withTitle ("Mise à jour"_u8)
+                                              .withMessage ("Nouvelle version : build "_u8 + juce::String (rel.build) + " (installée : build "_u8
+                                                            + juce::String (update::currentBuild()) + ").\n\nTéléchargement en arrière-plan (tu peux "
+                                                            "continuer à travailler), puis le projet est enregistré, StudioVoix se ferme, s'installe "
+                                                            "et se relance tout seul."_u8)
+                                              .withButton ("Mettre à jour"_u8)
+                                              .withButton ("Plus tard"),
+                                          [safe] (int r)
+                                          {
+                                              if (safe != nullptr && r == 1)
+                                                  safe->updates.download();
+                                          });
+            break;
+        }
+        case UpdateManager::State::Ready:
+            installUpdateAndRestart();
+            break;
+        case UpdateManager::State::Idle:
+        case UpdateManager::State::UpToDate:
+        case UpdateManager::State::Error:
+            updates.checkNow (true);
+            break;
+        case UpdateManager::State::Checking:
+        case UpdateManager::State::Downloading:
+            break;
+    }
+}
+
+void MainComponent::onUpdateStateChanged()
+{
+    const int cur = update::currentBuild();
+    const auto& rel = updates.latest();
+    const juce::String installed = cur > 0 ? "Version installée : build "_u8 + juce::String (cur) : juce::String ("Version installée : compilation locale"_u8);
+    switch (updates.state())
+    {
+        case UpdateManager::State::Idle:
+            transport.setUpdateButton ("Mise à jour"_u8, installed + "\nClique pour vérifier"_u8, false, true);
+            break;
+        case UpdateManager::State::Checking:
+            transport.setUpdateButton ("Vérification..."_u8, installed, false, false);
+            break;
+        case UpdateManager::State::UpToDate:
+            transport.setUpdateButton ("À jour"_u8, installed + " : c'est la dernière version. Clique pour revérifier."_u8, false, true);
+            if (updates.lastCheckWasUserRequested())
+                session.setStatus ("StudioVoix est à jour ("_u8 + installed.fromFirstOccurrenceOf (": ", false, false) + ")");
+            break;
+        case UpdateManager::State::Available:
+            transport.setUpdateButton ("Mise à jour dispo !"_u8,
+                                       "Nouvelle version : build "_u8 + juce::String (rel.build) + "\n" + rel.notes.upToFirstOccurrenceOf ("\n", false, false)
+                                           + "\n" + installed + "\nClique pour installer (redémarrage automatique)"_u8,
+                                       true, true);
+            session.setStatus ("Mise à jour disponible (build "_u8 + juce::String (rel.build) + ") : bouton en haut à droite"_u8);
+            break;
+        case UpdateManager::State::Downloading:
+            transport.setUpdateButton ("Téléchargement "_u8 + juce::String (juce::roundToInt (updates.downloadProgress() * 100.0)) + " %",
+                                       "Build "_u8 + juce::String (rel.build) + " : tu peux continuer à travailler"_u8, true, false);
+            break;
+        case UpdateManager::State::Ready:
+            transport.setUpdateButton ("Installer maintenant"_u8, "Mise à jour téléchargée et vérifiée"_u8, true, true);
+            // Différé : ne pas fermer le programme depuis le rappel du gestionnaire.
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<MainComponent> (this)]
+            {
+                if (safe != nullptr)
+                    safe->installUpdateAndRestart();
+            });
+            break;
+        case UpdateManager::State::Error:
+            transport.setUpdateButton ("Mise à jour (!)"_u8, updates.lastError() + "\n" + installed + "\nClique pour réessayer"_u8, false, true);
+            if (updates.lastCheckWasUserRequested())
+                showMessage ("Mise à jour"_u8, updates.lastError());
+            break;
+    }
+}
+
+void MainComponent::installUpdateAndRestart()
+{
+    if (updates.state() != UpdateManager::State::Ready)
+        return;
+    // Jamais pendant une prise ni avec une fenêtre ouverte : on attend, le bouton « Installer maintenant » reste proposé.
+    if (session.isRecording() || juce::ModalComponentManager::getInstance()->getNumModalComponents() > 0)
+    {
+        session.setStatus ("Mise à jour prête : clique sur « Installer maintenant » (en haut à droite) quand tu veux"_u8);
+        return;
+    }
+    juce::String err;
+    if (! session.save (err))
+    {
+        showMessage ("Mise à jour reportée"_u8, "Le projet n'a pas pu être enregistré, la mise à jour n'est pas lancée : "_u8 + err);
+        return;
+    }
+    if (! updates.launchInstaller (err))
+    {
+        showMessage ("Mise à jour"_u8, err);
+        return;
+    }
+    SV_LOG_INFO (kMod, "Projet enregistré, installateur lancé : fermeture pour la mise à jour"_u8);
+    session.setStatus ("Installation de la mise à jour : StudioVoix va redémarrer..."_u8);
+    juce::JUCEApplication::getInstance()->systemRequestedQuit();
 }
 
 void MainComponent::showMessage (const juce::String& title, const juce::String& text)

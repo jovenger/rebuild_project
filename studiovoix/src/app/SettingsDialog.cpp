@@ -14,9 +14,9 @@ SettingsDialog::SettingsDialog (Session& s)
       deviceSelector (s.engine().deviceManager(), 1, 2, 2, 2, false, false, false, false)
 {
     for (auto* c : std::initializer_list<juce::Component*> { &deviceSelector, &latencyInfo, &offsetL, &calibResult, &levelResult, &inputL, &trimL,
-                                                             &countL, &aiTitle, &aiInfo, &textKeyL, &modelL, &musicKeyL, &offset, &trim,
+                                                             &countL, &aiTitle, &aiInfo, &textKeyL, &modelL, &musicKeyL, &updateL, &offset, &trim,
                                                              &calibrate, &resetCalib, &levelTest, &openLogs, &closeBtn, &monitoring, &propose, &aiEnabled,
-                                                             &inputMode, &textKey, &model, &musicKey })
+                                                             &inputMode, &textKey, &model, &musicKey, &updateToken })
         addAndMakeVisible (*c);
 
     auto& st = session.settings();
@@ -111,6 +111,12 @@ SettingsDialog::SettingsDialog (Session& s)
     musicKey.setPasswordCharacter (static_cast<juce::juce_wchar> ('*'));
     musicKey.setText (st.musicAiKey(), false);
     musicKey.onTextChange = [this] { session.settings().setMusicAiKey (musicKey.getText()); };
+    updateL.setText ("Jeton GitHub (mises à jour)"_u8, juce::dontSendNotification);
+    updateToken.setPasswordCharacter (static_cast<juce::juce_wchar> ('*'));
+    updateToken.setText (st.updateToken(), false);
+    updateToken.setTooltip ("Facultatif. Seulement si le dépôt du programme est privé : jeton GitHub « fine-grained » limité "
+                            "au dépôt, permission Contents en lecture seule. Le bouton Mise à jour (en haut à droite) l'utilise."_u8);
+    updateToken.onTextChange = [this] { session.settings().setUpdateToken (updateToken.getText()); };
 
     closeBtn.onClick = [this]
     {
@@ -120,7 +126,7 @@ SettingsDialog::SettingsDialog (Session& s)
     };
     refreshLatency();
     startTimer (100);
-    setSize (760, 860);
+    setSize (760, 890);
 }
 
 SettingsDialog::~SettingsDialog()
@@ -242,6 +248,9 @@ void SettingsDialog::resized()
     a = row();
     musicKeyL.setBounds (a.removeFromLeft (180));
     musicKey.setBounds (a);
+    a = row();
+    updateL.setBounds (a.removeFromLeft (180));
+    updateToken.setBounds (a);
     auto bottom = r.removeFromBottom (30);
     closeBtn.setBounds (bottom.removeFromRight (100));
     openLogs.setBounds (bottom.removeFromLeft (240));
