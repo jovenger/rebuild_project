@@ -130,10 +130,20 @@ jobs:
         run: |
           # L'empreinte du binaire est épinglée dans LocalTools.cpp : on ne recompile (et ne republie) que si l'asset
           # manque dans la release « outils-ia » ou si le message de commit contient [demucs] (penser alors à
-          # ré-épingler taille et SHA-256 affichés par l'étape de publication).
-          if gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "demucs_mt.exe" \
-             && [[ "$COMMIT_MESSAGE" != *"[demucs]"* ]]; then
-            echo "demucs_mt.exe déjà publié dans outils-ia et pas de [demucs] dans le commit : compilation sautée"
+          # ré-épingler taille et SHA-256 affichés par l'étape de publication). Si GitHub ne répond pas (403
+          # intermittents, build 65), on considère l'asset présent : ne jamais écraser un binaire épinglé par erreur.
+          present=inconnu
+          for i in 1 2 3; do
+            if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
+              present=non; grep -qx "demucs_mt.exe" <<< "$names" && present=oui; break
+            elif grep -qi "not found" <<< "$names"; then
+              present=non; break
+            fi
+            echo "gh release view outils-ia : échec (essai $i/3) : $names"; sleep 15
+          done
+          echo "asset demucs_mt.exe présent : $present"
+          if [[ "$present" != "non" && "$COMMIT_MESSAGE" != *"[demucs]"* ]]; then
+            echo "demucs_mt.exe déjà publié (ou état inconnu) et pas de [demucs] dans le commit : compilation sautée"
             exit 0
           fi
           # Le CMakeLists de demucs.cpp est écrit pour GCC (-Wall -Wextra, -Ofast -march=native, OpenBLAS par défaut) :
@@ -176,18 +186,34 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           exe=$(find demucs-build -name "demucs_mt.cpp.main.exe" | head -1)
           if [ -z "$exe" ]; then echo "pas de binaire Demucs compilé : rien à publier"; exit 0; fi
           cp "$exe" demucs_mt.exe
           ls -l demucs_mt.exe
           sha256sum demucs_mt.exe
-          if ! gh release view outils-ia --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+          # Jamais d'écrasement d'un asset existant sans [demucs] dans le commit : l'empreinte est épinglée dans le
+          # programme (le binaire MinGW n'est pas reproductible à l'octet). État inconnu (gh en échec) = on ne publie pas.
+          present=inconnu
+          for i in 1 2 3; do
+            if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
+              present=non; grep -qx "demucs_mt.exe" <<< "$names" && present=oui; break
+            elif grep -qi "not found" <<< "$names"; then
+              present=release-absente; break
+            fi
+            echo "gh release view outils-ia : échec (essai $i/3) : $names"; sleep 15
+          done
+          echo "asset demucs_mt.exe présent : $present"
+          if [[ "$present" == "inconnu" ]]; then echo "état de la release inconnu : publication sautée par prudence"; exit 0; fi
+          if [[ "$present" == "oui" && "$COMMIT_MESSAGE" != *"[demucs]"* ]]; then echo "asset déjà publié, non remplacé (forcer avec [demucs] et ré-épingler l'empreinte)"; exit 0; fi
+          if [[ "$present" == "release-absente" ]]; then
             gh release create outils-ia --repo "$GITHUB_REPOSITORY" --title "Outils IA locale (binaires compilés par la CI)" \
               --notes "demucs_mt.exe : demucs.cpp (licence MIT, https://github.com/sevagh/demucs.cpp) compilé avec GCC MinGW, statique, x86-64-v2. Téléchargé par StudioVoix IA (onglet IA locale)." \
               --latest=false
           fi
           gh release upload outils-ia demucs_mt.exe --repo "$GITHUB_REPOSITORY" --clobber
+          echo "PUBLIÉ : ré-épingler dans LocalTools.cpp la taille et le SHA-256 ci-dessus"
 
       - name: Journal des tests
         if: always()
