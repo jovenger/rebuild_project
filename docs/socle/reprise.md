@@ -469,6 +469,31 @@ poste partagé à une forge de jour, écran noir ; puis « après la bascule »)
 (le nuage Steam la remet au lancement : `fin_essai` la range jeu ouvert) ; commit seulement par « && » après
 « tout passe ».
 
+## 6 octies. Où reprendre (18/10/2026, après « reprend le boulot »)
+
+État : banc vert, tout commité et poussé (dernier : da8ea9d), socle propre installé, jeu fermé, ordre des mods remis,
+aucune sonde dans l'arbre.
+
+**Fait aujourd'hui (au banc ; vu en jeu quand c'est dit)**
+- « Parler » : vu en jeu, l'action ne paraît qu'à environ 1,5 m (les essais d'avant étaient trop loin). Notre cerveau
+  ouvre le dialogue grâce à deux branches parallèles sans fin sur 'dialogMailbox' (896a54d, garde-fou au banc). La suite
+  d'entrée est choisie d'office (plus de clé brute). Menu, sous-menu et retour : vus en jeu.
+- Caméra du dialogue : filme toujours Henry. Essayé : CameraCommand, ReferenceLength, SelectedSouls, nos âmes, le
+  cerveau npc_basic, une âme de villageois du jeu née par script. Arrêté, en FINITIONS (accord du pair). Reste à
+  essayer : un PNJ du monde à portée, ou le principe des dames des bains.
+- Vu en jeu : le visage suit l'âme, pas le personnage du jeu. Le nom affiché vient du personnage (ui_name_string_name).
+- Faits : une âme jamais portée deux fois (f9cb612) ; les 31 compagnons nommés (64528fa) ; l'interrupteur
+  « moral_de_bataille » (80bb5f7) ; le personnel mené hors de la Compagnie (80e600c) ; chaque homme son nom, 351
+  personnages (fb1fbfc) ; l'outil de la reprise, `outils/ames.py --releve` (6b103e2) ; les lieux de mission, neuf par
+  carte, pris dans level.pak (da8ea9d).
+
+**Reste**
+- La séance regroupée en jeu (accord de JoVenGer, transmis par le pair) : Scriptorium construit pour notre monde,
+  installé à côté, sur notre partie d'essai. Attendre le signal du pair. À y voir : noms, compagnons, personnel mené,
+  lieux, geste ancré, affronter, annoncer_texte, les points de la bascule.
+- Protocole de fenêtre : « fenêtre ouverte » au pair à chaque fin de séance, « fenêtre rendue » avant de relancer.
+- Liste de JoVenGer : `a_verifier_par_jovenger.md`.
+
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
 3. dialogue du Directeur et Gestion du camp à l'écran ; 4. quête de fond ; 5. voix et icônes ; 6. essais en jeu restants ;
