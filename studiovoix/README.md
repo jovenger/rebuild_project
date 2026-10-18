@@ -10,10 +10,14 @@ ambiance sur des pistes séparées. Fonctionne entièrement en local ; l'IA (cl�
 branchements pour zéro retard, placement, réglages Windows, dépannage).
 
 1. GitHub → dépôt `jovenger/rebuild_project` → onglet **Actions** → workflow **StudioVoix**.
-2. Ouvrir la dernière exécution verte → section **Artifacts** → **StudioVoix-Windows** (zip).
-3. Dézipper où on veut : `StudioVoix.exe` (application) + `studiovoix_cli.exe` (outil en ligne de commande).
+2. Ouvrir la dernière exécution verte → section **Artifacts** :
+   - **StudioVoix-Setup** (conseillé) : installateur `StudioVoix-Setup-….exe`. Pas besoin des droits
+     administrateur ; il crée les raccourcis (StudioVoix, guide du matériel, lisez-moi) et propose
+     d'ouvrir le guide à la fin. Désinstallation par Windows (Applications) : projets, réglages et
+     journaux sont conservés.
+   - **StudioVoix-Windows** : version sans installation (`StudioVoix.exe` + `studiovoix_cli.exe` à dézipper).
 
-Aucune installation. Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
+Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
 
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 

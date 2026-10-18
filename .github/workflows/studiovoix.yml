@@ -69,6 +69,49 @@ jobs:
             if [ -f "$f" ]; then tail -n 200 "$f"; fi
           done
 
+      - name: Installateur Windows (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python studiovoix/installer/md_to_html.py studiovoix/README.md build/installer-staging/LISEZMOI.html
+          if ($LASTEXITCODE -ne 0) { throw "conversion du README : code $LASTEXITCODE" }
+          python studiovoix/installer/md_to_html.py studiovoix/docs/GUIDE_MATERIEL.md build/installer-staging/docs/GUIDE_MATERIEL.html
+          if ($LASTEXITCODE -ne 0) { throw "conversion du guide : code $LASTEXITCODE" }
+          New-Item -ItemType Directory -Force build/installer-staging/docs/img | Out-Null
+          Copy-Item studiovoix/docs/img/*.svg build/installer-staging/docs/img/
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $c = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'; if (Test-Path $c) { $iscc = $c } }
+          if (-not $iscc) {
+            Write-Host "Inno Setup absent de l'image : installation de la version 6.7.1 (Chocolatey)"
+            choco install innosetup --version=6.7.1 -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "installation d'Inno Setup : code $LASTEXITCODE" }
+            $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          }
+          Write-Host "ISCC : $iscc"
+          $build = (Resolve-Path build).Path
+          & $iscc "/DAppVersion=0.1.0-build${{ github.run_number }}" "/DBuildDir=$build" "/DStagingDir=$build\installer-staging" studiovoix/installer/StudioVoix.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC : code $LASTEXITCODE" }
+          Get-ChildItem build/installer
+
+      - name: Vérification de l'installateur (installation silencieuse)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Get-ChildItem build/installer/StudioVoix-Setup-*.exe | Select-Object -First 1).FullName
+          $p = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER','/LOG=install.log' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 40; throw "installation : code $($p.ExitCode)" }
+          $inst = Join-Path $env:LOCALAPPDATA 'Programs\StudioVoix'
+          foreach ($f in 'StudioVoix.exe','studiovoix_cli.exe','LISEZMOI.html','docs\GUIDE_MATERIEL.html','docs\img\montage_micro_usb.svg','unins000.exe') {
+            if (-not (Test-Path (Join-Path $inst $f))) { throw "fichier manquant après installation : $f" }
+          }
+          & (Join-Path $inst 'studiovoix_cli.exe') test
+          if ($LASTEXITCODE -ne 0) { throw "tests depuis le dossier installé : code $LASTEXITCODE" }
+          $u = Start-Process -FilePath (Join-Path $inst 'unins000.exe') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          if ($u.ExitCode -ne 0) { throw "désinstallation : code $($u.ExitCode)" }
+          Write-Host "Installation, tests et désinstallation OK"
+
       - name: Artefact Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
@@ -78,3 +121,11 @@ jobs:
             build/StudioVoix_artefacts/Release/StudioVoix.exe
             build/studiovoix_cli_artefacts/Release/studiovoix_cli.exe
           if-no-files-found: warn
+
+      - name: Artefact installateur Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudioVoix-Setup
+          path: build/installer/StudioVoix-Setup-*.exe
+          if-no-files-found: error
