@@ -25,7 +25,7 @@ public:
     AppSettings& settings() { return appSettings; }
 
     // --- Fichiers ---------------------------------------------------------------------------
-    bool newProject (const juce::String& name, juce::String& error);
+    bool newProject (const juce::String& name, juce::String& error, style::Style projectStyle = style::Style::Rap);
     bool openProject (const juce::File& folderOrFile, bool preferAutosave, juce::String& error);
     bool save (juce::String& error);
     void importInstru (const juce::File& file);

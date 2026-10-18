@@ -21,7 +21,8 @@ private:
     void applyAssistant();
 
     Session& session;
-    juce::Label title, roleLabel, report, assistantResult;
+    juce::Label title, roleLabel, assistantResult;
+    juce::TextEditor report;   // lecture seule, défilant : état de la piste + effets appliqués par le style
     juce::ComboBox roleBox, compBox;
     juce::Slider autotune, presence, space, energy, level, timing;
     juce::Label autotuneL, presenceL, spaceL, energyL, levelL, timingL;

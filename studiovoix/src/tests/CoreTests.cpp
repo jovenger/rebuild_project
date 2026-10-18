@@ -590,6 +590,28 @@ public:
             expect (style::makeParams (style::Style::Rock, style::Role::Lead, {}).pitch.amount
                     < style::makeParams (style::Style::Latino, style::Role::Lead, {}).pitch.amount,
                     "rock : moins d'autotune que latino");
+            {
+                // Chaque style a son propre pré-réglage complet, décrit lisiblement dans l'onglet Voix IA.
+                juce::StringArray chains;
+                for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
+                {
+                    const auto st = static_cast<style::Style> (i);
+                    const auto d = dsp::describeChain (style::makeParams (st, style::Role::Lead, {}));
+                    for (const char* effect : { "Autotune : ", "EQ : ", "Compresseur : ", "De-esser : ", "Saturation : ", "Réverb : ", "Délai : " })
+                        expect (d.contains (juce::String (juce::CharPointer_UTF8 (effect))), "effet décrit : "_u8 + effect + " / " + style::styleId (st));
+                    // UTF-8 lu comme ASCII/Latin-1 (« Ã© ») laisse toujours un caractère U+0080..U+00BF.
+                    bool mojibake = false;
+                    for (auto c = d.getCharPointer(); ! c.isEmpty(); ++c)
+                        mojibake = mojibake || (*c >= 0x80 && *c <= 0xBF);
+                    expect (! mojibake, "accents corrects : " + style::styleId (st));
+                    chains.addIfNotAlreadyThere (d);
+                }
+                expectEquals (chains.size(), static_cast<int> (style::Style::Count), "un pré-réglage distinct par style"_u8);
+                expect (dsp::describeChain (style::makeParams (style::Style::Trap, style::Role::Lead, {})).contains ("Autotune : effet marqué"_u8),
+                        "trap : autotune marqué"_u8);
+                expect (dsp::describeChain (style::makeParams (style::Style::Rap, style::Role::Lead, {})).contains ("Autotune : léger"_u8),
+                        "rap : autotune léger"_u8);
+            }
             dsp::AnalysisContext ctx;
             ctx.key = key;
             ctx.tempo.bpm = 100.0;

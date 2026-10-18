@@ -79,6 +79,7 @@ void usage()
                  "  demo [--style s] [--bars N] -o dossier chaine complete sur signaux de synthese\n"
                  "  master <mix> [--target t] -o sortie.wav\n"
                  "  assistant <phrase>                     teste l'assistant texte\n"
+                 "  presets                                effets pre-regles de chaque style (Markdown)\n"
                  "styles : rap trap pop_urbaine rnb drill afro rock latino\n"
                  "cibles : spotify youtube apple tiktok fort none\n";
 }
@@ -297,6 +298,27 @@ int cmdDemo (const Args& args)
 }
 
 // Diagnostic : niveau de la première attaque par rapport au niveau médian, étape par étape.
+int cmdPresets()
+{
+    // Sortie Markdown reprise telle quelle dans le README (valeurs lues dans le code, pas recopiées à la main).
+    for (int i = 0; i < static_cast<int> (sv::style::Style::Count); ++i)
+    {
+        const auto st = static_cast<sv::style::Style> (i);
+        std::cout << "### " << sv::style::styleName (st) << "\n\n";
+        for (const auto& line : juce::StringArray::fromLines (sv::dsp::describeChain (sv::style::makeParams (st, sv::style::Role::Lead, {}))))
+            std::cout << "- " << line << "\n";
+        const auto g = sv::style::generationDefaults (st);
+        juce::StringArray gen;
+        if (g.doubles > 0)    gen.add (juce::String (g.doubles) + (g.doubles > 1 ? " doublages" : " doublage"));
+        if (g.harmonies > 0)  gen.add (juce::String (g.harmonies) + (g.harmonies > 1 ? " harmonies" : " harmonie"));
+        if (g.keywordBacks)   gen.add ("backs sur les mots clés"_u8);
+        if (g.adLibs)         gen.add ("ad-libs");
+        if (g.ambiance)       gen.add ("ambiance");
+        std::cout << "- Pistes générées cochées par défaut : "_u8 << gen.joinIntoString (", ") << "\n\n";
+    }
+    return 0;
+}
+
 int cmdDebugChain (const Args& args)
 {
     const double sr = sv::kProjectSampleRate;
@@ -406,6 +428,7 @@ int main (int argc, char* argv[])
         else if (cmd == "demo")    code = cmdDemo (args);
         else if (cmd == "master")  code = cmdMaster (args);
         else if (cmd == "debugchain") code = cmdDebugChain (args);
+        else if (cmd == "presets") code = cmdPresets();
         else if (cmd == "assistant")
         {
             const auto text = args.positional.joinIntoString (" ");

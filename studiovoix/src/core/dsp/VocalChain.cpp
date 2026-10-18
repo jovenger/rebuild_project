@@ -28,6 +28,78 @@ juce::String describeParams (const style::VocalParams& p)
     return s.joinIntoString (", ");
 }
 
+juce::String describeChain (const style::VocalParams& p)
+{
+    auto num = [] (float v)   // 1 décimale, sans « .0 » inutile
+    {
+        const auto t = juce::String (v, 1);
+        return t.endsWith (".0") ? t.dropLastCharacters (2) : t;
+    };
+    auto db = [num] (float v) { return (v > 0.0f ? "+" : "") + num (v) + " dB"; };
+    auto hz = [num] (float f) { return f >= 1000.0f ? num (f / 1000.0f) + " kHz" : juce::String (juce::roundToInt (f)) + " Hz"; };
+    auto pct = [] (float v) { return juce::String (juce::roundToInt (v * 100.0f)) + " %"; };
+    auto note = [] (float beats) -> juce::String
+    {
+        if (std::abs (beats - 0.25f) < 0.01f) return "1/16";
+        if (std::abs (beats - 0.5f) < 0.01f)  return "1/8 (croche)";
+        if (std::abs (beats - 0.75f) < 0.01f) return "1/8 pointée"_u8;
+        if (std::abs (beats - 1.0f) < 0.01f)  return "1/4 (noire)";
+        if (std::abs (beats - 1.5f) < 0.01f)  return "1/4 pointée"_u8;
+        if (std::abs (beats - 2.0f) < 0.01f)  return "1/2 (blanche)";
+        return juce::String (beats, 2) + " temps";
+    };
+    juce::StringArray l;
+
+    if (! p.pitch.enabled || p.pitch.amount < 0.01f)
+        l.add ("Autotune : désactivé"_u8);
+    else
+        l.add ("Autotune : "_u8 + (p.pitch.amount >= 0.85f && p.pitch.retuneMs <= 15.0f ? "effet marqué"_u8
+                                   : p.pitch.amount >= 0.5f ? juce::String ("moyen") : juce::String ("léger, naturel"_u8))
+               + " (" + pct (p.pitch.amount) + ", vitesse " + juce::String (juce::roundToInt (p.pitch.retuneMs)) + " ms)");
+
+    if (p.clean.enabled)
+        l.add ("Nettoyage : coupe-bas "_u8 + hz (p.clean.hpfHz) + ", bruit de fond -" + juce::String (juce::roundToInt (p.clean.gateRangeDb))
+               + " dB, respirations -" + juce::String (juce::roundToInt (p.clean.breathReductionDb)) + " dB" + (p.clean.dePlosive ? ", plosives (p, b)" : ""));
+    else
+        l.add ("Nettoyage : désactivé"_u8);
+
+    if (p.timing.strength > 0.001f)
+        l.add ("Recalage rythmique : "_u8 + pct (p.timing.strength));
+
+    juce::StringArray eq;
+    eq.add ("coupe-bas " + hz (p.eq.lowCutHz));
+    if (std::abs (p.eq.lowShelfDb) >= 0.1f) eq.add ("graves " + db (p.eq.lowShelfDb) + " sous " + hz (p.eq.lowShelfHz));
+    if (std::abs (p.eq.mudDb) >= 0.1f)      eq.add ("bas-médium "_u8 + db (p.eq.mudDb) + " à "_u8 + hz (p.eq.mudHz));
+    if (std::abs (p.eq.presenceDb) >= 0.1f) eq.add ("présence "_u8 + db (p.eq.presenceDb) + " à "_u8 + hz (p.eq.presenceHz));
+    if (std::abs (p.eq.airDb) >= 0.1f)      eq.add ("air " + db (p.eq.airDb) + " au-dessus de "_u8 + hz (p.eq.airHz));
+    if (p.eq.highCutHz > 0.0f)              eq.add ("coupe-haut " + hz (p.eq.highCutHz));
+    l.add ("EQ : " + eq.joinIntoString (", "));
+
+    auto comp = [&] (const dsp::CompressorSettings& c)
+    {
+        return num (c.ratio) + ":1 au seuil "_u8 + juce::String (juce::roundToInt (c.thresholdDb)) + " dB, attaque "
+               + juce::String (juce::roundToInt (c.attackMs)) + " ms, relâche "_u8 + juce::String (juce::roundToInt (c.releaseMs)) + " ms"
+               + (c.mix < 0.99f ? ", parallèle "_u8 + pct (c.mix) : juce::String()) + (c.rmsDetector ? ", détection RMS"_u8 : juce::String());
+    };
+    l.add ("Compresseur : " + (p.comp.ratio > 1.01f ? comp (p.comp) : juce::String ("désactivé"_u8)));
+    if (p.comp2.ratio > 1.01f)
+        l.add ("Compresseur 2 (nivellement) : " + comp (p.comp2));
+
+    l.add ("De-esser : " + (p.deEss.amount > 0.01f ? hz (p.deEss.freqHz) + ", force " + pct (p.deEss.amount) + ", max -"
+                                + juce::String (juce::roundToInt (p.deEss.maxReductionDb)) + " dB"
+                                                   : juce::String ("désactivé"_u8)));
+    l.add ("Saturation : " + (p.sat.mix > 0.01f ? db (p.sat.driveDb) + " de chauffe, mélange "_u8 + pct (p.sat.mix) : juce::String ("aucune")));
+    l.add ("Réverb : "_u8 + (p.reverb.send > 0.005f ? pct (p.reverb.send) + ", taille " + pct (p.reverb.roomSize) + ", pré-délai "_u8
+                                + juce::String (juce::roundToInt (p.reverb.preDelayMs)) + " ms"
+                                                     : juce::String ("aucune")));
+    l.add ("Délai : "_u8 + (p.delay.send > 0.005f ? pct (p.delay.send) + ", " + note (p.delay.noteBeats) + ", répétitions "_u8 + pct (p.delay.feedback)
+                               + (p.delay.pingPong ? ", ping-pong" : "") + (p.delay.throwsOnly ? ", seulement en fin de phrase" : "")
+                                                  : juce::String ("aucun")));
+    l.add ("Sortie : " + db (p.outputDb) + (std::abs (p.pan) > 0.01f ? ", panoramique " + juce::String (juce::roundToInt (p.pan * 100.0f)) : juce::String())
+           + (p.width > 0.01f ? ", largeur " + pct (p.width) : juce::String()) + (p.dryGain < 0.99f ? ", voix directe "_u8 + pct (p.dryGain) : juce::String()));
+    return l.joinIntoString ("\n");
+}
+
 VocalResult processVocal (const Mono& raw, double sampleRate, const style::VocalParams& params,
                           const AnalysisContext& context, const ProgressFn& progress)
 {

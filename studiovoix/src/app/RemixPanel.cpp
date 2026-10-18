@@ -15,9 +15,15 @@ RemixPanel::RemixPanel (Session& s) : session (s)
         addAndMakeVisible (*c);
 
     title.setFont (juce::FontOptions (16.0f, juce::Font::bold));
-    report.setFont (juce::FontOptions (11.0f));
-    report.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
-    report.setJustificationType (juce::Justification::topLeft);
+    report.setMultiLine (true, true);
+    report.setReadOnly (true);
+    report.setCaretVisible (false);
+    report.setScrollbarsShown (true);
+    report.setFont (juce::FontOptions (12.0f));
+    report.setColour (juce::TextEditor::textColourId, juce::Colours::lightgrey);
+    report.setColour (juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    report.setColour (juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    report.setColour (juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
     assistantResult.setFont (juce::FontOptions (11.0f));
     assistantResult.setColour (juce::Label::textColourId, juce::Colours::lightgreen);
     roleLabel.setText ("Rôle"_u8, juce::dontSendNotification);
@@ -179,7 +185,7 @@ void RemixPanel::refresh()
     if (t == nullptr)
     {
         title.setText ("Aucune piste sélectionnée"_u8, juce::dontSendNotification);
-        report.setText ({}, juce::dontSendNotification);
+        report.setText ({}, false);
         return;
     }
     title.setText (t->name + "  (" + style::roleName (t->role) + ", style " + style::styleName (session.project().style) + ")",
@@ -208,15 +214,20 @@ void RemixPanel::refresh()
     {
         if (vocal)
         {
-            const auto params = style::makeParams (session.project().style, t->role, t->macros);
-            txt << "\nRéglages : "_u8 << dsp::describeParams (params);
-            txt << "\nNettoyage : "_u8 << juce::String (r->report.clean.plosivesTreated) << " plosives, " << juce::String (r->report.clean.breathsTreated)
+            txt << "\nPrise traitée : "_u8 << juce::String (r->report.clean.plosivesTreated) << " plosives, " << juce::String (r->report.clean.breathsTreated)
                 << " respirations ; " << juce::String (r->report.phrases) << " phrases";
         }
     }
     if (session.project().referenceFile.isNotEmpty())
         txt << "\nRéférence : "_u8 << juce::File (session.project().referenceFile).getFileName();
-    report.setText (txt, juce::dontSendNotification);
+    if (vocal)
+    {
+        // Effets réglés automatiquement par le style (et les curseurs) : affichés même avant la première prise.
+        txt << "\n\nEffets appliqués (style "_u8 << style::styleName (session.project().style) << ", " << style::roleName (t->role) << ") :\n"
+            << dsp::describeChain (style::makeParams (session.project().style, t->role, t->macros));
+    }
+    if (report.getText() != txt)
+        report.setText (txt, false);   // pas de remise à zéro du défilement si rien n'a changé
 }
 
 void RemixPanel::paint (juce::Graphics& g)

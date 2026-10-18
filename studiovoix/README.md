@@ -38,9 +38,10 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 
 ## Utilisation
 
-1. **Nouveau** → nom du projet.
+1. **Nouveau** → nom du projet + **style** : tous les effets se règlent automatiquement (voir plus bas).
 2. **Instru...** → MP3/WAV. Analyse automatique : tempo, tonalité, structure (couplets / refrains).
-3. **Style** (rap, trap, pop urbaine, R&B, drill, afro, rock, latino / reggaeton) dans la barre du haut.
+3. **Style** (rap / hip-hop, trap, pop urbaine, R&B, drill, afro, rock, latino / reggaeton) : changeable à tout
+   moment dans la barre du haut, toutes les pistes sont alors retraitées avec le nouveau pré-réglage.
 4. **R** (ou REC) → compte à rebours → chanter → **R** pour arrêter.
    La prise est recalée de la latence puis traitée automatiquement (justesse, nettoyage, EQ, compression,
    de-esser, saturation, réverb, délai) selon le style.
@@ -69,6 +70,130 @@ récupération après plantage.
 | Ctrl+O | Ouvrir |
 | Ctrl+Z / Ctrl+Y (ou Ctrl+Maj+Z) | Annuler / rétablir |
 | Ctrl+E | Exporter |
+
+## Pré-réglages par style
+
+Choisir le style suffit : la voix principale est traitée avec la chaîne ci-dessous, sans rien régler.
+Les pistes générées reçoivent une variante adaptée du même pré-réglage : plus basses que la voix
+principale, coupe-bas plus haut, compression plus forte ; doublages plus secs, harmonies et ad-libs avec
+plus d'espace, ambiance presque entièrement en réverb. Les curseurs de l'onglet **Voix IA** partent de
+ce réglage (milieu = réglage du style) ; **Mon son** le remplace par tes propres réglages pour ce style.
+L'onglet **Voix IA** affiche les effets réellement appliqués à la piste sélectionnée.
+
+Ordre de la chaîne : nettoyage → justesse (autotune) → EQ → compresseur → compresseur 2 → de-esser →
+saturation → niveau → réverb + délai. Valeurs générées depuis le code (`studiovoix_cli presets`).
+
+### Rap / Hip-hop
+
+- Autotune : léger, naturel (15 %, vitesse 80 ms)
+- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +3 dB à 4 kHz, air +2 dB au-dessus de 12 kHz
+- Compresseur : 4:1 au seuil -20 dB, attaque 5 ms, relâche 80 ms
+- Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
+- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- Saturation : +3 dB de chauffe, mélange 30 %
+- Réverb : 8 %, taille 35 %, pré-délai 20 ms
+- Délai : 10 %, 1/8 (croche), répétitions 20 %, seulement en fin de phrase
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 1 doublage, backs sur les mots clés, ad-libs, ambiance
+
+### Trap
+
+- Autotune : effet marqué (100 %, vitesse 5 ms)
+- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 100 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Compresseur : 6:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
+- Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
+- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- Saturation : +6 dB de chauffe, mélange 40 %
+- Réverb : 15 %, taille 50 %, pré-délai 25 ms
+- Délai : 20 %, 1/4 (noire), répétitions 30 %, ping-pong, seulement en fin de phrase
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 2 doublages, 1 harmonie, backs sur les mots clés, ad-libs, ambiance
+
+### Pop urbaine
+
+- Autotune : moyen (70 %, vitesse 20 ms)
+- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3 kHz, air +4 dB au-dessus de 12 kHz
+- Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
+- Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
+- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- Saturation : +3 dB de chauffe, mélange 25 %
+- Réverb : 20 %, taille 55 %, pré-délai 30 ms
+- Délai : 12 %, 1/4 (noire), répétitions 25 %
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 1 doublage, 1 harmonie, backs sur les mots clés, ambiance
+
+### R&B
+
+- Autotune : moyen (50 %, vitesse 40 ms)
+- Nettoyage : coupe-bas 80 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 80 Hz, graves +1.5 dB sous 200 Hz, bas-médium -1.5 dB à 350 Hz, présence +1.5 dB à 3 kHz, air +3 dB au-dessus de 11 kHz
+- Compresseur : 3:1 au seuil -22 dB, attaque 15 ms, relâche 150 ms, parallèle 85 %, détection RMS
+- Compresseur 2 (nivellement) : 1.8:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
+- De-esser : 6 kHz, force 80 %, max -10 dB
+- Saturation : +2 dB de chauffe, mélange 20 %
+- Réverb : 30 %, taille 75 %, pré-délai 40 ms
+- Délai : 15 %, 1/8 pointée, répétitions 30 %
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 1 doublage, 2 harmonies, ad-libs, ambiance
+
+### Drill
+
+- Autotune : moyen (60 %, vitesse 15 ms)
+- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 2.5 kHz, air +2 dB au-dessus de 12 kHz
+- Compresseur : 6:1 au seuil -20 dB, attaque 2 ms, relâche 50 ms
+- Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
+- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- Saturation : +7 dB de chauffe, mélange 45 %
+- Réverb : 8 %, taille 30 %, pré-délai 15 ms
+- Délai : 10 %, 1/8 (croche), répétitions 25 %, seulement en fin de phrase
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 1 doublage, backs sur les mots clés, ad-libs
+
+### Afro
+
+- Autotune : moyen (80 %, vitesse 15 ms)
+- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
+- Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
+- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- Saturation : +3 dB de chauffe, mélange 25 %
+- Réverb : 25 %, taille 65 %, pré-délai 30 ms
+- Délai : 20 %, 1/8 pointée, répétitions 35 %, ping-pong
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 1 doublage, 2 harmonies, ad-libs, ambiance
+
+### Rock
+
+- Autotune : léger, naturel (10 %, vitesse 100 ms)
+- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 90 Hz, bas-médium -2.5 dB à 350 Hz, présence +3 dB à 3 kHz, air +2 dB au-dessus de 10 kHz
+- Compresseur : 5:1 au seuil -18 dB, attaque 10 ms, relâche 120 ms
+- Compresseur 2 (nivellement) : 2.5:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
+- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- Saturation : +8 dB de chauffe, mélange 35 %
+- Réverb : 15 %, taille 50 %, pré-délai 30 ms
+- Délai : 12 %, 1/16, répétitions 10 %
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 2 doublages, 1 harmonie, backs sur les mots clés
+
+### Latino / Reggaeton
+
+- Autotune : effet marqué (85 %, vitesse 10 ms)
+- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
+- Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
+- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- Saturation : +4 dB de chauffe, mélange 25 %
+- Réverb : 18 %, taille 55 %, pré-délai 25 ms
+- Délai : 18 %, 1/8 pointée, répétitions 30 %, ping-pong, seulement en fin de phrase
+- Sortie : -14 dB
+- Pistes générées cochées par défaut : 1 doublage, 2 harmonies, backs sur les mots clés, ad-libs, ambiance
 
 ## IA facultative
 
@@ -118,6 +243,7 @@ studiovoix_cli remix <voix> [--instru f] [--style s] -o sortie.wav
 studiovoix_cli song <instru> <voix> [--style s] [--target t] [--stems] -o dossier
 studiovoix_cli master <mix> [--target t] -o sortie.wav
 studiovoix_cli demo [--style s] [--bars N] -o dossier  chaîne complète sur signaux de synthèse
+studiovoix_cli presets                                 pré-réglages de chaque style (Markdown)
 StudioVoix.exe --selftest <instru> <voix>              auto-test de l'application (code 0 = OK)
 ```
 
@@ -140,7 +266,7 @@ une licence commerciale JUCE est nécessaire.**
 
 Vérifié automatiquement (CI Windows MSVC + Linux GCC) :
 
-- compilation, 276 vérifications de tests ;
+- compilation, 343 vérifications de tests ;
 - auto-test de l'application : import, analyse, rendu, génération, annuler/rétablir, export à −14,00 LUFS,
   prise annulée pendant son traitement, réouverture du projet pendant des calculs ;
 - installateur Windows : installation silencieuse, tests lancés depuis le dossier installé, désinstallation.

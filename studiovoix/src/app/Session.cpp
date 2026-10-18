@@ -107,7 +107,7 @@ double Session::deviceRate() const
 }
 
 // ---------------------------------------------------------------------------------------------
-bool Session::newProject (const juce::String& name, juce::String& error)
+bool Session::newProject (const juce::String& name, juce::String& error, style::Style projectStyle)
 {
     const auto folder = project::createProjectFolder (project::defaultProjectsRoot(), name, error);
     if (folder == juce::File())
@@ -116,6 +116,7 @@ bool Session::newProject (const juce::String& name, juce::String& error)
     created.folder = folder;
     created.name = name;
     created.adLibFolder = appSettings.adLibFolder().getFullPathName();
+    created.style = projectStyle;   // tous les effets des pistes suivent ce style (makeParams)
     auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
     if (appSettings.hasUserPreset (created.style))
         lead.macros = appSettings.userPreset (created.style);
@@ -128,7 +129,9 @@ bool Session::newProject (const juce::String& name, juce::String& error)
     proj = std::move (created);
     appSettings.setLastProject (folder);
     afterProjectLoaded();
-    setStatus ("Nouveau projet : " + name + " — importe une instru pour commencer"_u8);
+    SV_LOG_INFO (kMod, "Nouveau projet \"" + name + "\" : style " + style::styleName (proj.style)
+                       + (appSettings.hasUserPreset (proj.style) ? " (avec \"Mon son\")" : " (réglages du style)"_u8));
+    setStatus ("Nouveau projet : " + name + " (style " + style::styleName (proj.style) + ") — importe une instru pour commencer"_u8);
     return true;
 }
 

@@ -48,4 +48,7 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
 
 /** Résumé lisible des réglages (journal et interface). */
 juce::String describeParams (const style::VocalParams& p);
+
+/** Détail lisible, une ligne par effet (« Compresseur : 4:1 au seuil -20 dB… »), pour l'onglet Voix IA. */
+juce::String describeChain (const style::VocalParams& p);
 } // namespace sv::dsp

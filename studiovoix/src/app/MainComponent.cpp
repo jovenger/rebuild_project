@@ -173,8 +173,8 @@ namespace
             switch (step)
             {
                 case 0:
-                    if (! session.newProject ("Autotest", err)) { fail (err); return; }
-                    session.setStyle (style::Style::Trap);
+                    if (! session.newProject ("Autotest", err, style::Style::Trap)) { fail (err); return; }
+                    if (session.project().style != style::Style::Trap) { fail ("style du nouveau projet non appliqué"_u8); return; }
                     session.importInstru (instru);
                     log ("étape 0 : projet créé, instru importée"_u8);
                     next();
@@ -393,17 +393,29 @@ void MainComponent::doNew()
 {
     auto* w = new juce::AlertWindow ("Nouveau projet", "Nom du projet :", juce::MessageBoxIconType::QuestionIcon);
     w->addTextEditor ("name", "Mon morceau");
+    juce::StringArray styles;
+    for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
+        styles.add (style::styleName (static_cast<style::Style> (i)));
+    w->addComboBox ("style", styles, "Style");
+    if (auto* box = w->getComboBoxComponent ("style"))
+        box->setSelectedItemIndex (static_cast<int> (session.project().style), juce::dontSendNotification);
+    w->addTextBlock ("Autotune, EQ, compresseurs, de-esser, saturation, réverb et délai sont réglés automatiquement "
+                     "pour ce style (modifiable ensuite dans la barre du haut et l'onglet Voix IA)."_u8);
     w->addButton ("Créer"_u8, 1, juce::KeyPress (juce::KeyPress::returnKey));
     w->addButton ("Annuler", 0, juce::KeyPress (juce::KeyPress::escapeKey));
     juce::Component::SafePointer<MainComponent> safe (this);
     w->enterModalState (true, juce::ModalCallbackFunction::create ([safe, w] (int r)
     {
         const auto name = w->getTextEditorContents ("name").trim();
+        const auto* box = w->getComboBoxComponent ("style");
+        const int styleIndex = box != nullptr ? box->getSelectedItemIndex() : -1;
         delete w;
         if (safe == nullptr || r != 1 || name.isEmpty())
             return;
+        const auto st = (styleIndex >= 0 && styleIndex < static_cast<int> (style::Style::Count)) ? static_cast<style::Style> (styleIndex)
+                                                                                                 : style::Style::Rap;
         juce::String err;
-        if (! safe->session.newProject (name, err))
+        if (! safe->session.newProject (name, err, st))
             safe->showMessage ("Création impossible"_u8, err);
     }), false);
 }
