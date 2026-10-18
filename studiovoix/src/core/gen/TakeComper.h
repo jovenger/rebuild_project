@@ -14,6 +14,8 @@ struct TakeInput
     long regionStart = 0;          // zone utilisée (absolue, timeline)
     long regionEnd = 0;
     int id = 0;
+    long fadeIn = 0;               // fondus (échantillons) aux bords de la zone, en cosinus
+    long fadeOut = 0;
 };
 
 struct CompSegment

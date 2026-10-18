@@ -160,6 +160,13 @@ Le panneau Voix IA indique l'instrument reconnu et les corrections faites.
 relâchement. Il ne peut jamais dépasser le début (0 s) et s'aimante au début et aux temps de la grille quand il
 en est proche ; clic droit → « Caler au début du morceau » le remet exactement à 0 s.
 
+**Éditer un bloc** (prise enregistrée ou fichier importé sur une piste voix) : tirer un **bord** du bloc le rogne
+(jamais au-delà du fichier, 50 ms au minimum) ; les deux **carrés blancs** en haut du bloc (piste sélectionnée) sont
+les poignées de **fondu d'entrée / de sortie** (courbe en cosinus, dessinées en triangle) ; clic droit sur le bloc →
+« Couper le bloc ici », « Couper à la tête de lecture », « Fondus de 10 ms », « Retirer les fondus », « Supprimer le
+bloc ». Couper donne deux blocs indépendants (même fichier) qu'on déplace, rogne ou supprime séparément. Toutes ces
+actions s'annulent (Ctrl+Z) et la piste est rendue à nouveau.
+
 Autres fonctions : punch-in (zone sur la timeline), boucle, métronome, marqueurs, prises multiples avec
 comping automatique (meilleure prise par phrase), copie d'un refrain sur les refrains identiques,
 prompteur de paroles (onglet **Paroles**), sauvegarde auto toutes les 60 s, historique des versions,

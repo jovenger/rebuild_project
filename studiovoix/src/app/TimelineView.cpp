@@ -260,7 +260,40 @@ void TimelineView::mouseMove (const juce::MouseEvent& e)
     else if (overRowEdge (e.getPosition(), top))
         setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
     else if (drag == Drag::None)
-        setMouseCursor (juce::MouseCursor::NormalCursor);
+    {
+        int handle = 0, takeId = -1;
+        if (const int idx = trackIndexAt (e.y); idx >= 0 && e.x >= headerWidth)
+            handle = clipHandleAt (session.project().tracks[static_cast<size_t> (idx)], e.getPosition(), kRulerHeight + idx * trackHeight - scrollY, takeId);
+        setMouseCursor (handle == 1 || handle == 2 ? juce::MouseCursor::LeftRightResizeCursor
+                        : handle != 0                ? juce::MouseCursor::PointingHandCursor
+                                                     : juce::MouseCursor::NormalCursor);
+    }
+}
+
+int TimelineView::clipHandleAt (const project::Track& t, juce::Point<int> p, int rowY, int& takeId) const
+{
+    const double sr = session.project().sampleRate;
+    for (const auto& tk : t.takes)
+    {
+        const int x1 = secToX (tk.regionStart / sr), x2 = secToX (tk.regionEnd / sr);
+        if (p.x < x1 - 5 || p.x > x2 + 5)
+            continue;
+        takeId = tk.id;
+        // Bande du haut : poignées de fondu (carrés) ; ailleurs près d'un bord : rognage.
+        if (p.y <= rowY + 3 + kHandle + 3)
+        {
+            if (std::abs (p.x - secToX ((tk.regionStart + tk.fadeIn) / sr)) <= kHandle)
+                return 3;
+            if (std::abs (p.x - secToX ((tk.regionEnd - tk.fadeOut) / sr)) <= kHandle)
+                return 4;
+        }
+        if (std::abs (p.x - x1) <= 5)
+            return 1;
+        if (std::abs (p.x - x2) <= 5)
+            return 2;
+    }
+    takeId = -1;
+    return 0;
 }
 
 double TimelineView::xToSec (int x) const { return viewStart + (x - headerWidth) / pxPerSec; }
@@ -364,13 +397,44 @@ void TimelineView::paint (juce::Graphics& g)
         // Bloc en cours de déplacement : dessiné décalé (le projet n'est modifié qu'au relâchement).
         const bool moving = drag == Drag::Clip && clipTrack == t.id;
         const double shiftSec = moving ? clipOffsetSec : 0.0;
-        // Zones des prises (vocal) en contour.
-        g.setColour (roleColour (t.role).withAlpha (0.25f));
+        // Zones des prises (vocal) en contour, fondus en triangle, poignées de fondu en haut.
+        const bool editing = (drag == Drag::ClipEdgeL || drag == Drag::ClipEdgeR || drag == Drag::FadeIn || drag == Drag::FadeOut) && clipTrack == t.id;
         for (const auto& tk : t.takes)
         {
             const double tkShift = moving && (clipTake == tk.id || clipTake < 0) ? shiftSec : 0.0;
-            const int x1 = secToX (tk.regionStart / p.sampleRate + tkShift), x2 = secToX (tk.regionEnd / p.sampleRate + tkShift);
-            g.drawRect (x1, y + 3, std::max (1, x2 - x1), trackHeight - 6);
+            const bool thisEdit = editing && clipTake == tk.id;
+            const long rs = thisEdit ? editStart : tk.regionStart, re = thisEdit ? editEnd : tk.regionEnd;
+            const long fi = thisEdit ? editFadeIn : tk.fadeIn, fo = thisEdit ? editFadeOut : tk.fadeOut;
+            const int x1 = secToX (rs / p.sampleRate + tkShift), x2 = secToX (re / p.sampleRate + tkShift);
+            const int yTop = y + 3, yBot = y + trackHeight - 3;
+            const auto col = roleColour (t.role);
+            g.setColour (col.withAlpha (thisEdit ? 0.8f : 0.25f));
+            g.drawRect (x1, yTop, std::max (1, x2 - x1), yBot - yTop);
+            const int xFi = secToX ((rs + fi) / p.sampleRate + tkShift), xFo = secToX ((re - fo) / p.sampleRate + tkShift);
+            if (fi > 0)
+            {
+                juce::Path f;
+                f.addTriangle ((float) x1, (float) yBot, (float) xFi, (float) yTop, (float) x1, (float) yTop);
+                g.setColour (juce::Colours::black.withAlpha (0.35f));
+                g.fillPath (f);
+                g.setColour (col.withAlpha (0.9f));
+                g.drawLine ((float) x1, (float) yBot, (float) xFi, (float) yTop, 1.5f);
+            }
+            if (fo > 0)
+            {
+                juce::Path f;
+                f.addTriangle ((float) x2, (float) yBot, (float) xFo, (float) yTop, (float) x2, (float) yTop);
+                g.setColour (juce::Colours::black.withAlpha (0.35f));
+                g.fillPath (f);
+                g.setColour (col.withAlpha (0.9f));
+                g.drawLine ((float) x2, (float) yBot, (float) xFo, (float) yTop, 1.5f);
+            }
+            if (selected || thisEdit)
+            {
+                g.setColour (juce::Colours::white.withAlpha (0.85f));
+                g.fillRect (xFi - kHandle / 2, yTop, kHandle, kHandle);
+                g.fillRect (xFo - kHandle / 2, yTop, kHandle, kHandle);
+            }
         }
 
         if (const auto* wc = waveFor (t))
@@ -591,13 +655,33 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
             session.selectTrack (id, e.mods.isCtrlDown() || e.mods.isCommandDown(), e.mods.isShiftDown());
         if (e.mods.isPopupMenu())
         {
-            showTrackMenu (id);
+            int menuTake = -1;
+            clipAt (session.project().tracks[static_cast<size_t> (idx)], t, menuTake);
+            showTrackMenu (id, menuTake, t);
             return;
         }
-        // Glisser un bloc audio (prise ou fichier) pour le déplacer sur la timeline ; clic ailleurs = tête de lecture.
+        // Poignées d'un bloc : bords (rogner) et fondus ; puis glisser un bloc pour le déplacer ; clic ailleurs = tête de lecture.
         int takeId = -1;
-        if (! session.isRecording() && ! e.mods.isAnyModifierKeyDown()
-            && clipAt (session.project().tracks[static_cast<size_t> (idx)], t, takeId))
+        const auto& track = session.project().tracks[static_cast<size_t> (idx)];
+        if (const int h = session.isRecording() || e.mods.isAnyModifierKeyDown() ? 0 : clipHandleAt (track, e.getPosition(), kRulerHeight + idx * trackHeight - scrollY, takeId); h != 0)
+        {
+            const auto* tk = project::findTake (const_cast<project::Track&> (track), takeId);
+            if (tk != nullptr)
+            {
+                drag = h == 1 ? Drag::ClipEdgeL : h == 2 ? Drag::ClipEdgeR : h == 3 ? Drag::FadeIn : Drag::FadeOut;
+                clipTrack = id;
+                clipTake = takeId;
+                editStart = tk->regionStart;
+                editEnd = tk->regionEnd;
+                editFadeIn = tk->fadeIn;
+                editFadeOut = tk->fadeOut;
+                editFileLen = (h == 2) ? session.takeFileLength (id, takeId) : 0;
+                dragAnchor = xToSec (e.x);
+                repaint();
+                return;
+            }
+        }
+        if (! session.isRecording() && ! e.mods.isAnyModifierKeyDown() && clipAt (track, t, takeId))
         {
             drag = Drag::Clip;
             clipTrack = id;
@@ -680,6 +764,28 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
             clipOffsetSec = off;
             break;
         }
+        case Drag::ClipEdgeL:
+        case Drag::ClipEdgeR:
+        case Drag::FadeIn:
+        case Drag::FadeOut:
+        {
+            const auto* tr = session.project().findTrack (clipTrack);
+            const auto* tk = tr != nullptr ? project::findTake (const_cast<project::Track&> (*tr), clipTake) : nullptr;
+            if (tk == nullptr)
+                break;
+            const double sr = session.project().sampleRate;
+            const long cursor = static_cast<long> (std::llround (std::max (0.0, xToSec (e.x)) * sr));
+            const long minLen = static_cast<long> (sr * 0.05);
+            if (drag == Drag::ClipEdgeL)
+                editStart = juce::jlimit (std::max (0L, tk->startSample), tk->regionEnd - minLen, cursor);
+            else if (drag == Drag::ClipEdgeR)
+                editEnd = juce::jlimit (tk->regionStart + minLen, editFileLen > 0 ? tk->startSample + editFileLen : std::numeric_limits<long>::max(), cursor);
+            else if (drag == Drag::FadeIn)
+                editFadeIn = juce::jlimit (0L, tk->regionEnd - tk->regionStart - tk->fadeOut, cursor - tk->regionStart);
+            else
+                editFadeOut = juce::jlimit (0L, tk->regionEnd - tk->regionStart - tk->fadeIn, tk->regionEnd - cursor);
+            break;
+        }
         case Drag::HeaderEdge:
             headerWidth = juce::jlimit (150, 600, e.x);
             resized();
@@ -702,6 +808,25 @@ void TimelineView::mouseUp (const juce::MouseEvent&)
         SV_LOG_INFO ("Timeline", "Disposition mémorisée : en-têtes "_u8 + juce::String (headerWidth) + " px, pistes " + juce::String (trackHeight) + " px");
         drag = Drag::None;
         setMouseCursor (juce::MouseCursor::NormalCursor);
+        return;
+    }
+    if (drag == Drag::ClipEdgeL || drag == Drag::ClipEdgeR || drag == Drag::FadeIn || drag == Drag::FadeOut)
+    {
+        const auto kind = drag;
+        const int trackId = clipTrack, takeId = clipTake;
+        const double sr = session.project().sampleRate;
+        drag = Drag::None;
+        clipTrack = -1;
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+        if (const auto* tr = session.project().findTrack (trackId); tr != nullptr)
+            if (const auto* tk = project::findTake (const_cast<project::Track&> (*tr), takeId); tk != nullptr)
+            {
+                if ((kind == Drag::ClipEdgeL || kind == Drag::ClipEdgeR) && (editStart != tk->regionStart || editEnd != tk->regionEnd))
+                    session.trimTake (trackId, takeId, editStart / sr, editEnd / sr);
+                else if ((kind == Drag::FadeIn || kind == Drag::FadeOut) && (editFadeIn != tk->fadeIn || editFadeOut != tk->fadeOut))
+                    session.setTakeFades (trackId, takeId, editFadeIn / sr, editFadeOut / sr);
+            }
+        repaint();
         return;
     }
     if (drag == Drag::Clip)
@@ -763,13 +888,22 @@ void TimelineView::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseW
     repaint();
 }
 
-void TimelineView::showTrackMenu (int trackId)
+void TimelineView::showTrackMenu (int trackId, int takeId, double atSec)
 {
     const auto* t = session.project().findTrack (trackId);
     if (t == nullptr)
         return;
     juce::PopupMenu m;
     m.addSectionHeader (t->name);
+    if (takeId >= 0 && atSec >= 0.0)
+    {
+        m.addItem (20, "Couper le bloc ici ("_u8 + juce::String (atSec, 2) + " s)");
+        m.addItem (21, "Couper le bloc à la tête de lecture"_u8);
+        m.addItem (22, "Fondus de 10 ms sur le bloc"_u8);
+        m.addItem (23, "Retirer les fondus du bloc"_u8);
+        m.addItem (24, "Supprimer le bloc"_u8);
+        m.addSeparator();
+    }
     m.addItem (10, "Nouvelle piste...");
     if (! t->takes.empty() || t->sourceFile.isNotEmpty())
         m.addItem (12, "Caler l'audio au début du morceau (0 s)"_u8);
@@ -789,10 +923,22 @@ void TimelineView::showTrackMenu (int trackId)
     else
         m.addItem (4, "Supprimer la piste (Suppr)");
     juce::WeakReference<Session> weak (&session);
-    m.showMenuAsync (juce::PopupMenu::Options(), [weak, trackId] (int r)
+    m.showMenuAsync (juce::PopupMenu::Options(), [weak, trackId, takeId, atSec] (int r)
     {
         auto* s = weak.get();
         if (s == nullptr || r == 0)
+            return;
+        if (r == 20)
+            s->splitTake (trackId, takeId, atSec);
+        else if (r == 21)
+            s->splitTake (trackId, takeId, s->positionSec());
+        else if (r == 22)
+            s->setTakeFades (trackId, takeId, 0.010, 0.010);
+        else if (r == 23)
+            s->setTakeFades (trackId, takeId, 0.0, 0.0);
+        else if (r == 24)
+            s->removeTake (trackId, takeId);
+        if (r >= 20 && r <= 24)
             return;
         if (r == 5)
         {

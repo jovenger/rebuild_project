@@ -21,7 +21,14 @@ namespace
         const long idx = pos - t.startSample;
         if (idx < 0 || idx >= static_cast<long> (t.audio->size()))
             return 0.0f;
-        return (*t.audio)[static_cast<size_t> (idx)];
+        float v = (*t.audio)[static_cast<size_t> (idx)];
+        // Fondus du bloc (édition) : courbe en cosinus, sans clic ni creux audible.
+        auto fade = [] (long k, long len) { return 0.5f - 0.5f * std::cos (juce::MathConstants<float>::pi * static_cast<float> (k) / static_cast<float> (len)); };
+        if (t.fadeIn > 0 && pos < t.regionStart + t.fadeIn)
+            v *= fade (pos - t.regionStart, t.fadeIn);
+        if (t.fadeOut > 0 && pos >= t.regionEnd - t.fadeOut)
+            v *= fade (t.regionEnd - pos, t.fadeOut);
+        return v;
     }
 
     bool validTake (const TakeInput& t)

@@ -27,6 +27,8 @@ struct Take
     long regionEnd = 0;
     juce::int64 createdMs = 0;
     bool punch = false;
+    long fadeIn = 0;            // fondu d'entrée (échantillons) à partir de regionStart
+    long fadeOut = 0;           // fondu de sortie (échantillons) jusqu'à regionEnd
 };
 
 struct Track
@@ -66,6 +68,19 @@ struct Track
     /** Voix (pour le mix auto : sonie de la voix, creux de l'instru) — un instrument enregistré n'en est pas une. */
     bool isVoice() const { return isVocal() && role != style::Role::Instrument; }
 };
+
+/** Édition des blocs (prises) : chaque fonction retourne false si la prise n'existe pas ou si l'opération est impossible
+    (journalisé). Les positions sont absolues (timeline, échantillons). */
+Take* findTake (Track& t, int takeId);
+/** Coupe la prise en deux à atSample : la partie gauche garde l'id et le fondu d'entrée, la droite devient une nouvelle
+    prise (même fichier, nextTakeId) avec le fondu de sortie. */
+bool splitTake (Track& t, int takeId, long atSample, int& nextTakeId);
+/** Rogne les bords : nouvelle zone [newStart, newEnd), bornée au fichier (fileLength échantillons ; 0 = inconnue) et
+    longue d'au moins minLength échantillons. Les fondus sont réduits si la zone devient plus courte. */
+bool trimTake (Track& t, int takeId, long newStart, long newEnd, long fileLength, long minLength);
+/** Fondus d'entrée / sortie (échantillons), bornés à la zone (leur somme ne dépasse pas sa longueur). */
+bool setTakeFades (Track& t, int takeId, long fadeIn, long fadeOut);
+bool removeTake (Track& t, int takeId);
 
 struct Marker
 {

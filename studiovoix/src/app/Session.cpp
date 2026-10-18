@@ -668,6 +668,72 @@ void Session::moveTrackAudio (int trackId, int takeId, double deltaSec)
     setStatus ("« "_u8 + t->name + " » déplacée de "_u8 + juce::String (deltaSec, 2) + " s (Ctrl+Z pour annuler)");
 }
 
+void Session::splitTake (int trackId, int takeId, double atSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long at = static_cast<long> (std::llround (atSec * proj.sampleRate));
+    bool ok = false;
+    updateTrack (trackId, [&] (project::Track& tr) { ok = project::splitTake (tr, takeId, at, proj.nextTakeId); }, true, "Couper le bloc"_u8);
+    setStatus (ok ? "Bloc coupé à "_u8 + juce::String (atSec, 2) + " s (Ctrl+Z pour annuler)" : juce::String ("Impossible de couper ici : le point doit être à l'intérieur du bloc"_u8));
+}
+
+void Session::trimTake (int trackId, int takeId, double newStartSec, double newEndSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long a = static_cast<long> (std::llround (newStartSec * proj.sampleRate)), b = static_cast<long> (std::llround (newEndSec * proj.sampleRate));
+    const long fileLen = takeFileLength (trackId, takeId);
+    bool ok = false;
+    updateTrack (trackId, [&] (project::Track& tr) { ok = project::trimTake (tr, takeId, a, b, fileLen, static_cast<long> (proj.sampleRate * 0.05)); }, true, "Rogner le bloc"_u8);
+    setStatus (ok ? "Bloc rogné : "_u8 + juce::String (a / proj.sampleRate, 2) + " - " + juce::String (b / proj.sampleRate, 2) + " s (Ctrl+Z pour annuler)"
+                  : juce::String ("Rognage refusé : bloc trop court ou au-delà du fichier"_u8));
+}
+
+void Session::setTakeFades (int trackId, int takeId, double fadeInSec, double fadeOutSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long fi = static_cast<long> (std::llround (std::max (0.0, fadeInSec) * proj.sampleRate));
+    const long fo = static_cast<long> (std::llround (std::max (0.0, fadeOutSec) * proj.sampleRate));
+    updateTrack (trackId, [&] (project::Track& tr) { project::setTakeFades (tr, takeId, fi, fo); }, true, "Fondus du bloc"_u8);
+    SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » : fondus du bloc #"_u8 + juce::String (takeId) + " : entrée "_u8 + juce::String (fadeInSec * 1000.0, 0)
+                       + " ms, sortie " + juce::String (fadeOutSec * 1000.0, 0) + " ms");
+    setStatus ("Fondus : entrée "_u8 + juce::String (fadeInSec * 1000.0, 0) + " ms, sortie " + juce::String (fadeOutSec * 1000.0, 0) + " ms");
+}
+
+void Session::removeTake (int trackId, int takeId)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    bool ok = false;
+    updateTrack (trackId, [&] (project::Track& tr) { ok = project::removeTake (tr, takeId); }, true, "Supprimer le bloc"_u8);
+    if (ok)
+        setStatus ("Bloc supprimé (Ctrl+Z pour annuler)"_u8);
+}
+
+long Session::takeFileLength (int trackId, int takeId)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return 0;
+    const auto* tk = project::findTake (*t, takeId);
+    if (tk == nullptr)
+        return 0;
+    juce::String err;
+    auto data = cache.mono (proj.audioDir().getChildFile (tk->file), proj.sampleRate, err);
+    if (data == nullptr)
+    {
+        SV_LOG_WARN (kMod, "Longueur de la prise #" + juce::String (takeId) + " inconnue : " + err);
+        return 0;
+    }
+    return static_cast<long> (data->size());
+}
+
 void Session::moveTrackAudioToStart (int trackId)
 {
     const auto* t = proj.findTrack (trackId);

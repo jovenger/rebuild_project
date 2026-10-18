@@ -249,6 +249,8 @@ juce::var Project::toVar() const
             x->setProperty ("regionEnd", num (static_cast<double> (tk.regionEnd)));
             x->setProperty ("created", num (static_cast<double> (tk.createdMs)));
             x->setProperty ("punch", tk.punch);
+            x->setProperty ("fadeIn", num (static_cast<double> (tk.fadeIn)));
+            x->setProperty ("fadeOut", num (static_cast<double> (tk.fadeOut)));
             tks.add (juce::var (x));
         }
         o->setProperty ("takes", tks);
@@ -373,6 +375,8 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
                     tk.regionEnd = static_cast<long> (getD (x, "regionEnd", 0.0));
                     tk.createdMs = static_cast<juce::int64> (getD (x, "created", 0.0));
                     tk.punch = getB (x, "punch", false);
+                    tk.fadeIn = std::max (0L, static_cast<long> (getD (x, "fadeIn", 0.0)));
+                    tk.fadeOut = std::max (0L, static_cast<long> (getD (x, "fadeOut", 0.0)));
                     if (tk.file.isNotEmpty() && tk.regionEnd > tk.regionStart)
                         t.takes.push_back (tk);
                     else
@@ -581,5 +585,82 @@ long compensatedTakeStart (long recordStartSample, int inputLatency, int outputL
     // entendait à P - (latence sortie + latence entrée) : on recule la prise d'autant.
     return recordStartSample - static_cast<long> (std::max (0, inputLatency)) - static_cast<long> (std::max (0, outputLatency))
            - static_cast<long> (manualOffsetSamples);
+}
+Take* findTake (Track& t, int takeId)
+{
+    for (auto& tk : t.takes)
+        if (tk.id == takeId)
+            return &tk;
+    return nullptr;
+}
+
+bool splitTake (Track& t, int takeId, long atSample, int& nextTakeId)
+{
+    auto* tk = findTake (t, takeId);
+    if (tk == nullptr || atSample <= tk->regionStart || atSample >= tk->regionEnd)
+    {
+        SV_LOG_WARN (kMod, "Couper : prise #" + juce::String (takeId) + " introuvable ou point hors du bloc (" + juce::String (atSample) + ")");
+        return false;
+    }
+    Take right = *tk;
+    right.id = nextTakeId++;
+    right.regionStart = atSample;
+    right.fadeIn = 0;
+    right.fadeOut = std::min (right.fadeOut, right.regionEnd - right.regionStart);
+    tk->regionEnd = atSample;
+    tk->fadeOut = 0;
+    tk->fadeIn = std::min (tk->fadeIn, tk->regionEnd - tk->regionStart);
+    // Insérée juste après la partie gauche : l'ordre des prises (la plus récente gagne) reste cohérent.
+    const auto pos = std::find_if (t.takes.begin(), t.takes.end(), [takeId] (const Take& x) { return x.id == takeId; });
+    t.takes.insert (std::next (pos), right);
+    SV_LOG_INFO (kMod, "Prise #" + juce::String (takeId) + " coupée à "_u8 + juce::String (atSample) + " : droite = prise #" + juce::String (right.id));
+    return true;
+}
+
+bool trimTake (Track& t, int takeId, long newStart, long newEnd, long fileLength, long minLength)
+{
+    auto* tk = findTake (t, takeId);
+    if (tk == nullptr)
+        return false;
+    const long fileStart = tk->startSample;
+    const long fileEnd = fileLength > 0 ? tk->startSample + fileLength : std::numeric_limits<long>::max();
+    newStart = std::max ({ 0L, fileStart, newStart });
+    newEnd = std::min (fileEnd, newEnd);
+    if (newEnd - newStart < std::max (1L, minLength))
+    {
+        SV_LOG_WARN (kMod, "Rogner : zone trop courte pour la prise #" + juce::String (takeId) + " (" + juce::String (newEnd - newStart) + " échantillons)"_u8);
+        return false;
+    }
+    tk->regionStart = newStart;
+    tk->regionEnd = newEnd;
+    setTakeFades (t, takeId, tk->fadeIn, tk->fadeOut);   // fondus bornés à la nouvelle zone
+    SV_LOG_INFO (kMod, "Prise #" + juce::String (takeId) + " rognée : zone "_u8 + juce::String (newStart) + "-" + juce::String (newEnd));
+    return true;
+}
+
+bool setTakeFades (Track& t, int takeId, long fadeIn, long fadeOut)
+{
+    auto* tk = findTake (t, takeId);
+    if (tk == nullptr)
+        return false;
+    const long len = std::max (0L, tk->regionEnd - tk->regionStart);
+    fadeIn = juce::jlimit (0L, len, fadeIn);
+    fadeOut = juce::jlimit (0L, len - fadeIn, fadeOut);
+    tk->fadeIn = fadeIn;
+    tk->fadeOut = fadeOut;
+    return true;
+}
+
+bool removeTake (Track& t, int takeId)
+{
+    const auto n = t.takes.size();
+    t.takes.erase (std::remove_if (t.takes.begin(), t.takes.end(), [takeId] (const Take& x) { return x.id == takeId; }), t.takes.end());
+    if (t.takes.size() == n)
+    {
+        SV_LOG_WARN (kMod, "Supprimer le bloc : prise #" + juce::String (takeId) + " introuvable");
+        return false;
+    }
+    SV_LOG_INFO (kMod, "Prise #" + juce::String (takeId) + " supprimée de la piste « "_u8 + t.name + " »"_u8);
+    return true;
 }
 } // namespace sv::project

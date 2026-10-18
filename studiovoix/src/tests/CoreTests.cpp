@@ -798,6 +798,8 @@ public:
         tk.startSample = 0;
         tk.regionStart = 0;
         tk.regionEnd = 48000 * 8;
+        tk.fadeIn = 480;
+        tk.fadeOut = 960;
         lead.takes.push_back (tk);
         const int leadId = lead.id;   // la référence 'lead' devient invalide quand d'autres pistes sont ajoutées
         p.armedTrackId = leadId;
@@ -812,8 +814,61 @@ public:
         expectEquals (q.lyrics, p.lyrics);
         expectWithinAbsoluteError (q.findTrack (leadId)->macros.autotune, 0.8f, 1.0e-4f);
         expectEquals (q.findTrack (leadId)->takes.size(), static_cast<size_t> (1));
+        expect (q.findTrack (leadId)->takes[0].fadeIn == 480 && q.findTrack (leadId)->takes[0].fadeOut == 960, "fondus du bloc enregistrés"_u8);
         expectEquals (static_cast<int> (q.listVersions().size()), 1);
         expectEquals (q.armedTrackId, leadId);
+
+        beginTest ("Edition des blocs : couper, rogner, fondus, supprimer ; fondus appliques a l'assemblage");
+        {
+            project::Track tr;
+            tr.name = "Voix";
+            project::Take a;
+            a.id = 1;
+            a.file = "a.wav";
+            a.startSample = 1000;
+            a.regionStart = 1000;
+            a.regionEnd = 49000;
+            a.fadeIn = 500;
+            a.fadeOut = 700;
+            tr.takes.push_back (a);
+            int nextId = 2;
+            expect (! project::splitTake (tr, 1, 1000, nextId) && ! project::splitTake (tr, 1, 49000, nextId) && ! project::splitTake (tr, 9, 2000, nextId),
+                    "couper : refusé aux bords ou sur une prise inconnue"_u8);
+            expect (project::splitTake (tr, 1, 25000, nextId) && tr.takes.size() == 2, "couper au milieu : deux blocs");
+            expect (tr.takes[0].id == 1 && tr.takes[0].regionStart == 1000 && tr.takes[0].regionEnd == 25000 && tr.takes[0].fadeIn == 500 && tr.takes[0].fadeOut == 0,
+                    "bloc gauche : garde l'id et le fondu d'entrée"_u8);
+            expect (tr.takes[1].id == 2 && nextId == 3 && tr.takes[1].regionStart == 25000 && tr.takes[1].regionEnd == 49000 && tr.takes[1].startSample == 1000
+                        && tr.takes[1].file == "a.wav" && tr.takes[1].fadeIn == 0 && tr.takes[1].fadeOut == 700,
+                    "bloc droit : nouvelle prise, même fichier, garde le fondu de sortie"_u8);
+            expect (project::trimTake (tr, 2, 30000, 80000, 48000, 2400) && tr.takes[1].regionStart == 30000 && tr.takes[1].regionEnd == 49000,
+                    "rogner : borné au fichier (1000 + 48000)"_u8);
+            expect (! project::trimTake (tr, 2, 30000, 30100, 48000, 2400), "rogner : zone trop courte refusée"_u8);
+            expect (project::trimTake (tr, 1, 0, 25000, 48000, 2400) && tr.takes[0].regionStart == 1000, "rogner : jamais avant le début du fichier"_u8);
+            expect (project::setTakeFades (tr, 2, 100000, 100000) && tr.takes[1].fadeIn == 19000 && tr.takes[1].fadeOut == 0, "fondus bornés à la zone"_u8);
+            expect (project::setTakeFades (tr, 2, 480, 480) && tr.takes[1].fadeIn == 480 && tr.takes[1].fadeOut == 480);
+            expect (project::removeTake (tr, 1) && tr.takes.size() == 1 && tr.takes[0].id == 2 && ! project::removeTake (tr, 1), "supprimer un bloc");
+
+            // Fondus appliqués par l'assemblage des prises (courbe en cosinus : 0 au bord, 0,5 au milieu, 1 à la fin).
+            Mono one (48000, 1.0f);
+            gen::TakeInput in;
+            in.audio = &one;
+            in.startSample = 0;
+            in.regionStart = 0;
+            in.regionEnd = 48000;
+            in.id = 1;
+            in.fadeIn = 4800;
+            in.fadeOut = 9600;
+            const auto res = gen::compLatest ({ in }, kSr);
+            expect (res.audio.size() == 48000 && res.startSample == 0);
+            expect (std::abs (res.audio[0]) < 1e-6f && std::abs (res.audio[2400] - 0.5f) < 1e-3f && std::abs (res.audio[4800] - 1.0f) < 1e-6f,
+                    "fondu d'entrée : "_u8 + juce::String (res.audio[0], 3) + " / " + juce::String (res.audio[2400], 3) + " / " + juce::String (res.audio[4800], 3));
+            expect (std::abs (res.audio[47999]) < 1e-3f && std::abs (res.audio[48000 - 4800] - 0.5f) < 1e-3f && std::abs (res.audio[48000 - 9600] - 1.0f) < 1e-6f,
+                    "fondu de sortie : "_u8 + juce::String (res.audio[47999], 3) + " / " + juce::String (res.audio[48000 - 4800], 3));
+            float maxStep = 0.0f;
+            for (size_t i = 1; i < res.audio.size(); ++i)
+                maxStep = std::max (maxStep, std::abs (res.audio[i] - res.audio[i - 1]));
+            expect (maxStep < 0.001f, "fondus sans clic (saut max "_u8 + juce::String (maxStep, 5) + ")");
+        }
 
         beginTest ("Pistes ajoutees a la main : instrument, piste armee");
         {

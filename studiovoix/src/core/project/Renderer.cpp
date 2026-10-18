@@ -143,6 +143,8 @@ bool compositeRaw (const project::Project& p, const project::Track& t, AudioCach
         in.regionStart = tk.regionStart;
         in.regionEnd = tk.regionEnd;
         in.id = tk.id;
+        in.fadeIn = tk.fadeIn;
+        in.fadeOut = tk.fadeOut;
         inputs.push_back (in);
     }
     if (inputs.empty())

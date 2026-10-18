@@ -68,6 +68,14 @@ public:
     /** Déplace l'audio d'une piste sur la timeline (glisser du bloc) : takeId = prise, -1 = fichier source
         (instru, piste générée). Le début ne passe jamais avant 0. */
     void moveTrackAudio (int trackId, int takeId, double deltaSec);
+    /** Édition des blocs (prises) : couper au point donné, rogner les bords, fondus d'entrée / sortie, supprimer.
+        Annulables (Ctrl+Z), la piste est rendue à nouveau. */
+    void splitTake (int trackId, int takeId, double atSec);
+    void trimTake (int trackId, int takeId, double newStartSec, double newEndSec);
+    void setTakeFades (int trackId, int takeId, double fadeInSec, double fadeOutSec);
+    void removeTake (int trackId, int takeId);
+    /** Longueur (échantillons) du fichier d'une prise, 0 si illisible : borne du rognage vers l'extérieur. */
+    long takeFileLength (int trackId, int takeId);
     /** Cale l'audio de la piste au début du morceau (la première prise à 0 s, les autres gardent leurs écarts). */
     void moveTrackAudioToStart (int trackId);
     /** Supprime plusieurs pistes en une seule étape d'annulation. */

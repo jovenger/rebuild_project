@@ -66,7 +66,7 @@ public:
     }
 
     /** Menu clic droit d'une piste (aussi depuis son en-tête). */
-    void openTrackMenu (int trackId) { showTrackMenu (trackId); }
+    void openTrackMenu (int trackId) { showTrackMenu (trackId, -1, -1.0); }
 
     double punchInSec() const { return punchIn; }
     double punchOutSec() const { return punchOut; }
@@ -94,7 +94,8 @@ private:
     int secToX (double s) const;
     int trackIndexAt (int y) const;
     const WaveCache* waveFor (const project::Track& t);
-    void showTrackMenu (int trackId);
+    /** takeId >= 0 : le clic était sur ce bloc à atSec, le menu propose aussi couper / fondus / supprimer le bloc. */
+    void showTrackMenu (int trackId, int takeId, double atSec);
     void showSectionMenu (int sectionIndex);
     void clampView();
 
@@ -105,7 +106,12 @@ private:
     double viewStart = 0.0;
     int scrollY = 0;
     double punchIn = 0.0, punchOut = 0.0, loopA = 0.0, loopB = 0.0;
-    enum class Drag { None, Playhead, Punch, Loop, Clip, HeaderEdge, RowEdge } drag = Drag::None;
+    enum class Drag { None, Playhead, Punch, Loop, Clip, HeaderEdge, RowEdge, ClipEdgeL, ClipEdgeR, FadeIn, FadeOut } drag = Drag::None;
+    // Édition d'un bloc en cours (bords, fondus) : valeurs provisoires affichées, le projet est modifié au relâchement.
+    long editStart = 0, editEnd = 0, editFadeIn = 0, editFadeOut = 0, editFileLen = 0;
+    static constexpr int kHandle = 7;   // taille (px) des poignées de fondu, en haut du bloc
+    /** Poignée sous le point : 0 aucune, 1 bord gauche, 2 bord droit, 3 fondu d'entrée, 4 fondu de sortie. */
+    int clipHandleAt (const project::Track& t, juce::Point<int> p, int rowY, int& takeId) const;
     int rowEdgeTop = 0;                  // haut (pixels) de la piste dont on tire le bord bas
     bool overHeaderEdge (juce::Point<int> p) const { return p.y >= kRulerHeight && std::abs (p.x - headerWidth) <= 5; }
     bool overRowEdge (juce::Point<int> p, int& rowTop) const;
