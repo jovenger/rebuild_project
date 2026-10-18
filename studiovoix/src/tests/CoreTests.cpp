@@ -1003,7 +1003,12 @@ public:
             script.replaceWithText ("#!/bin/sh\ncp \"$2\" \"$3target_0_drums.wav\"\ncp \"$2\" \"$3target_1_bass.wav\"\ncp \"$2\" \"$3target_2_other.wav\"\ncp \"$2\" \"$3target_3_vocals.wav\"\necho ok\n",
                                     false, false, "\n");
             script.setExecutePermission (true);
-            toolsDir.getChildFile (model->fileName).replaceWithText ("modele factice");
+            {
+                // Faux modèle à la taille épinglée (sinon « non installé ») : fichier creux, un seul octet écrit à la fin.
+                const auto fakeModel = toolsDir.getChildFile (model->fileName);
+                juce::FileOutputStream fos (fakeModel);
+                expect (fos.openedOk() && fos.setPosition (std::max<juce::int64> (1, model->size) - 1) && fos.write ("x", 1), "faux modèle écrit"_u8);
+            }
             expect (ai::local::demucsAvailable(), "faux outil et faux modèle « installés »"_u8);
             res = ai::local::separateWithDemucs (mix, 48000.0, dir.getChildFile ("cache"));
             expect (res.ok && std::abs (static_cast<long> (res.other.size()) - static_cast<long> (mix.getNumSamples())) < 50

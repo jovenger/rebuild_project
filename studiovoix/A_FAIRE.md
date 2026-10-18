@@ -20,9 +20,10 @@ comment les automatismes doivent être faits, ordre proposé.
 - Demucs (séparation d'instru) : intégration faite (outil `demucs` + modèle `demucs-htdemucs` au catalogue, module
   `core/ai/Separate`, bouton dans IA locale, 4 pistes brutes créées, instru coupée). Binaire : compilation de
   demucs.cpp en CI avec le GCC MinGW de l'image Windows (build 58 : CMake 4 ; 59 : MSVC refuse les drapeaux GCC ;
-  60 : PowerShell coupait « =3.5 » ; 61 : bash + Ninja). Dès qu'elle réussit, la CI publie `demucs_mt.exe` dans la
-  release GitHub `outils-ia` (adresse déjà épinglée dans le catalogue) et le relevé d'empreintes suivant donne la taille
-  et le SHA-256 à épingler (binaire et modèle). Non vérifié : exécution réelle de demucs_mt (PC de Yann) ; parties en
+  60 : PowerShell coupait « =3.5 » ; 61 : bash + Ninja ; 63 : wavpack `<intrin.h>` corrigé, reste une conversion
+  `path` → `string` dans demucs_mt.cpp, corrigée au build 64). Dès qu'elle réussit, la CI publie `demucs_mt.exe` dans
+  la release GitHub `outils-ia` (adresse déjà épinglée dans le catalogue) et le relevé d'empreintes suivant donne la
+  taille et le SHA-256 du binaire à épingler (modèle déjà épinglé : 83 994 361 octets). Non vérifié : exécution réelle de demucs_mt (PC de Yann) ; parties en
   mono (les prises du projet sont mono) — stéréo à envisager.
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.

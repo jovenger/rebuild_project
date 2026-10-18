@@ -98,6 +98,8 @@ namespace
                 t.licence = "MIT";
                 t.url = "https://huggingface.co/datasets/Retrobear/demucs.cpp/resolve/main/ggml-model-htdemucs-4s-f16.bin";
                 t.fileName = "ggml-model-htdemucs-4s-f16.bin";
+                t.size = 83994361;   // relevé CI build 63
+                t.sha256 = "72b17c42d308982ddb5069bc3bf48b81a5aac4cb6516e4366c0fa7cef6df0064";
                 v.push_back (t);
             }
             // Modèle whisper.cpp « base » (OpenAI Whisper, converti en ggml) : paroles reconnues et calées mot par mot.
@@ -241,6 +243,13 @@ bool install (const ToolDef& t, Progress& progress, juce::String& error)
         temp.deleteFile();
         error = "Téléchargement échoué (réseau, proxy ou adresse introuvable) : "_u8 + t.url;
         SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+    if (task->statusCode() >= 400)
+    {
+        error = "Adresse introuvable ou refusée (HTTP "_u8 + juce::String (task->statusCode()) + ") : " + t.url;
+        SV_LOG_ERROR (kMod, t.name + " : " + error);
+        temp.deleteFile();
         return false;
     }
     task.reset();

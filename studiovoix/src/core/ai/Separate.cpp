@@ -81,8 +81,11 @@ StemSet separateWithDemucs (const Stereo& mix, double sampleRate, const juce::Fi
     const auto t0 = juce::Time::getMillisecondCounterHiRes();
     juce::String output;
     int code = -1;
-    // demucs_mt <modèle> <entrée.wav> <dossier de sortie>  → target_0_drums.wav … target_3_vocals.wav
-    const bool ran = run (*exe, { toolFile (*model).getFullPathName(), in.getFullPathName(), outDir.getFullPathName() + juce::File::getSeparatorString() },
+    // demucs_mt <modèle> <entrée.wav> <dossier de sortie> <nombre de fils>  → target_0_drums.wav … target_3_vocals.wav
+    const int threads = juce::jlimit (1, 8, juce::SystemStats::getNumCpus());
+    SV_LOG_INFO (kMod, "demucs_mt sur "_u8 + juce::String (threads) + " fil(s)");
+    const bool ran = run (*exe, { toolFile (*model).getFullPathName(), in.getFullPathName(), outDir.getFullPathName() + juce::File::getSeparatorString(),
+                                  juce::String (threads) },
                           output, code, timeoutMs);
     res.seconds = (juce::Time::getMillisecondCounterHiRes() - t0) / 1000.0;
     in.deleteFile();
