@@ -71,6 +71,35 @@ namespace
 #endif
                 v.push_back (t);
             }
+            // demucs.cpp (binaire demucs_mt compilé par la CI de StudioVoix avec GCC MinGW, statique, x86-64-v2) :
+            // séparation d'un morceau en batterie / basse / autres / voix.
+            {
+                ToolDef t;
+                t.id = "demucs";
+                t.name = "Demucs (séparation d'instru)"_u8;
+                t.description = "Sépare un morceau en quatre parties (batterie, basse, autres instruments, voix) pour les traiter "
+                                "séparément. Programme d'environ 3 Mo ; calcul long (plusieurs minutes par morceau, processeur)."_u8;
+                t.licence = "MIT";
+                t.executable = true;
+#if JUCE_WINDOWS
+                t.url = "https://github.com/jovenger/rebuild_project/releases/download/outils-ia/demucs_mt.exe";
+                t.fileName = "demucs_mt.exe";
+#else
+                t.fileName = "demucs_mt";
+#endif
+                v.push_back (t);
+            }
+            // Modèle Demucs v4 « htdemucs » 4 sources, converti au format ggml pour demucs.cpp.
+            {
+                ToolDef t;
+                t.id = "demucs-htdemucs";
+                t.name = "Modèle Demucs htdemucs (4 parties)"_u8;
+                t.description = "Réseau Hybrid Transformer Demucs (Meta) utilisé par l'outil Demucs. Environ 84 Mo."_u8;
+                t.licence = "MIT";
+                t.url = "https://huggingface.co/datasets/Retrobear/demucs.cpp/resolve/main/ggml-model-htdemucs-4s-f16.bin";
+                t.fileName = "ggml-model-htdemucs-4s-f16.bin";
+                v.push_back (t);
+            }
             // Modèle whisper.cpp « base » (OpenAI Whisper, converti en ggml) : paroles reconnues et calées mot par mot.
             {
                 ToolDef t;

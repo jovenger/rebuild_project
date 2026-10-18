@@ -860,6 +860,9 @@ void MainComponent::refreshAll()
     if (lyrics != nullptr) lyrics->refresh();
     if (mixPanel != nullptr) mixPanel->refresh();
     if (aiPanel != nullptr) aiPanel->refresh();
+#if SV_EDITION_IA
+    if (localAi != nullptr) localAi->refresh();
+#endif
     statusBar.setText ((session.isBusy() ? juce::String ("[Calcul en cours] ") : juce::String()) + session.statusText(), juce::dontSendNotification);
 }
 

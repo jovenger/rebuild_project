@@ -30,6 +30,8 @@ private:
     std::vector<std::unique_ptr<Row>> rows;
     juce::Label title, intro, folderLabel;
     juce::TextButton folderBtn { "Ouvrir le dossier des outils" };
+    juce::TextButton separateBtn { "Séparer l'instru en 4 pistes (Demucs)" };
+    juce::Label separateInfo;
     Session& session;
     juce::ThreadPool pool { 1 };
     void timerCallback() override;

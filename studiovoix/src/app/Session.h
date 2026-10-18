@@ -88,6 +88,9 @@ public:
     /** Édition IA : reconnaît les paroles de la voix principale (whisper.cpp) et cale chaque mot ; remplit les paroles
         si elles sont vides. En arrière-plan ; statut et journal à la fin. */
     void recognizeLyrics();
+    /** Édition IA : sépare l'instru en quatre pistes (batterie, basse, autres, voix) avec Demucs ; l'instru d'origine
+        est coupée (M). En arrière-plan (plusieurs minutes) ; statut et journal à la fin. */
+    void separateInstru();
     /** Ordre des pistes : index d'affichage visé. undoLabel vide = pas d'étape d'annulation (glisser en cours). */
     void moveTrack (int trackId, int newIndex, const juce::String& undoLabel);
     /** Cale l'audio de la piste au début du morceau (la première prise à 0 s, les autres gardent leurs écarts). */

@@ -45,6 +45,13 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
   blocs de la voix principale quand la timeline est assez zoomée, mots sauvegardés dans le projet. Outils : whisper.cpp
   (binaire Windows) et modèle Whisper base, à installer dans IA locale.
 
+  **Séparer l'instru** (StudioVoix IA, onglet IA locale → « Séparer l'instru en 4 pistes (Demucs) ») : demucs.cpp
+  (Demucs v4 Hybrid Transformer, 4 sources) découpe l'instru en quatre pistes brutes — batterie, basse, autres
+  instruments, voix — placées au même endroit que l'instru, qui est coupée (M pour la rétablir, Ctrl+Z pour annuler) ;
+  chaque partie se traite ensuite comme une piste instrument (style, chaîne visible, orchestre). Pistes mono (format des
+  prises du projet). Plusieurs minutes de calcul sur le processeur. Outils : binaire `demucs_mt.exe` compilé par la CI
+  (release GitHub `outils-ia`) et modèle `ggml-model-htdemucs-4s-f16.bin` (84 Mo), à installer dans IA locale.
+
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 
 ## Premier lancement

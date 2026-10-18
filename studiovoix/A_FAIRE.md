@@ -17,12 +17,13 @@ comment les automatismes doivent être faits, ordre proposé.
   reconnaissance des paroles (whisper-cli + modèle base), mastering par référence à l'export. Les téléchargements et
   l'exécution réelle des outils sont impossibles depuis l'environnement de développement (réseau bloqué) ; seule la CI
   Windows a téléchargé les outils et relevé leurs empreintes.
-- Demucs (séparation d'instru) : compilation expérimentale de demucs.cpp en CI. Build 58 : CMake 4 refuse le
-  CMakeLists trop ancien (corrigé : policy 3.5). Build 59 : MSVC refuse les drapeaux GCC du projet (`-Wextra`,
-  `-Ofast -march=native`, OpenBLAS requis). Build 60 : compilation avec le GCC MinGW de l'image Windows (OpenMP seul,
-  binaire statique, `-march=x86-64-v2`), cible `demucs_mt.cpp.main` uniquement. Si ça compile : publier le binaire
-  (release GitHub « outils ») et ajouter le modèle `ggml-model-htdemucs-4s-f16.bin` (84 Mo, HuggingFace
-  Retrobear/demucs.cpp) au catalogue ; sortie attendue : target_0_drums / 1_bass / 2_other / 3_vocals.wav.
+- Demucs (séparation d'instru) : intégration faite (outil `demucs` + modèle `demucs-htdemucs` au catalogue, module
+  `core/ai/Separate`, bouton dans IA locale, 4 pistes brutes créées, instru coupée). Binaire : compilation de
+  demucs.cpp en CI avec le GCC MinGW de l'image Windows (build 58 : CMake 4 ; 59 : MSVC refuse les drapeaux GCC ;
+  60 : PowerShell coupait « =3.5 » ; 61 : bash + Ninja). Dès qu'elle réussit, la CI publie `demucs_mt.exe` dans la
+  release GitHub `outils-ia` (adresse déjà épinglée dans le catalogue) et le relevé d'empreintes suivant donne la taille
+  et le SHA-256 à épingler (binaire et modèle). Non vérifié : exécution réelle de demucs_mt (PC de Yann) ; parties en
+  mono (les prises du projet sont mono) — stéréo à envisager.
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.
 

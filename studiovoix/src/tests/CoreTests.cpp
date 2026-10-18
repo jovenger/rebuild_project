@@ -8,6 +8,7 @@
 #include "core/ai/LocalTools.h"
 #include "core/ai/AiClean.h"
 #include "core/ai/Lyrics.h"
+#include "core/ai/Separate.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -965,6 +966,51 @@ public:
             expect (res.applied && res.fromCache && std::abs (x[100] - 0.1f) < 1e-4f && x.size() == a.size(), "cache utilisé : " + res.note);
             res = ai::local::cleanWithDeepFilter (x, 44100.0, cache);
             expect (! res.applied && res.note.contains ("48 kHz"), "fréquence refusée : " + res.note);
+            ai::local::setToolsFolder (juce::File());
+            dir.deleteRecursively();
+        }
+
+        beginTest ("Separation IA (Demucs) : outil absent, lecture des 4 parties, faux outil");
+        {
+            const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_sep_test_" + juce::String (juce::Time::currentTimeMillis()));
+            const auto toolsDir = dir.getChildFile ("outils");
+            toolsDir.createDirectory();
+            ai::local::setToolsFolder (toolsDir);
+            expect (ai::local::findTool ("demucs") != nullptr && ai::local::findTool ("demucs-htdemucs") != nullptr && ! ai::local::demucsAvailable(), "catalogue, outil absent");
+            Stereo mix (2, 48000 * 2);
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < mix.getNumSamples(); ++i)
+                    mix.setSample (c, i, 0.3f * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / 48000.0f));
+            auto res = ai::local::separateWithDemucs (mix, 48000.0, dir.getChildFile ("cache"));
+            expect (! res.ok && res.note.contains ("pas install"), "sans outil : raison donnée : "_u8 + res.note);
+            // Lecture des sorties : 4 WAV 44,1 kHz relus au taux du projet.
+            const auto outDir = dir.getChildFile ("sortie");
+            outDir.createDirectory();
+            juce::String err;
+            ai::local::StemSet stems;
+            expect (! ai::local::readDemucsOutputs (outDir, 48000.0, stems, err) && err.contains ("manquant"), "sorties manquantes : " + err);
+            const Stereo at44 = audio::resample (mix, 48000.0, 44100.0);
+            for (const char* n : { "target_0_drums.wav", "target_1_bass.wav", "target_2_other.wav", "target_3_vocals.wav" })
+                expect (audio::writeFile (outDir.getChildFile (n), at44, 44100.0, audio::FileFormat::Wav16, err), juce::String ("écriture ") + n + " : " + err);
+            expect (ai::local::readDemucsOutputs (outDir, 48000.0, stems, err) && std::abs (static_cast<long> (stems.drums.size()) - 96000L) < 50
+                        && stems.vocals.size() == stems.drums.size() && std::abs (audio::rms (stems.bass.data(), stems.bass.size()) - 0.3f / std::sqrt (2.0f)) < 0.02f,
+                    "4 parties relues à 48 kHz (" + juce::String (static_cast<int> (stems.drums.size())) + " éch., rms " + juce::String (audio::rms (stems.bass.data(), stems.bass.size()), 3) + ") " + err);
+#if JUCE_LINUX || JUCE_MAC
+            // Faux outil : copie l'entrée dans les quatre sorties ; faux modèle : fichier quelconque.
+            const auto* exe = ai::local::findTool ("demucs");
+            const auto* model = ai::local::findTool ("demucs-htdemucs");
+            const auto script = toolsDir.getChildFile (exe->fileName);
+            script.replaceWithText ("#!/bin/sh\ncp \"$2\" \"$3target_0_drums.wav\"\ncp \"$2\" \"$3target_1_bass.wav\"\ncp \"$2\" \"$3target_2_other.wav\"\ncp \"$2\" \"$3target_3_vocals.wav\"\necho ok\n",
+                                    false, false, "\n");
+            script.setExecutePermission (true);
+            toolsDir.getChildFile (model->fileName).replaceWithText ("modele factice");
+            expect (ai::local::demucsAvailable(), "faux outil et faux modèle « installés »"_u8);
+            res = ai::local::separateWithDemucs (mix, 48000.0, dir.getChildFile ("cache"));
+            expect (res.ok && std::abs (static_cast<long> (res.other.size()) - static_cast<long> (mix.getNumSamples())) < 50
+                        && std::abs (audio::rms (res.other.data(), res.other.size()) - 0.3f / std::sqrt (2.0f)) < 0.02f
+                        && ! dir.getChildFile ("cache").getChildFile ("separation_entree.wav").existsAsFile(),
+                    "faux Demucs : 4 parties relues, entrée temporaire effacée : " + res.note);
+#endif
             ai::local::setToolsFolder (juce::File());
             dir.deleteRecursively();
         }

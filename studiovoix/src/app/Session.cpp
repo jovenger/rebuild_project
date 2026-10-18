@@ -3,6 +3,7 @@
 #include "core/Log.h"
 #if SV_EDITION_IA
  #include "core/ai/Lyrics.h"
+ #include "core/ai/Separate.h"
 #endif
 #include "core/analysis/KeyDetector.h"
 #include "core/dsp/ProblemAnalyzer.h"
@@ -884,6 +885,77 @@ void Session::recognizeLyrics()
     });
 #else
     setStatus ("Reconnaissance des paroles : disponible dans StudioVoix IA"_u8);
+#endif
+}
+
+void Session::separateInstru()
+{
+#if SV_EDITION_IA
+    const auto* instru = proj.instruTrack();
+    if (instru == nullptr || instru->sourceFile.isEmpty())
+    {
+        setStatus ("Séparation : importe d'abord une instru"_u8);
+        return;
+    }
+    if (! ai::local::demucsAvailable())
+    {
+        setStatus ("Séparation : installe Demucs et son modèle dans IA locale"_u8);
+        return;
+    }
+    const auto src = proj.audioDir().getChildFile (instru->sourceFile);
+    const double startSec = static_cast<double> (instru->sourceStart) / proj.sampleRate;
+    const auto work = proj.audioDir().getChildFile ("cache_ia");
+    const double sr = proj.sampleRate;
+    const int instruId = instru->id;
+    setStatus ("Séparation de l'instru en cours (Demucs, plusieurs minutes)…"_u8);
+    SV_LOG_INFO (kMod, "Séparation Demucs de "_u8 + src.getFileName());
+    ++activeJobs;
+    juce::WeakReference<Session> weak (this);
+    const int ep = epoch;
+    pool.addJob ([weak, src, work, sr, startSec, instruId, ep]
+    {
+        auto stems = std::make_shared<ai::local::StemSet>();
+        auto loaded = audio::loadStereo (src, sr);
+        if (! loaded.ok())
+            stems->note = "instru illisible : " + loaded.error;
+        else
+            *stems = ai::local::separateWithDemucs (loaded.buffer, sr, work);
+        juce::MessageManager::callAsync ([weak, stems, startSec, instruId, ep]
+        {
+            auto* s = weak.get();
+            if (s == nullptr || ep != s->epoch)
+                return;
+            --s->activeJobs;
+            if (! stems->ok)
+            {
+                s->setStatus ("Séparation : "_u8 + stems->note);
+                return;
+            }
+            s->pushUndo ("Séparation de l'instru (Demucs)"_u8);
+            const std::pair<const char*, const Mono*> parts[4] = { { "Batterie (Demucs)", &stems->drums }, { "Basse (Demucs)", &stems->bass },
+                                                                    { "Autres instruments (Demucs)", &stems->other }, { "Voix de l'instru (Demucs)", &stems->vocals } };
+            int created = 0;
+            for (const auto& [name, data] : parts)
+            {
+                auto& t = s->proj.addTrack (style::Role::Instrument, juce::String::fromUTF8 (name));
+                t.raw = true;   // brute : aucun effet tant qu'aucun style n'est choisi
+                juce::String err;
+                if (s->addTakeFromAudio (t.id, *data, startSec, err))
+                    ++created;
+                else
+                    SV_LOG_ERROR (kMod, "Partie « "_u8 + juce::String::fromUTF8 (name) + " » non enregistrée : "_u8 + err);
+            }
+            if (auto* inst = s->proj.findTrack (instruId))
+                inst->mute = true;
+            s->markDirty();
+            s->rebuildPlayState();
+            s->sendChangeMessage();
+            s->setStatus (juce::String (created) + " pistes créées depuis l'instru en "_u8 + juce::String (stems->seconds, 0)
+                          + " s ; l'instru d'origine est coupée (M pour la rétablir, Ctrl+Z pour annuler)"_u8);
+        });
+    });
+#else
+    setStatus ("Séparation de l'instru : disponible dans StudioVoix IA"_u8);
 #endif
 }
 

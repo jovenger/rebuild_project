@@ -2,6 +2,7 @@
 
 #include "Theme.h"
 #include "core/Log.h"
+#include "core/ai/Separate.h"
 
 namespace sv::app
 {
@@ -12,8 +13,15 @@ namespace
 
 LocalAiPanel::LocalAiPanel (Session& s) : session (s)
 {
-    for (auto* c : std::initializer_list<juce::Component*> { &title, &intro, &folderLabel, &folderBtn })
+    for (auto* c : std::initializer_list<juce::Component*> { &title, &intro, &folderLabel, &folderBtn, &separateBtn, &separateInfo })
         addAndMakeVisible (*c);
+    theme::setButtonKind (separateBtn, "primary");
+    separateBtn.setTooltip ("Demucs sépare l'instru en batterie, basse, autres instruments et voix : quatre pistes brutes à traiter "
+                            "séparément ; l'instru d'origine est coupée. Plusieurs minutes de calcul sur le processeur."_u8);
+    separateBtn.onClick = [this] { session.separateInstru(); };
+    separateInfo.setFont (juce::FontOptions (11.5f));
+    separateInfo.setColour (juce::Label::textColourId, theme::textDim);
+    separateInfo.setJustificationType (juce::Justification::topLeft);
     title.setText ("IA locale (gratuite, sur ce PC)"_u8, juce::dontSendNotification);
     title.setFont (juce::FontOptions (16.0f, juce::Font::bold));
     intro.setText ("Ces briques libres sont téléchargées une fois, puis utilisées par le studio sans connexion. "
@@ -122,6 +130,13 @@ void LocalAiPanel::timerCallback()
 void LocalAiPanel::refresh()
 {
     folderLabel.setText ("Dossier : " + ai::local::toolsFolder().getFullPathName(), juce::dontSendNotification);
+    const bool demucs = ai::local::demucsAvailable();
+    const auto* instru = session.project().instruTrack();
+    separateBtn.setEnabled (demucs && instru != nullptr && instru->sourceFile.isNotEmpty() && ! session.isBusy());
+    separateInfo.setText (! demucs ? "Installe Demucs et son modèle ci-dessus pour séparer l'instru."_u8
+                          : (instru == nullptr || instru->sourceFile.isEmpty() ? "Importe une instru pour la séparer."_u8
+                             : "Crée quatre pistes brutes (batterie, basse, autres, voix) à partir de l'instru et coupe l'instru d'origine."_u8),
+                          juce::dontSendNotification);
     for (auto& r : rows)
     {
         if (r->def == nullptr)
@@ -182,6 +197,10 @@ void LocalAiPanel::resized()
         r.removeFromTop (8);
     }
     r.removeFromTop (6);
+    separateBtn.setBounds (r.removeFromTop (28).removeFromLeft (300));
+    r.removeFromTop (2);
+    separateInfo.setBounds (r.removeFromTop (18));
+    r.removeFromTop (8);
     folderBtn.setBounds (r.removeFromTop (26).removeFromLeft (220));
     r.removeFromTop (4);
     folderLabel.setBounds (r.removeFromTop (18));

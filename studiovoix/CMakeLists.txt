@@ -71,6 +71,7 @@ set(SV_CORE_SOURCES
     src/core/ai/LocalTools.cpp
     src/core/ai/AiClean.cpp
     src/core/ai/Lyrics.cpp
+    src/core/ai/Separate.cpp
     src/core/project/Project.cpp
     src/core/project/Renderer.cpp
     src/core/update/Updater.cpp)
