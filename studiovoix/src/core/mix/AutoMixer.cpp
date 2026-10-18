@@ -46,7 +46,8 @@ AutoMixResult autoMix (const Stereo& instru, const Stereo& leadProcessed, const 
         }
         const float maxDb = gainToDb (maxE);
 
-        for (int c = 0; c < 2; ++c)
+        // Toutes les voix muettes : aucun creux (sinon l'instru serait creusée en permanence).
+        for (int c = 0; c < (maxE > 1.0e-6f ? 2 : 0); ++c)
         {
             const float* src = instru.getReadPointer (c);
             float* dst = r.duckedInstru.getWritePointer (c);

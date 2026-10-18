@@ -2,6 +2,8 @@
 
 #include "Log.h"
 
+#include <numeric>
+
 namespace sv::audio
 {
 namespace
@@ -61,6 +63,76 @@ namespace
 
             out[n] = static_cast<float> (wsum > 1.0e-9 ? acc / wsum : acc);
         }
+    }
+
+    // Rapport rationnel (44,1 -> 48 kHz = 160/147, 48 -> 16 kHz = 1/3…) : même noyau, mais coefficients
+    // précalculés et normalisés pour chacune des L phases ; chaque échantillon devient un produit scalaire
+    // de 48 points (au lieu de 48 interpolations de table). Retourne false si le rapport ne s'y prête pas.
+    bool resamplePolyphase (const float* in, int inLen, float* out, int outLen, double fromSr, double toSr)
+    {
+        const double fr = std::round (fromSr), tr = std::round (toSr);
+        if (std::abs (fr - fromSr) > 1.0e-9 || std::abs (tr - toSr) > 1.0e-9 || fr < 1.0 || tr < 1.0)
+            return false;
+        const long long g = std::gcd (static_cast<long long> (fr), static_cast<long long> (tr));
+        const long long L = static_cast<long long> (tr) / g, M = static_cast<long long> (fr) / g;   // sortie n <-> entrée n*M/L
+        if (L > 2048)
+            return false;
+
+        constexpr int halfTaps = 24, taps = 2 * halfTaps;
+        const double ratio = fromSr / toSr;
+        const double cutoff = ratio > 1.0 ? 1.0 / ratio : 1.0;
+        const double pi = juce::MathConstants<double>::pi;
+        std::vector<float> coeffs (static_cast<size_t> (L) * taps);
+        for (long long ph = 0; ph < L; ++ph)
+        {
+            const double frac = static_cast<double> (ph) / static_cast<double> (L);
+            float* c = coeffs.data() + static_cast<size_t> (ph) * taps;
+            double sum = 0.0;
+            std::array<double, taps> v {};
+            for (int j = 0; j < taps; ++j)
+            {
+                const double x = frac + halfTaps - 1 - j;   // t - k, avec k = centre - halfTaps + 1 + j
+                const double xc = x * cutoff;
+                const double sinc = std::abs (xc) < 1.0e-9 ? 1.0 : std::sin (pi * xc) / (pi * xc);
+                const double wpos = (x + halfTaps) / (2.0 * halfTaps);
+                const double w = (wpos <= 0.0 || wpos >= 1.0) ? 0.0
+                                                              : 0.42 - 0.5 * std::cos (2.0 * pi * wpos) + 0.08 * std::cos (4.0 * pi * wpos);
+                v[static_cast<size_t> (j)] = sinc * w * cutoff;
+                sum += v[static_cast<size_t> (j)];
+            }
+            for (int j = 0; j < taps; ++j)
+                c[j] = static_cast<float> (sum > 1.0e-9 ? v[static_cast<size_t> (j)] / sum : v[static_cast<size_t> (j)]);
+        }
+
+        for (int n = 0; n < outLen; ++n)
+        {
+            const long long pos = static_cast<long long> (n) * M;
+            const int centre = static_cast<int> (pos / L);
+            const float* c = coeffs.data() + static_cast<size_t> (pos % L) * taps;
+            const int k0 = centre - halfTaps + 1;
+            float s = 0.0f;
+            if (k0 >= 0 && k0 + taps <= inLen)
+            {
+                const float* x = in + k0;
+                float a0 = 0.0f, a1 = 0.0f, a2 = 0.0f, a3 = 0.0f;
+                for (int j = 0; j < taps; j += 4)
+                {
+                    a0 += c[j] * x[j];
+                    a1 += c[j + 1] * x[j + 1];
+                    a2 += c[j + 2] * x[j + 2];
+                    a3 += c[j + 3] * x[j + 3];
+                }
+                s = (a0 + a1) + (a2 + a3);
+            }
+            else
+            {
+                for (int j = 0; j < taps; ++j)
+                    if (const int k = k0 + j; k >= 0 && k < inLen)
+                        s += c[j] * in[k];
+            }
+            out[n] = s;
+        }
+        return true;
     }
 }
 
@@ -180,7 +252,8 @@ Mono resample (const Mono& in, double fromSr, double toSr)
     const double ratio = fromSr / toSr;
     const int outLen = static_cast<int> (std::floor (static_cast<double> (in.size()) / ratio));
     Mono out (static_cast<size_t> (std::max (0, outLen)));
-    resampleChannel (in.data(), static_cast<int> (in.size()), out.data(), outLen, ratio);
+    if (! resamplePolyphase (in.data(), static_cast<int> (in.size()), out.data(), outLen, fromSr, toSr))
+        resampleChannel (in.data(), static_cast<int> (in.size()), out.data(), outLen, ratio);
     return out;
 }
 
@@ -192,7 +265,8 @@ Stereo resample (const Stereo& in, double fromSr, double toSr)
     const int outLen = static_cast<int> (std::floor (in.getNumSamples() / ratio));
     Stereo out (in.getNumChannels(), std::max (0, outLen));
     for (int c = 0; c < in.getNumChannels(); ++c)
-        resampleChannel (in.getReadPointer (c), in.getNumSamples(), out.getWritePointer (c), outLen, ratio);
+        if (! resamplePolyphase (in.getReadPointer (c), in.getNumSamples(), out.getWritePointer (c), outLen, fromSr, toSr))
+            resampleChannel (in.getReadPointer (c), in.getNumSamples(), out.getWritePointer (c), outLen, ratio);
     return out;
 }
 

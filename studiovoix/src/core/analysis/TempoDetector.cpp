@@ -140,6 +140,29 @@ TempoInfo detectTempo (const Mono& signal, double sampleRate, double minBpm, dou
     else if (bestBpm > 180.0)
         bestBpm *= 0.5;
 
+    // Affinage sur toute la durée (±1,5 %, pas de 0,01 BPM) : l'autocorrélation tombe sur des décalages
+    // entiers de trames (140,6 au lieu de 140), et la grille dériverait de ~0,8 s sur 3 min.
+    {
+        double refBpm = bestBpm, refScore = -1.0;
+        for (double b = bestBpm * 0.985; b <= bestBpm * 1.015; b += 0.01)
+        {
+            const double per = 60.0 * fps / b;
+            for (double ph = 0.0; ph < per; ph += 0.5)
+            {
+                double sc = 0.0;
+                for (double t = ph; t < len - 1; t += per)
+                    sc += interpAt (o, t);
+                if (sc > refScore)
+                {
+                    refScore = sc;
+                    refBpm = b;
+                }
+            }
+        }
+        SV_LOG_DEBUG (kMod, "Tempo affiné : "_u8 + juce::String (bestBpm, 2) + " -> " + juce::String (refBpm, 2) + " BPM");
+        bestBpm = refBpm;
+    }
+
     // Phase des temps : maximise la somme du flux sur la grille.
     const double period = 60.0 * fps / bestBpm;
     double bestPhase = 0.0, bestPhaseScore = -1.0;
@@ -162,7 +185,7 @@ TempoInfo detectTempo (const Mono& signal, double sampleRate, double minBpm, dou
     {
         double s = 0.0;
         for (double t = bestPhase + j * period; t < len - 1; t += 4.0 * period)
-            s += interpAt (env.low, t) + 0.25 * interpAt (o, t);
+            s += interpAt (env.low, t);   // grosse caisse seule (le flux large bande favorisait la caisse claire)
         if (s > bestDown)
         {
             bestDown = s;
@@ -170,7 +193,7 @@ TempoInfo detectTempo (const Mono& signal, double sampleRate, double minBpm, dou
         }
     }
 
-    info.bpm = std::round (bestBpm * 10.0) / 10.0;
+    info.bpm = std::round (bestBpm * 100.0) / 100.0;   // au centième : grille juste sur un morceau entier
     info.firstBeatSec = (bestPhase + bestBeatOfBar * period) / fps;
     info.beatsPerBar = 4;
     const double meanScore = scoreCount > 0 ? scoreSum / scoreCount : 0.0;

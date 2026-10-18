@@ -103,6 +103,8 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
     std::array<double, 12> early {};  // accords du début (130 Hz - 2 kHz) : indice de tonique
     int frames = 0;
     const int n = static_cast<int> (x.size());
+    const int earlyBudget = std::max (1, (n / kHop) / 8);
+    int earlyUsed = 0;
     for (int start = 0; start + kFft <= std::max (n, kFft); start += kHop)
     {
         std::fill (buf.begin(), buf.end(), 0.0f);
@@ -133,7 +135,8 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
         }
         if (total < 1.0e-6)
             continue;   // trame silencieuse
-        const bool isEarly = start < std::max (kHop, n / 8);
+        // « Début » = premier huitième des trames non silencieuses (un intro silencieux ne le vide plus).
+        const bool isEarly = earlyUsed++ < earlyBudget;
         for (int i = 0; i < 12; ++i)
         {
             acc[static_cast<size_t> (i)] += chroma[static_cast<size_t> (i)] / total;
@@ -214,7 +217,22 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
         }
     }
 
-    result.key.confidence = juce::jlimit (0.0f, 1.0f, (best - second) * 4.0f + 0.25f * best);
+    // Confiance sur la GAMME (ce qui compte pour la justesse et les harmonies) : la tonalité relative a les
+    // mêmes notes, on compare donc à la meilleure tonalité d'une autre gamme. Sinon une tonalité juste mais
+    // proche de sa relative paraissait incertaine.
+    {
+        const int chosen = result.key.minor ? 12 + result.key.root : result.key.root;
+        const int relative = result.key.minor ? (result.key.root + 3) % 12 : 12 + (result.key.root + 9) % 12;
+        const float scaleBest = std::max (result.scores[static_cast<size_t> (chosen)], result.scores[static_cast<size_t> (relative)]);
+        float otherScale = -2.0f;
+        for (int i = 0; i < 24; ++i)
+            if (i != chosen && i != relative)
+                otherScale = std::max (otherScale, result.scores[static_cast<size_t> (i)]);
+        juce::ignoreUnused (second);
+        // Et sur le caractère tonal du signal : corrélation au profil sous 0,5 = peu d'harmonie (batterie, bruit).
+        const float tonal = juce::jlimit (0.0f, 1.0f, scaleBest / 0.5f);
+        result.key.confidence = juce::jlimit (0.0f, 1.0f, (scaleBest - otherScale) * 5.0f) * tonal;
+    }
 
     SV_LOG_INFO (kMod, "Tonalité détectée : "_u8 + result.key.toFrench() + " (score " + juce::String (best, 3)
                        + ", confiance " + juce::String (result.key.confidence, 2) + ", " + juce::String (frames) + " trames)");

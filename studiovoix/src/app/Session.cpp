@@ -141,7 +141,9 @@ bool Session::openProject (const juce::File& folderOrFile, bool preferAutosave, 
     proj = std::move (loaded);
     appSettings.setLastProject (proj.folder);
     afterProjectLoaded();
-    setStatus ("Projet ouvert : "_u8 + proj.name);
+    setStatus ("Projet ouvert : "_u8 + proj.name
+               + (proj.loadWarnings.isEmpty() ? juce::String()
+                                              : " — réparé au chargement : "_u8 + proj.loadWarnings.joinIntoString ("; ")));
     renderAll();
     recoverInterruptedTakes();
     return true;

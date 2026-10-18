@@ -82,6 +82,7 @@ struct Project
     bool autoMixEnabled = true;
     float duckingDb = 2.5f;
     juce::String referenceFile;      // morceau de référence (chemin absolu)
+    juce::StringArray loadWarnings;  // réparations faites au chargement (non enregistré)
     juce::String adLibFolder;        // banque d'ad-libs (chemin absolu)
     std::vector<Track> tracks;
     int nextTrackId = 1;

@@ -97,18 +97,47 @@ juce::String normalise (const juce::String& text)
         const juce::juce_wchar c = p.getAndAdvance();
         switch (c)
         {
-            case 0xE0: case 0xE2: case 0xE4: out << 'a'; break;
-            case 0xE9: case 0xE8: case 0xEA: case 0xEB: out << 'e'; break;
-            case 0xEE: case 0xEF: out << 'i'; break;
-            case 0xF4: case 0xF6: out << 'o'; break;
-            case 0xF9: case 0xFB: case 0xFC: out << 'u'; break;
-            case 0xE7: out << 'c'; break;
-            case 0x153: out << "oe"; break;
+            // Minuscules et majuscules accentuées (toLowerCase ne traite que l'ASCII selon la locale).
+            case 0xE0: case 0xE2: case 0xE4: case 0xC0: case 0xC2: case 0xC4: out << 'a'; break;
+            case 0xE9: case 0xE8: case 0xEA: case 0xEB: case 0xC9: case 0xC8: case 0xCA: case 0xCB: out << 'e'; break;
+            case 0xEE: case 0xEF: case 0xCE: case 0xCF: out << 'i'; break;
+            case 0xF4: case 0xF6: case 0xD4: case 0xD6: out << 'o'; break;
+            case 0xF9: case 0xFB: case 0xFC: case 0xD9: case 0xDB: case 0xDC: out << 'u'; break;
+            case 0xE7: case 0xC7: out << 'c'; break;
+            case 0x153: case 0x152: out << "oe"; break;
             case 0x2019: case 0x2018: out << '\''; break;
             default: out << juce::String::charToString (c); break;
         }
     }
     return out.replace ("d'", "de ").replace ("l'", "le ");
+}
+
+namespace
+{
+    // Valeur absolue demandée dans la proposition : « à 30 % », « 30 % », « à 0,5 », « à zéro ». -1 sinon.
+    float absoluteValue (const juce::String& clause)
+    {
+        if (containsWord (clause, "a zero") || containsWord (clause, "zero"))
+            return 0.0f;
+        juce::StringArray tokens;
+        tokens.addTokens (clause.replace ("%", " % "), " ", "");
+        tokens.removeEmptyStrings();
+        for (int i = 0; i < tokens.size(); ++i)
+        {
+            const auto tok = tokens[i].replace ("#", ".");
+            if (! tok.containsOnly ("0123456789.") || ! tok.containsAnyOf ("0123456789"))
+                continue;
+            const bool percent = i + 1 < tokens.size() && (tokens[i + 1] == "%" || tokens[i + 1] == "pourcent" || tokens[i + 1] == "pourcents");
+            const bool afterA = i > 0 && tokens[i - 1] == "a";
+            if (! percent && ! afterA)
+                continue;   // « de 10 % » relatif, ou nombre sans rapport
+            if (! percent && i > 0 && tokens[i - 1] == "de")
+                continue;
+            const float v = tok.getFloatValue();
+            return juce::jlimit (0.0f, 1.0f, percent || v > 1.0f ? v / 100.0f : v);
+        }
+        return -1.0f;
+    }
 }
 
 CommandResult apply (const juce::String& text, const style::Macros& current)
@@ -119,41 +148,76 @@ CommandResult apply (const juce::String& text, const style::Macros& current)
     if (t.trim().isEmpty())
         return res;
 
-    // Sens global : "moins", "baisse", "enleve"... sinon "plus".
-    int direction = +1;
-    for (const char* neg : { "moins", "baisse", "diminue", "enleve", "retire", "reduis", "reduit", "sans", "pas assez" })
-        if (containsWord (t, neg))
-            direction = -1;
-    if (containsWord (t, "pas assez"))
-        direction = +1;
-    for (const char* pos : { "plus", "augmente", "monte", "ajoute", "rajoute", "davantage" })
-        if (containsWord (t, pos) && ! containsWord (t, "moins"))
-            direction = +1;
-    if (containsWord (t, "trop"))
-        direction = -1;   // "trop de réverb" = en enlever
-
-    float amount = 0.15f;
-    for (const char* big : { "beaucoup", "vraiment", "tres", "carrement", "a fond", "max" })
-        if (containsWord (t, big))
-            amount = 0.3f;
-    for (const char* small : { "un peu", "legerement", "leger", "petit", "chouia" })
-        if (containsWord (t, small))
-            amount = 0.07f;
-
-    std::vector<Target> done;
-    for (const auto& kw : kKeywords)
+    // Une demande peut mêler plusieurs consignes : « plus de reverb et moins d'autotune ».
+    // Chaque proposition a son propre sens.
+    // Les décimales (« 0,5 », « 0.5 ») sont protégées avant le découpage sur la ponctuation.
+    juce::String protectedText;
+    for (int i = 0; i < t.length(); ++i)
     {
-        if (! containsWord (t, kw.word))
-            continue;
-        if (std::find (done.begin(), done.end(), kw.target) != done.end())
-            continue;
-        done.push_back (kw.target);
+        const auto ch = t[i];
+        const bool decimal = (ch == ',' || ch == '.') && i > 0 && i + 1 < t.length()
+                             && juce::CharacterFunctions::isDigit (t[i - 1]) && juce::CharacterFunctions::isDigit (t[i + 1]);
+        protectedText << juce::String::charToString (decimal ? juce::juce_wchar ('#') : ch);
+    }
+    juce::StringArray clauses;
+    clauses.addTokens (protectedText.replace (" et ", ",").replace (" mais ", ",").replace (" puis ", ",").replace (";", ",").replace (".", ","), ",", "");
+    clauses.trim();
+    clauses.removeEmptyStrings();
 
-        float& f = field (res.macros, kw.target);
-        const float before = f;
-        f = juce::jlimit (0.0f, 1.0f, f + static_cast<float> (direction * kw.inherentSign) * amount);
-        res.understood = true;
-        res.changes.add (juce::String (targetName (kw.target)) + " : " + juce::String (before, 2) + " -> " + juce::String (f, 2));
+    for (const auto& c : clauses)
+    {
+        // Sens : relatif (+1 / -1) ou mise à zéro (« pas de », « aucune », « coupe »…).
+        int direction = +1;
+        bool toZero = false;
+        if (containsWord (c, "pas assez") || containsWord (c, "trop peu"))
+            direction = +1;
+        else if (containsWord (c, "trop"))
+            direction = -1;   // « trop de réverb », « pas trop de réverb » = en enlever
+        else
+        {
+            for (const char* strong : { "pas de", "pas le", "aucun", "aucune", "sans", "coupe", "supprime", "arrete", "stop", "ne", "zero" })
+                if (containsWord (c, strong))
+                    toZero = true;
+            if (! toZero)
+            {
+                for (const char* neg : { "moins", "baisse", "diminue", "enleve", "retire", "reduis", "reduit" })
+                    if (containsWord (c, neg))
+                        direction = -1;
+                for (const char* pos : { "plus", "augmente", "monte", "ajoute", "rajoute", "davantage" })
+                    if (containsWord (c, pos) && ! containsWord (c, "moins"))
+                        direction = +1;
+            }
+        }
+
+        float amount = 0.15f;
+        for (const char* big : { "beaucoup", "vraiment", "tres", "carrement", "a fond", "max" })
+            if (containsWord (c, big))
+                amount = 0.3f;
+        for (const char* small : { "un peu", "legerement", "leger", "petit", "chouia" })
+            if (containsWord (c, small))
+                amount = 0.07f;
+        const float absolute = absoluteValue (c);
+
+        std::vector<Target> done;
+        for (const auto& kw : kKeywords)
+        {
+            if (! containsWord (c, kw.word))
+                continue;
+            if (std::find (done.begin(), done.end(), kw.target) != done.end())
+                continue;
+            done.push_back (kw.target);
+
+            float& f = field (res.macros, kw.target);
+            const float before = f;
+            if (absolute >= 0.0f && kw.inherentSign > 0)
+                f = absolute;
+            else if (toZero && kw.inherentSign > 0)
+                f = 0.0f;
+            else
+                f = juce::jlimit (0.0f, 1.0f, f + static_cast<float> ((toZero ? -1 : direction) * kw.inherentSign) * amount);
+            res.understood = true;
+            res.changes.add (juce::String (targetName (kw.target)) + " : " + juce::String (before, 2) + " -> " + juce::String (f, 2));
+        }
     }
 
     SV_LOG_INFO (kMod, "Demande \"" + text + "\" -> " + (res.understood ? res.changes.joinIntoString ("; ") : juce::String ("non comprise")));

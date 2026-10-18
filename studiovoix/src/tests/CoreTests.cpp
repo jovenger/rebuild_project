@@ -26,6 +26,8 @@
 #include "core/project/Project.h"
 #include "core/project/Renderer.h"
 
+#include <set>
+
 namespace sv::test
 {
 namespace
@@ -222,10 +224,29 @@ public:
         {
             const auto instru = synthInstru (140.0, aMinor(), 16, kSr, false);
             const auto t = analysis::detectTempo (audio::toMono (instru), kSr);
-            expectWithinAbsoluteError (t.bpm, 140.0, 1.5);
+            expectWithinAbsoluteError (t.bpm, 140.0, 0.1);   // au centième : pas de dérive de grille
             const double beat = 60.0 / 140.0;
             const double phase = std::fmod (t.firstBeatSec, beat * 4.0);
             expect (phase < 0.03 || beat * 4.0 - phase < 0.03, "premier temps fort proche de 0 (mesure) : " + juce::String (t.firstBeatSec, 3));
+        }
+        beginTest ("Tonalite : signal sans harmonie -> confiance basse (correction chromatique)");
+        {
+            juce::Random rnd (11);
+            Mono noise (static_cast<size_t> (10 * kSr));
+            for (auto& v : noise)
+                v = (rnd.nextFloat() * 2.0f - 1.0f) * 0.2f;
+            const auto k = analysis::detectKey (noise, kSr);
+            expect (k.key.confidence < 0.2f, "confiance "_u8 + juce::String (k.key.confidence, 2));
+        }
+        beginTest ("Tonalite : Do majeur avec 6 s de silence au debut");
+        {
+            const auto instru = synthInstru (100.0, cMajor(), 16, kSr, false);
+            Mono mono (static_cast<size_t> (6 * kSr), 0.0f);
+            const auto body = audio::toMono (instru);
+            mono.insert (mono.end(), body.begin(), body.end());
+            const auto k = analysis::detectKey (mono, kSr);
+            logMessage ("détecté : "_u8 + k.key.toFrench());
+            expect (k.key.root == 0 && ! k.key.minor, "Do majeur attendu, détecté "_u8 + k.key.toFrench());
         }
         beginTest ("Tempo 95 BPM");
         {
@@ -496,6 +517,20 @@ public:
         expect (! assistant::apply ("bonjour", m).understood);
         beginTest ("plus naturel = moins d'autotune");
         expect (assistant::apply ("plus naturel", m).macros.autotune < 0.5f);
+        beginTest ("negations, valeurs absolues, phrases mixtes, majuscules accentuees");
+        expectWithinAbsoluteError (assistant::apply ("pas de reverb", m).macros.reverbTrim, 0.0f, 1.0e-6f);
+        expectWithinAbsoluteError (assistant::apply ("je ne veux plus d'autotune", m).macros.autotune, 0.0f, 1.0e-6f);
+        expectWithinAbsoluteError (assistant::apply ("coupe le délai"_u8, m).macros.delayTrim, 0.0f, 1.0e-6f);
+        expectWithinAbsoluteError (assistant::apply ("reverb à 30 %"_u8, m).macros.reverbTrim, 0.3f, 1.0e-4f);
+        expectWithinAbsoluteError (assistant::apply ("autotune à 0,8"_u8, m).macros.autotune, 0.8f, 1.0e-4f);
+        expect (assistant::apply ("trop peu de reverb", m).macros.reverbTrim > 0.5f, "trop peu = plus");
+        expect (assistant::apply ("pas trop de reverb", m).macros.reverbTrim < 0.5f, "pas trop = moins");
+        {
+            const auto r = assistant::apply ("plus de reverb et moins d'autotune", m);
+            expect (r.macros.reverbTrim > 0.5f && r.macros.autotune < 0.5f, "phrase mixte : " + r.changes.joinIntoString ("; "));
+        }
+        expect (assistant::apply ("PLUS DE RÉVERB"_u8, m).macros.reverbTrim > 0.5f, "majuscules accentuées"_u8);
+        expect (assistant::apply ("Écho plus fort"_u8, m).macros.delayTrim > 0.5f, "Écho = délai"_u8);
     }
 };
 
@@ -726,6 +761,25 @@ public:
         expectEquals (q.findTrack (leadId)->takes.size(), static_cast<size_t> (1));
         expectEquals (static_cast<int> (q.listVersions().size()), 1);
 
+        beginTest ("Projet modifie a la main : id en double, id texte, role absent");
+        {
+            juce::var v;
+            juce::JSON::parse (R"({"format":"studiovoix-project","version":1,"name":"main","tracks":[
+                {"id":1,"name":"Voix","role":"lead"},
+                {"id":"2","name":"Instru","sourceFile":"instru.wav"},
+                {"id":1,"name":"Back","role":"manual_back"}]})", v);
+            project::Project fixedProj;
+            juce::String loadErr;
+            expect (project::Project::fromVar (v, fixedProj, loadErr), loadErr);
+            expectEquals (static_cast<int> (fixedProj.tracks.size()), 3);
+            std::set<int> ids;
+            for (const auto& t : fixedProj.tracks)
+                ids.insert (t.id);
+            expectEquals (static_cast<int> (ids.size()), 3);
+            const auto* inst = fixedProj.instruTrack();
+            expect (inst != nullptr && inst->id == 2, "instru déduite, id texte accepté"_u8);
+            expect (! fixedProj.loadWarnings.isEmpty(), "réparations signalées"_u8);
+        }
         beginTest ("Fichier corrompu refuse proprement");
         {
             const auto bad = root.getChildFile ("corrompu");

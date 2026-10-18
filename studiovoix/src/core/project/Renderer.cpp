@@ -121,6 +121,7 @@ bool compositeRaw (const project::Project& p, const project::Track& t, AudioCach
 
     std::vector<std::shared_ptr<const Mono>> holders;
     std::vector<gen::TakeInput> inputs;
+    juce::StringArray missing;
     for (const auto& tk : t.takes)
     {
         juce::String err;
@@ -128,6 +129,7 @@ bool compositeRaw (const project::Project& p, const project::Track& t, AudioCach
         if (data == nullptr)
         {
             SV_LOG_WARN (kMod, "Prise ignorée ("_u8 + tk.file + ") : " + err);
+            missing.add (tk.file);
             continue;
         }
         holders.push_back (data);
@@ -151,6 +153,8 @@ bool compositeRaw (const project::Project& p, const project::Track& t, AudioCach
     out = res.audio;
     start = res.startSample;
     summary = res.summary;
+    if (! missing.isEmpty())
+        summary << " | PRISE(S) MANQUANTE(S) : "_u8 << missing.joinIntoString (", ");
     return ! out.empty();
 }
 
@@ -303,8 +307,7 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
                     dst.addSample (c, static_cast<int> (d), r.processed.getSample (c, i) * gain);
             }
     };
-    Stereo lead = makeStereo (n), all = makeStereo (n);
-    place (*itL->second, lead, 1.0f);
+    Stereo all = makeStereo (n);
     for (const auto& t : p.tracks)
     {
         if (! t.isVocal() || t.mute)
@@ -317,7 +320,8 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
     s.enabled = true;
     s.duckingDb = p.duckingDb;
     s.vocalOverInstruLu = style::masterTone (p.style).vocalOverInstruLu;
-    st.autoMix = mix::autoMix (instruBuf, lead, all, p.sampleRate, s);
+    // Sonie de la voix mesurée sur toute la voix (pas seulement là où elle recouvre l'instru).
+    st.autoMix = mix::autoMix (instruBuf, itL->second->processed, all, p.sampleRate, s);
     st.autoMixApplied = true;
     return st;
 }

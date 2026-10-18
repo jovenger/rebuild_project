@@ -2,6 +2,8 @@
 
 #include "../Log.h"
 
+#include <set>
+
 namespace sv::project
 {
 namespace
@@ -14,6 +16,15 @@ namespace
     double getD (const juce::var& v, const char* key, double def)
     {
         const auto x = v.getProperty (key, def);
+        if (x.isString())
+        {
+            // Projet modifié à la main : "2" accepté comme 2.
+            const auto s = x.toString().trim();
+            if (s.isEmpty() || ! s.containsOnly ("0123456789.-+eE"))
+                return def;
+            const double d = s.getDoubleValue();
+            return std::isfinite (d) ? d : def;
+        }
         if (! (x.isDouble() || x.isInt() || x.isInt64() || x.isBool()))
             return def;
         const double d = static_cast<double> (x);
@@ -304,6 +315,8 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
     p.nextTrackId = std::max (1, getI (v, "nextTrackId", 1));
     p.nextTakeId = std::max (1, getI (v, "nextTakeId", 1));
 
+    std::set<int> seenIds;
+    std::vector<size_t> needNewId;   // pistes sans identifiant valide ou en double : réparées après la boucle
     if (const auto* trs = v.getProperty ("tracks", {}).getArray())
         for (const auto& o : *trs)
         {
@@ -311,6 +324,7 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
             t.id = getI (o, "id", 0);
             t.name = getS (o, "name", "Piste");
             t.role = style::roleFromId (getS (o, "role", "lead"));
+            const bool roleMissing = o.getProperty ("role", {}).isVoid();
             t.volumeDb = static_cast<float> (juce::jlimit (-60.0, 12.0, getD (o, "volumeDb", 0.0)));
             t.pan = static_cast<float> (juce::jlimit (-1.0, 1.0, getD (o, "pan", 0.0)));
             t.mute = getB (o, "mute", false);
@@ -343,16 +357,29 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
                     else
                         SV_LOG_WARN (kMod, "Prise invalide ignorée dans la piste "_u8 + t.name);
                 }
-            if (t.id <= 0)
+            if (roleMissing && t.takes.empty() && t.sourceFile.isNotEmpty() && t.generatedFrom < 0)
             {
-                SV_LOG_WARN (kMod, "Piste sans identifiant ignorée : "_u8 + t.name);
-                continue;
+                t.role = style::Role::Instru;   // rôle absent : un fichier source sans prise est l'instru
+                p.loadWarnings.add ("rôle absent, déduit « instru » : "_u8 + t.name);
             }
-            p.nextTrackId = std::max (p.nextTrackId, t.id + 1);
+            if (t.id <= 0 || seenIds.count (t.id) > 0)
+            {
+                needNewId.push_back (p.tracks.size());
+                p.loadWarnings.add ((t.id <= 0 ? "piste sans identifiant : "_u8 : "identifiant en double : "_u8) + t.name);
+            }
+            else
+            {
+                seenIds.insert (t.id);
+                p.nextTrackId = std::max (p.nextTrackId, t.id + 1);
+            }
             for (const auto& tk : t.takes)
                 p.nextTakeId = std::max (p.nextTakeId, tk.id + 1);
             p.tracks.push_back (t);
         }
+    for (size_t idx : needNewId)
+        p.tracks[idx].id = p.nextTrackId++;
+    for (const auto& w : p.loadWarnings)
+        SV_LOG_WARN (kMod, "Projet réparé au chargement : "_u8 + w);
 
     out = std::move (p);
     return true;
@@ -438,6 +465,8 @@ bool Project::load (const juce::File& folderOrFile, Project& out, juce::String& 
 {
     log::ScopedTimer timer (kMod, "chargement projet");
     juce::File folder = folderOrFile.isDirectory() ? folderOrFile : folderOrFile.getParentDirectory();
+    if (folder.getFileName() == "historique")
+        folder = folder.getParentDirectory();   // version restaurée : les prises sont dans le dossier du projet
     juce::File file = folderOrFile.isDirectory() ? folder.getChildFile ("projet.svx") : folderOrFile;
     if (preferAutosave && hasNewerAutosave (folder))
         file = folder.getChildFile ("projet.autosave");
