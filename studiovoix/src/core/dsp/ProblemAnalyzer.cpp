@@ -69,6 +69,16 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
     const auto va = analysis::analyzeVoice (x, sr);
     p.noiseFloorDb = va.noiseFloorDb;
 
+    // Densité de transitoires : montées d'au moins 8 dB d'une trame (10 ms) à la suivante.
+    {
+        int onsets = 0;
+        for (size_t i = 1; i < va.envDb.size(); ++i)
+            if (va.envDb[i] - va.envDb[i - 1] >= 8.0f && va.envDb[i] > va.noiseFloorDb + 12.0f)
+                ++onsets;
+        const double dur = static_cast<double> (va.envDb.size()) * va.frameSec;
+        p.onsetsPerSec = dur > 0.0 ? static_cast<float> (onsets / dur) : 0.0f;
+    }
+
     // Équilibre spectral : boue (200-400 Hz), dureté (2,5-5 kHz), sifflantes (5-9 kHz) par rapport au médium.
     const auto spec = analysis::averageSpectrum (x, sr);
     if (spec.valid())
@@ -82,6 +92,45 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
         p.mudExcessDb = std::max (0.0f, low - mid - (vocal ? 0.0f : 3.0f));
         p.harshExcessDb = std::max (0.0f, high - (mid - 3.0f));
         p.sibilanceDb = sib - presence;
+        // Centre de gravité spectral (pondéré par l'énergie).
+        double wsum = 0.0, esum = 0.0;
+        for (size_t i = 0; i < spec.centersHz.size(); ++i)
+        {
+            const double e = std::pow (10.0, spec.levelsDb[i] / 10.0);
+            wsum += e * spec.centersHz[i];
+            esum += e;
+        }
+        p.centroidHz = esum > 0.0 ? static_cast<float> (wsum / esum) : 0.0f;
+    }
+
+    if (! vocal)
+    {
+        // Instrument : type reconnu d'après les graves, le centre spectral et les transitoires.
+        float lowRatio = 0.0f;
+        {
+            const float a = static_cast<float> (std::exp (-2.0 * juce::MathConstants<double>::pi * 150.0 / sr));
+            float lp = 0.0f;
+            double eLow = 0.0, eAll = 0.0;
+            for (const float v : x)
+            {
+                lp = a * lp + (1.0f - a) * v;
+                eLow += static_cast<double> (lp) * lp;
+                eAll += static_cast<double> (v) * v;
+            }
+            lowRatio = eAll > 1e-12 ? static_cast<float> (eLow / eAll) : 0.0f;
+        }
+        if (lowRatio >= 0.6f && p.centroidHz < 400.0f)
+            p.instrumentKind = "basse";
+        else if (p.onsetsPerSec >= 3.0f && p.voicedFraction < 0.3f)
+            p.instrumentKind = "batterie";
+        else if (p.centroidHz >= 300.0f)
+            p.instrumentKind = "harmonique";
+        else
+            p.instrumentKind = "autre";
+        p.found.add ("instrument reconnu : "_u8 + (p.instrumentKind == "basse" ? juce::String ("basse / 808") : p.instrumentKind == "batterie" ? juce::String ("batterie / percussions")
+                                                   : p.instrumentKind == "harmonique" ? juce::String ("clavier / guitare / synthé"_u8) : juce::String ("autre"))
+                     + " (centre " + juce::String (juce::roundToInt (p.centroidHz)) + " Hz, " + juce::String (p.onsetsPerSec, 1) + " attaques/s, graves "
+                     + juce::String (juce::roundToInt (lowRatio * 100.0f)) + " %)");
     }
 
     // Justesse : écart moyen à la note de la gamme la plus proche (voix seulement).
@@ -143,17 +192,47 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
     v.eq.lowCutHz = vocal ? 80.0f : 30.0f;
     v.comp = { -22.0f, 2.0f, 10.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };   // nivellement doux
     v.comp2.ratio = 1.0f;
+    if (! vocal)
+    {
+        // Réglages de départ par type d'instrument (pratiques courantes : coupe-bas sous la note la plus grave,
+        // compression qui laisse passer les attaques, aucune bosse ajoutée : seulement des corrections mesurées).
+        if (p.instrumentKind == "basse")
+        {
+            v.eq.lowCutHz = 35.0f;
+            v.comp = { -20.0f, 3.0f, 8.0f, 10.0f, 100.0f, 0.0f, 1.0f, true };
+        }
+        else if (p.instrumentKind == "batterie")
+        {
+            v.eq.lowCutHz = 40.0f;
+            v.comp = { -18.0f, 2.0f, 8.0f, 25.0f, 80.0f, 0.0f, 1.0f, false };   // attaque lente : les coups restent nets
+        }
+        else if (p.instrumentKind == "harmonique")
+        {
+            v.eq.lowCutHz = 60.0f;
+            v.comp = { -20.0f, 3.0f, 8.0f, 5.0f, 50.0f, 0.0f, 1.0f, false };    // piano / guitare : 3:1, 5 ms, 50 ms
+        }
+    }
     v.deEss.amount = 0.0f;
     v.clean.enabled = true;
     v.clean.dePlosive = vocal;
     v.clean.breathReductionDb = vocal ? 6.0f : 0.0f;
     v.clean.gateRangeDb = p.noiseFloorDb > -45.0f ? 18.0f : (p.noiseFloorDb > -60.0f ? 10.0f : 4.0f);
     v.clean.denoiseDb = p.noiseFloorDb > -45.0f ? 20.0f : (p.noiseFloorDb > -60.0f ? 14.0f : 8.0f);
+    if (p.instrumentKind == "basse" || p.instrumentKind == "batterie")
+    {
+        v.clean.gateRangeDb = 0.0f;                                // pas de porte : les tenues et les queues restent
+        v.clean.denoiseDb = std::min (v.clean.denoiseDb, 6.0f);   // débruitage léger : la texture reste
+    }
     v.clean.declip = true;
     v.outputDb = -14.0f;
     v.inputTargetDb = -20.0f;
 
     p.fixes.clear();
+    if (! vocal && p.instrumentKind.isNotEmpty())
+        p.fixes.add (p.instrumentKind == "basse" ? juce::String ("basse : coupe-bas 35 Hz, compression 3:1 lente, pas de porte"_u8)
+                     : p.instrumentKind == "batterie" ? juce::String ("batterie : coupe-bas 40 Hz, compression 2:1 qui laisse passer les attaques, pas de porte"_u8)
+                     : p.instrumentKind == "harmonique" ? juce::String ("instrument harmonique : coupe-bas 60 Hz, compression 3:1 (5 ms / 50 ms)"_u8)
+                                                          : juce::String ("instrument : coupe-bas 30 Hz, nivellement doux"_u8));
     p.fixes.add ("niveau remis à -14 dB (gain "_u8 + db1 (-14.0f - p.activeLevelDb) + ")");
     if (p.clippedSamples > 0)
         p.fixes.add ("passages saturés reconstruits (dé-écrêtage)"_u8);

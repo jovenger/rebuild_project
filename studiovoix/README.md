@@ -87,14 +87,27 @@ puis mix auto. Le panneau Voix IA affiche les défauts constatés et les correct
 **Son polyphonique** (chœurs à plusieurs voix, piano, morceau entier) : la correction de justesse est coupée
 automatiquement, qu'on choisisse un style ou la correction — elle ferait des « vagues » sur ce type de son.
 
-**Plugins VST3** : Paramètres → « Rechercher les plugins VST3 » (dossiers standard de Windows + un dossier en
-plus au choix). Sur une piste, onglet Voix IA → « + Plugin VST3… » : le plugin s'applique après les effets du
-style (ou sur le son brut), dans l'ordre de la liste ; clic sur son nom → sa fenêtre s'ouvre, ses réglages sont
-repris à la fermeture et la piste est recalculée ; B = contourner, X = retirer. La latence déclarée par le plugin
-est compensée. Les plugins qui plantent à la recherche sont mis de côté au lancement suivant.
+**Effets en plus sur une piste** : onglet Voix IA → « + Effet / plugin… ». Le menu propose d'abord les
+**effets intégrés** (rien à installer) : égaliseur (coupe-bas, graves, bas-médium, présence, air, coupe-haut),
+compresseur (seuil, ratio, attaque, relâche, gain, mélange parallèle), de-esser, saturation, réverb, délai calé
+au tempo (noire, croche, croche pointée, ping-pong), porte / débruiteur, limiteur (plafond en dBTP) et largeur
+stéréo ; clic sur le nom → une fenêtre de curseurs, la piste est recalculée à la fermeture. Puis les **plugins
+VST3** connus (Paramètres → « Rechercher les plugins VST3 » : dossiers standard de Windows + un dossier au choix).
+Les effets s'appliquent après les effets du style (ou sur le son brut), dans l'ordre de la liste ; B = contourner,
+X = retirer ; réglages sauvegardés dans le projet. La latence déclarée par un VST3 est compensée ; les plugins
+qui plantent à la recherche sont mis de côté au lancement suivant.
 
 **Son propre** : le nettoyage comprend un débruitage spectral (profil de bruit appris sur les silences : souffle,
 ronflement, bruit de pièce) et un dé-écrêtage (passages saturés reconstruits).
+
+**Nettoyage piste par piste, chaque piste étant un instrument différent** : la correction automatique reconnaît
+le type de la piste et adapte ses réglages. Voix : coupe-bas 80 Hz, anti-plosives, respirations, de-esser dosé,
+justesse douce (voix seule). Basse / 808 : coupe-bas 35 Hz, compression 3:1 lente, pas de porte (les tenues
+restent), débruitage léger. Batterie / percussions : coupe-bas 40 Hz, compression 2:1 avec attaque lente (les
+coups restent nets), pas de porte. Clavier / guitare / synthé : coupe-bas 60 Hz, compression 3:1 (5 ms / 50 ms).
+Dans tous les cas : niveau remis à −14 dB, composante continue retirée, écrêtage réparé, boue (250–450 Hz) et
+dureté (2–5 kHz) coupées seulement si elles sont mesurées, jamais d'autotune sur un son polyphonique.
+Le panneau Voix IA indique l'instrument reconnu et les corrections faites.
 
 **Plusieurs pistes à la fois** : Ctrl enfoncé + clic sur chaque piste (elles restent sélectionnées), puis clic droit →
 « Supprimer les N pistes » (ou touche Suppr). Ctrl+Z revient en arrière.
@@ -144,19 +157,29 @@ plus d'espace, ambiance presque entièrement en réverb. Les curseurs de l'ongle
 ce réglage (milieu = réglage du style) ; **Mon son** le remplace par tes propres réglages pour ce style.
 L'onglet **Voix IA** affiche les effets réellement appliqués à la piste sélectionnée.
 
-Ordre de la chaîne : nettoyage → justesse (autotune) → EQ → compresseur → compresseur 2 → de-esser →
-saturation → niveau → réverb + délai. Valeurs générées depuis le code (`studiovoix_cli presets`).
+Ordre de la chaîne : nettoyage → justesse (autotune) → EQ → compresseur (rapide, 4–7 dB) → de-esser →
+compresseur 2 (nivellement doux) → saturation → niveau → réverb + délai. Valeurs générées depuis le code
+(`studiovoix_cli presets`).
+
+Les réglages suivent les pratiques publiées des studios (vérifiées en octobre 2026) : gain → EQ soustractive
+(coupe-bas 80–100 Hz, −2 à −4 dB vers 250–450 Hz) → compresseur rapide 4:1 qui prend 4 à 7 dB → de-esser
+7–10 kHz (2 à 6 dB max) → second compresseur doux (2 à 3 dB) → EQ de tonalité (+2 à +3 dB vers 3–5 kHz, air
+au-dessus de 10 kHz) → envois ; retour de réverb filtré 200–250 Hz / 8–10 kHz ; délai à la croche ou à la noire.
+Instruments : basse coupe-bas ~40 Hz et bas-médium nettoyé si boueux ; kick 60–100 Hz gardé, 200 Hz coupé,
+attaque 3–5 kHz ; piano 3:1, attaque 5 ms, relâche 50 ms ; guitares coupées sous 100 Hz, présence 1–3 kHz,
+dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Recording (compression voix), MixingGPT
+(ordre des traitements), Music Guy Mixing (de-esser et EQ voix), Universal Audio (réverb et délai sur la voix).
 
 **Famille Rap**
 
 ### Rap / Hip-hop
 
 - Autotune : léger, naturel (15 %, vitesse 80 ms)
-- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +3 dB à 4 kHz, air +2 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 5 ms, relâche 80 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +3 dB de chauffe, mélange 30 %
 - Réverb : 8 %, taille 35 %, pré-délai 20 ms
 - Délai : 10 %, 1/8 (croche), répétitions 20 %, seulement en fin de phrase
@@ -166,11 +189,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Rap conscient
 
 - Autotune : léger, naturel (10 %, vitesse 90 ms)
-- Nettoyage : coupe-bas 85 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 85 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 85 Hz, graves +0.5 dB sous 200 Hz, bas-médium -2 dB à 300 Hz, présence +3.5 dB à 3 kHz, air +1.5 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 7 %, taille 35 %, pré-délai 20 ms
 - Délai : 6 %, 1/8 (croche), répétitions 15 %, seulement en fin de phrase
@@ -180,11 +203,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Rap hardcore
 
 - Autotune : léger, naturel (10 %, vitesse 80 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -3.5 dB à 300 Hz, présence +4.5 dB à 2.5 kHz, air +2 dB au-dessus de 12 kHz
 - Compresseur : 8:1 au seuil -16 dB, attaque 1 ms, relâche 40 ms
 - Compresseur 2 (nivellement) : 3:1 au seuil -24 dB, attaque 10 ms, relâche 120 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +9 dB de chauffe, mélange 50 %
 - Réverb : 5 %, taille 25 %, pré-délai 10 ms
 - Délai : 8 %, 1/8 (croche), répétitions 15 %, seulement en fin de phrase
@@ -194,11 +217,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Boom bap / Old school
 
 - Autotune : désactivé
-- Nettoyage : coupe-bas 80 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 80 Hz, graves +1 dB sous 200 Hz, bas-médium -2 dB à 350 Hz, présence +3.5 dB à 3 kHz, air +1 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -18 dB, attaque 10 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -24 dB, attaque 20 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +4 dB de chauffe, mélange 35 %
 - Réverb : 6 %, taille 30 %, pré-délai 15 ms
 - Délai : 8 %, 1/8 (croche), répétitions 15 %, seulement en fin de phrase
@@ -208,11 +231,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Trap
 
 - Autotune : effet marqué (100 %, vitesse 5 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 6:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +6 dB de chauffe, mélange 40 %
 - Réverb : 15 %, taille 50 %, pré-délai 25 ms
 - Délai : 20 %, 1/4 (noire), répétitions 30 %, ping-pong, seulement en fin de phrase
@@ -222,11 +245,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Drill
 
 - Autotune : moyen (60 %, vitesse 15 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 2.5 kHz, air +2 dB au-dessus de 12 kHz
 - Compresseur : 6:1 au seuil -20 dB, attaque 2 ms, relâche 50 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +7 dB de chauffe, mélange 45 %
 - Réverb : 8 %, taille 30 %, pré-délai 15 ms
 - Délai : 10 %, 1/8 (croche), répétitions 25 %, seulement en fin de phrase
@@ -236,11 +259,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Rap mélodique
 
 - Autotune : effet marqué (95 %, vitesse 8 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +4 dB de chauffe, mélange 30 %
 - Réverb : 18 %, taille 55 %, pré-délai 25 ms
 - Délai : 18 %, 1/4 (noire), répétitions 30 %, ping-pong, seulement en fin de phrase
@@ -250,11 +273,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Cloud rap
 
 - Autotune : effet marqué (85 %, vitesse 15 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -2.5 dB à 300 Hz, présence +2 dB à 3.5 kHz, air +5 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -22 dB, attaque 6 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 7 kHz, force 75 %, max -10 dB
+- De-esser : 7 kHz, force 75 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 38 %, taille 85 %, pré-délai 50 ms
 - Délai : 25 %, 1/8 pointée, répétitions 45 %, ping-pong
@@ -264,11 +287,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Rage
 
 - Autotune : effet marqué (100 %, vitesse 3 ms)
-- Nettoyage : coupe-bas 120 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 120 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 120 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 8:1 au seuil -24 dB, attaque 1 ms, relâche 40 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 15 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +10 dB de chauffe, mélange 55 %
 - Réverb : 12 %, taille 50 %, pré-délai 20 ms
 - Délai : 18 %, 1/8 (croche), répétitions 30 %, ping-pong, seulement en fin de phrase
@@ -278,11 +301,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Plugg / Pluggnb
 
 - Autotune : effet marqué (90 %, vitesse 10 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -22 dB, attaque 5 ms, relâche 80 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.8 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +2.5 dB de chauffe, mélange 20 %
 - Réverb : 25 %, taille 65 %, pré-délai 30 ms
 - Délai : 18 %, 1/4 (noire), répétitions 30 %, ping-pong
@@ -292,11 +315,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Emo rap
 
 - Autotune : effet marqué (85 %, vitesse 12 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +3 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -22 dB, attaque 5 ms, relâche 80 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +4 dB de chauffe, mélange 30 %
 - Réverb : 28 %, taille 70 %, pré-délai 35 ms
 - Délai : 20 %, 1/4 (noire), répétitions 35 %, seulement en fin de phrase
@@ -306,11 +329,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Afro trap
 
 - Autotune : effet marqué (85 %, vitesse 12 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +3.5 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -21 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -27 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +4.5 dB de chauffe, mélange 30 %
 - Réverb : 16 %, taille 50 %, pré-délai 25 ms
 - Délai : 16 %, 1/8 (croche), répétitions 30 %, ping-pong, seulement en fin de phrase
@@ -320,11 +343,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Rap lo-fi / Chill
 
 - Autotune : léger, naturel (30 %, vitesse 50 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, graves +1 dB sous 200 Hz, bas-médium -1.5 dB à 300 Hz, présence +1 dB à 3 kHz, air -1 dB au-dessus de 10 kHz, coupe-haut 11 kHz
 - Compresseur : 3:1 au seuil -22 dB, attaque 12 ms, relâche 140 ms, détection RMS
 - Compresseur 2 (nivellement) : 1.8:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
-- De-esser : 6 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +3 dB de chauffe, mélange 30 %
 - Réverb : 20 %, taille 55 %, pré-délai 25 ms
 - Délai : 10 %, 1/4 (noire), répétitions 25 %
@@ -334,11 +357,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Phonk
 
 - Autotune : désactivé
-- Nettoyage : coupe-bas 150 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 150 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 150 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 2.5 kHz, air -2 dB au-dessus de 10 kHz, coupe-haut 9 kHz
 - Compresseur : 8:1 au seuil -18 dB, attaque 2 ms, relâche 50 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
-- De-esser : 6 kHz, force 50 %, max -10 dB
+- De-esser : 7 kHz, force 50 %, max -6 dB
 - Saturation : +10 dB de chauffe, mélange 50 %
 - Réverb : 12 %, taille 45 %, pré-délai 15 ms
 - Délai : 15 %, 1/8 (croche), répétitions 30 %, seulement en fin de phrase
@@ -348,11 +371,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Jersey club
 
 - Autotune : moyen (80 %, vitesse 10 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4.5 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 7 kHz, force 75 %, max -10 dB
+- De-esser : 7 kHz, force 75 %, max -6 dB
 - Saturation : +3.5 dB de chauffe, mélange 25 %
 - Réverb : 14 %, taille 50 %, pré-délai 20 ms
 - Délai : 15 %, 1/8 (croche), répétitions 25 %, ping-pong, seulement en fin de phrase
@@ -364,11 +387,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Pop urbaine
 
 - Autotune : moyen (70 %, vitesse 20 ms)
-- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +3 dB de chauffe, mélange 25 %
 - Réverb : 20 %, taille 55 %, pré-délai 30 ms
 - Délai : 12 %, 1/4 (noire), répétitions 25 %
@@ -378,11 +401,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Pop
 
 - Autotune : moyen (60 %, vitesse 25 ms)
-- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4.5 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 6 ms, relâche 90 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 7 kHz, force 75 %, max -10 dB
+- De-esser : 7 kHz, force 75 %, max -6 dB
 - Saturation : +2.5 dB de chauffe, mélange 20 %
 - Réverb : 22 %, taille 60 %, pré-délai 35 ms
 - Délai : 15 %, 1/4 (noire), répétitions 25 %
@@ -392,11 +415,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### R&B
 
 - Autotune : moyen (50 %, vitesse 40 ms)
-- Nettoyage : coupe-bas 80 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 80 Hz, graves +1.5 dB sous 200 Hz, bas-médium -1.5 dB à 350 Hz, présence +1.5 dB à 3 kHz, air +3 dB au-dessus de 11 kHz
 - Compresseur : 3:1 au seuil -22 dB, attaque 15 ms, relâche 150 ms, parallèle 85 %, détection RMS
 - Compresseur 2 (nivellement) : 1.8:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
-- De-esser : 6 kHz, force 80 %, max -10 dB
+- De-esser : 7 kHz, force 80 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 30 %, taille 75 %, pré-délai 40 ms
 - Délai : 15 %, 1/8 pointée, répétitions 30 %
@@ -406,11 +429,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Gospel / Soul
 
 - Autotune : léger, naturel (20 %, vitesse 60 ms)
-- Nettoyage : coupe-bas 80 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 80 Hz, graves +1.5 dB sous 200 Hz, bas-médium -1.5 dB à 350 Hz, présence +2 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
 - Compresseur : 3:1 au seuil -22 dB, attaque 15 ms, relâche 160 ms, parallèle 85 %, détection RMS
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
-- De-esser : 6 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 32 %, taille 80 %, pré-délai 45 ms
 - Délai : 8 %, 1/8 pointée, répétitions 20 %
@@ -420,11 +443,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Variété / Chanson
 
 - Autotune : léger, naturel (30 %, vitesse 50 ms)
-- Nettoyage : coupe-bas 80 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 80 Hz, graves +1 dB sous 200 Hz, bas-médium -1.5 dB à 300 Hz, présence +2 dB à 3 kHz, air +2.5 dB au-dessus de 12 kHz
 - Compresseur : 3:1 au seuil -20 dB, attaque 12 ms, relâche 140 ms, détection RMS
 - Compresseur 2 (nivellement) : 1.8:1 au seuil -26 dB, attaque 30 ms, relâche 250 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +1.5 dB de chauffe, mélange 15 %
 - Réverb : 25 %, taille 65 %, pré-délai 35 ms
 - Délai : 8 %, 1/4 (noire), répétitions 20 %
@@ -434,11 +457,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Raï / Raï'n'B
 
 - Autotune : effet marqué (95 %, vitesse 5 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3 kHz, air +3.5 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +3 dB de chauffe, mélange 25 %
 - Réverb : 30 %, taille 70 %, pré-délai 30 ms
 - Délai : 22 %, 1/8 pointée, répétitions 35 %, ping-pong
@@ -448,11 +471,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Rock
 
 - Autotune : léger, naturel (10 %, vitesse 100 ms)
-- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 90 Hz, bas-médium -2.5 dB à 350 Hz, présence +3 dB à 3 kHz, air +2 dB au-dessus de 10 kHz
 - Compresseur : 5:1 au seuil -18 dB, attaque 10 ms, relâche 120 ms
 - Compresseur 2 (nivellement) : 2.5:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +8 dB de chauffe, mélange 35 %
 - Réverb : 15 %, taille 50 %, pré-délai 30 ms
 - Délai : 12 %, 1/16, répétitions 10 %
@@ -462,11 +485,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Acoustique / Folk
 
 - Autotune : léger, naturel (15 %, vitesse 80 ms)
-- Nettoyage : coupe-bas 75 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 75 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 75 Hz, graves +1 dB sous 200 Hz, bas-médium -2 dB à 300 Hz, présence +1.5 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
 - Compresseur : 2.5:1 au seuil -20 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - Compresseur 2 (nivellement) : 1.6:1 au seuil -26 dB, attaque 30 ms, relâche 250 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +1 dB de chauffe, mélange 10 %
 - Réverb : 20 %, taille 55 %, pré-délai 30 ms
 - Délai : 6 %, 1/16, répétitions 10 %
@@ -476,11 +499,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Country
 
 - Autotune : léger, naturel (30 %, vitesse 50 ms)
-- Nettoyage : coupe-bas 80 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 80 Hz, graves +1 dB sous 200 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3 kHz, air +2.5 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 10 ms, relâche 120 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 18 %, taille 50 %, pré-délai 30 ms
 - Délai : 12 %, 1/16, répétitions 10 %
@@ -492,11 +515,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Afro
 
 - Autotune : moyen (80 %, vitesse 15 ms)
-- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +3 dB de chauffe, mélange 25 %
 - Réverb : 25 %, taille 65 %, pré-délai 30 ms
 - Délai : 20 %, 1/8 pointée, répétitions 35 %, ping-pong
@@ -506,11 +529,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Amapiano
 
 - Autotune : moyen (60 %, vitesse 20 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +3.5 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 110 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +2.5 dB de chauffe, mélange 20 %
 - Réverb : 30 %, taille 75 %, pré-délai 40 ms
 - Délai : 22 %, 1/8 pointée, répétitions 40 %, ping-pong
@@ -520,11 +543,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Dancehall / Shatta
 
 - Autotune : effet marqué (90 %, vitesse 8 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
 - Compresseur : 6:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 15 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 65 %, max -10 dB
+- De-esser : 7 kHz, force 65 %, max -6 dB
 - Saturation : +6 dB de chauffe, mélange 40 %
 - Réverb : 12 %, taille 45 %, pré-délai 20 ms
 - Délai : 22 %, 1/8 (croche), répétitions 35 %, ping-pong, seulement en fin de phrase
@@ -534,11 +557,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Bouyon
 
 - Autotune : moyen (80 %, vitesse 10 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
 - Compresseur : 6:1 au seuil -21 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -27 dB, attaque 15 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 65 %, max -10 dB
+- De-esser : 7 kHz, force 65 %, max -6 dB
 - Saturation : +6 dB de chauffe, mélange 40 %
 - Réverb : 10 %, taille 40 %, pré-délai 15 ms
 - Délai : 15 %, 1/8 (croche), répétitions 25 %, seulement en fin de phrase
@@ -548,11 +571,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Zouk / Kompa
 
 - Autotune : moyen (75 %, vitesse 20 ms)
-- Nettoyage : coupe-bas 90 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 90 Hz, graves +1 dB sous 200 Hz, bas-médium -1.5 dB à 300 Hz, présence +2 dB à 3 kHz, air +3.5 dB au-dessus de 12 kHz
 - Compresseur : 3.5:1 au seuil -22 dB, attaque 10 ms, relâche 120 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 6.2 kHz, force 75 %, max -10 dB
+- De-esser : 7 kHz, force 75 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 28 %, taille 70 %, pré-délai 35 ms
 - Délai : 15 %, 1/8 pointée, répétitions 30 %
@@ -562,11 +585,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Latino / Reggaeton
 
 - Autotune : effet marqué (85 %, vitesse 10 ms)
-- Nettoyage : coupe-bas 100 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +4 dB de chauffe, mélange 25 %
 - Réverb : 18 %, taille 55 %, pré-délai 25 ms
 - Délai : 18 %, 1/8 pointée, répétitions 30 %, ping-pong, seulement en fin de phrase
@@ -576,11 +599,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Funk brésilien
 
 - Autotune : moyen (50 %, vitesse 20 ms)
-- Nettoyage : coupe-bas 120 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 120 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 120 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 3 kHz, air +2 dB au-dessus de 12 kHz
 - Compresseur : 8:1 au seuil -18 dB, attaque 2 ms, relâche 50 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
-- De-esser : 6.5 kHz, force 60 %, max -10 dB
+- De-esser : 7 kHz, force 60 %, max -6 dB
 - Saturation : +8 dB de chauffe, mélange 45 %
 - Réverb : 6 %, taille 30 %, pré-délai 10 ms
 - Délai : 10 %, 1/8 (croche), répétitions 20 %, seulement en fin de phrase
@@ -592,11 +615,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Électro / House
 
 - Autotune : moyen (80 %, vitesse 12 ms)
-- Nettoyage : coupe-bas 120 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 120 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 120 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +5 dB au-dessus de 12 kHz
 - Compresseur : 5:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
-- De-esser : 7 kHz, force 75 %, max -10 dB
+- De-esser : 7 kHz, force 75 %, max -6 dB
 - Saturation : +3 dB de chauffe, mélange 25 %
 - Réverb : 25 %, taille 70 %, pré-délai 40 ms
 - Délai : 22 %, 1/8 pointée, répétitions 40 %, ping-pong
@@ -606,11 +629,11 @@ saturation → niveau → réverb + délai. Valeurs générées depuis le code (
 ### Afro house
 
 - Autotune : moyen (50 %, vitesse 25 ms)
-- Nettoyage : coupe-bas 110 Hz, bruit de fond -12 dB, respirations -8 dB, plosives (p, b)
+- Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
 - EQ : coupe-bas 110 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
 - Compresseur : 4:1 au seuil -21 dB, attaque 6 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -27 dB, attaque 25 ms, relâche 200 ms, détection RMS
-- De-esser : 6.8 kHz, force 70 %, max -10 dB
+- De-esser : 7 kHz, force 70 %, max -6 dB
 - Saturation : +2 dB de chauffe, mélange 20 %
 - Réverb : 32 %, taille 80 %, pré-délai 45 ms
 - Délai : 25 %, 1/8 pointée, répétitions 45 %, ping-pong

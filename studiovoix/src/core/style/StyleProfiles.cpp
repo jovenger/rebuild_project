@@ -72,8 +72,8 @@ namespace
         p.clean.gateRangeDb = 12.0f;
         p.clean.breathReductionDb = 8.0f;
         p.comp2.ratio = 1.0f;   // désactivé par défaut
-        p.reverb.hpfHz = 300.0f;
-        p.reverb.lpfHz = 9000.0f;
+        p.reverb.hpfHz = 250.0f;    // retour de réverb filtré : ne concurrence pas la voix (pratique studio : 200 Hz - 8-10 kHz)
+        p.reverb.lpfHz = 8500.0f;
         p.delay.hpfHz = 350.0f;
         p.delay.lpfHz = 6000.0f;
 
@@ -85,7 +85,7 @@ namespace
                 p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 4000.0f, 3.0f, 0.9f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 5.0f, 80.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.3f, 0.1f };
                 p.reverb.send = 0.08f; p.reverb.roomSize = 0.35f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 20.0f;
                 p.delay.send = 0.10f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.2f; p.delay.throwsOnly = true;
@@ -97,7 +97,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -22.0f, 6.0f, 6.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 6.0f, 0.4f, 0.15f };
                 p.reverb.send = 0.15f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
                 p.delay.send = 0.20f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -109,7 +109,7 @@ namespace
                 p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3000.0f, 2.5f, 0.8f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.20f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.12f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.25f;
@@ -121,7 +121,7 @@ namespace
                 p.eq = { 80.0f, 200.0f, 1.5f, 350.0f, -1.5f, 1.0f, 3000.0f, 1.5f, 0.8f, 11000.0f, 3.0f, 0.0f };
                 p.comp = { -22.0f, 3.0f, 8.0f, 15.0f, 150.0f, 0.0f, 0.85f, true };
                 p.comp2 = { -28.0f, 1.8f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6000.0f, 0.8f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.8f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.30f; p.reverb.roomSize = 0.75f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 40.0f;
                 p.delay.send = 0.15f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f;
@@ -133,7 +133,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 2500.0f, 4.0f, 1.0f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -20.0f, 6.0f, 4.0f, 2.0f, 50.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 7.0f, 0.45f, 0.2f };
                 p.reverb.send = 0.08f; p.reverb.roomSize = 0.3f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 15.0f;
                 p.delay.send = 0.10f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.25f; p.delay.throwsOnly = true;
@@ -146,7 +146,7 @@ namespace
                 p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.20f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.35f; p.delay.pingPong = true;
@@ -159,7 +159,7 @@ namespace
                 p.eq = { 90.0f, 200.0f, 0.0f, 350.0f, -2.5f, 1.0f, 3000.0f, 3.0f, 0.8f, 10000.0f, 2.0f, 0.0f };
                 p.comp = { -18.0f, 5.0f, 6.0f, 10.0f, 120.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.5f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 8.0f, 0.35f, 0.2f };
                 p.reverb.send = 0.15f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.55f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.12f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;
@@ -172,7 +172,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -22.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 4.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.18f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
                 p.delay.send = 0.18f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -185,7 +185,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -22.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 4.0f, 0.3f, 0.1f };
                 p.reverb.send = 0.18f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
                 p.delay.send = 0.18f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -199,7 +199,7 @@ namespace
                 p.eq = { 80.0f, 200.0f, 1.0f, 350.0f, -2.0f, 1.0f, 3000.0f, 3.5f, 0.9f, 12000.0f, 1.0f, 0.0f };
                 p.comp = { -18.0f, 4.0f, 6.0f, 10.0f, 100.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -24.0f, 2.0f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 4.0f, 0.35f, 0.25f };
                 p.reverb.send = 0.06f; p.reverb.roomSize = 0.3f; p.reverb.damping = 0.65f; p.reverb.preDelayMs = 15.0f;
                 p.delay.send = 0.08f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.15f; p.delay.throwsOnly = true;
@@ -212,7 +212,7 @@ namespace
                 p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.8f, 12000.0f, 4.5f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 6.0f, 90.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.75f, 6.0f, -8.0f };
                 p.sat = { 2.5f, 0.2f, 0.1f };
                 p.reverb.send = 0.22f; p.reverb.roomSize = 0.6f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 35.0f;
                 p.delay.send = 0.15f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.25f;
@@ -225,7 +225,7 @@ namespace
                 p.eq = { 80.0f, 200.0f, 1.0f, 300.0f, -1.5f, 1.0f, 3000.0f, 2.0f, 0.8f, 12000.0f, 2.5f, 0.0f };
                 p.comp = { -20.0f, 3.0f, 8.0f, 12.0f, 140.0f, 0.0f, 1.0f, true };
                 p.comp2 = { -26.0f, 1.8f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 1.5f, 0.15f, 0.1f };
                 p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 35.0f;
                 p.delay.send = 0.08f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.2f;
@@ -238,7 +238,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 4.0f, 1.0f, 12000.0f, 3.0f, 0.0f };
                 p.comp = { -22.0f, 6.0f, 4.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.65f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.65f, 6.0f, -8.0f };
                 p.sat = { 6.0f, 0.4f, 0.15f };
                 p.reverb.send = 0.12f; p.reverb.roomSize = 0.45f; p.reverb.damping = 0.55f; p.reverb.preDelayMs = 20.0f;
                 p.delay.send = 0.22f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.35f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -251,7 +251,7 @@ namespace
                 p.eq = { 90.0f, 200.0f, 1.0f, 300.0f, -1.5f, 1.0f, 3000.0f, 2.0f, 0.8f, 12000.0f, 3.5f, 0.0f };
                 p.comp = { -22.0f, 3.5f, 8.0f, 10.0f, 120.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6200.0f, 0.75f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.75f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.28f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 35.0f;
                 p.delay.send = 0.15f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f;
@@ -264,7 +264,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 3.5f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 110.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 2.5f, 0.2f, 0.1f };
                 p.reverb.send = 0.30f; p.reverb.roomSize = 0.75f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 40.0f;
                 p.delay.send = 0.22f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.4f; p.delay.pingPong = true;
@@ -277,7 +277,7 @@ namespace
                 p.eq = { 80.0f, 200.0f, 1.5f, 350.0f, -1.5f, 1.0f, 3000.0f, 2.0f, 0.8f, 12000.0f, 3.0f, 0.0f };
                 p.comp = { -22.0f, 3.0f, 8.0f, 15.0f, 160.0f, 0.0f, 0.85f, true };
                 p.comp2 = { -28.0f, 2.0f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6000.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.32f; p.reverb.roomSize = 0.8f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 45.0f;
                 p.delay.send = 0.08f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.2f;
@@ -291,7 +291,7 @@ namespace
                 p.eq = { 120.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 5.0f, 0.0f };
                 p.comp = { -22.0f, 5.0f, 6.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.75f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.25f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 40.0f;
                 p.delay.send = 0.22f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.4f; p.delay.pingPong = true;
@@ -304,7 +304,7 @@ namespace
                 p.eq = { 75.0f, 200.0f, 1.0f, 300.0f, -2.0f, 1.0f, 3000.0f, 1.5f, 0.8f, 12000.0f, 3.0f, 0.0f };
                 p.comp = { -20.0f, 2.5f, 10.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
                 p.comp2 = { -26.0f, 1.6f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 1.0f, 0.1f, 0.1f };
                 p.reverb.send = 0.20f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.06f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;
@@ -317,7 +317,7 @@ namespace
                 p.eq = { 85.0f, 200.0f, 0.5f, 300.0f, -2.0f, 1.0f, 3000.0f, 3.5f, 0.9f, 12000.0f, 1.5f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 100.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.07f; p.reverb.roomSize = 0.35f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 20.0f;
                 p.delay.send = 0.06f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.15f; p.delay.throwsOnly = true;
@@ -330,7 +330,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.5f, 1.0f, 2500.0f, 4.5f, 1.0f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -16.0f, 8.0f, 4.0f, 1.0f, 40.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -24.0f, 3.0f, 8.0f, 10.0f, 120.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 9.0f, 0.5f, 0.25f };
                 p.reverb.send = 0.05f; p.reverb.roomSize = 0.25f; p.reverb.damping = 0.65f; p.reverb.preDelayMs = 10.0f;
                 p.delay.send = 0.08f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.15f; p.delay.throwsOnly = true;
@@ -343,7 +343,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 2.0f, 0.8f, 12000.0f, 5.0f, 0.0f };
                 p.comp = { -22.0f, 4.0f, 6.0f, 6.0f, 100.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.75f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.38f; p.reverb.roomSize = 0.85f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 50.0f;
                 p.delay.send = 0.25f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.45f; p.delay.pingPong = true;
@@ -356,7 +356,7 @@ namespace
                 p.eq = { 120.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -24.0f, 8.0f, 4.0f, 1.0f, 40.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 10.0f, 0.55f, 0.2f };
                 p.reverb.send = 0.12f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 20.0f;
                 p.delay.send = 0.18f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -369,7 +369,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -22.0f, 4.0f, 6.0f, 5.0f, 80.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6800.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 2.5f, 0.2f, 0.1f };
                 p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.18f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.3f; p.delay.pingPong = true;
@@ -382,7 +382,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 3.0f, 0.0f };
                 p.comp = { -22.0f, 5.0f, 6.0f, 5.0f, 80.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 4.0f, 0.3f, 0.15f };
                 p.reverb.send = 0.28f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 35.0f;
                 p.delay.send = 0.2f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.35f; p.delay.throwsOnly = true;
@@ -395,7 +395,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 3.5f, 0.0f };
                 p.comp = { -21.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -27.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 4.5f, 0.3f, 0.15f };
                 p.reverb.send = 0.16f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
                 p.delay.send = 0.16f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -408,7 +408,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 1.0f, 300.0f, -1.5f, 1.0f, 3000.0f, 1.0f, 0.8f, 10000.0f, -1.0f, 11000.0f };
                 p.comp = { -22.0f, 3.0f, 8.0f, 12.0f, 140.0f, 0.0f, 1.0f, true };
                 p.comp2 = { -28.0f, 1.8f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6000.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.3f, 0.3f };
                 p.reverb.send = 0.2f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 25.0f;
                 p.delay.send = 0.1f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.25f;
@@ -421,7 +421,7 @@ namespace
                 p.eq = { 150.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 2500.0f, 4.0f, 1.0f, 10000.0f, -2.0f, 9000.0f };
                 p.comp = { -18.0f, 8.0f, 4.0f, 2.0f, 50.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6000.0f, 0.5f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.5f, 6.0f, -8.0f };
                 p.sat = { 10.0f, 0.5f, 0.3f };
                 p.reverb.send = 0.12f; p.reverb.roomSize = 0.45f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 15.0f;
                 p.delay.send = 0.15f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.3f; p.delay.throwsOnly = true;
@@ -434,7 +434,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.5f, 0.0f };
                 p.comp = { -22.0f, 5.0f, 6.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.75f, 6.0f, -8.0f };
                 p.sat = { 3.5f, 0.25f, 0.1f };
                 p.reverb.send = 0.14f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 20.0f;
                 p.delay.send = 0.15f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.25f; p.delay.pingPong = true; p.delay.throwsOnly = true;
@@ -447,7 +447,7 @@ namespace
                 p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3000.0f, 3.0f, 0.9f, 12000.0f, 3.5f, 0.0f };
                 p.comp = { -22.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 3.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.3f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.22f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.35f; p.delay.pingPong = true;
@@ -460,7 +460,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 4.0f, 1.0f, 12000.0f, 3.0f, 0.0f };
                 p.comp = { -21.0f, 6.0f, 4.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -27.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.65f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.65f, 6.0f, -8.0f };
                 p.sat = { 6.0f, 0.4f, 0.15f };
                 p.reverb.send = 0.1f; p.reverb.roomSize = 0.4f; p.reverb.damping = 0.55f; p.reverb.preDelayMs = 15.0f;
                 p.delay.send = 0.15f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.25f; p.delay.throwsOnly = true;
@@ -473,7 +473,7 @@ namespace
                 p.eq = { 120.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 4.0f, 1.0f, 12000.0f, 2.0f, 0.0f };
                 p.comp = { -18.0f, 8.0f, 4.0f, 2.0f, 50.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 8.0f, 0.45f, 0.2f };
                 p.reverb.send = 0.06f; p.reverb.roomSize = 0.3f; p.reverb.damping = 0.6f; p.reverb.preDelayMs = 10.0f;
                 p.delay.send = 0.1f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.2f; p.delay.throwsOnly = true;
@@ -486,7 +486,7 @@ namespace
                 p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 4.0f, 0.0f };
                 p.comp = { -21.0f, 4.0f, 6.0f, 6.0f, 100.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -27.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6800.0f, 0.7f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.7f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.32f; p.reverb.roomSize = 0.8f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 45.0f;
                 p.delay.send = 0.25f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.45f; p.delay.pingPong = true;
@@ -499,7 +499,7 @@ namespace
                 p.eq = { 80.0f, 200.0f, 1.0f, 300.0f, -2.0f, 1.0f, 3000.0f, 2.5f, 0.8f, 12000.0f, 2.5f, 0.0f };
                 p.comp = { -20.0f, 4.0f, 6.0f, 10.0f, 120.0f, 0.0f, 1.0f, false };
                 p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
-                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.deEss = { 7000.0f, 0.6f, 6.0f, -8.0f };
                 p.sat = { 2.0f, 0.2f, 0.1f };
                 p.reverb.send = 0.18f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.12f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;

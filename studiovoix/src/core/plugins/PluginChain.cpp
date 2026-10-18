@@ -2,6 +2,7 @@
 
 #include "../AudioIO.h"
 #include "../Log.h"
+#include "InternalPlugins.h"
 
 namespace sv::plugins
 {
@@ -41,22 +42,27 @@ PluginSlot PluginSlot::fromVar (const juce::var& v)
 void setInstanceFactory (InstanceFactory factory) { factoryRef() = std::move (factory); }
 bool hasInstanceFactory() { return static_cast<bool> (factoryRef()); }
 
-juce::StringArray applyPluginChain (Stereo& audio, double sr, const std::vector<PluginSlot>& slots)
+juce::StringArray applyPluginChain (Stereo& audio, double sr, const std::vector<PluginSlot>& slots, double bpm)
 {
     juce::StringArray notes;
     if (slots.empty() || audio.getNumSamples() == 0)
         return notes;
-    if (! hasInstanceFactory())
-    {
-        notes.add ("plugins ignorés (aucun hôte de plugins disponible)"_u8);
-        SV_LOG_WARN (kMod, notes[0]);
-        return notes;
-    }
     for (const auto& slot : slots)
     {
         if (slot.bypass)
         {
             notes.add (slot.name + " : contourné"_u8);
+            continue;
+        }
+        if (isInternal (slot.identifier))
+        {
+            notes.add (applyInternal (audio, sr, bpm, slot));
+            continue;
+        }
+        if (! hasInstanceFactory())
+        {
+            notes.add (slot.name + " : ignoré (aucun hôte de plugins VST3)"_u8);
+            SV_LOG_WARN (kMod, notes[notes.size() - 1]);
             continue;
         }
         const auto t0 = juce::Time::getMillisecondCounterHiRes();

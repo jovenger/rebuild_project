@@ -43,6 +43,7 @@ set(SV_CORE_SOURCES
     src/core/dsp/ProblemAnalyzer.cpp
     src/core/dsp/Denoiser.cpp
     src/core/plugins/PluginChain.cpp
+    src/core/plugins/InternalPlugins.cpp
     src/core/dsp/MasterChain.cpp
     src/core/style/StyleProfiles.cpp
     src/core/gen/BackingGenerator.cpp

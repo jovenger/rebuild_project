@@ -34,18 +34,15 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     addAndMakeVisible (treatmentBox);
     addAndMakeVisible (pluginsTitle);
     addAndMakeVisible (addPluginBtn);
-    pluginsTitle.setText ("Plugins VST3", juce::dontSendNotification);
+    pluginsTitle.setText ("Effets en plus", juce::dontSendNotification);
     pluginsTitle.setFont (juce::FontOptions (13.0f, juce::Font::bold));
-    addPluginBtn.setTooltip ("Ajoute un plugin d'effet VST3 installé sur ce PC, appliqué après les effets du style. "
-                             "Recherche des plugins : Paramètres."_u8);
+    addPluginBtn.setTooltip ("Ajoute un effet intégré (égaliseur, compresseur, de-esser, saturation, réverb, délai, porte, limiteur, "
+                             "largeur) ou un plugin VST3 installé sur ce PC, appliqué après les effets du style. Recherche des VST3 : Paramètres."_u8);
     addPluginBtn.onClick = [this]
     {
-        PluginManager::instance().showAddMenu (&addPluginBtn, [this] (const juce::PluginDescription& d)
+        PluginManager::instance().showAddMenu (&addPluginBtn, [this] (const plugins::PluginSlot& slot)
         {
-            plugins::PluginSlot slot;
-            slot.identifier = d.createIdentifierString();
-            slot.name = d.name;
-            modifyPlugins ([slot] (std::vector<plugins::PluginSlot>& v) { v.push_back (slot); }, "Ajout du plugin " + d.name);
+            modifyPlugins ([slot] (std::vector<plugins::PluginSlot>& v) { v.push_back (slot); }, "Ajout de l'effet " + slot.name);
         });
     };
     treatmentLabel.setText ("Style", juce::dontSendNotification);

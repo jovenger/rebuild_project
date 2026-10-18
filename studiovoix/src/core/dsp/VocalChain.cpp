@@ -213,16 +213,19 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     }
     if (! step (0.65f)) return result;
 
-    // 7) Compression, de-esser, saturation.
+    // 7) Compresseur rapide (crêtes), de-esser, compresseur doux (nivellement), saturation — ordre courant en studio.
     {
         log::ScopedTimer t (kMod, "compression");
         result.report.compGrDb = compress (x, sampleRate, params.comp);
-        if (params.comp2.ratio > 1.0f)
-            result.report.compGrDb += compress (x, sampleRate, params.comp2);
     }
     {
         log::ScopedTimer t (kMod, "de-esser");
         result.report.deEssGrDb = deEss (x, sampleRate, params.deEss);
+    }
+    if (params.comp2.ratio > 1.0f)
+    {
+        log::ScopedTimer t (kMod, "compression de nivellement");
+        result.report.compGrDb += compress (x, sampleRate, params.comp2);
     }
     {
         log::ScopedTimer t (kMod, "saturation");

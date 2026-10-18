@@ -45,7 +45,7 @@ private:
         juce::TextButton open, bypass { "B" }, remove { "X" };
     };
     juce::Label pluginsTitle;
-    juce::TextButton addPluginBtn { "+ Plugin VST3..." };
+    juce::TextButton addPluginBtn { "+ Effet / plugin..." };
     std::vector<std::unique_ptr<PluginRow>> pluginRows;
     void rebuildPluginRows (const project::Track& t);
     void modifyPlugins (const std::function<void (std::vector<plugins::PluginSlot>&)>& change, const juce::String& undoLabel);

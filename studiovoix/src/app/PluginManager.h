@@ -31,8 +31,8 @@ public:
     bool isScanning() const { return scanning.load(); }
     juce::String scanStatus() const;   // en cours : "12 / 40 : Nom" ; sinon "N plugins connus"
 
-    /** Menu « Ajouter un plugin » ; renvoie la description choisie (nullptr = aucune). */
-    void showAddMenu (juce::Component* anchor, std::function<void (const juce::PluginDescription&)> onChosen);
+    /** Menu « Ajouter un plugin » : effets intégrés puis plugins VST3 connus ; onChosen reçoit le slot prêt. */
+    void showAddMenu (juce::Component* anchor, std::function<void (const plugins::PluginSlot&)> onChosen);
 
     /** Ouvre la fenêtre d'un plugin avec son état ; onClosed reçoit le nouvel état à la fermeture. */
     void openEditor (const plugins::PluginSlot& slot, std::function<void (const juce::MemoryBlock& newState)> onClosed);

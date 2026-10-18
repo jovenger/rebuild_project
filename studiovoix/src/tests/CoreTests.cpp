@@ -20,6 +20,7 @@
 #include "core/dsp/PitchCorrector.h"
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/Denoiser.h"
+#include "core/plugins/InternalPlugins.h"
 #include "core/plugins/PluginChain.h"
 #include "core/dsp/PitchShifter.h"
 #include "core/dsp/Processors.h"
@@ -1048,6 +1049,136 @@ public:
             const auto back = plugins::PluginSlot::fromVar (slot.toVar());
             expect (back.identifier == slot.identifier && back.bypass && back.state.getSize() == 1, "slot sauvegardé / relu"_u8);
             plugins::setInstanceFactory (nullptr);
+        }
+
+        beginTest ("Effets integres (plugins internes)");
+        {
+            expect (plugins::internalPlugins().size() >= 9 && plugins::isInternal ("interne:eq") && ! plugins::isInternal ("VST3-x"), "liste des effets intégrés"_u8);
+            for (const auto& d : plugins::internalPlugins())
+            {
+                expect (plugins::findInternal (d.identifier) == &d, juce::String ("identifiant retrouvé : "_u8) + d.identifier);
+                const auto st = plugins::defaultInternalState (d);
+                for (const auto& prm : d.params)
+                    expect (std::abs (plugins::internalParam (d, st, prm.id) - prm.def) < 1e-5f, juce::String (d.identifier) + " / " + prm.id + " : valeur par défaut"_u8);
+            }
+            // Limiteur : +12 dB de gain d'entrée puis plafond -3 dBTP → crête <= -2.9 dB.
+            Stereo loud (2, 48000);
+            for (int i = 0; i < loud.getNumSamples(); ++i)
+            {
+                const float v = 0.5f * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / static_cast<float> (kSr));
+                loud.setSample (0, i, v);
+                loud.setSample (1, i, v);
+            }
+            const auto* limDef = plugins::findInternal ("interne:limiter");
+            plugins::PluginSlot lim;
+            lim.identifier = "interne:limiter";
+            lim.name = "Limiteur";
+            lim.state = plugins::withInternalParam (*limDef, plugins::withInternalParam (*limDef, {}, "gain", 12.0f), "ceil", -3.0f);
+            expect (std::abs (plugins::internalParam (*limDef, lim.state, "ceil") + 3.0f) < 1e-5f && std::abs (plugins::internalParam (*limDef, lim.state, "gain") - 12.0f) < 1e-5f, "réglages écrits / relus"_u8);
+            auto notes = plugins::applyPluginChain (loud, kSr, { lim }, 120.0);
+            expect (notes.size() == 1 && notes[0].startsWith ("Limiteur"), "note du limiteur : " + notes.joinIntoString (" | "));
+            expect (gainToDb (loud.getMagnitude (0, loud.getNumSamples())) <= -2.9f, "plafond respecté : "_u8 + juce::String (gainToDb (loud.getMagnitude (0, loud.getNumSamples())), 2) + " dB");
+            // Compresseur : signal à -6 dB, seuil -30, ratio 8 → réduction nette, note chiffrée.
+            Stereo comp (2, 48000);
+            for (int i = 0; i < comp.getNumSamples(); ++i)
+            {
+                const float v = 0.5f * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / static_cast<float> (kSr));
+                comp.setSample (0, i, v);
+                comp.setSample (1, i, v);
+            }
+            const auto* compDef = plugins::findInternal ("interne:comp");
+            plugins::PluginSlot cs;
+            cs.identifier = "interne:comp";
+            cs.name = "Compresseur";
+            cs.state = plugins::withInternalParam (*compDef, plugins::withInternalParam (*compDef, {}, "thr", -30.0f), "ratio", 8.0f);
+            const float before = gainToDb (comp.getRMSLevel (0, 24000, 24000));
+            notes = plugins::applyPluginChain (comp, kSr, { cs }, 120.0);
+            const float after = gainToDb (comp.getRMSLevel (0, 24000, 24000));
+            expect (before - after > 6.0f, "compression effective : " + juce::String (before - after, 1) + " dB");
+            expect (notes[0].contains ("dB"), "note du compresseur chiffrée"_u8);
+            // Égaliseur : coupe-bas 400 Hz sur un 60 Hz → fortement atténué ; largeur 0 → mono.
+            Stereo low (2, 48000);
+            for (int i = 0; i < low.getNumSamples(); ++i)
+            {
+                low.setSample (0, i, 0.5f * std::sin (2.0f * juce::MathConstants<float>::pi * 60.0f * static_cast<float> (i) / static_cast<float> (kSr)));
+                low.setSample (1, i, -low.getSample (0, i));
+            }
+            const auto* eqDef = plugins::findInternal ("interne:eq");
+            plugins::PluginSlot eq;
+            eq.identifier = "interne:eq";
+            eq.name = "EQ";
+            eq.state = plugins::withInternalParam (*eqDef, {}, "lowCut", 400.0f);
+            plugins::PluginSlot width;
+            width.identifier = "interne:width";
+            width.name = "Largeur";
+            width.state = plugins::withInternalParam (*plugins::findInternal ("interne:width"), {}, "width", 0.0f);
+            auto widthOnly = low;
+            plugins::applyPluginChain (widthOnly, kSr, { width }, 120.0);
+            expect (widthOnly.getMagnitude (0, 0, widthOnly.getNumSamples()) < 1e-4f, "largeur 0 sur un signal purement latéral → silence"_u8);
+            notes = plugins::applyPluginChain (low, kSr, { eq }, 120.0);
+            expect (gainToDb (low.getRMSLevel (0, 24000, 24000)) < -30.0f, "coupe-bas 400 Hz sur 60 Hz : " + juce::String (gainToDb (low.getRMSLevel (0, 24000, 24000)), 1) + " dB");
+            // Réverb / délai : la queue ajoute de l'énergie après une impulsion ; état inconnu → effet signalé.
+            Stereo imp (2, 48000);
+            imp.clear();
+            imp.setSample (0, 100, 0.8f);
+            imp.setSample (1, 100, 0.8f);
+            plugins::PluginSlot rev;
+            rev.identifier = "interne:reverb";
+            rev.name = "Réverb"_u8;
+            rev.state = plugins::defaultInternalState (*plugins::findInternal ("interne:reverb"));
+            plugins::applyPluginChain (imp, kSr, { rev }, 120.0);
+            expect (imp.getRMSLevel (0, 4800, 24000) > 1e-5f, "réverb : traîne présente"_u8);
+            plugins::PluginSlot bad;
+            bad.identifier = "interne:inexistant";
+            bad.name = "X";
+            notes = plugins::applyPluginChain (imp, kSr, { bad }, 120.0);
+            expect (notes[0].contains ("inconnu"), "effet intégré inconnu signalé"_u8);
+        }
+
+        beginTest ("Correction par instrument : basse, batterie, harmonique");
+        {
+            const auto keySig = aMinor();
+            Mono bass (static_cast<size_t> (kSr) * 4);
+            for (size_t i = 0; i < bass.size(); ++i)
+            {
+                const float t = static_cast<float> (i) / static_cast<float> (kSr);
+                const float env = 0.5f + 0.5f * std::sin (2.0f * juce::MathConstants<float>::pi * 0.5f * t);
+                bass[i] = 0.4f * env * (std::sin (2.0f * juce::MathConstants<float>::pi * 55.0f * t) + 0.3f * std::sin (2.0f * juce::MathConstants<float>::pi * 110.0f * t));
+            }
+            auto pb = dsp::analyzeTrackProblems (bass, kSr, keySig, false);
+            expect (pb.instrumentKind == "basse", "basse reconnue : " + pb.instrumentKind + " (centroïde "_u8 + juce::String (pb.centroidHz, 0) + " Hz)");
+            auto bassParams = dsp::correctionParams (pb, false);
+            expect (! bassParams.pitch.enabled && bassParams.clean.hpfHz <= 30.0f && bassParams.eq.lowCutHz < 50.0f && bassParams.comp.ratio >= 2.5f, "basse : pas d'autotune, coupe-bas sous 50 Hz, compression 3:1"_u8);
+            expect (bassParams.clean.gateRangeDb <= 0.0f, "basse : pas de porte (tenue des notes)"_u8);
+
+            Mono drums (static_cast<size_t> (kSr) * 4, 0.0f);
+            juce::Random rng (11);
+            const int hit = static_cast<int> (kSr) / 6;   // 6 coups par seconde
+            for (size_t i = 0; i < drums.size(); ++i)
+            {
+                const int k = static_cast<int> (i) % hit;
+                if (k < 2400)
+                    drums[i] = 0.6f * (rng.nextFloat() * 2.0f - 1.0f) * std::exp (-static_cast<float> (k) / 400.0f);
+            }
+            auto pd = dsp::analyzeTrackProblems (drums, kSr, keySig, false);
+            expect (pd.onsetsPerSec >= 3.0f, "transitoires comptés : " + juce::String (pd.onsetsPerSec, 1) + "/s");
+            expect (pd.instrumentKind == "batterie", "batterie reconnue : " + pd.instrumentKind);
+            auto drumParams = dsp::correctionParams (pd, false);
+            expect (! drumParams.pitch.enabled && drumParams.comp.attackMs >= 15.0f, "batterie : attaque lente pour garder les transitoires"_u8);
+            expect (drumParams.clean.denoiseDb <= 6.0f, "batterie : débruitage doux (pas de pompage)"_u8);
+
+            Mono keys (static_cast<size_t> (kSr) * 4);
+            for (size_t i = 0; i < keys.size(); ++i)
+            {
+                const float t = static_cast<float> (i) / static_cast<float> (kSr);
+                keys[i] = 0.25f * (std::sin (2.0f * juce::MathConstants<float>::pi * 440.0f * t) + std::sin (2.0f * juce::MathConstants<float>::pi * 554.37f * t)
+                                   + std::sin (2.0f * juce::MathConstants<float>::pi * 659.25f * t) + 0.3f * std::sin (2.0f * juce::MathConstants<float>::pi * 1318.5f * t));
+            }
+            auto pk = dsp::analyzeTrackProblems (keys, kSr, keySig, false);
+            expect (pk.instrumentKind == "harmonique", "clavier reconnu : " + pk.instrumentKind);
+            auto keyParams = dsp::correctionParams (pk, false);
+            expect (! keyParams.pitch.enabled && keyParams.eq.lowCutHz >= 50.0f, "clavier : pas d'autotune, coupe-bas ~60 Hz"_u8);
+            expect (dsp::describeProblems (pk).isNotEmpty() && ! dsp::describeProblems (pk).containsChar (0xC3), "rapport lisible par instrument"_u8);
         }
 
         beginTest ("Debruitage spectral et de-ecretage");

@@ -32,5 +32,5 @@ bool hasInstanceFactory();
 
 /** Applique la chaîne (slots non contournés) sur audio stéréo ; la latence déclarée par chaque plugin est
     compensée. Renvoie les notes (plugins appliqués, erreurs) lisibles ; les erreurs sont aussi journalisées. */
-juce::StringArray applyPluginChain (Stereo& audio, double sampleRate, const std::vector<PluginSlot>& slots);
+juce::StringArray applyPluginChain (Stereo& audio, double sampleRate, const std::vector<PluginSlot>& slots, double bpm = 120.0);
 } // namespace sv::plugins

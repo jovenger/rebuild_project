@@ -166,7 +166,7 @@ namespace
     {
         if (t.plugins.empty() || ! r.ok())
             return;
-        r.pluginNotes = plugins::applyPluginChain (r.processed, p.sampleRate, t.plugins);
+        r.pluginNotes = plugins::applyPluginChain (r.processed, p.sampleRate, t.plugins, p.tempo.bpm);
     }
 }
 

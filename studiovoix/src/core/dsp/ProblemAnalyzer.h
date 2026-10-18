@@ -26,6 +26,9 @@ struct TrackProblems
     float voicedFraction = 0.0f;
     bool vocal = false;
     bool polyphonic = false;         // chœurs, piano, musique : jamais de correction de justesse
+    juce::String instrumentKind;     // piste non vocale : "basse", "batterie", "harmonique" (clavier, guitare, synthé) ou "autre"
+    float centroidHz = 0.0f;         // centre de gravité spectral
+    float onsetsPerSec = 0.0f;       // densité de transitoires (batterie, percussions)
     juce::StringArray found;         // défauts constatés, lisibles
     juce::StringArray fixes;         // corrections appliquées, lisibles
 };
