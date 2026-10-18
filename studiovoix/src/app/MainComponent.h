@@ -48,6 +48,8 @@ private:
     /** atStartup : en cas d'échec, un projet vide est créé (sinon le projet courant est conservé). */
     void openProjectWithRecovery (const juce::File& folder, bool atStartup = false);
     void createDefaultProject();
+    void showWelcome();
+    void hideWelcome();
     void showMessage (const juce::String& title, const juce::String& text);
     void startSelfTest (const juce::StringArray& args);
     void onUpdateClicked();
@@ -64,6 +66,8 @@ private:
     MixPanel* mixPanel = nullptr;
     AiPanel* aiPanel = nullptr;
     juce::Label statusBar;
+    juce::TextButton homeBtn { "Accueil" };
+    std::unique_ptr<class WelcomeView> welcome;   // écran d'accueil (cartes), par-dessus le studio
     juce::TooltipWindow tooltips { this, 700 };
     std::unique_ptr<juce::FileChooser> chooser;
     std::unique_ptr<juce::Timer> selfTest;

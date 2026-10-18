@@ -125,6 +125,7 @@ if(SV_BUILD_APP)
         src/app/MainComponent.cpp
         src/app/TransportBar.cpp
         src/app/Theme.cpp
+        src/app/WelcomeView.cpp
         src/app/TimelineView.cpp
         src/app/RemixPanel.cpp
         src/app/LyricsPanel.cpp

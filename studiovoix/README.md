@@ -23,6 +23,11 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 
 ## Premier lancement
 
+**Écran d'accueil** : à l'ouverture, de grandes cartes — « Nouveau projet », « Ouvrir un projet… », « Reprendre
+« dernier projet » » — puis les projets récents du dossier Projets (date, nombre de pistes, style). Échap ou
+« Reprendre » ramène au studio ; le bouton **Accueil** (en bas à gauche) le rouvre. L'habillage (fond sombre,
+accent violet → rose, cartes arrondies) est purement visuel : aucun calcul audio ne passe par lui.
+
 - **Paramètres** → carte son : choisir l'entrée (ton micro ou ton interface) et la sortie (ton casque).
   Au premier lancement : entrée par défaut de Windows, et sortie sur le même appareil si elle existe
   (casque branché sur le micro USB ou sur l'interface). Mode **Windows Audio (Exclusive Mode)** en priorité,

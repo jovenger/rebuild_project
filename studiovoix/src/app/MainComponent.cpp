@@ -6,6 +6,7 @@
 #include "SettingsDialog.h"
 #include "StyleMenu.h"
 #include "Theme.h"
+#include "WelcomeView.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -38,6 +39,10 @@ MainComponent::MainComponent (Session& s)
     statusBar.setFont (juce::FontOptions (13.0f));
     statusBar.setColour (juce::Label::backgroundColourId, theme::panel);
     statusBar.setColour (juce::Label::textColourId, theme::textDim);
+    addAndMakeVisible (homeBtn);
+    theme::setButtonKind (homeBtn, "ghost");
+    homeBtn.setTooltip ("Écran d'accueil : nouveau projet, ouvrir, projets récents"_u8);
+    homeBtn.onClick = [this] { showWelcome(); };
 
     transport.onNew = [this] { doNew(); };
     transport.onOpen = [this] { doOpen(); };
@@ -122,6 +127,37 @@ void MainComponent::startup (const juce::String& commandLine)
         openProjectWithRecovery (last, true);
     else
         createDefaultProject();
+    showWelcome();   // le dernier projet est prêt derrière ; l'accueil propose nouveau / ouvrir / récents / reprendre
+}
+
+void MainComponent::showWelcome()
+{
+    if (welcome == nullptr)
+    {
+        welcome = std::make_unique<WelcomeView> (session);
+        juce::Component::SafePointer<MainComponent> safe (this);
+        welcome->onNew = [safe] { if (safe != nullptr) { safe->hideWelcome(); safe->doNew(); } };
+        welcome->onOpen = [safe] { if (safe != nullptr) { safe->hideWelcome(); safe->doOpen(); } };
+        welcome->onClose = [safe] { if (safe != nullptr) safe->hideWelcome(); };
+        welcome->onOpenProject = [safe] (const juce::File& f) { if (safe != nullptr) { safe->hideWelcome(); safe->openProjectWithRecovery (f); } };
+        addAndMakeVisible (*welcome);
+    }
+    else
+    {
+        welcome->refresh();
+        welcome->setVisible (true);
+        welcome->toFront (false);
+    }
+    resized();
+    welcome->grabKeyboardFocus();
+    SV_LOG_INFO (kMod, "Écran d'accueil affiché"_u8);
+}
+
+void MainComponent::hideWelcome()
+{
+    if (welcome == nullptr || ! welcome->isVisible())
+        return;
+    welcome->setVisible (false);
     grabKeyboardFocus();
 }
 
@@ -854,8 +890,12 @@ void MainComponent::paint (juce::Graphics& g)
 void MainComponent::resized()
 {
     auto r = getLocalBounds();
+    if (welcome != nullptr)
+        welcome->setBounds (getLocalBounds());
     transport.setBounds (r.removeFromTop (76));
-    statusBar.setBounds (r.removeFromBottom (24));
+    auto bottom = r.removeFromBottom (24);
+    homeBtn.setBounds (bottom.removeFromLeft (80).reduced (2));
+    statusBar.setBounds (bottom);
     tabs.setBounds (r.removeFromRight (400));
     timeline.setBounds (r);
 }
