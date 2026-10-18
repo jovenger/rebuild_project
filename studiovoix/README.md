@@ -65,7 +65,8 @@ ensuite dans l'onglet **Voix IA**. Choisir un style dans la barre du haut traite
 « Effets » dans l'onglet Voix IA règle chaque piste à part (brut, style du projet ou un autre style).
 
 **Glisser-déposer** : faire glisser un ou plusieurs fichiers audio (MP3, WAV, FLAC, AIFF, OGG) dans la fenêtre
-crée une nouvelle piste par fichier, placée là où on lâche sur la timeline (au début sinon). Le programme
+crée une nouvelle piste par fichier, calée au début du morceau (le bloc se déplace ensuite en le glissant sur la
+timeline, Ctrl+Z pour annuler). Le programme
 **reconnaît le contenu** (voix seule ou musique : hauteur de voix, largeur stéréo, poids des graves) et le nom du
 fichier (« instru », « beat », « voix », « guitare »…) pour proposer le type ; il se change dans la fenêtre d'import.
 
@@ -76,8 +77,11 @@ réglages du style (autotune, EQ, compresseurs, de-esser, saturation, réverb, d
 style. Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Le style de la barre du haut sert aux pistes
 générées, au mastering et aux propositions, pas aux pistes brutes.
 
-**Sélection multiple** : Ctrl + clic ajoute une piste à la sélection, Maj + clic étend ; **Suppr** supprime les
-pistes sélectionnées (Ctrl+Z pour revenir en arrière) ; le clic droit propose aussi la suppression groupée.
+**Plusieurs pistes à la fois** : Ctrl enfoncé + clic sur chaque piste (elles restent sélectionnées), puis clic droit →
+« Supprimer les N pistes » (ou touche Suppr). Ctrl+Z revient en arrière.
+
+**Déplacer un bloc audio** : glisser la prise ou le fichier sur sa piste ; il suit la souris et se place au
+relâchement (jamais avant 0 s).
 
 Autres fonctions : punch-in (zone sur la timeline), boucle, métronome, marqueurs, prises multiples avec
 comping automatique (meilleure prise par phrase), copie d'un refrain sur les refrains identiques,

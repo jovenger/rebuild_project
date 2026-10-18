@@ -97,8 +97,12 @@ private:
     double viewStart = 0.0;
     int scrollY = 0;
     double punchIn = 0.0, punchOut = 0.0, loopA = 0.0, loopB = 0.0;
-    enum class Drag { None, Playhead, Punch, Loop } drag = Drag::None;
+    enum class Drag { None, Playhead, Punch, Loop, Clip } drag = Drag::None;
     double dragAnchor = 0.0;
+    int clipTrack = -1, clipTake = -1;   // bloc audio en cours de déplacement
+    double clipOffsetSec = 0.0;          // décalage provisoire (affiché pendant le glisser)
+    /** Prise (ou fichier source : -1) sous le point (x, piste) ; false si rien. */
+    bool clipAt (const project::Track& t, double sec, int& takeId) const;
     int lastPlayheadX = -1;
 };
 } // namespace sv::app

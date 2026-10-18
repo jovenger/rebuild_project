@@ -61,6 +61,9 @@ public:
     void selectTrack (int trackId, bool addToSelection = false, bool extendRange = false);
     bool isTrackSelected (int trackId) const { return selectedTracks.count (trackId) > 0; }
     const std::set<int>& selectedTrackIds() const { return selectedTracks; }
+    /** Déplace l'audio d'une piste sur la timeline (glisser du bloc) : takeId = prise, -1 = fichier source
+        (instru, piste générée). Le début ne passe jamais avant 0. */
+    void moveTrackAudio (int trackId, int takeId, double deltaSec);
     /** Supprime plusieurs pistes en une seule étape d'annulation. */
     void removeTracks (const std::vector<int>& trackIds);
 

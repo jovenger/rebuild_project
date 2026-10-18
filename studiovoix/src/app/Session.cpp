@@ -597,6 +597,35 @@ void Session::removeTrack (int trackId)
     removeTracks ({ trackId });
 }
 
+void Session::moveTrackAudio (int trackId, int takeId, double deltaSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording() || std::abs (deltaSec) < 0.001)
+        return;
+    const long delta = static_cast<long> (std::llround (deltaSec * proj.sampleRate));
+    juce::String what;
+    updateTrack (trackId, [takeId, delta, &what] (project::Track& tr)
+    {
+        if (takeId < 0 || tr.takes.empty())
+        {
+            tr.sourceStart = std::max (0L, tr.sourceStart + delta);
+            what = "fichier";
+            return;
+        }
+        for (auto& tk : tr.takes)
+            if (tk.id == takeId)
+            {
+                const long d = std::max (delta, -std::min (tk.startSample, tk.regionStart));   // jamais avant 0
+                tk.startSample += d;
+                tk.regionStart += d;
+                tk.regionEnd += d;
+                what = "prise #" + juce::String (tk.id);
+            }
+    }, true, "Déplacement sur la timeline"_u8);
+    SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » : " + what + " déplacé(e) de "_u8 + juce::String (deltaSec, 2) + " s");
+    setStatus ("« "_u8 + t->name + " » déplacée de "_u8 + juce::String (deltaSec, 2) + " s (Ctrl+Z pour annuler)");
+}
+
 void Session::removeTracks (const std::vector<int>& trackIds)
 {
     std::vector<int> existing;

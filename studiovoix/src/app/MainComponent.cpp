@@ -285,6 +285,19 @@ namespace
                         session.removeTrack (extra);
                         session.selectTrack (backTrackId);
                     }
+                    {
+                        // Déplacement d'un bloc audio (prise de la voix principale) de +1,5 s, puis annulation.
+                        const int leadId = session.project().leadTrackId();
+                        const auto before = session.project().findTrack (leadId)->takes.front().regionStart;
+                        session.moveTrackAudio (leadId, session.project().findTrack (leadId)->takes.front().id, 1.5);
+                        const auto after = session.project().findTrack (leadId)->takes.front().regionStart;
+                        if (after - before != static_cast<long> (std::llround (1.5 * session.project().sampleRate)))
+                        { fail ("déplacement de prise : décalage inattendu"_u8); return; }
+                        session.undo();
+                        if (session.project().findTrack (leadId)->takes.front().regionStart != before)
+                        { fail ("annulation du déplacement"_u8); return; }
+                        log ("étape 6 ter : prise déplacée de 1,5 s sur la timeline puis remise en place"_u8);
+                    }
                     log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée ; cliquer une piste l'arme"_u8);
                     // Style choisi avant l'import : la prise est traitée (sinon elle resterait brute, sans calcul).
                     session.setTrackTreatment (backTrackId, false, style::styleId (style::Style::Trap));
@@ -572,11 +585,13 @@ void MainComponent::filesDropped (const juce::StringArray& files, int x, int y)
                      "(par exemple avec Audacity ou un convertisseur en ligne)."_u8);
         return;
     }
-    double startSec = 0.0;
-    const auto inTimeline = timeline.timeAtPoint (timeline.getLocalPoint (this, juce::Point<int> (x, y)), startSec);
-    if (! inTimeline || startSec < 0.25)
-        startSec = 0.0;   // hors timeline ou tout au début : calé sur le début du morceau
-    SV_LOG_INFO (kMod, juce::String (files.size()) + " fichier(s) déposé(s), position "_u8 + juce::String (startSec, 2) + " s");
+    // Fichier déposé : toujours calé au début du morceau (comme une voix enregistrée à part) ; le bloc se déplace
+    // ensuite en le glissant sur la timeline. (Position de dépôt gardée dans le journal seulement.)
+    double dropSec = 0.0;
+    timeline.timeAtPoint (timeline.getLocalPoint (this, juce::Point<int> (x, y)), dropSec);
+    const double startSec = 0.0;
+    juce::ignoreUnused (dropSec);
+    SV_LOG_INFO (kMod, juce::String (files.size()) + " fichier(s) déposé(s) (souris à "_u8 + juce::String (dropSec, 2) + " s) : placé(s) à 0 s"_u8);
     showImportDialog (session, files, startSec);
 }
 
@@ -591,7 +606,7 @@ void MainComponent::paintOverChildren (juce::Graphics& g)
     g.drawRoundedRectangle (r, 10.0f, 3.0f);
     g.setColour (juce::Colours::white);
     g.setFont (juce::FontOptions (24.0f, juce::Font::bold));
-    g.drawFittedText ("Dépose le fichier audio : une nouvelle piste sera créée (là où tu lâches sur la timeline)"_u8,
+    g.drawFittedText ("Dépose le fichier audio : une nouvelle piste sera créée au début du morceau (déplaçable ensuite en la glissant)"_u8,
                       getLocalBounds().reduced (40), juce::Justification::centred, 2);
 }
 

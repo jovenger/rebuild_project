@@ -310,11 +310,15 @@ void TimelineView::paint (juce::Graphics& g)
         g.setColour (selected ? juce::Colour (0xff1f2630) : (i % 2 == 0 ? juce::Colour (0xff181c21) : juce::Colour (0xff1b1f25)));
         g.fillRect (kHeaderWidth, y, w - kHeaderWidth, kTrackHeight);
 
+        // Bloc en cours de déplacement : dessiné décalé (le projet n'est modifié qu'au relâchement).
+        const bool moving = drag == Drag::Clip && clipTrack == t.id;
+        const double shiftSec = moving ? clipOffsetSec : 0.0;
         // Zones des prises (vocal) en contour.
         g.setColour (roleColour (t.role).withAlpha (0.25f));
         for (const auto& tk : t.takes)
         {
-            const int x1 = secToX (tk.regionStart / p.sampleRate), x2 = secToX (tk.regionEnd / p.sampleRate);
+            const double tkShift = moving && (clipTake == tk.id || clipTake < 0) ? shiftSec : 0.0;
+            const int x1 = secToX (tk.regionStart / p.sampleRate + tkShift), x2 = secToX (tk.regionEnd / p.sampleRate + tkShift);
             g.drawRect (x1, y + 3, std::max (1, x2 - x1), kTrackHeight - 6);
         }
 
@@ -322,7 +326,7 @@ void TimelineView::paint (juce::Graphics& g)
         {
             const auto col = roleColour (t.role);
             const double binSec = 0.01;
-            const double startSec = wc->start / p.sampleRate;
+            const double startSec = wc->start / p.sampleRate + shiftSec;
             const int mid = y + kTrackHeight / 2;
             const float half = (kTrackHeight - 10) * 0.5f;
             const int xa = std::max ({ kHeaderWidth, clip.getX() - 1, secToX (startSec) });
@@ -516,10 +520,51 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
         if (! (e.mods.isPopupMenu() && session.isTrackSelected (id)))
             session.selectTrack (id, e.mods.isCtrlDown() || e.mods.isCommandDown(), e.mods.isShiftDown());
         if (e.mods.isPopupMenu())
+        {
             showTrackMenu (id);
-        else if (! session.isRecording())
+            return;
+        }
+        // Glisser un bloc audio (prise ou fichier) pour le déplacer sur la timeline ; clic ailleurs = tête de lecture.
+        int takeId = -1;
+        if (! session.isRecording() && ! e.mods.isAnyModifierKeyDown()
+            && clipAt (session.project().tracks[static_cast<size_t> (idx)], t, takeId))
+        {
+            drag = Drag::Clip;
+            clipTrack = id;
+            clipTake = takeId;
+            clipOffsetSec = 0.0;
+            dragAnchor = xToSec (e.x);
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+            return;
+        }
+        if (! session.isRecording())
             session.setPositionSec (t);
     }
+}
+
+bool TimelineView::clipAt (const project::Track& t, double sec, int& takeId) const
+{
+    const double sr = session.project().sampleRate;
+    for (const auto& tk : t.takes)
+        if (sec >= tk.regionStart / sr && sec <= tk.regionEnd / sr)
+        {
+            takeId = tk.id;
+            return true;
+        }
+    if (t.takes.empty() && t.sourceFile.isNotEmpty())
+    {
+        auto r = session.renderFor (t.id);
+        if (r != nullptr && r->ok())
+        {
+            const double a = r->startSample / sr, b = a + r->processed.getNumSamples() / sr;
+            if (sec >= a && sec <= b)
+            {
+                takeId = -1;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void TimelineView::mouseDrag (const juce::MouseEvent& e)
@@ -530,6 +575,7 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
         case Drag::Playhead: session.setPositionSec (t); break;
         case Drag::Punch:    punchIn = std::min (dragAnchor, t); punchOut = std::max (dragAnchor, t); break;
         case Drag::Loop:     loopA = std::min (dragAnchor, t); loopB = std::max (dragAnchor, t); break;
+        case Drag::Clip:     clipOffsetSec = xToSec (e.x) - dragAnchor; break;
         case Drag::None:     break;
     }
     repaint();
@@ -537,6 +583,19 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
 
 void TimelineView::mouseUp (const juce::MouseEvent&)
 {
+    if (drag == Drag::Clip)
+    {
+        const double delta = clipOffsetSec;
+        const int trackId = clipTrack, takeId = clipTake;
+        clipTrack = -1;
+        clipOffsetSec = 0.0;
+        drag = Drag::None;
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+        if (std::abs (delta) >= 0.01)
+            session.moveTrackAudio (trackId, takeId, delta);
+        repaint();
+        return;
+    }
     if (drag == Drag::Punch || drag == Drag::Loop)
     {
         SV_LOG_INFO ("Timeline", drag == Drag::Punch ? "Zone de punch-in : " + juce::String (punchIn, 2) + "-" + juce::String (punchOut, 2) + " s"
