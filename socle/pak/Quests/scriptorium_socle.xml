@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">
   <Skald>
-    <Project Name="scriptorium_socle" IsLocalized="true">
+    <Project Name="scriptorium_socle">
       <Definitions>
         <Definition File="scriptorium_socle/carte_kutnohorsko.xml" />
         <Definition File="scriptorium_socle/carte_trosecko.xml" />
       </Definitions>
       <Nodes>
-        <kutnohorsko Name="kutnohorsko" />
-        <trosecko Name="trosecko" />
+        <kutnohorsko Name="kutnohorsko" PositionX="0" PositionY="0" />
+        <trosecko Name="trosecko" PositionX="300" PositionY="0" />
       </Nodes>
+      <Text Text="scriptorium_socle" />
       <ObjectiveValueTypes>
         <ObjectiveValueType Type="None" IsPast="false" Icon="Exclamation" />
         <ObjectiveValueType Type="Started" IsPast="false" Icon="Exclamation" Hint="objective_HintStarted" />

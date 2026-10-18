@@ -3,8 +3,8 @@
   une quête de fond par carte (éveillée avec la carte : arête OnWake vers son port « eveil »), un FaderDialog par arbre ;
 - la table des rôles : socle/pak/Libs/Tables/rpg/role__scriptorium_socle.xml ;
 - les règles Storm : socle/pak/Libs/Storm/storm__scriptorium_socle.xml (la tâche « roles ») et
-  socle/pak/Libs/Storm/scriptorium_socle/roles.xml (hasFaction la Compagnie -> le rôle des hommes ; hasName l'âme du
-  Directeur -> son rôle) ;
+  socle/pak/Libs/Storm/scriptorium_socle/roles.xml (une règle hasName par âme de nos réserves -> le rôle des hommes ;
+  l'âme du Directeur -> son rôle) ;
 - les textes : socle/textes/fr/text_ui_dialog__scriptorium_socle.xml.
 Formes relevées dans les paks du jeu (lecture seule ; fiche 21). Rien n'est lu dans le jeu ici : l'outil n'écrit que dans
 le dépôt, toujours à l'identique pour la même description.
@@ -15,6 +15,7 @@ Usage :
 """
 import json
 import os
+import re
 import sys
 from xml.sax.saxutils import escape, quoteattr
 
@@ -28,8 +29,11 @@ FACTION = "scriptorium_socle_compagnie"          # outils/ames.py
 AME_DU_DIRECTEUR = "scriptorium_directeur"       # outils/ames.py
 VARIABLES = ["scriptorium_dialogue_code_1", "scriptorium_dialogue_code_2", "scriptorium_dialogue_code_3"]
 VARIABLE_DU_COLONEL = "scriptorium_dialogue_colonel"
+# La base des fichiers de quêtes : celle du jeu (Quests/Final/Barbora.xml : Name="brambora").
 TETE = ('<?xml version="1.0" encoding="utf-8"?>\n<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="%s">\n  <Skald>\n' % PROJET)
+        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">\n  <Skald>\n')
+TABLE_DES_AMES = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "rpg", "soul__scriptorium_socle.xml")
+PREFIXE_DES_ROLES = "5c7a5c7a-0006-4000-8000-%012x"   # le préfixe de nos âmes (outils/ames.py), code 6 : les rôles
 PIED = "  </Skald>\n</Database>\n"
 # L'activation d'un FaderDialog dans sa quête : une arête du port « run » de la quête vers ce port du FaderDialog
 # (None : aucune arête). À fixer d'après les quêtes du jeu (fiche 21).
@@ -214,6 +218,7 @@ class Ecrivain:
     def fader(self):
         menu = self.nom + "_menu"
         self.ecrire(2, "<FaderDialog%s>" % attr(Name=self.nom, Time="ANYTIME"))
+        self.ecrire(3, texte(self.t, self.cle("titre"), "Scriptorium, " + self.arbre))
         self.ecrire(3, "<Dialogue%s>" % attr(TechnicalStatus="Enabled", AllowFarewell="false", AllowGreeting="false"))
         self.ecrire(4, "<Decision%s>" % attr(Name=self.nom + "_entree", Priority="General", DesignName="entree"))
         self.ecrire(5, "<Sequences>")
@@ -253,18 +258,22 @@ def fichiers(donnees):
         '        <ObjectiveValueType Type="Completed" IsPast="true" Icon="Check" Hint="objective_HintCompleted" />',
         '        <ObjectiveValueType Type="Canceled" IsPast="true" Icon="Check" Hint="objective_HintCanceled" />',
         '      </ObjectiveValueTypes>'])
+    # Principe transmis par le pair (18/10) : un projet à la racine de Quests, un nœud par carte (nom de la carte,
+    # position), son titre ; un Level par carte au nom exact de la carte, réveillant sa quête (OnWake) ; chaque
+    # dialogue un fichier à part, nœud de la quête ; chaque chemin relatif au dossier du fichier qui le déclare.
     sortie["Quests/%s.xml" % PROJET] = TETE + "\n".join(
-        ['    <Project Name="%s" IsLocalized="true">' % PROJET, "      <Definitions>"]
+        ['    <Project Name="%s">' % PROJET, "      <Definitions>"]
         + ['        <Definition File="%s/carte_%s.xml" />' % (PROJET, carte) for carte, _ in CARTES]
         + ["      </Definitions>", "      <Nodes>"]
-        + ['        <%s Name="%s" />' % (carte, carte) for carte, _ in CARTES]
-        + ["      </Nodes>", objectifs, "    </Project>"]) + "\n" + PIED
+        + ['        <%s Name="%s" PositionX="%d" PositionY="0" />' % (carte, carte, 300 * i) for i, (carte, _) in enumerate(CARTES)]
+        + ["      </Nodes>", '      <Text Text="%s" />' % PROJET, objectifs, "    </Project>"]) + "\n" + PIED
     for carte, court in CARTES:
         quete = "%s_fond_%s" % (PROJET, court)
         sortie["Quests/%s/carte_%s.xml" % (PROJET, carte)] = TETE + "\n".join([
-            '    <Level Name="%s">' % carte,
+            '    <Level Name="%s" HibernateMode="Auto">' % carte,   # la forme du jeu (Barbora/kutnohorsko.xml)
             "      <Definitions>", '        <Definition File="%s/%s.xml" />' % (carte, quete), "      </Definitions>",
-            "      <Nodes>", '        <%s Name="%s">' % (quete, quete), '          <Edge From="OnWake" To="eveil" />',
+            "      <Nodes>", '        <%s Name="%s" PositionX="0" PositionY="0" RequiredForOutput="%s">' % (quete, quete, carte),
+            '          <Edge From="OnWake" To="eveil" />',
             "        </%s>" % quete, "      </Nodes>", "    </Level>"]) + "\n" + PIED
         dialogues = []
         for arbre, description in donnees["arbres"].items():
@@ -277,32 +286,41 @@ def fichiers(donnees):
                 noeuds += ['        <%s Name="%s">' % (nom, nom), '          <Edge From="eveil" To="%s" />' % PORT_D_EVEIL,
                            "        </%s>" % nom]
             else:
-                noeuds.append('        <%s Name="%s" />' % (nom, nom))
+                noeuds.append('        <%s Name="%s" PositionX="0" PositionY="%d" />' % (nom, nom, 200 * len(noeuds)))
         sortie["Quests/%s/%s/%s.xml" % (PROJET, carte, quete)] = TETE + "\n".join(
-            ['    <Quest Name="%s" VoiceNamespace="false">' % quete, "      <Ports>",
+            ['    <Quest Name="%s" Type="Side" Players="0" Repeatable="true" VoiceNamespace="false">' % quete, "      <Ports>",
              '        <Port Name="eveil" Direction="In" Type="trigger"><DesignName Text="eveil" /></Port>', "      </Ports>",
              "      <Definitions>"] + ['        <Definition File="%s/%s.xml" />' % (quete, nom) for nom in dialogues]
             + ["      </Definitions>", "      <Nodes>"] + noeuds + ["      </Nodes>", "    </Quest>"]) + "\n" + PIED
     # Les rôles et les règles Storm.
+    # Principe transmis par le pair (18/10) : chaque rôle porte un identifiant neuf à nous (role_id), metarole « NPC »
+    # et son nom ; <roles> sans version.
     roles = [d["role"] for d in donnees["arbres"].values()]
     sortie["Libs/Tables/rpg/role__%s.xml" % PROJET] = "\n".join(
         ['<?xml version="1.0" encoding="us-ascii"?>',
          '<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" '
-         'xsi:noNamespaceSchemaLocation="../database.xsd">', '  <roles version="1">']
-        + ['    <role _locked="false" _role_string_name="role_%s" metarole_name="NPC" role_name="%s" />' % (r, r) for r in roles]
+         'xsi:noNamespaceSchemaLocation="../database.xsd">', '  <roles>']
+        + ['    <role metarole_name="NPC" role_id="%s" role_name="%s" />' % (PREFIXE_DES_ROLES % (i + 1), r)
+           for i, r in enumerate(roles)]
         + ["  </roles>", "</database>", ""])
     homme, directeur = donnees["arbres"]["homme"]["role"], donnees["arbres"]["directeur"]["role"]
     sortie["Libs/Storm/storm__%s.xml" % PROJET] = "\n".join([
         '<?xml version="1.0"?>', "<storm>", "  <tasks>", '    <task name="roles" class="roles">',
         '      <source path="%s\\roles.xml" />' % PROJET, "    </task>", "  </tasks>", "</storm>", ""])
-    sortie["Libs/Storm/%s/roles.xml" % PROJET] = "\n".join([
-        '<?xml version="1.0"?>', '<!DOCTYPE storm SYSTEM "!storm.dtd">', "<storm>", "  <rules>",
-        '    <rule name="%s_hommes">' % PROJET, "      <selectors>",
-        '        <and><hasFaction name="%s" /><not><hasName name="%s" /></not></and>' % (FACTION, AME_DU_DIRECTEUR),
-        "      </selectors>", "      <operations>", '        <addRole name="%s" />' % homme, "      </operations>",
-        "    </rule>", '    <rule name="%s_directeur">' % PROJET, "      <selectors>",
-        '        <hasName name="%s" />' % AME_DU_DIRECTEUR, "      </selectors>", "      <operations>",
-        '        <addRole name="%s" />' % directeur, "      </operations>", "    </rule>", "  </rules>", "</storm>", ""])
+    # Principe transmis par le pair (18/10) : une règle par âme, un seul hasName (le nom exact de l'âme), le nom de la
+    # règle est celui de l'âme ; les âmes de nos réserves (combattants, gens de métier, femmes) reçoivent le rôle des
+    # hommes, celle du Directeur le sien.
+    with open(TABLE_DES_AMES, "r", encoding="ascii") as f:
+        ames = sorted(set(re.findall(r'soul_name="(scriptorium_(?:combattant|metier|femme)_[0-9_]+)"', f.read())))
+    if not ames:
+        raise SystemExit("REFUS : aucune âme de réserve dans " + TABLE_DES_AMES)
+    regles = []
+    for ame, role in [(a, homme) for a in ames] + [(AME_DU_DIRECTEUR, directeur)]:
+        regles += ['    <rule name="%s">' % ame, "      <selectors>", '        <hasName name="%s" />' % ame, "      </selectors>",
+                   "      <operations>", '        <addRole name="%s" />' % role, "      </operations>", "    </rule>"]
+    sortie["Libs/Storm/%s/roles.xml" % PROJET] = "\n".join(
+        ['<?xml version="1.0"?>', '<!DOCTYPE storm SYSTEM "../storm.dtd">', "<storm>", "  <rules>"] + regles
+        + ["  </rules>", "</storm>", ""])
     lignes = ["<Table>"]
     for cle in t.ordre:
         lignes.append("  <Row><Cell>%s</Cell><Cell>%s</Cell><Cell>%s</Cell></Row>" % (cle, escape(t.textes[cle]), escape(t.textes[cle])))

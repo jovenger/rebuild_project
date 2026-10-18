@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">
   <Skald>
-    <Quest Name="scriptorium_socle_fond_kut" VoiceNamespace="false">
+    <Quest Name="scriptorium_socle_fond_kut" Type="Side" Players="0" Repeatable="true" VoiceNamespace="false">
       <Ports>
         <Port Name="eveil" Direction="In" Type="trigger"><DesignName Text="eveil" /></Port>
       </Ports>
@@ -10,8 +10,8 @@
         <Definition File="scriptorium_socle_fond_kut/scriptorium_socle_directeur_kut.xml" />
       </Definitions>
       <Nodes>
-        <scriptorium_socle_homme_kut Name="scriptorium_socle_homme_kut" />
-        <scriptorium_socle_directeur_kut Name="scriptorium_socle_directeur_kut" />
+        <scriptorium_socle_homme_kut Name="scriptorium_socle_homme_kut" PositionX="0" PositionY="0" />
+        <scriptorium_socle_directeur_kut Name="scriptorium_socle_directeur_kut" PositionX="0" PositionY="200" />
       </Nodes>
     </Quest>
   </Skald>

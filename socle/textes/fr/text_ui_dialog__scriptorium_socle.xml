@@ -1,4 +1,5 @@
 <Table>
+  <Row><Cell>ui_scriptorium_dlg_homme_titre</Cell><Cell>Scriptorium, homme</Cell><Cell>Scriptorium, homme</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_ouverture</Cell><Cell>Oui, chef ?</Cell><Cell>Oui, chef ?</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_discutons_invite</Cell><Cell>Discutons un peu.</Cell><Cell>Discutons un peu.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_discutons_henry</Cell><Cell>J'ai un moment. Discutons.</Cell><Cell>J'ai un moment. Discutons.</Cell></Row>
@@ -147,6 +148,7 @@
   <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_16</Cell><Cell>Pas maintenant, chef : un autre duel est en cours.</Cell><Cell>Pas maintenant, chef : un autre duel est en cours.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_ce_sera_tout</Cell><Cell>Ce sera tout.</Cell><Cell>Ce sera tout.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_titre</Cell><Cell>Scriptorium, directeur</Cell><Cell>Scriptorium, directeur</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_directeur_ouverture</Cell><Cell>Oui, chef ?</Cell><Cell>Oui, chef ?</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_invite</Cell><Cell>Comment va le camp ?</Cell><Cell>Comment va le camp ?</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_henry</Cell><Cell>Comment va le camp ?</Cell><Cell>Comment va le camp ?</Cell></Row>

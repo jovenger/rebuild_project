@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">
   <Skald>
     <FaderDialog Name="scriptorium_socle_directeur_kut" Time="ANYTIME">
+      <Text StringName="ui_scriptorium_dlg_directeur_titre" Text="Scriptorium, directeur" />
       <Dialogue TechnicalStatus="Enabled" AllowFarewell="false" AllowGreeting="false">
         <Decision Name="scriptorium_socle_directeur_kut_entree" Priority="General" DesignName="entree">
           <Sequences>

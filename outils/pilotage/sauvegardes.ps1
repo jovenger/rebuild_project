@@ -4,10 +4,11 @@
 # Décision de JoVenGer (15/10/2026, question à cocher) : à chaque fin d'essai, les sauvegardes d'essai plus récentes que
 # sa partie sont rangées à part (déplacées, jamais supprimées), pour que « Continuer » reprenne sa partie.
 # S'emploie par « . outils\pilotage\sauvegardes.ps1 ». Lecture seule, sauf Ranger-Les-Essais, qui ne déplace que des
-# sauvegardes des parties d'essai (playline2, playline3), jamais de playline0 ni de playline1.
+# sauvegardes des parties d'essai (playline2, playline3, playline4), jamais de playline0 ni de playline1.
 $script:Sauvegardes = "$env:USERPROFILE\Saved Games\kingdomcome2\saves"
 $script:Rangement = "$env:USERPROFILE\Saved Games\kingdomcome2\essais_du_socle_rangees"
-$script:LignesDEssai = @("playline2", "playline3")
+# 18/10/2026 : playline4, la partie neuve d'essai (Partie 5), créée pour l'essai des dialogues sur une partie neuve.
+$script:LignesDEssai = @("playline2", "playline3", "playline4")
 
 # L'heure de l'en-tête d'une sauvegarde (secondes), ou $null si l'en-tête est illisible.
 function Heure-De-Sauvegarde([string]$chemin) {

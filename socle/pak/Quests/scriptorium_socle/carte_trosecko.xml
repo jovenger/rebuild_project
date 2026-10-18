@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">
   <Skald>
-    <Level Name="trosecko">
+    <Level Name="trosecko" HibernateMode="Auto">
       <Definitions>
         <Definition File="trosecko/scriptorium_socle_fond_tro.xml" />
       </Definitions>
       <Nodes>
-        <scriptorium_socle_fond_tro Name="scriptorium_socle_fond_tro">
+        <scriptorium_socle_fond_tro Name="scriptorium_socle_fond_tro" PositionX="0" PositionY="0" RequiredForOutput="trosecko">
           <Edge From="OnWake" To="eveil" />
         </scriptorium_socle_fond_tro>
       </Nodes>

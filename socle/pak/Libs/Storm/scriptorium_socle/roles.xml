@@ -1,16 +1,2568 @@
 <?xml version="1.0"?>
-<!DOCTYPE storm SYSTEM "!storm.dtd">
+<!DOCTYPE storm SYSTEM "../storm.dtd">
 <storm>
   <rules>
-    <rule name="scriptorium_socle_hommes">
+    <rule name="scriptorium_combattant_1_01">
       <selectors>
-        <and><hasFaction name="scriptorium_socle_compagnie" /><not><hasName name="scriptorium_directeur" /></not></and>
+        <hasName name="scriptorium_combattant_1_01" />
       </selectors>
       <operations>
         <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
       </operations>
     </rule>
-    <rule name="scriptorium_socle_directeur">
+    <rule name="scriptorium_combattant_1_02">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_02" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_03">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_03" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_04">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_04" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_05">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_05" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_06">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_06" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_07">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_07" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_08">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_08" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_09">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_09" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_10">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_10" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_11">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_11" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_12">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_12" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_13">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_13" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_14">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_14" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_15">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_15" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_16">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_16" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_17">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_17" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_18">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_18" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_19">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_19" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_20">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_20" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_21">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_21" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_22">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_22" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_23">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_23" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_24">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_24" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_25">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_25" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_26">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_26" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_27">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_27" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_28">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_28" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_29">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_29" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_30">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_30" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_31">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_31" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_32">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_32" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_33">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_33" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_34">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_34" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_35">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_35" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_36">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_36" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_37">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_37" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_38">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_38" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_39">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_39" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_40">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_40" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_41">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_41" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_42">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_42" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_43">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_43" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_44">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_44" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_45">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_45" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_46">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_46" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_47">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_47" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_48">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_48" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_49">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_49" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_50">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_50" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_51">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_51" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_52">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_52" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_53">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_53" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_54">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_54" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_55">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_55" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_56">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_56" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_57">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_57" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_58">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_58" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_59">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_59" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_60">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_60" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_61">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_61" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_62">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_62" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_63">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_63" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_64">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_64" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_65">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_65" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_66">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_66" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_67">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_67" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_68">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_68" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_69">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_69" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_70">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_70" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_71">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_71" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_72">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_72" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_73">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_73" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_74">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_74" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_75">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_75" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_76">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_76" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_77">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_77" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_78">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_78" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_79">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_79" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_1_80">
+      <selectors>
+        <hasName name="scriptorium_combattant_1_80" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_01">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_01" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_02">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_02" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_03">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_03" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_04">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_04" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_05">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_05" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_06">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_06" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_07">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_07" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_08">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_08" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_09">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_09" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_10">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_10" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_11">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_11" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_12">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_12" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_13">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_13" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_14">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_14" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_15">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_15" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_16">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_16" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_17">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_17" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_18">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_18" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_19">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_19" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_20">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_20" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_21">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_21" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_22">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_22" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_23">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_23" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_24">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_24" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_25">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_25" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_26">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_26" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_27">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_27" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_28">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_28" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_29">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_29" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_30">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_30" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_31">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_31" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_32">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_32" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_33">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_33" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_34">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_34" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_35">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_35" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_36">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_36" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_37">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_37" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_38">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_38" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_39">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_39" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_40">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_40" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_41">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_41" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_42">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_42" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_43">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_43" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_44">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_44" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_45">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_45" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_46">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_46" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_47">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_47" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_48">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_48" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_49">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_49" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_50">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_50" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_51">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_51" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_52">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_52" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_53">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_53" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_54">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_54" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_55">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_55" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_56">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_56" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_57">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_57" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_58">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_58" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_59">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_59" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_60">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_60" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_61">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_61" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_62">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_62" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_63">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_63" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_64">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_64" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_65">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_65" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_66">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_66" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_67">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_67" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_68">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_68" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_69">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_69" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_70">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_70" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_71">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_71" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_72">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_72" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_73">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_73" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_74">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_74" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_75">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_75" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_76">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_76" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_77">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_77" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_78">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_78" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_79">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_79" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_2_80">
+      <selectors>
+        <hasName name="scriptorium_combattant_2_80" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_01">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_01" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_02">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_02" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_03">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_03" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_04">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_04" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_05">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_05" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_06">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_06" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_07">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_07" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_08">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_08" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_09">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_09" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_10">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_10" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_11">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_11" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_12">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_12" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_13">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_13" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_14">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_14" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_15">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_15" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_16">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_16" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_17">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_17" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_18">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_18" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_19">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_19" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_20">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_20" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_21">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_21" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_22">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_22" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_23">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_23" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_24">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_24" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_25">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_25" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_26">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_26" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_27">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_27" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_28">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_28" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_29">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_29" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_30">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_30" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_31">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_31" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_32">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_32" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_33">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_33" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_34">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_34" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_35">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_35" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_36">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_36" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_37">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_37" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_38">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_38" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_39">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_39" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_40">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_40" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_41">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_41" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_42">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_42" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_43">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_43" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_44">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_44" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_45">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_45" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_46">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_46" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_47">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_47" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_48">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_48" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_49">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_49" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_50">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_50" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_51">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_51" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_52">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_52" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_53">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_53" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_54">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_54" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_55">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_55" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_56">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_56" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_57">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_57" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_58">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_58" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_59">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_59" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_60">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_60" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_61">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_61" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_62">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_62" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_63">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_63" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_64">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_64" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_65">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_65" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_66">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_66" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_67">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_67" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_68">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_68" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_69">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_69" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_70">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_70" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_71">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_71" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_72">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_72" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_73">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_73" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_74">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_74" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_75">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_75" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_76">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_76" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_77">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_77" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_78">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_78" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_79">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_79" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_combattant_3_80">
+      <selectors>
+        <hasName name="scriptorium_combattant_3_80" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_01">
+      <selectors>
+        <hasName name="scriptorium_femme_01" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_02">
+      <selectors>
+        <hasName name="scriptorium_femme_02" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_03">
+      <selectors>
+        <hasName name="scriptorium_femme_03" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_04">
+      <selectors>
+        <hasName name="scriptorium_femme_04" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_05">
+      <selectors>
+        <hasName name="scriptorium_femme_05" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_06">
+      <selectors>
+        <hasName name="scriptorium_femme_06" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_07">
+      <selectors>
+        <hasName name="scriptorium_femme_07" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_08">
+      <selectors>
+        <hasName name="scriptorium_femme_08" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_09">
+      <selectors>
+        <hasName name="scriptorium_femme_09" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_10">
+      <selectors>
+        <hasName name="scriptorium_femme_10" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_11">
+      <selectors>
+        <hasName name="scriptorium_femme_11" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_12">
+      <selectors>
+        <hasName name="scriptorium_femme_12" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_13">
+      <selectors>
+        <hasName name="scriptorium_femme_13" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_14">
+      <selectors>
+        <hasName name="scriptorium_femme_14" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_15">
+      <selectors>
+        <hasName name="scriptorium_femme_15" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_16">
+      <selectors>
+        <hasName name="scriptorium_femme_16" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_17">
+      <selectors>
+        <hasName name="scriptorium_femme_17" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_18">
+      <selectors>
+        <hasName name="scriptorium_femme_18" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_19">
+      <selectors>
+        <hasName name="scriptorium_femme_19" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_20">
+      <selectors>
+        <hasName name="scriptorium_femme_20" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_21">
+      <selectors>
+        <hasName name="scriptorium_femme_21" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_22">
+      <selectors>
+        <hasName name="scriptorium_femme_22" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_23">
+      <selectors>
+        <hasName name="scriptorium_femme_23" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_24">
+      <selectors>
+        <hasName name="scriptorium_femme_24" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_25">
+      <selectors>
+        <hasName name="scriptorium_femme_25" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_26">
+      <selectors>
+        <hasName name="scriptorium_femme_26" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_27">
+      <selectors>
+        <hasName name="scriptorium_femme_27" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_28">
+      <selectors>
+        <hasName name="scriptorium_femme_28" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_29">
+      <selectors>
+        <hasName name="scriptorium_femme_29" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_femme_30">
+      <selectors>
+        <hasName name="scriptorium_femme_30" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_01">
+      <selectors>
+        <hasName name="scriptorium_metier_01" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_02">
+      <selectors>
+        <hasName name="scriptorium_metier_02" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_03">
+      <selectors>
+        <hasName name="scriptorium_metier_03" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_04">
+      <selectors>
+        <hasName name="scriptorium_metier_04" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_05">
+      <selectors>
+        <hasName name="scriptorium_metier_05" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_06">
+      <selectors>
+        <hasName name="scriptorium_metier_06" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_07">
+      <selectors>
+        <hasName name="scriptorium_metier_07" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_08">
+      <selectors>
+        <hasName name="scriptorium_metier_08" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_09">
+      <selectors>
+        <hasName name="scriptorium_metier_09" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_10">
+      <selectors>
+        <hasName name="scriptorium_metier_10" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_11">
+      <selectors>
+        <hasName name="scriptorium_metier_11" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_12">
+      <selectors>
+        <hasName name="scriptorium_metier_12" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_13">
+      <selectors>
+        <hasName name="scriptorium_metier_13" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_14">
+      <selectors>
+        <hasName name="scriptorium_metier_14" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_15">
+      <selectors>
+        <hasName name="scriptorium_metier_15" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_16">
+      <selectors>
+        <hasName name="scriptorium_metier_16" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_17">
+      <selectors>
+        <hasName name="scriptorium_metier_17" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_18">
+      <selectors>
+        <hasName name="scriptorium_metier_18" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_19">
+      <selectors>
+        <hasName name="scriptorium_metier_19" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_20">
+      <selectors>
+        <hasName name="scriptorium_metier_20" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_21">
+      <selectors>
+        <hasName name="scriptorium_metier_21" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_22">
+      <selectors>
+        <hasName name="scriptorium_metier_22" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_23">
+      <selectors>
+        <hasName name="scriptorium_metier_23" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_24">
+      <selectors>
+        <hasName name="scriptorium_metier_24" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_25">
+      <selectors>
+        <hasName name="scriptorium_metier_25" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_26">
+      <selectors>
+        <hasName name="scriptorium_metier_26" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_27">
+      <selectors>
+        <hasName name="scriptorium_metier_27" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_28">
+      <selectors>
+        <hasName name="scriptorium_metier_28" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_29">
+      <selectors>
+        <hasName name="scriptorium_metier_29" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_30">
+      <selectors>
+        <hasName name="scriptorium_metier_30" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_31">
+      <selectors>
+        <hasName name="scriptorium_metier_31" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_32">
+      <selectors>
+        <hasName name="scriptorium_metier_32" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_33">
+      <selectors>
+        <hasName name="scriptorium_metier_33" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_34">
+      <selectors>
+        <hasName name="scriptorium_metier_34" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_35">
+      <selectors>
+        <hasName name="scriptorium_metier_35" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_36">
+      <selectors>
+        <hasName name="scriptorium_metier_36" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_37">
+      <selectors>
+        <hasName name="scriptorium_metier_37" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_38">
+      <selectors>
+        <hasName name="scriptorium_metier_38" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_39">
+      <selectors>
+        <hasName name="scriptorium_metier_39" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_40">
+      <selectors>
+        <hasName name="scriptorium_metier_40" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_41">
+      <selectors>
+        <hasName name="scriptorium_metier_41" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_42">
+      <selectors>
+        <hasName name="scriptorium_metier_42" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_43">
+      <selectors>
+        <hasName name="scriptorium_metier_43" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_44">
+      <selectors>
+        <hasName name="scriptorium_metier_44" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_45">
+      <selectors>
+        <hasName name="scriptorium_metier_45" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_46">
+      <selectors>
+        <hasName name="scriptorium_metier_46" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_47">
+      <selectors>
+        <hasName name="scriptorium_metier_47" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_48">
+      <selectors>
+        <hasName name="scriptorium_metier_48" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_49">
+      <selectors>
+        <hasName name="scriptorium_metier_49" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_metier_50">
+      <selectors>
+        <hasName name="scriptorium_metier_50" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_directeur">
       <selectors>
         <hasName name="scriptorium_directeur" />
       </selectors>
