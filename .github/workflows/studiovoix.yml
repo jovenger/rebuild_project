@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Dépendances Linux
         if: runner.os == 'Linux'
@@ -114,7 +114,7 @@ jobs:
 
       - name: Artefact Windows
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: StudioVoix-Windows
           path: |
@@ -124,7 +124,7 @@ jobs:
 
       - name: Artefact installateur Windows
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: StudioVoix-Setup
           path: build/installer/StudioVoix-Setup-*.exe
