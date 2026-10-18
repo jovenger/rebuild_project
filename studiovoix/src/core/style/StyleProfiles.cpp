@@ -724,6 +724,36 @@ juce::String userTrackLabel (Role r)
     return roleName (r);
 }
 
+Role guessRoleForFile (const juce::String& fileName, bool projectHasInstru, bool leadHasTakes)
+{
+    const auto n = fileName.fromLastOccurrenceOf ("/", false, false).fromLastOccurrenceOf ("\\", false, false)
+                       .upToLastOccurrenceOf (".", false, false).toLowerCase();
+    auto has = [&n] (std::initializer_list<const char*> words)
+    {
+        for (const auto* w : words)
+            if (n.contains (juce::String (juce::CharPointer_UTF8 (w))))
+                return true;
+        return false;
+    };
+    if (has ({ "instru", "beat", "prod", "riddim" }))
+        return Role::Instru;
+    if (has ({ "adlib", "ad-lib", "ad lib" }))
+        return Role::AdLib;
+    if (has ({ "harmo" }))
+        return Role::Harmony;
+    if (has ({ "double", "doublage", "dbl" }))
+        return Role::Double;
+    if (has ({ "back", "choeur", "chœur", "choir", "chorus" }))
+        return Role::ManualBack;
+    if (has ({ "ambiance", "ambient", "foule", "crowd" }))
+        return Role::Ambiance;
+    if (has ({ "voix", "vocal", "vox", "lead", "acapella", "a cappella", "acappella", "chant" }))
+        return leadHasTakes ? Role::ManualBack : Role::Lead;
+    if (has ({ "guitar", "piano", "clavier", "keys", "bass", "basse", "synth", "melod", "violon", "violin", "drum", "batterie", "loop" }))
+        return Role::Instrument;
+    return projectHasInstru ? Role::Instrument : Role::Instru;
+}
+
 juce::String userTrackBaseName (Role r)
 {
     switch (r)

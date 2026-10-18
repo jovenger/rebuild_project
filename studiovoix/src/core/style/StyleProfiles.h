@@ -108,6 +108,8 @@ const std::vector<Role>& userTrackRoles();
 /** Libellé du type dans « Nouvelle piste » et nom de base des pistes créées ("Back", "Harmonie"…). */
 juce::String userTrackLabel (Role r);
 juce::String userTrackBaseName (Role r);
+/** Type proposé pour un fichier glissé dans le programme, d'après son nom (« instru », « voix », « guitare »…). */
+Role guessRoleForFile (const juce::String& fileName, bool projectHasInstru, bool leadHasTakes);
 
 /** Options de génération pré-cochées selon le style. */
 struct GenerationDefaults

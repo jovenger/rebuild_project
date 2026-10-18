@@ -2,6 +2,7 @@
 
 #include "ExportDialog.h"
 #include "GenerateDialog.h"
+#include "NewTrackDialog.h"
 #include "SettingsDialog.h"
 #include "StyleMenu.h"
 #include "core/Log.h"
@@ -190,6 +191,14 @@ namespace
                     log ("étape 1 : instru analysée : "_u8 + session.project().key.toFrench() + ", " + juce::String (session.project().tempo.bpm, 1) + " BPM, "
                          + juce::String ((int) session.project().sections.size()) + " sections");
                     session.importVoice (voice, session.project().leadTrackId());
+                    {
+                        // Fichier importé = brut ; le choix d'un style dans le panneau le traite.
+                        const auto* lt = session.project().findTrack (session.project().leadTrackId());
+                        if (lt == nullptr || ! lt->raw) { fail ("voix importée : devrait être brute (sans effet)"_u8); return; }
+                        session.setTrackTreatment (lt->id, false, {});
+                        if (session.project().findTrack (session.project().leadTrackId())->raw) { fail ("style non appliqué à la voix"_u8); return; }
+                        log ("étape 1 bis : voix importée brute, puis style du projet appliqué depuis le panneau"_u8);
+                    }
                     next();
                     break;
                 case 2:
@@ -257,6 +266,8 @@ namespace
                         return;
                     }
                     log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée, cible de l'enregistrement"_u8);
+                    // Style choisi avant l'import : la prise est traitée (sinon elle resterait brute, sans calcul).
+                    session.setTrackTreatment (backTrackId, false, style::styleId (style::Style::Trap));
                     session.importVoice (voice, backTrackId);
                     next();
                     break;
@@ -502,6 +513,54 @@ void MainComponent::installUpdateAndRestart()
     juce::JUCEApplication::getInstance()->systemRequestedQuit();
 }
 
+// --- Glisser-déposer -----------------------------------------------------------------------
+bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
+{
+    for (const auto& f : files)
+        if (isImportableAudioFile (f))
+            return true;
+    return false;
+}
+
+void MainComponent::fileDragEnter (const juce::StringArray&, int, int)
+{
+    fileDragActive = true;
+    repaint();
+}
+
+void MainComponent::fileDragExit (const juce::StringArray&)
+{
+    fileDragActive = false;
+    repaint();
+}
+
+void MainComponent::filesDropped (const juce::StringArray& files, int x, int y)
+{
+    fileDragActive = false;
+    repaint();
+    double startSec = 0.0;
+    const auto inTimeline = timeline.timeAtPoint (timeline.getLocalPoint (this, juce::Point<int> (x, y)), startSec);
+    if (! inTimeline || startSec < 0.25)
+        startSec = 0.0;   // hors timeline ou tout au début : calé sur le début du morceau
+    SV_LOG_INFO (kMod, juce::String (files.size()) + " fichier(s) déposé(s), position "_u8 + juce::String (startSec, 2) + " s");
+    showImportDialog (session, files, startSec);
+}
+
+void MainComponent::paintOverChildren (juce::Graphics& g)
+{
+    if (! fileDragActive)
+        return;
+    const auto r = getLocalBounds().reduced (8).toFloat();
+    g.setColour (juce::Colour (0x553fa7ff));
+    g.fillRoundedRectangle (r, 10.0f);
+    g.setColour (juce::Colour (0xff3fa7ff));
+    g.drawRoundedRectangle (r, 10.0f, 3.0f);
+    g.setColour (juce::Colours::white);
+    g.setFont (juce::FontOptions (24.0f, juce::Font::bold));
+    g.drawFittedText ("Dépose le fichier audio : une nouvelle piste sera créée (là où tu lâches sur la timeline)"_u8,
+                      getLocalBounds().reduced (40), juce::Justification::centred, 2);
+}
+
 void MainComponent::showMessage (const juce::String& title, const juce::String& text)
 {
     SV_LOG_WARN (kMod, title + " : " + text);
@@ -636,6 +695,12 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
 
 void MainComponent::changeListenerCallback (juce::ChangeBroadcaster*)
 {
+    if (const int sel = session.selectedTrack(); sel != lastSelectedTrack)
+    {
+        lastSelectedTrack = sel;
+        if (sel >= 0 && ! session.isRecording() && selfTest == nullptr)
+            tabs.setCurrentTabIndex (0);   // clic sur une piste : son panneau d'effets s'ouvre à droite
+    }
     refreshAll();
 }
 

@@ -134,6 +134,10 @@ void TrackHeader::refresh()
     if (! name.isBeingEdited())   // setText fermerait l'éditeur pendant un renommage
         name.setText (t->name, juce::dontSendNotification);
     juce::String txt = style::roleName (t->role);
+    if (t->raw)
+        txt << " | brut";
+    else if (t->styleId.isNotEmpty())
+        txt << " | " << style::styleName (style::styleFromId (t->styleId));
     if (! t->takes.empty())
         txt << " | " << juce::String ((int) t->takes.size()) << " prise(s)" << (t->comp == project::CompMode::Best ? " (meilleure auto)" : "");
     const auto st = session.trackStatus (id);

@@ -29,6 +29,7 @@
 
 #include <juce_cryptography/juce_cryptography.h>
 
+#include <cstring>
 #include <set>
 
 namespace sv::test
@@ -918,6 +919,44 @@ public:
             auto reread = audio::loadStereo (rep.mixFile, kSr);
             expect (reread.ok(), reread.error);
             expect (! audio::hasNonFinite (reread.buffer.getReadPointer (0), static_cast<size_t> (reread.buffer.getNumSamples())));
+        }
+
+        beginTest ("Piste brute (importee / glissee) : aucun effet, hors mix auto ; style par piste");
+        {
+            project::Project rawProj = p;
+            rawProj.findTrack (leadId)->raw = true;
+            render::AudioCache cache;
+            const auto ctx = render::makeContext (rawProj, cache);
+            auto lr = render::renderTrack (rawProj, *rawProj.findTrack (leadId), cache, ctx);
+            expect (lr->ok(), lr->error);
+            bool same = lr->processed.getNumSamples() == lr->raw.getNumSamples() && lr->raw.getNumSamples() > 0;
+            for (int c = 0; same && c < 2; ++c)
+                same = std::memcmp (lr->processed.getReadPointer (c), lr->raw.getReadPointer (c),
+                                    sizeof (float) * static_cast<size_t> (lr->raw.getNumSamples())) == 0;
+            expect (same, "brut : le son rendu est exactement le son importé");
+            render::RenderSet rs;
+            rs[leadId] = lr;
+            rs[rawProj.instruTrack()->id] = render::renderTrack (rawProj, *rawProj.instruTrack(), cache, ctx);
+            expect (! render::computeAutoMix (rawProj, rs).autoMixApplied, "voix brute : pas de mix auto");
+            rawProj.findTrack (leadId)->raw = false;
+            rawProj.findTrack (leadId)->styleId = "rock";
+            expect (rawProj.trackStyle (*rawProj.findTrack (leadId)) == style::Style::Rock && rawProj.trackStyle (*rawProj.instruTrack()) == rawProj.style, "style propre à la piste");
+
+            juce::var v = rawProj.toVar();
+            project::Project back;
+            juce::String loadErr;
+            expect (project::Project::fromVar (v, back, loadErr), loadErr);
+            expectEquals (back.findTrack (leadId)->styleId, juce::String ("rock"));
+            expect (! back.findTrack (leadId)->raw);
+
+            using style::Role;
+            expect (style::guessRoleForFile ("C:/Musique/Instru drill 140.mp3", false, false) == Role::Instru);
+            expect (style::guessRoleForFile ("voix lead.wav", true, false) == Role::Lead);
+            expect (style::guessRoleForFile ("voix lead.wav", true, true) == Role::ManualBack);
+            expect (style::guessRoleForFile ("guitare acoustique.flac", true, true) == Role::Instrument);
+            expect (style::guessRoleForFile ("adlibs refrain.wav", true, true) == Role::AdLib);
+            expect (style::guessRoleForFile ("morceau.mp3", false, false) == Role::Instru, "sans instru : un fichier inconnu devient l'instru");
+            expect (style::guessRoleForFile ("morceau.mp3", true, false) == Role::Instrument);
         }
 
         beginTest ("Copie de refrain vers les sections semblables");

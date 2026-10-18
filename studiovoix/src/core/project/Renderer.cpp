@@ -192,8 +192,15 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     }
     r->startSample = start;
     r->raw = audio::monoToStereo (raw);
+    if (t.raw && ! t.isGenerated())
+    {
+        // Brut : le son tel qu'importé, sans aucun effet ni normalisation.
+        r->processed.makeCopyOf (r->raw);
+        SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » brute : aucun effet"_u8);
+        return r;
+    }
 
-    auto params = style::makeParams (p.style, t.role, t.macros, ! t.isGenerated());
+    auto params = style::makeParams (p.trackStyle (t), t.role, t.macros, ! t.isGenerated());
     params.timing.strength = t.timingStrength;
     params.clean.enabled = t.cleaning;
     params.referenceEq = t.referenceEq;
@@ -287,6 +294,8 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
     const int leadId = p.leadTrackId();
     if (instru == nullptr || leadId < 0)
         return st;
+    if (const auto* lead = p.findTrack (leadId); lead == nullptr || lead->raw)
+        return st;   // voix principale brute : pas de mix auto tant qu'aucun style n'est choisi
     auto itI = renders.find (instru->id);
     auto itL = renders.find (leadId);
     if (itI == renders.end() || itL == renders.end() || itI->second == nullptr || itL->second == nullptr
@@ -310,7 +319,7 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
     Stereo all = makeStereo (n);
     for (const auto& t : p.tracks)
     {
-        if (! t.isVoice() || t.mute)   // un instrument enregistré ne creuse pas l'instru
+        if (! t.isVoice() || t.mute || t.raw)   // un instrument ou une piste brute ne creuse pas l'instru
             continue;
         if (auto it = renders.find (t.id); it != renders.end() && it->second != nullptr && it->second->ok())
             place (*it->second, all, dbToGain (t.volumeDb));
@@ -318,7 +327,7 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
 
     mix::AutoMixSettings s;
     s.enabled = true;
-    s.duckingDb = p.duckingDb;
+    s.duckingDb = instru->raw ? 0.0f : p.duckingDb;   // instru brute : pas de creux sous la voix
     s.vocalOverInstruLu = style::masterTone (p.style).vocalOverInstruLu;
     // Sonie de la voix mesurée sur toute la voix (pas seulement là où elle recouvre l'instru).
     st.autoMix = mix::autoMix (instruBuf, itL->second->processed, all, p.sampleRate, s);
@@ -346,12 +355,12 @@ Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixSt
             continue;
         const auto& r = *it->second;
         const Stereo* src = (useRaw || ! t.processingEnabled) && t.isVocal() ? &r.raw : &r.processed;
-        if (t.role == style::Role::Instru && mixState.autoMixApplied && mixState.autoMix.duckedInstru.getNumSamples() > 0)
+        if (t.role == style::Role::Instru && ! t.raw && mixState.autoMixApplied && mixState.autoMix.duckedInstru.getNumSamples() > 0)
             src = &mixState.autoMix.duckedInstru;
 
         float gl, gr;
         balanceGains (t.pan, gl, gr);
-        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float vocalGain = t.isVoice() && ! t.raw && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
         const float g = dbToGain (t.volumeDb + vocalGain);
         for (int i = 0; i < src->getNumSamples(); ++i)
         {

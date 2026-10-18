@@ -61,6 +61,17 @@ règlent selon le type et le style du projet (un back est plus bas et plus serr�
 harmonie plus large avec plus de réverb, un instrument sans autotune ni de-esser…). La nouvelle piste est
 sélectionnée et armée : il n'y a plus qu'à appuyer sur R. Le type se change ensuite dans l'onglet **Voix IA**.
 
+**Glisser-déposer** : faire glisser un ou plusieurs fichiers audio (MP3, WAV, FLAC, AIFF, OGG) dans la fenêtre
+crée une nouvelle piste par fichier, placée là où on lâche sur la timeline (au début sinon). Le type est proposé
+d'après le nom du fichier (« instru », « beat » → instru ; « voix », « vocal » → voix ; « guitare », « piano »
+→ instrument…) et se change dans la fenêtre d'import.
+
+**Importé = brut** : un fichier importé ou glissé (instru, morceau entier, voix déjà mixée…) reste tel quel :
+aucun effet, ni réverb, ni compression, ni mix auto. Clic sur la piste → le panneau **Voix IA** s'ouvre à droite
+sur « Effets : Aucun effet (brut) » ; choisir un style dans cette liste traite la piste dans ce style (chaque piste
+peut avoir son propre style). Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Les prises
+enregistrées au micro, elles, sont traitées automatiquement dans le style du projet.
+
 Autres fonctions : punch-in (zone sur la timeline), boucle, métronome, marqueurs, prises multiples avec
 comping automatique (meilleure prise par phrase), copie d'un refrain sur les refrains identiques,
 prompteur de paroles (onglet **Paroles**), sauvegarde auto toutes les 60 s, historique des versions,

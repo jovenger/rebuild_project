@@ -1,6 +1,7 @@
 #include "RemixPanel.h"
 
 #include "GenerateDialog.h"
+#include "StyleMenu.h"
 #include "core/Log.h"
 #include "core/assistant/CommandParser.h"
 
@@ -27,6 +28,23 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     assistantResult.setFont (juce::FontOptions (11.0f));
     assistantResult.setColour (juce::Label::textColourId, juce::Colours::lightgreen);
     roleLabel.setText ("Type", juce::dontSendNotification);
+    addAndMakeVisible (treatmentLabel);
+    addAndMakeVisible (treatmentBox);
+    treatmentLabel.setText ("Effets", juce::dontSendNotification);
+    treatmentLabel.setFont (juce::FontOptions (14.0f, juce::Font::bold));
+    treatmentBox.setTooltip ("Brut = le son tel quel, sans effet ni mix auto. Choisis un style : la piste est traitée dans ce style."_u8);
+    treatmentBox.onChange = [this]
+    {
+        if (updating || shownTrack < 0)
+            return;
+        const int id = treatmentBox.getSelectedId();
+        if (id == 1)
+            session.setTrackTreatment (shownTrack, true, {});
+        else if (id == 2)
+            session.setTrackTreatment (shownTrack, false, {});
+        else if (id > 100)
+            session.setTrackTreatment (shownTrack, false, style::styleId (static_cast<style::Style> (id - 101)));
+    };
     roleBox.setTooltip ("Type de piste : les effets se règlent automatiquement selon le type et le style"_u8);
 
     setupMacro (autotune, autotuneL, "Autotune", "Gauche : naturel / droite : effet robot");
@@ -178,24 +196,56 @@ void RemixPanel::applyAssistant()
     assistantText.clear();
 }
 
+void RemixPanel::fillTreatmentBox (bool instru)
+{
+    treatmentForInstru = instru;
+    treatmentProjectStyle = static_cast<int> (session.project().style);
+    treatmentBox.clear (juce::dontSendNotification);
+    if (instru)
+    {
+        treatmentBox.addItem ("Brute : instru telle quelle"_u8, 1);
+        treatmentBox.addItem ("Creux sous la voix (mix auto)", 2);
+        return;
+    }
+    treatmentBox.addItem ("Aucun effet (brut)", 1);
+    treatmentBox.addItem ("Style du projet (" + style::styleName (session.project().style) + ")", 2);
+    // Styles par famille : identifiant = 101 + indice du style.
+    for (const auto& g : style::styleGroups())
+    {
+        treatmentBox.addSectionHeading (juce::String (juce::CharPointer_UTF8 (g.name)));
+        for (const auto st : g.styles)
+            treatmentBox.addItem (style::styleName (st), 101 + static_cast<int> (st));
+    }
+}
+
 void RemixPanel::refresh()
 {
     const juce::ScopedValueSetter<bool> svs (updating, true);
     shownTrack = session.selectedTrack();
     const auto* t = session.project().findTrack (shownTrack);
     const bool vocal = t != nullptr && t->isVocal();
+    const bool effects = vocal && ! t->raw;   // brut : réglages d'effets grisés tant qu'aucun style n'est choisi
     for (auto* c : std::initializer_list<juce::Component*> { &autotune, &presence, &space, &energy, &level, &timing, &cleaning, &referenceEq,
-                                                             &rawListen, &savePresetBtn, &loadPresetBtn, &resetBtn, &assistantBtn, &assistantText,
-                                                             &roleBox, &compBox })
+                                                             &rawListen, &savePresetBtn, &loadPresetBtn, &resetBtn, &assistantBtn, &assistantText })
+        c->setEnabled (effects);
+    for (auto* c : std::initializer_list<juce::Component*> { &roleBox, &compBox })
         c->setEnabled (vocal);
-    generateBtn.setEnabled (t != nullptr && t->role == style::Role::Lead);
+    generateBtn.setEnabled (t != nullptr && t->role == style::Role::Lead && ! t->raw);
+    treatmentBox.setVisible (t != nullptr && ! t->isGenerated());
+    treatmentLabel.setVisible (treatmentBox.isVisible());
     if (t == nullptr)
     {
         title.setText ("Aucune piste sélectionnée"_u8, juce::dontSendNotification);
         report.setText ({}, false);
         return;
     }
-    title.setText (t->name + "  (" + style::roleName (t->role) + ", style " + style::styleName (session.project().style) + ")",
+    const bool instru = t->role == style::Role::Instru;
+    if (treatmentBox.getNumItems() == 0 || instru != treatmentForInstru || treatmentProjectStyle != static_cast<int> (session.project().style))
+        fillTreatmentBox (instru);   // libellé « Style du projet (…) » à jour, sans tout reconstruire à chaque rafraîchissement
+    treatmentBox.setSelectedId (t->raw ? 1 : (instru || t->styleId.isEmpty() ? 2 : 101 + static_cast<int> (style::styleFromId (t->styleId))),
+                                juce::dontSendNotification);
+    const auto trackStyleName = style::styleName (session.project().trackStyle (*t));
+    title.setText (t->name + "  (" + style::roleName (t->role) + (t->raw ? juce::String (", brut") : ", style " + trackStyleName) + ")",
                    juce::dontSendNotification);
     if (dragging)
         return;   // ne pas ramener le curseur à l'ancienne valeur pendant le geste
@@ -227,11 +277,22 @@ void RemixPanel::refresh()
     }
     if (session.project().referenceFile.isNotEmpty())
         txt << "\nRéférence : "_u8 << juce::File (session.project().referenceFile).getFileName();
-    if (vocal)
+    if (vocal && t->raw)
+    {
+        txt << "\n\nBrut : aucun effet, ni mix auto. Choisis un style dans « Effets » ci-dessus : la piste est alors "
+               "traitée dans ce style (autotune, EQ, compresseur, réverb…)."_u8;
+    }
+    else if (vocal)
     {
         // Effets réglés automatiquement par le style (et les curseurs) : affichés même avant la première prise.
-        txt << "\n\nEffets appliqués (style "_u8 << style::styleName (session.project().style) << ", " << style::roleName (t->role) << ") :\n"
-            << dsp::describeChain (style::makeParams (session.project().style, t->role, t->macros, ! t->isGenerated()));
+        const auto st = session.project().trackStyle (*t);
+        txt << "\n\nEffets appliqués (style "_u8 << style::styleName (st) << ", " << style::roleName (t->role) << ") :\n"
+            << dsp::describeChain (style::makeParams (st, t->role, t->macros, ! t->isGenerated()));
+    }
+    else if (t->role == style::Role::Instru)
+    {
+        txt << (t->raw ? "\n\nInstru brute : jouée telle quelle."_u8
+                       : "\n\nInstru : creux automatique sous la voix (mix auto, réglable dans Mix & Master)."_u8);
     }
     if (report.getText() != txt)
         report.setText (txt, false);   // pas de remise à zéro du défilement si rien n'a changé
@@ -247,7 +308,10 @@ void RemixPanel::resized()
     auto r = getLocalBounds().reduced (10);
     title.setBounds (r.removeFromTop (24));
     auto row = [&r] (int h = 24) { auto x = r.removeFromTop (h); r.removeFromTop (4); return x; };
-    auto a = row();
+    auto a = row (26);
+    treatmentLabel.setBounds (a.removeFromLeft (60));
+    treatmentBox.setBounds (a);
+    a = row();
     roleLabel.setBounds (a.removeFromLeft (40));
     roleBox.setBounds (a.removeFromLeft (150));
     a.removeFromLeft (6);

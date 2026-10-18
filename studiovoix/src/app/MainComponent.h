@@ -13,7 +13,7 @@
 
 namespace sv::app
 {
-class MainComponent final : public juce::Component, private juce::ChangeListener, private juce::Timer
+class MainComponent final : public juce::Component, public juce::FileDragAndDropTarget, private juce::ChangeListener, private juce::Timer
 {
 public:
     explicit MainComponent (Session& session);
@@ -25,6 +25,13 @@ public:
     void resized() override;
     void paint (juce::Graphics& g) override;
     bool keyPressed (const juce::KeyPress& key) override;
+    void paintOverChildren (juce::Graphics& g) override;
+
+    // Glisser-déposer de fichiers audio (MP3, WAV…) : une nouvelle piste par fichier.
+    bool isInterestedInFileDrag (const juce::StringArray& files) override;
+    void fileDragEnter (const juce::StringArray& files, int x, int y) override;
+    void fileDragExit (const juce::StringArray& files) override;
+    void filesDropped (const juce::StringArray& files, int x, int y) override;
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -61,5 +68,7 @@ private:
     std::unique_ptr<juce::FileChooser> chooser;
     std::unique_ptr<juce::Timer> selfTest;
     int frame = 0;
+    bool fileDragActive = false;
+    int lastSelectedTrack = -1;   // clic sur une autre piste -> onglet de ses effets
 };
 } // namespace sv::app

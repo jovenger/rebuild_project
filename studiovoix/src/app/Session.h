@@ -29,16 +29,24 @@ public:
     bool openProject (const juce::File& folderOrFile, bool preferAutosave, juce::String& error);
     bool save (juce::String& error);
     void importInstru (const juce::File& file);
-    void importVoice (const juce::File& file, int trackId);
+    void importVoice (const juce::File& file, int trackId, double startSec = 0.0);
+    /** Glisser-déposer : crée une piste du type choisi avec le fichier (une seule étape d'annulation).
+        Instru : remplace l'instru du projet. Renvoie l'id de la piste, -1 si le fichier est illisible. */
+    int importAsNewTrack (const juce::File& file, style::Role role, const juce::String& name, double startSec);
     void restoreVersion (const juce::String& versionFileName);
 
     // --- Pistes -----------------------------------------------------------------------------
     int addVocalTrack (style::Role role, const juce::String& name);
+    /** Ajoute une prise déjà décodée à une piste (sans étape d'annulation). */
+    bool addTakeFromAudio (int trackId, const Mono& data, double startSec, juce::String& error);
     /** « Nouvelle piste » : réglages auto selon le type, piste sélectionnée et armée (le micro enregistre dessus). */
     int addUserTrack (style::Role role, const juce::String& name);
     /** Nom libre pour une nouvelle piste de ce type ("Back 1", "Back 2"…). */
     juce::String nextTrackName (style::Role role) const;
     void removeTrack (int trackId);
+    /** Panneau de la piste : brut (aucun effet, hors mix auto) ou traité dans un style (vide = style du projet).
+        Pour l'instru : non brute = creux sous la voix (mix auto). */
+    void setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId);
     /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer. */
     void armTrack (int trackId);
     int armedTrack() const { return proj.armedTrackId; }

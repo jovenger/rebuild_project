@@ -261,6 +261,7 @@ void Session::importInstru (const juce::File& file)
     instru->name = "Instru : " + file.getFileNameWithoutExtension();
     instru->sourceFile = dest.getFileName();
     instru->sourceStart = 0;
+    instru->raw = true;   // importée = brute : pas de creux sous la voix tant qu'on ne le demande pas (panneau de la piste)
     const int instruId = instru->id;
     markDirty();
     setStatus ("Analyse de l'instru (tempo, tonalité, structure)…"_u8);
@@ -392,7 +393,7 @@ void Session::reanalyseInstru()
     });
 }
 
-void Session::importVoice (const juce::File& file, int trackId)
+void Session::importVoice (const juce::File& file, int trackId, double startSec)
 {
     auto* t = proj.findTrack (trackId);
     if (t == nullptr || ! t->isVocal() || t->isGenerated())
@@ -408,24 +409,95 @@ void Session::importVoice (const juce::File& file, int trackId)
         return;
     }
     pushUndo ("Import d'une voix");
-    project::Take tk;
-    tk.id = proj.nextTakeId++;
-    tk.file = "import_" + juce::String (tk.id) + "_" + uniqueStamp() + ".wav";
-    if (! audio::writeMonoWavFloat (proj.audioDir().getChildFile (tk.file), data, proj.sampleRate, err))
+    // Fichier importé dans une piste vide sans style choisi : brut (aucun effet) jusqu'au choix d'un style.
+    const bool becomesRaw = t->takes.empty() && t->styleId.isEmpty();
+    if (becomesRaw)
+        t->raw = true;
+    if (! addTakeFromAudio (trackId, data, startSec, err))
     {
         setStatus ("Copie de la voix impossible : " + err);
         return;
     }
-    tk.startSample = 0;
-    tk.regionStart = 0;
-    tk.regionEnd = static_cast<long> (data.size());
+    setStatus ("Fichier importé dans "_u8 + t->name + (t->raw ? " : brut, sans effet — clique sur la piste et choisis un style à droite"_u8
+                                                            : juce::String()));
+}
+
+bool Session::addTakeFromAudio (int trackId, const Mono& data, double startSec, juce::String& error)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr || ! t->isRecordable())
+    {
+        error = "piste absente ou non enregistrable";
+        return false;
+    }
+    project::Take tk;
+    tk.id = proj.nextTakeId++;
+    tk.file = "import_" + juce::String (tk.id) + "_" + uniqueStamp() + ".wav";
+    if (! audio::writeMonoWavFloat (proj.audioDir().getChildFile (tk.file), data, proj.sampleRate, error))
+        return false;
+    const long start = std::max (0L, static_cast<long> (std::llround (startSec * proj.sampleRate)));
+    tk.startSample = start;
+    tk.regionStart = start;
+    tk.regionEnd = start + static_cast<long> (data.size());
     tk.createdMs = juce::Time::currentTimeMillis();
     t->takes.push_back (tk);
     markDirty();
-    if (t->role == style::Role::Lead)
+    if (t->role == style::Role::Lead && ! t->raw)
         leadAwaitingProposal.insert (trackId);
     requestRender (trackId);
-    setStatus ("Voix importée dans "_u8 + t->name);
+    return true;
+}
+
+void Session::setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr || t->isGenerated())
+        return;
+    if (t->raw == raw && t->styleId == trackStyleId)
+        return;
+    const auto label = raw ? juce::String ("brut, sans effet") : (t->role == style::Role::Instru ? juce::String ("creux sous la voix (mix auto)")
+                                                              : "style " + style::styleName (trackStyleId.isNotEmpty() ? style::styleFromId (trackStyleId) : proj.style));
+    SV_LOG_INFO (kMod, "Traitement de « "_u8 + t->name + " » : " + label);
+    updateTrack (trackId, [raw, trackStyleId] (project::Track& tr) { tr.raw = raw; tr.styleId = trackStyleId; }, true, "Traitement de la piste");
+    if (auto* tr = proj.findTrack (trackId); tr != nullptr && tr->role == style::Role::Lead && ! raw && ! tr->takes.empty())
+        leadAwaitingProposal.insert (trackId);   // voix principale traitée : proposer backs / harmonies
+    launchAutoMix();
+    setStatus ("« "_u8 + t->name + " » : " + label);
+}
+
+int Session::importAsNewTrack (const juce::File& file, style::Role role, const juce::String& name, double startSec)
+{
+    const auto t0 = juce::Time::getMillisecondCounterHiRes();
+    SV_LOG_INFO (kMod, "Fichier déposé : "_u8 + file.getFullPathName() + " -> " + style::roleName (role) + " « "_u8 + name + " » à "_u8
+                       + juce::String (startSec, 2) + " s");
+    if (role == style::Role::Instru)
+    {
+        importInstru (file);
+        const auto* instru = proj.instruTrack();
+        return instru != nullptr ? instru->id : -1;
+    }
+    Mono data;
+    juce::String err;
+    if (! audio::loadMono (file, proj.sampleRate, data, err))
+    {
+        SV_LOG_ERROR (kMod, "Fichier déposé illisible : "_u8 + err);
+        setStatus ("Fichier illisible (" + file.getFileName() + ") : " + err);
+        return -1;
+    }
+    const int id = addUserTrack (role, name);   // une seule étape d'annulation : la piste et sa prise
+    if (auto* nt = proj.findTrack (id))
+        nt->raw = true;   // déposé = brut : aucun effet ni mix auto tant qu'aucun style n'est choisi
+    if (! addTakeFromAudio (id, data, startSec, err))
+    {
+        SV_LOG_ERROR (kMod, "Copie du fichier déposé impossible : "_u8 + err);
+        setStatus ("Copie du fichier impossible : " + err);
+        return id;
+    }
+    SV_LOG_INFO (kMod, "Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " ("
+                       + juce::String (static_cast<double> (data.size()) / proj.sampleRate, 1) + " s) en "
+                       + juce::String (juce::roundToInt (juce::Time::getMillisecondCounterHiRes() - t0)) + " ms");
+    setStatus ("Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " : brute, sans effet — clique dessus et choisis un style à droite"_u8);
+    return id;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1112,7 +1184,9 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
     trackStatuses[trackId] = result->compSummary.isNotEmpty() && ! proj.findTrack (trackId)->isGenerated()
                                ? "Prêt — "_u8 + result->compSummary
                                : juce::String ("Prêt"_u8);
-    if (proj.findTrack (trackId)->isVocal())
+    if (proj.findTrack (trackId)->raw)
+        trackStatuses[trackId] << " | brut, sans effet"_u8;
+    else if (proj.findTrack (trackId)->isVocal())
         trackStatuses[trackId] << " | justesse " << juce::String (juce::roundToInt (rep.meanCorrectionCents)) << " c, comp "
                                << juce::String (rep.compGrDb, 1) << " dB";
     if (rep.nearSilent)
@@ -1195,7 +1269,7 @@ void Session::rebuildPlayState()
             continue;
         const auto& r = it->second;
         std::shared_ptr<const Stereo> buf;
-        if (t.role == style::Role::Instru && mixState.autoMixApplied && duckedInstruShared != nullptr)
+        if (t.role == style::Role::Instru && ! t.raw && mixState.autoMixApplied && duckedInstruShared != nullptr)
             buf = duckedInstruShared;
         else if (t.isVocal() && ! t.processingEnabled)
             buf = std::shared_ptr<const Stereo> (r, &r->raw);
@@ -1216,7 +1290,7 @@ void Session::rebuildPlayState()
         AudioEngine::PlayTrack pt;
         pt.buffer = buf;
         pt.start = toDevice (r->startSample);
-        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float vocalGain = t.isVoice() && ! t.raw && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
         const float g = dbToGain (t.volumeDb + vocalGain);
         const float p = juce::jlimit (-1.0f, 1.0f, t.pan);
         pt.gainL = g * (p <= 0.0f ? 1.0f : 1.0f - p);
@@ -1234,6 +1308,11 @@ void Session::generate (int leadTrackId, const gen::GenerationOptions& options)
     if (lead == nullptr)
     {
         setStatus ("Voix principale introuvable");
+        return;
+    }
+    if (lead->raw)
+    {
+        setStatus ("La voix principale est brute : choisis d'abord un style dans le panneau de droite, puis génère"_u8);
         return;
     }
     auto it = renders.find (leadTrackId);

@@ -21,7 +21,11 @@ private:
     void applyAssistant();
 
     Session& session;
-    juce::Label title, roleLabel, assistantResult;
+    juce::Label title, roleLabel, assistantResult, treatmentLabel;
+    juce::ComboBox treatmentBox;   // brut / style du projet / style au choix (instru : brute / creux sous la voix)
+    bool treatmentForInstru = false;
+    int treatmentProjectStyle = -1;   // style du projet affiché dans « Style du projet (…) »
+    void fillTreatmentBox (bool instru);
     juce::TextEditor report;   // lecture seule, défilant : état de la piste + effets appliqués par le style
     juce::ComboBox roleBox, compBox;
     juce::Slider autotune, presence, space, energy, level, timing;

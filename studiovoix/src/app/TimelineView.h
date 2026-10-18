@@ -51,6 +51,15 @@ public:
     void mouseDoubleClick (const juce::MouseEvent& e) override;
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override;
 
+    /** Position (s) sous un point de la zone des pistes ; false hors de cette zone (en-têtes, règle). */
+    bool timeAtPoint (juce::Point<int> p, double& sec) const
+    {
+        if (p.x < kHeaderWidth || p.y < kRulerHeight || p.x >= getWidth() || p.y >= getHeight())
+            return false;
+        sec = std::max (0.0, xToSec (p.x));
+        return true;
+    }
+
     /** Menu clic droit d'une piste (aussi depuis son en-tête). */
     void openTrackMenu (int trackId) { showTrackMenu (trackId); }
 

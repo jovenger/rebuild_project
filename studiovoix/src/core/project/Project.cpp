@@ -226,6 +226,8 @@ juce::var Project::toVar() const
         o->setProperty ("macros", t.macros.toVar());
         o->setProperty ("timingStrength", t.timingStrength);
         o->setProperty ("cleaning", t.cleaning);
+        o->setProperty ("raw", t.raw);
+        o->setProperty ("style", t.styleId);
         o->setProperty ("referenceEq", t.referenceEq);
         o->setProperty ("comp", t.comp == CompMode::Best ? "best" : "latest");
         o->setProperty ("sourceFile", t.sourceFile);
@@ -336,6 +338,13 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
             t.macros = style::Macros::fromVar (o.getProperty ("macros", {}));
             t.timingStrength = static_cast<float> (juce::jlimit (0.0, 1.0, getD (o, "timingStrength", 0.0)));
             t.cleaning = getB (o, "cleaning", true);
+            t.raw = getB (o, "raw", false);
+            t.styleId = getS (o, "style");
+            if (t.styleId.isNotEmpty() && style::styleId (style::styleFromId (t.styleId)) != t.styleId)
+            {
+                p.loadWarnings.add ("style inconnu « "_u8 + t.styleId + " » sur la piste " + t.name + " : style du projet utilisé"_u8);
+                t.styleId.clear();
+            }
             t.referenceEq = getB (o, "referenceEq", false);
             t.comp = getS (o, "comp", "latest") == "best" ? CompMode::Best : CompMode::Latest;
             t.sourceFile = getS (o, "sourceFile");
