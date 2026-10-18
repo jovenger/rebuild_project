@@ -193,7 +193,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->startSample = start;
     r->raw = audio::monoToStereo (raw);
 
-    auto params = style::makeParams (p.style, t.role, t.macros);
+    auto params = style::makeParams (p.style, t.role, t.macros, ! t.isGenerated());
     params.timing.strength = t.timingStrength;
     params.clean.enabled = t.cleaning;
     params.referenceEq = t.referenceEq;
@@ -310,7 +310,7 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
     Stereo all = makeStereo (n);
     for (const auto& t : p.tracks)
     {
-        if (! t.isVocal() || t.mute)
+        if (! t.isVoice() || t.mute)   // un instrument enregistré ne creuse pas l'instru
             continue;
         if (auto it = renders.find (t.id); it != renders.end() && it->second != nullptr && it->second->ok())
             place (*it->second, all, dbToGain (t.volumeDb));
@@ -351,7 +351,7 @@ Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixSt
 
         float gl, gr;
         balanceGains (t.pan, gl, gr);
-        const float vocalGain = t.isVocal() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
         const float g = dbToGain (t.volumeDb + vocalGain);
         for (int i = 0; i < src->getNumSamples(); ++i)
         {

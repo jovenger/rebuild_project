@@ -8,6 +8,14 @@
 // tête de lecture. Molette = défilement vertical, Maj+molette = horizontal, Ctrl+molette = zoom.
 namespace sv::app
 {
+/** Bouton REC d'une piste (rond) : rouge plein = piste armée, le micro enregistre sur elle. */
+class RecArmButton final : public juce::Button
+{
+public:
+    RecArmButton() : juce::Button ("REC") {}
+    void paintButton (juce::Graphics& g, bool highlighted, bool down) override;
+};
+
 class TrackHeader final : public juce::Component
 {
 public:
@@ -22,6 +30,7 @@ private:
     Session& session;
     const int id;
     juce::Label name, info;
+    RecArmButton arm;
     juce::TextButton mute { "M" }, solo { "S" }, raw { "Brut" }, remove { "X" };
     juce::Slider volume, pan;
     bool updating = false;
@@ -41,6 +50,9 @@ public:
     void mouseUp (const juce::MouseEvent& e) override;
     void mouseDoubleClick (const juce::MouseEvent& e) override;
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override;
+
+    /** Menu clic droit d'une piste (aussi depuis son en-tête). */
+    void openTrackMenu (int trackId) { showTrackMenu (trackId); }
 
     double punchInSec() const { return punchIn; }
     double punchOutSec() const { return punchOut; }

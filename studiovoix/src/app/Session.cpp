@@ -120,6 +120,7 @@ bool Session::newProject (const juce::String& name, juce::String& error, style::
     auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
     if (appSettings.hasUserPreset (created.style))
         lead.macros = appSettings.userPreset (created.style);
+    created.armedTrackId = lead.id;   // le micro enregistre sur la voix principale tant qu'on n'arme pas une autre piste
     if (! created.save (error))
     {
         SV_LOG_ERROR (kMod, "Nouveau projet non enregistré, projet courant conservé : "_u8 + error);
@@ -440,6 +441,80 @@ int Session::addVocalTrack (style::Role role, const juce::String& name)
     return t.id;
 }
 
+int Session::addUserTrack (style::Role role, const juce::String& name)
+{
+    const int id = role == style::Role::Instrument ? -1 : addVocalTrack (role, name);
+    int trackId = id;
+    if (role == style::Role::Instrument)
+    {
+        // Pas de « Mon son » (réglages de voix) ni de nettoyage de voix sur un instrument.
+        pushUndo ("Ajout de piste");
+        auto& t = proj.addTrack (role, name);
+        t.cleaning = false;
+        trackId = t.id;
+        selectedTrackId = t.id;
+        markDirty();
+        rebuildPlayState();
+    }
+    proj.armedTrackId = trackId;
+    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ", style " + style::styleName (proj.style)
+                       + ") : sélectionnée et armée"_u8);
+    setStatus ("Piste « "_u8 + name + " » ajoutée et armée (rond rouge) : appuie sur R pour enregistrer dessus"_u8);
+    return trackId;
+}
+
+juce::String Session::nextTrackName (style::Role role) const
+{
+    const auto base = style::userTrackBaseName (role);
+    int n = 0;
+    for (const auto& t : proj.tracks)
+        if (t.role == role && ! t.isGenerated())
+            ++n;
+    if (role == style::Role::Lead && n == 0)
+        return base;
+    for (int k = n + 1;; ++k)
+    {
+        const auto candidate = base + " " + juce::String (k);
+        bool used = false;
+        for (const auto& t : proj.tracks)
+            used = used || t.name == candidate;
+        if (! used)
+            return candidate;
+    }
+}
+
+void Session::armTrack (int trackId)
+{
+    if (audioEngine.isRecording())
+    {
+        setStatus ("Changement de piste armée impossible pendant l'enregistrement"_u8);
+        return;
+    }
+    const auto* t = proj.findTrack (trackId);
+    if (trackId >= 0 && (t == nullptr || ! t->isRecordable()))
+    {
+        setStatus ("Cette piste ne peut pas recevoir de prise (instru importée ou piste générée)"_u8);
+        return;
+    }
+    if (proj.armedTrackId == trackId)
+        return;
+    proj.armedTrackId = trackId;
+    if (t != nullptr)
+        selectedTrackId = trackId;
+    SV_LOG_INFO (kMod, t != nullptr ? "Piste armée : « "_u8 + t->name + " »"_u8 : juce::String ("Aucune piste armée"));
+    markDirty();
+    setStatus (t != nullptr ? "Piste armée : « "_u8 + t->name + " » — le micro enregistrera ici (R)"_u8
+                            : juce::String ("Aucune piste armée : R enregistre sur la piste sélectionnée"_u8));
+}
+
+int Session::recordTargetTrack() const
+{
+    for (const int id : { proj.armedTrackId, selectedTrackId })
+        if (const auto* t = proj.findTrack (id); t != nullptr && t->isRecordable())
+            return id;
+    return proj.leadTrackId();
+}
+
 void Session::removeTrack (int trackId)
 {
     if (proj.findTrack (trackId) == nullptr)
@@ -711,9 +786,10 @@ void Session::setLoopRegion (bool enabled, double startSec, double endSec)
 bool Session::startRecording (int trackId, bool punch, double punchInSec, double punchOutSec, juce::String& error)
 {
     const auto* t = proj.findTrack (trackId);
-    if (t == nullptr || ! t->isVocal() || t->isGenerated())
+    if (t == nullptr || ! t->isRecordable())
     {
-        error = "Sélectionne une piste voix (pas une piste générée) avant d'enregistrer"_u8;
+        error = "Arme une piste voix ou instrument (rond rouge à gauche de la piste) avant d'enregistrer ; "
+                "l'instru importée et les pistes générées ne reçoivent pas de prise"_u8;
         return false;
     }
     if (punch && punchOutSec <= punchInSec + 0.1)
@@ -1140,7 +1216,7 @@ void Session::rebuildPlayState()
         AudioEngine::PlayTrack pt;
         pt.buffer = buf;
         pt.start = toDevice (r->startSample);
-        const float vocalGain = t.isVocal() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
         const float g = dbToGain (t.volumeDb + vocalGain);
         const float p = juce::jlimit (-1.0f, 1.0f, t.pan);
         pt.gainL = g * (p <= 0.0f ? 1.0f : 1.0f - p);

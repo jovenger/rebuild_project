@@ -26,7 +26,8 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     report.setColour (juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
     assistantResult.setFont (juce::FontOptions (11.0f));
     assistantResult.setColour (juce::Label::textColourId, juce::Colours::lightgreen);
-    roleLabel.setText ("Rôle"_u8, juce::dontSendNotification);
+    roleLabel.setText ("Type", juce::dontSendNotification);
+    roleBox.setTooltip ("Type de piste : les effets se règlent automatiquement selon le type et le style"_u8);
 
     setupMacro (autotune, autotuneL, "Autotune", "Gauche : naturel / droite : effet robot");
     setupMacro (presence, presenceL, "Présence"_u8, "Voix plus chaude <-> plus brillante, plus devant");
@@ -40,14 +41,20 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     timingL.setText ("Recalage rythmique", juce::dontSendNotification);
     timing.setTooltip ("0 = désactivé. Rapproche les attaques de syllabes de la grille (doubles croches)."_u8);
 
-    roleBox.addItem (style::roleName (style::Role::Lead), 1);
-    roleBox.addItem (style::roleName (style::Role::ManualBack), 2);
+    // Type de piste (réglages automatiques) : identifiant d'élément = rôle + 1.
+    for (const auto r : style::userTrackRoles())
+        roleBox.addItem (style::roleName (r), static_cast<int> (r) + 1);
     roleBox.onChange = [this]
     {
-        if (updating)
+        if (updating || roleBox.getSelectedId() <= 0)
             return;
-        const auto role = roleBox.getSelectedId() == 1 ? style::Role::Lead : style::Role::ManualBack;
-        session.updateTrack (shownTrack, [role] (project::Track& t) { t.role = role; }, true, "Rôle de piste"_u8);
+        const auto role = static_cast<style::Role> (roleBox.getSelectedId() - 1);
+        session.updateTrack (shownTrack, [role] (project::Track& t)
+        {
+            if (role == style::Role::Instrument && t.role != style::Role::Instrument)
+                t.cleaning = false;   // nettoyage de voix inutile sur un instrument
+            t.role = role;
+        }, true, "Type de piste"_u8);
     };
     compBox.addItem ("Prises : la plus récente gagne"_u8, 1);
     compBox.addItem ("Prises : meilleure automatique", 2);
@@ -203,7 +210,7 @@ void RemixPanel::refresh()
     rawListen.setToggleState (! t->processingEnabled, juce::dontSendNotification);
     roleBox.setVisible (! t->isGenerated() && vocal);
     roleLabel.setVisible (roleBox.isVisible());
-    roleBox.setSelectedId (t->role == style::Role::Lead ? 1 : 2, juce::dontSendNotification);
+    roleBox.setSelectedId (static_cast<int> (t->role) + 1, juce::dontSendNotification);
     compBox.setVisible (! t->isGenerated() && vocal);
     compBox.setSelectedId (t->comp == project::CompMode::Best ? 2 : 1, juce::dontSendNotification);
 
@@ -224,7 +231,7 @@ void RemixPanel::refresh()
     {
         // Effets réglés automatiquement par le style (et les curseurs) : affichés même avant la première prise.
         txt << "\n\nEffets appliqués (style "_u8 << style::styleName (session.project().style) << ", " << style::roleName (t->role) << ") :\n"
-            << dsp::describeChain (style::makeParams (session.project().style, t->role, t->macros));
+            << dsp::describeChain (style::makeParams (session.project().style, t->role, t->macros, ! t->isGenerated()));
     }
     if (report.getText() != txt)
         report.setText (txt, false);   // pas de remise à zéro du défilement si rien n'a changé

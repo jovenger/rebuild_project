@@ -34,7 +34,16 @@ public:
 
     // --- Pistes -----------------------------------------------------------------------------
     int addVocalTrack (style::Role role, const juce::String& name);
+    /** « Nouvelle piste » : réglages auto selon le type, piste sélectionnée et armée (le micro enregistre dessus). */
+    int addUserTrack (style::Role role, const juce::String& name);
+    /** Nom libre pour une nouvelle piste de ce type ("Back 1", "Back 2"…). */
+    juce::String nextTrackName (style::Role role) const;
     void removeTrack (int trackId);
+    /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer. */
+    void armTrack (int trackId);
+    int armedTrack() const { return proj.armedTrackId; }
+    /** Piste qui recevra la prochaine prise : armée, sinon sélectionnée (si enregistrable), sinon voix principale. */
+    int recordTargetTrack() const;
     /** Modifie une piste ; rerender = recalcul des effets ; undoLabel vide = pas d'étape d'annulation. */
     void updateTrack (int trackId, const std::function<void (project::Track&)>& change, bool rerender,
                       const juce::String& undoLabel);

@@ -1,5 +1,6 @@
 #include "TimelineView.h"
 
+#include "NewTrackDialog.h"
 #include "core/Log.h"
 
 namespace sv::app
@@ -18,6 +19,7 @@ namespace
             case style::Role::AdLib:       return juce::Colour (0xffff6f91);
             case style::Role::Ambiance:    return juce::Colour (0xff8bc34a);
             case style::Role::ManualBack:  return juce::Colour (0xfff0d264);
+            case style::Role::Instrument:  return juce::Colour (0xffd98c5f);
             case style::Role::Count:       break;
         }
         return juce::Colours::grey;
@@ -33,10 +35,30 @@ namespace
 }
 
 // =============================================================================================
+void RecArmButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
+{
+    const auto r = getLocalBounds().toFloat().reduced (2.0f);
+    const float d = std::min (r.getWidth(), r.getHeight());
+    const auto c = r.withSizeKeepingCentre (d, d);
+    const bool on = getToggleState();
+    const auto red = juce::Colour (0xffe53935);
+    g.setColour (on ? (down ? red.darker (0.3f) : red) : (down ? juce::Colour (0xff5a2a2a) : juce::Colour (0xff3a2a2a)));
+    g.fillEllipse (c);
+    g.setColour (on ? juce::Colours::white.withAlpha (0.85f) : red);
+    g.drawEllipse (c.reduced (0.5f), highlighted ? 2.0f : 1.4f);
+}
+
 TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
 {
-    for (auto* c : std::initializer_list<juce::Component*> { &name, &info, &mute, &solo, &raw, &remove, &volume, &pan })
+    for (auto* c : std::initializer_list<juce::Component*> { &arm, &name, &info, &mute, &solo, &raw, &remove, &volume, &pan })
         addAndMakeVisible (*c);
+
+    arm.setTooltip ("Armer la piste : le micro enregistrera sur cette piste (puis R ou REC)"_u8);
+    arm.onClick = [this]
+    {
+        if (! updating)
+            session.armTrack (session.armedTrack() == id ? -1 : id);
+    };
 
     name.setFont (juce::FontOptions (14.0f, juce::Font::bold));
     name.setEditable (false, true);
@@ -118,6 +140,8 @@ void TrackHeader::refresh()
     if (st.isNotEmpty())
         txt << "\n" << st;
     info.setText (txt, juce::dontSendNotification);
+    arm.setVisible (t->isRecordable());
+    arm.setToggleState (session.armedTrack() == id, juce::dontSendNotification);
     mute.setToggleState (t->mute, juce::dontSendNotification);
     solo.setToggleState (t->solo, juce::dontSendNotification);
     raw.setToggleState (! t->processingEnabled, juce::dontSendNotification);
@@ -139,11 +163,19 @@ void TrackHeader::paint (juce::Graphics& g)
     }
     g.setColour (juce::Colours::black);
     g.drawRect (getLocalBounds());
+    if (session.armedTrack() == id)
+    {
+        g.setColour (juce::Colour (0xffe53935));
+        g.drawRect (getLocalBounds(), 2);
+    }
 }
 
-void TrackHeader::mouseDown (const juce::MouseEvent&)
+void TrackHeader::mouseDown (const juce::MouseEvent& e)
 {
     session.selectTrack (id);
+    if (e.mods.isPopupMenu())
+        if (auto* tv = findParentComponentOfClass<TimelineView>())
+            tv->openTrackMenu (id);
 }
 
 void TrackHeader::resized()
@@ -151,6 +183,8 @@ void TrackHeader::resized()
     auto r = getLocalBounds().reduced (8, 3);
     r.removeFromLeft (2);
     auto top = r.removeFromTop (20);
+    arm.setBounds (top.removeFromLeft (20));
+    top.removeFromLeft (4);
     remove.setBounds (top.removeFromRight (22));
     top.removeFromRight (2);
     raw.setBounds (top.removeFromRight (40));
@@ -307,11 +341,21 @@ void TimelineView::paint (juce::Graphics& g)
             g.setColour (juce::Colours::grey);
             g.setFont (12.0f);
             const auto st = session.trackStatus (t.id);
-            g.drawText (st.isNotEmpty() ? st : juce::String ("Vide — sélectionne la piste et appuie sur REC"_u8),
+            g.drawText (st.isNotEmpty() ? st : juce::String ("Vide — arme la piste (rond rouge) et appuie sur REC"_u8),
                         kHeaderWidth + 10, y, 600, kTrackHeight, juce::Justification::centredLeft);
         }
         g.setColour (juce::Colours::black);
         g.drawHorizontalLine (y + kTrackHeight - 1, static_cast<float> (kHeaderWidth), static_cast<float> (w));
+    }
+    {
+        const int yEnd = kRulerHeight + static_cast<int> (p.tracks.size()) * kTrackHeight - scrollY;
+        if (yEnd + 30 < getHeight())
+        {
+            g.setColour (juce::Colours::grey);
+            g.setFont (13.0f);
+            g.drawText ("Clic droit : nouvelle piste (voix, back, doublage, harmonie, ad-libs, ambiance, instrument)"_u8,
+                        kHeaderWidth + 10, yEnd + 8, 900, 20, juce::Justification::centredLeft);
+        }
     }
 
     // Zones punch / boucle sur toute la hauteur.
@@ -422,6 +466,19 @@ void TimelineView::updatePlayhead()
 
 void TimelineView::mouseDown (const juce::MouseEvent& e)
 {
+    if (e.mods.isPopupMenu() && e.y >= kRulerHeight && trackIndexAt (e.y) < 0)
+    {
+        // Zone vide sous les pistes (en-têtes compris) : nouvelle piste.
+        juce::PopupMenu m;
+        m.addItem (1, "Nouvelle piste...");
+        juce::WeakReference<Session> weak (&session);
+        m.showMenuAsync (juce::PopupMenu::Options(), [weak] (int r)
+        {
+            if (auto* s = weak.get(); s != nullptr && r == 1)
+                showNewTrackDialog (*s);
+        });
+        return;
+    }
     if (e.x < kHeaderWidth)
         return;
     const double t = std::max (0.0, xToSec (e.x));
@@ -526,6 +583,11 @@ void TimelineView::showTrackMenu (int trackId)
         return;
     juce::PopupMenu m;
     m.addSectionHeader (t->name);
+    m.addItem (10, "Nouvelle piste...");
+    if (t->isRecordable())
+        m.addItem (11, session.armedTrack() == trackId ? juce::String ("Désarmer la piste"_u8)
+                                                       : juce::String ("Armer la piste (le micro enregistre ici)"_u8));
+    m.addSeparator();
     if (t->isVocal() && ! t->isGenerated())
     {
         m.addItem (1, "Prises : la plus récente gagne (punch-in)"_u8, true, t->comp == project::CompMode::Latest);
@@ -539,7 +601,11 @@ void TimelineView::showTrackMenu (int trackId)
         auto* s = weak.get();
         if (s == nullptr || r == 0)
             return;
-        if (r == 1 || r == 2)
+        if (r == 10)
+            showNewTrackDialog (*s);
+        else if (r == 11)
+            s->armTrack (s->armedTrack() == trackId ? -1 : trackId);
+        else if (r == 1 || r == 2)
             s->updateTrack (trackId, [r] (project::Track& tr) { tr.comp = r == 2 ? project::CompMode::Best : project::CompMode::Latest; }, true,
                             "Mode d'assemblage des prises");
         else if (r == 3)

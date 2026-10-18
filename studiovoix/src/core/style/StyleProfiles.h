@@ -33,6 +33,7 @@ enum class Role
     AdLib,         // ad-libs
     Ambiance,      // nappe / ambiance
     ManualBack,    // back enregistré à la main
+    Instrument,    // instrument enregistré ou importé (guitare, clavier, basse…) : ni autotune ni de-esser
     Count
 };
 
@@ -96,8 +97,17 @@ struct VocalParams
     float referenceStrength = 0.6f;
 };
 
-/** Réglages de départ pour un style et un rôle, puis application des curseurs. */
-VocalParams makeParams (Style s, Role r, const Macros& macros);
+/** Réglages de départ pour un style et un rôle, puis application des curseurs.
+    recordedByUser : piste enregistrée à la main (pas générée) ; un doublage, une harmonie, des ad-libs ou une
+    ambiance chantés au micro gardent alors la correction de justesse du style (une piste générée vient d'une
+    voix déjà corrigée). */
+VocalParams makeParams (Style s, Role r, const Macros& macros, bool recordedByUser = false);
+
+/** Types de piste proposés par « Nouvelle piste » (dans l'ordre d'affichage). */
+const std::vector<Role>& userTrackRoles();
+/** Libellé du type dans « Nouvelle piste » et nom de base des pistes créées ("Back", "Harmonie"…). */
+juce::String userTrackLabel (Role r);
+juce::String userTrackBaseName (Role r);
 
 /** Options de génération pré-cochées selon le style. */
 struct GenerationDefaults

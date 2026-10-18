@@ -124,7 +124,8 @@ if(SV_BUILD_APP)
         src/app/SettingsDialog.cpp
         src/app/ExportDialog.cpp
         src/app/AiPanel.cpp
-        src/app/UpdateManager.cpp)
+        src/app/UpdateManager.cpp
+        src/app/NewTrackDialog.cpp)
 
     target_include_directories(StudioVoix PRIVATE src)
     target_compile_definitions(StudioVoix PRIVATE

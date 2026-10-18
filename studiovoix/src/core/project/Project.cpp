@@ -114,6 +114,8 @@ bool Project::removeTrack (int id)
     tracks.erase (std::remove_if (tracks.begin(), tracks.end(), [id] (const Track& t) { return t.id == id; }), tracks.end());
     if (tracks.size() != before)
     {
+        if (armedTrackId == id)
+            armedTrackId = -1;
         SV_LOG_INFO (kMod, "Piste supprimée #"_u8 + juce::String (id));
         return true;
     }
@@ -206,6 +208,7 @@ juce::var Project::toVar() const
     root->setProperty ("referenceFile", referenceFile);
     root->setProperty ("adLibFolder", adLibFolder);
     root->setProperty ("nextTrackId", nextTrackId);
+    root->setProperty ("armedTrack", armedTrackId);
     root->setProperty ("nextTakeId", nextTakeId);
 
     juce::Array<juce::var> trs;
@@ -378,6 +381,13 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
         }
     for (size_t idx : needNewId)
         p.tracks[idx].id = p.nextTrackId++;
+    p.armedTrackId = getI (v, "armedTrack", -1);
+    if (p.armedTrackId >= 0)
+        if (const auto* armed = p.findTrack (p.armedTrackId); armed == nullptr || ! armed->isRecordable())
+        {
+            SV_LOG_WARN (kMod, "Piste armée #"_u8 + juce::String (p.armedTrackId) + " absente ou non enregistrable : désarmée"_u8);
+            p.armedTrackId = -1;
+        }
     for (const auto& w : p.loadWarnings)
         SV_LOG_WARN (kMod, "Projet réparé au chargement : "_u8 + w);
 

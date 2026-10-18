@@ -56,7 +56,7 @@ TransportBar::TransportBar (Session& s) : session (s)
     addAndMakeVisible (inputMeter);
 
     recBtn.setColour (juce::TextButton::buttonColourId, juce::Colours::darkred);
-    recBtn.setTooltip ("Enregistrer sur la piste sélectionnée (touche R)"_u8);
+    recBtn.setTooltip ("Enregistrer sur la piste armée (rond rouge à gauche de la piste) — touche R"_u8);
     playBtn.setTooltip ("Lecture / pause (barre d'espace)");
     punch.setTooltip ("Réenregistre seulement la zone rouge (Maj + glisser sur la règle)"_u8);
     loop.setTooltip ("Lecture en boucle de la zone verte (Alt + glisser sur la règle)"_u8);

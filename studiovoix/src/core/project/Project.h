@@ -55,6 +55,10 @@ struct Track
 
     bool isVocal() const { return role != style::Role::Instru; }
     bool isGenerated() const { return generatedFrom >= 0; }
+    /** Peut recevoir une prise au micro (ni l'instru importée, ni une piste générée). */
+    bool isRecordable() const { return isVocal() && ! isGenerated(); }
+    /** Voix (pour le mix auto : sonie de la voix, creux de l'instru) — un instrument enregistré n'en est pas une. */
+    bool isVoice() const { return isVocal() && role != style::Role::Instrument; }
 };
 
 struct Marker
@@ -86,6 +90,7 @@ struct Project
     juce::String adLibFolder;        // banque d'ad-libs (chemin absolu)
     std::vector<Track> tracks;
     int nextTrackId = 1;
+    int armedTrackId = -1;   // piste armée (bouton REC) : le micro enregistre sur elle ; -1 = aucune
     int nextTakeId = 1;
     juce::File folder;
 

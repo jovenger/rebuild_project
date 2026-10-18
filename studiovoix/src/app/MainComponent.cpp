@@ -249,7 +249,14 @@ namespace
                     log ("étape 6 : export OK — "_u8 + exportInfo);
                     if (! session.save (err)) { fail ("sauvegarde : " + err); return; }
                     // Étapes 7-9 : une prise annulée pendant son traitement ne doit pas revenir.
-                    backTrackId = session.addVocalTrack (style::Role::ManualBack, "Autotest back");
+                    backTrackId = session.addUserTrack (style::Role::ManualBack, session.nextTrackName (style::Role::ManualBack));
+                    if (session.armedTrack() != backTrackId || session.recordTargetTrack() != backTrackId
+                        || session.project().findTrack (backTrackId)->name != "Back 1")
+                    {
+                        fail ("nouvelle piste : pas armée ou mal nommée"_u8);
+                        return;
+                    }
+                    log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée, cible de l'enregistrement"_u8);
                     session.importVoice (voice, backTrackId);
                     next();
                     break;
@@ -584,12 +591,11 @@ void MainComponent::doRecord()
         session.stopRecording();
         return;
     }
-    int trackId = session.selectedTrack();
-    const auto* t = session.project().findTrack (trackId);
-    if (t == nullptr || ! t->isVocal() || t->isGenerated())
-        trackId = session.project().leadTrackId();
+    // Piste armée (rond rouge), sinon piste sélectionnée enregistrable, sinon voix principale.
+    int trackId = session.recordTargetTrack();
     if (trackId < 0)
         trackId = session.addVocalTrack (style::Role::Lead, "Voix principale");
+    session.armTrack (trackId);   // on voit toujours où part la prise
     juce::String err;
     if (! session.startRecording (trackId, transport.punchEnabled(), timeline.punchInSec(), timeline.punchOutSec(), err))
         showMessage ("Enregistrement impossible", err);

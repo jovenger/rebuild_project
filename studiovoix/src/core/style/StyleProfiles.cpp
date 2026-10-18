@@ -57,7 +57,10 @@ namespace
         { "adlib", "Ad-libs" },
         { "ambiance", "Ambiance" },
         { "manual_back", "Back enregistré" },
+        { "instrument", "Instrument" },
     };
+    static_assert (std::size (kRoles) == static_cast<size_t> (Role::Count), "un nom par rôle");
+    constexpr int kLastRole = static_cast<int> (Role::Count) - 1;
 
     float lerp (float a, float b, float t) { return a + (b - a) * t; }
 
@@ -598,6 +601,25 @@ namespace
                 p.delay.send *= 0.5f;
                 p.width = 0.4f;
                 break;
+            case Role::Instrument:
+                // Instrument : pas de correction de justesse ni de de-esser, nettoyage léger, compression douce,
+                // EQ presque neutre (le bas reste : basse, guitare), un peu de la réverb du style, pas de délai.
+                p.pitch.enabled = false;
+                p.pitch.amount = 0.0f;
+                p.clean.dePlosive = false;
+                p.clean.breathReductionDb = 0.0f;
+                p.clean.gateRangeDb = 6.0f;
+                p.clean.hpfHz = 30.0f;
+                p.eq = { 30.0f, 200.0f, 0.0f, 300.0f, -1.0f, 1.0f, 3000.0f, 1.0f, 0.8f, 12000.0f, 1.0f, 0.0f };
+                p.comp = { -20.0f, 2.5f, 10.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.comp2.ratio = 1.0f;
+                p.deEss.amount = 0.0f;
+                p.sat = { 1.5f, 0.15f, 0.1f };
+                p.reverb.send *= 0.6f;
+                p.delay.send = 0.0f;
+                p.timing.strength = 0.0f;
+                p.outputDb -= 4.0f;
+                break;
         }
     }
 
@@ -674,8 +696,51 @@ Style styleFromId (const juce::String& id)
     return Style::Rap;
 }
 
-juce::String roleId (Role r) { return kRoles[juce::jlimit (0, 7, static_cast<int> (r))].id; }
-juce::String roleName (Role r) { return juce::String (juce::CharPointer_UTF8 (kRoles[juce::jlimit (0, 7, static_cast<int> (r))].name)); }
+juce::String roleId (Role r) { return kRoles[juce::jlimit (0, kLastRole, static_cast<int> (r))].id; }
+juce::String roleName (Role r) { return juce::String (juce::CharPointer_UTF8 (kRoles[juce::jlimit (0, kLastRole, static_cast<int> (r))].name)); }
+
+const std::vector<Role>& userTrackRoles()
+{
+    static const std::vector<Role> roles = { Role::Lead, Role::ManualBack, Role::Double, Role::Harmony, Role::AdLib,
+                                             Role::Ambiance, Role::Instrument };
+    return roles;
+}
+
+juce::String userTrackLabel (Role r)
+{
+    switch (r)
+    {
+        case Role::Lead:        return "Voix principale (lead)";
+        case Role::ManualBack:  return "Back (voix d'appui sur les mots forts)";
+        case Role::Double:      return "Doublage (même texte, chanté par-dessus)"_u8;
+        case Role::Harmony:     return "Harmonie (chantée au-dessus ou en dessous)"_u8;
+        case Role::AdLib:       return "Ad-libs (interjections, cris, « yeah »)"_u8;
+        case Role::Ambiance:    return "Ambiance / chœurs lointains"_u8;
+        case Role::Instrument:  return "Instrument (guitare, clavier, basse…)"_u8;
+        case Role::Instru:
+        case Role::KeywordBack:
+        case Role::Count:       break;
+    }
+    return roleName (r);
+}
+
+juce::String userTrackBaseName (Role r)
+{
+    switch (r)
+    {
+        case Role::Lead:        return "Voix principale";
+        case Role::ManualBack:  return "Back";
+        case Role::Double:      return "Doublage";
+        case Role::Harmony:     return "Harmonie";
+        case Role::AdLib:       return "Ad-libs";
+        case Role::Ambiance:    return "Ambiance";
+        case Role::Instrument:  return "Instrument";
+        case Role::Instru:
+        case Role::KeywordBack:
+        case Role::Count:       break;
+    }
+    return roleName (r);
+}
 
 Role roleFromId (const juce::String& id)
 {
@@ -717,10 +782,12 @@ Macros Macros::fromVar (const juce::var& v)
     return m;
 }
 
-VocalParams makeParams (Style s, Role r, const Macros& macros)
+VocalParams makeParams (Style s, Role r, const Macros& macros, bool recordedByUser)
 {
     VocalParams p = leadBase (s);
     applyRole (p, r);
+    if (recordedByUser && (r == Role::Double || r == Role::Harmony || r == Role::KeywordBack || r == Role::AdLib || r == Role::Ambiance))
+        p.pitch = leadBase (s).pitch;   // chanté au micro : justesse du style (les pistes générées sont déjà corrigées)
     applyMacros (p, macros);
     return p;
 }

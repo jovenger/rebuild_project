@@ -42,7 +42,8 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 2. **Instru...** → MP3/WAV. Analyse automatique : tempo, tonalité, structure (couplets / refrains).
 3. **Style** (33 styles rangés par famille, liste ci-dessous) : changeable à tout moment dans la barre du haut, toutes les pistes
    sont alors retraitées avec le nouveau pré-réglage.
-4. **R** (ou REC) → compte à rebours → chanter → **R** pour arrêter.
+4. **Rond rouge** à gauche d'une piste = piste **armée** : le micro enregistre sur elle et sur rien d'autre.
+   **R** (ou REC) → compte à rebours → chanter → **R** pour arrêter.
    La prise est recalée de la latence puis traitée automatiquement (justesse, nettoyage, EQ, compression,
    de-esser, saturation, réverb, délai) selon le style.
 5. Fenêtre de génération (après la prise) : cocher doublages (1-3), harmonies, backs mots clés, ad-libs,
@@ -52,6 +53,13 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 7. Onglet **Mix & Master** : mix auto (voix calée sur l'instru + creux de l'instru sous la voix),
    cible de mastering : Spotify / YouTube (−14 LUFS), Apple (−16), TikTok (−14), Fort (−9), aucune ; crête −1 dBTP.
 8. **Exporter** (Ctrl+E) : morceau complet, pistes séparées (stems) en option.
+
+**Ajouter une piste soi-même** : clic droit sur la timeline (sur une piste ou dans la zone vide) →
+**Nouvelle piste...** → type : voix principale, back, doublage, harmonie, ad-libs, ambiance / chœurs ou
+instrument (guitare, clavier, basse…). Nom proposé automatiquement (« Back 1 », « Back 2 »…). Les effets se
+règlent selon le type et le style du projet (un back est plus bas et plus serré que la voix principale, une
+harmonie plus large avec plus de réverb, un instrument sans autotune ni de-esser…). La nouvelle piste est
+sélectionnée et armée : il n'y a plus qu'à appuyer sur R. Le type se change ensuite dans l'onglet **Voix IA**.
 
 Autres fonctions : punch-in (zone sur la timeline), boucle, métronome, marqueurs, prises multiples avec
 comping automatique (meilleure prise par phrase), copie d'un refrain sur les refrains identiques,

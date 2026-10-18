@@ -791,6 +791,7 @@ public:
         tk.regionEnd = 48000 * 8;
         lead.takes.push_back (tk);
         const int leadId = lead.id;   // la référence 'lead' devient invalide quand d'autres pistes sont ajoutées
+        p.armedTrackId = leadId;
         expect (p.save (err), err);
         expect (p.saveVersion ("test", err), err);
         expect (p.saveAutosave (err), err);
@@ -803,6 +804,36 @@ public:
         expectWithinAbsoluteError (q.findTrack (leadId)->macros.autotune, 0.8f, 1.0e-4f);
         expectEquals (q.findTrack (leadId)->takes.size(), static_cast<size_t> (1));
         expectEquals (static_cast<int> (q.listVersions().size()), 1);
+        expectEquals (q.armedTrackId, leadId);
+
+        beginTest ("Pistes ajoutees a la main : instrument, piste armee");
+        {
+            juce::var v;
+            juce::JSON::parse (R"({"format":"studiovoix-project","version":1,"name":"armes","armedTrack":2,"tracks":[
+                {"id":1,"name":"Voix","role":"lead"},
+                {"id":2,"name":"Instru","role":"instru","sourceFile":"instru.wav"},
+                {"id":3,"name":"Guitare","role":"instrument"},
+                {"id":4,"name":"Double","role":"double","generatedFrom":1,"sourceFile":"d.wav"}]})", v);
+            project::Project ap;
+            juce::String loadErr;
+            expect (project::Project::fromVar (v, ap, loadErr), loadErr);
+            expectEquals (ap.armedTrackId, -1);   // l'instru importée ne reçoit pas de prise
+            expect (ap.findTrack (3) != nullptr && ap.findTrack (3)->role == style::Role::Instrument && ap.findTrack (3)->isRecordable()
+                        && ! ap.findTrack (3)->isVoice(), "instrument : enregistrable, pas une voix pour le mix auto");
+            expect (! ap.findTrack (4)->isRecordable(), "piste générée non enregistrable");
+            ap.armedTrackId = 3;
+            expect (ap.removeTrack (3) && ap.armedTrackId == -1, "piste armée supprimée : désarmée");
+
+            const auto inst = style::makeParams (style::Style::Trap, style::Role::Instrument, {});
+            expect (! inst.pitch.enabled && inst.deEss.amount <= 0.0f && inst.delay.send <= 0.0f, "instrument : ni autotune, ni de-esser, ni délai");
+            expect (style::makeParams (style::Style::Trap, style::Role::Harmony, {}, true).pitch.enabled
+                        && ! style::makeParams (style::Style::Trap, style::Role::Harmony, {}).pitch.enabled,
+                    "harmonie chantée au micro : autotune du style ; générée : déjà corrigée");
+            expect (style::roleFromId ("instrument") == style::Role::Instrument);
+            for (const auto r : style::userTrackRoles())
+                expect (! style::userTrackLabel (r).containsChar (0xC3) && style::userTrackBaseName (r).isNotEmpty(),
+                        "libellé de type : " + style::roleId (r));
+        }
 
         beginTest ("Projet modifie a la main : id en double, id texte, role absent");
         {
