@@ -35,7 +35,7 @@ namespace
     }
 }
 
-DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity& va, float maxReductionDb)
+DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity& va, float maxReductionDb, const analysis::PitchTrack* voiced)
 {
     log::ScopedTimer timer (kMod, "débruitage spectral"_u8);
     DenoiseReport rep;
@@ -112,13 +112,19 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
 
     // 2) Gain par bande : Wiener avec sur-soustraction, plancher = -maxReductionDb, lissé (temps : montée rapide,
     //    descente lente ; fréquence : 3 bandes) pour ne pas créer de bruit « musical ».
-    const float floorGain = dbToGain (-maxReductionDb);
-    const float over = 2.0f;
+    const float floorGainQuiet = dbToGain (-maxReductionDb);
+    const float floorGainVoice = dbToGain (-std::min (maxReductionDb, 6.0f));   // trame chantée : le bruit est masqué, la voix douce reste
     std::vector<float> gain (static_cast<size_t> (kBins), 1.0f), gainPrev (static_cast<size_t> (kBins), 1.0f);
     Mono out (static_cast<size_t> (n), 0.0f);
+    int voiceFrames = 0;
     for (int f = 0; f < numFrames; ++f)
     {
         const int start = f * kHop - kFft;
+        const double tSec = (f * kHop - kFft / 2) / sr;
+        const bool speech = (tSec >= 0.0 && va.isActiveAt (tSec)) || (voiced != nullptr && voiced->voicedAt (tSec));
+        const float over = speech ? 1.0f : 2.0f;
+        const float floorGain = speech ? floorGainVoice : floorGainQuiet;
+        voiceFrames += speech ? 1 : 0;
         analyse (f);
         for (int k = 0; k < kBins; ++k)
         {
@@ -166,7 +172,8 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
         x[static_cast<size_t> (i)] = out[static_cast<size_t> (i)] * norm;
     rep.noiseAfterDb = levelDbOfInactive (x, sr, va);
     SV_LOG_INFO (kMod, "Bruit dans les silences : " + juce::String (rep.noiseBeforeDb, 1) + " -> " + juce::String (rep.noiseAfterDb, 1)
-                       + " dBFS (" + juce::String (rep.noiseFrames) + " trames de profil, max -" + juce::String (maxReductionDb, 0) + " dB)");
+                       + " dBFS (" + juce::String (rep.noiseFrames) + " trames de profil, max -" + juce::String (maxReductionDb, 0) + " dB, "
+                       + juce::String (voiceFrames) + " trames chantées allégées)"_u8);
     return rep;
 }
 

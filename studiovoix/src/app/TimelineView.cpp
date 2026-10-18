@@ -71,6 +71,9 @@ TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
     info.setFont (juce::FontOptions (11.0f));
     info.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
     info.setInterceptsMouseClicks (false, false);
+    meter.setCompact (true);
+    meter.setInterceptsMouseClicks (false, false);
+    addAndMakeVisible (meter);
 
     mute.setClickingTogglesState (true);
     solo.setClickingTogglesState (true);
@@ -159,6 +162,15 @@ void TrackHeader::refresh()
     repaint();
 }
 
+void TrackHeader::updateMeter()
+{
+    const float now = session.trackPeakNow (id);
+    meterLevel = std::max (now, meterLevel * 0.82f);   // retombée douce
+    if (meterLevel < 1.0e-4f)
+        meterLevel = 0.0f;
+    meter.setLevel (meterLevel, false);
+}
+
 void TrackHeader::paint (juce::Graphics& g)
 {
     const auto* t = session.project().findTrack (id);
@@ -203,6 +215,7 @@ void TrackHeader::resized()
     top.removeFromRight (2);
     mute.setBounds (top.removeFromRight (22));
     name.setBounds (top);
+    meter.setBounds (r.removeFromTop (6).reduced (0, 1));
     const bool faders = getHeight() >= 64;   // piste trop basse : seuls le nom et l'état restent
     if (faders)
     {
@@ -495,6 +508,9 @@ void TimelineView::paint (juce::Graphics& g)
 
 void TimelineView::updatePlayhead()
 {
+    for (auto& h : headers)
+        if (h->isVisible())
+            h->updateMeter();
     const double t = session.positionSec();
     const int px = secToX (t);
     // Défilement automatique pendant la lecture.

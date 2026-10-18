@@ -349,6 +349,20 @@ std::vector<int> generateBackingTracks (project::Project& p, int leadTrackId, co
     return ids;
 }
 
+float roleOffsetLu (style::Role role)
+{
+    switch (role)
+    {
+        case style::Role::Double:      return -6.0f;
+        case style::Role::KeywordBack: return -7.0f;
+        case style::Role::Harmony:     return -8.0f;
+        case style::Role::AdLib:       return -9.0f;
+        case style::Role::Ambiance:    return -14.0f;
+        case style::Role::Instrument:  return -4.0f;
+        default:                       return 0.0f;
+    }
+}
+
 MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
 {
     MixState st;
@@ -356,46 +370,80 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
         return st;
     const auto* instru = p.instruTrack();
     const int leadId = p.leadTrackId();
-    if (instru == nullptr || leadId < 0)
-        return st;
-    if (const auto* lead = p.findTrack (leadId); lead == nullptr || lead->raw)
-        return st;   // voix principale brute : pas de mix auto tant qu'aucun style n'est choisi
-    auto itI = renders.find (instru->id);
-    auto itL = renders.find (leadId);
-    if (itI == renders.end() || itL == renders.end() || itI->second == nullptr || itL->second == nullptr
-        || ! itI->second->ok() || ! itL->second->ok())
-        return st;
-
-    // Voix placées sur la timeline de l'instru.
-    const auto& instruBuf = itI->second->processed;
-    const int n = instruBuf.getNumSamples();
-    auto place = [&] (const TrackRender& r, Stereo& dst, float gain)
+    const auto* lead = p.findTrack (leadId);
+    auto okRender = [&] (int id) -> const TrackRender*
     {
-        const long offset = r.startSample - itI->second->startSample;
-        for (int c = 0; c < 2; ++c)
-            for (int i = 0; i < r.processed.getNumSamples(); ++i)
-            {
-                const long d = offset + i;
-                if (d >= 0 && d < n)
-                    dst.addSample (c, static_cast<int> (d), r.processed.getSample (c, i) * gain);
-            }
+        auto it = renders.find (id);
+        return (it != renders.end() && it->second != nullptr && it->second->ok()) ? it->second.get() : nullptr;
     };
-    Stereo all = makeStereo (n);
-    for (const auto& t : p.tracks)
+    const TrackRender* leadR = (lead != nullptr && ! lead->raw) ? okRender (leadId) : nullptr;
+    if (leadR == nullptr)
+        return st;   // voix principale brute ou absente : pas de mix auto tant qu'aucun style n'est choisi
+
+    // 1) Orchestre : chaque piste (hors voix principale et instru) mesurée et ramenée à sa place par rapport à la voix
+    //    principale selon son rôle. Les pistes brutes ne sont pas touchées (importé = brut).
+    const double leadLufs = loudness::integratedLufs (leadR->processed, p.sampleRate);
     {
-        if (! t.isVoice() || t.mute || t.raw)   // un instrument ou une piste brute ne creuse pas l'instru
-            continue;
-        if (auto it = renders.find (t.id); it != renders.end() && it->second != nullptr && it->second->ok())
-            place (*it->second, all, dbToGain (t.volumeDb));
+        juce::StringArray lines;
+        for (const auto& t : p.tracks)
+        {
+            if (t.id == leadId || t.role == style::Role::Instru || t.raw || t.mute)
+                continue;
+            const auto* r = okRender (t.id);
+            if (r == nullptr || leadLufs < -90.0)
+                continue;
+            const double lufs = loudness::integratedLufs (r->processed, p.sampleRate);
+            if (lufs < -90.0)
+                continue;
+            const float offset = roleOffsetLu (t.role);
+            const float gain = juce::jlimit (-8.0f, 6.0f, static_cast<float> (leadLufs + offset - lufs));
+            if (std::abs (gain) >= 0.3f)
+                st.trackGainDb[t.id] = gain;
+            lines.add (t.name + " : " + juce::String (lufs - leadLufs, 1) + " LU sous la voix, place "_u8 + juce::String (offset, 0) + " LU -> gain "
+                       + (gain >= 0.0f ? "+" : "") + juce::String (gain, 1) + " dB");
+        }
+        st.balanceReport = lines.joinIntoString ("\n");
+        if (! lines.isEmpty())
+            SV_LOG_INFO (kMod, "Orchestre : " + lines.joinIntoString (" | "));
     }
 
-    mix::AutoMixSettings s;
-    s.enabled = true;
-    s.duckingDb = instru->raw ? 0.0f : p.duckingDb;   // instru brute : pas de creux sous la voix
-    s.vocalOverInstruLu = style::masterTone (p.style).vocalOverInstruLu;
-    // Sonie de la voix mesurée sur toute la voix (pas seulement là où elle recouvre l'instru).
-    st.autoMix = mix::autoMix (instruBuf, itL->second->processed, all, p.sampleRate, s);
-    st.autoMixApplied = true;
+    // 2) Voix / instru : sonie de la voix par rapport à l'instru, creux de l'instru sous la voix.
+    const TrackRender* instruR = instru != nullptr ? okRender (instru->id) : nullptr;
+    if (instruR != nullptr)
+    {
+        const auto& instruBuf = instruR->processed;
+        const int n = instruBuf.getNumSamples();
+        auto place = [&] (const TrackRender& r, Stereo& dst, float gain)
+        {
+            const long offset = r.startSample - instruR->startSample;
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < r.processed.getNumSamples(); ++i)
+                {
+                    const long d = offset + i;
+                    if (d >= 0 && d < n)
+                        dst.addSample (c, static_cast<int> (d), r.processed.getSample (c, i) * gain);
+                }
+        };
+        Stereo all = makeStereo (n);
+        for (const auto& t : p.tracks)
+        {
+            if (! t.isVoice() || t.mute || t.raw)   // un instrument ou une piste brute ne creuse pas l'instru
+                continue;
+            if (const auto* r = okRender (t.id))
+                place (*r, all, dbToGain (t.volumeDb + st.autoTrackGain (t.id)));
+        }
+        mix::AutoMixSettings s;
+        s.enabled = true;
+        s.duckingDb = instru->raw ? 0.0f : p.duckingDb;   // instru brute : pas de creux sous la voix
+        s.vocalOverInstruLu = style::masterTone (p.style).vocalOverInstruLu;
+        // Sonie de la voix mesurée sur toute la voix (pas seulement là où elle recouvre l'instru).
+        st.autoMix = mix::autoMix (instruBuf, leadR->processed, all, p.sampleRate, s);
+        st.autoMixApplied = true;
+    }
+
+    // 3) Sonie du mixage obtenu (affichée dans la barre du haut).
+    st.mixLufs = loudness::integratedLufs (mixdown (p, renders, st), p.sampleRate);
+    SV_LOG_INFO (kMod, "Mixage : " + juce::String (st.mixLufs, 1) + " LUFS avant mastering");
     return st;
 }
 
@@ -425,7 +473,7 @@ Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixSt
         float gl, gr;
         balanceGains (t.pan, gl, gr);
         const float vocalGain = t.isVoice() && ! t.raw && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
-        const float g = dbToGain (t.volumeDb + vocalGain);
+        const float g = dbToGain (t.volumeDb + vocalGain + mixState.autoTrackGain (t.id));
         for (int i = 0; i < src->getNumSamples(); ++i)
         {
             const long d = r.startSample + i;

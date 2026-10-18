@@ -69,7 +69,19 @@ struct MixState
 {
     mix::AutoMixResult autoMix;
     bool autoMixApplied = false;
+    std::map<int, float> trackGainDb;   // « orchestre » : gain auto par piste (hors voix principale et instru) selon son rôle
+    juce::String balanceReport;         // une ligne par piste équilibrée
+    double mixLufs = -120.0;            // sonie du mixage avec les gains auto
+    float autoTrackGain (int trackId) const
+    {
+        auto it = trackGainDb.find (trackId);
+        return it != trackGainDb.end() ? it->second : 0.0f;
+    }
 };
+
+/** Place visée d'un rôle par rapport à la voix principale (LU) : doublage -6, backs -7, harmonies -8, ad-libs -9,
+    ambiance -14, instrument enregistré -4. */
+float roleOffsetLu (style::Role role);
 
 MixState computeAutoMix (const project::Project& p, const RenderSet& renders);
 

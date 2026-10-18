@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Types.h"
+#include "../analysis/PitchDetector.h"
 #include "../analysis/VoiceActivity.h"
 
 // Nettoyage « son propre » :
@@ -18,7 +19,10 @@ struct DenoiseReport
 };
 
 /** maxReductionDb : atténuation maximale du bruit (12 dB = discret, 20 dB = fort). */
-DenoiseReport spectralDenoise (Mono& x, double sampleRate, const analysis::VoiceActivity& va, float maxReductionDb);
+/** voiced (facultatif) : suivi de hauteur ; sur une trame voisée ou active, la réduction est limitée à 6 dB et la
+    sur-soustraction coupée (le bruit y est masqué par la voix ; une note douce ne doit pas être creusée). */
+DenoiseReport spectralDenoise (Mono& x, double sampleRate, const analysis::VoiceActivity& va, float maxReductionDb,
+                               const analysis::PitchTrack* voiced = nullptr);
 
 /** Reconstruit les passages écrêtés (|x| >= threshold) ; renvoie le nombre d'échantillons réparés. */
 int declip (Mono& x, float threshold = 0.985f);

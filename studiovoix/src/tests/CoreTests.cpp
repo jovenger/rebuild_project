@@ -1372,6 +1372,90 @@ public:
             expect (dsp::describeProblems (pk).isNotEmpty() && ! dsp::describeProblems (pk).containsChar (0xC3), "rapport lisible par instrument"_u8);
         }
 
+        beginTest ("Porte et debruitage : pas de trou sur une note voisee qui s'eteint");
+        {
+            // 0,5 s de bruit de fond, puis un 220 Hz riche en harmoniques qui descend de -20 à -46 dB sur 3 s, puis 0,5 s de bruit.
+            const size_t n = static_cast<size_t> (kSr) * 4;
+            Mono x (n, 0.0f);
+            juce::Random rng (21);
+            for (auto& v : x)
+                v = dbToGain (-70.0f) * (rng.nextFloat() * 2.0f - 1.0f);
+            for (size_t i = 24000; i < 168000; ++i)
+            {
+                const float t = static_cast<float> (i - 24000) / static_cast<float> (kSr);
+                const float db = -20.0f - 26.0f * t / 3.0f;
+                float v = 0.0f;
+                for (int h = 1; h <= 8; ++h)
+                    v += std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * h * static_cast<float> (i) / static_cast<float> (kSr)) / static_cast<float> (h);
+                x[i] = dbToGain (db) * 0.6f * v;
+            }
+            const auto va = analysis::analyzeVoice (x, kSr);
+            const auto track = analysis::detectPitch (x, kSr);
+            auto tailDb = [&] (const Mono& y) { return gainToDb (audio::rms (y.data() + 144000, 20000)); };   // 2,5-2,9 s : queue vers -42 dB
+            const float before = tailDb (x);
+            dsp::CleanSettings cs;
+            cs.hpfHz = 60.0f;
+            cs.dePlosive = false;
+            cs.breathReductionDb = 0.0f;
+            cs.gateRangeDb = 12.0f;
+            cs.denoiseDb = 15.0f;
+            cs.declip = false;
+            auto y = x;
+            dsp::clean (y, kSr, cs, track, va);
+            const float after = tailDb (y);
+            expect (before - after < 3.0f, "queue de note voisée conservée : "_u8 + juce::String (before, 1) + " -> " + juce::String (after, 1) + " dB");
+            const float noiseBefore = gainToDb (audio::rms (x.data() + 2000, 20000)), noiseAfter = gainToDb (audio::rms (y.data() + 2000, 20000));
+            expect (noiseBefore - noiseAfter > 6.0f, "bruit avant la note réduit : "_u8 + juce::String (noiseBefore, 1) + " -> " + juce::String (noiseAfter, 1) + " dB");
+        }
+
+        beginTest ("Orchestre : chaque piste ramenee a sa place par rapport a la voix principale");
+        {
+            project::Project op;
+            op.sampleRate = kSr;
+            op.style = style::Style::Rap;
+            auto& inst = op.addTrack (style::Role::Instru, "Instru");
+            inst.sourceFile = "i.wav";
+            auto& ld = op.addTrack (style::Role::Lead, "Voix");
+            ld.raw = false;
+            const int ldId = ld.id;
+            auto& dbl = op.addTrack (style::Role::Double, "Doublage");
+            dbl.raw = false;
+            dbl.generatedFrom = ldId;
+            const int dblId = dbl.id;
+            auto& rawT = op.addTrack (style::Role::KeywordBack, "Back brut");
+            rawT.raw = true;
+            const int rawId = rawT.id;   // brute : jamais touchée
+            auto tone = [&] (float db, float hz)
+            {
+                auto r = std::make_shared<render::TrackRender>();
+                r->processed = Stereo (2, static_cast<int> (kSr) * 4);
+                for (int i = 0; i < r->processed.getNumSamples(); ++i)
+                {
+                    const float v = dbToGain (db) * juce::MathConstants<float>::sqrt2 * std::sin (2.0f * juce::MathConstants<float>::pi * hz * static_cast<float> (i) / static_cast<float> (kSr));
+                    r->processed.setSample (0, i, v);
+                    r->processed.setSample (1, i, v);
+                }
+                r->raw = r->processed;
+                return r;
+            };
+            render::RenderSet rs;
+            rs[inst.id] = tone (-24.0f, 110.0f);
+            rs[ldId] = tone (-16.0f, 440.0f);
+            rs[dblId] = tone (-14.0f, 660.0f);    // doublage plus fort que la voix : doit redescendre vers -6 LU
+            rs[rawId] = tone (-14.0f, 880.0f);
+            const auto ms = render::computeAutoMix (op, rs);
+            const float g = ms.autoTrackGain (dblId);
+            expect (g <= -6.0f && g >= -8.0f, "doublage ramené : gain "_u8 + juce::String (g, 1) + " dB (visé -6 LU)"_u8);
+            expect (std::abs (ms.autoTrackGain (rawId)) < 1e-6f && std::abs (ms.autoTrackGain (ldId)) < 1e-6f, "piste brute et voix principale non touchées"_u8);
+            expect (ms.balanceReport.contains ("Doublage") && ! ms.balanceReport.containsChar (0xC3), "rapport orchestre : " + ms.balanceReport);
+            expect (ms.mixLufs > -100.0, "sonie du mixage mesurée : "_u8 + juce::String (ms.mixLufs, 1) + " LUFS");
+            const auto mixed = render::mixdown (op, rs, ms);
+            render::MixState none;
+            const auto plain = render::mixdown (op, rs, none);
+            expect (mixed.getRMSLevel (0, 48000, 48000) < plain.getRMSLevel (0, 48000, 48000), "le gain orchestre est appliqué au mixage"_u8);
+            expect (std::abs (render::roleOffsetLu (style::Role::AdLib) + 9.0f) < 1e-6f && std::abs (render::roleOffsetLu (style::Role::Lead)) < 1e-6f, "places par rôle"_u8);
+        }
+
         beginTest ("Debruitage spectral et de-ecretage");
         {
             const auto keySig = aMinor();

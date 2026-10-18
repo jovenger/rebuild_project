@@ -549,6 +549,13 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
                             juce::FloatVectorOperations::addWithMultiply (out[0] + dstOff, t.buffer->getReadPointer (0) + srcOff, t.gainL, cnt);
                         if (numOut > 1 && out[1] != nullptr)
                             juce::FloatVectorOperations::addWithMultiply (out[1] + dstOff, t.buffer->getReadPointer (1) + srcOff, t.gainR, cnt);
+                        if (t.peak != nullptr)
+                        {
+                            const float mx = std::max (t.buffer->getMagnitude (0, srcOff, cnt) * t.gainL,
+                                                       t.buffer->getNumChannels() > 1 ? t.buffer->getMagnitude (1, srcOff, cnt) * t.gainR : 0.0f);
+                            if (mx > t.peak->load())
+                                t.peak->store (mx);
+                        }
                     }
                 }
             }

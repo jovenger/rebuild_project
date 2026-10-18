@@ -1362,6 +1362,12 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
         for (int c = 0; c < result->raw.getNumChannels(); ++c)
             m.rawPeakDb = std::max (m.rawPeakDb, gainToDb (result->raw.getMagnitude (c, 0, result->raw.getNumSamples())));
         m.lufs = loudness::integratedLufs (result->processed, proj.sampleRate);
+        if (const auto* tr = proj.findTrack (trackId); tr != nullptr && (tr->id == proj.leadTrackId() || tr->role == style::Role::Instru) && result->raw.getNumSamples() > 0)
+        {
+            // Tonalité de la voix principale et de l'instru : une différence est signalée (autotune vers une mauvaise gamme).
+            m.key = analysis::detectKey (audio::toMono (result->raw), proj.sampleRate).key;
+            m.keyKnown = m.key.confidence >= 0.35f;
+        }
         trackMetrics[trackId] = m;
         const auto w = trackWarnings (trackId);
         if (w.isNotEmpty())
@@ -1487,8 +1493,12 @@ void Session::rebuildPlayState()
         pt.buffer = buf;
         pt.start = toDevice (r->startSample);
         const float vocalGain = t.isVoice() && ! t.raw && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
-        const float g = dbToGain (t.volumeDb + vocalGain);
+        const float g = dbToGain (t.volumeDb + vocalGain + mixState.autoTrackGain (t.id));
         const float p = juce::jlimit (-1.0f, 1.0f, t.pan);
+        auto& peak = trackPeaks[t.id];
+        if (peak == nullptr)
+            peak = std::make_shared<std::atomic<float>> (0.0f);
+        pt.peak = peak;
         pt.gainL = g * (p <= 0.0f ? 1.0f : 1.0f - p);
         pt.gainR = g * (p >= 0.0f ? 1.0f : 1.0f + p);
         st->length = std::max (st->length, pt.start + static_cast<long> (buf->getNumSamples()));
@@ -1676,6 +1686,12 @@ juce::String Session::trackStatus (int trackId) const
     return it != trackStatuses.end() ? it->second : juce::String();
 }
 
+float Session::trackPeakNow (int trackId)
+{
+    auto it = trackPeaks.find (trackId);
+    return it != trackPeaks.end() && it->second != nullptr ? it->second->exchange (0.0f) : 0.0f;
+}
+
 juce::String Session::trackWarnings (int trackId) const
 {
     const auto* t = proj.findTrack (trackId);
@@ -1693,6 +1709,16 @@ juce::String Session::trackWarnings (int trackId) const
         w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
     for (const auto& su : r->report.leveler.surges)
         w.add ("monte en flèche "_u8 + su.describe() + (r->report.leveler.applied ? ", rabaissée"_u8 : ""));
+    if (t->id == proj.leadTrackId() && m.keyKnown && proj.instruTrack() != nullptr)
+        if (auto inst = trackMetrics.find (proj.instruTrack()->id); inst != trackMetrics.end() && inst->second.keyKnown)
+        {
+            const auto& a = m.key;
+            const auto& b = inst->second.key;
+            const bool same = a.root == b.root && a.minor == b.minor;
+            const bool relative = (a.minor != b.minor) && ((a.minor ? a.root : b.root) == ((a.minor ? b.root : a.root) + 9) % 12);
+            if (! same && ! relative)
+                w.add ("tonalité différente de l'instru (voix "_u8 + a.toFrench() + ", instru " + b.toFrench() + ") : vérifie la tonalité du projet"_u8);
+        }
     if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
         if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
         {

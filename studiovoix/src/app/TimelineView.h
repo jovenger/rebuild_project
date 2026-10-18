@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "Session.h"
+#include "TransportBar.h"
 
 // Timeline : règle (mesures, sections, marqueurs, zones punch / boucle), pistes avec forme d'onde,
 // tête de lecture. Molette = défilement vertical, Maj+molette = horizontal, Ctrl+molette = zoom.
@@ -21,6 +22,7 @@ class TrackHeader final : public juce::Component
 public:
     TrackHeader (Session& session, int trackId);
     void refresh();
+    void updateMeter();   // ~30 fois par seconde pendant la lecture
     void resized() override;
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
@@ -33,6 +35,8 @@ private:
     RecArmButton arm;
     juce::TextButton mute { "M" }, solo { "S" }, raw { "Brut" }, remove { "X" };
     juce::Slider volume, pan;
+    LevelMeter meter;
+    float meterLevel = 0.0f;
     bool updating = false;
 };
 

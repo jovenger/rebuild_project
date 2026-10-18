@@ -37,9 +37,11 @@ void LevelMeter::paint (juce::Graphics& g)
         g.setColour (juce::Colours::red);
         g.fillRect (r.removeFromRight (14.0f).reduced (2.0f));
     }
+    if (compact)
+        return;
     g.setColour (juce::Colours::white);
     g.setFont (11.0f);
-    g.drawText (clipped ? juce::String ("SATURATION") : "Micro " + juce::String (juce::roundToInt (db)) + " dB", getLocalBounds().reduced (4, 0),
+    g.drawText (clipped ? juce::String ("SATURATION") : label + " " + juce::String (juce::roundToInt (db)) + " dB", getLocalBounds().reduced (4, 0),
                 juce::Justification::centredLeft);
 }
 
@@ -51,7 +53,10 @@ TransportBar::TransportBar (Session& s) : session (s)
         addAndMakeVisible (*t);
     for (auto* c : { &countdown, &keyBox, &styleBox })
         addAndMakeVisible (*c);
-    for (auto* l : { &timeLabel, &bpmLabel, &bpmTitle, &keyTitle, &styleTitle, &countTitle, &autoGainLabel })
+    outputMeter.setLabel ("Sortie");
+    addAndMakeVisible (outputMeter);
+    mixLabel.setTooltip ("Sonie du mixage (avant mastering), mesurée après le mix auto et l'orchestre"_u8);
+    for (auto* l : { &timeLabel, &bpmLabel, &bpmTitle, &keyTitle, &styleTitle, &countTitle, &autoGainLabel, &mixLabel })
         addAndMakeVisible (*l);
     addAndMakeVisible (inputMeter);
 
@@ -155,6 +160,12 @@ void TransportBar::refresh()
     const float ag = session.vocalAutoGainDb();
     autoGainLabel.setText (p.autoMixEnabled ? "Mix auto voix " + juce::String (ag, 1) + " dB" : juce::String ("Mix auto off"),
                            juce::dontSendNotification);
+    // Sonie du mixage + gain auto de la voix sur une seule étiquette (place limitée).
+    mixLabel.setText ((session.mixLufs() > -100.0 ? "Mix " + juce::String (session.mixLufs(), 1) + " LUFS" : juce::String ("Mix - LUFS"))
+                          + (p.autoMixEnabled ? " | voix " + juce::String (ag >= 0.0f ? "+" : "") + juce::String (ag, 1) + " dB" : juce::String (" | mix auto off")),
+                      juce::dontSendNotification);
+    mixLabel.setFont (juce::FontOptions (11.0f));
+    mixLabel.setJustificationType (juce::Justification::centredRight);
 }
 
 void TransportBar::updateTime()
@@ -175,6 +186,7 @@ void TransportBar::updateTime()
     recBtn.setColour (juce::TextButton::buttonColourId, rec ? juce::Colours::red : juce::Colours::darkred);
     playBtn.setButtonText (e.isPlaying() ? "Pause" : "Lecture");
     inputMeter.setLevel (e.inputPeak(), e.consumeClipFlag());
+    outputMeter.setLevel (std::max (e.outputPeakL(), e.outputPeakR()), false);
     e.resetMeters();
 }
 
@@ -209,23 +221,28 @@ void TransportBar::resized()
     r.removeFromTop (4);
     auto row2 = r.removeFromTop (30);
 
+    // Largeur minimale 1440 px : tout doit tenir sans recouvrement (vumètres et sonie à droite).
     for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn })
     {
-        b->setBounds (row1.removeFromLeft (90));
-        row1.removeFromLeft (4);
+        b->setBounds (row1.removeFromLeft (80));
+        row1.removeFromLeft (3);
     }
-    row1.removeFromLeft (12);
-    undoBtn.setBounds (row1.removeFromLeft (80));
-    row1.removeFromLeft (4);
-    redoBtn.setBounds (row1.removeFromLeft (80));
-    row1.removeFromLeft (12);
-    correctBtn.setBounds (row1.removeFromLeft (140));
-    row1.removeFromLeft (12);
-    updateBtn.setBounds (row1.removeFromRight (170));
-    row1.removeFromRight (8);
-    inputMeter.setBounds (row1.removeFromRight (220));
-    row1.removeFromRight (8);
-    autoGainLabel.setBounds (row1.removeFromRight (140));
+    row1.removeFromLeft (8);
+    undoBtn.setBounds (row1.removeFromLeft (72));
+    row1.removeFromLeft (3);
+    redoBtn.setBounds (row1.removeFromLeft (72));
+    row1.removeFromLeft (8);
+    correctBtn.setBounds (row1.removeFromLeft (128));
+    row1.removeFromLeft (8);
+    updateBtn.setBounds (row1.removeFromRight (140));
+    row1.removeFromRight (6);
+    inputMeter.setBounds (row1.removeFromRight (120));
+    row1.removeFromRight (4);
+    outputMeter.setBounds (row1.removeFromRight (110));
+    row1.removeFromRight (4);
+    mixLabel.setBounds (row1.removeFromRight (std::min (190, std::max (120, row1.getWidth()))));
+    autoGainLabel.setBounds (0, 0, 0, 0);
+    autoGainLabel.setVisible (false);
 
     homeBtn.setBounds (row2.removeFromLeft (40));
     row2.removeFromLeft (4);

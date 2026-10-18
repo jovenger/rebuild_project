@@ -17,6 +17,7 @@
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/VocalChain.h"
 #include "core/dsp/PitchCorrector.h"
+#include "core/dsp/ProblemAnalyzer.h"
 #include "core/analysis/VoiceActivity.h"
 #include "core/analysis/PitchDetector.h"
 #include "core/project/Project.h"
@@ -378,6 +379,234 @@ int cmdDebugChain (const Args& args)
     return 0;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Détecteur d'artefacts : compare l'enveloppe d'entrée et de sortie dans les passages chantés.
+// Trou = gain qui plonge de plus de 6 dB sous son voisinage pendant 30 à 500 ms alors que l'entrée est stable ;
+// oscillation = modulation du gain entre 3 et 12 Hz ; saut = variation de plus de 4 dB d'une trame (10 ms) à l'autre.
+struct ArtefactMetrics
+{
+    int holes = 0;
+    float worstHoleDb = 0.0f;
+    double worstHoleSec = 0.0;
+    float oscillationDb = 0.0f;   // RMS de la modulation 3-12 Hz du gain (dB)
+    int jumps = 0;
+    float maxJumpDb = 0.0f;
+    int validFrames = 0;
+    // Un saut de 4-5 dB à une frontière voyelle / sifflante vient de l'EQ (présence) : normal. Seuls les sauts
+    // nombreux ou très grands comptent comme artefact.
+    bool bad() const { return holes > 0 || oscillationDb > 1.5f || jumps > 6 || maxJumpDb > 7.0f; }
+    juce::String str() const
+    {
+        return juce::String (holes) + " trou(s)" + (holes > 0 ? " (pire -" + juce::String (worstHoleDb, 1) + " dB à "_u8 + juce::String (worstHoleSec, 2) + " s)" : juce::String())
+               + ", oscillation " + juce::String (oscillationDb, 2) + " dB, " + juce::String (jumps) + " saut(s)" + (jumps > 0 ? " (max " + juce::String (maxJumpDb, 1) + " dB)" : juce::String());
+    }
+};
+
+ArtefactMetrics measureArtefacts (const sv::Mono& in, const sv::Mono& out, double sr, const sv::analysis::VoiceActivity& va, const sv::analysis::PitchTrack& track)
+{
+    ArtefactMetrics m;
+    const int hop = static_cast<int> (sr * 0.01), win = static_cast<int> (sr * 0.02);
+    const int n = static_cast<int> (std::min (in.size(), out.size()));
+    const int frames = n / hop;
+    if (frames < 10)
+        return m;
+    std::vector<float> envIn (frames), envOut (frames), g (frames, 0.0f);
+    std::vector<char> valid (frames, 0);
+    for (int f = 0; f < frames; ++f)
+    {
+        const int a = f * hop, b = std::min (n, a + win);
+        envIn[f] = sv::gainToDb (sv::audio::rms (in.data() + a, static_cast<size_t> (b - a)));
+        envOut[f] = sv::gainToDb (sv::audio::rms (out.data() + a, static_cast<size_t> (b - a)));
+        const double t = (a + win * 0.5) / sr;
+        valid[f] = va.isActiveAt (t) && track.voicedAt (t) && envIn[f] > va.noiseFloorDb + 15.0f;
+        g[f] = envOut[f] - envIn[f];
+        m.validFrames += valid[f];
+    }
+    auto localMedian = [&] (const std::vector<float>& v, int f, int radius)
+    {
+        std::vector<float> w;
+        for (int k = std::max (0, f - radius); k <= std::min (frames - 1, f + radius); ++k)
+            if (valid[k])
+                w.push_back (v[k]);
+        if (w.empty())
+            return v[f];
+        std::sort (w.begin(), w.end());
+        return w[w.size() / 2];
+    };
+    // Trous.
+    int run = 0;
+    float runDepth = 0.0f;
+    for (int f = 0; f <= frames; ++f)
+    {
+        bool cand = false;
+        float depth = 0.0f;
+        if (f < frames && valid[f])
+        {
+            const float gm = localMedian (g, f, 30), im = localMedian (envIn, f, 30);
+            depth = gm - g[f];
+            cand = depth > 6.0f && std::abs (envIn[f] - im) < 3.0f;
+        }
+        if (cand)
+        {
+            ++run;
+            runDepth = std::max (runDepth, depth);
+        }
+        else
+        {
+            if (run >= 3 && run <= 50)
+            {
+                ++m.holes;
+                if (runDepth > m.worstHoleDb)
+                {
+                    m.worstHoleDb = runDepth;
+                    m.worstHoleSec = (f - run) * hop / sr;
+                }
+            }
+            run = 0;
+            runDepth = 0.0f;
+        }
+    }
+    // Sauts.
+    for (int f = 1; f < frames; ++f)
+        if (valid[f] && valid[f - 1])
+        {
+            const float d = std::abs (g[f] - g[f - 1]);
+            if (d > 4.0f)
+            {
+                ++m.jumps;
+                m.maxJumpDb = std::max (m.maxJumpDb, d);
+            }
+        }
+    // Oscillation 3-12 Hz : passe-haut (moyenne glissante ±170 ms retirée) puis passe-bas (±40 ms), segments chantés >= 600 ms.
+    auto movavg = [&] (const std::vector<float>& v, int f, int radius)
+    {
+        double s = 0.0;
+        int c = 0;
+        for (int k = std::max (0, f - radius); k <= std::min (frames - 1, f + radius); ++k)
+            if (valid[k])
+            {
+                s += v[k];
+                ++c;
+            }
+        return c > 0 ? static_cast<float> (s / c) : 0.0f;
+    };
+    std::vector<float> hp (frames, 0.0f);
+    for (int f = 0; f < frames; ++f)
+        if (valid[f])
+            hp[f] = g[f] - movavg (g, f, 17);
+    double sq = 0.0;
+    int cnt = 0;
+    for (int f = 0; f < frames;)
+    {
+        if (! valid[f])
+        {
+            ++f;
+            continue;
+        }
+        int e = f;
+        while (e < frames && valid[e])
+            ++e;
+        if (e - f >= 60)
+            for (int k = f + 10; k < e - 10; ++k)
+            {
+                const float lp = movavg (hp, k, 4);
+                sq += static_cast<double> (lp) * lp;
+                ++cnt;
+            }
+        f = e;
+    }
+    m.oscillationDb = cnt > 0 ? static_cast<float> (std::sqrt (sq / cnt)) : 0.0f;
+    return m;
+}
+
+int cmdArtefacts (const Args& args)
+{
+    const double sr = sv::kProjectSampleRate;
+    sv::Mono x;
+    juce::String err;
+    if (args.positional.isEmpty() || ! sv::audio::loadMono (fileArg (args.positional[0]), sr, x, err))
+    {
+        std::cerr << "artefacts <voix.wav> [--instru=fichier] [--style=id|all] [--attribuer]\n" << err << std::endl;
+        return 2;
+    }
+    sv::dsp::AnalysisContext ctx;
+    ctx.tempo.bpm = 100.0;
+    if (args.has ("instru"))
+    {
+        sv::Mono inst;
+        if (sv::audio::loadMono (fileArg (args.get ("instru", "")), sr, inst, err))
+            ctx.key = sv::analysis::detectKey (inst, sr).key;
+    }
+    else
+        ctx.key = sv::analysis::detectKey (x, sr).key;
+    const auto va = sv::analysis::analyzeVoice (x, sr);
+    const auto track = sv::analysis::detectPitch (x, sr);
+    std::vector<juce::String> styles;
+    const auto styleArg = args.get ("style", "all");
+    if (styleArg == "all")
+        for (int i = 0; i < static_cast<int> (sv::style::Style::Count); ++i)
+            styles.push_back (sv::style::styleId (static_cast<sv::style::Style> (i)));
+    else
+        styles.push_back (styleArg);
+    styles.push_back (sv::dsp::kCorrectionStyleId);
+
+    auto run = [&] (sv::style::VocalParams p, const juce::String& label) -> ArtefactMetrics
+    {
+        p.timing.strength = 0.0f;   // le recalage déplace des syllabes : la comparaison d'enveloppes n'aurait plus de sens
+        auto res = sv::dsp::processVocal (x, sr, p, ctx);
+        const auto out = sv::audio::toMono (res.audio);
+        const auto m = measureArtefacts (x, out, sr, va, track);
+        std::cout << "  " << label << " : " << m.str() << "\n";
+        return m;
+    };
+    int bad = 0;
+    for (const auto& id : styles)
+    {
+        sv::style::VocalParams p;
+        if (id == sv::dsp::kCorrectionStyleId)
+        {
+            auto problems = sv::dsp::analyzeTrackProblems (x, sr, ctx.key, true);
+            p = sv::dsp::correctionParams (problems, true);
+        }
+        else
+            p = sv::style::makeParams (sv::style::styleFromId (id), sv::style::Role::Lead, {});
+        if (args.has ("sanscomp"))
+        {
+            p.comp.ratio = 1.0f;   // base sans compresseurs : ils masquent les creux des autres étages
+            p.comp2.ratio = 1.0f;
+        }
+        std::cout << id << "\n";
+        const auto m = run (p, "chaîne complète");
+        if (m.bad())
+        {
+            ++bad;
+            if (args.has ("attribuer"))
+            {
+                // Chaque étage coupé à son tour : celui dont la coupure fait disparaître l'artefact est le coupable.
+                auto v = p;
+                v.clean.enabled = false; v.leveler.enabled = false; v.pitch.enabled = false; v.resonance.enabled = false;
+                v.comp.ratio = 1.0f; v.comp2.ratio = 1.0f; v.deEss.amount = 0.0f; v.sat.mix = 0.0f; v.reverb.send = 0.0f; v.delay.send = 0.0f;
+                v.eq = {}; v.eq.lowCutHz = 0.0f;
+                run (v, "tout coupé (référence de la mesure)"_u8);
+                v = p; v.clean.enabled = false;                         run (v, "sans nettoyage");
+                v = p; v.clean.gateRangeDb = 0.0f;                      run (v, "sans porte");
+                v = p; v.clean.denoiseDb = 0.0f;                        run (v, "sans débruitage"_u8);
+                v = p; v.clean.breathReductionDb = 0.0f;                run (v, "sans respirations");
+                v = p; v.clean.dePlosive = false;                       run (v, "sans anti-plosives");
+                v = p; v.leveler.enabled = false;                       run (v, "sans niveleur");
+                v = p; v.pitch.enabled = false;                         run (v, "sans autotune");
+                v = p; v.resonance.enabled = false;                     run (v, "sans résonances"_u8);
+                v = p; v.comp.ratio = 1.0f; v.comp2.ratio = 1.0f;       run (v, "sans compresseurs");
+                v = p; v.deEss.amount = 0.0f;                           run (v, "sans de-esser");
+                v = p; v.sat.mix = 0.0f;                                run (v, "sans saturation");
+                v = p; v.eq = {}; v.eq.lowCutHz = 20.0f;                run (v, "sans EQ (coupe-bas 20 Hz)");
+            }
+        }
+    }
+    std::cout << (bad == 0 ? "Aucun artefact détecté." : juce::String (bad) + " chaîne(s) avec artefacts.") << "\n";
+    return bad == 0 ? 0 : 1;
+}
+
 int cmdMaster (const Args& args)
 {
     if (args.positional.isEmpty() || ! args.has ("out"))
@@ -433,6 +662,7 @@ int main (int argc, char* argv[])
         else if (cmd == "demo")    code = cmdDemo (args);
         else if (cmd == "master")  code = cmdMaster (args);
         else if (cmd == "debugchain") code = cmdDebugChain (args);
+        else if (cmd == "artefacts") code = cmdArtefacts (args);
         else if (cmd == "presets") code = cmdPresets();
         else if (cmd == "assistant")
         {

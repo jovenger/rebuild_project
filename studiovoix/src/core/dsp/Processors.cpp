@@ -385,7 +385,7 @@ CleanReport clean (Mono& x, double sr, const CleanSettings& s, const analysis::P
 
     // 0 bis) Débruitage spectral : profil appris sur les silences, voix préservée.
     if (s.denoiseDb > 0.0f)
-        report.noiseReducedDb = spectralDenoise (x, sr, va, s.denoiseDb).reductionDb();
+        report.noiseReducedDb = spectralDenoise (x, sr, va, s.denoiseDb, &track).reductionDb();
 
     // 1) Anti-plosives : réduction dynamique de la bande < 150 Hz pendant les bouffées.
     if (s.dePlosive)
@@ -468,31 +468,37 @@ CleanReport clean (Mono& x, double sr, const CleanSettings& s, const analysis::P
         }
     }
 
-    // 3) Porte douce (expandeur 2:1) sous le seuil d'activité.
+    // 3) Porte douce (expandeur 2:1) sous le seuil d'activité. Jamais fermée tant que la voix est voisée (queue de
+    //    note douce), maintien 250 ms après le dernier passage au-dessus du seuil, fermeture lente : pas de « trou »
+    //    en pleine note ni de hachage.
     if (s.gateRangeDb > 0.0f)
     {
         const float thr = va.thresholdDb - 6.0f;
-        EnvFollower env (sr, 1.0f, 50.0f);
-        GainSmoother smoother (sr, 1.0f, 80.0f);
-        const int holdSamples = static_cast<int> (sr * 0.05);
+        EnvFollower env (sr, 2.0f, 80.0f);
+        GainSmoother smoother (sr, 150.0f, 40.0f);   // attaque = fermeture (lente), relâche = réouverture (rapide)
+        const int holdSamples = static_cast<int> (sr * 0.25);
+        const int voicedCheck = std::max (1, static_cast<int> (sr * 0.005));
         int hold = 0;
+        bool voiced = false;
+        int gated = 0;
         for (size_t i = 0; i < x.size(); ++i)
         {
+            if (i % static_cast<size_t> (voicedCheck) == 0)
+                voiced = track.voicedAt (static_cast<double> (i) / sr);
             const float e = gainToDb (env.process (x[i]));
             float target = 0.0f;
-            if (e < thr)
-            {
-                if (hold > 0)
-                    --hold;
-                else
-                    target = std::min (s.gateRangeDb, thr - e);
-            }
-            else
-            {
+            if (e >= thr || voiced)
                 hold = holdSamples;
-            }
-            x[i] *= dbToGain (-smoother.process (target));
+            else if (hold > 0)
+                --hold;
+            else
+                target = std::min (s.gateRangeDb, 0.5f * (thr - e));   // expandeur 2:1
+            const float gr = smoother.process (target);
+            if (gr > 1.0f)
+                ++gated;
+            x[i] *= dbToGain (-gr);
         }
+        SV_LOG_DEBUG (kMod, "Porte : "_u8 + juce::String (gated * 100.0 / std::max<size_t> (1, x.size()), 1) + " % du temps atténué de plus de 1 dB"_u8);
     }
 
     SV_LOG_INFO (kMod, "Nettoyage : " + juce::String (report.plosivesTreated) + " plosives, "

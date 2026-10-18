@@ -95,9 +95,24 @@ rabaisse une bande (tiers d'octave) seulement quand elle dépasse à la fois ses
 analyse sur la somme mono, réparation **stéréo liée** (image inchangée) : dé-écrêtage, coupe-bas, débruitage, niveleur,
 EQ corrective, résonances, compression liée, niveau −14 dB, limiteur −1 dBTP ; puis creux sous la voix (mix auto).
 
-**Alertes** : après chaque rendu, chaque piste qui **sature** (crête au-dessus de −0,3 dBFS), **monte en flèche** ou est
-**plus forte que la voix principale** est signalée en orange dans son en-tête et dans la barre d'état
-(« Ingénieur du son : 2 alertes — … »), avec les horodatages.
+**Orchestre** (équilibre automatique de toutes les pistes) : après chaque rendu, la sonie de chaque piste est mesurée
+et ramenée à sa place par rapport à la voix principale selon son rôle (doublage −6 LU, backs −7, harmonies −8,
+ad-libs −9, ambiance −14, instrument enregistré −4), bornée à −8 / +6 dB ; les pistes brutes ne sont pas touchées.
+Le panneau Voix IA affiche « Orchestre : gain auto ± x dB », la barre du haut la sonie du mixage (« Mix −14,0 LUFS »).
+
+**Alertes** : après chaque rendu, chaque piste **écrêtée à la source** (crête au-dessus de −0,2 dBFS avant traitement),
+qui **sature après traitement** (au-delà de +1 dBFS), **monte en flèche** ou est **plus forte que la voix
+principale** est signalée en orange dans son en-tête et dans la barre d'état (« Ingénieur du son : 2 alertes — … »),
+avec les horodatages ; une **tonalité de la voix différente de celle de l'instru** (hors relative majeur / mineur) est
+signalée aussi, car l'autotune serait tiré vers la mauvaise gamme.
+
+**Vumètres** : crête jouée par piste (barre dans l'en-tête, retombée douce) ; crête de sortie et sonie du mixage dans
+la barre du haut.
+
+**Pas de trou en pleine note** : la porte ne se ferme jamais tant que la voix est voisée (maintien 250 ms, expandeur 2:1,
+fermeture lente) et le débruitage est limité à 6 dB sans sur-soustraction sur les trames chantées. Vérifié par la
+commande `studiovoix_cli artefacts` (voir plus bas) : 0 trou sur les 34 chaînes des deux voix de démonstration, contre 7 à
+27 trous de −8 à −10 dB auparavant (les compresseurs les masquaient en partie).
 
 **Son polyphonique** (chœurs à plusieurs voix, piano, morceau entier) : la correction de justesse est coupée
 automatiquement, qu'on choisisse un style ou la correction — elle ferait des « vagues » sur ce type de son.
@@ -797,6 +812,9 @@ studiovoix_cli song <instru> <voix> [--style s] [--target t] [--stems] -o dossie
 studiovoix_cli master <mix> [--target t] -o sortie.wav
 studiovoix_cli demo [--style s] [--bars N] -o dossier  chaîne complète sur signaux de synthèse
 studiovoix_cli presets                                 pré-réglages de chaque style (Markdown)
+studiovoix_cli artefacts <voix> [--instru f] [--style s|all] [--sanscomp] [--attribuer]
+                                                       détecteur d'artefacts : trous en pleine note, oscillations 3-12 Hz,
+                                                       sauts de gain, par style ; --attribuer coupe chaque étage à son tour
 StudioVoix.exe --selftest <instru> <voix>              auto-test de l'application (code 0 = OK)
 ```
 

@@ -22,6 +22,7 @@ public:
         long start = 0;
         float gainL = 1.0f;
         float gainR = 1.0f;
+        std::shared_ptr<std::atomic<float>> peak;   // crête jouée (après gain), lue et remise à zéro par l'interface
     };
 
     struct PlayState

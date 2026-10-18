@@ -11,11 +11,15 @@ class LevelMeter final : public juce::Component
 {
 public:
     void setLevel (float peak, bool clip);
+    void setLabel (const juce::String& l) { label = l; }
+    void setCompact (bool c) { compact = c; }   // barre seule, sans texte (en-tête de piste)
     void paint (juce::Graphics& g) override;
 
 private:
     float level = 0.0f;
     bool clipped = false;
+    bool compact = false;
+    juce::String label { "Micro" };
     juce::int64 clipUntilMs = 0;
 };
 
@@ -46,8 +50,8 @@ private:
     juce::TextButton homeBtn { "|<" }, playBtn { "Lecture" }, stopBtn { "Stop" }, recBtn { "REC" };
     juce::ToggleButton punch { "Punch-in" }, loop { "Boucle" }, metronome { juce::String (juce::CharPointer_UTF8 ("Métronome")) };
     juce::ComboBox countdown, keyBox, styleBox;
-    juce::Label timeLabel, bpmLabel, bpmTitle, keyTitle, styleTitle, countTitle, autoGainLabel;
-    LevelMeter inputMeter;
+    juce::Label timeLabel, bpmLabel, bpmTitle, keyTitle, styleTitle, countTitle, autoGainLabel, mixLabel;
+    LevelMeter inputMeter, outputMeter;
     bool updating = false;
 };
 } // namespace sv::app
