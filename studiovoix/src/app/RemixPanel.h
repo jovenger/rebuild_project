@@ -30,6 +30,7 @@ private:
     juce::ComboBox roleBox, compBox;
     juce::Slider autotune, presence, space, energy, level, timing;
     juce::Label autotuneL, presenceL, spaceL, energyL, levelL, timingL;
+    juce::ToggleButton aiClean { "Nettoyage IA (DeepFilterNet, avant la chaîne)"_u8 };   // édition IA seulement
     juce::ToggleButton cleaning { "Nettoyage automatique (bruit, souffle, plosives)" },
         referenceEq { juce::String (juce::CharPointer_UTF8 ("EQ d'après le morceau de référence")) },
         rawListen { "Écouter la voix brute (A/B)"_u8 };

@@ -44,6 +44,7 @@ struct TrackRender
     juce::String compSummary;
     juce::String problemsReport;    // correction automatique : défauts constatés et corrections
     juce::StringArray pluginNotes;  // inserts VST3 appliqués (ou erreurs)
+    juce::String aiNote;            // édition IA : nettoyage DeepFilterNet (appliqué, cache, ou raison de l'absence)
     float processingLagMs = 0.0f;   // décalage temporel traité / brut (corrélation des enveloppes) ; doit rester ~0
     juce::String error;
     bool ok() const { return error.isEmpty(); }

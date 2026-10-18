@@ -46,6 +46,7 @@ struct Track
     style::Macros macros;
     float timingStrength = 0.0f;
     bool cleaning = true;
+    bool aiClean = true;             // édition IA : nettoyage DeepFilterNet avant la chaîne (si l'outil est installé)
     bool referenceEq = false;
     CompMode comp = CompMode::Latest;
     std::vector<Take> takes;

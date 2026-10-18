@@ -83,7 +83,11 @@ void LocalAiPanel::startInstall (Row& row)
         juce::MessageManager::callAsync ([safe, weak, def, progress, ok, error]
         {
             if (auto* s = weak.get())
-                s->setStatus (ok ? def->name + " installé"_u8 : def->name + " : " + error);
+            {
+                s->setStatus (ok ? def->name + " installé : les pistes voix sont recalculées"_u8 : def->name + " : " + error);
+                if (ok)
+                    s->updateProject ([] (project::Project&) {}, true, {});   // rendu à nouveau, sans étape d'annulation
+            }
             if (safe == nullptr)
                 return;
             for (auto& r : safe->rows)

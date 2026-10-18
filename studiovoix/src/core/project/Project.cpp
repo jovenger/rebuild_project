@@ -227,6 +227,7 @@ juce::var Project::toVar() const
         o->setProperty ("macros", t.macros.toVar());
         o->setProperty ("timingStrength", t.timingStrength);
         o->setProperty ("cleaning", t.cleaning);
+        o->setProperty ("aiClean", t.aiClean);
         o->setProperty ("raw", t.raw);
         o->setProperty ("style", t.styleId);
         o->setProperty ("referenceEq", t.referenceEq);
@@ -356,6 +357,7 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
             t.macros = style::Macros::fromVar (o.getProperty ("macros", {}));
             t.timingStrength = static_cast<float> (juce::jlimit (0.0, 1.0, getD (o, "timingStrength", 0.0)));
             t.cleaning = getB (o, "cleaning", true);
+            t.aiClean = getB (o, "aiClean", true);
             t.raw = getB (o, "raw", false);
             t.styleId = getS (o, "style");
             if (t.styleId.isNotEmpty() && ! t.isCorrection() && style::styleId (style::styleFromId (t.styleId)) != t.styleId)

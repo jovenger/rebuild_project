@@ -6,6 +6,7 @@
 #include "core/AudioIO.h"
 #include "core/plugins/ChainStages.h"
 #include "core/ai/LocalTools.h"
+#include "core/ai/AiClean.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -865,6 +866,39 @@ public:
 #endif
             ai::local::setToolsFolder (juce::File());
             toolsDir.deleteRecursively();
+        }
+
+        beginTest ("Nettoyage IA : cle de cache, outil absent, resultat mis en cache");
+        {
+            Mono a (4800, 0.25f), b (4800, 0.25f);
+            b[10] = 0.3f;
+            const auto ka = ai::local::aiCleanKey (a, 48000.0);
+            expect (ka.length() == 16 && ka == ai::local::aiCleanKey (a, 48000.0) && ka != ai::local::aiCleanKey (b, 48000.0) && ka != ai::local::aiCleanKey (a, 44100.0),
+                    "clé stable, sensible au contenu et à la fréquence"_u8);
+            const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_ia_test_" + juce::String (juce::Time::currentTimeMillis()));
+            const auto toolsDir = dir.getChildFile ("outils");
+            toolsDir.createDirectory();
+            ai::local::setToolsFolder (toolsDir);
+            expect (! ai::local::deepFilterAvailable(), "outil absent");
+            Mono x = a;
+            auto res = ai::local::cleanWithDeepFilter (x, 48000.0, dir.getChildFile ("cache"));
+            expect (! res.applied && res.note.contains ("non install") && x == a, "sans outil : audio intact, raison donnée : " + res.note);
+            // Résultat déjà en cache : utilisé sans l'outil installé ? Non : l'outil est exigé ; on simule son installation.
+            const auto fakeTool = toolsDir.getChildFile (ai::local::findTool ("deep-filter")->fileName);
+            fakeTool.replaceWithText ("faux");
+            expect (ai::local::deepFilterAvailable(), "outil « installé »"_u8);
+            Mono cleaned (4800, 0.1f);
+            juce::String err;
+            const auto cache = dir.getChildFile ("cache");
+            cache.createDirectory();
+            expect (audio::writeMonoWavFloat (cache.getChildFile ("ia_nettoyage_" + ka + ".wav"), cleaned, 48000.0, err), err);
+            x = a;
+            res = ai::local::cleanWithDeepFilter (x, 48000.0, cache);
+            expect (res.applied && res.fromCache && std::abs (x[100] - 0.1f) < 1e-4f && x.size() == a.size(), "cache utilisé : " + res.note);
+            res = ai::local::cleanWithDeepFilter (x, 44100.0, cache);
+            expect (! res.applied && res.note.contains ("48 kHz"), "fréquence refusée : " + res.note);
+            ai::local::setToolsFolder (juce::File());
+            dir.deleteRecursively();
         }
 
         beginTest ("Chaine visible : etapes <-> reglages (aller-retour, contournement, reglage manuel, sauvegarde)");

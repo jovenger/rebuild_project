@@ -34,6 +34,11 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
   taille et empreinte SHA-256 vérifiées quand elle est connue, journal détaillé), **Supprimer** les retire. Les
   empreintes sont relevées par la CI (`studiovoix_cli outils-empreintes`) puis épinglées dans le programme.
 
+  **Nettoyage IA** (StudioVoix IA, onglet Voix IA) : une fois DeepFilterNet installé, chaque piste voix traitée par un
+  style passe d'abord dans le réseau (souffle, bruit de pièce, ronflement), puis dans la chaîne du style ; résultat mis
+  en cache dans `audio/cache_ia` du projet (empreinte du contenu), ligne « Nettoyage IA : … » dans le rapport de la
+  piste ; case à décocher par piste. Exige 48 kHz (fréquence du projet).
+
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 
 ## Premier lancement

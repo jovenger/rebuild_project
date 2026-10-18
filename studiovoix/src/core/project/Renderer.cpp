@@ -7,6 +7,9 @@
 #include "../dsp/ProblemAnalyzer.h"
 #include "../dsp/Processors.h"
 #include "../plugins/ChainStages.h"
+#if SV_EDITION_IA
+ #include "../ai/AiClean.h"
+#endif
 #include "../dsp/TrackRepair.h"
 
 namespace sv::render
@@ -223,6 +226,16 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         return r;
     }
     r->startSample = start;
+#if SV_EDITION_IA
+    if (t.aiClean && t.isVoice() && ! t.raw && ! t.isGenerated())
+    {
+        // Nettoyage IA avant tout le reste : la chaîne du style (et son débruitage classique) travaille sur une voix déjà propre.
+        const auto ai = ai::local::cleanWithDeepFilter (raw, p.sampleRate, p.audioDir().getChildFile ("cache_ia"));
+        r->aiNote = ai.note;
+        if (ai.applied)
+            SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » : " + ai.note);
+    }
+#endif
     r->raw = audio::monoToStereo (raw);
     if (t.raw && ! t.isGenerated())
     {

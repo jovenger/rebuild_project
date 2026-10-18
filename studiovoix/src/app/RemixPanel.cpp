@@ -6,6 +6,9 @@
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/VocalChain.h"
 #include "core/plugins/ChainStages.h"
+#if SV_EDITION_IA
+ #include "core/ai/AiClean.h"
+#endif
 #include "Theme.h"
 #include "core/Log.h"
 #include "core/assistant/CommandParser.h"
@@ -124,6 +127,12 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     };
 
     cleaning.onClick = [this] { if (! updating) session.updateTrack (shownTrack, [v = cleaning.getToggleState()] (project::Track& t) { t.cleaning = v; }, true, "Nettoyage"); };
+#if SV_EDITION_IA
+    addAndMakeVisible (aiClean);
+    aiClean.setTooltip ("Réseau DeepFilterNet (gratuit, sur ce PC) appliqué à la prise brute avant les effets du style : souffle, bruit de pièce, "
+                        "ronflement. Nécessite l'outil installé dans l'onglet IA locale ; résultat mis en cache dans le projet."_u8);
+    aiClean.onClick = [this] { if (! updating) session.updateTrack (shownTrack, [v = aiClean.getToggleState()] (project::Track& t) { t.aiClean = v; }, true, "Nettoyage IA"); };
+#endif
     referenceEq.onClick = [this]
     {
         if (updating)
@@ -386,6 +395,12 @@ void RemixPanel::refresh()
     level.setDoubleClickReturnValue (true, 0.5);
     timing.setValue (t->raw ? 0.0 : t->timingStrength, juce::dontSendNotification);
     cleaning.setToggleState (t->cleaning, juce::dontSendNotification);
+#if SV_EDITION_IA
+    aiClean.setToggleState (t->aiClean, juce::dontSendNotification);
+    aiClean.setEnabled (effects && ai::local::deepFilterAvailable());
+    aiClean.setButtonText (ai::local::deepFilterAvailable() ? "Nettoyage IA (DeepFilterNet, avant la chaîne)"_u8
+                                                            : "Nettoyage IA (DeepFilterNet) : installer l'outil dans IA locale"_u8);
+#endif
     referenceEq.setToggleState (t->referenceEq, juce::dontSendNotification);
     rawListen.setToggleState (! t->processingEnabled, juce::dontSendNotification);
     roleBox.setVisible (! t->isGenerated() && vocal);
@@ -410,6 +425,8 @@ void RemixPanel::refresh()
         txt << "\nRéférence : "_u8 << juce::File (session.project().referenceFile).getFileName();
     if (auto r = session.renderFor (shownTrack); r != nullptr && ! r->pluginNotes.isEmpty())
         txt << "\nPlugins : " << r->pluginNotes.joinIntoString (" > ");
+    if (auto r = session.renderFor (shownTrack); r != nullptr && r->aiNote.isNotEmpty())
+        txt << "\n" << r->aiNote;
     if (const float ag = session.autoTrackGainDb (shownTrack); std::abs (ag) >= 0.3f)
         txt << "\nOrchestre : gain auto " << (ag >= 0.0f ? "+" : "") << juce::String (ag, 1) << " dB (place de la piste par rapport à la voix principale, "_u8
             << juce::String (render::roleOffsetLu (t->role), 0) << " LU)";
@@ -593,6 +610,9 @@ void RemixPanel::resized()
         s->setBounds (a);
     }
     cleaning.setBounds (row());
+#if SV_EDITION_IA
+    aiClean.setBounds (row());
+#endif
     referenceEq.setBounds (row());
     rawListen.setBounds (row());
     a = row (28);
