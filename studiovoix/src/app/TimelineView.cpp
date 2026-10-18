@@ -143,7 +143,9 @@ void TrackHeader::refresh()
         txt << " | " << style::styleName (style::styleFromId (t->styleId));
     if (! t->takes.empty())
         txt << " | " << juce::String ((int) t->takes.size()) << " prise(s)" << (t->comp == project::CompMode::Best ? " (meilleure auto)" : "");
-    const auto st = session.trackStatus (id);
+    auto st = session.trackStatus (id);
+    if (st.startsWith ("Prêt — "_u8))   // le détail des prises est dans le panneau ; l'en-tête reste sur deux lignes
+        st = "Prêt"_u8 + st.fromFirstOccurrenceOf (" | ", true, false);
     if (st.isNotEmpty())
         txt << "\n" << st;
     const auto warn = session.trackWarnings (id);
