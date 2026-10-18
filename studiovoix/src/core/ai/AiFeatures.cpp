@@ -102,9 +102,12 @@ juce::String describeProjectForAi (const project::Project& p, const render::Rend
         s << "- #" << t.id << " " << t.name << " [" << style::roleName (t.role) << "] volume " << juce::String (t.volumeDb, 1)
           << " dB, pan " << juce::String (t.pan, 2) << (t.mute ? ", muet" : "");
         if (t.isVocal())
-            s << ", curseurs autotune " << juce::String (t.macros.autotune, 2) << " présence "_u8 << juce::String (t.macros.presence, 2)
-              << " espace " << juce::String (t.macros.space, 2) << " énergie "_u8 << juce::String (t.macros.energy, 2)
-              << " niveau " << juce::String (t.macros.level, 2);
+        {
+            const auto cm = style::resolveMacros (t.macros, style::makeParams (p.trackStyle (t), t.role, {}, ! t.isGenerated()));
+            s << ", curseurs autotune " << juce::String (cm.autotune, 2) << " présence "_u8 << juce::String (cm.presence, 2)
+              << " espace " << juce::String (cm.space, 2) << " énergie "_u8 << juce::String (cm.energy, 2)
+              << " niveau " << juce::String (cm.level, 2);
+        }
         auto it = renders.find (t.id);
         if (it != renders.end() && it->second != nullptr && it->second->ok())
         {
@@ -154,15 +157,19 @@ MacroAdvice adviseMacros (const AiSettings& s, const juce::String& request, cons
         a.error = "Piste introuvable";
         return a;
     }
-    a.macros = t->macros;
+    // Curseurs résolus : positions du style tant que l'utilisateur n'a rien bougé (chaque style a les siennes).
+    const auto cur = style::resolveMacros (t->macros, style::makeParams (p.trackStyle (*t), t->role, {}, ! t->isGenerated()));
+    a.macros = cur;
+    a.macros.custom = true;
     a.timingStrength = t->timingStrength;
 
     if (! s.textAvailable())
     {
         // Cerveau local.
-        const auto local = assistant::apply (request, t->macros);
+        const auto local = assistant::apply (request, cur);
         a.ok = local.understood;
         a.macros = local.macros;
+        a.macros.custom = true;
         a.explanation = local.understood ? "Assistant local : " + local.changes.joinIntoString (", ")
                                          : juce::String ("Demande non comprise par l'assistant local (active l'IA connectée pour les demandes libres)."_u8);
         return a;
@@ -175,9 +182,9 @@ MacroAdvice adviseMacros (const AiSettings& s, const juce::String& request, cons
     rq.maxTokens = 16000;   // réflexion + réponse ; seul l'utilisé est facturé
     rq.system = kSystemEngineer;
     rq.user = "Projet :\n" + projectSummary + "\nPiste concernée : #"_u8 + juce::String (trackId) + " " + t->name + "\nCurseurs actuels : autotune "
-            + juce::String (t->macros.autotune, 2) + ", presence " + juce::String (t->macros.presence, 2) + ", space "
-            + juce::String (t->macros.space, 2) + ", energy " + juce::String (t->macros.energy, 2) + ", level " + juce::String (t->macros.level, 2)
-            + ", reverbTrim " + juce::String (t->macros.reverbTrim, 2) + ", delayTrim " + juce::String (t->macros.delayTrim, 2)
+            + juce::String (cur.autotune, 2) + ", presence " + juce::String (cur.presence, 2) + ", space "
+            + juce::String (cur.space, 2) + ", energy " + juce::String (cur.energy, 2) + ", level " + juce::String (cur.level, 2)
+            + ", reverbTrim " + juce::String (cur.reverbTrim, 2) + ", delayTrim " + juce::String (cur.delayTrim, 2)
             + ", timingStrength " + juce::String (t->timingStrength, 2) + "\n\nDemande de l'artiste : " + request
             + "\n\nDonne les nouvelles valeurs de tous les curseurs et explique en une ou deux phrases.";
     rq.schema = object ({ { "autotune", prop ("number") }, { "presence", prop ("number") }, { "space", prop ("number") },
@@ -188,22 +195,24 @@ MacroAdvice adviseMacros (const AiSettings& s, const juce::String& request, cons
     if (! res.ok)
     {
         // Repli automatique sur l'assistant local.
-        const auto local = assistant::apply (request, t->macros);
+        const auto local = assistant::apply (request, cur);
         a.ok = local.understood;
         a.macros = local.macros;
+        a.macros.custom = true;
         a.error = res.error;
         a.explanation = "IA indisponible (" + res.error + ")"
                       + (local.understood ? " — assistant local : "_u8 + local.changes.joinIntoString (", ") : juce::String());
         return a;
     }
     const auto& j = res.json;
-    a.macros.autotune = num01 (j, "autotune", t->macros.autotune);
-    a.macros.presence = num01 (j, "presence", t->macros.presence);
-    a.macros.space = num01 (j, "space", t->macros.space);
-    a.macros.energy = num01 (j, "energy", t->macros.energy);
-    a.macros.level = num01 (j, "level", t->macros.level);
-    a.macros.reverbTrim = num01 (j, "reverbTrim", t->macros.reverbTrim);
-    a.macros.delayTrim = num01 (j, "delayTrim", t->macros.delayTrim);
+    a.macros.autotune = num01 (j, "autotune", cur.autotune);
+    a.macros.presence = num01 (j, "presence", cur.presence);
+    a.macros.space = num01 (j, "space", cur.space);
+    a.macros.energy = num01 (j, "energy", cur.energy);
+    a.macros.level = num01 (j, "level", cur.level);
+    a.macros.reverbTrim = num01 (j, "reverbTrim", cur.reverbTrim);
+    a.macros.delayTrim = num01 (j, "delayTrim", cur.delayTrim);
+    a.macros.custom = true;
     a.timingStrength = num01 (j, "timingStrength", t->timingStrength);
     a.explanation = j.getProperty ("explanation", {}).toString();
     a.ok = true;

@@ -42,6 +42,8 @@ set(SV_CORE_SOURCES
     src/core/dsp/VocalChain.cpp
     src/core/dsp/ProblemAnalyzer.cpp
     src/core/dsp/Denoiser.cpp
+    src/core/dsp/Leveler.cpp
+    src/core/dsp/TrackRepair.cpp
     src/core/plugins/PluginChain.cpp
     src/core/plugins/InternalPlugins.cpp
     src/core/dsp/MasterChain.cpp

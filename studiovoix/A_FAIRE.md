@@ -6,6 +6,11 @@ Fait : [docs/GUIDE_MATERIEL.md](docs/GUIDE_MATERIEL.md) avec 4 schémas (micro U
 montages à éviter, placement et niveau). À relire par Yann ; les modèles cités en exemple sont à
 revérifier au moment de l'achat. StudioVoix utilise WASAPI (pas d'ASIO dans cette version).
 
+## Audit studio
+
+Voir [docs/AUDIT_STUDIO.md](docs/AUDIT_STUDIO.md) : ce qui manque par rapport à un vrai programme de studio,
+comment les automatismes doivent être faits, ordre proposé.
+
 ## Autres points en attente
 
 - Tests réels sur Windows : carte son, latence, recalage, écoute des traitements.

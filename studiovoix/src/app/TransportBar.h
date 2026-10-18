@@ -42,7 +42,7 @@ private:
     juce::TextButton newBtn { "Nouveau" }, openBtn { "Ouvrir" }, saveBtn { "Sauver" }, instruBtn { "Instru..." },
         voiceBtn { "Voix..." }, exportBtn { "Exporter" }, settingsBtn { juce::String (juce::CharPointer_UTF8 ("Paramètres")) },
         undoBtn { "Annuler" }, redoBtn { juce::String (juce::CharPointer_UTF8 ("Rétablir")) },
-        updateBtn { juce::String (juce::CharPointer_UTF8 ("Mise à jour")) }, correctBtn { "Corriger tout" };
+        updateBtn { juce::String (juce::CharPointer_UTF8 ("Mise à jour")) }, correctBtn { juce::String (juce::CharPointer_UTF8 ("Ingénieur du son")) };
     juce::TextButton homeBtn { "|<" }, playBtn { "Lecture" }, stopBtn { "Stop" }, recBtn { "REC" };
     juce::ToggleButton punch { "Punch-in" }, loop { "Boucle" }, metronome { juce::String (juce::CharPointer_UTF8 ("Métronome")) };
     juce::ComboBox countdown, keyBox, styleBox;

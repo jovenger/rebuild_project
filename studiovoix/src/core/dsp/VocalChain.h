@@ -27,6 +27,8 @@ struct VocalReport
     float deEssGrDb = 0.0f;
     int syllablesRetimed = 0;
     CleanReport clean;
+    LevelerReport leveler;
+    ResonanceReport resonance;
     int phrases = 0;
     bool nearSilent = false;   // prise quasi silencieuse (mauvaise entrée ?) : pas amplifiée
 };

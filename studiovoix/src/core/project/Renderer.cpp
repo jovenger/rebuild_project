@@ -5,6 +5,7 @@
 #include "../analysis/SpectrumAnalyzer.h"
 #include "../analysis/ContentClassifier.h"
 #include "../dsp/ProblemAnalyzer.h"
+#include "../dsp/TrackRepair.h"
 
 namespace sv::render
 {
@@ -190,6 +191,20 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         r->processed.makeCopyOf (*st);
         r->raw.makeCopyOf (*st);
         r->startSample = t.sourceStart;
+        if (t.isCorrection())
+        {
+            // Instru (fichier mixé) : défauts mesurés sur la somme mono, réparation stéréo liée (image inchangée).
+            auto problems = dsp::analyzeTrackProblems (audio::toMono (r->raw), p.sampleRate, ctx.key, false);
+            auto params = dsp::correctionParams (problems, false);
+            const auto rep = dsp::repairStereo (r->processed, p.sampleRate, params);
+            r->report.compGrDb = rep.compGrDb;
+            r->report.clean.clippedRepaired = rep.clippedRepaired;
+            r->report.clean.noiseReducedDb = rep.noiseReducedDb;
+            r->report.leveler = rep.leveler;
+            r->report.resonance = rep.resonance;
+            r->problemsReport = dsp::describeProblems (problems) + "\nRéparation : "_u8 + rep.summary().replace ("\n", " ; ");
+            SV_LOG_INFO (kMod, "Instru « "_u8 + t.name + " » : correction automatique — "_u8 + r->problemsReport.replace ("\n", " | "));
+        }
         applyTrackPlugins (p, t, *r);
         return r;
     }
@@ -265,6 +280,14 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->track = std::move (result.track);
     r->va = std::move (result.va);
     r->report = result.report;
+    if (! result.report.leveler.surges.empty())
+    {
+        juce::StringArray s;
+        for (const auto& su : result.report.leveler.surges)
+            s.add (su.describe());
+        r->problemsReport << (r->problemsReport.isEmpty() ? "" : "\n") << "Montées brusques rabaissées par le niveleur : "_u8 << s.joinIntoString (", ");
+        SV_LOG_WARN (kMod, "Piste « "_u8 + t.name + " » : montées brusques "_u8 + s.joinIntoString (", "));
+    }
     applyTrackPlugins (p, t, *r);
     return r;
 }

@@ -70,6 +70,8 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     setupMacro (space, spaceL, "Espace", "Quantité de réverb et de délai"_u8);
     setupMacro (energy, energyL, "Énergie"_u8, "Compression et saturation");
     setupMacro (level, levelL, "Volume", "Niveau de la piste (±12 dB autour du réglage du style)"_u8);
+    autotune.setTooltip ("Quantité de correction de justesse : 0 = aucune, position de départ = celle du style, à droite = effet robot "
+                         "(double-clic = position du style)"_u8);
 
     timing.setRange (0.0, 1.0, 0.05);
     timing.setTextBoxStyle (juce::Slider::TextBoxRight, false, 44, 18);
@@ -191,6 +193,7 @@ void RemixPanel::commitMacros (const juce::String& undoLabelText)
     m.space = static_cast<float> (space.getValue());
     m.energy = static_cast<float> (energy.getValue());
     m.level = static_cast<float> (level.getValue());
+    m.custom = true;
     const float tim = static_cast<float> (timing.getValue());
     session.updateTrack (shownTrack, [m, tim] (project::Track& t) { t.macros = m; t.timingStrength = tim; }, true, undoLabelText);
 }
@@ -291,10 +294,11 @@ void RemixPanel::fillTreatmentBox (bool instru)
     {
         treatmentBox.addItem ("Brute : instru telle quelle"_u8, 1);
         treatmentBox.addItem ("Creux sous la voix (mix auto)", 2);
+        treatmentBox.addItem ("Correction automatique (son propre : niveau régulier, bruit, résonances, écrêtage) + creux"_u8, 3);
         return;
     }
     treatmentBox.addItem ("Aucun (brut, aucun effet)", 1);
-    treatmentBox.addItem ("Correction automatique (son propre : niveau, bruit, EQ, sifflantes, justesse)"_u8, 3);
+    treatmentBox.addItem ("Correction automatique (son propre : niveau régulier, bruit, résonances, EQ, sifflantes, justesse)"_u8, 3);
     // Styles par famille : identifiant = 101 + indice du style.
     for (const auto& g : style::styleGroups())
     {
@@ -344,11 +348,20 @@ void RemixPanel::refresh()
     if (dragging)
         return;   // ne pas ramener le curseur à l'ancienne valeur pendant le geste
     // Brut : tout à 0 (aucun effet) ; sinon les curseurs du style (0,5 = réglage du style).
-    autotune.setValue (t->raw ? 0.0 : t->macros.autotune, juce::dontSendNotification);
-    presence.setValue (t->raw ? 0.0 : t->macros.presence, juce::dontSendNotification);
-    space.setValue (t->raw ? 0.0 : t->macros.space, juce::dontSendNotification);
-    energy.setValue (t->raw ? 0.0 : t->macros.energy, juce::dontSendNotification);
-    level.setValue (t->raw ? 0.0 : t->macros.level, juce::dontSendNotification);
+    // Positions réelles : celles du style de la piste tant que l'utilisateur n'a rien bougé (chaque style a les siennes).
+    const auto base = style::makeParams (session.project().trackStyle (*t), t->role, {}, ! t->isGenerated());
+    const auto stylePos = style::styleMacros (base);
+    const auto cur = style::resolveMacros (t->macros, base);
+    autotune.setValue (t->raw ? 0.0 : cur.autotune, juce::dontSendNotification);
+    presence.setValue (t->raw ? 0.0 : cur.presence, juce::dontSendNotification);
+    space.setValue (t->raw ? 0.0 : cur.space, juce::dontSendNotification);
+    energy.setValue (t->raw ? 0.0 : cur.energy, juce::dontSendNotification);
+    level.setValue (t->raw ? 0.0 : cur.level, juce::dontSendNotification);
+    autotune.setDoubleClickReturnValue (true, stylePos.autotune);
+    presence.setDoubleClickReturnValue (true, stylePos.presence);
+    space.setDoubleClickReturnValue (true, stylePos.space);
+    energy.setDoubleClickReturnValue (true, stylePos.energy);
+    level.setDoubleClickReturnValue (true, 0.5);
     timing.setValue (t->raw ? 0.0 : t->timingStrength, juce::dontSendNotification);
     cleaning.setToggleState (t->cleaning, juce::dontSendNotification);
     referenceEq.setToggleState (t->referenceEq, juce::dontSendNotification);
@@ -380,10 +393,12 @@ void RemixPanel::refresh()
         txt << "\n\nAucun effet : le son tel quel, hors mix auto. Choisis un style dans « Style » ci-dessus : tous les réglages "
                "de ce style (autotune, EQ, compresseurs, de-esser, saturation, réverb, délai) s'appliquent à cette piste."_u8;
     }
-    else if (vocal && t->isCorrection())
+    else if (t->isCorrection())
     {
-        txt << "\n\nCorrection automatique : le son est analysé et remis propre (niveau, bruit, équilibre, sifflantes, justesse), "
-               "sans effet de style.\n"_u8;
+        txt << (vocal ? "\n\nCorrection automatique : le son est analysé et remis propre (niveau régulier, bruit, résonances, équilibre, sifflantes, justesse), "
+                        "sans effet de style.\n"_u8
+                      : "\n\nCorrection automatique de l'instru : analysée puis réparée en stéréo liée (écrêtage, bruit, niveau régulier d'un passage à l'autre, "
+                        "résonances, équilibre, limiteur), puis creux sous la voix (mix auto).\n"_u8);
         if (auto r = session.renderFor (shownTrack); r != nullptr && r->problemsReport.isNotEmpty())
             txt << r->problemsReport;
         else

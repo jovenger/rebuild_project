@@ -20,6 +20,8 @@
 #include "core/dsp/PitchCorrector.h"
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/Denoiser.h"
+#include "core/dsp/Leveler.h"
+#include "core/dsp/TrackRepair.h"
 #include "core/plugins/InternalPlugins.h"
 #include "core/plugins/PluginChain.h"
 #include "core/dsp/PitchShifter.h"
@@ -1133,6 +1135,195 @@ public:
             bad.name = "X";
             notes = plugins::applyPluginChain (imp, kSr, { bad }, 120.0);
             expect (notes[0].contains ("inconnu"), "effet intégré inconnu signalé"_u8);
+        }
+
+        beginTest ("Niveleur : passages egalises, montees brusques rabaissees, stereo lie");
+        {
+            // 220 Hz, 3 passages : -30 dB, -14 dB, -22 dB (2 s chacun) → tous ramenés vers -20 dB.
+            const size_t n = static_cast<size_t> (kSr) * 6;
+            Mono x (n);
+            auto secDb = [] (size_t i) { return i < 96000 ? -30.0f : (i < 192000 ? -14.0f : -22.0f); };
+            for (size_t i = 0; i < n; ++i)
+                x[i] = dbToGain (secDb (i)) * juce::MathConstants<float>::sqrt2 * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / static_cast<float> (kSr));
+            const float rangeBefore = dsp::shortTermRangeDb (x, kSr);
+            expect (rangeBefore >= 12.0f, "étendue avant : "_u8 + juce::String (rangeBefore, 1) + " dB");
+            dsp::LevelerSettings ls;
+            ls.enabled = true;
+            ls.targetDb = -20.0f;
+            ls.maxBoostDb = 10.0f;
+            ls.maxCutDb = 8.0f;
+            const auto rep = dsp::autoLevel (x, kSr, ls);
+            expect (rep.applied && rep.rangeAfterDb <= rangeBefore - 5.0f, "étendue après : "_u8 + juce::String (rep.rangeAfterDb, 1) + " dB (avant " + juce::String (rangeBefore, 1) + ")");
+            auto rmsDb = [&] (size_t a, size_t b) { return gainToDb (audio::rms (x.data() + a, b - a)); };
+            const float s1 = rmsDb (48000, 90000), s2 = rmsDb (144000, 186000), s3 = rmsDb (240000, 282000);
+            expect (std::abs (s1 + 20.0f) < 2.5f && std::abs (s2 + 20.0f) < 2.5f && std::abs (s3 + 20.0f) < 2.5f,
+                    "passages à "_u8 + juce::String (s1, 1) + " / " + juce::String (s2, 1) + " / " + juce::String (s3, 1) + " dB");
+
+            // Montée brusque : -20 dB partout, +14 dB pendant 1 s à 3 s → détectée, horodatée, rabaissée.
+            Mono y (static_cast<size_t> (kSr) * 6);
+            for (size_t i = 0; i < y.size(); ++i)
+                y[i] = dbToGain (i >= 144000 && i < 192000 ? -6.0f : -20.0f) * juce::MathConstants<float>::sqrt2
+                       * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / static_cast<float> (kSr));
+            const auto surges = dsp::levelSurges (y, kSr);
+            expect (surges.size() == 1 && std::abs (surges[0].startSec - 3.0) < 0.5 && surges[0].overDb >= 12.0f,
+                    "montée brusque : "_u8 + juce::String (static_cast<int> (surges.size())) + " trouvée(s)"_u8
+                        + (surges.empty() ? juce::String() : " " + surges[0].describe()));
+            expect (! surges.empty() && surges[0].describe().contains ("0:03"), "horodatage lisible");
+            dsp::LevelerSettings sl;
+            sl.enabled = true;
+            sl.targetDb = -20.0f;
+            sl.maxBoostDb = 4.0f;
+            sl.maxCutDb = 4.0f;
+            sl.surgeCutDb = 12.0f;
+            const auto rep2 = dsp::autoLevel (y, kSr, sl);
+            const float surgeAfter = gainToDb (audio::rms (y.data() + 160000, 24000));
+            expect (rep2.surges.size() == 1 && surgeAfter <= -15.0f, "montée rabaissée à "_u8 + juce::String (surgeAfter, 1) + " dB");
+
+            // Stéréo lié : gauche = 2 × droite, le rapport est conservé.
+            Stereo st (2, static_cast<int> (n));
+            for (int i = 0; i < st.getNumSamples(); ++i)
+            {
+                const float v = dbToGain (secDb (static_cast<size_t> (i))) * std::sin (2.0f * juce::MathConstants<float>::pi * 330.0f * static_cast<float> (i) / static_cast<float> (kSr));
+                st.setSample (0, i, v);
+                st.setSample (1, i, 0.5f * v);
+            }
+            const auto rep3 = dsp::autoLevelStereo (st, kSr, ls);
+            const float l = st.getRMSLevel (0, 144000, 40000), r = st.getRMSLevel (1, 144000, 40000);
+            expect (rep3.applied && std::abs (l / std::max (1e-9f, r) - 2.0f) < 0.02f, "image stéréo conservée : rapport "_u8 + juce::String (l / std::max (1e-9f, r), 3));
+        }
+
+        beginTest ("Resonances : bande saillante rabaissee, voisinage intact");
+        {
+            // Bruit filtré (large) + sinus 3 kHz de 2 à 4 s, 15 dB au-dessus de la bande : rabaissé, le 500 Hz ne bouge pas.
+            const size_t n = static_cast<size_t> (kSr) * 6;
+            Mono x (n);
+            juce::Random rng (3);
+            float lp = 0.0f;
+            const float a = std::exp (-2.0f * juce::MathConstants<float>::pi * 1500.0f / static_cast<float> (kSr));
+            for (size_t i = 0; i < n; ++i)
+            {
+                lp = a * lp + (1.0f - a) * (rng.nextFloat() * 2.0f - 1.0f);
+                x[i] = 0.6f * lp;
+            }
+            const float band3kBefore = bandRmsDb (x, kSr, 2700.0, 3300.0, 96000, 192000);
+            for (size_t i = 96000; i < 192000; ++i)
+                x[i] += dbToGain (band3kBefore + 15.0f) * juce::MathConstants<float>::sqrt2 * std::sin (2.0f * juce::MathConstants<float>::pi * 3000.0f * static_cast<float> (i) / static_cast<float> (kSr));
+            const float peakBand = bandRmsDb (x, kSr, 2700.0, 3300.0, 96000, 192000);
+            const float ref500 = bandRmsDb (x, kSr, 400.0, 600.0, 96000, 192000);
+            const float excessBefore = dsp::resonanceExcessDb (x, kSr);
+            dsp::ResonanceSettings rs;
+            rs.enabled = true;
+            rs.thresholdDb = 3.0f;
+            rs.maxReductionDb = 9.0f;
+            rs.protectBelowHz = 300.0f;
+            const auto rep = dsp::suppressResonances (x, kSr, rs);
+            const float peakAfter = bandRmsDb (x, kSr, 2700.0, 3300.0, 96000, 192000);
+            const float after500 = bandRmsDb (x, kSr, 400.0, 600.0, 96000, 192000);
+            expect (rep.applied && peakBand - peakAfter >= 3.0f, "3 kHz rabaissé de "_u8 + juce::String (peakBand - peakAfter, 1) + " dB");
+            expect (std::abs (ref500 - after500) < 1.0f, "500 Hz intact (" + juce::String (ref500 - after500, 2) + " dB)");
+            expect (dsp::resonanceExcessDb (x, kSr) < excessBefore, "mesure de résonance réduite : "_u8 + juce::String (excessBefore, 1) + " -> " + juce::String (dsp::resonanceExcessDb (x, kSr), 1));
+            // Un signal harmonique stable (voix tenue) n'est pas une résonance : réduction faible.
+            Mono held (static_cast<size_t> (kSr) * 4);
+            for (size_t i = 0; i < held.size(); ++i)
+            {
+                const float t = static_cast<float> (i) / static_cast<float> (kSr);
+                held[i] = 0.0f;
+                for (int h = 1; h <= 12; ++h)
+                    held[i] += 0.3f / static_cast<float> (h) * std::sin (2.0f * juce::MathConstants<float>::pi * 196.0f * h * t);
+            }
+            const auto repHeld = dsp::suppressResonances (held, kSr, rs);
+            expect (repHeld.meanReductionDb < 1.5f, "harmoniques fixes : réduction moyenne "_u8 + juce::String (repHeld.meanReductionDb, 2) + " dB");
+        }
+
+        beginTest ("Analyse : montee brusque signalee, correction avec niveleur");
+        {
+            Mono y (static_cast<size_t> (kSr) * 8);
+            for (size_t i = 0; i < y.size(); ++i)
+                y[i] = dbToGain (i >= 240000 && i < 288000 ? -4.0f : -20.0f) * juce::MathConstants<float>::sqrt2
+                       * std::sin (2.0f * juce::MathConstants<float>::pi * 110.0f * static_cast<float> (i) / static_cast<float> (kSr));
+            auto pr = dsp::analyzeTrackProblems (y, kSr, aMinor(), false);
+            expect (pr.surges.size() == 1 && pr.found.joinIntoString (" ").contains ("fl"), "montée en flèche constatée : "_u8 + pr.found.joinIntoString (" ; "));
+            auto params = dsp::correctionParams (pr, false);
+            expect (params.leveler.enabled && params.leveler.surgeCutDb >= 12.0f, "niveleur armé contre la montée ("_u8 + juce::String (params.leveler.surgeCutDb, 0) + " dB)");
+            expect (pr.fixes.joinIntoString (" ").contains ("brusques"), "correction annoncée"_u8);
+        }
+
+        beginTest ("Reparation stereo d'une instru (niveau regulier, pas de NaN, crete limitee)");
+        {
+            const int n = static_cast<int> (kSr) * 8;
+            Stereo instruSt (2, n);
+            juce::Random rng (5);
+            float lp = 0.0f;
+            const float a = std::exp (-2.0f * juce::MathConstants<float>::pi * 800.0f / static_cast<float> (kSr));
+            for (int i = 0; i < n; ++i)
+            {
+                lp = a * lp + (1.0f - a) * (rng.nextFloat() * 2.0f - 1.0f);
+                const float t = static_cast<float> (i) / static_cast<float> (kSr);
+                const float g = (i >= 192000 && i < 288000) ? dbToGain (12.0f) : 1.0f;   // 4 à 6 s : +12 dB
+                const float v = 0.2f * g * (lp + 0.5f * std::sin (2.0f * juce::MathConstants<float>::pi * 55.0f * t));
+                instruSt.setSample (0, i, v);
+                instruSt.setSample (1, i, 0.7f * v);
+            }
+            const float rangeBefore = dsp::shortTermRangeDb (audio::toMono (instruSt), kSr);
+            const float surgeBefore = gainToDb (instruSt.getRMSLevel (0, 216000, 48000)) - gainToDb (instruSt.getRMSLevel (0, 48000, 96000));
+            auto probs = dsp::analyzeTrackProblems (audio::toMono (instruSt), kSr, aMinor(), false);
+            expect (! probs.surges.empty(), "montée de l'instru constatée : "_u8 + probs.found.joinIntoString (" ; "));
+            const auto params = dsp::correctionParams (probs, false);
+            const auto rep = dsp::repairStereo (instruSt, kSr, params);
+            const float rangeAfter = dsp::shortTermRangeDb (audio::toMono (instruSt), kSr);
+            const float surgeAfter = gainToDb (instruSt.getRMSLevel (0, 216000, 48000)) - gainToDb (instruSt.getRMSLevel (0, 48000, 96000));
+            expect (rangeAfter < rangeBefore && surgeBefore >= 10.0f && surgeAfter <= 5.0f,
+                    "montée "_u8 + juce::String (surgeBefore, 1) + " -> " + juce::String (surgeAfter, 1) + " dB, étendue "_u8 + juce::String (rangeBefore, 1) + " -> " + juce::String (rangeAfter, 1) + " dB");
+            float peak = 0.0f;
+            bool finite = true;
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < n; ++i)
+                {
+                    const float v = instruSt.getSample (c, i);
+                    finite = finite && std::isfinite (v);
+                    peak = std::max (peak, std::abs (v));
+                }
+            expect (finite && gainToDb (peak) <= -0.9f, "crête "_u8 + juce::String (gainToDb (peak), 2) + " dB, fini");
+            expect (rep.summary().isNotEmpty() && ! rep.summary().containsChar (0xC3), "résumé lisible : "_u8 + rep.summary().replace ("\n", " | "));
+            const float l = instruSt.getRMSLevel (0, 48000, 48000), r = instruSt.getRMSLevel (1, 48000, 48000);
+            expect (std::abs (l / std::max (1e-9f, r) - 1.0f / 0.7f) < 0.08f, "image stéréo conservée ("_u8 + juce::String (l / std::max (1e-9f, r), 2) + ")");
+        }
+
+        beginTest ("Curseurs de style : positions reelles, differentes par style");
+        {
+            const auto rapC = style::makeParams (style::Style::RapConscient, style::Role::Lead, {});
+            const auto rnb = style::makeParams (style::Style::RnB, style::Role::Lead, {});
+            const auto trap = style::makeParams (style::Style::Trap, style::Role::Lead, {});
+            const auto posRapC = style::styleMacros (rapC), posRnb = style::styleMacros (rnb), posTrap = style::styleMacros (trap);
+            expect (std::abs (posRapC.autotune - rapC.pitch.amount) < 1e-4f && posRapC.autotune < 0.3f, "rap conscient : autotune léger "_u8 + juce::String (posRapC.autotune, 2));
+            expect (posTrap.autotune > posRapC.autotune + 0.2f, "trap : bien plus d'autotune que le rap conscient ("_u8 + juce::String (posTrap.autotune, 2) + ")");
+            expect (posRnb.space > posRapC.space, "R&B : plus d'espace que le rap conscient ("_u8 + juce::String (posRnb.space, 2) + " vs " + juce::String (posRapC.space, 2) + ")");
+            expect (posRapC.presence > 0.5f, "rap conscient : présence au-dessus du milieu ("_u8 + juce::String (posRapC.presence, 2) + ")");
+            // Curseurs laissés aux positions du style = son du style inchangé.
+            style::Macros same = posRapC;
+            same.custom = true;
+            const auto again = style::makeParams (style::Style::RapConscient, style::Role::Lead, same);
+            expect (std::abs (again.pitch.amount - rapC.pitch.amount) < 1e-4f && std::abs (again.reverb.send - rapC.reverb.send) < 1e-4f
+                        && std::abs (again.eq.presenceDb - rapC.eq.presenceDb) < 1e-3f && std::abs (again.comp.ratio - rapC.comp.ratio) < 1e-3f,
+                    "positions du style = réglages du style"_u8);
+            // Déplacements : autotune 0 = coupé ; autotune 1 = effet marqué ; espace 0 = sec ; présence + = plus brillant.
+            style::Macros off = posRapC;
+            off.custom = true;
+            off.autotune = 0.0f;
+            off.space = 0.0f;
+            const auto dry = style::makeParams (style::Style::RapConscient, style::Role::Lead, off);
+            expect (! dry.pitch.enabled && dry.reverb.send <= 1e-6f && dry.delay.send <= 1e-6f, "autotune 0 et espace 0"_u8);
+            style::Macros hard = posRapC;
+            hard.custom = true;
+            hard.autotune = 1.0f;
+            hard.presence = juce::jlimit (0.0f, 1.0f, posRapC.presence + 0.25f);
+            const auto robot = style::makeParams (style::Style::RapConscient, style::Role::Lead, hard);
+            expect (robot.pitch.enabled && robot.pitch.amount >= 0.99f && robot.pitch.retuneMs <= 2.5f && robot.eq.presenceDb > rapC.eq.presenceDb + 2.0f, "effet robot + présence"_u8);
+            // Anciens projets : macros sans « custom » = positions du style.
+            const auto legacy = style::Macros::fromVar (juce::JSON::parse ("{\"autotune\":0.5,\"presence\":0.5}"));
+            expect (! legacy.custom && std::abs (style::resolveMacros (legacy, rapC).autotune - posRapC.autotune) < 1e-4f, "ancien projet : positions du style"_u8);
+            const auto rt = style::Macros::fromVar (hard.toVar());
+            expect (rt.custom && std::abs (rt.autotune - 1.0f) < 1e-4f, "custom sauvegardé / relu"_u8);
         }
 
         beginTest ("Correction par instrument : basse, batterie, harmonique");

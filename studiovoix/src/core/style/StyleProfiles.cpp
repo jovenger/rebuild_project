@@ -624,39 +624,56 @@ namespace
         }
     }
 
-    void applyMacros (VocalParams& p, const Macros& m)
+    void applyMacros (VocalParams& p, const Macros& userMacros)
     {
-        // Autotune
+        // Les curseurs sont des positions réelles : la position « du style » (styleMacros) laisse le son du style
+        // intact ; s'en écarter modifie les réglages d'autant. Chaque style a donc ses propres positions de départ.
+        const Macros pos = styleMacros (p);
+        const Macros m = resolveMacros (userMacros, p);
+
+        // Autotune : la position est la quantité de correction ; vers la droite la vitesse se durcit (effet robot).
         const float a = juce::jlimit (0.0f, 1.0f, m.autotune);
-        if (a <= 0.5f)
+        if (a < 0.02f)
         {
-            p.pitch.amount *= a / 0.5f;
+            p.pitch.amount = 0.0f;
+            p.pitch.enabled = false;
         }
         else
         {
-            const float t = (a - 0.5f) / 0.5f;
-            p.pitch.amount = lerp (p.pitch.amount, 1.0f, t);
-            p.pitch.retuneMs = lerp (p.pitch.retuneMs, 2.0f, t);
-            p.pitch.humanize = lerp (p.pitch.humanize, 0.0f, t);
+            p.pitch.enabled = true;
+            p.pitch.amount = a;
+            if (a > pos.autotune + 0.001f && pos.autotune < 0.999f)
+            {
+                const float t = (a - pos.autotune) / (1.0f - pos.autotune);
+                p.pitch.retuneMs = lerp (p.pitch.retuneMs, 2.0f, t);
+                p.pitch.humanize = lerp (p.pitch.humanize, 0.0f, t);
+            }
         }
-        if (p.pitch.amount < 0.02f)
-            p.pitch.enabled = false;
 
-        // Présence
-        const float pr = (juce::jlimit (0.0f, 1.0f, m.presence) - 0.5f) * 2.0f;
-        p.eq.presenceDb += pr * 5.0f;
-        p.eq.airDb += pr * 4.0f;
-        p.eq.mudDb -= pr * 1.5f;
+        // Présence : ±0,5 autour de la position du style = ±8 dB de présence, ±6 dB d'air, ∓2 dB de bas-médium.
+        const float pr = (juce::jlimit (0.0f, 1.0f, m.presence) - pos.presence) * 2.0f;
+        p.eq.presenceDb += pr * 8.0f;
+        p.eq.airDb += pr * 6.0f;
+        p.eq.mudDb -= pr * 2.0f;
 
-        // Espace
-        const float sp = juce::jlimit (0.0f, 1.0f, m.space) * 2.0f;
+        // Espace : les envois du style sont multipliés par position / position du style (0 = sec).
         const float rt = juce::jlimit (0.0f, 1.0f, m.reverbTrim) * 2.0f;
         const float dt = juce::jlimit (0.0f, 1.0f, m.delayTrim) * 2.0f;
-        p.reverb.send = juce::jlimit (0.0f, 1.5f, p.reverb.send * sp * rt);
-        p.delay.send = juce::jlimit (0.0f, 1.0f, p.delay.send * sp * dt);
+        const float spPos = juce::jlimit (0.0f, 1.0f, m.space);
+        if (pos.space > 0.01f)
+        {
+            const float f = spPos / pos.space;
+            p.reverb.send = juce::jlimit (0.0f, 1.5f, p.reverb.send * f * rt);
+            p.delay.send = juce::jlimit (0.0f, 1.0f, p.delay.send * f * dt);
+        }
+        else
+        {
+            p.reverb.send = juce::jlimit (0.0f, 1.5f, spPos * 0.3f * rt);
+            p.delay.send = juce::jlimit (0.0f, 1.0f, spPos * 0.15f * dt);
+        }
 
-        // Énergie
-        const float en = (juce::jlimit (0.0f, 1.0f, m.energy) - 0.5f) * 2.0f;
+        // Énergie : ±0,5 autour de la position du style.
+        const float en = (juce::jlimit (0.0f, 1.0f, m.energy) - pos.energy) * 2.0f;
         if (p.comp.ratio > 1.0f)
         {
             p.comp.ratio = std::max (1.5f, p.comp.ratio * (1.0f + 0.5f * en));
@@ -794,9 +811,34 @@ Role roleFromId (const juce::String& id)
     return Role::Lead;
 }
 
+Macros styleMacros (const VocalParams& base)
+{
+    Macros m;
+    m.custom = true;
+    m.autotune = base.pitch.enabled ? juce::jlimit (0.0f, 1.0f, base.pitch.amount) : 0.0f;
+    m.presence = juce::jlimit (0.0f, 1.0f, 0.5f + base.eq.presenceDb / 16.0f);
+    m.space = juce::jlimit (0.0f, 1.0f, (base.reverb.send + 0.5f * base.delay.send) / 0.4f);
+    m.energy = juce::jlimit (0.0f, 1.0f, 0.2f + (std::max (1.0f, base.comp.ratio) - 1.0f) / 8.0f + base.sat.mix * 0.5f);
+    m.level = 0.5f;
+    return m;
+}
+
+Macros resolveMacros (const Macros& m, const VocalParams& base)
+{
+    if (m.custom)
+        return m;
+    Macros r = styleMacros (base);
+    r.level = m.level;
+    r.reverbTrim = m.reverbTrim;
+    r.delayTrim = m.delayTrim;
+    r.custom = false;
+    return r;
+}
+
 juce::var Macros::toVar() const
 {
     auto* o = new juce::DynamicObject();
+    o->setProperty ("custom", custom);
     o->setProperty ("autotune", autotune);
     o->setProperty ("presence", presence);
     o->setProperty ("space", space);
@@ -823,6 +865,8 @@ Macros Macros::fromVar (const juce::var& v)
     m.level = get ("level", 0.5f);
     m.reverbTrim = get ("reverbTrim", 0.5f);
     m.delayTrim = get ("delayTrim", 0.5f);
+    // Anciens projets (sans « custom ») : les curseurs étaient des écarts autour de 0,5 ; ils reprennent les positions du style.
+    m.custom = static_cast<bool> (v.getProperty ("custom", false));
     return m;
 }
 
@@ -830,6 +874,19 @@ VocalParams makeParams (Style s, Role r, const Macros& macros, bool recordedByUs
 {
     VocalParams p = leadBase (s);
     applyRole (p, r);
+    if (r != Role::Instrument && r != Role::Instru)
+    {
+        // Voix : fader suivi (±4 dB autour du niveau d'entrée) avant les compresseurs, puis résonances rabaissées
+        // doucement (dureté variable) — comme un « vocal rider » puis un suppresseur de résonances en studio.
+        p.leveler.enabled = true;
+        p.leveler.targetDb = p.inputTargetDb;
+        p.leveler.maxBoostDb = 4.0f;
+        p.leveler.maxCutDb = 4.0f;
+        p.resonance.enabled = true;
+        p.resonance.thresholdDb = 6.0f;
+        p.resonance.maxReductionDb = 3.0f;
+        p.resonance.protectBelowHz = 600.0f;
+    }
     if (recordedByUser && (r == Role::Double || r == Role::Harmony || r == Role::KeywordBack || r == Role::AdLib || r == Role::Ambiance))
         p.pitch = leadBase (s).pitch;   // chanté au micro : justesse du style (les pistes générées sont déjà corrigées)
     applyMacros (p, macros);

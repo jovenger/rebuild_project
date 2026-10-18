@@ -77,12 +77,27 @@ réglages du style (autotune, EQ, compresseurs, de-esser, saturation, réverb, d
 style. Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Le style de la barre du haut sert aux pistes
 générées, au mastering et aux propositions, pas aux pistes brutes.
 
-**Correction automatique** (son propre, sans effet de style) : bouton **Corriger tout** dans la barre du haut, ou
-« Style : Correction automatique » sur une piste. Le programme mesure les défauts de chaque piste enregistrée ou
+**Ingénieur du son automatique** (son propre, sans effet de style) : bouton **Ingénieur du son** dans la barre du
+haut (toutes les pistes, instru comprise), ou « Style : Correction automatique » sur une piste. Le programme mesure les défauts de chaque piste enregistrée ou
 importée (niveau trop bas ou trop fort, saturation, composante continue, bruit de fond, boue dans le bas-médium,
 dureté, sifflantes, justesse approximative) et les corrige : niveau remis à −14 dB, bruit réduit dans les silences,
 EQ corrective dosée sur la mesure, de-esser dosé, justesse ramenée doucement vers la gamme (voix seule uniquement),
 puis mix auto. Le panneau Voix IA affiche les défauts constatés et les corrections. Annulable (Ctrl+Z).
+
+**Niveau régulier et passages qui montent** : un **niveleur** (fader suivi, comme un « vocal rider ») mesure le niveau
+toutes les 100 ms (fenêtre 400 ms) et remonte les passages trop bas, baisse les trop forts (±4 dB dans les styles,
+jusqu'à ±8 dB en correction) ; un passage qui **monte en flèche** (plus de 9 dB au-dessus du niveau médian) est
+horodaté dans le rapport (« à 1:32, +14 dB ») et rabaissé jusqu'à 12–18 dB. Un **suppresseur de résonances**
+rabaisse une bande (tiers d'octave) seulement quand elle dépasse à la fois ses voisines et son propre niveau habituel
+(dureté par moments), graves protégés ; les harmoniques fixes d'une voix tenue ne sont pas touchées.
+
+**Correction de l'instru** : « Style : Correction automatique » sur la piste instru (ou le bouton Ingénieur du son) :
+analyse sur la somme mono, réparation **stéréo liée** (image inchangée) : dé-écrêtage, coupe-bas, débruitage, niveleur,
+EQ corrective, résonances, compression liée, niveau −14 dB, limiteur −1 dBTP ; puis creux sous la voix (mix auto).
+
+**Alertes** : après chaque rendu, chaque piste qui **sature** (crête au-dessus de −0,3 dBFS), **monte en flèche** ou est
+**plus forte que la voix principale** est signalée en orange dans son en-tête et dans la barre d'état
+(« Ingénieur du son : 2 alertes — … »), avec les horodatages.
 
 **Son polyphonique** (chœurs à plusieurs voix, piano, morceau entier) : la correction de justesse est coupée
 automatiquement, qu'on choisisse un style ou la correction — elle ferait des « vagues » sur ce type de son.
@@ -121,6 +136,9 @@ comping automatique (meilleure prise par phrase), copie d'un refrain sur les ref
 prompteur de paroles (onglet **Paroles**), sauvegarde auto toutes les 60 s, historique des versions,
 récupération après plantage.
 
+**Taille des pistes** : tirer le bord droit de la colonne des en-têtes (largeur, 150–600 px) ou le bord bas d'une
+piste dans cette colonne (hauteur de toutes les pistes, 40–260 px) ; mémorisé d'une session à l'autre.
+
 ### Raccourcis
 
 | Touche | Action |
@@ -153,8 +171,10 @@ home-studios francophones.
 - **Électro** : Électro / House, Afro house
 Les pistes générées reçoivent une variante adaptée du même pré-réglage : plus basses que la voix
 principale, coupe-bas plus haut, compression plus forte ; doublages plus secs, harmonies et ad-libs avec
-plus d'espace, ambiance presque entièrement en réverb. Les curseurs de l'onglet **Voix IA** partent de
-ce réglage (milieu = réglage du style) ; **Mon son** le remplace par tes propres réglages pour ce style.
+plus d'espace, ambiance presque entièrement en réverb. Les curseurs de l'onglet **Voix IA** affichent les
+**positions réelles du style** (autotune = quantité de correction, présence = EQ, espace = réverb + délai, énergie =
+compression + saturation) : Rap conscient ≈ autotune 0,10, Trap ≈ 0,80, R&B plus d'espace… Déplacer un curseur
+s'écarte d'autant du style ; double-clic = position du style ; **Mon son** mémorise tes positions pour ce style.
 L'onglet **Voix IA** affiche les effets réellement appliqués à la piste sélectionnée.
 
 Ordre de la chaîne : nettoyage → justesse (autotune) → EQ → compresseur (rapide, 4–7 dB) → de-esser →
@@ -176,7 +196,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (15 %, vitesse 80 ms)
 - Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +3 dB à 4 kHz, air +2 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 5 ms, relâche 80 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -190,7 +212,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (10 %, vitesse 90 ms)
 - Nettoyage : coupe-bas 85 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 85 Hz, graves +0.5 dB sous 200 Hz, bas-médium -2 dB à 300 Hz, présence +3.5 dB à 3 kHz, air +1.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -204,7 +228,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (10 %, vitesse 80 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -3.5 dB à 300 Hz, présence +4.5 dB à 2.5 kHz, air +2 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 8:1 au seuil -16 dB, attaque 1 ms, relâche 40 ms
 - Compresseur 2 (nivellement) : 3:1 au seuil -24 dB, attaque 10 ms, relâche 120 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -218,7 +244,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : désactivé
 - Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 80 Hz, graves +1 dB sous 200 Hz, bas-médium -2 dB à 350 Hz, présence +3.5 dB à 3 kHz, air +1 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -18 dB, attaque 10 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -24 dB, attaque 20 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -232,7 +260,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (100 %, vitesse 5 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 6:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -246,7 +276,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (60 %, vitesse 15 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 2.5 kHz, air +2 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 6:1 au seuil -20 dB, attaque 2 ms, relâche 50 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -260,7 +292,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (95 %, vitesse 8 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -274,7 +308,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (85 %, vitesse 15 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -2.5 dB à 300 Hz, présence +2 dB à 3.5 kHz, air +5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -22 dB, attaque 6 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 75 %, max -6 dB
@@ -288,7 +324,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (100 %, vitesse 3 ms)
 - Nettoyage : coupe-bas 120 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 120 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 8:1 au seuil -24 dB, attaque 1 ms, relâche 40 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -302,7 +340,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (90 %, vitesse 10 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -22 dB, attaque 5 ms, relâche 80 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -316,7 +356,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (85 %, vitesse 12 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +3 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -22 dB, attaque 5 ms, relâche 80 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -330,7 +372,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (85 %, vitesse 12 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +3.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -21 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -27 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -344,7 +388,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (30 %, vitesse 50 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, graves +1 dB sous 200 Hz, bas-médium -1.5 dB à 300 Hz, présence +1 dB à 3 kHz, air -1 dB au-dessus de 10 kHz, coupe-haut 11 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 3:1 au seuil -22 dB, attaque 12 ms, relâche 140 ms, détection RMS
 - Compresseur 2 (nivellement) : 1.8:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -358,7 +404,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : désactivé
 - Nettoyage : coupe-bas 150 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 150 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 2.5 kHz, air -2 dB au-dessus de 10 kHz, coupe-haut 9 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 8:1 au seuil -18 dB, attaque 2 ms, relâche 50 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 50 %, max -6 dB
@@ -372,7 +420,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (80 %, vitesse 10 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 75 %, max -6 dB
@@ -388,7 +438,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (70 %, vitesse 20 ms)
 - Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -402,7 +454,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (60 %, vitesse 25 ms)
 - Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 6 ms, relâche 90 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 75 %, max -6 dB
@@ -416,7 +470,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (50 %, vitesse 40 ms)
 - Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 80 Hz, graves +1.5 dB sous 200 Hz, bas-médium -1.5 dB à 350 Hz, présence +1.5 dB à 3 kHz, air +3 dB au-dessus de 11 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 3:1 au seuil -22 dB, attaque 15 ms, relâche 150 ms, parallèle 85 %, détection RMS
 - Compresseur 2 (nivellement) : 1.8:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
 - De-esser : 7 kHz, force 80 %, max -6 dB
@@ -430,7 +486,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (20 %, vitesse 60 ms)
 - Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 80 Hz, graves +1.5 dB sous 200 Hz, bas-médium -1.5 dB à 350 Hz, présence +2 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 3:1 au seuil -22 dB, attaque 15 ms, relâche 160 ms, parallèle 85 %, détection RMS
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 30 ms, relâche 250 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -444,7 +502,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (30 %, vitesse 50 ms)
 - Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 80 Hz, graves +1 dB sous 200 Hz, bas-médium -1.5 dB à 300 Hz, présence +2 dB à 3 kHz, air +2.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 3:1 au seuil -20 dB, attaque 12 ms, relâche 140 ms, détection RMS
 - Compresseur 2 (nivellement) : 1.8:1 au seuil -26 dB, attaque 30 ms, relâche 250 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -458,7 +518,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (95 %, vitesse 5 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3 kHz, air +3.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -472,7 +534,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (10 %, vitesse 100 ms)
 - Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 90 Hz, bas-médium -2.5 dB à 350 Hz, présence +3 dB à 3 kHz, air +2 dB au-dessus de 10 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -18 dB, attaque 10 ms, relâche 120 ms
 - Compresseur 2 (nivellement) : 2.5:1 au seuil -26 dB, attaque 20 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -486,7 +550,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (15 %, vitesse 80 ms)
 - Nettoyage : coupe-bas 75 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 75 Hz, graves +1 dB sous 200 Hz, bas-médium -2 dB à 300 Hz, présence +1.5 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 2.5:1 au seuil -20 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - Compresseur 2 (nivellement) : 1.6:1 au seuil -26 dB, attaque 30 ms, relâche 250 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -500,7 +566,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : léger, naturel (30 %, vitesse 50 ms)
 - Nettoyage : coupe-bas 80 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 80 Hz, graves +1 dB sous 200 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3 kHz, air +2.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 10 ms, relâche 120 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -516,7 +584,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (80 %, vitesse 15 ms)
 - Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 90 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -530,7 +600,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (60 %, vitesse 20 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +3.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -20 dB, attaque 8 ms, relâche 110 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -544,7 +616,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (90 %, vitesse 8 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 6:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 65 %, max -6 dB
@@ -558,7 +632,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (80 %, vitesse 10 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 3 kHz, air +3 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 6:1 au seuil -21 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -27 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 65 %, max -6 dB
@@ -572,7 +648,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (75 %, vitesse 20 ms)
 - Nettoyage : coupe-bas 90 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 90 Hz, graves +1 dB sous 200 Hz, bas-médium -1.5 dB à 300 Hz, présence +2 dB à 3 kHz, air +3.5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 3.5:1 au seuil -22 dB, attaque 10 ms, relâche 120 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 75 %, max -6 dB
@@ -586,7 +664,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : effet marqué (85 %, vitesse 10 ms)
 - Nettoyage : coupe-bas 100 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 100 Hz, bas-médium -2.5 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -22 dB, attaque 4 ms, relâche 70 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB
@@ -600,7 +680,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (50 %, vitesse 20 ms)
 - Nettoyage : coupe-bas 120 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 120 Hz, bas-médium -3 dB à 300 Hz, présence +4 dB à 3 kHz, air +2 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 8:1 au seuil -18 dB, attaque 2 ms, relâche 50 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -26 dB, attaque 15 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 60 %, max -6 dB
@@ -616,7 +698,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (80 %, vitesse 12 ms)
 - Nettoyage : coupe-bas 120 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 120 Hz, bas-médium -3 dB à 300 Hz, présence +3 dB à 3.5 kHz, air +5 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 5:1 au seuil -22 dB, attaque 3 ms, relâche 60 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -28 dB, attaque 20 ms, relâche 150 ms, détection RMS
 - De-esser : 7 kHz, force 75 %, max -6 dB
@@ -630,7 +714,9 @@ dureté 3–6 kHz réduite. Sources : 20dollarbeats (chaîne rap), Violet Record
 
 - Autotune : moyen (50 %, vitesse 25 ms)
 - Nettoyage : coupe-bas 110 Hz, débruitage -12 dB, silences -12 dB, respirations -8 dB, plosives (p, b), dé-écrêtage
+- Niveleur : niveau tenu autour de -20 dB (+4 / -4 dB max, fenêtre 400 ms)
 - EQ : coupe-bas 110 Hz, bas-médium -2 dB à 300 Hz, présence +2.5 dB à 3.5 kHz, air +4 dB au-dessus de 12 kHz
+- Résonances : rabaissées au-delà de 6.0 dB au-dessus du voisinage, max -3 dB, graves protégés sous 600 Hz
 - Compresseur : 4:1 au seuil -21 dB, attaque 6 ms, relâche 100 ms
 - Compresseur 2 (nivellement) : 2:1 au seuil -27 dB, attaque 25 ms, relâche 200 ms, détection RMS
 - De-esser : 7 kHz, force 70 %, max -6 dB

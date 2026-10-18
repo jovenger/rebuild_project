@@ -3,6 +3,7 @@
 #include "core/Log.h"
 #include "core/analysis/KeyDetector.h"
 #include "core/dsp/ProblemAnalyzer.h"
+#include "core/Loudness.h"
 #include "core/analysis/StructureDetector.h"
 #include "core/analysis/TempoDetector.h"
 
@@ -181,6 +182,7 @@ void Session::afterProjectLoaded()
     renders.clear();
     renderGeneration.clear();
     trackStatuses.clear();
+    trackMetrics.clear();
     pendingRenders.clear();
     pendingGeneration.clear();
     leadAwaitingProposal.clear();
@@ -603,7 +605,7 @@ void Session::correctAllTracks()
 {
     std::vector<int> ids;
     for (const auto& t : proj.tracks)
-        if (t.isRecordable() && ! t.takes.empty() && ! t.isCorrection())
+        if (((t.isRecordable() && ! t.takes.empty()) || (t.role == style::Role::Instru && t.sourceFile.isNotEmpty())) && ! t.isCorrection())
             ids.push_back (t.id);
     if (ids.empty())
     {
@@ -621,7 +623,7 @@ void Session::correctAllTracks()
     markDirty();
     launchAutoMix();
     SV_LOG_INFO (kMod, "Correction automatique lancée sur "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s)");
-    setStatus ("Analyse et correction de " + juce::String (static_cast<int> (ids.size())) + " piste(s) : niveau, bruit, EQ, sifflantes, justesse…"_u8);
+    setStatus ("Ingénieur du son : analyse et correction de "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s), instru comprise : niveau régulier, bruit, résonances, EQ, sifflantes, justesse…"_u8);
 }
 
 int Session::recordTargetTrack() const
@@ -1352,6 +1354,19 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
     renders[trackId] = result;
     storedGeneration[trackId] = generation;
     const auto& rep = result->report;
+    {
+        // Mesures pour les alertes : crête et sonie du rendu.
+        TrackMetrics m;
+        for (int c = 0; c < result->processed.getNumChannels(); ++c)
+            m.peakDb = std::max (m.peakDb, gainToDb (result->processed.getMagnitude (c, 0, result->processed.getNumSamples())));
+        for (int c = 0; c < result->raw.getNumChannels(); ++c)
+            m.rawPeakDb = std::max (m.rawPeakDb, gainToDb (result->raw.getMagnitude (c, 0, result->raw.getNumSamples())));
+        m.lufs = loudness::integratedLufs (result->processed, proj.sampleRate);
+        trackMetrics[trackId] = m;
+        const auto w = trackWarnings (trackId);
+        if (w.isNotEmpty())
+            SV_LOG_WARN (kMod, "Alerte sur « "_u8 + proj.findTrack (trackId)->name + " » : " + w);
+    }
     trackStatuses[trackId] = result->compSummary.isNotEmpty() && ! proj.findTrack (trackId)->isGenerated()
                                ? "Prêt — "_u8 + result->compSummary
                                : juce::String ("Prêt"_u8);
@@ -1362,6 +1377,16 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
                                << juce::String (rep.compGrDb, 1) << " dB";
     if (rep.nearSilent)
         trackStatuses[trackId] << " | PRISE QUASI SILENCIEUSE : vérifie l'entrée micro"_u8;
+    if (activeJobs == 0 && pendingRenders.empty())
+    {
+        // Tous les rendus terminés : bilan des alertes de l'ingénieur du son.
+        juce::StringArray alerts;
+        for (const auto& t : proj.tracks)
+            if (const auto w = trackWarnings (t.id); w.isNotEmpty())
+                alerts.add (t.name + " : " + w);
+        if (! alerts.isEmpty())
+            setStatus ("Ingénieur du son : "_u8 + juce::String (alerts.size()) + " alerte(s) — " + alerts.joinIntoString (" | "));
+    }
 
     // Génération en attente de ce rendu ?
     if (auto it = pendingGeneration.find (trackId); it != pendingGeneration.end())
@@ -1649,6 +1674,33 @@ juce::String Session::trackStatus (int trackId) const
 {
     auto it = trackStatuses.find (trackId);
     return it != trackStatuses.end() ? it->second : juce::String();
+}
+
+juce::String Session::trackWarnings (int trackId) const
+{
+    const auto* t = proj.findTrack (trackId);
+    auto it = trackMetrics.find (trackId);
+    auto r = renderFor (trackId);
+    if (t == nullptr || it == trackMetrics.end() || r == nullptr || ! r->ok())
+        return {};
+    juce::StringArray w;
+    const auto& m = it->second;
+    // Écrêtage à la source (micro ou fichier trop fort) ; après traitement, la chaîne vise des crêtes vers 0 dBFS
+    // (le limiteur du master s'en charge) : on n'alerte qu'au-delà de +1 dBFS.
+    if (m.rawPeakDb > -0.2f)
+        w.add ("enregistrement écrêté (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS) : baisse le gain du micro ou du fichier"_u8);
+    if (m.peakDb > 1.0f)
+        w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
+    for (const auto& su : r->report.leveler.surges)
+        w.add ("monte en flèche "_u8 + su.describe() + (r->report.leveler.applied ? ", rabaissée"_u8 : ""));
+    if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
+        if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
+        {
+            const double over = m.lufs + t->volumeDb - lead->second.lufs - (proj.findTrack (proj.leadTrackId()) != nullptr ? proj.findTrack (proj.leadTrackId())->volumeDb : 0.0f);
+            if (over > 1.0)
+                w.add ("plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU)");
+        }
+    return w.joinIntoString (" ; ");
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -4,6 +4,7 @@
 #include "../Log.h"
 #include "../analysis/VoiceActivity.h"
 #include "../dsp/Denoiser.h"
+#include "../dsp/Leveler.h"
 #include "../dsp/MasterChain.h"
 #include "../dsp/Processors.h"
 
@@ -51,6 +52,17 @@ namespace
             { "interne:gate", "Porte / débruiteur",
               { { "denoise", "Débruitage spectral", 0.0f, 30.0f, 12.0f, "dB" },
                 { "gate", "Atténuation des silences", 0.0f, 40.0f, 10.0f, "dB" } } },
+            { "interne:leveler", "Niveleur (fader suivi)",
+              { { "target", "Niveau visé", -40.0f, -6.0f, -20.0f, "dB" },
+                { "boost", "Montée max", 0.0f, 12.0f, 6.0f, "dB" },
+                { "cut", "Baisse max", 0.0f, 12.0f, 6.0f, "dB" },
+                { "surge", "Baisse des montées brusques", 0.0f, 18.0f, 12.0f, "dB" },
+                { "speed", "Vitesse de remontée", 200.0f, 4000.0f, 1200.0f, "ms" } } },
+            { "interne:reso", "Résonances (dureté)",
+              { { "thr", "Seuil au-dessus du voisinage", 1.0f, 10.0f, 3.0f, "dB" },
+                { "max", "Réduction max", 1.0f, 15.0f, 6.0f, "dB" },
+                { "protect", "Graves protégés sous", 60.0f, 1000.0f, 500.0f, "Hz" },
+                { "mix", "Mélange", 0.0f, 100.0f, 100.0f, "%" } } },
             { "interne:limiter", "Limiteur",
               { { "ceil", "Plafond (crête)", -12.0f, 0.0f, -1.0f, "dBTP" },
                 { "gain", "Gain d'entrée", -12.0f, 24.0f, 0.0f, "dB" } } },
@@ -243,6 +255,31 @@ juce::String applyInternal (Stereo& audio, double sr, double bpm, const PluginSl
             setChannel (audio, c, m);
         }
         note << " (bruit -" << juce::String (reduced, 1) << " dB)";
+    }
+    else if (id == "interne:leveler")
+    {
+        dsp::LevelerSettings ls;
+        ls.enabled = true;
+        ls.targetDb = P ("target");
+        ls.maxBoostDb = P ("boost");
+        ls.maxCutDb = P ("cut");
+        ls.surgeCutDb = P ("surge");
+        ls.releaseMs = P ("speed");
+        ls.attackMs = std::max (100.0f, P ("speed") * 0.2f);
+        const auto rep = dsp::autoLevelStereo (audio, sr, ls);
+        note << " (étendue "_u8 << juce::String (rep.rangeBeforeDb, 1) << " -> " << juce::String (rep.rangeAfterDb, 1) << " dB"
+             << (rep.surges.empty() ? juce::String() : ", " + juce::String (static_cast<int> (rep.surges.size())) + " montée(s) brusque(s)"_u8) << ")";
+    }
+    else if (id == "interne:reso")
+    {
+        dsp::ResonanceSettings rs;
+        rs.enabled = true;
+        rs.thresholdDb = P ("thr");
+        rs.maxReductionDb = P ("max");
+        rs.protectBelowHz = P ("protect");
+        rs.mix = P ("mix") / 100.0f;
+        const auto rep = dsp::suppressResonancesStereo (audio, sr, rs);
+        note << " (" << juce::String (rep.meanReductionDb, 1) << " dB en moyenne, max " << juce::String (rep.maxReductionDb, 1) << " dB)";
     }
     else if (id == "interne:limiter")
     {

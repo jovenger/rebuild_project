@@ -143,6 +143,10 @@ void TrackHeader::refresh()
     const auto st = session.trackStatus (id);
     if (st.isNotEmpty())
         txt << "\n" << st;
+    const auto warn = session.trackWarnings (id);
+    if (warn.isNotEmpty())
+        txt << "\n" << juce::String (juce::CharPointer_UTF8 ("\xe2\x9a\xa0 ")) << warn;
+    info.setColour (juce::Label::textColourId, warn.isNotEmpty() ? juce::Colour (0xffff8a65) : juce::Colours::lightgrey);
     info.setText (txt, juce::dontSendNotification);
     arm.setVisible (t->isRecordable());
     arm.setToggleState (session.armedTrack() == id, juce::dontSendNotification);
@@ -199,34 +203,66 @@ void TrackHeader::resized()
     top.removeFromRight (2);
     mute.setBounds (top.removeFromRight (22));
     name.setBounds (top);
-    info.setBounds (r.removeFromTop (30));
-    auto bottom = r.removeFromTop (20);
-    pan.setBounds (bottom.removeFromRight (60));
-    volume.setBounds (bottom);
+    const bool faders = getHeight() >= 64;   // piste trop basse : seuls le nom et l'état restent
+    if (faders)
+    {
+        auto bottom = r.removeFromBottom (20);
+        pan.setBounds (bottom.removeFromRight (std::min (60, bottom.getWidth() / 3)));
+        volume.setBounds (bottom);
+    }
+    pan.setVisible (faders);
+    volume.setVisible (faders);
+    info.setBounds (r);
 }
 
 // =============================================================================================
 TimelineView::TimelineView (Session& s) : session (s)
 {
     setWantsKeyboardFocus (false);
+    headerWidth = juce::jlimit (150, 600, session.settings().props().getIntValue ("timelineHeaderWidth", kDefaultHeaderWidth));
+    trackHeight = juce::jlimit (40, 260, session.settings().props().getIntValue ("timelineTrackHeight", kDefaultTrackHeight));
+    SV_LOG_INFO ("Timeline", "Disposition : en-têtes "_u8 + juce::String (headerWidth) + " px, pistes " + juce::String (trackHeight) + " px");
     refresh();
 }
 
-double TimelineView::xToSec (int x) const { return viewStart + (x - kHeaderWidth) / pxPerSec; }
-int TimelineView::secToX (double s) const { return kHeaderWidth + static_cast<int> (std::round ((s - viewStart) * pxPerSec)); }
+bool TimelineView::overRowEdge (juce::Point<int> p, int& rowTop) const
+{
+    if (p.x >= headerWidth || p.y < kRulerHeight)
+        return false;
+    const int rel = (p.y - kRulerHeight + scrollY) % trackHeight;
+    const int idx = (p.y - kRulerHeight + scrollY) / trackHeight;
+    if (idx < 0 || idx >= static_cast<int> (session.project().tracks.size()) || rel < trackHeight - 6)
+        return false;
+    rowTop = p.y - rel;
+    return true;
+}
+
+void TimelineView::mouseMove (const juce::MouseEvent& e)
+{
+    int top = 0;
+    if (overHeaderEdge (e.getPosition()))
+        setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
+    else if (overRowEdge (e.getPosition(), top))
+        setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+    else if (drag == Drag::None)
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+}
+
+double TimelineView::xToSec (int x) const { return viewStart + (x - headerWidth) / pxPerSec; }
+int TimelineView::secToX (double s) const { return headerWidth + static_cast<int> (std::round ((s - viewStart) * pxPerSec)); }
 
 int TimelineView::trackIndexAt (int y) const
 {
     if (y < kRulerHeight)
         return -1;
-    const int idx = (y - kRulerHeight + scrollY) / kTrackHeight;
+    const int idx = (y - kRulerHeight + scrollY) / trackHeight;
     return idx < static_cast<int> (session.project().tracks.size()) ? idx : -1;
 }
 
 void TimelineView::clampView()
 {
     viewStart = std::max (0.0, viewStart);
-    const int contentH = static_cast<int> (session.project().tracks.size()) * kTrackHeight;
+    const int contentH = static_cast<int> (session.project().tracks.size()) * trackHeight;
     scrollY = juce::jlimit (0, std::max (0, contentH - (getHeight() - kRulerHeight)), scrollY);
 }
 
@@ -256,9 +292,9 @@ void TimelineView::resized()
     clampView();
     for (size_t i = 0; i < headers.size(); ++i)
     {
-        const int y = kRulerHeight + static_cast<int> (i) * kTrackHeight - scrollY;
-        headers[i]->setBounds (0, y, kHeaderWidth, kTrackHeight);
-        headers[i]->setVisible (y + kTrackHeight > kRulerHeight && y < getHeight());
+        const int y = kRulerHeight + static_cast<int> (i) * trackHeight - scrollY;
+        headers[i]->setBounds (0, y, headerWidth - 6, trackHeight - 6);   // bandes de 6 px à droite et en bas : poignées de redimensionnement
+        headers[i]->setVisible (y + trackHeight > kRulerHeight && y < getHeight());
     }
 }
 
@@ -299,16 +335,16 @@ void TimelineView::paint (juce::Graphics& g)
 
     // Pistes
     g.saveState();
-    g.reduceClipRegion (kHeaderWidth, kRulerHeight, w - kHeaderWidth, getHeight() - kRulerHeight);
+    g.reduceClipRegion (headerWidth, kRulerHeight, w - headerWidth, getHeight() - kRulerHeight);
     for (size_t i = 0; i < p.tracks.size(); ++i)
     {
         const auto& t = p.tracks[i];
-        const int y = kRulerHeight + static_cast<int> (i) * kTrackHeight - scrollY;
-        if (y + kTrackHeight < kRulerHeight || y > getHeight() || y + kTrackHeight < clip.getY() || y > clip.getBottom())
+        const int y = kRulerHeight + static_cast<int> (i) * trackHeight - scrollY;
+        if (y + trackHeight < kRulerHeight || y > getHeight() || y + trackHeight < clip.getY() || y > clip.getBottom())
             continue;
         const bool selected = session.isTrackSelected (t.id);
         g.setColour (selected ? juce::Colour (0xff1f2630) : (i % 2 == 0 ? juce::Colour (0xff181c21) : juce::Colour (0xff1b1f25)));
-        g.fillRect (kHeaderWidth, y, w - kHeaderWidth, kTrackHeight);
+        g.fillRect (headerWidth, y, w - headerWidth, trackHeight);
 
         // Bloc en cours de déplacement : dessiné décalé (le projet n'est modifié qu'au relâchement).
         const bool moving = drag == Drag::Clip && clipTrack == t.id;
@@ -319,7 +355,7 @@ void TimelineView::paint (juce::Graphics& g)
         {
             const double tkShift = moving && (clipTake == tk.id || clipTake < 0) ? shiftSec : 0.0;
             const int x1 = secToX (tk.regionStart / p.sampleRate + tkShift), x2 = secToX (tk.regionEnd / p.sampleRate + tkShift);
-            g.drawRect (x1, y + 3, std::max (1, x2 - x1), kTrackHeight - 6);
+            g.drawRect (x1, y + 3, std::max (1, x2 - x1), trackHeight - 6);
         }
 
         if (const auto* wc = waveFor (t))
@@ -327,12 +363,12 @@ void TimelineView::paint (juce::Graphics& g)
             const auto col = roleColour (t.role);
             const double binSec = 0.01;
             const double startSec = wc->start / p.sampleRate + shiftSec;
-            const int mid = y + kTrackHeight / 2;
-            const float half = (kTrackHeight - 10) * 0.5f;
-            const int xa = std::max ({ kHeaderWidth, clip.getX() - 1, secToX (startSec) });
+            const int mid = y + trackHeight / 2;
+            const float half = (trackHeight - 10) * 0.5f;
+            const int xa = std::max ({ headerWidth, clip.getX() - 1, secToX (startSec) });
             const int xb = std::min ({ w, clip.getRight() + 1, secToX (startSec + wc->peaks.size() * binSec) });
             g.setColour (col.withAlpha (0.15f));
-            g.fillRect (xa, y + 4, std::max (0, xb - xa), kTrackHeight - 8);
+            g.fillRect (xa, y + 4, std::max (0, xb - xa), trackHeight - 8);
             g.setColour (t.mute ? col.withAlpha (0.3f) : col);
             for (int x = xa; x < xb; ++x)
             {
@@ -352,19 +388,19 @@ void TimelineView::paint (juce::Graphics& g)
             g.setFont (12.0f);
             const auto st = session.trackStatus (t.id);
             g.drawText (st.isNotEmpty() ? st : juce::String ("Vide — arme la piste (rond rouge) et appuie sur REC"_u8),
-                        kHeaderWidth + 10, y, 600, kTrackHeight, juce::Justification::centredLeft);
+                        headerWidth + 10, y, 600, trackHeight, juce::Justification::centredLeft);
         }
         g.setColour (juce::Colours::black);
-        g.drawHorizontalLine (y + kTrackHeight - 1, static_cast<float> (kHeaderWidth), static_cast<float> (w));
+        g.drawHorizontalLine (y + trackHeight - 1, static_cast<float> (headerWidth), static_cast<float> (w));
     }
     {
-        const int yEnd = kRulerHeight + static_cast<int> (p.tracks.size()) * kTrackHeight - scrollY;
+        const int yEnd = kRulerHeight + static_cast<int> (p.tracks.size()) * trackHeight - scrollY;
         if (yEnd + 30 < getHeight())
         {
             g.setColour (juce::Colours::grey);
             g.setFont (13.0f);
             g.drawText ("Clic droit : nouvelle piste | Ctrl / Maj + clic : sélection multiple | Suppr : supprimer la sélection"_u8,
-                        kHeaderWidth + 10, yEnd + 8, 900, 20, juce::Justification::centredLeft);
+                        headerWidth + 10, yEnd + 8, 900, 20, juce::Justification::centredLeft);
         }
     }
 
@@ -387,12 +423,12 @@ void TimelineView::paint (juce::Graphics& g)
 
     // Règle
     g.setColour (juce::Colour (0xff20252c));
-    g.fillRect (kHeaderWidth, 0, w - kHeaderWidth, kRulerHeight);
+    g.fillRect (headerWidth, 0, w - headerWidth, kRulerHeight);
     for (size_t i = 0; i < p.sections.size(); ++i)
     {
         const auto& s = p.sections[i];
-        const int x1 = std::max (kHeaderWidth, secToX (s.startSec)), x2 = secToX (s.endSec);
-        if (x2 <= kHeaderWidth || x1 > w)
+        const int x1 = std::max (headerWidth, secToX (s.startSec)), x2 = secToX (s.endSec);
+        if (x2 <= headerWidth || x1 > w)
             continue;
         g.setColour (sectionColour (s.kind).withAlpha (0.7f));
         g.fillRect (x1, 0, x2 - x1, 18);
@@ -409,7 +445,7 @@ void TimelineView::paint (juce::Graphics& g)
         const int x = secToX (t);
         if (x > w)
             break;
-        if (x < kHeaderWidth)
+        if (x < headerWidth)
             continue;
         g.setColour (juce::Colours::grey);
         g.drawVerticalLine (x, 18.0f, static_cast<float> (kRulerHeight));
@@ -423,7 +459,7 @@ void TimelineView::paint (juce::Graphics& g)
         const int x = secToX (sec);
         if (x > w)
             break;
-        if (x < kHeaderWidth)
+        if (x < headerWidth)
             continue;
         g.setColour (juce::Colours::darkgrey);
         g.drawText (juce::String (sec / 60) + ":" + juce::String (sec % 60).paddedLeft ('0', 2), x + 2, 34, 50, 12, juce::Justification::left);
@@ -441,15 +477,15 @@ void TimelineView::paint (juce::Graphics& g)
 
     // Coin haut gauche : aide
     g.setColour (juce::Colour (0xff1e2228));
-    g.fillRect (0, 0, kHeaderWidth, kRulerHeight);
+    g.fillRect (0, 0, headerWidth, kRulerHeight);
     g.setColour (juce::Colours::grey);
     g.setFont (10.0f);
     g.drawFittedText ("Clic = position | Maj+glisser = punch | Alt+glisser = boucle\nDouble-clic section = copier | Ctrl+molette = zoom",
-                      4, 2, kHeaderWidth - 8, kRulerHeight - 4, juce::Justification::topLeft, 3);
+                      4, 2, headerWidth - 8, kRulerHeight - 4, juce::Justification::topLeft, 3);
 
     // Tête de lecture
     const int px = secToX (session.positionSec());
-    if (px >= kHeaderWidth && px <= w)
+    if (px >= headerWidth && px <= w)
     {
         g.setColour (session.isRecording() ? juce::Colours::red : juce::Colours::white);
         g.drawVerticalLine (px, 0.0f, static_cast<float> (getHeight()));
@@ -462,7 +498,7 @@ void TimelineView::updatePlayhead()
     const double t = session.positionSec();
     const int px = secToX (t);
     // Défilement automatique pendant la lecture.
-    if (session.engine().isPlaying() && (px > getWidth() - 40 || px < kHeaderWidth))
+    if (session.engine().isPlaying() && (px > getWidth() - 40 || px < headerWidth))
     {
         viewStart = std::max (0.0, t - 2.0);
         repaint();
@@ -489,7 +525,23 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
         });
         return;
     }
-    if (e.x < kHeaderWidth)
+    if (! e.mods.isPopupMenu())
+    {
+        // Poignées : bord droit des en-têtes (largeur), bord bas d'une piste (hauteur de toutes les pistes).
+        int top = 0;
+        if (overHeaderEdge (e.getPosition()))
+        {
+            drag = Drag::HeaderEdge;
+            return;
+        }
+        if (overRowEdge (e.getPosition(), top))
+        {
+            drag = Drag::RowEdge;
+            rowEdgeTop = top;
+            return;
+        }
+    }
+    if (e.x < headerWidth)
         return;
     const double t = std::max (0.0, xToSec (e.x));
     if (e.y < kRulerHeight)
@@ -610,6 +662,14 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
             clipOffsetSec = off;
             break;
         }
+        case Drag::HeaderEdge:
+            headerWidth = juce::jlimit (150, 600, e.x);
+            resized();
+            break;
+        case Drag::RowEdge:
+            trackHeight = juce::jlimit (40, 260, e.y - rowEdgeTop);
+            resized();
+            break;
         case Drag::None:     break;
     }
     repaint();
@@ -617,6 +677,15 @@ void TimelineView::mouseDrag (const juce::MouseEvent& e)
 
 void TimelineView::mouseUp (const juce::MouseEvent&)
 {
+    if (drag == Drag::HeaderEdge || drag == Drag::RowEdge)
+    {
+        session.settings().props().setValue ("timelineHeaderWidth", headerWidth);
+        session.settings().props().setValue ("timelineTrackHeight", trackHeight);
+        SV_LOG_INFO ("Timeline", "Disposition mémorisée : en-têtes "_u8 + juce::String (headerWidth) + " px, pistes " + juce::String (trackHeight) + " px");
+        drag = Drag::None;
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+        return;
+    }
     if (drag == Drag::Clip)
     {
         const double delta = clipOffsetSec;
@@ -642,7 +711,7 @@ void TimelineView::mouseUp (const juce::MouseEvent&)
 
 void TimelineView::mouseDoubleClick (const juce::MouseEvent& e)
 {
-    if (e.y >= 18 || e.x < kHeaderWidth)
+    if (e.y >= 18 || e.x < headerWidth)
         return;
     const double t = xToSec (e.x);
     const auto& secs = session.project().sections;
@@ -660,7 +729,7 @@ void TimelineView::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseW
     {
         const double anchor = xToSec (e.x);
         pxPerSec = juce::jlimit (2.0, 800.0, pxPerSec * (w.deltaY > 0 ? 1.25 : 0.8));
-        viewStart = anchor - (e.x - kHeaderWidth) / pxPerSec;
+        viewStart = anchor - (e.x - headerWidth) / pxPerSec;
     }
     else if (e.mods.isShiftDown() || std::abs (w.deltaX) > std::abs (w.deltaY))
     {

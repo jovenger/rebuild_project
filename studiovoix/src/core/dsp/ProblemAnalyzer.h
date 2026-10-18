@@ -2,6 +2,7 @@
 
 #include "../Types.h"
 #include "../style/StyleProfiles.h"
+#include "Leveler.h"
 
 #include <juce_core/juce_core.h>
 
@@ -19,6 +20,9 @@ struct TrackProblems
     float dcOffset = 0.0f;
     int clippedSamples = 0;
     float noiseFloorDb = -120.0f;
+    float levelRangeDb = 0.0f;       // étendue du niveau court terme (P90 - P10, fenêtre 400 ms) : passages qui montent / descendent
+    float resonanceDb = 0.0f;        // dépassement moyen de la bande la plus saillante au-dessus de son voisinage
+    std::vector<LevelSurge> surges;  // passages qui montent en flèche (horodatés)
     float mudExcessDb = 0.0f;        // 200-400 Hz au-dessus de la courbe attendue
     float harshExcessDb = 0.0f;      // 2,5-5 kHz
     float sibilanceDb = 0.0f;        // 5-9 kHz par rapport à 1-4 kHz

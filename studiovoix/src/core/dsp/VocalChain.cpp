@@ -64,6 +64,9 @@ juce::String describeChain (const style::VocalParams& p)
                + (p.clean.declip ? ", dé-écrêtage"_u8 : ""));
     else
         l.add ("Nettoyage : désactivé"_u8);
+    if (p.leveler.enabled)
+        l.add ("Niveleur : niveau tenu autour de "_u8 + db (p.leveler.targetDb) + " (+" + juce::String (juce::roundToInt (p.leveler.maxBoostDb)) + " / -"
+               + juce::String (juce::roundToInt (p.leveler.maxCutDb)) + " dB max, fenêtre "_u8 + juce::String (juce::roundToInt (p.leveler.windowMs)) + " ms)");
 
     if (p.timing.strength > 0.001f)
         l.add ("Recalage rythmique : "_u8 + pct (p.timing.strength));
@@ -76,6 +79,9 @@ juce::String describeChain (const style::VocalParams& p)
     if (std::abs (p.eq.airDb) >= 0.1f)      eq.add ("air " + db (p.eq.airDb) + " au-dessus de "_u8 + hz (p.eq.airHz));
     if (p.eq.highCutHz > 0.0f)              eq.add ("coupe-haut " + hz (p.eq.highCutHz));
     l.add ("EQ : " + eq.joinIntoString (", "));
+    if (p.resonance.enabled)
+        l.add ("Résonances : rabaissées au-delà de "_u8 + juce::String (p.resonance.thresholdDb, 1) + " dB au-dessus du voisinage, max -"
+               + juce::String (juce::roundToInt (p.resonance.maxReductionDb)) + " dB, graves protégés sous "_u8 + hz (p.resonance.protectBelowHz));
 
     auto comp = [&] (const dsp::CompressorSettings& c)
     {
@@ -160,6 +166,9 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
 
     // 3) Nettoyage.
     result.report.clean = clean (x, sampleRate, params.clean, result.track, result.va);
+    // 3 bis) Niveleur : les passages trop bas remontés, trop forts baissés (fader suivi), avant les compresseurs.
+    if (params.leveler.enabled)
+        result.report.leveler = autoLevel (x, sampleRate, params.leveler);
     if (! step (0.30f)) return result;
 
     // 4) Recalage rythmique.
@@ -211,6 +220,9 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
                 applyCurveEq (x, sampleRate, mine.centersHz, curve);
         }
     }
+    // 6 bis) Résonances : une bande qui dépasse son voisinage est rabaissée le temps qu'elle dépasse.
+    if (params.resonance.enabled)
+        result.report.resonance = suppressResonances (x, sampleRate, params.resonance);
     if (! step (0.65f)) return result;
 
     // 7) Compresseur rapide (crêtes), de-esser, compresseur doux (nivellement), saturation — ordre courant en studio.

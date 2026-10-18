@@ -49,12 +49,13 @@ public:
     void mouseDrag (const juce::MouseEvent& e) override;
     void mouseUp (const juce::MouseEvent& e) override;
     void mouseDoubleClick (const juce::MouseEvent& e) override;
+    void mouseMove (const juce::MouseEvent& e) override;
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override;
 
     /** Position (s) sous un point de la zone des pistes ; false hors de cette zone (en-têtes, règle). */
     bool timeAtPoint (juce::Point<int> p, double& sec) const
     {
-        if (p.x < kHeaderWidth || p.y < kRulerHeight || p.x >= getWidth() || p.y >= getHeight())
+        if (p.x < headerWidth || p.y < kRulerHeight || p.x >= getWidth() || p.y >= getHeight())
             return false;
         sec = std::max (0.0, xToSec (p.x));
         return true;
@@ -69,9 +70,12 @@ public:
     double loopEndSec() const { return loopB; }
     std::function<void()> onRegionsChanged;
 
-    static constexpr int kHeaderWidth = 260;
+    static constexpr int kDefaultHeaderWidth = 260;
     static constexpr int kRulerHeight = 48;
-    static constexpr int kTrackHeight = 78;
+    static constexpr int kDefaultTrackHeight = 78;
+    /** Largeur de la colonne des en-têtes et hauteur des pistes : réglables en tirant leur bord à la souris, mémorisées. */
+    int headerWidth = kDefaultHeaderWidth;
+    int trackHeight = kDefaultTrackHeight;
 
 private:
     struct WaveCache
@@ -97,7 +101,10 @@ private:
     double viewStart = 0.0;
     int scrollY = 0;
     double punchIn = 0.0, punchOut = 0.0, loopA = 0.0, loopB = 0.0;
-    enum class Drag { None, Playhead, Punch, Loop, Clip } drag = Drag::None;
+    enum class Drag { None, Playhead, Punch, Loop, Clip, HeaderEdge, RowEdge } drag = Drag::None;
+    int rowEdgeTop = 0;                  // haut (pixels) de la piste dont on tire le bord bas
+    bool overHeaderEdge (juce::Point<int> p) const { return p.y >= kRulerHeight && std::abs (p.x - headerWidth) <= 5; }
+    bool overRowEdge (juce::Point<int> p, int& rowTop) const;
     double dragAnchor = 0.0;
     int clipTrack = -1, clipTake = -1;   // bloc audio en cours de déplacement
     double clipOffsetSec = 0.0;          // décalage provisoire (affiché pendant le glisser)

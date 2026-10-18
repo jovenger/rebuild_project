@@ -107,6 +107,9 @@ public:
 
     std::shared_ptr<const render::TrackRender> renderFor (int trackId) const;
     juce::String trackStatus (int trackId) const;
+    /** Alertes de l'ingénieur du son sur le rendu actuel : sature, monte en flèche, plus fort que la voix principale. */
+    juce::String trackWarnings (int trackId) const;
+    struct TrackMetrics { float peakDb = -120.0f; float rawPeakDb = -120.0f; double lufs = -120.0; };
     juce::String statusText() const { return status; }
     bool isBusy() const { return activeJobs > 0 || ! pendingRenders.empty(); }
     float vocalAutoGainDb() const { return mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f; }
@@ -158,6 +161,7 @@ private:
 
     std::map<int, int> renderGeneration;
     std::map<int, juce::String> trackStatuses;
+    std::map<int, TrackMetrics> trackMetrics;   // crête et sonie du dernier rendu de chaque piste
     std::set<int> pendingRenders;
     juce::int64 pendingSinceMs = 0;
     std::map<int, gen::GenerationOptions> pendingGeneration;

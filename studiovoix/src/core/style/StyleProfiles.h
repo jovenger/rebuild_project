@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Types.h"
+#include "../dsp/Leveler.h"
 #include "../dsp/Processors.h"
 #include "../dsp/TimingCorrector.h"
 
@@ -62,10 +63,18 @@ struct Macros
     float level = 0.5f;          // volume relatif de la piste (0,5 = 0 dB, ±12 dB)
     float reverbTrim = 0.5f;     // ajustements fins demandés par l'assistant
     float delayTrim = 0.5f;
+    bool custom = false;         // false : les curseurs suivent les positions du style (styleMacros) ; true : valeurs choisies
 
     juce::var toVar() const;
     static Macros fromVar (const juce::var& v);
 };
+
+struct VocalParams;
+/** Positions des curseurs impliquées par les réglages d'un style (autotune = quantité, présence = EQ, espace =
+    réverb + délai, énergie = compression + saturation, volume = 0,5). Chaque style a donc ses propres positions. */
+Macros styleMacros (const VocalParams& base);
+/** Curseurs effectifs : m si custom, sinon les positions du style (volume et ajustements fins de m conservés). */
+Macros resolveMacros (const Macros& m, const VocalParams& base);
 
 struct PitchSettings
 {
@@ -80,9 +89,11 @@ struct VocalParams
 {
     float inputTargetDb = -20.0f;   // normalisation d'entrée (RMS des passages actifs)
     dsp::CleanSettings clean;
+    dsp::LevelerSettings leveler;        // niveau régulier d'un passage à l'autre (après le nettoyage)
     dsp::TimingParams timing;
     PitchSettings pitch;
     dsp::EqSettings eq;
+    dsp::ResonanceSettings resonance;    // bandes qui dépassent leur voisinage rabaissées (après l'EQ)
     dsp::CompressorSettings comp;
     dsp::CompressorSettings comp2;   // compresseur de nivellement (ratio 1 = désactivé)
     dsp::DeEsserSettings deEss;

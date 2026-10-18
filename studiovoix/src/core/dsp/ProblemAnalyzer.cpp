@@ -6,6 +6,7 @@
 #include "../analysis/PitchDetector.h"
 #include "../analysis/SpectrumAnalyzer.h"
 #include "../analysis/VoiceActivity.h"
+#include "Leveler.h"
 #include "PitchCorrector.h"
 #include "Processors.h"
 
@@ -68,6 +69,14 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
     // Bruit de fond.
     const auto va = analysis::analyzeVoice (x, sr);
     p.noiseFloorDb = va.noiseFloorDb;
+
+    // Régularité du niveau d'un passage à l'autre, et résonances (bandes qui dépassent leur voisinage).
+    // Seuil d'activité : au-dessus du bruit de fond, mais jamais à moins de 20 dB sous le niveau actif (un son continu,
+    // sans silence, a un « bruit de fond » mesuré au niveau du son lui-même).
+    const float gate = std::max (-60.0f, std::min (va.noiseFloorDb + 12.0f, p.activeLevelDb - 20.0f));
+    p.levelRangeDb = shortTermRangeDb (x, sr, 400.0f, gate);
+    p.surges = levelSurges (x, sr, 9.0f, 400.0f, gate);
+    p.resonanceDb = resonanceExcessDb (x, sr);
 
     // Densité de transitoires : montées d'au moins 8 dB d'une trame (10 ms) à la suivante.
     {
@@ -167,6 +176,12 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
         p.found.add ("niveau trop fort (" + juce::String (p.activeLevelDb, 1) + " dBFS)");
     if (p.noiseFloorDb > -45.0f)
         p.found.add ("bruit de fond élevé ("_u8 + juce::String (juce::roundToInt (p.noiseFloorDb)) + " dBFS)");
+    for (const auto& su : p.surges)
+        p.found.add ("monte en flèche "_u8 + su.describe());
+    if (p.levelRangeDb >= 6.0f)
+        p.found.add ("niveau irrégulier d'un passage à l'autre ("_u8 + juce::String (juce::roundToInt (p.levelRangeDb)) + " dB d'écart)"_u8);
+    if (p.resonanceDb >= 4.0f)
+        p.found.add ("résonances / dureté par moments ("_u8 + db1 (p.resonanceDb) + " au-dessus du voisinage)"_u8);
     if (p.mudExcessDb >= 2.0f)
         p.found.add ("boue dans le bas-médium ("_u8 + db1 (p.mudExcessDb) + ")");
     if (p.harshExcessDb >= 2.0f)
@@ -227,6 +242,24 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
     v.outputDb = -14.0f;
     v.inputTargetDb = -20.0f;
 
+    // Niveleur : fader suivi dès que le niveau bouge d'un passage à l'autre ; la batterie garde sa dynamique.
+    const bool drums = p.instrumentKind == "batterie";
+    v.leveler.enabled = p.levelRangeDb >= (drums ? 10.0f : 4.0f) || ! p.surges.empty();
+    float worstSurge = 0.0f;
+    for (const auto& su : p.surges)
+        worstSurge = std::max (worstSurge, su.overDb);
+    v.leveler.surgeCutDb = juce::jlimit (6.0f, 18.0f, worstSurge + 2.0f);
+    v.leveler.targetDb = -20.0f;
+    v.leveler.maxBoostDb = vocal ? 8.0f : (drums ? 2.0f : 5.0f);
+    v.leveler.maxCutDb = vocal ? 6.0f : (drums ? 3.0f : 5.0f);
+    v.leveler.attackMs = drums ? 600.0f : 250.0f;
+    v.leveler.releaseMs = drums ? 2500.0f : 1200.0f;
+    // Résonances : rabaissées seulement si elles sont mesurées ; graves protégés plus haut sur un instrument.
+    v.resonance.enabled = p.resonanceDb >= 3.0f;
+    v.resonance.thresholdDb = 3.0f;
+    v.resonance.maxReductionDb = juce::jlimit (3.0f, 9.0f, 1.5f + p.resonanceDb);
+    v.resonance.protectBelowHz = vocal ? 600.0f : 300.0f;
+
     p.fixes.clear();
     if (! vocal && p.instrumentKind.isNotEmpty())
         p.fixes.add (p.instrumentKind == "basse" ? juce::String ("basse : coupe-bas 35 Hz, compression 3:1 lente, pas de porte"_u8)
@@ -234,6 +267,13 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
                      : p.instrumentKind == "harmonique" ? juce::String ("instrument harmonique : coupe-bas 60 Hz, compression 3:1 (5 ms / 50 ms)"_u8)
                                                           : juce::String ("instrument : coupe-bas 30 Hz, nivellement doux"_u8));
     p.fixes.add ("niveau remis à -14 dB (gain "_u8 + db1 (-14.0f - p.activeLevelDb) + ")");
+    if (! p.surges.empty())
+        p.fixes.add ("montées brusques rabaissées (jusqu'à -"_u8 + juce::String (juce::roundToInt (v.leveler.surgeCutDb)) + " dB)");
+    if (v.leveler.enabled)
+        p.fixes.add ("niveau régularisé d'un passage à l'autre (fader suivi, +"_u8 + juce::String (juce::roundToInt (v.leveler.maxBoostDb)) + " / -"
+                     + juce::String (juce::roundToInt (v.leveler.maxCutDb)) + " dB max)");
+    if (v.resonance.enabled)
+        p.fixes.add ("résonances rabaissées quand elles dépassent (max -"_u8 + juce::String (juce::roundToInt (v.resonance.maxReductionDb)) + " dB)");
     if (p.clippedSamples > 0)
         p.fixes.add ("passages saturés reconstruits (dé-écrêtage)"_u8);
     if (std::abs (p.dcOffset) > 0.01f)
