@@ -194,7 +194,7 @@ namespace
                     {
                         // Fichier importé = brut ; le choix d'un style dans le panneau le traite.
                         const auto* lt = session.project().findTrack (session.project().leadTrackId());
-                        if (lt == nullptr || ! lt->raw) { fail ("voix importée : devrait être brute (sans effet)"_u8); return; }
+                        if (lt == nullptr || ! lt->raw) { fail ("voix principale : devrait être brute (sans effet) au départ"_u8); return; }
                         session.setTrackTreatment (lt->id, false, {});
                         if (session.project().findTrack (session.project().leadTrackId())->raw) { fail ("style non appliqué à la voix"_u8); return; }
                         log ("étape 1 bis : voix importée brute, puis style du projet appliqué depuis le panneau"_u8);
@@ -269,6 +269,22 @@ namespace
                     if (session.recordTargetTrack() != session.project().leadTrackId()) { fail ("clic sur une piste : devrait l'armer"_u8); return; }
                     session.selectTrack (backTrackId);
                     if (session.recordTargetTrack() != backTrackId) { fail ("clic sur la piste back : devrait l'armer"_u8); return; }
+                    if (! session.project().findTrack (backTrackId)->raw) { fail ("nouvelle piste : devrait être brute (aucun effet)"_u8); return; }
+                    {
+                        // Sélection multiple (Ctrl + clic) puis suppression groupée, annulée ensuite.
+                        const int extra = session.addUserTrack (style::Role::Harmony, session.nextTrackName (style::Role::Harmony));
+                        session.selectTrack (backTrackId);
+                        session.selectTrack (extra, true, false);
+                        if (session.selectedTrackIds().size() != 2) { fail ("Ctrl + clic : 2 pistes attendues"_u8); return; }
+                        const auto before = session.project().tracks.size();
+                        session.removeTracks ({ backTrackId, extra });
+                        if (session.project().tracks.size() != before - 2) { fail ("suppression groupée"_u8); return; }
+                        session.undo();
+                        if (session.project().tracks.size() != before || session.project().findTrack (backTrackId) == nullptr)
+                        { fail ("annulation de la suppression groupée"_u8); return; }
+                        session.removeTrack (extra);
+                        session.selectTrack (backTrackId);
+                    }
                     log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée ; cliquer une piste l'arme"_u8);
                     // Style choisi avant l'import : la prise est traitée (sinon elle resterait brute, sans calcul).
                     session.setTrackTreatment (backTrackId, false, style::styleId (style::Style::Trap));
@@ -706,6 +722,27 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
         return false;
     }
     const auto c = juce::CharacterFunctions::toLowerCase (key.getTextCharacter());
+    if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
+    {
+        // Suppr : supprime les pistes sélectionnées (jamais pendant une prise, jamais dans un champ de texte : voir plus haut).
+        if (session.isRecording() || session.selectedTrackIds().empty())
+            return false;
+        const std::vector<int> ids (session.selectedTrackIds().begin(), session.selectedTrackIds().end());
+        const int n = static_cast<int> (ids.size());
+        juce::Component::SafePointer<MainComponent> safe (this);
+        juce::AlertWindow::showAsync (juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::QuestionIcon)
+                                          .withTitle ("Supprimer")
+                                          .withMessage (n > 1 ? "Supprimer les " + juce::String (n) + " pistes sélectionnées ? (Ctrl+Z pour revenir en arrière)"_u8
+                                                              : juce::String ("Supprimer cette piste ? (Ctrl+Z pour revenir en arrière)"_u8))
+                                          .withButton ("Supprimer")
+                                          .withButton ("Garder"),
+                                      [safe, ids] (int r)
+                                      {
+                                          if (safe != nullptr && r == 1)
+                                              safe->session.removeTracks (ids);
+                                      });
+        return true;
+    }
     if (c == 'r') { doRecord(); return true; }
     if (c == 'm') { session.addMarkerAtPlayhead(); return true; }
     return false;

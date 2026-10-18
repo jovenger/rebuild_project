@@ -120,6 +120,7 @@ bool Session::newProject (const juce::String& name, juce::String& error, style::
     auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
     if (appSettings.hasUserPreset (created.style))
         lead.macros = appSettings.userPreset (created.style);
+    lead.raw = true;                  // aucun effet tant qu'un style n'est pas choisi sur la piste
     created.armedTrackId = lead.id;   // le micro enregistre sur la voix principale tant qu'on n'arme pas une autre piste
     if (! created.save (error))
     {
@@ -192,6 +193,9 @@ void Session::afterProjectLoaded()
     cache.clear();
     dirty = false;
     selectedTrackId = proj.leadTrackId();
+    selectedTracks.clear();
+    if (selectedTrackId >= 0)
+        selectedTracks.insert (selectedTrackId);
     refreshContext();
     audioEngine.stop();
     audioEngine.setPosition (0);
@@ -528,10 +532,11 @@ int Session::addUserTrack (style::Role role, const juce::String& name)
         markDirty();
         rebuildPlayState();
     }
+    if (auto* nt = proj.findTrack (trackId))
+        nt->raw = true;   // nouvelle piste = brute (aucun effet, curseurs à 0) jusqu'au choix d'un style
     proj.armedTrackId = trackId;
-    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ", style " + style::styleName (proj.style)
-                       + ") : sélectionnée et armée"_u8);
-    setStatus ("Piste « "_u8 + name + " » ajoutée et armée (rond rouge) : appuie sur R pour enregistrer dessus"_u8);
+    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ") : brute, sélectionnée et armée"_u8);
+    setStatus ("Piste « "_u8 + name + " » ajoutée, brute (aucun effet) et armée : R pour enregistrer ; « Effets » à droite pour choisir un style"_u8);
     return trackId;
 }
 
@@ -589,16 +594,34 @@ int Session::recordTargetTrack() const
 
 void Session::removeTrack (int trackId)
 {
-    if (proj.findTrack (trackId) == nullptr)
+    removeTracks ({ trackId });
+}
+
+void Session::removeTracks (const std::vector<int>& trackIds)
+{
+    std::vector<int> existing;
+    for (const int id : trackIds)
+        if (proj.findTrack (id) != nullptr)
+            existing.push_back (id);
+    if (existing.empty())
         return;
-    pushUndo ("Suppression de piste");
-    proj.removeTrack (trackId);
-    renders.erase (trackId);
-    ++renderGeneration[trackId];   // un rendu en cours pour cette piste sera ignoré
-    storedGeneration.erase (trackId);
-    pendingRenders.erase (trackId);
-    if (selectedTrackId == trackId)
+    pushUndo (existing.size() > 1 ? "Suppression de " + juce::String (static_cast<int> (existing.size())) + " pistes"
+                                  : juce::String ("Suppression de piste"));
+    for (const int trackId : existing)
+    {
+        proj.removeTrack (trackId);
+        renders.erase (trackId);
+        ++renderGeneration[trackId];   // un rendu en cours pour cette piste sera ignoré
+        storedGeneration.erase (trackId);
+        pendingRenders.erase (trackId);
+        selectedTracks.erase (trackId);
+    }
+    if (proj.findTrack (selectedTrackId) == nullptr)
         selectedTrackId = proj.leadTrackId();
+    if (selectedTracks.empty() && proj.findTrack (selectedTrackId) != nullptr)
+        selectedTracks.insert (selectedTrackId);
+    SV_LOG_INFO (kMod, juce::String (static_cast<int> (existing.size())) + " piste(s) supprimée(s)"_u8);
+    setStatus (juce::String (static_cast<int> (existing.size())) + " piste(s) supprimée(s) (Ctrl+Z pour annuler)"_u8);
     markDirty();
     launchAutoMix();
     rebuildPlayState();
@@ -620,8 +643,44 @@ void Session::updateTrack (int trackId, const std::function<void (project::Track
         rebuildPlayState();
 }
 
-void Session::selectTrack (int trackId)
+void Session::selectTrack (int trackId, bool addToSelection, bool extendRange)
 {
+    if (extendRange && proj.findTrack (selectedTrackId) != nullptr && proj.findTrack (trackId) != nullptr)
+    {
+        // Maj + clic : toutes les pistes entre la dernière piste cliquée et celle-ci.
+        int a = -1, b = -1;
+        for (size_t i = 0; i < proj.tracks.size(); ++i)
+        {
+            if (proj.tracks[i].id == selectedTrackId) a = static_cast<int> (i);
+            if (proj.tracks[i].id == trackId) b = static_cast<int> (i);
+        }
+        for (int i = std::min (a, b); i <= std::max (a, b); ++i)
+            selectedTracks.insert (proj.tracks[static_cast<size_t> (i)].id);
+        SV_LOG_INFO (kMod, juce::String (static_cast<int> (selectedTracks.size())) + " pistes sélectionnées (Maj + clic)"_u8);
+        sendChangeMessage();
+        return;
+    }
+    if (addToSelection)
+    {
+        // Ctrl + clic : ajoute ou retire, sans changer la piste armée.
+        if (selectedTracks.count (trackId) > 0 && selectedTracks.size() > 1)
+        {
+            selectedTracks.erase (trackId);
+            if (selectedTrackId == trackId)
+                selectedTrackId = *selectedTracks.begin();
+        }
+        else
+        {
+            selectedTracks.insert (trackId);
+            selectedTrackId = trackId;
+        }
+        SV_LOG_INFO (kMod, juce::String (static_cast<int> (selectedTracks.size())) + " piste(s) sélectionnée(s) (Ctrl + clic)"_u8);
+        sendChangeMessage();
+        return;
+    }
+    selectedTracks.clear();
+    if (proj.findTrack (trackId) != nullptr)
+        selectedTracks.insert (trackId);
     selectedTrackId = trackId;
     // Cliquer sur une piste enregistrable l'arme aussi : la prochaine prise (R / REC) va sur la piste choisie.
     // Pas pendant un enregistrement (la prise en cours garde sa piste).
@@ -639,6 +698,8 @@ void Session::setStyle (style::Style s)
 {
     if (s == proj.style)
         return;
+    // Style du morceau : sert aux pistes générées, au mastering et aux propositions ; les pistes brutes le restent,
+    // chaque piste reçoit ses effets quand on lui choisit un style dans son panneau.
     pushUndo ("Changement de style");
     proj.style = s;
     if (appSettings.hasUserPreset (s))
@@ -647,7 +708,8 @@ void Session::setStyle (style::Style s)
                 t.macros = appSettings.userPreset (s);
     markDirty();
     renderAll();
-    setStatus ("Style : " + style::styleName (s));
+    SV_LOG_INFO (kMod, "Style du morceau : " + style::styleName (s));
+    setStatus ("Style du morceau : " + style::styleName (s) + " (chaque piste garde son réglage « Style » à droite)"_u8);
 }
 
 void Session::setKey (const MusicalKey& key)
@@ -1001,10 +1063,11 @@ bool Session::addRecordedTake (const AudioEngine::RecordedTake& take, int trackI
     if (! proj.saveAutosave (err))
         SV_LOG_ERROR (kMod, "Sauvegarde auto après prise impossible : "_u8 + err);
     markDirty();
-    if (! recovered && t->role == style::Role::Lead && appSettings.proposeGenerationAfterTake())
+    if (! recovered && t->role == style::Role::Lead && ! t->raw && appSettings.proposeGenerationAfterTake())
         leadAwaitingProposal.insert (trackId);
     requestRender (trackId);
     setStatus (juce::String (recovered ? "Prise récupérée après une coupure"_u8 : "Prise enregistrée"_u8)
+               + (t->raw ? " — brute, sans effet : choisis un style dans « Effets » à droite pour la traiter"_u8 : juce::String())
                + " (recalage "_u8 + juce::String (shiftMs, 1) + " ms)"
                + (take.clipped ? " — ATTENTION : saturation pendant la prise, baisse le gain du micro"_u8 : juce::String())
                + (take.warning.isNotEmpty() ? " — À VÉRIFIER : "_u8 + take.warning : juce::String())
@@ -1591,6 +1654,9 @@ void Session::restoreSnapshot (const juce::var& state)
                        + juce::String (static_cast<int> (renderMemo.size())) + " en réserve"_u8);
     if (proj.findTrack (selectedTrackId) == nullptr)
         selectedTrackId = proj.leadTrackId();
+    selectedTracks.clear();
+    if (proj.findTrack (selectedTrackId) != nullptr)
+        selectedTracks.insert (selectedTrackId);
     markDirty();
     launchAutoMix();
     rebuildPlayState();

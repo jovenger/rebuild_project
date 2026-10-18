@@ -57,7 +57,12 @@ public:
     void updateTrack (int trackId, const std::function<void (project::Track&)>& change, bool rerender,
                       const juce::String& undoLabel);
     int selectedTrack() const { return selectedTrackId; }
-    void selectTrack (int trackId);
+    /** Clic simple : sélectionne (et arme) la piste. Ctrl : ajoute / retire. Maj : étend depuis la dernière. */
+    void selectTrack (int trackId, bool addToSelection = false, bool extendRange = false);
+    bool isTrackSelected (int trackId) const { return selectedTracks.count (trackId) > 0; }
+    const std::set<int>& selectedTrackIds() const { return selectedTracks; }
+    /** Supprime plusieurs pistes en une seule étape d'annulation. */
+    void removeTracks (const std::vector<int>& trackIds);
 
     // --- Projet -----------------------------------------------------------------------------
     void setStyle (style::Style s);
@@ -152,6 +157,7 @@ private:
     int activeJobs = 0;
     juce::String status;
     int selectedTrackId = -1;
+    std::set<int> selectedTracks;   // sélection multiple (contient selectedTrackId quand il est valide)
     bool dirty = false;
     juce::int64 lastAutosaveMs = 0;
 

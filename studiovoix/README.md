@@ -60,18 +60,24 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 instrument (guitare, clavier, basse…). Nom proposé automatiquement (« Back 1 », « Back 2 »…). Les effets se
 règlent selon le type et le style du projet (un back est plus bas et plus serré que la voix principale, une
 harmonie plus large avec plus de réverb, un instrument sans autotune ni de-esser…). La nouvelle piste est
-sélectionnée et armée : il n'y a plus qu'à appuyer sur R. Le type se change ensuite dans l'onglet **Voix IA**.
+sélectionnée, armée et **brute** (aucun effet, curseurs à 0) : il n'y a plus qu'à appuyer sur R. Le type se change
+ensuite dans l'onglet **Voix IA**. Choisir un style dans la barre du haut traite toutes les voix encore brutes ;
+« Effets » dans l'onglet Voix IA règle chaque piste à part (brut, style du projet ou un autre style).
 
 **Glisser-déposer** : faire glisser un ou plusieurs fichiers audio (MP3, WAV, FLAC, AIFF, OGG) dans la fenêtre
 crée une nouvelle piste par fichier, placée là où on lâche sur la timeline (au début sinon). Le programme
 **reconnaît le contenu** (voix seule ou musique : hauteur de voix, largeur stéréo, poids des graves) et le nom du
 fichier (« instru », « beat », « voix », « guitare »…) pour proposer le type ; il se change dans la fenêtre d'import.
 
-**Importé = brut** : un fichier importé ou glissé (instru, morceau entier, voix déjà mixée…) reste tel quel :
-aucun effet, ni réverb, ni compression, ni mix auto. Clic sur la piste → le panneau **Voix IA** s'ouvre à droite
-sur « Effets : Aucun effet (brut) », tous les curseurs à 0 ; choisir un style dans cette liste traite la piste dans ce style (chaque piste
-peut avoir son propre style). Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Les prises
-enregistrées au micro, elles, sont traitées automatiquement dans le style du projet.
+**Aucun effet par défaut** : toute piste (nouvelle, enregistrée au micro, importée ou glissée) reste telle quelle :
+aucun effet, ni réverb, ni compression, ni mix auto. Clic sur la piste → le panneau **Voix IA** s'ouvre à droite sur
+« Style : Aucun », tous les curseurs à 0. Choisir un style dans cette liste applique à **cette piste** tous les
+réglages du style (autotune, EQ, compresseurs, de-esser, saturation, réverb, délai) ; chaque piste a son propre
+style. Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Le style de la barre du haut sert aux pistes
+générées, au mastering et aux propositions, pas aux pistes brutes.
+
+**Sélection multiple** : Ctrl + clic ajoute une piste à la sélection, Maj + clic étend ; **Suppr** supprime les
+pistes sélectionnées (Ctrl+Z pour revenir en arrière) ; le clic droit propose aussi la suppression groupée.
 
 Autres fonctions : punch-in (zone sur la timeline), boucle, métronome, marqueurs, prises multiples avec
 comping automatique (meilleure prise par phrase), copie d'un refrain sur les refrains identiques,

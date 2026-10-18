@@ -30,9 +30,10 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     roleLabel.setText ("Type", juce::dontSendNotification);
     addAndMakeVisible (treatmentLabel);
     addAndMakeVisible (treatmentBox);
-    treatmentLabel.setText ("Effets", juce::dontSendNotification);
+    treatmentLabel.setText ("Style", juce::dontSendNotification);
     treatmentLabel.setFont (juce::FontOptions (14.0f, juce::Font::bold));
-    treatmentBox.setTooltip ("Brut = le son tel quel, sans effet ni mix auto. Choisis un style : la piste est traitée dans ce style."_u8);
+    treatmentBox.setTooltip ("Aucun = le son tel quel, sans effet ni mix auto. Choisis un style : tous les réglages de ce style "
+                             "(autotune, EQ, compresseurs, de-esser, saturation, réverb, délai) s'appliquent à cette piste."_u8);
     treatmentBox.onChange = [this]
     {
         if (updating || shownTrack < 0)
@@ -41,7 +42,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
         if (id == 1)
             session.setTrackTreatment (shownTrack, true, {});
         else if (id == 2)
-            session.setTrackTreatment (shownTrack, false, {});
+            session.setTrackTreatment (shownTrack, false, {});   // instru : creux sous la voix
         else if (id > 100)
             session.setTrackTreatment (shownTrack, false, style::styleId (static_cast<style::Style> (id - 101)));
     };
@@ -207,8 +208,7 @@ void RemixPanel::fillTreatmentBox (bool instru)
         treatmentBox.addItem ("Creux sous la voix (mix auto)", 2);
         return;
     }
-    treatmentBox.addItem ("Aucun effet (brut)", 1);
-    treatmentBox.addItem ("Style du projet (" + style::styleName (session.project().style) + ")", 2);
+    treatmentBox.addItem ("Aucun (brut, aucun effet)", 1);
     // Styles par famille : identifiant = 101 + indice du style.
     for (const auto& g : style::styleGroups())
     {
@@ -242,8 +242,7 @@ void RemixPanel::refresh()
     const bool instru = t->role == style::Role::Instru;
     if (treatmentBox.getNumItems() == 0 || instru != treatmentForInstru || treatmentProjectStyle != static_cast<int> (session.project().style))
         fillTreatmentBox (instru);   // libellé « Style du projet (…) » à jour, sans tout reconstruire à chaque rafraîchissement
-    treatmentBox.setSelectedId (t->raw ? 1 : (instru || t->styleId.isEmpty() ? 2 : 101 + static_cast<int> (style::styleFromId (t->styleId))),
-                                juce::dontSendNotification);
+    treatmentBox.setSelectedId (t->raw ? 1 : (instru ? 2 : 101 + static_cast<int> (session.project().trackStyle (*t))), juce::dontSendNotification);
     const auto trackStyleName = style::styleName (session.project().trackStyle (*t));
     title.setText (t->name + "  (" + style::roleName (t->role) + (t->raw ? juce::String (", brut") : ", style " + trackStyleName) + ")",
                    juce::dontSendNotification);
@@ -280,8 +279,8 @@ void RemixPanel::refresh()
         txt << "\nRéférence : "_u8 << juce::File (session.project().referenceFile).getFileName();
     if (vocal && t->raw)
     {
-        txt << "\n\nBrut : aucun effet, ni mix auto. Choisis un style dans « Effets » ci-dessus : la piste est alors "
-               "traitée dans ce style (autotune, EQ, compresseur, réverb…)."_u8;
+        txt << "\n\nAucun effet : le son tel quel, hors mix auto. Choisis un style dans « Style » ci-dessus : tous les réglages "
+               "de ce style (autotune, EQ, compresseurs, de-esser, saturation, réverb, délai) s'appliquent à cette piste."_u8;
     }
     else if (vocal)
     {

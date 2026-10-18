@@ -158,7 +158,7 @@ void TrackHeader::refresh()
 void TrackHeader::paint (juce::Graphics& g)
 {
     const auto* t = session.project().findTrack (id);
-    const bool selected = session.selectedTrack() == id;
+    const bool selected = session.isTrackSelected (id);
     g.fillAll (selected ? juce::Colour (0xff2f3a48) : juce::Colour (0xff23282f));
     if (t != nullptr)
     {
@@ -176,7 +176,9 @@ void TrackHeader::paint (juce::Graphics& g)
 
 void TrackHeader::mouseDown (const juce::MouseEvent& e)
 {
-    session.selectTrack (id);
+    // Ctrl + clic : ajoute à la sélection ; Maj + clic : étend ; clic droit sur une piste déjà sélectionnée : garde la sélection.
+    if (! (e.mods.isPopupMenu() && session.isTrackSelected (id)))
+        session.selectTrack (id, e.mods.isCtrlDown() || e.mods.isCommandDown(), e.mods.isShiftDown());
     if (e.mods.isPopupMenu())
         if (auto* tv = findParentComponentOfClass<TimelineView>())
             tv->openTrackMenu (id);
@@ -304,7 +306,7 @@ void TimelineView::paint (juce::Graphics& g)
         const int y = kRulerHeight + static_cast<int> (i) * kTrackHeight - scrollY;
         if (y + kTrackHeight < kRulerHeight || y > getHeight() || y + kTrackHeight < clip.getY() || y > clip.getBottom())
             continue;
-        const bool selected = session.selectedTrack() == t.id;
+        const bool selected = session.isTrackSelected (t.id);
         g.setColour (selected ? juce::Colour (0xff1f2630) : (i % 2 == 0 ? juce::Colour (0xff181c21) : juce::Colour (0xff1b1f25)));
         g.fillRect (kHeaderWidth, y, w - kHeaderWidth, kTrackHeight);
 
@@ -357,7 +359,7 @@ void TimelineView::paint (juce::Graphics& g)
         {
             g.setColour (juce::Colours::grey);
             g.setFont (13.0f);
-            g.drawText ("Clic droit : nouvelle piste (voix, back, doublage, harmonie, ad-libs, ambiance, instrument)"_u8,
+            g.drawText ("Clic droit : nouvelle piste | Ctrl / Maj + clic : sélection multiple | Suppr : supprimer la sélection"_u8,
                         kHeaderWidth + 10, yEnd + 8, 900, 20, juce::Justification::centredLeft);
         }
     }
@@ -511,7 +513,8 @@ void TimelineView::mouseDown (const juce::MouseEvent& e)
     if (idx >= 0)
     {
         const int id = session.project().tracks[static_cast<size_t> (idx)].id;
-        session.selectTrack (id);
+        if (! (e.mods.isPopupMenu() && session.isTrackSelected (id)))
+            session.selectTrack (id, e.mods.isCtrlDown() || e.mods.isCommandDown(), e.mods.isShiftDown());
         if (e.mods.isPopupMenu())
             showTrackMenu (id);
         else if (! session.isRecording())
@@ -598,13 +601,22 @@ void TimelineView::showTrackMenu (int trackId)
         m.addItem (2, "Prises : meilleure prise automatique (phrase par phrase)", true, t->comp == project::CompMode::Best);
         m.addItem (3, "Effacer toutes les prises de cette piste", ! t->takes.empty());
     }
-    m.addItem (4, "Supprimer la piste");
+    const int nSel = static_cast<int> (session.selectedTrackIds().size());
+    if (nSel > 1 && session.isTrackSelected (trackId))
+        m.addItem (5, "Supprimer les " + juce::String (nSel) + " pistes sélectionnées (Suppr)"_u8);
+    else
+        m.addItem (4, "Supprimer la piste (Suppr)");
     juce::WeakReference<Session> weak (&session);
     m.showMenuAsync (juce::PopupMenu::Options(), [weak, trackId] (int r)
     {
         auto* s = weak.get();
         if (s == nullptr || r == 0)
             return;
+        if (r == 5)
+        {
+            s->removeTracks (std::vector<int> (s->selectedTrackIds().begin(), s->selectedTrackIds().end()));
+            return;
+        }
         if (r == 10)
             showNewTrackDialog (*s);
         else if (r == 11)
