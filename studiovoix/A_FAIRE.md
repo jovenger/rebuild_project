@@ -26,4 +26,4 @@ belles illustrations soignées (schémas de branchement) :
 - Tests réels sur Windows : carte son, latence, recalage, écoute des traitements.
 - Appels réels aux API Claude et ElevenLabs (avec clés).
 - Export MP3 avec `lame.exe`.
-- Profils intégrés rock / latino (aujourd'hui : via les styles sur mesure avec une clé Claude).
+- Réglages des styles à affiner à l'oreille (en particulier rock et latino, ajoutés sans écoute).

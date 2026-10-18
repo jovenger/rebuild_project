@@ -17,7 +17,11 @@ namespace
         { "rnb", "R&B" },
         { "drill", "Drill" },
         { "afro", "Afro" },
+        { "rock", "Rock" },
+        { "latino", "Latino / Reggaeton" },
     };
+    static_assert (std::size (kStyles) == static_cast<size_t> (Style::Count), "un nom par style");
+    constexpr int kLastStyle = static_cast<int> (Style::Count) - 1;
 
     constexpr StyleInfo kRoles[] = {
         { "instru", "Instru" },
@@ -118,6 +122,32 @@ namespace
                 p.sat = { 3.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
                 p.delay.send = 0.20f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.35f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Rock:
+                // Voix naturelle et granuleuse : peu de justesse, compression franche, saturation, slapback court.
+                p.pitch = { true, 0.1f, 100.0f, 0.9f };
+                p.clean.hpfHz = 90.0f;
+                p.eq = { 90.0f, 200.0f, 0.0f, 350.0f, -2.5f, 1.0f, 3000.0f, 3.0f, 0.8f, 10000.0f, 2.0f, 0.0f };
+                p.comp = { -18.0f, 5.0f, 6.0f, 10.0f, 120.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.5f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 8.0f, 0.35f, 0.2f };
+                p.reverb.send = 0.15f; p.reverb.roomSize = 0.5f; p.reverb.damping = 0.55f; p.reverb.preDelayMs = 30.0f;
+                p.delay.send = 0.12f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Latino:
+                // Reggaeton / latino urbain : autotune marqué, voix brillante, délai croche pointée sur les fins.
+                p.pitch = { true, 0.85f, 10.0f, 0.2f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
+                p.comp = { -22.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 4.0f, 0.25f, 0.1f };
+                p.reverb.send = 0.18f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
+                p.delay.send = 0.18f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
                 p.outputDb = -14.0f;
                 break;
         }
@@ -266,8 +296,8 @@ namespace
     }
 }
 
-juce::String styleId (Style s) { return kStyles[juce::jlimit (0, 5, static_cast<int> (s))].id; }
-juce::String styleName (Style s) { return juce::String (juce::CharPointer_UTF8 (kStyles[juce::jlimit (0, 5, static_cast<int> (s))].name)); }
+juce::String styleId (Style s) { return kStyles[juce::jlimit (0, kLastStyle, static_cast<int> (s))].id; }
+juce::String styleName (Style s) { return juce::String (juce::CharPointer_UTF8 (kStyles[juce::jlimit (0, kLastStyle, static_cast<int> (s))].name)); }
 
 Style styleFromId (const juce::String& id)
 {
@@ -338,6 +368,8 @@ GenerationDefaults generationDefaults (Style s)
         case Style::PopUrbaine: g = { 1, 1, true, false, true, 0.5f, 2, 0.3f }; break;
         case Style::RnB:        g = { 1, 2, false, true, true, 0.8f, 1, 0.25f }; break;
         case Style::Drill:      g = { 1, 0, true, true, false, 0.0f, 1, 0.5f }; break;
+        case Style::Rock:       g = { 2, 1, true, false, false, 0.0f, 2, 0.2f }; break;
+        case Style::Latino:     g = { 1, 2, true, true, true, 0.4f, 2, 0.55f }; break;
         case Style::Afro:
         case Style::Count:      g = { 1, 2, false, true, true, 0.6f, 2, 0.5f }; break;
     }
@@ -353,6 +385,8 @@ MasterTone masterTone (Style s)
         case Style::PopUrbaine: return { 0.5f, 1.5f, 1.5f };
         case Style::RnB:        return { 1.0f, 1.0f, 1.0f };
         case Style::Drill:      return { 1.5f, 0.5f, 0.5f };
+        case Style::Rock:       return { 0.5f, 1.0f, 0.0f };
+        case Style::Latino:     return { 1.5f, 1.0f, 1.0f };
         case Style::Afro:
         case Style::Count:      return { 1.0f, 1.0f, 1.0f };
     }

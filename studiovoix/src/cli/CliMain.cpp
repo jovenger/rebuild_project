@@ -79,7 +79,7 @@ void usage()
                  "  demo [--style s] [--bars N] -o dossier chaine complete sur signaux de synthese\n"
                  "  master <mix> [--target t] -o sortie.wav\n"
                  "  assistant <phrase>                     teste l'assistant texte\n"
-                 "styles : rap trap pop_urbaine rnb drill afro\n"
+                 "styles : rap trap pop_urbaine rnb drill afro rock latino\n"
                  "cibles : spotify youtube apple tiktok fort none\n";
 }
 

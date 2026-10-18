@@ -10,7 +10,7 @@
 // Ce sont des points de départ raisonnables, à affiner à l'oreille.
 namespace sv::style
 {
-enum class Style { Rap = 0, Trap, PopUrbaine, RnB, Drill, Afro, Count };
+enum class Style { Rap = 0, Trap, PopUrbaine, RnB, Drill, Afro, Rock, Latino, Count };
 
 enum class Role
 {

@@ -487,6 +487,36 @@ public:
             expectEquals (adlibs, 1);
             expectEquals (amb, 1);
         }
+        beginTest ("Profils : tous les styles (dont rock et latino), ids stables, chaine sans NaN");
+        {
+            for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
+            {
+                const auto st = static_cast<style::Style> (i);
+                expect (style::styleFromId (style::styleId (st)) == st, "aller-retour id : " + style::styleId (st));
+                expect (style::styleName (st).isNotEmpty());
+                for (int r = 0; r < static_cast<int> (style::Role::Count); ++r)
+                {
+                    const auto p = style::makeParams (st, static_cast<style::Role> (r), {});
+                    expect (std::isfinite (p.outputDb) && std::isfinite (p.comp.ratio) && p.comp.ratio >= 1.0f
+                                && std::isfinite (p.reverb.send) && std::isfinite (p.delay.noteBeats) && p.delay.noteBeats > 0.0f,
+                            "reglages finis : " + style::styleId (st) + " / " + style::roleId (static_cast<style::Role> (r)));
+                }
+            }
+            expect (style::makeParams (style::Style::Rock, style::Role::Lead, {}).pitch.amount
+                    < style::makeParams (style::Style::Latino, style::Role::Lead, {}).pitch.amount,
+                    "rock : moins d'autotune que latino");
+            dsp::AnalysisContext ctx;
+            ctx.key = key;
+            ctx.tempo.bpm = 100.0;
+            for (const auto st : { style::Style::Rock, style::Style::Latino })
+            {
+                const auto res = dsp::processVocal (voice, kSr, style::makeParams (st, style::Role::Lead, {}), ctx);
+                const auto* l = res.audio.getReadPointer (0);
+                expect (! audio::hasNonFinite (l, static_cast<size_t> (res.audio.getNumSamples())), "pas de NaN : " + style::styleId (st));
+                const float pk = audio::peak (l, static_cast<size_t> (res.audio.getNumSamples()));
+                expect (pk > 0.01f && pk < 1.5f, "niveau plausible " + style::styleId (st) + " : " + juce::String (pk, 3));
+            }
+        }
         beginTest ("Harmonie : tierce au-dessus dans la gamme");
         {
             VoicePhrase p;

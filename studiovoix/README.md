@@ -35,7 +35,7 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 
 1. **Nouveau** → nom du projet.
 2. **Instru...** → MP3/WAV. Analyse automatique : tempo, tonalité, structure (couplets / refrains).
-3. **Style** (rap, trap, pop urbaine, R&B, drill, afro) dans la barre du haut.
+3. **Style** (rap, trap, pop urbaine, R&B, drill, afro, rock, latino / reggaeton) dans la barre du haut.
 4. **R** (ou REC) → compte à rebours → chanter → **R** pour arrêter.
    La prise est recalée de la latence puis traitée automatiquement (justesse, nettoyage, EQ, compression,
    de-esser, saturation, réverb, délai) selon le style.
@@ -73,7 +73,7 @@ bibliothèque de beats par tempo / tonalité / énergie).
 Avec une clé (**Paramètres** → IA, clés masquées et stockées uniquement sur ce PC) :
 
 - **Clé Claude (Anthropic)** : assistant avancé (demande libre → curseurs), diagnostic du mix détaillé,
-  aide à l'écriture (→ onglet Paroles), styles sur mesure (rock, latino, etc.) enregistrés,
+  aide à l'écriture (→ onglet Paroles), styles sur mesure enregistrés (n'importe quel style décrit en texte),
   description d'une instru d'après les paroles. Modèle par défaut : `claude-opus-5-5`.
 - **Clé ElevenLabs Music** : création d'une instru d'après la description (style ou paroles), importée
   directement dans le projet.
@@ -132,7 +132,7 @@ une licence commerciale JUCE est nécessaire.**
 
 ## État
 
-Vérifié automatiquement (CI Windows MSVC + Linux GCC) : compilation, 155 tests, auto-test de
+Vérifié automatiquement (CI Windows MSVC + Linux GCC) : compilation, 240 vérifications de tests, auto-test de
 l'application (import, analyse, rendu, génération, annuler/rétablir, export à −14,00 LUFS).
 
 **Non vérifié** (pas de matériel ni de clé dans l'environnement de développement) :
@@ -140,5 +140,4 @@ l'application (import, analyse, rendu, génération, annuler/rétablir, export �
 - carte son réelle, latence réelle et recalage sur du vrai matériel ;
 - qualité d'écoute des traitements et des pistes générées ;
 - appels réels aux API Claude et ElevenLabs ;
-- export MP3 avec `lame.exe` ;
-- styles rock / latino : pas de profil intégré, seulement via les styles sur mesure (clé Claude).
+- export MP3 avec `lame.exe`.

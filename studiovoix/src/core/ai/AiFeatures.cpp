@@ -75,7 +75,7 @@ namespace
 
     const char* kSystemEngineer =
         "Tu es l'ingénieur du son intégré au logiciel StudioVoix (enregistrement de voix sur instru : rap, trap, pop urbaine, "
-        "R&B, drill, afro). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "
+        "R&B, drill, afro, rock, latino). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "
         "0,5 = réglage de base du style. autotune : 0 = aucun, 0,5 = style, 1 = effet robot. presence : 0 = voix chaude/sombre, "
         "1 = voix brillante et devant. space : quantité de réverb + délai (0 = sec). energy : compression + saturation. "
         "level : volume de la piste (0,5 = normal, ±12 dB). reverbTrim / delayTrim : ajustement fin de la réverb ou du délai seuls "
@@ -332,7 +332,7 @@ WritingResult helpWrite (const AiSettings& s, const juce::String& request, const
     rq.model = s.model;
     rq.effort = "medium";
     rq.maxTokens = 8000;
-    rq.system = "Tu aides un artiste à écrire ses textes (rap, trap, pop urbaine, R&B, drill, afro), en français sauf demande contraire. "
+    rq.system = "Tu aides un artiste à écrire ses textes (rap, trap, pop urbaine, R&B, drill, afro, rock, latino), en français sauf demande contraire. "
                 "Respecte son univers et son vocabulaire, propose des rimes riches et un flow qui tombe sur les temps. "
                 "Une ligne = une mesure, sauf indication contraire. Pas de contenu haineux ni d'incitation à la violence réelle.";
     rq.user = "Style : " + style::styleName (p.style) + ", " + juce::String (p.tempo.bpm, 0) + " BPM, " + juce::String (p.lyricsBarsPerLine)
@@ -451,6 +451,8 @@ InstruBrief briefFromStyle (style::Style st)
         case style::Style::PopUrbaine: b.bpmMin = 95;  b.bpmMax = 120; b.energy = 0.6f; b.minor = false; b.prompt = "Catchy urban pop instrumental, warm synths, modern drums, uplifting chords"; break;
         case style::Style::RnB:        b.bpmMin = 60;  b.bpmMax = 90;  b.energy = 0.35f; b.prompt = "Smooth R&B instrumental, soft keys, warm bass, laid-back groove"; break;
         case style::Style::Drill:      b.bpmMin = 138; b.bpmMax = 146; b.energy = 0.85f; b.prompt = "UK drill instrumental, sliding 808s, syncopated hi-hats, dark piano"; break;
+        case style::Style::Rock:       b.bpmMin = 110; b.bpmMax = 140; b.energy = 0.8f; b.prompt = "Energetic rock instrumental, driving live drums, distorted electric guitars, bass guitar"; break;
+        case style::Style::Latino:     b.bpmMin = 88;  b.bpmMax = 100; b.energy = 0.7f; b.prompt = "Reggaeton instrumental, dembow rhythm, deep bass, latin percussion, catchy synth lead"; break;
         case style::Style::Afro:
         case style::Style::Count:      b.bpmMin = 100; b.bpmMax = 116; b.energy = 0.65f; b.prompt = "Afrobeats instrumental, log drums, percussive groove, bright guitar and synths"; break;
     }
