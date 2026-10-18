@@ -518,6 +518,18 @@ local function enregistrer()
   Scriptorium.registre.enregistrer("hommes")
 end
 
+-- Le personnel mené (demande du pair, 18/10 : les gens de Scriptorium à notre cerveau, hors de la Compagnie) : des
+-- fiches minimales dans « d.menes », jamais dans « d.ordre » ; ni effectif, ni solde, ni moral, ni garde, ni bataille.
+-- Les quatre fonctions qui mènent (activite_de, l'ordre, tenir, lâcher) trouvent la fiche ici ou là.
+local function fiche_de(d, id)
+  return d.liste[id] or (d.menes and d.menes[id]) or nil
+end
+
+-- Ceux avec qui l'on se range (colonne, arc) : la Compagnie pour un homme, lui seul pour un mené.
+local function ordre_de(d, f)
+  return (f and f.mene) and { f.id } or d.ordre
+end
+
 local function refuser(raison, detail)
   jeu().journal("Hommes : refus (" .. raison .. ")" .. (detail and (" : " .. detail) or ""))
   return false, raison
@@ -1769,7 +1781,7 @@ end
 -- Scriptorium peut en rendre une autre parmi les tenues posées sur l'homme ; une règle qu'il ne porte pas, ou inconnue
 -- du catalogue des priorités, laisse la décision du socle.
 function hommes.regle_la_plus_forte(id)
-  local f = donnees().liste[id]
+  local f = fiche_de(donnees(), id)
   return (f and tenue_la_plus_forte_du_socle(f)) or false
 end
 Scriptorium.remplacable(hommes, "regle_la_plus_forte", function(rendu) return rendu == false or type(rendu) == "string" end)
@@ -2001,7 +2013,7 @@ end
 
 function hommes.activite_de(id, heure)
   local d = donnees()
-  local f = d.liste[id]
+  local f = fiche_de(d, id)
   if not f then
     return nil
   end
@@ -2087,8 +2099,8 @@ function hommes.activite_de(id, heure)
     if tenue.activite == "suivre" then
       -- Fiche 17 : « tete » (le chef d'une mission, le colonel de Scriptorium) passe en tête de sa colonne.
       local membres = {}
-      for _, autre in ipairs(d.ordre) do
-        local _, t2 = tenue_la_plus_forte(d.liste[autre])
+      for _, autre in ipairs(ordre_de(d, f)) do
+        local _, t2 = tenue_la_plus_forte(fiche_de(d, autre))
         if t2 and t2.activite == "suivre" and t2.lieu == tenue.lieu then
           table.insert(membres, (autre == tenue.tete) and 1 or #membres + 1, autre)
         end
@@ -2117,7 +2129,7 @@ function hommes.activite_de(id, heure)
             chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
           else
             local tete = membres[1]
-            chef = tete and d.liste[tete].personnage
+            chef = tete and fiche_de(d, tete).personnage
           end
           resultat.suivi = { mode = "formation" }
         elseif places and rang == 1 and not du_directeur then
@@ -2125,11 +2137,11 @@ function hommes.activite_de(id, heure)
         end
         if chef == nil then
           if rang > 1 then
-            chef = d.liste[precedent].personnage
+            chef = fiche_de(d, precedent).personnage
           elseif du_directeur then
             chef = Scriptorium.directeur and Scriptorium.directeur.personnage()
           elseif tenue.chef ~= nil and tenue.chef ~= "henry" then
-            chef = d.liste[tenue.chef] and d.liste[tenue.chef].personnage
+            chef = fiche_de(d, tenue.chef) and fiche_de(d, tenue.chef).personnage
           end
         end
         resultat.chef = chef or "henry"
@@ -2171,8 +2183,8 @@ function hommes.activite_de(id, heure)
     end
     if tenue.activite == "rassemblement" and tenue.centre then
       local rang, nombre = 0, 0
-      for _, autre in ipairs(d.ordre) do
-        local _, t2 = tenue_la_plus_forte(d.liste[autre])
+      for _, autre in ipairs(ordre_de(d, f)) do
+        local _, t2 = tenue_la_plus_forte(fiche_de(d, autre))
         if t2 and t2.activite == "rassemblement" and t2.centre and t2.lieu == tenue.lieu then
           nombre = nombre + 1
           if autre == id then
@@ -2188,7 +2200,8 @@ function hommes.activite_de(id, heure)
     end
     return resultat
   end
-  if hommes.reglages.journee_du_socle == false then
+  -- Un mené sans tenue attend : sa journée est celle de Scriptorium, jamais la nôtre.
+  if f.mene or hommes.reglages.journee_du_socle == false then
     resultat.regle, resultat.activite = "aucune", "attendre"
     return resultat
   end
@@ -3063,7 +3076,7 @@ end
 -- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel). « a_la_pose » :
 -- l'ordre donné quand la tenue est posée (la ronde part alors de son point de départ, fiche 15, V73 d 2).
 local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
-  local f = d.liste[id]
+  local f = fiche_de(d, id)
   if not f or not f.personnage then
     return
   end
@@ -3667,6 +3680,7 @@ function hommes.battre()
   for _, id in ipairs(d.ordre) do
     ordonner_un_homme(d, id, heure, rapport, false)
   end
+  hommes.mener_le_personnel(d, heure, rapport)
   local equipe = equiper_un_homme(d)
   if equipe then
     rapport.equipes = rapport.equipes + 1
@@ -3750,7 +3764,7 @@ end
 -- cheval tant qu'Henry l'est. Rend vrai, ou (faux, raison).
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
-  local f = d.liste[id]
+  local f = fiche_de(d, id)
   if not f then
     return refuser("homme_inconnu", tostring(id))
   end
@@ -3910,7 +3924,7 @@ end
 -- (fin, sûreté, montée de version) n'a rien à lâcher : rien n'est dit.
 function hommes.lacher(id, regle)
   local d = donnees()
-  local f = d.liste[id]
+  local f = fiche_de(d, id)
   if not f then
     return refuser("homme_inconnu", tostring(id))
   end
@@ -3922,6 +3936,90 @@ function hommes.lacher(id, regle)
   ordonner_un_homme(d, id, jeu().heure_du_jeu(), nil, true)
   redonner_au_rassemblement(d, jeu().heure_du_jeu())
   return true
+end
+
+-- ---------------------------------------------------------------- le personnel mené (hors de la Compagnie)
+
+-- Demande du pair (18/10) : les gens de Scriptorium (métiers du camp, clients, prisonniers…) ont notre cerveau et sont
+-- menés par les mêmes ordres que nos hommes (geste ancré, poste, marche, suivre, à cheval), sans être de la Compagnie.
+-- hommes.tenir_un_personnage(personnage, regle, quoi) : « quoi » comme pour hommes.tenir ; rend vrai, ou faux et la
+-- raison. Le mené naît à sa première tenue ; un personnage de la Compagnie est refusé (deja_de_la_compagnie).
+function hommes.tenir_un_personnage(personnage, regle, quoi)
+  local d = donnees()
+  if type(personnage) ~= "string" or personnage == "" or not jeu().personnage_existe(personnage) then
+    return refuser("personnage_introuvable", tostring(personnage))
+  end
+  for _, id in ipairs(d.ordre) do
+    if d.liste[id].personnage == personnage then
+      return refuser("deja_de_la_compagnie", id)
+    end
+  end
+  d.menes = d.menes or {}
+  local id = "mene_" .. personnage
+  if not d.menes[id] then
+    d.menes[id] = { id = id, nom = personnage, personnage = personnage, mene = true, blessure = 0, tenues = {} }
+    jeu().journal("Hommes : « " .. personnage .. " » est mené (hors de la Compagnie)")
+  end
+  local ok, raison = hommes.tenir(id, regle, quoi)
+  if not ok and next(d.menes[id].tenues) == nil then
+    d.menes[id] = nil
+  end
+  return ok, raison
+end
+
+-- Lâche la tenue d'une règle ; sans plus aucune tenue, le personnage n'est plus mené (il attend, rendu à Scriptorium).
+function hommes.lacher_un_personnage(personnage, regle)
+  local d = donnees()
+  local id = "mene_" .. tostring(personnage)
+  local f = d.menes and d.menes[id]
+  if not f then
+    return true
+  end
+  local ok, raison = hommes.lacher(id, regle)
+  if next(f.tenues or {}) == nil then
+    d.menes[id] = nil
+    hommes.suivi[id] = nil
+    enregistrer()
+    jeu().journal("Hommes : « " .. tostring(personnage) .. " » n'est plus mené")
+  end
+  return ok, raison
+end
+
+-- Les personnages menés, lisibles : { identifiant de personnage, ... }.
+function hommes.personnel_mene()
+  local liste = {}
+  for _, f in pairs(donnees().menes or {}) do
+    table.insert(liste, f.personnage)
+  end
+  table.sort(liste)
+  return liste
+end
+
+-- Au battement : les tenues échues tombent (comme pour nos hommes), un personnage disparu n'est plus mené, et chacun
+-- reçoit son ordre (sans le secours des hommes, fait pour la Compagnie et son camp).
+function hommes.mener_le_personnel(d, heure, rapport)
+  local menes = {}
+  for cle_du_mene in pairs(d.menes or {}) do
+    table.insert(menes, cle_du_mene)
+  end
+  table.sort(menes)
+  for _, id in ipairs(menes) do
+    local f = d.menes[id]
+    if not jeu().personnage_existe(f.personnage) then
+      jeu().journal("Hommes : « " .. f.personnage .. " » n'existe plus : il n'est plus mené")
+      d.menes[id] = nil
+      hommes.suivi[id] = nil
+    else
+      for regle, t in pairs(f.tenues) do
+        if (type(t.fin) == "number" and heure >= t.fin)
+            or (type(t.fin) ~= "number" and heure >= (t.depuis or heure) + hommes.reglages.tenue_max_h) then
+          f.tenues[regle] = nil
+          if rapport then rapport.changements = rapport.changements + 1 end
+        end
+      end
+      ordonner_un_homme(d, id, heure, rapport, true)
+    end
+  end
 end
 
 -- ---------------------------------------------------------------- les paroles (fiche 20)

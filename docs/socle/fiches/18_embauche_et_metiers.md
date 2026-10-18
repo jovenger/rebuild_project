@@ -202,3 +202,16 @@ Comportement :
   nuit, une forge qui n'est pas à lui). Et **le nom d'une station, même avec son GUID, peut se résoudre vers une autre
   entité** (la forge visée : une autre à 3,3 km) : le partage devrait tenir l'entité par son identifiant
   (`stations_proches` la tient déjà), pas par son nom. À voir par JoVenGer, de jour, à une forge qu'il peut utiliser.
+
+## Le personnel mené, hors de la Compagnie (demande du pair, 18/10/2026)
+- Les gens de Scriptorium (métiers du camp, clients de passage, prisonniers, notaire…) ont notre cerveau et sont menés
+  par les mêmes ordres que nos hommes, sans être de la Compagnie : ni effectif, ni plafond, ni solde, ni moral, ni garde,
+  ni bataille, ni mission, ni ronde de notre fait.
+- `hommes.tenir_un_personnage(personnage, regle, quoi)` : « quoi » comme `hommes.tenir` (geste ancré, poste, marche à un
+  point, suivre, à cheval…) ; la fiche du mené naît à sa première tenue, dans `d.menes` (jamais dans `d.ordre`) ; un
+  personnage de la Compagnie est refusé (`deja_de_la_compagnie`), un personnage absent aussi (`personnage_introuvable`).
+  Sans « fin », la tenue tombe au prochain changement de tranche, comme pour nos hommes : Scriptorium donne « fin ».
+- `hommes.lacher_un_personnage(personnage, regle)` ; sans plus aucune tenue, il n'est plus mené (il attend).
+- `hommes.personnel_mene()` : la liste des personnages menés.
+- Au battement : tenues échues, personnage disparu oublié, ordre redonné ; pas de secours (fait pour nos hommes au camp).
+- Non vérifié en jeu.

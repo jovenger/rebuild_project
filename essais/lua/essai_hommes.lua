@@ -967,6 +967,34 @@ essai("équipement : famille inconnue refusée ; sans famille, une des six est t
   egal(hommes.equipement.familles[famille] ~= nil, true, "une des six familles")
 end)
 
+essai("personnel mené (18/10) : un personnage hors de la Compagnie tenu par nos ordres ; jamais dans l'effectif ; lâché, il n'est plus mené ; disparu, oublié", function()
+  preparer(200, 10, 10)
+  FauxJeu.personnages_existants["dame_des_bains"] = true
+  local avant = #hommes.liste()
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir_un_personnage("dame_des_bains", "travail", { activite = "garde", lieu = "bains", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "tenue posée")
+  egal(#hommes.liste(), avant, "pas dans la Compagnie")
+  egal(hommes.personnel_mene()[1], "dame_des_bains", "listée parmi le personnel mené")
+  local dernier = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(dernier.identifiant, "dame_des_bains", "l'ordre lui est donné")
+  egal(dernier.activite, "garde", "son activité")
+  egal(dernier.lieu, "bains", "son lieu")
+  hommes.battre()
+  egal(#hommes.liste(), avant, "toujours hors de l'effectif après un battement")
+  verifier(hommes.lacher_un_personnage("dame_des_bains", "travail"), "lâchée")
+  egal(#hommes.personnel_mene(), 0, "plus menée")
+  local ok, raison = hommes.tenir_un_personnage("inconnu", "travail", { activite = "garde", fin = "liberation" })
+  egal(ok, false, "personnage introuvable refusé")
+  egal(raison, "personnage_introuvable", "raison")
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local _, r2 = hommes.tenir_un_personnage(hommes.fiche(id).personnage, "travail", { activite = "garde", fin = "liberation" })
+  egal(r2, "deja_de_la_compagnie", "un homme de la Compagnie passe par hommes.tenir")
+  verifier(hommes.tenir_un_personnage("dame_des_bains", "travail", { activite = "garde", fin = "liberation" }), "reprise")
+  FauxJeu.personnages_existants["dame_des_bains"] = nil
+  hommes.battre()
+  egal(#hommes.personnel_mene(), 0, "disparue : oubliée")
+end)
+
 essai("compagnons nommés (18/10) : 31 fiches, une âme chacun ; l'embauche donne son âme et sa famille ; une âme portée est refusée ; les familles des compagnons ne sont jamais tirées", function()
   egal(#hommes.compagnons, 31, "trente et un compagnons")
   local ames, noms = {}, 0
