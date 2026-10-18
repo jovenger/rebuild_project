@@ -265,7 +265,11 @@ namespace
                         fail ("nouvelle piste : pas armée ou mal nommée"_u8);
                         return;
                     }
-                    log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée, cible de l'enregistrement"_u8);
+                    session.selectTrack (session.project().leadTrackId());
+                    if (session.recordTargetTrack() != session.project().leadTrackId()) { fail ("clic sur une piste : devrait l'armer"_u8); return; }
+                    session.selectTrack (backTrackId);
+                    if (session.recordTargetTrack() != backTrackId) { fail ("clic sur la piste back : devrait l'armer"_u8); return; }
+                    log ("étape 6 bis : nouvelle piste « Back 1 » créée, armée ; cliquer une piste l'arme"_u8);
                     // Style choisi avant l'import : la prise est traitée (sinon elle resterait brute, sans calcul).
                     session.setTrackTreatment (backTrackId, false, style::styleId (style::Style::Trap));
                     session.importVoice (voice, backTrackId);

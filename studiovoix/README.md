@@ -43,6 +43,7 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 3. **Style** (33 styles rangés par famille, liste ci-dessous) : changeable à tout moment dans la barre du haut, toutes les pistes
    sont alors retraitées avec le nouveau pré-réglage.
 4. **Rond rouge** à gauche d'une piste = piste **armée** : le micro enregistre sur elle et sur rien d'autre.
+   Cliquer sur une piste l'arme ; le rond permet aussi d'armer / désarmer à la main.
    **R** (ou REC) → compte à rebours → chanter → **R** pour arrêter.
    La prise est recalée de la latence puis traitée automatiquement (justesse, nettoyage, EQ, compression,
    de-esser, saturation, réverb, délai) selon le style.

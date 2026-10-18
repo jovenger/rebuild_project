@@ -623,6 +623,15 @@ void Session::updateTrack (int trackId, const std::function<void (project::Track
 void Session::selectTrack (int trackId)
 {
     selectedTrackId = trackId;
+    // Cliquer sur une piste enregistrable l'arme aussi : la prochaine prise (R / REC) va sur la piste choisie.
+    // Pas pendant un enregistrement (la prise en cours garde sa piste).
+    if (const auto* t = proj.findTrack (trackId); t != nullptr && t->isRecordable() && ! audioEngine.isRecording()
+                                                  && proj.armedTrackId != trackId)
+    {
+        proj.armedTrackId = trackId;
+        dirty = true;
+        SV_LOG_INFO (kMod, "Piste sélectionnée et armée : « "_u8 + t->name + " »"_u8);
+    }
     sendChangeMessage();
 }
 

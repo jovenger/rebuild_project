@@ -47,7 +47,8 @@ public:
     /** Panneau de la piste : brut (aucun effet, hors mix auto) ou traité dans un style (vide = style du projet).
         Pour l'instru : non brute = creux sous la voix (mix auto). */
     void setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId);
-    /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer. */
+    /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer.
+        Cliquer sur une piste enregistrable l'arme aussi (selectTrack). */
     void armTrack (int trackId);
     int armedTrack() const { return proj.armedTrackId; }
     /** Piste qui recevra la prochaine prise : armée, sinon sélectionnée (si enregistrable), sinon voix principale. */
