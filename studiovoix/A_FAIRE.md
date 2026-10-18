@@ -17,10 +17,12 @@ comment les automatismes doivent être faits, ordre proposé.
   reconnaissance des paroles (whisper-cli + modèle base), mastering par référence à l'export. Les téléchargements et
   l'exécution réelle des outils sont impossibles depuis l'environnement de développement (réseau bloqué) ; seule la CI
   Windows a téléchargé les outils et relevé leurs empreintes.
-- Demucs (séparation d'instru) : compilation expérimentale de demucs.cpp en CI. Build 58 : la configuration CMake a
-  échoué (CMakeLists de demucs.cpp trop ancien pour CMake 4 : « Compatibility with CMake < 3.5 has been removed ») ;
-  corrigé avec `-DCMAKE_POLICY_VERSION_MINIMUM=3.5`, résultat au build suivant. Si MSVC compile, livrer le binaire dans
-  l'installateur IA et ajouter le modèle (ggml htdemucs) au catalogue d'outils.
+- Demucs (séparation d'instru) : compilation expérimentale de demucs.cpp en CI. Build 58 : CMake 4 refuse le
+  CMakeLists trop ancien (corrigé : policy 3.5). Build 59 : MSVC refuse les drapeaux GCC du projet (`-Wextra`,
+  `-Ofast -march=native`, OpenBLAS requis). Build 60 : compilation avec le GCC MinGW de l'image Windows (OpenMP seul,
+  binaire statique, `-march=x86-64-v2`), cible `demucs_mt.cpp.main` uniquement. Si ça compile : publier le binaire
+  (release GitHub « outils ») et ajouter le modèle `ggml-model-htdemucs-4s-f16.bin` (84 Mo, HuggingFace
+  Retrobear/demucs.cpp) au catalogue ; sortie attendue : target_0_drums / 1_bass / 2_other / 3_vocals.wav.
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.
 
