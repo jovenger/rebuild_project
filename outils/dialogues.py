@@ -324,9 +324,7 @@ def principal(arguments):
             with open(chemin, "r", encoding="utf-8", newline="") as f:
                 ancien = f.read()
         # Les fins de ligne ne comptent pas (git peut les convertir à l'extraction).
-        if ancien is not None and ancien.replace("
-", "
-") == contenu:
+        if ancien is not None and ancien.replace("\r\n", "\n") == contenu:
             continue
         a_jour = False
         if "--verifier" in arguments:
