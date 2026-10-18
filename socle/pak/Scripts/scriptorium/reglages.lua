@@ -66,6 +66,7 @@ reglages.catalogue = {
   { section = "missions", morceau = "missions", table = "reglages" },
   { section = "niveaux_des_camps", morceau = "missions", table = "niveaux" },
   { section = "plan_des_camps", morceau = "missions", table = "plan", taux = { x = true, y = true } },
+  { section = "lieux_du_socle", morceau = "missions", table = "lieux_du_socle", taux = { x = true, y = true, z = true } },
   { section = "discipline", morceau = "discipline", table = "reglages",
     parts = { chance_de_base = true, chance_morose = true, chance_abattu = true } },
   { section = "fautes", morceau = "discipline", table = "fautes", taux = { poids = true } },

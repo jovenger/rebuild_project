@@ -186,3 +186,16 @@ le chemin du retour, entre à cheval et descend.
   combat peut de même écraser l'attaque (à relire en séance).
 
 À reprendre plus tard : le lieu d'essai pris devant Henry peut tomber dans une ferme (vu : derrière un mur) ; un vrai coffre du jeu à fouiller au milieu du camp ; les bandits assis au feu ou couchés.
+
+## Les lieux du socle (demande du pair, 18/10/2026)
+- Sans lieu, les missions du Directeur répondraient « aucun lieu ». Le socle a donc ses propres lieux : neuf par carte,
+  `missions.lieux_du_socle` (liste à nom réglable, section « lieux_du_socle » : x, y, z, cap ; nom, carte, niveau).
+- Source : le jeu lui-même, jamais l'ancien mod. Centre des entités des calques de brigands de
+  `Data/Levels/<carte>/level.pak` (lecture seule ; attribut EditorLayer), calque cité en commentaire de chaque lieu :
+  camps de brigands du monde (colline de Vysoká, Mezholezy, moulin de Vrchlice, Kopanina) et lieux de brigands des
+  quêtes (repaires des « tábory lapků », embuscade du prologue, Bohuta, chevalier brigand…). Tous à plus de 150 m l'un de
+  l'autre (vérifié au banc).
+- Le niveau d'un lieu (petit, moyen, grand, selon le nombre de brigands que le jeu y met) plafonne `niveau_pour`.
+- Lus en direct ; un lieu du même nom ajouté par Scriptorium passe devant. Au démarrage, une ligne au journal par carte.
+- Non vérifié en jeu : que chaque lieu soit loin des villages et des routes, et qu'un camp s'y dresse bien (terrain,
+  quêtes en cours au même endroit).

@@ -53,6 +53,28 @@ local function tuer_la_bande(id)
   end
 end
 
+essai("missions (18/10) : les lieux du socle, neuf par carte, tous à plus de 150 m l'un de l'autre ; le niveau du lieu plafonne celui du camp ; un lieu de Scriptorium du même nom passe devant", function()
+  preparer()
+  missions.lieux_du_socle = missions.lieux_du_socle_d_origine
+  for _, carte in ipairs({ "kutnohorsko", "trosecko" }) do
+    local lieux = missions.lieux_de(carte)
+    egal(#lieux, 9, "neuf lieux sur " .. carte)
+    for i, a in ipairs(lieux) do
+      verifier(a.niveau == "petit" or a.niveau == "moyen" or a.niveau == "grand", "un niveau connu : " .. a.nom)
+      for j = i + 1, #lieux do
+        local b = lieux[j]
+        verifier(math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) > 150, a.nom .. " et " .. b.nom .. " à plus de 150 m")
+      end
+    end
+  end
+  egal(missions.niveau_pour(1000000, "butte_des_archers"), "petit", "un lieu petit : jamais plus que petit")
+  egal(missions.niveau_pour(1000000, "moulin_de_vrchlice"), "grand", "un lieu grand : selon la force")
+  verifier(missions.ajouter_un_lieu("butte_des_archers", "kutnohorsko", { x = 1, y = 2, z = 3 }, 0), "remplacé par Scriptorium")
+  egal(missions.lieu_nomme("butte_des_archers").x, 1, "celui de Scriptorium passe devant")
+  egal(#missions.lieux_de("kutnohorsko"), 9, "toujours neuf, sans doublon")
+  missions.lieux_du_socle = {}
+end)
+
 essai("missions : les lieux, fournis par Scriptorium, par carte ; un lieu boiteux refusé", function()
   preparer()
   verifier(not missions.ajouter_un_lieu("", "trosky", LIEU), "sans nom : refusé")

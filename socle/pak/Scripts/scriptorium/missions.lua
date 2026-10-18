@@ -59,6 +59,32 @@ missions.routes = missions.routes or {}
 -- copie de son lieu au registre.
 missions.lieux = missions.lieux or {}
 
+-- Les lieux du socle (demande du pair, 18/10 : sans eux, les missions du Directeur n'auraient aucun lieu) : neuf par
+-- carte, pris dans le jeu lui-même, là où il a déjà des brigands (centre des entités des calques nommés en commentaire,
+-- Data/Levels/<carte>/level.pak, lecture seule) ; jamais les lieux de l'ancien mod. Le niveau : la plus grande taille de
+-- camp qu'on y dresse (selon le nombre de brigands que le jeu y met). Liste à nom, réglable (section « lieux_du_socle ») ;
+-- lue en direct ; un lieu du même nom ajouté par Scriptorium (« ajouter_un_lieu ») passe devant.
+missions.lieux_du_socle = {
+  { nom = "colline_de_vysoka", carte = "kutnohorsko", x = 1066, y = 2443, z = 193, cap = 0, niveau = "moyen" },   -- kkop_kopecVysoka/series_banditCamp
+  { nom = "bois_de_mezholezy", carte = "kutnohorsko", x = 214, y = 1466, z = 132, cap = 0, niveau = "petit" },   -- kmez_mezholezsko/banditCampWithHorse
+  { nom = "moulin_de_vrchlice", carte = "kutnohorsko", x = 1574, y = 235, z = 57, cap = 0, niveau = "grand" },   -- kvrc_vrchlicko/danemarkMill/series_banditCamp
+  { nom = "butte_des_archers", carte = "kutnohorsko", x = 2214, y = 1198, z = 105, cap = 0, niveau = "petit" },   -- nobodyWantsArchery_bandit
+  { nom = "chemin_des_convois", carte = "kutnohorsko", x = 2620, y = 918, z = 91, cap = 0, niveau = "moyen" },   -- kradeneZasilky/posledniBereVse/bandits
+  { nom = "lisiere_des_sept", carte = "kutnohorsko", x = 2907, y = 2925, z = 106, cap = 0, niveau = "moyen" },   -- sedmStatecnych/bandits
+  { nom = "pierre_du_tonnerre", carte = "kutnohorsko", x = 1890, y = 3768, z = 86, cap = 0, niveau = "petit" },   -- hromovyKamen/bandits
+  { nom = "fosse_de_l_ouest", carte = "kutnohorsko", x = 597, y = 1377, z = 118, cap = 0, niveau = "petit" },   -- zakopanyZitrek/bandit_1-2
+  { nom = "fosse_de_l_est", carte = "kutnohorsko", x = 1296, y = 1340, z = 137, cap = 0, niveau = "petit" },   -- zakopanyZitrek/bandit_3-4
+  { nom = "premier_repaire", carte = "trosecko", x = 2179, y = 1586, z = 27, cap = 0, niveau = "petit" },   -- taboryLapkuTrosecko/firstCamp
+  { nom = "deuxieme_repaire", carte = "trosecko", x = 944, y = 2588, z = 78, cap = 0, niveau = "petit" },   -- taboryLapkuTrosecko/secondCamp
+  { nom = "troisieme_repaire", carte = "trosecko", x = 898, y = 2000, z = 14, cap = 0, niveau = "petit" },   -- taboryLapkuTrosecko/thirdCamp
+  { nom = "quatrieme_repaire", carte = "trosecko", x = 2798, y = 2605, z = 122, cap = 0, niveau = "moyen" },   -- taboryLapkuTrosecko/forthCamp, KasparCamp
+  { nom = "chemin_de_l_embuscade", carte = "trosecko", x = 1207, y = 1940, z = 29, cap = 0, niveau = "grand" },   -- m01_prepadeni/bandits
+  { nom = "bois_de_bohuta", carte = "trosecko", x = 2046, y = 1329, z = 14, cap = 0, niveau = "moyen" },   -- m10_bohutovaVlozka/bandit
+  { nom = "camp_du_chevalier_brigand", carte = "trosecko", x = 2790, y = 2290, z = 116, cap = 0, niveau = "grand" },   -- zbranePanaSemina/tabor
+  { nom = "clairiere_du_meurtrier", carte = "trosecko", x = 2695, y = 2768, z = 128, cap = 0, niveau = "moyen" },   -- tkop_kopanina/vrahCamp
+  { nom = "bois_du_veneur", carte = "trosecko", x = 2611, y = 1376, z = 70, cap = 0, niveau = "moyen" },   -- cin_s0750t huntsman_bandits
+}
+
 local function jeu() return Scriptorium.jeu end
 local function camp() return Scriptorium.camp end
 local function bataille() return Scriptorium.bataille end
@@ -114,6 +140,20 @@ end
 
 -- Un lieu : un nom, une carte (le nom de niveau du jeu), une position { x, y, z } et un cap. Rend vrai, ou faux et la
 -- raison. Un lieu du même nom est remplacé.
+-- Un lieu par son nom : celui de Scriptorium, sinon celui du socle ; nil sinon.
+local function lieu_nomme(nom)
+  if missions.lieux[nom] then
+    return missions.lieux[nom]
+  end
+  for _, l in ipairs(missions.lieux_du_socle) do
+    if l.nom == nom then
+      return l
+    end
+  end
+  return nil
+end
+missions.lieu_nomme = lieu_nomme
+
 function missions.ajouter_un_lieu(nom, carte, position, cap)
   if type(nom) ~= "string" or nom == "" then
     return refuser("nom_invalide", tostring(nom))
@@ -135,7 +175,12 @@ function missions.lieux_de(carte)
   local liste = {}
   for _, l in pairs(missions.lieux) do
     if carte == nil or l.carte == carte then
-      table.insert(liste, { nom = l.nom, carte = l.carte, x = l.x, y = l.y, z = l.z, cap = l.cap })
+      table.insert(liste, { nom = l.nom, carte = l.carte, x = l.x, y = l.y, z = l.z, cap = l.cap, niveau = l.niveau })
+    end
+  end
+  for _, l in ipairs(missions.lieux_du_socle) do
+    if not missions.lieux[l.nom] and (carte == nil or l.carte == carte) then
+      table.insert(liste, { nom = l.nom, carte = l.carte, x = l.x, y = l.y, z = l.z, cap = l.cap, niveau = l.niveau })
     end
   end
   table.sort(liste, function(a, b) return a.nom < b.nom end)
@@ -144,7 +189,7 @@ end
 
 -- Le lieu est-il sur la carte où se tient Henry ? (Une carte illisible ne ferme rien.)
 function missions.lieu_sur_ma_carte(nom)
-  local l = missions.lieux[nom]
+  local l = lieu_nomme(nom)
   if not l then
     return false
   end
@@ -232,11 +277,17 @@ Scriptorium.remplacable(missions, "peut_partir", function(rendu) return type(ren
 -- « marge_de_force », ne dépasse pas la sienne ; sinon le plus petit.
 function missions.niveau_pour(force, lieu)
   local choisi = missions.niveaux[1] and missions.niveaux[1].nom
+  -- Le niveau du lieu (les lieux du socle) : la plus grande taille qu'on y dresse.
+  local l = type(lieu) == "string" and lieu_nomme(lieu) or nil
+  local plafond = l and l.niveau
   for _, n in ipairs(missions.niveaux) do
     local t = Scriptorium.avis(missions, "taille_du_camp", lieu, n.nom)
     local sorte = t and bataille().sortes[t.sorte]
     if sorte and t.effectif * sorte.poids * missions.reglages.marge_de_force <= force then
       choisi = n.nom
+    end
+    if n.nom == plafond then
+      break
     end
   end
   return choisi
@@ -347,7 +398,7 @@ end
 -- Dresse un camp de bandits à un lieu connu, à un niveau. Rend son nom, ou faux et la raison.
 function missions.dresser_un_camp(nom_du_lieu, niveau)
   local d = donnees()
-  local l = missions.lieux[nom_du_lieu]
+  local l = lieu_nomme(nom_du_lieu)
   if not l then
     return refuser("lieu_inconnu", tostring(nom_du_lieu))
   end
@@ -632,7 +683,7 @@ function missions.prendre_une_mission(ordre)
     return refuser("convoi_trop_rapide", cv.id)
   end
   local l = cv and { nom = cv.route.nom, carte = cv.route.carte, x = cv.position.x, y = cv.position.y, z = cv.position.z }
-    or missions.lieux[ordre.lieu]
+    or lieu_nomme(ordre.lieu)
   -- Fiche 18, 5 d : une sortie vise un lieu connu ou un point du monde.
   local p = ordre.point
   if ordre.sortie and not l and p ~= nil then
@@ -1103,5 +1154,16 @@ function missions.relancer()
 end
 
 Scriptorium.declarer_morceau("missions", function()
-  -- Les camps de bandits avancent par le battement du socle.
+  -- Les camps de bandits avancent par le battement du socle. Les lieux du socle : une ligne au journal par carte.
+  local par_carte, cartes = {}, {}
+  for _, l in ipairs(missions.lieux_du_socle) do
+    if not par_carte[l.carte] then
+      par_carte[l.carte] = 0
+      table.insert(cartes, l.carte)
+    end
+    par_carte[l.carte] = par_carte[l.carte] + 1
+  end
+  for _, carte in ipairs(cartes) do
+    jeu().journal("Missions : " .. par_carte[carte] .. " lieux du socle sur " .. carte)
+  end
 end)

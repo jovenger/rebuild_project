@@ -69,6 +69,10 @@ function depart()
   end
   if Scriptorium.missions then
     Scriptorium.missions.lieux = {}
+    -- Les lieux du socle (18/10) : gardés à part, remis seulement pour leur essai (lieux_du_socle_d_origine).
+    Scriptorium.missions.lieux_du_socle_d_origine = Scriptorium.missions.lieux_du_socle_d_origine
+      or Scriptorium.missions.lieux_du_socle
+    Scriptorium.missions.lieux_du_socle = {}
   end
   -- Des hommes ordinaires (tous les traits à 50, fiche 11) : ration, force, fautes et moral comme avant le caractère.
   -- Les essais du caractère reprennent les vraies fourchettes par depart_avec_caractere().
