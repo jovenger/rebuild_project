@@ -122,6 +122,13 @@ Pour corriger une instru mixée (basse qui monte, batterie qui sature), le studi
   par le style, réglables (fenêtre de curseurs pré-remplie), contournables, sauvegardées ; inserts après.
 - Échecs de tests journalisés (lisibles dans la CI Windows) ; test orchestre corrigé (référence invalidée).
 
+## 4 ter. Édition « StudioVoix IA » (builds 52 à 56)
+
+Deux programmes à partir du même code. L'édition IA ajoute des briques libres, locales, téléchargées à la demande :
+nettoyage de voix DeepFilterNet (3.5 / § 2 : son propre avant la chaîne), paroles reconnues et calées mot par mot par
+whisper.cpp (prompteur karaoké, base du recalage mot par mot), mastering par référence (3.9 bis : spectre et sonie
+d'un morceau de référence, aussi dans l'édition classique). Séparation d'instru Demucs (3.10) : en cours d'essai.
+
 ## 5. Ordre proposé
 
 1. Mixage automatique de toutes les pistes (3.1) et seuil de compression adapté au niveau mesuré (§ 2).

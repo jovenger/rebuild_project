@@ -11,6 +11,18 @@ revérifier au moment de l'achat. StudioVoix utilise WASAPI (pas d'ASIO dans cet
 Voir [docs/AUDIT_STUDIO.md](docs/AUDIT_STUDIO.md) : ce qui manque par rapport à un vrai programme de studio,
 comment les automatismes doivent être faits, ordre proposé.
 
+## Édition « StudioVoix IA » (builds 52 et suivants)
+
+- Vérifier sur le PC de Yann : installation des outils (onglet IA locale), nettoyage DeepFilterNet sur une vraie prise,
+  reconnaissance des paroles (whisper-cli + modèle base), mastering par référence à l'export. Les téléchargements et
+  l'exécution réelle des outils sont impossibles depuis l'environnement de développement (réseau bloqué) ; seule la CI
+  Windows a téléchargé les outils et relevé leurs empreintes.
+- Demucs (séparation d'instru) : compilation expérimentale de demucs.cpp lancée en CI ; si elle réussit sous MSVC,
+  livrer le binaire dans l'installateur IA et ajouter le modèle (ggml htdemucs) au catalogue d'outils.
+- Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
+  si une version Linux est un jour distribuée.
+- whisper-cli : empreinte de l'archive à épingler après le relevé de la CI (build 55).
+
 ## Autres points en attente
 
 - Écoute réelle par Yann des builds 43 à 47 : bus voix (colle 1 à 4 dB, rattrapage), chaîne visible par piste
