@@ -3,6 +3,9 @@ Compagnie », dans socle/pak/Libs/Tables/rpg/FactionTree__scriptorium_socle.xml 
 
 Usage (sur le PC de JoVenGer) :
     py -3.13 outils/ames.py --jeu "G:\\SteamLibrary\\steamapps\\common\\KingdomComeDeliverance2"
+    py -3.13 outils/ames.py --jeu "…" --releve <relevé JSON des hommes de Scriptorium>
+        (la bascule : une âme faite pour chacun des hommes de JoVenGer, avec son nom ; la liste est gardée dans
+        liaison.lua, entre les repères de la reprise, et relue à chaque passage sans --releve)
 
 Lit en lecture seule, dans <jeu>\\Data\\Tables.pak, les personnages génériques du jeu (table skald_character) et les
 identifiants des âmes du jeu et l'arbre des factions ; n'écrit que la table des âmes et la table des factions du socle. Les âmes d'essai déjà présentes (marcheur,
@@ -36,6 +39,14 @@ TABLE_DES_PERSONNAGES = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "
 TEXTES_DES_NOMS = os.path.join(RACINE, "socle", "textes", "fr", "text_ui_soul__scriptorium_socle.xml")
 HOMMES_LUA = os.path.join(RACINE, "socle", "pak", "Scripts", "scriptorium", "hommes.lua")
 RESERVES_NOMMEES = ("combattant", "metier", "femme", "compagnon")
+# La reprise des hommes de JoVenGer (demande du pair, 18/10) : réserve « reprise », code 8, un palier ; la liste gardée
+# dans la liaison (la même source que le jeu).
+LIAISON = os.path.join(RACINE, "socle", "pak", "Scripts", "scriptorium", "liaison.lua")
+DEBUT_REPRISE = "-- DÉBUT DE LA REPRISE (écrit par outils/ames.py ; ne pas modifier à la main)"
+FIN_REPRISE = "-- FIN DE LA REPRISE"
+CODE_REPRISE = 8
+PALIERS_DU_RELEVE = {"weak": 1, "medium": 2, "strong": 3}
+NIVEAUX_DE_LA_REPRISE = {1: "0.3", 2: "0.5", 3: "0.7"}
 
 PREFIXE = "5c7a5c7a"
 NOTRE_CERVEAU = "b8a850d0-47c6-44a1-872e-ce7efcf4b9f9"
@@ -300,8 +311,9 @@ def nom_combine(prenoms, surnoms, i):
     return prenoms[reste % np] + " " + surnoms[(reste + decalage) % ns]
 
 
-def noms_des_reserves():
-    """soul_name -> nom affiché, pour les réserves nommées ; même calcul que hommes.nom_de_l_ame."""
+def noms_des_reserves(reprise=()):
+    """soul_name -> nom affiché, pour les réserves nommées et la reprise ; même calcul que hommes.nom_de_l_ame. Deux
+    âmes des réserves n'ont jamais le même nom ; ceux de la reprise sont les noms de JoVenGer, tels quels."""
     prenoms, surnoms, prenoms_f, surnoms_f, compagnons = listes_de_hommes_lua()
     noms = {}
     combattants = sum(sum(r["paliers"]) for r in RESERVES if r["reserve"] == "combattant")
@@ -330,12 +342,14 @@ def noms_des_reserves():
         vus.add(n)
     if doubles:
         raise SystemExit("REFUS : noms en double : " + ", ".join(sorted(doubles)[:5]))
+    for numero, (_, nom, _) in enumerate(reprise, start=1):
+        noms["scriptorium_reprise_%03d" % numero] = nom
     return noms
 
 
-def ecrire_les_personnages(lignes_des_ames, fiches, fin):
+def ecrire_les_personnages(lignes_des_ames, fiches, fin, reprise=()):
     """Chaque âme d'une réserve nommée pointe vers son personnage ; rend les lignes d'âmes réécrites."""
-    noms = noms_des_reserves()
+    noms = noms_des_reserves(reprise)
     personnages, textes, sorties = [], [], []
     for l in lignes_des_ames:
         a = dict(re.findall(r'(\w+)="([^"]*)"', l))
@@ -373,6 +387,81 @@ def ecrire_les_personnages(lignes_des_ames, fiches, fin):
     return sorties
 
 
+def chaine_lua(texte):
+    """Une chaîne Lua sûre (guillemets, barres obliques inverses, fins de ligne échappés)."""
+    return '"' + texte.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").replace("\r", " ") + '"'
+
+
+def lire_la_reprise():
+    """La liste de la reprise gardée dans la liaison : [(empreinte, nom, palier)]."""
+    with open(LIAISON, "r", encoding="utf-8") as f:
+        texte = f.read()
+    if texte.count(DEBUT_REPRISE) != 1 or texte.count(FIN_REPRISE) != 1:
+        raise SystemExit("REFUS : repères de la reprise absents ou en double dans liaison.lua")
+    bloc = texte.split(DEBUT_REPRISE, 1)[1].split(FIN_REPRISE, 1)[0]
+    liste = []
+    for empreinte, nom, palier in re.findall(r'\{ empreinte = (\d+), nom = "((?:[^"\\]|\\.)*)", palier = (\d) \}', bloc):
+        liste.append((int(empreinte), nom.replace('\\"', '"').replace("\\\\", "\\"), int(palier)))
+    return liste
+
+
+def empreinte_de_cle(cle):
+    """hommes.empreinte_de_cle, à l'identique (sur les octets UTF-8 de la clé)."""
+    h = 5381
+    for octet in cle.encode("utf-8"):
+        h = (h * 33 + octet) % 2147483647
+    return h
+
+
+def ecrire_la_reprise(releve):
+    """Lit le relevé JSON de Scriptorium et écrit la liste de la reprise dans la liaison. Rend la liste."""
+    import json
+    with open(releve, "r", encoding="utf-8") as f:
+        donnees = json.load(f)
+    if donnees.get("version") != 1 or not isinstance(donnees.get("hommes"), list):
+        raise SystemExit("REFUS : relevé de version inconnue ou sans « hommes » : " + releve)
+    liste, cles = [], set()
+    for h in donnees["hommes"]:
+        cle = h.get("cle")
+        if not isinstance(cle, str) or not cle or cle in cles:
+            raise SystemExit("REFUS : clé manquante ou en double dans le relevé : %r" % cle)
+        cles.add(cle)
+        nom = h.get("nom") if isinstance(h.get("nom"), str) and h.get("nom").strip() else "Homme de la Compagnie"
+        palier = 3 if h.get("compagnon") is True else PALIERS_DU_RELEVE.get(h.get("rang"), 1)
+        liste.append((empreinte_de_cle(cle), nom.strip(), palier))
+    if len({e for e, _, _ in liste}) != len(liste):
+        raise SystemExit("REFUS : deux clés du relevé ont la même empreinte")
+    with open(LIAISON, "r", encoding="utf-8", newline="") as f:
+        texte = f.read()
+    fin = "\r\n" if "\r\n" in texte else "\n"
+    avant, reste = texte.split(DEBUT_REPRISE, 1)
+    _, apres = reste.split(FIN_REPRISE, 1)
+    bloc = [DEBUT_REPRISE, "liaison.reprise_des_hommes = {"]
+    bloc += ["  { empreinte = %d, nom = %s, palier = %d }," % (e, chaine_lua(n), p) for e, n, p in liste]
+    bloc += ["}", ""]
+    nouveau = avant + fin.join(bloc) + FIN_REPRISE + apres
+    if nouveau != texte:
+        with open(LIAISON, "w", encoding="utf-8", newline="") as f:
+            f.write(nouveau)
+    print("Reprise : %d homme(s) écrits dans la liaison" % len(liste))
+    return liste
+
+
+def lignes_de_la_reprise(liste, personnages):
+    """Une âme par homme de la reprise (palette des combattants, notre cerveau, la Compagnie)."""
+    r = [x for x in RESERVES if x["reserve"] == "combattant"][0]
+    choix = [p for p in palette(personnages, r["familles"]) if p not in r.get("exclus", [])]
+    lignes = []
+    for numero, (cle, nom, palier) in enumerate(liste, start=1):
+        lignes.append(ligne({
+            "brain_id": NOTRE_CERVEAU, "combat_level": NIVEAUX_DE_LA_REPRISE[palier], "digestion_multiplier": "0",
+            "factionName": FACTION, "initial_clothing_dirt": "0", "skald_character_name": choix[(numero - 1) % len(choix)],
+            "social_class_id": r["classe"], "soul_archetype_id": r["archetype"],
+            "soul_id": identifiant(CODE_REPRISE, 1, numero), "soul_name": "scriptorium_reprise_%03d" % numero,
+            "soul_vip_class_id": "0", "xp_multiplier": "0"}))
+    return lignes
+
+
 def principal(arguments):
     if "--jeu" not in arguments or arguments.index("--jeu") + 1 >= len(arguments):
         print(__doc__)
@@ -404,7 +493,13 @@ def principal(arguments):
     anciennes = texte.split(fin)
     # Les âmes d'essai (hors réserves) sont gardées telles quelles, dans leur ordre.
     gardees = [l for l in anciennes if "<soul " in l and ('soul_id="' + PREFIXE) not in l]
-    neuves = ecrire_les_personnages(lignes_des_reserves(personnages), fiches, fin) + lignes_des_bandes(modeles, personnages)
+    if "--releve" in arguments:
+        reprise = ecrire_la_reprise(arguments[arguments.index("--releve") + 1])
+    else:
+        reprise = lire_la_reprise()
+    neuves = (ecrire_les_personnages(lignes_des_reserves(personnages) + lignes_de_la_reprise(reprise, personnages), fiches,
+                                     fin, reprise)
+              + lignes_des_bandes(modeles, personnages))
     tete = [l for l in anciennes if "<soul " not in l and "</souls>" not in l and "</database>" not in l and l.strip()]
     sortie = tete + gardees + neuves + ["  </souls>", "</database>", ""]
     nouveau = fin.join(sortie)

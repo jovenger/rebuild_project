@@ -988,6 +988,20 @@ essai("noms (18/10) : chaque homme prend le nom de son âme ; un nom de contrat 
   egal(hommes.nom_de_femme(1), "Anna la Rousse", "les noms des femmes")
 end)
 
+essai("reprise (18/10) : la clé du relevé mène à son âme par son empreinte ; l'âme porte le nom du relevé ; clé inconnue : rien", function()
+  preparer(200, 10, 10)
+  FauxJeu.reprise_des_hommes = { { empreinte = hommes.empreinte_de_cle("homme_un"), nom = "Jan « le Fort »", palier = 2 },
+                                 { empreinte = hommes.empreinte_de_cle("homme_deux"), nom = "Petr", palier = 1 } }
+  FauxJeu.tailles_paliers.reprise = { 2 }
+  local ame = hommes.ames_de_la_reprise["homme_deux"]
+  egal(ame, FauxJeu.ame_de("reprise", 1, 2), "la deuxième âme de la reprise")
+  egal(hommes.nom_de_l_ame(ame), "Petr", "son nom")
+  egal(hommes.ames_de_la_reprise["inconnu"], nil, "clé inconnue")
+  egal(hommes.empreinte_de_cle("ab"), (5381 * 33 + 97) * 33 + 98, "l'empreinte (la même qu'outils/ames.py)")
+  egal(hommes.nom_de_l_ame(hommes.ames_de_la_reprise["homme_un"]), "Jan « le Fort »", "le premier, guillemets compris")
+  FauxJeu.reprise_des_hommes, FauxJeu.tailles_paliers.reprise = nil, nil
+end)
+
 essai("personnel mené (18/10) : un personnage hors de la Compagnie tenu par nos ordres ; jamais dans l'effectif ; lâché, il n'est plus mené ; disparu, oublié", function()
   preparer(200, 10, 10)
   FauxJeu.personnages_existants["dame_des_bains"] = true

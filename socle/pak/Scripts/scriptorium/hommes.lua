@@ -615,9 +615,38 @@ function hommes.nom_de_l_ame(ame)
   elseif reserve == "compagnon" then
     local c = hommes.compagnons[rang + 1]
     return c and c.nom or nil
+  elseif reserve == "reprise" then
+    local h = (jeu().reprise_des_hommes or {})[rang + 1]
+    return h and h.nom or nil
   end
   return nil
 end
+
+-- L'empreinte d'une clé du relevé (un nombre ; outils/ames.py calcule la même) : la clé, nom d'entité de l'ancien mod,
+-- n'est jamais écrite dans le socle.
+function hommes.empreinte_de_cle(cle)
+  local h = 5381
+  for i = 1, #cle do
+    h = (h * 33 + string.byte(cle, i)) % 2147483647
+  end
+  return h
+end
+
+-- La reprise des hommes de JoVenGer (demande du pair, 18/10) : hommes.ames_de_la_reprise[cle du relevé] -> son âme,
+-- lisible par la prise (contrat « ame ») ; nil pour une clé inconnue, ou tant qu'aucun relevé n'a été écrit
+-- (outils/ames.py --releve).
+hommes.ames_de_la_reprise = setmetatable({}, { __index = function(_, cle)
+  if type(cle) ~= "string" or not jeu() then
+    return nil
+  end
+  local empreinte = hommes.empreinte_de_cle(cle)
+  for i, h in ipairs(jeu().reprise_des_hommes or {}) do
+    if h.empreinte == empreinte then
+      return jeu().ame_de("reprise", 1, i)
+    end
+  end
+  return nil
+end })
 
 -- ---------------------------------------------------------------- lecture
 

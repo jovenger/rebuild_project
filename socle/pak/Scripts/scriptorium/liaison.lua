@@ -1241,6 +1241,18 @@ liaison.reserves_d_ames = {
   compagnon  = { code = 7, paliers = { 31 }, visages = 31 },
 }
 
+-- La reprise des hommes de JoVenGer (demande du pair, 18/10) : « une âme faite pour chacun », écrite par
+-- outils/ames.py --releve <relevé JSON de Scriptorium>, juste avant l'installation : { empreinte, nom, palier } par
+-- homme, dans l'ordre du relevé ; l'âme du N-ième est celle de la réserve « reprise » (code 8), numéro N. La clé du
+-- relevé (le nom d'entité de l'ancien mod) n'est jamais écrite ici, seulement son empreinte (hommes.empreinte_de_cle).
+-- DÉBUT DE LA REPRISE (écrit par outils/ames.py ; ne pas modifier à la main)
+liaison.reprise_des_hommes = {
+}
+-- FIN DE LA REPRISE
+if #liaison.reprise_des_hommes > 0 then
+  liaison.reserves_d_ames.reprise = { code = 8, paliers = { #liaison.reprise_des_hommes }, visages = #liaison.reprise_des_hommes }
+end
+
 -- L'identifiant d'une âme, ou nil hors des réserves.
 function liaison.ame_de(reserve, palier, numero)
   local r = liaison.reserves_d_ames[reserve]

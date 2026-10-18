@@ -652,3 +652,14 @@
   l'intitulé de repli « Homme de la Compagnie », remplacé par le nom de l'âme reçue plus tard.
 - Pas de nom propre : le Directeur et les bandes (personnages génériques).
 - Non vérifié en jeu (sauf le nom d'une âme et le visage, le 18/10).
+
+## La reprise des hommes de JoVenGer (demande du pair, 18/10/2026)
+- À la bascule : `py -3.13 outils/ames.py --jeu … --releve <relevé JSON de Scriptorium>` (version 1 : « hommes », chacun
+  « cle », « nom » (sinon « Homme de la Compagnie »), « rang » weak/medium/strong -> palier 1/2/3, « compagnon » -> palier 3),
+  juste avant l'installation. Une âme par homme (réserve « reprise », code 8, ajoutée à la fin : les identifiants
+  publiés ne bougent pas), son personnage et son nom.
+- La liste est gardée dans la liaison (entre les repères de la reprise : empreinte, nom, palier) et relue à chaque
+  passage sans --releve. La clé du relevé (nom d'entité de l'ancien mod) n'y est jamais écrite : seulement son empreinte
+  (`hommes.empreinte_de_cle`, la même en Python).
+- Pour la prise : `hommes.ames_de_la_reprise[cle]` -> l'âme (nil si inconnue) ; contrat `ame = …` à l'embauche.
+- Essayé au banc avec un relevé d'essai (guillemets, « », accents, nom manquant, compagnon) ; non vérifié en jeu.

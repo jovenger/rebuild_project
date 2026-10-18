@@ -898,9 +898,11 @@ def verifier_ames():
         affiche = textes_des_noms.get(cle)
         if affiche != attendu:
             erreur("âmes : %s affiche « %s », hommes.nom_de_l_ame dit « %s »" % (a.get("soul_name"), affiche, attendu))
-        if attendu in noms_vus:
+        # Les hommes de la reprise gardent les noms de JoVenGer, même s'ils croisent ceux des réserves.
+        if attendu in noms_vus and not a.get("soul_name", "").startswith("scriptorium_reprise_"):
             erreur("âmes : nom « %s » pour %s et %s" % (attendu, noms_vus[attendu], a.get("soul_name")))
-        noms_vus[attendu] = a.get("soul_name")
+        if not a.get("soul_name", "").startswith("scriptorium_reprise_"):
+            noms_vus[attendu] = a.get("soul_name")
     if nommees == 0:
         erreur("âmes : aucune âme nommée")
     noms = [a.get("soul_name") for a in ames]
