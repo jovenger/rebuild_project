@@ -610,6 +610,12 @@ function faux.pieces_de(nom)
   return copie
 end
 function faux.munition_de(nom) return nom and faux.munitions_d_essai[nom] or nil end
+-- La partie du corps d'une pièce de tenue d'essai : « _corps » le torse, « _jambes » les jambes.
+function faux.partie_du_corps(objet)
+  if string.find(tostring(objet), "_corps$") then return "torse" end
+  if string.find(tostring(objet), "_jambes$") then return "jambes" end
+  return nil
+end
 function faux.compter_objet(personnage, objet)
   local n = 0
   for _, o in ipairs(faux.inventaires[personnage] or {}) do

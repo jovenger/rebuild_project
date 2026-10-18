@@ -663,3 +663,16 @@
   (`hommes.empreinte_de_cle`, la même en Python).
 - Pour la prise : `hommes.ames_de_la_reprise[cle]` -> l'âme (nil si inconnue) ; contrat `ame = …` à l'embauche.
 - Essayé au banc avec un relevé d'essai (guillemets, « », accents, nom manquant, compagnon) ; non vérifié en jeu.
+
+## Le filet de la tenue de corps (18/10/2026, d'après un soldat presque nu vu par JoVenGer)
+- Vu en jeu le 18/10 (séance regroupée) : un soldat ne gardait que sous-vêtement, coiffe, tour de cou, épée, bouclier et
+  bottes. L'ancien filet ne recréait la tenue que s'il ne restait AUCUNE pièce, et seulement au rhabillage (chargement,
+  fin de combat, vie relancée) : contraire à la règle validée ci-dessus (« plus sa tenue de corps »).
+- Désormais : la tenue de corps, ce sont les pièces du torse et des jambes (places du jeu, equipment_slot.xml ;
+  `outils/equipement.py` écrit `liaison.parties_des_pieces`). Si la tenue de l'homme a des pièces d'une de ces parties
+  et qu'il n'en porte plus aucune (ou plus son arme principale), ses préréglages sont recréés.
+- Le contrôle se fait au rhabillage ET à la garde de la tenue en pleine journée : un homme prêt qu'on a déshabillé est
+  marqué « à rhabiller (plus de torse | jambes | arme) », puis rhabillé par le chemin habituel.
+- Cause probable du 18/10 : le rhabillage du colonel par Scriptorium (il ôte les habits et pose un préréglage du jeu) ;
+  le pair retire ces gestes directs : la tenue est gardée par le socle seul, Scriptorium passera ses décisions.
+- Non vérifié en jeu.

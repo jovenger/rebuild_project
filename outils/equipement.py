@@ -58,6 +58,11 @@ PLACES_SANS_TYPES = {"Gauntlets": "gloves", "Gloves": "gloves", "HandWrap": "glo
                      "BootsKnee": "boot", "Coat": "body_coat", "Waffenrock": "body_coat", "CollarChain": "collar",
                      "CollarPadded": "collar", "BrigandineArm": "sleeves", "Hood": "head_hood"}
 COUCHE_INCONNUE = 9
+# La tenue de corps (règle du filet, fiche 13 : « l'homme n'a plus sa tenue de corps ») : les places du torse et des
+# jambes (equipment_slot.xml). Vu en jeu le 18/10 : un homme ne gardait que coiffe, tour de cou et bottes.
+PARTIES_DU_CORPS = {"body_cloth": "torse", "body_cloth_padded": "torse", "body_chainmail": "torse",
+                    "body_plate": "torse", "body_coat": "torse",
+                    "leg_trousers": "jambes", "leg_trousers_padded": "jambes", "leg_armor": "jambes"}
 # Réponse de JoVenGer du 15/10/2026 (après V71 d) : l'homme d'hast n'a que son arme d'hast, comme chez Alex (avec une
 # arme courte, il se bat à l'épée et jamais à l'arme d'hast). Dans un préréglage d'hast, on ne garde que les objets de la
 # classe d'arme d'hast (item.xml, MeleeWeapon Class="7" : polearmGlaive, polearmVoulge, polearmBardiche…).
@@ -71,6 +76,26 @@ def lire_les_tables(jeu):
             return pak.read(nom).decode("utf-8", "replace")
         return (lire("Libs/Tables/item/clothing_preset.xml"), lire("Libs/Tables/item/weapon_preset.xml"),
                 lire("Libs/Tables/item/item.xml"), lire("Libs/Tables/item/equipment_slot.xml"))
+
+
+def parties_des_objets(item_xml, slot_xml):
+    """Identifiant (minuscules) -> « torse » ou « jambes », pour les vêtements de ces places."""
+    place_de_type = {}
+    for attributs in re.findall(r"<EquipmentSlot ([^>]*?)/?>", slot_xml):
+        a = dict(re.findall(r'(\w+)="([^"]*)"', attributs))
+        for t in a.get("ArmorTypes", "").split():
+            place_de_type[t] = a.get("Name")
+    parties = {}
+    for attributs in re.findall(r"<\w+ ([^>]*?)/?>", item_xml):
+        a = dict(re.findall(r'(\w+)="([^"]*)"', attributs))
+        if "Id" not in a or not a.get("Clothing"):
+            continue
+        sorte = re.match(r"[A-Za-z]+", a["Clothing"])
+        sorte = sorte.group(0) if sorte else ""
+        place = place_de_type.get(sorte) or PLACES_SANS_TYPES.get(sorte)
+        if place in PARTIES_DU_CORPS:
+            parties[a["Id"].lower()] = PARTIES_DU_CORPS[place]
+    return parties
 
 
 def couches_des_objets(item_xml, slot_xml):
@@ -123,7 +148,7 @@ def pieces_des_prereglages(clothing_xml, weapon_xml):
     return pieces
 
 
-def bloc_lua(pieces, munitions):
+def bloc_lua(pieces, munitions, parties=None):
     lignes = [DEBUT,
               "-- Les pièces de chaque préréglage retenu (fiche 13, V71 b), dans l'ordre du jeu, créées une à une par le socle ;",
               "-- et l'objet des munitions de nos assemblages de tir (leur nombre est une règle de hommes.equipement).",
@@ -134,6 +159,11 @@ def bloc_lua(pieces, munitions):
     lignes.append("liaison.munitions_des_prereglages = {")
     for nom in sorted(munitions):
         lignes.append('  ["%s"] = "%s",' % (nom, munitions[nom]))
+    lignes.append("}")
+    lignes.append("-- La partie du corps de chaque pièce de tenue (torse ou jambes) : le filet de la tenue de corps.")
+    lignes.append("liaison.parties_des_pieces = {")
+    for g in sorted(parties or {}):
+        lignes.append('  ["%s"] = "%s",' % (g, parties[g]))
     lignes.append("}")
     lignes.append(FIN)
     return lignes
@@ -203,7 +233,12 @@ def principal(arguments):
         return 1
     debut = texte.index(DEBUT)
     fin = texte.index(FIN) + len(FIN)
-    neuf = texte[:debut] + nl.join(bloc_lua(pieces, munitions)) + texte[fin:]
+    toutes = parties_des_objets(item_xml, slot_xml)
+    parties = {g: toutes[g] for nom in pieces if nom.startswith("soldier_generic") for g in pieces[nom] if g in toutes}
+    sans_torse = [n for n in pieces if n.startswith("soldier_generic") and "torse" not in {parties.get(g) for g in pieces[n]}]
+    if sans_torse:
+        print("Attention : %d tenue(s) sans pièce de torse : %s" % (len(sans_torse), ", ".join(sorted(sans_torse)[:5])))
+    neuf = texte[:debut] + nl.join(bloc_lua(pieces, munitions, parties)) + texte[fin:]
     tenues = sum(1 for n in pieces if n.startswith("soldier_generic"))
     if neuf == texte:
         print("Pièces des préréglages : déjà à jour (%d préréglages, dont %d tenues, %d assemblages de tir)"

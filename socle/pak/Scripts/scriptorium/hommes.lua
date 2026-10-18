@@ -1251,6 +1251,37 @@ end
 -- lui laisse portée qu'une partie de ses pièces et lui ôte ses armes (V71 a6). Une pièce introuvable est notée, jamais
 -- recréée au hasard. Filet (règle du 5/10) : plus aucune pièce de sa tenue, ou plus son arme principale : ses
 -- préréglages sont recréés au battement suivant. Ses munitions sont complétées jusqu'au nombre de son préréglage.
+-- Le filet de la tenue de corps (fiche 13, règle du 5/10 : « l'homme n'a plus son arme principale ou plus sa tenue de
+-- corps ») : la partie qui manque (« torse » ou « jambes » : sa tenue en a, il n'en porte plus aucune), « arme », ou nil.
+-- Vu en jeu le 18/10 : un homme ne gardait que coiffe, tour de cou et bottes ; l'ancien filet (plus aucune pièce) le
+-- laissait ainsi.
+local function ce_qui_manque(f)
+  local e = f.equipement
+  if not (e and e.tenue and e.armes) then
+    return nil
+  end
+  local voulues, portees = {}, {}
+  for _, objet in ipairs(jeu().pieces_de(e.tenue) or {}) do
+    local partie = jeu().partie_du_corps and jeu().partie_du_corps(objet) or nil
+    if partie then
+      voulues[partie] = true
+      if jeu().compter_objet(f.personnage, objet) > 0 then
+        portees[partie] = true
+      end
+    end
+  end
+  for _, partie in ipairs({ "torse", "jambes" }) do
+    if voulues[partie] and not portees[partie] then
+      return partie
+    end
+  end
+  local armes = jeu().pieces_de(e.armes) or {}
+  if not armes[1] or jeu().compter_objet(f.personnage, armes[1]) == 0 then
+    return "arme"
+  end
+  return nil
+end
+
 local function rhabiller(d, f)
   local e = f.equipement
   local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
@@ -1267,9 +1298,10 @@ local function rhabiller(d, f)
         reste = reste + 1
       end
     end
-    local armes = jeu().pieces_de(e.armes) or {}
-    if reste == 0 or not armes[1] or jeu().compter_objet(f.personnage, armes[1]) == 0 then
-      jeu().journal("Hommes : « " .. f.nom .. " » sans sa tenue ou sans son arme : ses préréglages seront recréés")
+    local manque = ce_qui_manque(f)
+    if reste == 0 or manque then
+      jeu().journal("Hommes : « " .. f.nom .. " » sans sa tenue ou sans son arme (" .. tostring(manque or "tenue")
+                    .. ") : ses préréglages seront recréés")
       e.etat = "a_equiper"
       return
     end
@@ -1382,6 +1414,13 @@ local function garder_les_tenues(d, deja)
         and not garde_suspendue(id, f) then
       jeu().faire_porter(f.personnage, liste_portee(f))
       repasses = repasses + 1
+      -- Le filet de la tenue de corps, aussi en pleine journée (vu en jeu le 18/10 : déshabillé hors de nos rhabillages,
+      -- un homme prêt n'était plus jamais revu) : marqué à rhabiller, le rhabillage recrée ses préréglages.
+      local manque = ce_qui_manque(f)
+      if manque then
+        f.equipement.etat = "a_rhabiller"
+        jeu().journal("Hommes : « " .. f.nom .. " » à rhabiller (plus de " .. manque .. ")")
+      end
     end
   end
   return repasses

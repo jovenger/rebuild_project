@@ -957,6 +957,33 @@ essai("équipement : un homme d'armes reçoit à l'embauche sa famille, une tenu
   egal(#FauxJeu.portes[personnage_de(id)], 10, "toutes ses pièces portées une seconde fois")
 end)
 
+essai("équipement (18/10) : le filet de la tenue de corps ; un homme prêt qui n'a plus que sa coiffe est marqué par la garde, puis ses préréglages sont recréés", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  egal(hommes.fiche(id).equipement.etat, "pret", "prêt")
+  local tenue = hommes.fiche(id).equipement.tenue
+  local function lignes_contenant(texte)
+    local n = 0
+    for _, l in ipairs(FauxJeu.journal_lignes) do
+      if string.find(l, texte, 1, true) then n = n + 1 end
+    end
+    return n
+  end
+  -- Déshabillé hors de nos rhabillages : plus de torse ni de jambes, la coiffe gardée.
+  FauxJeu.retirer_un_objet(personnage_de(id), tenue .. "_corps")
+  FauxJeu.retirer_un_objet(personnage_de(id), tenue .. "_jambes")
+  egal(a_dans_le_sac(id, tenue .. "_tete"), 1, "la coiffe reste")
+  for _ = 1, 3 do hommes.battre() end
+  verifier(lignes_contenant("à rhabiller (plus de torse)") >= 1, "la garde le voit et le marque")
+  verifier(lignes_contenant("sans sa tenue ou sans son arme (torse)") >= 1, "le rhabillage déclenche le filet")
+  for _ = 1, 3 do hommes.battre() end
+  egal(a_dans_le_sac(id, tenue .. "_corps"), 1, "torse recréé")
+  egal(a_dans_le_sac(id, tenue .. "_jambes"), 1, "jambes recréées")
+  egal(hommes.fiche(id).equipement.etat, "pret", "de nouveau prêt")
+end)
+
 essai("équipement : famille inconnue refusée ; sans famille, une des six est tirée et gardée", function()
   preparer(200, 10, 10)
   local id, raison = hommes.embaucher({ role = "homme_d_armes", semaines = 4, famille = "fronde" })
