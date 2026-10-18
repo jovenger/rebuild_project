@@ -9,12 +9,12 @@ namespace
     constexpr const char* kMod = "AudioEngine";
 
    #if JUCE_WINDOWS
-    juce::String findDevice (const juce::StringArray& names, const juce::String& needle)
+    // Nom du matériel entre parenthèses : "Microphone (USB Audio Device)" -> "USB Audio Device".
+    juce::String hardwareName (const juce::String& deviceName)
     {
-        for (const auto& n : names)
-            if (n.containsIgnoreCase (needle))
-                return n;
-        return {};
+        if (! deviceName.contains ("("))
+            return deviceName.trim();
+        return deviceName.fromFirstOccurrenceOf ("(", false, false).upToLastOccurrenceOf (")", false, false).trim();
     }
    #endif
 }
@@ -58,13 +58,26 @@ juce::String AudioEngine::openDevice (const juce::XmlElement* savedState)
                 continue;
             t->scanForDevices();
             auto setup = devices.getAudioDeviceSetup();
-            // Micro USB Fifine : entrée ET sortie (casque branché sur le micro) si disponible.
-            const auto fifineIn = findDevice (t->getDeviceNames (true), "fifine");
-            const auto fifineOut = findDevice (t->getDeviceNames (false), "fifine");
-            if (fifineIn.isNotEmpty())
-                setup.inputDeviceName = fifineIn;
-            if (fifineOut.isNotEmpty())
-                setup.outputDeviceName = fifineOut;
+            // Premier lancement : entrée par défaut de Windows, et sortie sur le même appareil si elle existe
+            // (casque branché sur le micro USB ou sur l'interface : une seule horloge, latence minimale).
+            // Le choix réel de l'utilisateur se fait ensuite dans Paramètres et est mémorisé.
+            const auto inputs = t->getDeviceNames (true);
+            const auto outputs = t->getDeviceNames (false);
+            if (setup.inputDeviceName.isEmpty() && ! inputs.isEmpty())
+                setup.inputDeviceName = inputs[juce::jmax (0, t->getDefaultDeviceIndex (true))];
+            const auto hw = hardwareName (setup.inputDeviceName);
+            if (hw.isNotEmpty())
+            {
+                for (const auto& o : outputs)
+                {
+                    if (hardwareName (o).equalsIgnoreCase (hw))
+                    {
+                        setup.outputDeviceName = o;
+                        SV_LOG_INFO (kMod, "Entrée et sortie sur le même appareil : "_u8 + hw);
+                        break;
+                    }
+                }
+            }
             setup.sampleRate = kProjectSampleRate;
             setup.bufferSize = juce::String (type).contains ("Exclusive") ? 128 : 256;
             setup.useDefaultInputChannels = true;

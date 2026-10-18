@@ -132,7 +132,7 @@ SettingsDialog::~SettingsDialog()
 void SettingsDialog::refreshLatency()
 {
     latencyInfo.setText (session.engine().describeDevice()
-                             + "\nAvec le casque branché sur le micro, tu t'entends sans retard ; StudioVoix recale chaque prise automatiquement."_u8,
+                             + "\nAvec le casque branché sur le micro ou sur l'interface audio (retour direct), tu t'entends sans retard ; StudioVoix recale chaque prise automatiquement."_u8,
                          juce::dontSendNotification);
 }
 

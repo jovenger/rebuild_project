@@ -6,6 +6,8 @@ ambiance sur des pistes séparées. Fonctionne entièrement en local ; l'IA (cl�
 
 ## Récupérer le programme (Windows)
 
+Guide du matériel conseillé (micro, casque, branchements, illustrations) : à venir, voir `A_FAIRE.md`.
+
 1. GitHub → dépôt `jovenger/rebuild_project` → onglet **Actions** → workflow **StudioVoix**.
 2. Ouvrir la dernière exécution verte → section **Artifacts** → **StudioVoix-Windows** (zip).
 3. Dézipper où on veut : `StudioVoix.exe` (application) + `studiovoix_cli.exe` (outil en ligne de commande).
@@ -16,10 +18,13 @@ Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). S
 
 ## Premier lancement
 
-- **Paramètres** → carte son : choisir **Windows Audio (Exclusive Mode)** + le micro Fifine en entrée et sortie
-  (repli automatique « Low Latency Mode » puis « Windows Audio » si l'exclusif est refusé).
+- **Paramètres** → carte son : choisir l'entrée (ton micro ou ton interface) et la sortie (ton casque).
+  Au premier lancement : entrée par défaut de Windows, et sortie sur le même appareil si elle existe
+  (casque branché sur le micro USB ou sur l'interface). Mode **Windows Audio (Exclusive Mode)** en priorité,
+  repli automatique « Low Latency Mode » puis « Windows Audio » si l'exclusif est refusé.
 - Taille de tampon : la plus petite qui ne craque pas (128 ou 256 échantillons).
-- Écoute : laisser l'écoute logicielle **désactivée** (on s'entend par la prise casque du micro = zéro latence).
+- Écoute : si le casque est branché sur le micro ou l'interface (retour direct), laisser l'écoute logicielle
+  **désactivée** = zéro latence. Sinon, l'activer (latence = tampon de la carte son).
 - **Calibrer la latence** : casque posé contre le micro, volume moyen ; 5 clics sont joués et mesurés.
   Sans calibrage, le recalage utilise la latence annoncée par le pilote.
   Décalage manuel ±200 ms si une prise sonne en avance / en retard.
@@ -132,7 +137,7 @@ l'application (import, analyse, rendu, génération, annuler/rétablir, export �
 
 **Non vérifié** (pas de matériel ni de clé dans l'environnement de développement) :
 
-- carte son réelle, latence réelle et recalage avec le micro Fifine ;
+- carte son réelle, latence réelle et recalage sur du vrai matériel ;
 - qualité d'écoute des traitements et des pistes générées ;
 - appels réels aux API Claude et ElevenLabs ;
 - export MP3 avec `lame.exe` ;
