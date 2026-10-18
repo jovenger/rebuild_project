@@ -1,4 +1,4 @@
-# Fiche de reprise — socle de Scriptorium (état au 17/10/2026 au soir)
+# Fiche de reprise — socle de Scriptorium (état au 18/10/2026, nuit)
 
 Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer. La note courte à coller est
 `docs/socle/note_complete.md` ; ce fichier-ci donne le détail.
@@ -409,6 +409,26 @@ Pour une nouvelle conversation Claude Code lancée sur l'ordinateur de JoVenGer.
 - **Leçons de la journée** : une sonde à deux essais au plus, puis on s'arrête ; un détecteur d'oublis qui dénonce des
   états intermédiaires ne prouve rien (la surveillance au battement l'a remplacé) ; l'horloge du moteur n'avance pas
   dans une image (mesurer avec `liaison.chrono`) ; une posture « unstance » alignée ne se joue pas sans objet d'ancrage.
+
+## 6 sexies. Où reprendre (18/10/2026, nuit : finitions, demandes du pair pour la bascule)
+
+- **Fait et vu en jeu** (détail : `essai_en_jeu.md`, S1 ; fiches 01, 18, 20) : « Parler » absent en combat ; le
+  Directeur rhabillé après rechargement ; le geste de poste relancé (défaut de l'arbre corrigé) ; les postes jamais tenus ;
+  la perte du registre à la sauvegarde corrigée (minuterie de 2 s) puis le **second canal** (les cases en attente rangées
+  dans la sauvegarde par l'OnSave de notre entité `scriptorium_sauvegarde`, reprises au chargement) ; les **alertes par la
+  voix du guetteur** (réplique urgente, cloche `f_ge_bell_alarm`, « Alerte ! » à part au bandeau ; le rouge impossible).
+- **Fait, au banc seulement** : âmes sans jumeaux (fiche 13 : 71 / 50 / 30 visages) ; geste ancré (`siege`, `assis`) et
+  arme tirée (`arme_tiree`) ; `bandeau.annoncer_texte` (texte composé par Scriptorium) ; garde-fou « ordre des locales ».
+- **En cours : les dialogues** (fiche 21). Écrits par `outils/dialogues.py` depuis `socle/dialogues/arbres.json` : projet de
+  quêtes `Quests/scriptorium_socle.xml`, rôles, règles Storm, textes. Vu en jeu le 18/10 : la table des rôles et les
+  textes chargés par le jeu ; **le jeu n'offre pas encore son « Parler »** à nos hommes (premier essai) ; questions de
+  principe posées au pair (fichier Storm, sélecteur, projet, démarrage sur une partie existante).
+- **Commandes d'essai nouvelles** : `henry_a_la_forge`, `henry_prend_la_station`, `alerte_texte`, `parler`,
+  `parler_directeur` (216 commandes).
+- **Arrêtés après deux essais** : le poste partagé (stations refusées à Henry, noms ambigus) ; le rouge du bandeau.
+- **Liste de JoVenGer** (courte) : `a_verifier_par_jovenger.md`.
+- **Leçon** : un commit est parti avec le banc en échec (13aee49, réparé par 9539c82) : commit seulement par « && » après
+  « tout passe ».
 
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;

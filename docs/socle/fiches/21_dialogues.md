@@ -49,5 +49,14 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
 - Le texte des répliques dans un fichier de textes à nous (`text_ui_dialog__scriptorium_socle.xml`).
 - Une première preuve en jeu sur un arbre réduit (un choix, sa réponse, le retour au menu), puis les arbres entiers.
 
-## Non vérifié en jeu
-Tout, à ce jour (fiche écrite le 18/10).
+## Vu en jeu (18/10, premier essai, partie d'essai 473)
+- La table des rôles patchée par le jeu (« lines added: 2 ») ; le fichier de textes des dialogues chargé.
+- **Le jeu n'offre pas encore son « Parler »** à un homme devant Henry : c'est le secours du socle qui répond.
+  Le journal du jeu ne dit rien de Storm ni des quêtes ; aucune fonction Lua ne dit si le rôle a pris. Questions de
+  principe posées au pair (le fichier Storm, le sélecteur, le projet, le démarrage sur une partie existante).
+- Écarts relevés entre le principe transmis et les fichiers du jeu : le retour au menu s'écrit `EndType="GoTo"`
+  (le jeu n'a aucun `EndType="Decision"` sans décision fille) ; `VoiceNamespace` n'existe pas sur un Level (mis
+  sur la quête) ; le port d'entrée de la quête est le nôtre (« eveil »).
+- Le contrôle d'absence admet à part les lignes de nos quêtes et de Storm identiques mot pour mot aux fichiers du
+  jeu de la même famille (13 : en-têtes, `ObjectiveValueTypes`, la tâche « roles », l'en-tête d'un Dialogue,
+  `Response Role="HENRY"`) : réponse prise d'office, à revoir par JoVenGer.
