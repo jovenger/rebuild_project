@@ -21,6 +21,7 @@ namespace
         std::array<float, 12> chroma {};
         float energyDb = -120.0f;
         float lowRatio = 0.0f;
+        float highRatio = 0.0f;   // brillance (charleston, effets) : distingue couplet et refrain
     };
 
     float chromaCos (const std::array<float, 12>& a, const std::array<float, 12>& b)
@@ -40,7 +41,8 @@ namespace
     {
         return (1.0f - chromaCos (a.chroma, b.chroma)) * 4.0f
              + std::abs (a.energyDb - b.energyDb) / 3.0f
-             + std::abs (a.lowRatio - b.lowRatio) * 2.0f;
+             + std::abs (a.lowRatio - b.lowRatio) * 2.0f
+             + std::abs (a.highRatio - b.highRatio) * 10.0f;
     }
 
     Feature meanOf (const std::vector<Feature>& fs, int a, int b)
@@ -54,6 +56,7 @@ namespace
                 m.chroma[k] += fs[static_cast<size_t> (i)].chroma[k];
             e += std::pow (10.0, fs[static_cast<size_t> (i)].energyDb / 10.0);
             m.lowRatio += fs[static_cast<size_t> (i)].lowRatio;
+            m.highRatio += fs[static_cast<size_t> (i)].highRatio;
             ++count;
         }
         if (count > 0)
@@ -61,6 +64,7 @@ namespace
             for (auto& c : m.chroma)
                 c /= static_cast<float> (count);
             m.lowRatio /= static_cast<float> (count);
+            m.highRatio /= static_cast<float> (count);
             m.energyDb = static_cast<float> (10.0 * std::log10 (std::max (1.0e-12, e / count)));
         }
         return m;
@@ -96,7 +100,7 @@ std::vector<Section> detectStructure (const Mono& instru, double sampleRate, con
     for (double bs : barStarts)
     {
         Feature feat;
-        double energy = 0.0, low = 0.0, all = 0.0;
+        double energy = 0.0, low = 0.0, all = 0.0, high = 0.0;
         int frames = 0;
         const int a = static_cast<int> (bs * kSr);
         const int b = std::min (static_cast<int> (x.size()), static_cast<int> ((bs + barSec) * kSr));
@@ -118,6 +122,8 @@ std::vector<Section> detectStructure (const Mono& instru, double sampleRate, con
                 all += mag;
                 if (f < 150.0)
                     low += mag;
+                if (f > 3000.0)
+                    high += mag;
                 if (f >= 65.0 && f <= 4000.0)
                 {
                     const int pc = ((static_cast<int> (std::lround (69.0 + 12.0 * std::log2 (f / 440.0))) % 12) + 12) % 12;
@@ -134,6 +140,7 @@ std::vector<Section> detectStructure (const Mono& instru, double sampleRate, con
                 c /= sum;
         feat.energyDb = frames > 0 ? gainToDb (static_cast<float> (energy / frames)) : -120.0f;
         feat.lowRatio = all > 0.0 ? static_cast<float> (low / all) : 0.0f;
+        feat.highRatio = all > 0.0 ? static_cast<float> (high / all) : 0.0f;
         bars.push_back (feat);
     }
 
@@ -190,6 +197,14 @@ std::vector<Section> detectStructure (const Mono& instru, double sampleRate, con
         sections.push_back (s);
     }
 
+    // Seuil de regroupement relatif à l'écart maximal entre sections (couplet / refrain proches en absolu
+    // sur une instru répétitive, mais nettement plus proches entre sections de même nature).
+    float maxPair = 0.0f;
+    for (size_t i = 0; i < sections.size(); ++i)
+        for (size_t j = i + 1; j < sections.size(); ++j)
+            maxPair = std::max (maxPair, distance (secFeat[i], secFeat[j]));
+    const float groupThreshold = juce::jlimit (0.08f, 0.6f, 0.4f * maxPair);
+
     int nextGroup = 0;
     std::vector<int> groupOf (sections.size(), -1);
     for (size_t i = 0; i < sections.size(); ++i)
@@ -198,8 +213,12 @@ std::vector<Section> detectStructure (const Mono& instru, double sampleRate, con
             continue;
         groupOf[i] = nextGroup;
         for (size_t j = i + 1; j < sections.size(); ++j)
-            if (groupOf[j] < 0 && distance (secFeat[i], secFeat[j]) < 0.35f)
+        {
+            const float d = distance (secFeat[i], secFeat[j]);
+            SV_LOG_DEBUG (kMod, "distance sections " + juce::String ((int) i) + "-" + juce::String ((int) j) + " : " + juce::String (d, 3));
+            if (groupOf[j] < 0 && d < groupThreshold)
                 groupOf[j] = nextGroup;
+        }
         ++nextGroup;
     }
 

@@ -13,6 +13,7 @@
 #include "core/analysis/KeyDetector.h"
 #include "core/analysis/StructureDetector.h"
 #include "core/analysis/TempoDetector.h"
+#include "core/assistant/CommandParser.h"
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/VocalChain.h"
 #include "core/project/Project.h"
@@ -47,7 +48,7 @@ Args parse (int argc, char* argv[])
         if (s.startsWith ("--") || s == "-o")
         {
             const auto key = s == "-o" ? juce::String ("out") : s.substring (2);
-            if (i + 1 < argc && ! juce::String (argv[i + 1]).startsWith ("--"))
+            if (i + 1 < argc && ! juce::String (argv[i + 1]).startsWith ("-"))
                 a.options.set (key, juce::String::fromUTF8 (argv[++i]));
             else
                 a.options.set (key, "1");
@@ -74,6 +75,7 @@ void usage()
                  "  song <instru> <voix> [--style s] [--target t] [--stems] -o dossier\n"
                  "  demo [--style s] -o dossier            chaine complete sur signaux de synthese\n"
                  "  master <mix> [--target t] -o sortie.wav\n"
+                 "  assistant <phrase>                     teste l'assistant texte\n"
                  "styles : rap trap pop_urbaine rnb drill afro\n"
                  "cibles : spotify youtube apple tiktok fort none\n";
 }
@@ -341,6 +343,13 @@ int main (int argc, char* argv[])
         else if (cmd == "song")    code = cmdSong (args);
         else if (cmd == "demo")    code = cmdDemo (args);
         else if (cmd == "master")  code = cmdMaster (args);
+        else if (cmd == "assistant")
+        {
+            const auto text = args.positional.joinIntoString (" ");
+            const auto r = sv::assistant::apply (text, {});
+            std::cout << "normalise : [" << sv::assistant::normalise (text) << "]\n" << (r.understood ? r.changes.joinIntoString ("\n") : juce::String ("non comprise")) << "\n";
+            code = r.understood ? 0 : 1;
+        }
         else                       usage();
     }
     catch (const std::exception& e)

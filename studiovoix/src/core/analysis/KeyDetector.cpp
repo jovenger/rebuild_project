@@ -100,7 +100,7 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
     }
 
     std::array<double, 12> acc {};
-    std::array<double, 12> bass {};   // basse (55-250 Hz), début du morceau pondéré x3 : indice de tonique
+    std::array<double, 12> early {};  // accords du début (130 Hz - 2 kHz) : indice de tonique
     int frames = 0;
     const int n = static_cast<int> (x.size());
     for (int start = 0; start + kFft <= std::max (n, kFft); start += kHop)
@@ -114,8 +114,8 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
         window.multiplyWithWindowingTable (buf.data(), static_cast<size_t> (kFft));
         fft.performFrequencyOnlyForwardTransform (buf.data(), true);
 
-        std::array<double, 12> chroma {}, bassChroma {};
-        double total = 0.0, bassTotal = 0.0;
+        std::array<double, 12> chroma {}, earlyChroma {};
+        double total = 0.0, earlyTotal = 0.0;
         for (int k = 1; k < kFft / 2; ++k)
         {
             const int pc = binPc[static_cast<size_t> (k)];
@@ -124,20 +124,21 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
             const double mag = buf[static_cast<size_t> (k)];
             chroma[static_cast<size_t> (pc)] += mag;
             total += mag;
-            if (k * kSr / kFft < 250.0)
+            const double f = k * kSr / kFft;
+            if (f >= 130.0 && f <= 2000.0)
             {
-                bassChroma[static_cast<size_t> (pc)] += mag;
-                bassTotal += mag;
+                earlyChroma[static_cast<size_t> (pc)] += mag;
+                earlyTotal += mag;
             }
         }
         if (total < 1.0e-6)
             continue;   // trame silencieuse
-        const double earlyWeight = start < n / 10 ? 3.0 : 1.0;
+        const bool isEarly = start < std::max (kHop, n / 8);
         for (int i = 0; i < 12; ++i)
         {
             acc[static_cast<size_t> (i)] += chroma[static_cast<size_t> (i)] / total;
-            if (bassTotal > 1.0e-6)
-                bass[static_cast<size_t> (i)] += earlyWeight * bassChroma[static_cast<size_t> (i)] / bassTotal;
+            if (isEarly && earlyTotal > 1.0e-6)
+                early[static_cast<size_t> (i)] += earlyChroma[static_cast<size_t> (i)] / earlyTotal;
         }
         ++frames;
         if (start + kFft >= n)
@@ -180,30 +181,39 @@ KeyResult detectKey (const Mono& signal, double sampleRate)
     result.key.root = bestIdx % 12;
     result.key.minor = bestIdx >= 12;
 
-    // Ambiguïté relatif majeur / mineur (mêmes notes, ex. Do majeur / La mineur) : la tonique est celle
-    // que la basse appuie le plus (surtout au début). À égalité, le mineur l'emporte (fréquent en rap / trap).
+    // Ambiguïté relatif majeur / mineur (mêmes notes, ex. Do majeur / La mineur) : on compare l'accord de
+    // tonique de chaque candidat dans les premières secondes (un morceau démarre en général sur sa tonique).
+    // À égalité, le mineur l'emporte (fréquent en rap / trap).
     {
         const int relRoot = result.key.minor ? (result.key.root + 3) % 12 : (result.key.root + 9) % 12;
         const int relIdx = result.key.minor ? relRoot : 12 + relRoot;
         const float relScore = result.scores[static_cast<size_t> (relIdx)];
-        if (best - relScore < 0.12f)
+        if (best - relScore < 0.30f)
         {
-            const double bassHere = bass[static_cast<size_t> (result.key.root)];
-            const double bassRel = bass[static_cast<size_t> (relRoot)];
-            const double margin = 0.08 * std::max (bassHere, bassRel);
-            bool switchToRelative = bassRel > bassHere + margin;
-            if (std::abs (bassRel - bassHere) <= margin)
+            auto triad = [&] (int root, bool minor)
+            {
+                return early[static_cast<size_t> (root % 12)] + early[static_cast<size_t> ((root + (minor ? 3 : 4)) % 12)]
+                     + early[static_cast<size_t> ((root + 7) % 12)];
+            };
+            const double here = triad (result.key.root, result.key.minor);
+            const double rel = triad (relRoot, ! result.key.minor);
+            const double margin = 0.05 * std::max (here, rel);
+            bool switchToRelative = rel > here + margin;
+            if (std::abs (rel - here) <= margin)
                 switchToRelative = ! result.key.minor;   // préférence mineure
+            SV_LOG_DEBUG (kMod, "Accord de tonique au début : "_u8 + result.key.toFrench() + " " + juce::String (here, 3)
+                                + ", relatif " + juce::String (rel, 3));
             if (switchToRelative)
             {
-                SV_LOG_DEBUG (kMod, "Relatif retenu (basse " + juce::String (bassRel, 2) + " contre " + juce::String (bassHere, 2) + ")");
                 result.key.root = relRoot;
                 result.key.minor = ! result.key.minor;
-                second = best;
+                // Choix départagé par l'accord de début : confiance modérée.
+                second = relScore - 0.1f * static_cast<float> ((rel - here) / std::max (1.0e-9, std::max (here, rel)));
                 best = relScore;
             }
         }
     }
+
     result.key.confidence = juce::jlimit (0.0f, 1.0f, (best - second) * 4.0f + 0.25f * best);
 
     SV_LOG_INFO (kMod, "Tonalité détectée : "_u8 + result.key.toFrench() + " (score " + juce::String (best, 3)

@@ -88,12 +88,27 @@ namespace
 
 juce::String normalise (const juce::String& text)
 {
-    juce::String s = text.toLowerCase();
-    const char* from[] = { "à", "â", "ä", "é", "è", "ê", "ë", "î", "ï", "ô", "ö", "ù", "û", "ü", "ç", "œ", "’" };
-    const char* to[]   = { "a", "a", "a", "e", "e", "e", "e", "i", "i", "o", "o", "u", "u", "u", "c", "oe", "'" };
-    for (size_t i = 0; i < std::size (from); ++i)
-        s = s.replace (juce::String (juce::CharPointer_UTF8 (from[i])), to[i]);
-    return s.replace ("d'", "de ").replace ("l'", "le ");
+    // Correspondance par point de code (plus fiable qu'une suite de String::replace sur des
+    // séquences UTF-8 de plusieurs octets).
+    juce::String out;
+    const juce::String lower = text.toLowerCase();   // doit vivre pendant tout le parcours (pas de temporaire)
+    for (auto p = lower.getCharPointer(); ! p.isEmpty();)
+    {
+        const juce::juce_wchar c = p.getAndAdvance();
+        switch (c)
+        {
+            case 0xE0: case 0xE2: case 0xE4: out << 'a'; break;
+            case 0xE9: case 0xE8: case 0xEA: case 0xEB: out << 'e'; break;
+            case 0xEE: case 0xEF: out << 'i'; break;
+            case 0xF4: case 0xF6: out << 'o'; break;
+            case 0xF9: case 0xFB: case 0xFC: out << 'u'; break;
+            case 0xE7: out << 'c'; break;
+            case 0x153: out << "oe"; break;
+            case 0x2019: case 0x2018: out << '\''; break;
+            default: out << juce::String::charToString (c); break;
+        }
+    }
+    return out.replace ("d'", "de ").replace ("l'", "le ");
 }
 
 CommandResult apply (const juce::String& text, const style::Macros& current)
