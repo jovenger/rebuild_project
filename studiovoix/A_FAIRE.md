@@ -13,6 +13,11 @@ comment les automatismes doivent être faits, ordre proposé.
 
 ## Autres points en attente
 
+- Écoute réelle par Yann des builds 43 à 47 : bus voix (colle 1 à 4 dB, rattrapage), chaîne visible par piste
+  (cases, réglages, contournement), édition des blocs (rogner, fondus, couper), orchestre, niveleur, résonances.
+- Vrai plugin VST3 sous Windows (hébergement testé seulement avec les effets intégrés).
+- Chaîne visible : pas de cases sur une piste en correction automatique (réglages déduits de l'analyse, lisibles
+  dans le rapport) ; à décider si les contournements doivent y être proposés aussi.
 - Tests réels sur Windows : carte son, latence, recalage, écoute des traitements.
 - Appels réels aux API Claude et ElevenLabs (avec clés).
 - Export MP3 avec `lame.exe`.

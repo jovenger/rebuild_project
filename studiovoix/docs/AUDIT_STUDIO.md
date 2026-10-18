@@ -39,13 +39,18 @@ expliquer**. Un automatisme qui « met tout à 0,5 » ne mesure rien : il ne peu
 ## 3. Ce qui manque, par ordre d'importance
 
 ### 3.1 Mixage automatique de toutes les pistes (pas seulement voix / instru)
+**Fait (builds 39–41, « orchestre »)** : sonie de chaque piste mesurée et ramenée à sa place par rôle, aussi sur
+les pistes brutes ; rapport dans le panneau. Texte d'origine conservé ci-dessous.
 Aujourd'hui l'équilibre automatique concerne la voix principale et l'instru. Les doublages, backs, ad-libs,
 instruments enregistrés gardent le niveau de leur style, sans mesure. Un studio fait : sonie de chaque piste
 mesurée → gain par rôle (hiérarchie ci-dessus) → vérification du total (pas de saturation du bus) →
 rapport. À faire en une passe après les rendus (comme les alertes) : `mix::balanceAll`.
 
 ### 3.2 Édition des blocs
-Manque : couper (ciseaux), scinder, rogner les bords, fondus d'entrée / sortie, fondu enchaîné entre deux
+**Fait (build 44)** : couper au clic ou à la tête de lecture, rogner les bords à la souris, fondus d'entrée /
+sortie (poignées, cosinus), supprimer un bloc, annulable. Reste : copier / coller, déplacer d'une piste à
+l'autre, sélection d'une zone, fondu enchaîné réglable entre deux blocs (15 ms fixes aujourd'hui).
+Manque (texte d'origine) : couper (ciseaux), scinder, rogner les bords, fondus d'entrée / sortie, fondu enchaîné entre deux
 blocs, copier / coller, déplacer d'une piste à l'autre, zoom à la molette sur la zone, sélection d'une zone
 temporelle. Un studio n'est pas utilisable sans couper une respiration ou un début raté. La structure
 existe (prises avec regionStart / regionEnd, déplacement) ; il faut les gestes et les fondus (5–20 ms).
@@ -83,6 +88,8 @@ recouvrent, une seule gagne tout. Il manque les couches de prises visibles sous 
 souris d'un morceau de chaque prise (comping manuel), avec fondus.
 
 ### 3.9 Routage : bus et envois partagés
+**Fait en partie (build 43)** : bus « Voix » avec compression de cohésion (lecture et export, rattrapage mesuré).
+Reste : bus « Backs » / « Instruments », retour réverb commun.
 Chaque piste a sa réverb ; un studio envoie toutes les voix vers une même réverb (cohérence, moins de
 calcul) et groupe les backs dans un bus avec sa compression. À faire : bus « Voix », « Backs »,
 « Instruments », retour réverb commun, compression de bus.
@@ -107,6 +114,13 @@ Pour corriger une instru mixée (basse qui monte, batterie qui sature), le studi
 - Piste qui sature ou plus forte que la voix principale : signalée.
 - Instru corrigeable (analyse + réparation stéréo liée).
 - Largeur des en-têtes et hauteur des pistes réglables à la souris, mémorisées.
+
+## 4 bis. Builds 42 à 47
+
+- Consolidation : une STFT, un seul compresseur (courbe partagée avec le bus voix), helpers communs.
+- Bus voix (3.9, partiel), édition des blocs (3.2), chaîne visible par piste : onze cases choisies et réglées
+  par le style, réglables (fenêtre de curseurs pré-remplie), contournables, sauvegardées ; inserts après.
+- Échecs de tests journalisés (lisibles dans la CI Windows) ; test orchestre corrigé (référence invalidée).
 
 ## 5. Ordre proposé
 
