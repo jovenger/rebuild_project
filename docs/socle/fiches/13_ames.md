@@ -610,3 +610,10 @@
   reste plus, une âme libre quelconque (au-delà de 71 combattants, des jumeaux reviennent ; plafond du camp : 80).
 - Non vérifié en jeu : que des personnages différents donnent bien des visages différents (vu pour quelques gens du
   commun le 17/10).
+
+## Une âme, un seul porteur vivant (règle du pair, 18/10/2026)
+- Vu en jeu le 18/10 : deux personnages sur une même âme, et le dialogue ouvert avec l'un partait vers l'autre.
+- La liaison refuse toute naissance sur une âme de nos réserves (`5c7a5c7a-…`) déjà portée par un personnage vivant
+  (relevé au moteur : les PNJ dont `guidSharedSoulId` est cette âme) : raison `ame_deja_portee`, une ligne au journal.
+  Les âmes du jeu n'y sont pas soumises (des brigands du jeu en partagent une, voulu).
+- Non vérifié en jeu.

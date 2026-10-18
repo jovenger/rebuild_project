@@ -426,8 +426,39 @@ local function place_libre(position)
   return nil
 end
 
+-- Règle du pair (18/10, vu en jeu : deux entités sur une même âme, le dialogue partait vers l'autre) : jamais deux
+-- personnages vivants sur une même âme de nos réserves (identifiants « 5c7a5c7a-… »). Les âmes du jeu ne sont pas
+-- concernées : des brigands nés du jeu en partagent une, voulu. Rend le nom du porteur vivant, ou nil.
+liaison.prefixe_de_nos_ames = "5c7a5c7a-"
+local function porteur_vivant_de(ame)
+  local ok, liste = pcall(System.GetEntitiesByClass, "NPC")
+  if not ok or type(liste) ~= "table" then
+    return nil
+  end
+  for _, entite in pairs(liste) do
+    local lu, sienne = pcall(function() return entite.Properties.guidSharedSoulId end)
+    if lu and sienne == ame then
+      local mort_lu, mort = pcall(function() return entite.actor:IsDead() end)
+      if not (mort_lu and mort == true) then
+        local nom_lu, nom = pcall(function() return entite:GetName() end)
+        return nom_lu and nom or "?"
+      end
+    end
+  end
+  return nil
+end
+
 -- « brut » : sans la copie des propriétés de la classe (sonde V71 a2 seulement, fiche 13).
 local function faire_naitre(classe, nom, position, cap, proprietes, brut)
+  local ame = type(proprietes) == "table" and proprietes.guidSharedSoulId
+  if classe == "NPC" and type(ame) == "string" and ame:sub(1, #liaison.prefixe_de_nos_ames) == liaison.prefixe_de_nos_ames then
+    local porteur = porteur_vivant_de(ame)
+    if porteur then
+      liaison.journal("Naissance refusée pour « " .. tostring(nom) .. " » : l'âme " .. ame .. " est déjà portée par « "
+                      .. tostring(porteur) .. " »")
+      return nil, "ame_deja_portee"
+    end
+  end
   if classe == "NPC" or classe == "Horse" then
     position = place_libre(position)
     if not position then
