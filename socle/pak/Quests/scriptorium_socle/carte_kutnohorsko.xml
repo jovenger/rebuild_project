@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+  <Skald>
+    <Level Name="kutnohorsko">
+      <Definitions>
+        <Definition File="kutnohorsko/scriptorium_socle_fond_kut.xml" />
+      </Definitions>
+      <Nodes>
+        <scriptorium_socle_fond_kut Name="scriptorium_socle_fond_kut">
+          <Edge From="OnWake" To="eveil" />
+        </scriptorium_socle_fond_kut>
+      </Nodes>
+    </Level>
+  </Skald>
+</Database>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<storm>
+  <tasks>
+    <task name="roles" class="roles">
+      <source path="scriptorium_socle\roles.xml" />
+    </task>
+  </tasks>
+</storm>

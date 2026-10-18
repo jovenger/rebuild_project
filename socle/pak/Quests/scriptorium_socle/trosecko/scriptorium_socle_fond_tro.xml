@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+  <Skald>
+    <Quest Name="scriptorium_socle_fond_tro" VoiceNamespace="false">
+      <Ports>
+        <Port Name="eveil" Direction="In" Type="trigger"><DesignName Text="eveil" /></Port>
+      </Ports>
+      <Definitions>
+        <Definition File="scriptorium_socle_fond_tro/scriptorium_socle_homme_tro.xml" />
+        <Definition File="scriptorium_socle_fond_tro/scriptorium_socle_directeur_tro.xml" />
+      </Definitions>
+      <Nodes>
+        <scriptorium_socle_homme_tro Name="scriptorium_socle_homme_tro" />
+        <scriptorium_socle_directeur_tro Name="scriptorium_socle_directeur_tro" />
+      </Nodes>
+    </Quest>
+  </Skald>
+</Database>

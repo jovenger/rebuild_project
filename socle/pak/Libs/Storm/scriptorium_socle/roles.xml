@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE storm SYSTEM "!storm.dtd">
+<storm>
+  <rules>
+    <rule name="scriptorium_socle_hommes">
+      <selectors>
+        <and><hasFaction name="scriptorium_socle_compagnie" /><not><hasName name="scriptorium_directeur" /></not></and>
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_HOMME" />
+      </operations>
+    </rule>
+    <rule name="scriptorium_socle_directeur">
+      <selectors>
+        <hasName name="scriptorium_directeur" />
+      </selectors>
+      <operations>
+        <addRole name="SCRIPTORIUM_SOCLE_DIRECTEUR" />
+      </operations>
+    </rule>
+  </rules>
+</storm>

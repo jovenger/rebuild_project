@@ -3635,6 +3635,32 @@ function liaison.utiliser_la_station(identifiant)
          .. (fait and "" or (" : " .. tostring(erreur)))
 end
 
+-- Pour le poste d'essai (fiche 21) : ce que fait le jeu quand Henry appuie sur E devant un personnage : ses actions
+-- demandées (GetActions), puis l'action « nom » (« talk » : Parler) exécutée pour Henry. Rend (vrai ou faux, une ligne).
+function liaison.executer_l_action(identifiant, nom)
+  local entite = entite_nommee(identifiant)
+  if not entite or not player then
+    return false, "introuvable"
+  end
+  local ok, sortie = pcall(function() return entite:GetActions(player, false) end)
+  if not ok or type(sortie) ~= "table" then
+    return false, "actions illisibles : " .. tostring(sortie)
+  end
+  local noms, voulue = {}, nil
+  for _, a in ipairs(sortie) do
+    table.insert(noms, tostring(a.action))
+    if a.action == nom and type(a.func) == "function" and not voulue then
+      voulue = a
+    end
+  end
+  if not voulue then
+    return false, "pas d'action « " .. tostring(nom) .. " » parmi [" .. table.concat(noms, ", ") .. "]"
+  end
+  local fait, erreur = pcall(voulue.func, entite, player)
+  return fait, "actions [" .. table.concat(noms, ", ") .. "], « " .. nom .. " » exécutée = " .. tostring(fait)
+         .. (fait and "" or (" : " .. tostring(erreur)))
+end
+
 -- Pour le poste d'essai (fiche 18, 5 b) : les actions qu'un personnage offre à Henry, demandées au jeu (sa fonction
 -- GetActions), et s'il est en combat. Rend une ligne.
 function liaison.actions_offertes(identifiant)

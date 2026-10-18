@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="scriptorium_socle">
+  <Skald>
+    <Quest Name="scriptorium_socle_fond_kut" VoiceNamespace="false">
+      <Ports>
+        <Port Name="eveil" Direction="In" Type="trigger"><DesignName Text="eveil" /></Port>
+      </Ports>
+      <Definitions>
+        <Definition File="scriptorium_socle_fond_kut/scriptorium_socle_homme_kut.xml" />
+        <Definition File="scriptorium_socle_fond_kut/scriptorium_socle_directeur_kut.xml" />
+      </Definitions>
+      <Nodes>
+        <scriptorium_socle_homme_kut Name="scriptorium_socle_homme_kut" />
+        <scriptorium_socle_directeur_kut Name="scriptorium_socle_directeur_kut" />
+      </Nodes>
+    </Quest>
+  </Skald>
+</Database>

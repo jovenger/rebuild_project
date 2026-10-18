@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" xsi:noNamespaceSchemaLocation="../database.xsd">
+  <roles version="1">
+    <role _locked="false" _role_string_name="role_SCRIPTORIUM_SOCLE_HOMME" metarole_name="NPC" role_name="SCRIPTORIUM_SOCLE_HOMME" />
+    <role _locked="false" _role_string_name="role_SCRIPTORIUM_SOCLE_DIRECTEUR" metarole_name="NPC" role_name="SCRIPTORIUM_SOCLE_DIRECTEUR" />
+  </roles>
+</database>

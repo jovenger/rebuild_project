@@ -1076,6 +1076,32 @@ function poste.essai_henry_a_la_forge()
   return ok == true
 end
 
+-- Fiche 21 (l'essai en jeu des dialogues) : une réponse codée de test posée comme le ferait Scriptorium (la vie au camp :
+-- « Ça va bien ! » puis « vous n'êtes pas très aimé » ; l'ouverture : dit colonel ; comment va le camp : trois
+-- répliques), puis « Parler » comme à la touche E, au dernier vu (sinon au premier homme), ou au Directeur.
+local function reponse_d_essai(arbre, choix, id)
+  local codes = { vie_au_camp = { 2, 1 }, comment_va_le_camp = { 1, 4, 6 }, ou_en_sont_les_hommes = { 2, 7 } }
+  return { codes = codes[choix] or {}, colonel = true }
+end
+
+function poste.essai_parler(au_directeur)
+  Scriptorium.hommes.reponse_du_dialogue = reponse_d_essai
+  local qui
+  if au_directeur then
+    qui = Scriptorium.directeur.personnage()
+  else
+    local id = poste.dernier_vu or Scriptorium.hommes.liste()[1]
+    qui = id and Scriptorium.hommes.fiche(id).personnage
+  end
+  if not qui then
+    jeu().journal("Poste : personne à qui parler")
+    return false
+  end
+  local ok, compte_rendu = jeu().executer_l_action(qui, "talk")
+  jeu().journal("Poste : Parler à « " .. qui .. " » : " .. tostring(compte_rendu))
+  return ok == true
+end
+
 -- Les alertes du camp (sonde, deux essais au plus) : le texte de l'alerte au bandeau (le mot « Alerte » en rouge ?) et
 -- la cloche d'alarme du jeu jouée sur Henry.
 function poste.essai_alerte_texte()
@@ -2807,6 +2833,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_poste_suivant", fonction = function() return poste.essai_poste_suivant() end, aide = "Le genre de poste suivant, à 2,5 m devant Henry (capture rapprochée)" },
   { nom = "scriptorium_essai_dialogue_force", fonction = function() return poste.essai_dialogue_force() end, aide = "Le dialogue forcé vers Henry, sur un dialogue du jeu (fiche 20)" },
   { nom = "scriptorium_essai_henry_a_la_forge", fonction = function() return poste.essai_henry_a_la_forge() end, aide = "Henry posé à 2 m de la forge la plus proche (fiche 18, le poste partagé)" },
+  { nom = "scriptorium_essai_parler", fonction = function() return poste.essai_parler(false) end, aide = "Parler au dernier vu comme à la touche E, avec une réponse codée de test (fiche 21)" },
+  { nom = "scriptorium_essai_parler_directeur", fonction = function() return poste.essai_parler(true) end, aide = "Parler au Directeur comme à la touche E, avec une réponse codée de test (fiche 21)" },
   { nom = "scriptorium_essai_alerte_texte", fonction = function() return poste.essai_alerte_texte() end, aide = "Le texte de l'alerte au bandeau et la cloche d'alarme du jeu (sonde)" },
   { nom = "scriptorium_essai_henry_prend_la_station", fonction = function() return poste.essai_henry_prend_la_station() end, aide = "Henry prend la station d'essai comme par la touche E (fiche 18, le poste partagé)" },
   { nom = "scriptorium_essai_station_partagee", fonction = function() return poste.essai_station_partagee() end, aide = "La station du jeu la plus proche partagée avec Henry, un homme y travaille (fiche 18)" },

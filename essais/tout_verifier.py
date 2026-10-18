@@ -131,8 +131,8 @@ def verifier_ordres():
     import tempfile
     import ordonner
     connues = ordonner.commandes_du_poste()
-    if len(connues) != 214:
-        erreur("ordres : %d commandes lues dans poste.lua, 214 attendues" % len(connues))
+    if len(connues) != 216:
+        erreur("ordres : %d commandes lues dans poste.lua, 216 attendues" % len(connues))
     lua = runtime_lua()
     if lua is None:
         return len(connues)
@@ -1121,6 +1121,17 @@ def verifier_textes():
         for numero, ligne in enumerate(lire(chemin).splitlines(), 1):
             for cle in MOTIF_CLE.findall(ligne):
                 employees.setdefault(cle, []).append("%s:%d" % (relatif(chemin), numero))
+    # Fiche 21 : les clés des dialogues sont employées par nos fichiers de quêtes (StringName), écrits par
+    # outils/dialogues.py, qui doivent être à jour.
+    for chemin in fichiers(os.path.join(PAK, "Quests"), {".xml"}):
+        for numero, ligne in enumerate(lire(chemin).splitlines(), 1):
+            for cle in re.findall(r'StringName="(ui_scriptorium_[A-Za-z0-9_]+)"', ligne):
+                employees.setdefault(cle, []).append("%s:%d" % (relatif(chemin), numero))
+    import subprocess
+    a_jour = subprocess.run([sys.executable, os.path.join(RACINE, "outils", "dialogues.py"), "--verifier"],
+                            capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if a_jour.returncode != 0:
+        erreur("dialogues : fichiers écrits par outils/dialogues.py pas à jour : " + " ; ".join(a_jour.stdout.split()))
     for cle, endroits in sorted(employees.items()):
         if cle not in definies:
             erreur("texte : clé employée mais jamais définie : %s (%s)" % (cle, endroits[0]))
@@ -1291,6 +1302,44 @@ FACTION_MODELE = "animalCompanions"
 RELATIONS_DU_JEU_AU_PLUS = 8
 
 
+# Fiche 21 (les dialogues, 18/10) : nos fichiers de quêtes et de règles Storm sont écrits par outils/dialogues.py à la
+# forme des fichiers du jeu ; une ligne qui y figure TELLE QUELLE dans les fichiers du jeu de la même famille
+# (Scripts.pak Quests/, IPL_GameData.pak Libs/Storm/) est une forme imposée par le jeu (en-têtes, ObjectiveValueTypes du
+# projet, tâche « roles » de Storm, en-tête d'un Dialogue), pas une ligne d'Alex : comptée à part, plafonnée, listée
+# à chaque passage. Toute autre ligne en commun reste une erreur.
+FAMILLES_DES_QUETES = [("Quests", os.path.join("Data", "Scripts.pak"), "Quests/"),
+                       (os.path.join("Libs", "Storm"), os.path.join("Data", "IPL_GameData.pak"), "Libs/Storm/")]
+LIGNES_DES_QUETES_AU_PLUS = 16   # 18/10 : 13 relevées et revues ; au-delà, revoir la liste
+
+
+def lignes_des_quetes_du_jeu(lignes_d_alex):
+    """Les lignes de nos fichiers de quêtes et de Storm communes avec Alex qui figurent telles quelles dans les fichiers
+    du jeu de la même famille (lecture seule, en mémoire). Rend { empreinte : ligne }. Sans le jeu, aucune."""
+    trouvees = {}
+    for dossier, pak, debut in FAMILLES_DES_QUETES:
+        voulues = {}
+        for chemin in fichiers(os.path.join(PAK, dossier), {".xml"}):
+            for ligne in lire(chemin).splitlines():
+                normalisee = outil_empreintes.normaliser_ligne(ligne, ".xml")
+                marque = outil_empreintes.empreinte(normalisee)
+                if len(normalisee) >= outil_empreintes.LIGNE_MIN and marque in lignes_d_alex:
+                    voulues[normalisee] = marque
+        chemin_du_pak = os.path.join(JEU, pak)
+        if not voulues or not os.path.exists(chemin_du_pak):
+            continue
+        with zipfile.ZipFile(chemin_du_pak) as archive:
+            for info in archive.infolist():
+                if not voulues:
+                    break
+                if not info.filename.startswith(debut) or not info.filename.lower().endswith(".xml"):
+                    continue
+                for ligne in archive.open(info).read().decode("utf-8", "replace").splitlines():
+                    normalisee = outil_empreintes.normaliser_ligne(ligne.lstrip("\ufeff"), ".xml")
+                    if normalisee in voulues:
+                        trouvees[voulues.pop(normalisee)] = normalisee
+    return trouvees
+
+
 def relations_du_jeu(lignes_d_alex):
     """Les lignes de la table des factions du socle communes avec Alex qui sont une relation de FACTION_MODELE dans
     Libs/Tables/rpg/FactionTree.xml du jeu. Rend { empreinte : ligne }."""
@@ -1355,6 +1404,13 @@ def controle_absence(strict):
         print("   relation du jeu (%s) : %s" % (FACTION_MODELE, ligne))
     if len(relations) > RELATIONS_DU_JEU_AU_PLUS:
         erreur("contrôle d'absence : %d relations du jeu, plus que les %d admises" % (len(relations), RELATIONS_DU_JEU_AU_PLUS))
+    des_quetes = lignes_des_quetes_du_jeu(alex["lignes"])
+    socle["lignes"] = socle["lignes"] - set(des_quetes)
+    for ligne in sorted(des_quetes.values()):
+        print("   ligne des quêtes du jeu : " + ligne)
+    if len(des_quetes) > LIGNES_DES_QUETES_AU_PLUS:
+        erreur("contrôle d'absence : %d lignes des quêtes du jeu, plus que les %d admises : revoir la liste"
+               % (len(des_quetes), LIGNES_DES_QUETES_AU_PLUS))
 
     if len(NOMS_DU_JEU_ADMIS) > NOMS_DU_JEU_AU_PLUS:
         erreur("contrôle d'absence : %d noms du jeu admis, plus que les %d permis par JoVenGer"
@@ -1383,7 +1439,7 @@ def controle_absence(strict):
                 normalisee = outil_empreintes.normaliser_ligne(ligne, extension)
                 marque = outil_empreintes.empreinte(normalisee)
                 if len(normalisee) >= outil_empreintes.LIGNE_MIN and marque in alex["lignes"] and marque not in formes \
-                        and marque not in relations:
+                        and marque not in relations and marque not in des_quetes:
                     erreur("  ligne d'Alex : %s:%d" % (relatif(chemin), numero))
             if extension == ".lua":
                 for identifiant in set(outil_empreintes.noms_du_lua(texte)):
