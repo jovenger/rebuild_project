@@ -76,7 +76,7 @@ void usage()
                  "  analyze <instru>                       tonalite, tempo, structure\n"
                  "  remix <voix> [--instru f] [--style s] [--role r] -o sortie.wav\n"
                  "  song <instru> <voix> [--style s] [--target t] [--stems] -o dossier\n"
-                 "  demo [--style s] -o dossier            chaine complete sur signaux de synthese\n"
+                 "  demo [--style s] [--bars N] -o dossier chaine complete sur signaux de synthese\n"
                  "  master <mix> [--target t] -o sortie.wav\n"
                  "  assistant <phrase>                     teste l'assistant texte\n"
                  "styles : rap trap pop_urbaine rnb drill afro\n"
@@ -280,10 +280,14 @@ int cmdDemo (const Args& args)
     sv::MusicalKey key;
     key.root = 9;
     key.minor = true;
-    const auto instru = sv::test::synthInstru (100.0, key, 16, sr, true);
+    // --bars N : longueur de l'instru (16 par défaut, 72 ~ 3 minutes à 100 BPM).
+    const int bars = juce::jlimit (8, 200, args.get ("bars", "16").getIntValue());
+    const auto instru = sv::test::synthInstru (100.0, key, bars, sr, true);
     auto phrases = sv::test::defaultPhrases (key, 100.0, 25.0f);
-    auto more = phrases;
-    phrases.insert (phrases.end(), more.begin(), more.end());
+    const auto base = phrases;
+    const int repeats = std::max (2, bars / 8);
+    for (int i = 1; i < repeats; ++i)
+        phrases.insert (phrases.end(), base.begin(), base.end());
     const auto voice = sv::test::synthVoice (phrases, sr, 2.4);
     const auto outDir = fileArg (args.get ("out"));
     juce::String err;

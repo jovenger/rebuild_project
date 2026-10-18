@@ -367,6 +367,7 @@ std::vector<GeneratedTrack> generate (const LeadAnalysis& lead, double sampleRat
                                       const ProgressFn& progress)
 {
     log::ScopedTimer timer (kMod, "génération complète"_u8);
+    const juce::ScopedNoDenormals noDenormals;
     std::vector<GeneratedTrack> out;
     if (lead.prepared.empty())
     {

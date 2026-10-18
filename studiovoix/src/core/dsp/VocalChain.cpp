@@ -32,6 +32,8 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
                           const AnalysisContext& context, const ProgressFn& progress)
 {
     log::ScopedTimer timer (kMod, "chaîne vocale complète"_u8);
+    // Dénormaux à zéro : les filtres IIR qui décroissent dans les silences ralentissent fortement le x86.
+    const juce::ScopedNoDenormals noDenormals;
     VocalResult result;
     auto step = [&] (float p)
     {

@@ -16,6 +16,7 @@ AutoMixResult autoMix (const Stereo& instru, const Stereo& leadProcessed, const 
                        double sampleRate, const AutoMixSettings& settings)
 {
     log::ScopedTimer timer (kMod, "mix automatique");
+    const juce::ScopedNoDenormals noDenormals;
     AutoMixResult r;
     r.duckedInstru.makeCopyOf (instru);
     if (! settings.enabled || instru.getNumSamples() == 0)

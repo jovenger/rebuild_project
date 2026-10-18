@@ -108,6 +108,7 @@ float limitStereo (Stereo& buffer, double sampleRate, float ceilingDb, float loo
 Stereo master (const Stereo& mix, double sampleRate, const MasterSettings& settings, MasterReport& report)
 {
     log::ScopedTimer timer (kMod, "mastering");
+    const juce::ScopedNoDenormals noDenormals;
     Stereo out (mix);
     const int n = out.getNumSamples();
     report = {};

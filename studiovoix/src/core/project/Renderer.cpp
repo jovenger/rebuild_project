@@ -320,6 +320,7 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
 Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixState& mixState, bool useRaw)
 {
     log::ScopedTimer timer (kMod, "mixage");
+    const juce::ScopedNoDenormals noDenormals;
     long end = 0;
     for (const auto& t : p.tracks)
         if (auto it = renders.find (t.id); it != renders.end() && it->second != nullptr && it->second->ok())

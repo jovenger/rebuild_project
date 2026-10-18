@@ -88,17 +88,30 @@ PitchTrack detectPitch (const Mono& signal, double sampleRate, const PitchParams
             continue;
 
         // Fonction de différence.
+        // 4 accumulateurs indépendants : la boucle n'attend plus la latence de chaque addition.
         for (int tau = 1; tau <= tauMax; ++tau)
         {
-            double acc = 0.0;
+            double acc0 = 0.0, acc1 = 0.0, acc2 = 0.0, acc3 = 0.0;
             const float* a = frame.data();
             const float* b = frame.data() + tau;
-            for (int j = 0; j < W; ++j)
+            int j = 0;
+            for (; j + 3 < W; j += 4)
+            {
+                const double d0 = static_cast<double> (a[j]) - b[j];
+                const double d1 = static_cast<double> (a[j + 1]) - b[j + 1];
+                const double d2 = static_cast<double> (a[j + 2]) - b[j + 2];
+                const double d3 = static_cast<double> (a[j + 3]) - b[j + 3];
+                acc0 += d0 * d0;
+                acc1 += d1 * d1;
+                acc2 += d2 * d2;
+                acc3 += d3 * d3;
+            }
+            for (; j < W; ++j)
             {
                 const double diff = static_cast<double> (a[j]) - b[j];
-                acc += diff * diff;
+                acc0 += diff * diff;
             }
-            d[static_cast<size_t> (tau)] = acc;
+            d[static_cast<size_t> (tau)] = (acc0 + acc1) + (acc2 + acc3);
         }
 
         // Différence normalisée cumulée.
