@@ -105,20 +105,23 @@ jobs:
       - name: Demucs (demucs.cpp) — compilation expérimentale pour l'édition IA
         if: matrix.edition == 'ON'
         continue-on-error: true
-        shell: pwsh
+        shell: bash
         run: |
           # Le CMakeLists de demucs.cpp est écrit pour GCC (-Wall -Wextra, -Ofast -march=native, OpenBLAS par défaut) :
           # MSVC refuse ces drapeaux (build 59). On compile donc avec le GCC MinGW de l'image Windows, OpenMP seul
           # (sans BLAS), binaire statique (aucune DLL à livrer) et jeu d'instructions générique x86-64-v2 au lieu de
           # « native » (sinon le binaire ne tournerait que sur un processeur identique à celui de la CI).
+          # Shell bash + Ninja : PowerShell coupait « =3.5 » en deux arguments (build 60) et le générateur MinGW
+          # Makefiles refuse un sh.exe dans le PATH.
           gcc --version
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/sevagh/demucs.cpp demucs-src
-          (Get-Content demucs-src/CMakeLists.txt) -replace '-march=native', '-march=x86-64-v2 -mtune=generic' | Set-Content demucs-src/CMakeLists.txt
-          cmake -S demucs-src -B demucs-build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
-            -DUSE_OPENBLAS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ `
-            -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++"
+          sed -i 's/-march=native/-march=x86-64-v2 -mtune=generic/' demucs-src/CMakeLists.txt
+          grep -n "march" demucs-src/CMakeLists.txt
+          cmake -S demucs-src -B demucs-build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" \
+            -DUSE_OPENBLAS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+            "-DCMAKE_EXE_LINKER_FLAGS=-static -static-libgcc -static-libstdc++"
           cmake --build demucs-build --parallel --target demucs_mt.cpp.main
-          Get-ChildItem -Recurse demucs-build -Include *.exe,*.dll | Select-Object FullName, Length
+          find demucs-build -name "*.exe" -o -name "*.dll" | xargs ls -l
 
       - name: Artefact Demucs (expérimental)
         if: matrix.edition == 'ON'
