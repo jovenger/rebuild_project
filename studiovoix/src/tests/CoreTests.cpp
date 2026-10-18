@@ -1522,6 +1522,7 @@ public:
             op.style = style::Style::Rap;
             auto& inst = op.addTrack (style::Role::Instru, "Instru");
             inst.sourceFile = "i.wav";
+            const int instId = inst.id;   // la référence 'inst' est invalidée par les pistes ajoutées ensuite (réallocation)
             auto& ld = op.addTrack (style::Role::Lead, "Voix");
             ld.raw = false;
             const int ldId = ld.id;
@@ -1546,7 +1547,7 @@ public:
                 return r;
             };
             render::RenderSet rs;
-            rs[inst.id] = tone (-24.0f, 110.0f);
+            rs[instId] = tone (-18.0f, 220.0f);   // instru audible en sonie pondérée : gain voix / instru modéré
             rs[ldId] = tone (-16.0f, 440.0f);
             rs[dblId] = tone (-14.0f, 660.0f);    // doublage plus fort que la voix : doit redescendre vers -9 LU (borne -8 dB)
             rs[rawId] = tone (-14.0f, 880.0f);
@@ -1556,6 +1557,7 @@ public:
             expect (ms.autoTrackGain (rawId) <= -6.0f && std::abs (ms.autoTrackGain (ldId)) < 1e-6f, "piste brute aussi ramenée à sa place (le niveau n'est pas un effet) ; voix principale intacte"_u8);
             expect (ms.balanceReport.contains ("Doublage") && ! ms.balanceReport.containsChar (0xC3), "rapport orchestre : " + ms.balanceReport);
             expect (ms.mixLufs > -100.0, "sonie du mixage mesurée : "_u8 + juce::String (ms.mixLufs, 1) + " LUFS");
+            expect (ms.autoMixApplied && std::abs (ms.autoMix.vocalGainDb) < 12.0f, "mix auto voix / instru appliqué (gain voix "_u8 + juce::String (ms.autoMix.vocalGainDb, 1) + " dB)");
             // Gains orchestre comparés sans bus voix (le bus compresserait autrement sans rattrapage mesuré).
             project::Project noBus = op;
             noBus.vocalBusEnabled = false;
@@ -1566,7 +1568,9 @@ public:
             expect (std::abs (render::roleOffsetLu (style::Role::AdLib) + 9.0f) < 1e-6f && std::abs (render::roleOffsetLu (style::Role::Lead)) < 1e-6f, "places par rôle"_u8);
 
             // Bus voix : la somme des voix est compressée ensemble ; le rattrapage compense la réduction moyenne.
-            expect (ms.busGrDb > 0.5f && ms.busGrDb < 6.0f, "bus voix : colle mesurée "_u8 + juce::String (ms.busGrDb, 1) + " dB (attendu 0,5-6)");
+            // Réduction mesurée sur la somme des voix après gain voix / instru : positive et modérée (la force du
+            // compresseur est vérifiée dans le test dédié « Bus voix »).
+            expect (ms.busGrDb >= 0.0f && ms.busGrDb < 6.0f, "bus voix : colle mesurée "_u8 + juce::String (ms.busGrDb, 1) + " dB (attendu 0-6)");
             expect (std::abs (ms.busMakeupDb - juce::jlimit (0.0f, 4.0f, ms.busGrDb)) < 1e-6f, "rattrapage = réduction moyenne bornée"_u8);
             const auto withoutBus = render::mixdown (noBus, rs, ms);
             Stereo onlyInstru = makeStereo (withoutBus.getNumSamples());
