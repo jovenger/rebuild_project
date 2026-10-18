@@ -1362,12 +1362,6 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
         for (int c = 0; c < result->raw.getNumChannels(); ++c)
             m.rawPeakDb = std::max (m.rawPeakDb, gainToDb (result->raw.getMagnitude (c, 0, result->raw.getNumSamples())));
         m.lufs = loudness::integratedLufs (result->processed, proj.sampleRate);
-        if (const auto* tr = proj.findTrack (trackId); tr != nullptr && (tr->id == proj.leadTrackId() || tr->role == style::Role::Instru) && result->raw.getNumSamples() > 0)
-        {
-            // Tonalité de la voix principale et de l'instru : une différence est signalée (autotune vers une mauvaise gamme).
-            m.key = analysis::detectKey (audio::toMono (result->raw), proj.sampleRate).key;
-            m.keyKnown = m.key.confidence >= 0.35f;
-        }
         trackMetrics[trackId] = m;
         const auto w = trackWarnings (trackId);
         if (w.isNotEmpty())
@@ -1709,16 +1703,9 @@ juce::String Session::trackWarnings (int trackId) const
         w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
     for (const auto& su : r->report.leveler.surges)
         w.add ("monte en flèche "_u8 + su.describe() + (r->report.leveler.applied ? ", rabaissée"_u8 : ""));
-    if (t->id == proj.leadTrackId() && m.keyKnown && proj.instruTrack() != nullptr)
-        if (auto inst = trackMetrics.find (proj.instruTrack()->id); inst != trackMetrics.end() && inst->second.keyKnown)
-        {
-            const auto& a = m.key;
-            const auto& b = inst->second.key;
-            const bool same = a.root == b.root && a.minor == b.minor;
-            const bool relative = (a.minor != b.minor) && ((a.minor ? a.root : b.root) == ((a.minor ? b.root : a.root) + 9) % 12);
-            if (! same && ! relative)
-                w.add ("tonalité différente de l'instru (voix "_u8 + a.toFrench() + ", instru " + b.toFrench() + ") : vérifie la tonalité du projet"_u8);
-        }
+    if (t->isVoice() && r->report.outOfScaleFraction >= 0.25f)
+        w.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors de la gamme "_u8 + proj.key.toFrench()
+               + " : vérifie la tonalité du projet (l'autotune tirerait vers de mauvaises notes)"_u8);
     if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
         if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
         {

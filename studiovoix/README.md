@@ -103,8 +103,9 @@ Le panneau Voix IA affiche « Orchestre : gain auto ± x dB », la barre du haut
 **Alertes** : après chaque rendu, chaque piste **écrêtée à la source** (crête au-dessus de −0,2 dBFS avant traitement),
 qui **sature après traitement** (au-delà de +1 dBFS), **monte en flèche** ou est **plus forte que la voix
 principale** est signalée en orange dans son en-tête et dans la barre d'état (« Ingénieur du son : 2 alertes — … »),
-avec les horodatages ; une **tonalité de la voix différente de celle de l'instru** (hors relative majeur / mineur) est
-signalée aussi, car l'autotune serait tiré vers la mauvaise gamme.
+avec les horodatages ; si plus d'un quart des **notes chantées sont hors de la gamme du projet** (mesuré avant
+l'autotune), c'est signalé aussi, car l'autotune tirerait vers de mauvaises notes. Chaque piste traitée finit sous
+−1 dBTP (limiteur de sécurité, transparent tant que rien ne dépasse).
 
 **Vumètres** : crête jouée par piste (barre dans l'en-tête, retombée douce) ; crête de sortie et sonie du mixage dans
 la barre du haut.

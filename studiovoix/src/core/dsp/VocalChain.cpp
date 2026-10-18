@@ -1,5 +1,7 @@
 #include "VocalChain.h"
 
+#include "MasterChain.h"
+
 #include "../AudioIO.h"
 #include "../Log.h"
 #include "PitchCorrector.h"
@@ -159,6 +161,23 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     // 2) Analyse.
     result.va = analysis::analyzeVoice (x, sampleRate);
     result.track = analysis::detectPitch (x, sampleRate);
+    if (context.key.confidence >= 0.3f)
+    {
+        // Notes hors gamme avant toute correction : si la voix chante dans une autre tonalité que l'instru, l'autotune
+        // tirerait vers de mauvaises notes ; l'application le signale.
+        int voicedN = 0, outN = 0;
+        for (size_t i = 0; i < result.track.frames.size(); ++i)
+        {
+            const auto& f = result.track.frames[i];
+            if (! f.voiced || f.f0 <= 0.0f || f.confidence < 0.6f || ! result.va.isActiveAt (static_cast<double> (i) * result.track.hopSec))
+                continue;
+            const int midi = juce::roundToInt (69.0f + 12.0f * std::log2 (f.f0 / 440.0f));
+            ++voicedN;
+            outN += context.key.contains (((midi % 12) + 12) % 12) ? 0 : 1;
+        }
+        if (voicedN >= 50)
+            result.report.outOfScaleFraction = static_cast<float> (outN) / static_cast<float> (voicedN);
+    }
     if (result.report.nearSilent)
         result.va.phrases.clear();   // pas de backs ni d'ad-libs générés à partir du bruit
     result.report.phrases = static_cast<int> (result.va.phrases.size());
@@ -276,6 +295,9 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
 
     for (int c = 0; c < 2; ++c)
         audio::sanitize (result.audio.getWritePointer (c), static_cast<size_t> (result.audio.getNumSamples()));
+
+    // 10) Limiteur de sécurité : une piste ne dépasse jamais -1 dBTP (crêtes seulement, transparent sinon).
+    result.report.limiterGrDb = limitStereo (result.audio, sampleRate, -1.0f);
 
     step (1.0f);
     SV_LOG_INFO (kMod, "Voix traitée : gain d'entrée "_u8 + juce::String (result.report.inputGainDb, 1) + " dB, "

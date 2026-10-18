@@ -25,6 +25,8 @@ struct VocalReport
     float meanCorrectionCents = 0.0f;
     float compGrDb = 0.0f;
     float deEssGrDb = 0.0f;
+    float limiterGrDb = 0.0f;          // limiteur de sécurité en fin de piste (-1 dBTP), 0 si rien à faire
+    float outOfScaleFraction = -1.0f;  // part des notes chantées hors de la gamme du morceau (avant autotune) ; -1 = inconnu
     int syllablesRetimed = 0;
     CleanReport clean;
     LevelerReport leveler;
