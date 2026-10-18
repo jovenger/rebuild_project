@@ -2,6 +2,7 @@
 
 #include "../AudioIO.h"
 #include "../Log.h"
+#include "Denoiser.h"
 
 #include <juce_dsp/juce_dsp.h>
 
@@ -376,7 +377,15 @@ CleanReport clean (Mono& x, double sr, const CleanSettings& s, const analysis::P
         return report;
     log::ScopedTimer timer (kMod, "nettoyage voix");
 
+    // 0) Dé-écrêtage avant tout : les bosses écrêtées sont reconstruites, le reste de la chaîne travaille sur un signal sain.
+    if (s.declip)
+        report.clippedRepaired = declip (x);
+
     highPass (x, sr, s.hpfHz, 4);
+
+    // 0 bis) Débruitage spectral : profil appris sur les silences, voix préservée.
+    if (s.denoiseDb > 0.0f)
+        report.noiseReducedDb = spectralDenoise (x, sr, va, s.denoiseDb).reductionDb();
 
     // 1) Anti-plosives : réduction dynamique de la bande < 150 Hz pendant les bouffées.
     if (s.dePlosive)

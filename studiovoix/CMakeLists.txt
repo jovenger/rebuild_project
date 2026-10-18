@@ -41,6 +41,8 @@ set(SV_CORE_SOURCES
     src/core/dsp/TimingCorrector.cpp
     src/core/dsp/VocalChain.cpp
     src/core/dsp/ProblemAnalyzer.cpp
+    src/core/dsp/Denoiser.cpp
+    src/core/plugins/PluginChain.cpp
     src/core/dsp/MasterChain.cpp
     src/core/style/StyleProfiles.cpp
     src/core/gen/BackingGenerator.cpp
@@ -73,6 +75,7 @@ set(SV_CORE_MODULES
     juce::juce_events
     juce::juce_audio_basics
     juce::juce_audio_formats
+    juce::juce_audio_processors_headless
     juce::juce_cryptography
     juce::juce_dsp)
 

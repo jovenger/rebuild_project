@@ -58,8 +58,10 @@ juce::String describeChain (const style::VocalParams& p)
                + " (" + pct (p.pitch.amount) + ", vitesse " + juce::String (juce::roundToInt (p.pitch.retuneMs)) + " ms)");
 
     if (p.clean.enabled)
-        l.add ("Nettoyage : coupe-bas "_u8 + hz (p.clean.hpfHz) + ", bruit de fond -" + juce::String (juce::roundToInt (p.clean.gateRangeDb))
-               + " dB, respirations -" + juce::String (juce::roundToInt (p.clean.breathReductionDb)) + " dB" + (p.clean.dePlosive ? ", plosives (p, b)" : ""));
+        l.add ("Nettoyage : coupe-bas "_u8 + hz (p.clean.hpfHz) + ", débruitage -"_u8 + juce::String (juce::roundToInt (p.clean.denoiseDb))
+               + " dB, silences -" + juce::String (juce::roundToInt (p.clean.gateRangeDb))
+               + " dB, respirations -" + juce::String (juce::roundToInt (p.clean.breathReductionDb)) + " dB" + (p.clean.dePlosive ? ", plosives (p, b)" : "")
+               + (p.clean.declip ? ", dé-écrêtage"_u8 : ""));
     else
         l.add ("Nettoyage : désactivé"_u8);
 

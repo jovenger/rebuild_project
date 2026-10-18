@@ -43,6 +43,7 @@ struct TrackRender
     dsp::VocalReport report;
     juce::String compSummary;
     juce::String problemsReport;    // correction automatique : défauts constatés et corrections
+    juce::StringArray pluginNotes;  // inserts VST3 appliqués (ou erreurs)
     juce::String error;
     bool ok() const { return error.isEmpty(); }
 };

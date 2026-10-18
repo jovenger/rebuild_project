@@ -251,6 +251,13 @@ juce::var Project::toVar() const
             tks.add (juce::var (x));
         }
         o->setProperty ("takes", tks);
+        if (! t.plugins.empty())
+        {
+            juce::Array<juce::var> pl;
+            for (const auto& s : t.plugins)
+                pl.add (s.toVar());
+            o->setProperty ("plugins", pl);
+        }
         trs.add (juce::var (o));
     }
     root->setProperty ("tracks", trs);
@@ -368,6 +375,15 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
                         t.takes.push_back (tk);
                     else
                         SV_LOG_WARN (kMod, "Prise invalide ignorée dans la piste "_u8 + t.name);
+                }
+            if (const auto* pl = o.getProperty ("plugins", {}).getArray())
+                for (const auto& x : *pl)
+                {
+                    auto s = plugins::PluginSlot::fromVar (x);
+                    if (s.identifier.isNotEmpty())
+                        t.plugins.push_back (std::move (s));
+                    else
+                        p.loadWarnings.add ("plugin sans identifiant ignoré sur la piste "_u8 + t.name);
                 }
             if (roleMissing && t.takes.empty() && t.sourceFile.isNotEmpty() && t.generatedFrom < 0)
             {

@@ -94,12 +94,16 @@ struct CleanSettings
     bool dePlosive = true;
     float gateRangeDb = 12.0f;        // atténuation max sous le seuil (0 = pas de porte)
     float breathReductionDb = 8.0f;   // 0 = respirations intactes
+    float denoiseDb = 12.0f;          // débruitage spectral (souffle, ronflement, bruit de pièce) ; 0 = désactivé
+    bool declip = true;               // reconstruction des passages écrêtés
 };
 struct CleanReport
 {
     int plosivesTreated = 0;
     int breathsTreated = 0;
     float noiseFloorDb = -120.0f;
+    float noiseReducedDb = 0.0f;      // baisse du bruit dans les silences (débruitage spectral)
+    int clippedRepaired = 0;          // échantillons écrêtés reconstruits
 };
 CleanReport clean (Mono& x, double sr, const CleanSettings& s, const analysis::PitchTrack& track,
                    const analysis::VoiceActivity& va);

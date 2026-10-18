@@ -19,6 +19,8 @@
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/PitchCorrector.h"
 #include "core/dsp/ProblemAnalyzer.h"
+#include "core/dsp/Denoiser.h"
+#include "core/plugins/PluginChain.h"
 #include "core/dsp/PitchShifter.h"
 #include "core/dsp/Processors.h"
 #include "core/dsp/TimingCorrector.h"
@@ -970,6 +972,114 @@ public:
             expect (style::guessRoleForImport ("enregistrement 3.wav", 1, true, true) == Role::ManualBack, "voix reconnue, lead occupé -> back");
             expect (style::guessRoleForImport ("enregistrement 3.wav", 0, false, false) == Role::Instru, "musique reconnue, pas d'instru -> instru");
             expect (style::guessRoleForImport ("instru.wav", 1, false, false) == Role::Instru, "le nom explicite l'emporte");
+        }
+
+        beginTest ("Chaine de plugins : gain, latence compensee, etat, contournement");
+        {
+            // Faux plugin : gain -6 dB, latence déclarée de 100 échantillons, état = 1 octet (gain actif ou non).
+            class GainProc final : public juce::AudioProcessor
+            {
+            public:
+                GainProc() : juce::AudioProcessor (BusesProperties().withInput ("In", juce::AudioChannelSet::stereo()).withOutput ("Out", juce::AudioChannelSet::stereo())) {}
+                using juce::AudioProcessor::processBlock;
+                const juce::String getName() const override { return "GainTest"; }
+                void prepareToPlay (double, int) override { setLatencySamples (100); delay.assign (2, std::vector<float> (100, 0.0f)); }
+                void releaseResources() override {}
+                void processBlock (juce::AudioBuffer<float>& b, juce::MidiBuffer&) override
+                {
+                    const float g = active ? 0.5f : 1.0f;
+                    for (int c = 0; c < 2; ++c)
+                        for (int i = 0; i < b.getNumSamples(); ++i)
+                        {
+                            const float in = b.getSample (c, i) * g;
+                            b.setSample (c, i, delay[static_cast<size_t> (c)][0]);
+                            delay[static_cast<size_t> (c)].erase (delay[static_cast<size_t> (c)].begin());
+                            delay[static_cast<size_t> (c)].push_back (in);
+                        }
+                }
+                double getTailLengthSeconds() const override { return 0.0; }
+                bool acceptsMidi() const override { return false; }
+                bool producesMidi() const override { return false; }
+                juce::AudioProcessorEditor* createEditor() override { return nullptr; }
+                bool hasEditor() const override { return false; }
+                int getNumPrograms() override { return 1; }
+                int getCurrentProgram() override { return 0; }
+                void setCurrentProgram (int) override {}
+                const juce::String getProgramName (int) override { return {}; }
+                void changeProgramName (int, const juce::String&) override {}
+                void getStateInformation (juce::MemoryBlock& d) override { const char v = active ? 1 : 0; d.append (&v, 1); }
+                void setStateInformation (const void* d, int n) override { active = n > 0 && static_cast<const char*> (d)[0] == 1; }
+                bool active = true;
+                std::vector<std::vector<float>> delay;
+            };
+            plugins::setInstanceFactory ([] (const plugins::PluginSlot& s, double, int, juce::String& whyNot) -> std::unique_ptr<juce::AudioProcessor>
+            {
+                if (s.identifier != "test:gain") { whyNot = "inconnu"; return nullptr; }
+                return std::make_unique<GainProc>();
+            });
+            Stereo sig (2, 4800);
+            for (int i = 0; i < 4800; ++i)
+                for (int c = 0; c < 2; ++c)
+                    sig.setSample (c, i, 0.5f * std::sin (0.05f * static_cast<float> (i)));
+            plugins::PluginSlot slot;
+            slot.identifier = "test:gain";
+            slot.name = "Gain";
+            auto a = sig;
+            auto notes = plugins::applyPluginChain (a, kSr, { slot });
+            expect (notes.size() == 1 && notes[0].contains ("latence 100"), "latence signalée : " + notes.joinIntoString (" | "));
+            float maxErr = 0.0f;
+            for (int i = 0; i < 4800 - 100; ++i)
+                maxErr = std::max (maxErr, std::abs (a.getSample (0, i) - 0.5f * sig.getSample (0, i)));
+            expect (maxErr < 1.0e-5f, "gain -6 dB appliqué et latence compensée (erreur max " + juce::String (maxErr, 6) + ")");
+            slot.state.setSize (1);
+            static_cast<char*> (slot.state.getData())[0] = 0;   // état : gain inactif
+            auto b = sig;
+            plugins::applyPluginChain (b, kSr, { slot });
+            expect (std::abs (b.getSample (0, 500) - sig.getSample (0, 500)) < 1.0e-5f, "état restauré (gain inactif)"_u8);
+            slot.bypass = true;
+            auto c = sig;
+            notes = plugins::applyPluginChain (c, kSr, { slot });
+            expect (notes[0].contains ("contourn") && std::memcmp (c.getReadPointer (0), sig.getReadPointer (0), sizeof (float) * 4800) == 0, "contournement");
+            plugins::PluginSlot unknown;
+            unknown.identifier = "test:absent";
+            unknown.name = "Absent";
+            notes = plugins::applyPluginChain (c, kSr, { unknown });
+            expect (notes[0].contains ("non charg"), "plugin absent signalé, son intact"_u8);
+            const auto back = plugins::PluginSlot::fromVar (slot.toVar());
+            expect (back.identifier == slot.identifier && back.bypass && back.state.getSize() == 1, "slot sauvegardé / relu"_u8);
+            plugins::setInstanceFactory (nullptr);
+        }
+
+        beginTest ("Debruitage spectral et de-ecretage");
+        {
+            const auto keySig = aMinor();
+            auto clean = synthVoice (defaultPhrases (keySig, 100.0), kSr);
+            auto noisy = clean;
+            juce::Random rng (7);
+            const float noiseAmp = dbToGain (-45.0f);
+            for (auto& v : noisy)
+                v += noiseAmp * (rng.nextFloat() * 2.0f - 1.0f);
+            const auto va = analysis::analyzeVoice (noisy, kSr);
+            const auto rep = dsp::spectralDenoise (noisy, kSr, va, 15.0f);
+            logMessage ("bruit : " + juce::String (rep.noiseBeforeDb, 1) + " -> " + juce::String (rep.noiseAfterDb, 1) + " dBFS");
+            expect (rep.reductionDb() >= 8.0f, "bruit réduit d'au moins 8 dB : "_u8 + juce::String (rep.reductionDb(), 1));
+            // La voix est préservée : niveau actif à ±1,5 dB du signal propre.
+            const float before = dsp::activeLevelDb (clean, kSr), after = dsp::activeLevelDb (noisy, kSr);
+            expect (std::abs (after - before) < 1.5f, "voix préservée : "_u8 + juce::String (before, 1) + " -> " + juce::String (after, 1));
+
+            Mono sine (static_cast<size_t> (kSr));
+            for (size_t i = 0; i < sine.size(); ++i)
+                sine[i] = 1.6f * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / static_cast<float> (kSr));
+            auto clipped = sine;
+            int flat = 0;
+            for (auto& v : clipped)
+                if (std::abs (v) > 0.99f) { v = v > 0.0f ? 0.99f : -0.99f; ++flat; }
+            const int repaired = dsp::declip (clipped, 0.985f);
+            expect (repaired > flat / 2, "échantillons reconstruits : "_u8 + juce::String (repaired) + " / " + juce::String (flat));
+            float pk = 0.0f;
+            for (const float v : clipped)
+                pk = std::max (pk, std::abs (v));
+            expect (pk > 1.2f, "crête reconstruite au-dessus du niveau écrêté : "_u8 + juce::String (pk, 2));
         }
 
         beginTest ("Correction automatique : defauts mesures et corriges");

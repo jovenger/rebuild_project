@@ -160,6 +160,16 @@ bool compositeRaw (const project::Project& p, const project::Track& t, AudioCach
     return ! out.empty();
 }
 
+namespace
+{
+    void applyTrackPlugins (const project::Project& p, const project::Track& t, TrackRender& r)
+    {
+        if (t.plugins.empty() || ! r.ok())
+            return;
+        r.pluginNotes = plugins::applyPluginChain (r.processed, p.sampleRate, t.plugins);
+    }
+}
+
 std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const project::Track& t, AudioCache& cache,
                                           const dsp::AnalysisContext& ctx, const ProgressFn& progress)
 {
@@ -180,6 +190,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         r->processed.makeCopyOf (*st);
         r->raw.makeCopyOf (*st);
         r->startSample = t.sourceStart;
+        applyTrackPlugins (p, t, *r);
         return r;
     }
 
@@ -198,7 +209,8 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     {
         // Brut : le son tel qu'importé, sans aucun effet ni normalisation.
         r->processed.makeCopyOf (r->raw);
-        SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » brute : aucun effet"_u8);
+        SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » brute : aucun effet"_u8 + (t.plugins.empty() ? "" : " (sauf ses plugins)"));
+        applyTrackPlugins (p, t, *r);
         return r;
     }
 
@@ -253,6 +265,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->track = std::move (result.track);
     r->va = std::move (result.va);
     r->report = result.report;
+    applyTrackPlugins (p, t, *r);
     return r;
 }
 

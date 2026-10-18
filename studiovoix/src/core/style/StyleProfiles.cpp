@@ -609,6 +609,7 @@ namespace
                 p.clean.dePlosive = false;
                 p.clean.breathReductionDb = 0.0f;
                 p.clean.gateRangeDb = 6.0f;
+                p.clean.denoiseDb = 6.0f;
                 p.clean.hpfHz = 30.0f;
                 p.eq = { 30.0f, 200.0f, 0.0f, 300.0f, -1.0f, 1.0f, 3000.0f, 1.0f, 0.8f, 12000.0f, 1.0f, 0.0f };
                 p.comp = { -20.0f, 2.5f, 10.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };

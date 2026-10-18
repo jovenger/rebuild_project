@@ -4,6 +4,7 @@
 #include "../analysis/StructureDetector.h"
 #include "../dsp/MasterChain.h"
 #include "../gen/BackingGenerator.h"
+#include "../plugins/PluginChain.h"
 #include "../style/StyleProfiles.h"
 
 #include <juce_core/juce_core.h>
@@ -48,6 +49,7 @@ struct Track
     bool raw = false;
     juce::String styleId;            // style propre à la piste ; vide = style du projet ; "correction" = correction automatique
     bool isCorrection() const { return styleId == "correction"; }
+    std::vector<plugins::PluginSlot> plugins;   // inserts VST3 appliqués après les effets
 
     // Pistes générées / instru
     juce::String sourceFile;         // relatif à audio/ (piste générée) ou chemin de l'instru

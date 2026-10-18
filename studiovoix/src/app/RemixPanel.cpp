@@ -277,7 +277,8 @@ void RemixPanel::refresh()
         if (vocal)
         {
             txt << "\nPrise traitée : "_u8 << juce::String (r->report.clean.plosivesTreated) << " plosives, " << juce::String (r->report.clean.breathsTreated)
-                << " respirations ; " << juce::String (r->report.phrases) << " phrases";
+                << " respirations ; " << juce::String (r->report.phrases) << " phrases ; bruit -"_u8 << juce::String (r->report.clean.noiseReducedDb, 1) << " dB"
+                << (r->report.clean.clippedRepaired > 0 ? " ; " + juce::String (r->report.clean.clippedRepaired) + " échantillons écrêtés reconstruits"_u8 : juce::String());
         }
     }
     if (session.project().referenceFile.isNotEmpty())

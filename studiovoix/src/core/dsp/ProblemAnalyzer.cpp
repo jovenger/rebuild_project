@@ -148,17 +148,19 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
     v.clean.dePlosive = vocal;
     v.clean.breathReductionDb = vocal ? 6.0f : 0.0f;
     v.clean.gateRangeDb = p.noiseFloorDb > -45.0f ? 18.0f : (p.noiseFloorDb > -60.0f ? 10.0f : 4.0f);
+    v.clean.denoiseDb = p.noiseFloorDb > -45.0f ? 20.0f : (p.noiseFloorDb > -60.0f ? 14.0f : 8.0f);
+    v.clean.declip = true;
     v.outputDb = -14.0f;
     v.inputTargetDb = -20.0f;
 
     p.fixes.clear();
     p.fixes.add ("niveau remis à -14 dB (gain "_u8 + db1 (-14.0f - p.activeLevelDb) + ")");
     if (p.clippedSamples > 0)
-        p.fixes.add ("passages saturés adoucis par la compression douce"_u8);
+        p.fixes.add ("passages saturés reconstruits (dé-écrêtage)"_u8);
     if (std::abs (p.dcOffset) > 0.01f)
         p.fixes.add ("composante continue retirée (coupe-bas)"_u8);
-    if (p.noiseFloorDb > -60.0f)
-        p.fixes.add ("bruit de fond réduit de "_u8 + juce::String (juce::roundToInt (v.clean.gateRangeDb)) + " dB dans les silences");
+    p.fixes.add ("débruitage spectral jusqu'à -"_u8 + juce::String (juce::roundToInt (v.clean.denoiseDb)) + " dB (souffle, ronflement, bruit de pièce)"_u8
+                 + (p.noiseFloorDb > -60.0f ? " + silences atténués de "_u8 + juce::String (juce::roundToInt (v.clean.gateRangeDb)) + " dB" : juce::String()));
     if (p.mudExcessDb >= 1.0f)
     {
         v.eq.mudHz = 300.0f;
