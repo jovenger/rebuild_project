@@ -780,7 +780,11 @@ local function appliquer(d, b, issue, morts_par_le_jeu, blesses_donnes, gagne)
       Scriptorium.caractere.blessure_recue(blesse.id)
     end
   end
-  hommes().moral_pour_tous(issue.moral)
+  -- Interrupteur « moral_de_bataille » (demande du pair, 18/10 ; règle des doublons : le socle tient le moral,
+  -- Scriptorium dit ce qui le fait bouger) : Scriptorium compte déjà victoires et défaites, il l'éteint.
+  if Scriptorium.actif("moral_de_bataille") then
+    hommes().moral_pour_tous(issue.moral)
+  end
   -- Pillage en cas de défaite (pas pour une bande postée : elle se bat chez elle, fiche 17).
   -- Interrupteur « pillage_du_socle » : Scriptorium a sa propre règle, il l'éteint (sinon le camp paierait deux fois).
   if issue.nom == "defaite" and not b.postee and Scriptorium.actif("pillage_du_socle") then

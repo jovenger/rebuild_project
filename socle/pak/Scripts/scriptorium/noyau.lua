@@ -58,6 +58,9 @@ Scriptorium.noyau.interrupteurs = Scriptorium.noyau.interrupteurs or {
   -- La bascule (demande du pair, 18/10) : le pillage du socle (une défaite d'une bande non postée prend la moitié du
   -- coffre) ; Scriptorium a sa propre règle (pillage_des_caisses) et l'éteint. Allumé par défaut.
   pillage_du_socle = 1,
+  -- La bascule (demande du pair, 18/10) : le moral après une bataille (bataille.issues, « moral ») ; Scriptorium compte
+  -- déjà victoires et défaites dans le moral et l'éteint. Allumé par défaut.
+  moral_de_bataille = 1,
 }
 
 function Scriptorium.actif(nom)

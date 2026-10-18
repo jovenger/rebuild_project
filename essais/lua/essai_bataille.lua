@@ -183,6 +183,24 @@ essai("bataille : forces, moral et poids des sortes", function()
   egal(bataille.force_de_la_bande({ sorte = "deserteurs", effectif = 5 }), 4, "cinq déserteurs")
 end)
 
+essai("bataille (la bascule, 18/10) : l'interrupteur « moral_de_bataille » éteint, une défaite ne touche pas au moral ; allumé, si", function()
+  preparer(400, 10, { "homme_d_armes", "pavoisier" })
+  local id = hommes.liste()[1]
+  bataille.reglages.part_des_morts = 0
+  FauxJeu.refuser_ennemis = true
+  Scriptorium.noyau.interrupteurs.moral_de_bataille = 0
+  local avant = hommes.fiche(id).moral
+  bataille.lever_une_bande({ sorte = "coumans", effectif = 30, direction = 0, delai = 0 })
+  bataille.battre()
+  egal(bataille.resultats()[1].issue, "defaite", "défaite")
+  egal(hommes.fiche(id).moral, avant, "moral inchangé")
+  Scriptorium.noyau.interrupteurs.moral_de_bataille = 1
+  bataille.lever_une_bande({ sorte = "coumans", effectif = 30, direction = 0, delai = 0 })
+  bataille.battre()
+  verifier(hommes.fiche(id).moral < avant, "allumé : le moral baisse")
+  bataille.reglages.part_des_morts = 0.5
+end)
+
 essai("bataille (la bascule, 18/10) : l'interrupteur « pillage_du_socle » éteint, une défaite ne prend rien au coffre", function()
   preparer(400, 10, { "homme_d_armes", "pavoisier" })
   Scriptorium.noyau.interrupteurs.pillage_du_socle = 0
