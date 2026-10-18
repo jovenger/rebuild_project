@@ -411,6 +411,27 @@ public:
             expect (rep.truePeakDb <= info.ceilingDbTp + 0.15, "crête vraie sous le plafond"_u8);
             expect (! audio::hasNonFinite (out.getReadPointer (0), static_cast<size_t> (out.getNumSamples())));
         }
+        beginTest ("Mastering : mix quasi silencieux non amplifie");
+        {
+            juce::Random rnd (7);
+            Stereo hiss (2, static_cast<int> (kSr * 4));
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < hiss.getNumSamples(); ++i)
+                    hiss.setSample (c, i, (rnd.nextFloat() * 2.0f - 1.0f) * 1.0e-4f);   // environ -85 dBFS
+            dsp::MasterSettings ms;
+            dsp::MasterReport rep;
+            dsp::master (hiss, kSr, ms, rep);
+            expect (rep.outputLufs < -60.0, "souffle amplifié : "_u8 + juce::String (rep.outputLufs, 1) + " LUFS");
+        }
+        beginTest ("Mastering : marge MP3 (-2 dBTP) sur la cible Fort");
+        {
+            dsp::MasterSettings ms;
+            ms.target = dsp::LoudnessTarget::Fort;
+            ms.extraHeadroomDb = 1.0f;
+            dsp::MasterReport rep;
+            dsp::master (instru, kSr, ms, rep);
+            expect (rep.truePeakDb <= -2.0 + 0.05, "crête vraie "_u8 + juce::String (rep.truePeakDb, 2) + " dBTP");
+        }
         beginTest ("Limiteur : aucun echantillon au-dessus du plafond");
         {
             Stereo loud = audio::monoToStereo (sine (100.0, 1.0, kSr, 1.5f));
@@ -713,6 +734,16 @@ public:
             logMessage ("mix : " + juce::String (rep.master.outputLufs, 2) + " LUFS, " + juce::String (rep.master.truePeakDb, 2)
                         + " dBTP, gain voix auto " + juce::String (rep.vocalGainDb, 1) + " dB");
             expectWithinAbsoluteError (rep.master.outputLufs, -14.0, 0.6);
+            // Second export du même nom : nouveau fichier, le premier est conservé.
+            eo.stems = false;
+            const auto rep2 = render::exportProject (p, set, eo);
+            expect (rep2.ok, rep2.error);
+            expect (rep2.mixFile != rep.mixFile && rep.mixFile.existsAsFile() && rep2.mixFile.existsAsFile(),
+                    "second export : "_u8 + rep2.mixFile.getFileName());
+            expectEquals (audio::safeFileName ("CON", "mix"), juce::String ("_CON"));
+            expectEquals (audio::safeFileName ("nul.txt", "mix"), juce::String ("_nul.txt"));
+            expectEquals (audio::safeFileName ("  ...  ", "mix"), juce::String ("mix"));
+            expectEquals (audio::safeFileName ("Refrain : v2.", "mix"), juce::String ("Refrain  v2"));
 
             auto reread = audio::loadStereo (rep.mixFile, kSr);
             expect (reread.ok(), reread.error);
@@ -767,6 +798,15 @@ public:
             const auto unauth = ai::parseClaudeResponse (401, R"({"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}})", false);
             expect (! unauth.ok);
             expect (unauth.error.contains ("Clé API invalide"_u8), unauth.error);
+            const auto cut = ai::parseClaudeResponse (200, R"({"stop_reason":"max_tokens","content":[{"type":"text","text":"{\"a\":"}]})", true);
+            expect (! cut.ok && cut.error.contains ("tronquée"_u8), cut.error);
+            juce::var v;
+            juce::JSON::parse (R"({"detail":{"status":"invalid_api_key","message":"Invalid API key"}})", v);
+            expectEquals (ai::musicErrorMessage (v), juce::String ("Invalid API key"));
+            juce::JSON::parse (R"({"detail":[{"loc":["body","prompt"],"msg":"field required","type":"missing"}]})", v);
+            expectEquals (ai::musicErrorMessage (v), juce::String ("field required"));
+            juce::JSON::parse (R"({"detail":"quota exceeded"})", v);
+            expectEquals (ai::musicErrorMessage (v), juce::String ("quota exceeded"));
         }
         beginTest ("Sans cle : l'assistant avance retombe sur l'assistant local");
         {

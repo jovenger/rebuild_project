@@ -35,5 +35,6 @@ private:
     std::unique_ptr<juce::FileChooser> chooser;
     int shownTrack = -1;
     bool updating = false;
+    bool dragging = false;   // glisser (ou molette, que JUCE présente comme un glisser) en cours
 };
 } // namespace sv::app

@@ -87,6 +87,7 @@ struct ExportReport
 {
     bool ok = false;
     juce::String error;
+    juce::String warning;   // export fait, mais à vérifier (pistes séparées manquantes ou limitées)
     juce::File mixFile;
     juce::StringArray stemFiles;
     dsp::MasterReport master;

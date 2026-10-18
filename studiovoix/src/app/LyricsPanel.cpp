@@ -76,7 +76,7 @@ LyricsPanel::LyricsPanel (Session& s) : session (s), prompter (s)
     editor.onTextChange = [this]
     {
         if (! updating)
-            session.updateProject ([txt = editor.getText()] (project::Project& p) { p.lyrics = txt; }, false, {});
+            session.setLyrics (editor.getText());
     };
     barsLabel.setText ("Mesures par ligne", juce::dontSendNotification);
     for (int v : { 1, 2, 4 })

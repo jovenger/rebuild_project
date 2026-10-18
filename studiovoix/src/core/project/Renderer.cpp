@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
 #include "../Log.h"
+#include "../Loudness.h"
 #include "../analysis/SpectrumAnalyzer.h"
 
 namespace sv::render
@@ -384,11 +385,21 @@ ExportReport exportProject (const project::Project& p, const RenderSet& renders,
     const auto tone = style::masterTone (p.style);
     ms.lowShelfDb = tone.lowShelfDb;
     ms.highShelfDb = tone.highShelfDb;
+    // MP3 : l'encodage ajoute des crêtes, on vise -2 dBTP au lieu de -1.
+    ms.extraHeadroomDb = options.format == audio::FileFormat::Mp3_320 ? 1.0f : 0.0f;
     Stereo mastered = dsp::master (mixBuf, p.sampleRate, ms, rep.master);
     if (! ms.enabled)
     {
-        // Sans mastering : simple protection contre l'écrêtage.
-        dsp::limitStereo (mastered, p.sampleRate, -1.0f);
+        // Sans mastering : simple protection contre l'écrêtage, puis mesures du fichier réellement écrit.
+        const float ceilingTp = -1.0f - ms.extraHeadroomDb;
+        dsp::limitStereo (mastered, p.sampleRate, ceilingTp - 0.3f);
+        rep.master.truePeakDb = loudness::truePeakDb (mastered);
+        if (rep.master.truePeakDb > ceilingTp)
+        {
+            mastered.applyGain (dbToGain (static_cast<float> (ceilingTp - 0.05 - rep.master.truePeakDb)));
+            rep.master.truePeakDb = loudness::truePeakDb (mastered);
+        }
+        rep.master.outputLufs = loudness::integratedLufs (mastered, p.sampleRate);
     }
     if (progress && ! progress (0.6f))
     {
@@ -396,7 +407,10 @@ ExportReport exportProject (const project::Project& p, const RenderSet& renders,
         return rep;
     }
 
-    rep.mixFile = options.outDir.getChildFile (juce::File::createLegalFileName (options.baseName) + ext);
+    // Jamais d'écrasement : un export existant du même nom donne « nom (2) », « nom (3) »…
+    rep.mixFile = options.outDir.getChildFile (audio::safeFileName (options.baseName, "mix") + ext);
+    if (rep.mixFile.exists())
+        rep.mixFile = rep.mixFile.getNonexistentSibling (true);
     juce::String err;
     if (! audio::writeFile (rep.mixFile, mastered, p.sampleRate, options.format, err))
     {
@@ -407,8 +421,10 @@ ExportReport exportProject (const project::Project& p, const RenderSet& renders,
     if (options.stems)
     {
         // Pistes séparées : chacune traitée, avec son volume, sans mastering, alignées sur 0.
-        const auto stemsDir = options.outDir.getChildFile (juce::File::createLegalFileName (options.baseName) + "_pistes");
-        int idx = 1;
+        auto stemsDir = options.outDir.getChildFile (rep.mixFile.getFileNameWithoutExtension() + "_pistes");
+        if (stemsDir.exists())
+            stemsDir = stemsDir.getNonexistentSibling (true);
+        int idx = 1, failed = 0, limited = 0;
         for (const auto& t : p.tracks)
         {
             auto it = renders.find (t.id);
@@ -421,19 +437,38 @@ ExportReport exportProject (const project::Project& p, const RenderSet& renders,
                 st.mute = false;
             }
             Stereo stem = mixdown (solo, renders, mixState);
+            // Une piste qui dépasserait 0 dBFS serait écrêtée net dans le fichier : limiteur de sécurité.
+            if (std::max (stem.getMagnitude (0, 0, stem.getNumSamples()), stem.getMagnitude (1, 0, stem.getNumSamples())) > 0.999f)
+            {
+                dsp::limitStereo (stem, p.sampleRate, -0.3f);
+                ++limited;
+                SV_LOG_WARN (kMod, "Piste séparée au-dessus de 0 dBFS, limitée : "_u8 + t.name);
+            }
             const auto file = stemsDir.getChildFile (juce::String (idx++).paddedLeft ('0', 2) + "_"
-                                                     + juce::File::createLegalFileName (t.name) + ext);
+                                                     + audio::safeFileName (t.name, "piste") + ext);
             if (audio::writeFile (file, stem, p.sampleRate, options.format, err))
+            {
                 rep.stemFiles.add (file.getFullPathName());
+            }
             else
+            {
+                ++failed;
                 SV_LOG_ERROR (kMod, "Piste séparée non écrite ("_u8 + t.name + ") : " + err);
+            }
         }
+        juce::StringArray warnings;
+        if (failed > 0)
+            warnings.add (juce::String (failed) + " piste(s) séparée(s) non écrite(s) : "_u8 + err);
+        if (limited > 0)
+            warnings.add (juce::String (limited) + " piste(s) séparée(s) trop forte(s), limitée(s) sous 0 dBFS"_u8);
+        rep.warning = warnings.joinIntoString (" ; ");
     }
 
     if (progress)
         progress (1.0f);
     rep.ok = true;
-    SV_LOG_INFO (kMod, "Export terminé : "_u8 + rep.mixFile.getFullPathName() + " + " + juce::String (rep.stemFiles.size()) + " pistes séparées"_u8);
+    SV_LOG_INFO (kMod, "Export terminé : "_u8 + rep.mixFile.getFullPathName() + " + " + juce::String (rep.stemFiles.size()) + " pistes séparées"_u8
+                       + (rep.warning.isNotEmpty() ? " — à vérifier : "_u8 + rep.warning : juce::String()));
     return rep;
 }
 

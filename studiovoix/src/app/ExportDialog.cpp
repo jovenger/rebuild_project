@@ -45,7 +45,13 @@ void ExportDialog::launch()
 {
     const auto t = static_cast<dsp::LoudnessTarget> (target.getSelectedId() - 1);
     const bool m = master.getToggleState();
-    session.updateProject ([t, m] (project::Project& p) { p.target = t; p.masterEnabled = m; }, false, {});
+    // Cible et mastering n'influencent pas le mix auto (l'export le recalcule) : pas de calcul relancé ici.
+    if (auto& p = session.project(); p.target != t || p.masterEnabled != m)
+    {
+        p.target = t;
+        p.masterEnabled = m;
+        session.markDirty();
+    }
 
     render::ExportOptions o;
     o.outDir = session.project().exportDir();
@@ -72,7 +78,8 @@ void ExportDialog::launch()
         safe->openFolder.setEnabled (true);
         safe->result.setText ("Exporté : "_u8 + rep.mixFile.getFullPathName() + "\nSonie " + juce::String (rep.master.outputLufs, 1) + " LUFS, crête vraie "_u8
                                   + juce::String (rep.master.truePeakDb, 2) + " dBTP"
-                                  + (rep.stemFiles.isEmpty() ? juce::String() : "\n" + juce::String (rep.stemFiles.size()) + " pistes séparées"_u8),
+                                  + (rep.stemFiles.isEmpty() ? juce::String() : "\n" + juce::String (rep.stemFiles.size()) + " pistes séparées"_u8)
+                                  + (rep.warning.isNotEmpty() ? "\nÀ VÉRIFIER : "_u8 + rep.warning : juce::String()),
                               juce::dontSendNotification);
     });
 }

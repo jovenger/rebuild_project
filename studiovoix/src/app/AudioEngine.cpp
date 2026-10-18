@@ -166,6 +166,8 @@ void AudioEngine::stop()
 
 void AudioEngine::setPosition (long samples)
 {
+    if (recording.load())
+        return;   // la prise est écrite à la suite : un saut la décalerait
     position.store (std::max (0L, samples));
 }
 

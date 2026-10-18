@@ -130,6 +130,7 @@ SettingsDialog::~SettingsDialog()
     session.settings().setAudioDeviceState (state.get());
     session.settings().save();
     SV_LOG_INFO (kMod, "Paramètres fermés : "_u8 + session.engine().describeDevice());
+    session.sendChangeMessage();   // onglet IA, boutons : prise en compte des clés saisies
 }
 
 void SettingsDialog::refreshCalibrationText()

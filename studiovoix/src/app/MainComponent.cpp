@@ -60,11 +60,11 @@ MainComponent::MainComponent (Session& s)
         session.setLoopRegion (transport.loopEnabled(), timeline.loopStartSec(), timeline.loopEndSec());
     };
 
-    juce::WeakReference<Session> weak (&session);
-    session.onLeadTakeReady = [weak] (int trackId)
+    juce::Component::SafePointer<MainComponent> safeThis (this);
+    session.onLeadTakeReady = [safeThis] (int trackId)
     {
-        if (auto* sess = weak.get())
-            GenerateDialog::show (*sess, trackId);
+        if (safeThis != nullptr)
+            safeThis->proposeGeneration (trackId);
     };
 
     session.addChangeListener (this);
@@ -218,6 +218,8 @@ namespace
                         return;
                     if (static_cast<int> (session.project().tracks.size()) != tracksAfterGen) { fail ("rétablir n'a pas restauré les pistes"_u8); return; }
                     log ("étape 5 : rétablir OK"_u8);
+                    // Comme une modification du projet juste avant l'export : un mix auto en cours ne doit pas bloquer.
+                    session.updateProject ([] (project::Project& p) { p.masterEnabled = true; }, false, {});
                     {
                         render::ExportOptions o;
                         o.outDir = session.project().exportDir();
@@ -287,7 +289,7 @@ namespace
                         if (running == 0 && juce::Time::currentTimeMillis() - stepStart < 10000)
                             return;
                         const auto folder = session.project().folder;
-                        if (! session.openProject (folder, false, err)) { fail ("réouverture : " + err); return; }
+                        if (! session.openProject (folder, false, err)) { fail ("réouverture : "_u8 + err); return; }
                         log (running > 0 ? "étape 9 : projet rouvert pendant "_u8 + juce::String (running) + " rendu(s) en cours"
                                          : "étape 9 : aucun rendu vu en cours (fenêtre manquée), projet rouvert quand même"_u8);
                     }
@@ -481,6 +483,9 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
     if (mods.isCommandDown())
     {
         const auto c = juce::CharacterFunctions::toLowerCase (key.getTextCharacter() != 0 ? key.getTextCharacter() : static_cast<juce::juce_wchar> (key.getKeyCode()));
+        // Dans un champ texte (paroles, assistant…), Ctrl+Z/Y ne doit jamais annuler une action du projet.
+        if ((c == 'z' || c == 'y') && dynamic_cast<juce::TextEditor*> (juce::Component::getCurrentlyFocusedComponent()) != nullptr)
+            return true;
         if (c == 's') { doSave(); return true; }
         if (c == 'z' && mods.isShiftDown()) { session.redo(); return true; }
         if (c == 'z') { session.undo(); return true; }
@@ -511,8 +516,24 @@ void MainComponent::refreshAll()
     statusBar.setText ((session.isBusy() ? juce::String ("[Calcul en cours] ") : juce::String()) + session.statusText(), juce::dontSendNotification);
 }
 
+void MainComponent::proposeGeneration (int trackId)
+{
+    // Jamais pendant une prise ni par-dessus une autre fenêtre : proposée dès que possible.
+    if (session.isRecording() || juce::ModalComponentManager::getInstance()->getNumModalComponents() > 0)
+    {
+        pendingProposalTrack = trackId;
+        SV_LOG_INFO (kMod, "Proposition de génération différée (prise ou fenêtre en cours)"_u8);
+        return;
+    }
+    pendingProposalTrack = -1;
+    GenerateDialog::show (session, trackId);
+}
+
 void MainComponent::timerCallback()
 {
+    if (pendingProposalTrack >= 0 && ! session.isRecording() && juce::ModalComponentManager::getInstance()->getNumModalComponents() == 0
+        && session.project().findTrack (pendingProposalTrack) != nullptr)
+        proposeGeneration (pendingProposalTrack);
     transport.updateTime();
     timeline.updatePlayhead();
     if (lyrics != nullptr)

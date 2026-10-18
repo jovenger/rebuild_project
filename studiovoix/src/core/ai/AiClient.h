@@ -17,10 +17,14 @@ struct HttpResult
     int status = 0;
     juce::MemoryBlock body;
     juce::StringPairArray headers;
-    juce::String error;   // erreur réseau (pas de réponse)
+    juce::String error;   // erreur réseau (pas de réponse, délai dépassé, téléchargement incomplet)
 };
 
 HttpResult postJson (const juce::String& url, const juce::String& headers, const juce::String& body, int timeoutMs);
+/** postJson + 2 nouveaux essais (attente croissante, en-tête retry-after respecté) sur 429 / 5xx / 529. */
+HttpResult postJsonWithRetry (const juce::String& url, const juce::String& headers, const juce::String& body, int timeoutMs);
+/** Message lisible d'une erreur ElevenLabs (detail texte, objet {message} ou tableau [{msg}]). */
+juce::String musicErrorMessage (const juce::var& responseJson);
 
 // --- Claude ----------------------------------------------------------------------------------
 struct ClaudeRequest

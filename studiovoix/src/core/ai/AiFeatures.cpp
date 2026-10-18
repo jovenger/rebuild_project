@@ -170,7 +170,7 @@ MacroAdvice adviseMacros (const AiSettings& s, const juce::String& request, cons
     rq.apiKey = s.textKey;
     rq.model = s.model;
     rq.effort = "low";
-    rq.maxTokens = 4000;
+    rq.maxTokens = 16000;   // réflexion + réponse ; seul l'utilisé est facturé
     rq.system = kSystemEngineer;
     rq.user = "Projet :\n" + projectSummary + "\nPiste concernée : #"_u8 + juce::String (trackId) + " " + t->name + "\nCurseurs actuels : autotune "
             + juce::String (t->macros.autotune, 2) + ", presence " + juce::String (t->macros.presence, 2) + ", space "
@@ -292,7 +292,7 @@ MixDiagnosis diagnoseMix (const AiSettings& s, const project::Project& p, const 
     rq.apiKey = s.textKey;
     rq.model = s.model;
     rq.effort = "medium";
-    rq.maxTokens = 8000;
+    rq.maxTokens = 16000;   // réflexion + réponse ; seul l'utilisé est facturé
     rq.system = kSystemEngineer;
     rq.user = "Voici les mesures du mix (calculées par le logiciel) :\n"_u8 + describeProjectForAi (p, renders, vocalAutoGainDb)
             + "\nPremier diagnostic automatique :\n" + local.text
@@ -331,7 +331,7 @@ WritingResult helpWrite (const AiSettings& s, const juce::String& request, const
     rq.apiKey = s.textKey;
     rq.model = s.model;
     rq.effort = "medium";
-    rq.maxTokens = 8000;
+    rq.maxTokens = 16000;   // réflexion + réponse ; seul l'utilisé est facturé
     rq.system = "Tu aides un artiste à écrire ses textes (rap, trap, pop urbaine, R&B, drill, afro, rock, latino), en français sauf demande contraire. "_u8
                 "Respecte son univers et son vocabulaire, propose des rimes riches et un flow qui tombe sur les temps. "
                 "Une ligne = une mesure, sauf indication contraire. Pas de contenu haineux ni d'incitation à la violence réelle."_u8;
@@ -400,7 +400,7 @@ CustomStyle createCustomStyle (const AiSettings& s, const juce::String& descript
     rq.apiKey = s.textKey;
     rq.model = s.model;
     rq.effort = "medium";
-    rq.maxTokens = 4000;
+    rq.maxTokens = 16000;   // réflexion + réponse ; seul l'utilisé est facturé
     rq.system = kSystemEngineer;
     rq.user = "Crée un style de traitement vocal sur mesure à partir de cette description : \""_u8 + description
             + "\".\nChoisis le style de base le plus proche parmi : " + styleIds().joinIntoString (", ")
@@ -470,7 +470,7 @@ InstruBrief briefFromLyrics (const AiSettings& s, const juce::String& lyrics, st
     rq.apiKey = s.textKey;
     rq.model = s.model;
     rq.effort = "low";
-    rq.maxTokens = 4000;
+    rq.maxTokens = 16000;   // réflexion + réponse ; seul l'utilisé est facturé
     rq.system = "Tu es directeur artistique. À partir de paroles, tu décris l'instrumental idéal pour un générateur musical "_u8
                 "(description en anglais, sans voix, sans nom d'artiste réel) et des critères de recherche."_u8;
     rq.user = "Style visé : "_u8 + style::styleName (st) + "\nParoles :\n" + lyrics.substring (0, 6000);

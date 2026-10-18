@@ -83,6 +83,7 @@ TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
     volume.setRange (-30.0, 12.0, 0.1);
     volume.setTextValueSuffix (" dB");
     volume.setDoubleClickReturnValue (true, 0.0);
+    volume.setScrollWheelEnabled (false);   // la molette fait défiler la liste des pistes
     volume.onValueChange = [this]
     {
         if (! updating)
@@ -92,6 +93,7 @@ TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
     pan.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
     pan.setRange (-1.0, 1.0, 0.01);
     pan.setDoubleClickReturnValue (true, 0.0);
+    pan.setScrollWheelEnabled (false);
     pan.setTooltip ("Panoramique (double-clic = centre)");
     pan.onValueChange = [this]
     {
@@ -107,7 +109,8 @@ void TrackHeader::refresh()
     const auto* t = session.project().findTrack (id);
     if (t == nullptr)
         return;
-    name.setText (t->name, juce::dontSendNotification);
+    if (! name.isBeingEdited())   // setText fermerait l'éditeur pendant un renommage
+        name.setText (t->name, juce::dontSendNotification);
     juce::String txt = style::roleName (t->role);
     if (! t->takes.empty())
         txt << " | " << juce::String ((int) t->takes.size()) << " prise(s)" << (t->comp == project::CompMode::Best ? " (meilleure auto)" : "");
@@ -252,6 +255,7 @@ void TimelineView::paint (juce::Graphics& g)
     const auto& p = session.project();
     g.fillAll (juce::Colour (0xff15181c));
     const int w = getWidth();
+    const auto clip = g.getClipBounds();   // tête de lecture : seule une bande étroite est à redessiner
 
     // Pistes
     g.saveState();
@@ -260,7 +264,7 @@ void TimelineView::paint (juce::Graphics& g)
     {
         const auto& t = p.tracks[i];
         const int y = kRulerHeight + static_cast<int> (i) * kTrackHeight - scrollY;
-        if (y + kTrackHeight < kRulerHeight || y > getHeight())
+        if (y + kTrackHeight < kRulerHeight || y > getHeight() || y + kTrackHeight < clip.getY() || y > clip.getBottom())
             continue;
         const bool selected = session.selectedTrack() == t.id;
         g.setColour (selected ? juce::Colour (0xff1f2630) : (i % 2 == 0 ? juce::Colour (0xff181c21) : juce::Colour (0xff1b1f25)));
@@ -281,8 +285,8 @@ void TimelineView::paint (juce::Graphics& g)
             const double startSec = wc->start / p.sampleRate;
             const int mid = y + kTrackHeight / 2;
             const float half = (kTrackHeight - 10) * 0.5f;
-            const int xa = std::max (kHeaderWidth, secToX (startSec));
-            const int xb = std::min (w, secToX (startSec + wc->peaks.size() * binSec));
+            const int xa = std::max ({ kHeaderWidth, clip.getX() - 1, secToX (startSec) });
+            const int xb = std::min ({ w, clip.getRight() + 1, secToX (startSec + wc->peaks.size() * binSec) });
             g.setColour (col.withAlpha (0.15f));
             g.fillRect (xa, y + 4, std::max (0, xb - xa), kTrackHeight - 8);
             g.setColour (t.mute ? col.withAlpha (0.3f) : col);

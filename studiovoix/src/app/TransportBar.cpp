@@ -136,7 +136,8 @@ void TransportBar::refresh()
 {
     const juce::ScopedValueSetter<bool> svs (updating, true);
     const auto& p = session.project();
-    bpmLabel.setText (juce::String (p.tempo.bpm, 1), juce::dontSendNotification);
+    if (! bpmLabel.isBeingEdited())   // setText fermerait l'éditeur en cours de saisie
+        bpmLabel.setText (juce::String (p.tempo.bpm, 1), juce::dontSendNotification);
     keyBox.setSelectedId ((p.key.minor ? 13 : 1) + p.key.root, juce::dontSendNotification);
     styleBox.setSelectedId (static_cast<int> (p.style) + 1, juce::dontSendNotification);
     countdown.setSelectedId (session.settings().countdownBars() + 1, juce::dontSendNotification);

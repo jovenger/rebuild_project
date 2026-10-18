@@ -19,19 +19,62 @@ namespace
 HttpResult postJson (const juce::String& url, const juce::String& headers, const juce::String& body, int timeoutMs)
 {
     HttpResult r;
+    const auto t0 = juce::Time::getMillisecondCounterHiRes();
     juce::WebInputStream stream (juce::URL (url).withPOSTData (body), true);
     stream.withExtraHeaders (headers).withConnectionTimeout (timeoutMs).withNumRedirectsToFollow (3);
     if (! stream.connect (nullptr))
     {
         r.status = stream.getStatusCode();
-        r.error = r.status > 0 ? juce::String() : juce::String ("Pas de réponse du serveur (connexion internet ?)"_u8);
+        const double elapsed = juce::Time::getMillisecondCounterHiRes() - t0;
+        if (r.status <= 0)
+            r.error = elapsed >= timeoutMs * 0.95
+                          ? "Délai dépassé ("_u8 + juce::String (juce::roundToInt (elapsed / 1000.0)) + " s) : le service n'a pas répondu à temps"_u8
+                          : juce::String ("Pas de réponse du serveur (connexion internet ?)"_u8);
     }
     r.status = stream.getStatusCode();
     r.headers = stream.getResponseHeaders();
+    const auto expected = stream.getTotalLength();
     juce::MemoryOutputStream out (r.body, false);
     out.writeFromInputStream (stream, 200 * 1024 * 1024);
     out.flush();
+    if (r.error.isEmpty() && expected > 0 && static_cast<juce::int64> (r.body.getSize()) != expected)
+        r.error = "Téléchargement incomplet ("_u8 + juce::String (static_cast<juce::int64> (r.body.getSize())) + "/" + juce::String (expected)
+                  + " octets) : connexion coupée ?"_u8;
+    const auto requestId = r.headers.getValue ("request-id", {});
+    SV_LOG_INFO (kMod, "HTTP " + juce::String (r.status) + " en " + juce::String (juce::roundToInt (juce::Time::getMillisecondCounterHiRes() - t0))
+                       + " ms, " + juce::String (static_cast<juce::int64> (r.body.getSize())) + " octets" + (requestId.isNotEmpty() ? ", request-id " + requestId : juce::String())
+                       + (r.error.isNotEmpty() ? " — "_u8 + r.error : juce::String()));
     return r;
+}
+
+HttpResult postJsonWithRetry (const juce::String& url, const juce::String& headers, const juce::String& body, int timeoutMs)
+{
+    HttpResult r;
+    for (int attempt = 0;; ++attempt)
+    {
+        r = postJson (url, headers, body, timeoutMs);
+        const bool transient = r.status == 429 || r.status == 529 || (r.status >= 500 && r.status <= 504);
+        if (! transient || attempt >= 2)
+            return r;
+        int waitMs = 2000 << attempt;   // 2 s puis 4 s
+        const auto retryAfter = r.headers.getValue ("retry-after", {}).trim();
+        if (retryAfter.containsOnly ("0123456789") && retryAfter.isNotEmpty())
+            waitMs = juce::jlimit (1000, 30000, retryAfter.getIntValue() * 1000);
+        SV_LOG_WARN (kMod, "HTTP " + juce::String (r.status) + " (service saturé ou limite) : nouvel essai dans "_u8
+                           + juce::String (waitMs / 1000.0, 1) + " s (" + juce::String (attempt + 1) + "/2)");
+        juce::Thread::sleep (waitMs);
+    }
+}
+
+juce::String musicErrorMessage (const juce::var& v)
+{
+    const auto detail = v.getProperty ("detail", {});
+    // Le tableau d'abord : pour JUCE, un tableau est aussi un « objet ».
+    if (const auto* arr = detail.getArray(); arr != nullptr)
+        return arr->isEmpty() ? juce::String() : (*arr)[0].getProperty ("msg", {}).toString();
+    if (detail.isObject())
+        return detail.getProperty ("message", {}).toString();
+    return detail.isString() ? detail.toString() : juce::String();
 }
 
 juce::String describeHttpError (int status, const juce::String& serverMessage)
@@ -126,7 +169,14 @@ ClaudeResponse parseClaudeResponse (int httpStatus, const juce::String& body, bo
                 res.text << block.getProperty ("text", {}).toString();
 
     if (res.stopReason == "max_tokens")
+    {
         SV_LOG_WARN (kMod, "Réponse tronquée (max_tokens atteint)"_u8);
+        if (expectJson)
+        {
+            res.error = "Réponse de l'IA tronquée (limite de longueur atteinte) : réessaie avec une demande plus courte"_u8;
+            return res;
+        }
+    }
 
     if (expectJson)
     {
@@ -159,8 +209,8 @@ ClaudeResponse askClaude (const ClaudeRequest& rq)
     SV_LOG_INFO (kMod, "Claude : modèle "_u8 + rq.model + ", effort " + rq.effort + ", clé "_u8 + maskKey (rq.apiKey.trim())
                        + ", " + juce::String (rq.user.length()) + " caractères envoyés"_u8);
 
-    const auto http = postJson (kClaudeUrl, headers, buildClaudeBody (rq), rq.timeoutMs);
-    if (http.error.isNotEmpty() && http.status == 0)
+    const auto http = postJsonWithRetry (kClaudeUrl, headers, buildClaudeBody (rq), rq.timeoutMs);
+    if (http.error.isNotEmpty() && (http.status == 0 || http.status == 200))
     {
         ClaudeResponse r;
         r.error = http.error;
@@ -202,14 +252,20 @@ MusicResponse composeMusic (const MusicRequest& rq, const juce::File& outFileWit
             << "xi-api-key: " << rq.apiKey.trim() << "\r\n";
     SV_LOG_INFO (kMod, "Génération d'instru : "_u8 + juce::String (rq.lengthMs / 1000) + " s, modèle "_u8 + rq.modelId + ", clé "_u8 + maskKey (rq.apiKey.trim()));
 
-    const auto http = postJson (kMusicUrl, headers, juce::JSON::toString (juce::var (root), true), rq.timeoutMs);
+    const auto http = postJsonWithRetry (kMusicUrl, headers, juce::JSON::toString (juce::var (root), true), rq.timeoutMs);
     if (http.status != 200)
     {
         juce::String serverMsg;
         juce::var v;
         if (juce::JSON::parse (http.body.toString(), v).wasOk())
-            serverMsg = v.getProperty ("detail", {}).toString();
+            serverMsg = musicErrorMessage (v);
         res.error = http.status == 0 ? http.error : describeHttpError (http.status, serverMsg);
+        SV_LOG_ERROR (kMod, "Génération musicale : "_u8 + res.error);
+        return res;
+    }
+    if (http.error.isNotEmpty())
+    {
+        res.error = http.error;   // téléchargement incomplet : ne pas importer un morceau tronqué
         SV_LOG_ERROR (kMod, "Génération musicale : "_u8 + res.error);
         return res;
     }

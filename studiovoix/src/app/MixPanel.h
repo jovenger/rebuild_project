@@ -26,5 +26,6 @@ private:
         adlibBtn { juce::String (juce::CharPointer_UTF8 ("Banque d'ad-libs...")) }, reanalyse { "Analyser à nouveau l'instru"_u8 };
     std::unique_ptr<juce::FileChooser> chooser;
     bool updating = false;
+    juce::String versionsKey;   // dossier + date de l'historique : liste relue seulement s'il a changé
 };
 } // namespace sv::app

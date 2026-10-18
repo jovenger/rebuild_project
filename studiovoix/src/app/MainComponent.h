@@ -28,6 +28,8 @@ public:
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void timerCallback() override;
+    void proposeGeneration (int trackId);
+    int pendingProposalTrack = -1;
     void refreshAll();
     void doNew();
     void doOpen();

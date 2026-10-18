@@ -56,6 +56,8 @@ public:
     void setPositionSec (double sec);
     void togglePlay();
     void stopTransport();
+    /** Paroles : une étape d'annulation par rafale de frappe, sans recalcul. */
+    void setLyrics (const juce::String& text);
     void setLoopRegion (bool enabled, double startSec, double endSec);
     double deviceRate() const;
 
@@ -149,6 +151,8 @@ private:
     std::map<int, int> storedGeneration;   // génération du rendu actuellement dans renders
 
     int epoch = 0;                        // change avec le projet : les résultats des anciennes tâches sont ignorés
+    int autoMixJobs = 0;                  // part de activeJobs due au mix auto (l'export le recalcule lui-même)
+    juce::int64 lastLyricsEditMs = 0;     // regroupe la frappe des paroles en une étape d'annulation
     int instruAnalysisGeneration = 0;     // seule la dernière analyse d'instru demandée est appliquée
     juce::String contextRefPath;          // fichier dont le spectre de référence est dans context
 

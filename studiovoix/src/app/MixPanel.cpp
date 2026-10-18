@@ -102,14 +102,20 @@ void MixPanel::refresh()
     if (prevSection > 0 && prevSection <= sections.getNumItems())
         sections.setSelectedId (prevSection, juce::dontSendNotification);
 
-    const auto prevVersion = versions.getText();
-    versions.clear (juce::dontSendNotification);
-    const auto list = p.listVersions();
-    for (int i = 0; i < list.size(); ++i)
-        versions.addItem (list[i], i + 1);
-    const int prevIdx = list.indexOf (prevVersion);
-    if (prevIdx >= 0)
-        versions.setSelectedId (prevIdx + 1, juce::dontSendNotification);
+    // Historique relu sur le disque seulement s'il a changé (refresh appelé à chaque modification du projet).
+    const auto key = p.historyDir().getFullPathName() + "|" + juce::String (p.historyDir().getLastModificationTime().toMilliseconds());
+    if (key != versionsKey)
+    {
+        versionsKey = key;
+        const auto prevVersion = versions.getText();
+        versions.clear (juce::dontSendNotification);
+        const auto list = p.listVersions();
+        for (int i = 0; i < list.size(); ++i)
+            versions.addItem (list[i], i + 1);
+        const int prevIdx = list.indexOf (prevVersion);
+        if (prevIdx >= 0)
+            versions.setSelectedId (prevIdx + 1, juce::dontSendNotification);
+    }
 
     adlibL.setText (p.adLibFolder.isNotEmpty() ? "Ad-libs : " + juce::File (p.adLibFolder).getFileName() : juce::String ("Ad-libs : aucune banque"),
                     juce::dontSendNotification);

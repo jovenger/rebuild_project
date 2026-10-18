@@ -64,6 +64,24 @@ namespace
     }
 }
 
+juce::String safeFileName (const juce::String& name, const juce::String& fallback)
+{
+    juce::String control;
+    for (juce::juce_wchar c = 1; c < 32; ++c)
+        control += juce::String::charToString (c);
+    auto s = juce::File::createLegalFileName (name).removeCharacters (control).trim();
+    while (s.endsWithChar ('.') || s.endsWithChar (' '))
+        s = s.dropLastCharacters (1);
+    if (s.isEmpty())
+        s = fallback;
+    const auto base = s.upToFirstOccurrenceOf (".", false, false).trim().toUpperCase();
+    static const juce::StringArray reserved { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+                                              "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+    if (reserved.contains (base))
+        s = "_" + s;
+    return s;
+}
+
 juce::String extensionFor (FileFormat format)
 {
     switch (format)
@@ -235,23 +253,39 @@ LoadResult loadStereo (const juce::File& file, double targetSampleRate, double m
         return result;
     }
 
-    // Conversion en stéréo : mono dupliqué, >2 canaux mixés.
-    Stereo stereo (2, n);
-    if (channels == 1)
+    // Conversion en stéréo : mono dupliqué ; >2 canaux : gauche/droite + autres canaux au centre
+    // (5.1 dans l'ordre WAV L R C LFE Ls Rs : caisson ignoré, surrounds sur leur côté).
+    Stereo stereo;
+    if (channels == 2)
     {
+        stereo = std::move (raw);   // pas de copie
+    }
+    else if (channels == 1)
+    {
+        stereo.setSize (2, n);
         stereo.copyFrom (0, 0, raw, 0, 0, n);
         stereo.copyFrom (1, 0, raw, 0, 0, n);
     }
-    else if (channels == 2)
-    {
-        stereo.copyFrom (0, 0, raw, 0, 0, n);
-        stereo.copyFrom (1, 0, raw, 1, 0, n);
-    }
     else
     {
+        stereo.setSize (2, n);
         stereo.clear();
-        for (int c = 0; c < channels; ++c)
-            stereo.addFrom (c % 2, 0, raw, c, 0, n, 2.0f / static_cast<float> (channels));
+        constexpr float side = 0.7071f;
+        const float norm = 1.0f / (1.0f + side * static_cast<float> (channels - 2));
+        stereo.addFrom (0, 0, raw, 0, 0, n, norm);
+        stereo.addFrom (1, 0, raw, 1, 0, n, norm);
+        for (int c = 2; c < channels; ++c)
+        {
+            if (channels == 6 && c == 3)
+                continue;
+            if (channels == 6 && (c == 4 || c == 5))
+            {
+                stereo.addFrom (c - 4, 0, raw, c, 0, n, side * norm);
+                continue;
+            }
+            stereo.addFrom (0, 0, raw, c, 0, n, side * norm);
+            stereo.addFrom (1, 0, raw, c, 0, n, side * norm);
+        }
         SV_LOG_WARN (kMod, juce::String (channels) + " canaux mixés en stéréo"_u8);
     }
 
@@ -265,7 +299,7 @@ LoadResult loadStereo (const juce::File& file, double targetSampleRate, double m
     result.originalSampleRate = sr;
     result.originalChannels = channels;
     result.sampleRate = targetSampleRate;
-    result.buffer = resample (stereo, sr, targetSampleRate);
+    result.buffer = std::abs (sr - targetSampleRate) < 1.0e-6 ? std::move (stereo) : resample (stereo, sr, targetSampleRate);
 
     SV_LOG_INFO (kMod, "Chargé "_u8 + file.getFileName() + " : " + juce::String (channels) + " canal(aux), "
                        + juce::String (sr, 0) + " Hz -> " + juce::String (targetSampleRate, 0) + " Hz, "
@@ -363,23 +397,19 @@ bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate,
             audioFormat = std::make_unique<juce::LAMEEncoderAudioFormat> (lame);
             options = options.withBitsPerSample (16);
             const auto qualities = audioFormat->getQualityOptions();
-            const int idx = qualities.indexOf ("320 kbps");
+            const int idx = qualities.indexOf ("320 Kb/s CBR");   // nom donné par JUCE
             options = options.withQualityOptionIndex (idx >= 0 ? idx : juce::jmax (0, qualities.size() - 1));
             break;
         }
     }
 
-    if (file.existsAsFile() && ! file.deleteFile())
-    {
-        error = "Impossible de remplacer " + file.getFullPathName();
-        SV_LOG_ERROR (kMod, error);
-        return false;
-    }
-
-    std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (file);
+    // Écriture dans un fichier temporaire du même dossier : un fichier existant n'est remplacé
+    // qu'une fois le nouveau écrit et vérifié.
+    juce::TemporaryFile tmp (file);
+    std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (tmp.getFile());
     if (static_cast<juce::FileOutputStream*> (stream.get())->failedToOpen())
     {
-        error = "Ouverture en écriture impossible : "_u8 + file.getFullPathName();
+        error = "Ouverture en écriture impossible : "_u8 + tmp.getFile().getFullPathName();
         SV_LOG_ERROR (kMod, error);
         return false;
     }
@@ -399,8 +429,30 @@ bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate,
         return false;
     }
 
-    writer.reset();
-    SV_LOG_INFO (kMod, "Écrit "_u8 + file.getFullPathName() + " (" + juce::String (buffer.getNumSamples() / sampleRate, 2) + " s)");
+    writer.reset();   // ferme le fichier ; pour le MP3, l'encodage par lame.exe a lieu ici (échec non remonté par JUCE)
+
+    // Vérification : fichier non vide, relisible et complet (le MP3 ajoute un peu de remplissage).
+    const auto bytes = tmp.getFile().getSize();
+    long readable = -1;
+    if (std::unique_ptr<juce::AudioFormatReader> check (formatManager().createReaderFor (tmp.getFile())); check != nullptr)
+        readable = static_cast<long> (check->lengthInSamples);
+    const long expected = buffer.getNumSamples();
+    if (bytes <= 0 || readable < static_cast<long> (static_cast<double> (expected) * 0.98))
+    {
+        error = "Fichier écrit incomplet ou illisible ("_u8 + juce::String (bytes) + " octets, " + juce::String (readable) + "/"
+                + juce::String (expected) + " échantillons)"_u8 + (format == FileFormat::Mp3_320 ? " : échec de lame.exe ?"_u8 : juce::String())
+                + " — "_u8 + file.getFileName();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+    if (! tmp.overwriteTargetFileWithTemporary())
+    {
+        error = "Impossible de remplacer " + file.getFullPathName();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+    SV_LOG_INFO (kMod, "Écrit "_u8 + file.getFullPathName() + " (" + juce::String (buffer.getNumSamples() / sampleRate, 2) + " s, "
+                       + juce::String (bytes / 1024) + " Ko, relu et vérifié)"_u8);
     return true;
 }
 

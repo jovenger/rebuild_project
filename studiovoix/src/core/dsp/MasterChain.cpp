@@ -170,7 +170,8 @@ Stereo master (const Stereo& mix, double sampleRate, const MasterSettings& setti
     const bool normalise = settings.target != LoudnessTarget::None;
     const double pre = loudness::integratedLufs (out, sampleRate);
     double gainDb = normalise && pre > -70.0 ? info.lufs - pre : 0.0;
-    float ceiling = info.ceilingDbTp - 0.3f;   // marge : la crête vraie dépasse la crête échantillon
+    const float ceilingTp = info.ceilingDbTp - std::max (0.0f, settings.extraHeadroomDb);
+    float ceiling = ceilingTp - 0.3f;   // marge : la crête vraie dépasse la crête échantillon
     Stereo result (out);
 
     for (int it = 0; it < 5; ++it)
@@ -185,12 +186,13 @@ Stereo master (const Stereo& mix, double sampleRate, const MasterSettings& setti
         report.iterations = it + 1;
 
         bool done = true;
-        if (report.truePeakDb > info.ceilingDbTp + 0.05)
+        if (report.truePeakDb > ceilingTp + 0.05)
         {
-            ceiling -= static_cast<float> (report.truePeakDb - info.ceilingDbTp) + 0.1f;
+            ceiling -= static_cast<float> (report.truePeakDb - ceilingTp) + 0.1f;
             done = false;
         }
-        if (normalise && std::abs (report.outputLufs - info.lufs) > 0.3)
+        // Mix quasi silencieux : pas de normalisation (sinon +30 dB de souffle).
+        if (normalise && pre > -70.0 && std::abs (report.outputLufs - info.lufs) > 0.3)
         {
             gainDb += info.lufs - report.outputLufs;
             gainDb = juce::jlimit (-40.0, 30.0, gainDb);
@@ -198,6 +200,17 @@ Stereo master (const Stereo& mix, double sampleRate, const MasterSettings& setti
         }
         if (done)
             break;
+    }
+
+    // Garantie finale : jamais au-dessus du plafond, même si les itérations n'ont pas convergé.
+    if (report.truePeakDb > ceilingTp + 0.05)
+    {
+        const float fix = static_cast<float> (ceilingTp - 0.05 - report.truePeakDb);
+        result.applyGain (dbToGain (fix));
+        report.truePeakDb = loudness::truePeakDb (result);
+        report.outputLufs = loudness::integratedLufs (result, sampleRate);
+        SV_LOG_WARN (kMod, "Crête vraie encore au-dessus du plafond après les itérations : gain "_u8 + juce::String (fix, 2)
+                           + " dB appliqué (sonie "_u8 + juce::String (report.outputLufs, 1) + " LUFS)");
     }
 
     SV_LOG_INFO (kMod, "Master " + info.name + " : " + juce::String (report.inputLufs, 1) + " -> "

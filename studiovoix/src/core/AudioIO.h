@@ -29,6 +29,10 @@ enum class FileFormat { Wav24, Wav32Float, Flac24, Mp3_320 };
 
 juce::String extensionFor (FileFormat format);
 
+/** Nom de fichier sûr sous Windows : caractères interdits et de contrôle retirés, noms réservés
+    (CON, NUL, COM1…) préfixés, point/espace final retiré ; fallback si le résultat est vide. */
+juce::String safeFileName (const juce::String& name, const juce::String& fallback);
+
 /** Écrit un fichier. Le MP3 exige lame.exe (à côté de l'appli ou dans le PATH). */
 bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate, FileFormat format,
                 juce::String& error);

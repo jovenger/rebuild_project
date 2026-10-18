@@ -428,7 +428,8 @@ void AiPanel::runAsync (const juce::String& what, std::function<std::function<vo
     setBusy (true, what);
     SV_LOG_INFO (kMod, "Tâche IA : "_u8 + what);
     juce::Component::SafePointer<AiPanel> safe (this);
-    juce::Thread::launch ([safe, job, what]
+    const auto projectFolder = session.project().folder;
+    juce::Thread::launch ([safe, job, what, projectFolder]
     {
         std::function<void()> done;
         try
@@ -440,11 +441,17 @@ void AiPanel::runAsync (const juce::String& what, std::function<std::function<vo
             const juce::String msg = juce::String ("Erreur pendant « "_u8) + what + " » : "_u8 + e.what();
             done = [msg] { SV_LOG_ERROR (kMod, msg); };
         }
-        juce::MessageManager::callAsync ([safe, done, what]
+        juce::MessageManager::callAsync ([safe, done, what, projectFolder]
         {
             if (safe == nullptr)
                 return;
             safe->setBusy (false, what);
+            if (safe->session.project().folder != projectFolder)
+            {
+                SV_LOG_WARN (kMod, "Résultat IA ignoré (« "_u8 + what + " ») : un autre projet a été ouvert entre-temps"_u8);
+                safe->session.setStatus (what + " ignoré : le projet a changé pendant la requête"_u8);
+                return;
+            }
             if (done)
                 done();
             safe->session.setStatus (what + " terminé"_u8);

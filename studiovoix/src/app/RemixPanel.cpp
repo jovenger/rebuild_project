@@ -115,11 +115,16 @@ void RemixPanel::setupMacro (juce::Slider& s, juce::Label& l, const juce::String
     s.setDoubleClickReturnValue (true, 0.5);
     s.setTextBoxStyle (juce::Slider::TextBoxRight, false, 44, 18);
     s.setTooltip (tip + " (double-clic = réglage du style)"_u8);
-    s.onDragEnd = [this, name] { commitMacros (name); };
-    s.onValueChange = [this, &s, name]
+    s.onDragStart = [this] { dragging = true; };
+    s.onDragEnd = [this, name]
     {
-        // Clic simple ou molette : pas de glisser en cours -> on applique tout de suite.
-        if (! updating && ! s.isMouseButtonDown())
+        dragging = false;
+        commitMacros (name);   // une seule étape d'annulation par geste (glisser, clic ou cran de molette)
+    };
+    s.onValueChange = [this, name]
+    {
+        // Hors glisser (clavier, double-clic) : appliqué tout de suite.
+        if (! updating && ! dragging)
             commitMacros (name);
     };
     l.setText (name, juce::dontSendNotification);
@@ -179,6 +184,8 @@ void RemixPanel::refresh()
     }
     title.setText (t->name + "  (" + style::roleName (t->role) + ", style " + style::styleName (session.project().style) + ")",
                    juce::dontSendNotification);
+    if (dragging)
+        return;   // ne pas ramener le curseur à l'ancienne valeur pendant le geste
     autotune.setValue (t->macros.autotune, juce::dontSendNotification);
     presence.setValue (t->macros.presence, juce::dontSendNotification);
     space.setValue (t->macros.space, juce::dontSendNotification);

@@ -26,6 +26,7 @@ struct MasterSettings
     float glueRatio = 2.0f;
     float lowShelfDb = 0.0f;    // 100 Hz
     float highShelfDb = 0.0f;   // 10 kHz
+    float extraHeadroomDb = 0.0f;   // marge sous le plafond de crête vraie (format avec perte : MP3)
 };
 
 struct MasterReport

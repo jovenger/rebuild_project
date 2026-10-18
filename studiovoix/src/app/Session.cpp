@@ -162,6 +162,7 @@ void Session::beforeProjectChange()
     }
     ++epoch;
     pool.removeAllJobs (true, 15000);
+    autoMixJobs = 0;
     // Les tâches retirées de la file ne s'exécuteront pas et celles terminées sont ignorées (époque) :
     // aucune ne sera décomptée.
     activeJobs = 0;
@@ -648,6 +649,11 @@ double Session::positionSec() const
 
 void Session::setPositionSec (double sec)
 {
+    if (isRecording())
+    {
+        setStatus ("Tête de lecture fixe pendant l'enregistrement (la prise serait décalée)"_u8);
+        return;
+    }
     audioEngine.setPosition (static_cast<long> (std::max (0.0, sec) * deviceRate()));
     sendChangeMessage();
 }
@@ -672,6 +678,18 @@ void Session::stopTransport()
         stopRecording();
     audioEngine.stop();
     sendChangeMessage();
+}
+
+void Session::setLyrics (const juce::String& text)
+{
+    if (text == proj.lyrics)
+        return;
+    const auto now = juce::Time::currentTimeMillis();
+    if (now - lastLyricsEditMs > 2000)
+        pushUndo ("Paroles");
+    lastLyricsEditMs = now;
+    proj.lyrics = text;
+    markDirty();
 }
 
 void Session::setLoopRegion (bool enabled, double startSec, double endSec)
@@ -739,6 +757,7 @@ void Session::stopRecording()
 {
     auto take = audioEngine.stopRecording();
     audioEngine.setMetronome (appSettings.metronome());
+    setLoopRegion (loopEnabled, loopStartSec, loopEndSec);   // un changement de boucle fait pendant la prise
     const int trackId = recordingTrackId;
     recordingTrackId = -1;
     if (recordingSidecar != juce::File() && recordingSidecar.existsAsFile() && ! recordingSidecar.deleteFile())
@@ -1043,6 +1062,7 @@ void Session::launchAutoMix()
         return;
     }
     const int gen = ++autoMixGeneration;
+    ++autoMixJobs;
     auto snapshot = std::make_shared<const project::Project> (proj);
     auto rendersCopy = std::make_shared<const render::RenderSet> (renders);
     ++activeJobs;
@@ -1056,6 +1076,7 @@ void Session::launchAutoMix()
             if (auto* s = weak.get(); s != nullptr && ep == s->epoch)
             {
                 --s->activeJobs;
+                --s->autoMixJobs;
                 if (gen != s->autoMixGeneration)
                     return;
                 s->mixState = std::move (*ms);
@@ -1204,7 +1225,7 @@ void Session::startGeneration (int leadTrackId, const gen::GenerationOptions& op
             if (leadTrack == nullptr)
             {
                 SV_LOG_WARN (kMod, "Génération terminée mais la voix principale a été supprimée : "_u8 + juce::String ((int) outs->size())
-                                       + " fichier(s) non utilisés");
+                                       + " fichier(s) non utilisés"_u8);
                 s->setStatus ("Génération abandonnée : la voix principale n'existe plus"_u8);
                 return;
             }
@@ -1245,7 +1266,9 @@ void Session::exportMix (const render::ExportOptions& options, std::function<voi
     for (const auto& t : proj.tracks)
         if (trackStatus (t.id).startsWith ("Erreur"))
             inError.add (t.name);
-    if (isBusy() || ! inError.isEmpty())
+    // Le mix auto en cours ne bloque pas : l'export recalcule le sien.
+    const bool rendering = ! pendingRenders.empty() || activeJobs - autoMixJobs > 0;
+    if (rendering || ! inError.isEmpty())
     {
         render::ExportReport rep;
         rep.error = ! inError.isEmpty() ? "Piste(s) en erreur : "_u8 + inError.joinIntoString (", ") + ". Corrige-les ou supprime-les avant l'export."_u8
@@ -1269,6 +1292,7 @@ void Session::exportMix (const render::ExportOptions& options, std::function<voi
             {
                 --s->activeJobs;
                 s->setStatus (rep->ok ? "Export terminé : "_u8 + rep->mixFile.getFileName() + " (" + juce::String (rep->master.outputLufs, 1) + " LUFS)"
+                                            + (rep->warning.isNotEmpty() ? " — à vérifier : "_u8 + rep->warning : juce::String())
                                       : "Export impossible : " + rep->error);
             }
             done (*rep);
