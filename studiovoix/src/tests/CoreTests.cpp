@@ -1898,7 +1898,7 @@ public:
     static juce::String releaseJson (const juce::String& assetName, juce::int64 size, const juce::String& digest,
                                      const juce::String& url = "https://api.github.com/repos/jovenger/rebuild_project/releases/assets/42")
     {
-        return "{\"tag_name\":\"studiovoix-build57\",\"name\":\"StudioVoix build 57\",\"draft\":false,\"body\":\"Nouveaux styles\\nDétails\","
+        return "{\"tag_name\":\"" + juce::String (update::kTagPrefix) + "57\",\"name\":\"StudioVoix build 57\",\"draft\":false,\"body\":\"Nouveaux styles\\nDétails\","
                "\"assets\":[{\"name\":\"notes.txt\",\"url\":\"" + url + "\",\"size\":10},"
                "{\"name\":\"" + assetName + "\",\"url\":\"" + url + "\",\"browser_download_url\":\"https://github.com/x/y/releases/download/t/a.exe\","
                "\"size\":" + juce::String (size) + (digest.isNotEmpty() ? ",\"digest\":\"" + digest + "\"" : juce::String()) + "}]}";
@@ -1913,20 +1913,29 @@ public:
             expectEquals (update::buildFromName ("StudioVoix-Setup-0.1.0.exe"), 0);
             expectEquals (update::buildFromName ("build-x build9"), 9);
             const juce::String sha (juce::String::repeatedString ("ab", 32));
-            auto r = update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 5600000, "sha256:" + sha.toUpperCase()));
+            auto r = update::parseRelease (releaseJson (juce::String (update::kSetupPrefix) + "-0.1.0-build57.exe", 5600000, "sha256:" + sha.toUpperCase()));
             expect (r.ok, r.error);
             expectEquals (r.build, 57);
             expectEquals (r.sha256, sha);
             expect (r.size == 5600000);
             expect (r.notes.startsWith ("Nouveaux styles"));
-            r = update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 5600000, {}));
+            r = update::parseRelease (releaseJson (juce::String (update::kSetupPrefix) + "-0.1.0-build57.exe", 5600000, {}));
             expect (r.ok && r.sha256.isEmpty(), "sans empreinte : accepté, vérification par taille");
             expect (! update::parseRelease (releaseJson ("Autre.zip", 5600000, {})).ok, "pas d'installateur");
-            expect (! update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 500, {})).ok, "taille absurde");
-            expect (! update::parseRelease (releaseJson ("StudioVoix-Setup-0.1.0-build57.exe", 5600000, {}, "https://exemple.com/a.exe")).ok,
+            expect (! update::parseRelease (releaseJson (juce::String (update::kSetupPrefix) + "-0.1.0-build57.exe", 500, {})).ok, "taille absurde");
+            expect (! update::parseRelease (releaseJson (juce::String (update::kSetupPrefix) + "-0.1.0-build57.exe", 5600000, {}, "https://exemple.com/a.exe")).ok,
                     "adresse hors API GitHub refusée");
             expect (! update::parseRelease ("[1,2]").ok && ! update::parseRelease ("pas du json").ok, "réponse illisible");
             expect (! update::parseRelease ("{\"draft\":true,\"assets\":[]}").ok, "brouillon ignoré");
+            // Canal par édition : une release de l'autre édition est ignorée ; dans une liste, la plus récente de la sienne gagne.
+            const auto setup = juce::String (update::kSetupPrefix) + "-0.1.0-build57.exe";
+            const auto mine = releaseJson (setup, 5600000, {});
+            const auto other = mine.replace (juce::String (update::kTagPrefix) + "57", juce::String (SV_EDITION_IA ? "studiovoix-build" : "studiovoix-ia-build") + "99");
+            expect (! update::parseRelease (other).ok, "release de l'autre édition refusée"_u8);
+            const auto list = update::parseReleaseList ("[" + other + "," + mine + "]");
+            expect (list.ok && list.build == 57, "liste : la version de cette édition est retenue ("_u8 + list.error + ")");
+            expect (! update::parseReleaseList ("[" + other + "]").ok, "liste sans version de cette édition"_u8);
+            expect (update::parseReleaseList (mine).ok, "objet seul accepté"_u8);
             expect (update::describeHttpError (404, false).contains ("jeton"), "404 sans jeton : explique le jeton");
             expect (! update::describeHttpError (401, true).containsChar (0xC3), "accents des messages");
             expect (update::installerArguments (juce::File ("C:/t/log.txt")).contains ("/RELANCER=1"), "relance demandée à l'installateur");

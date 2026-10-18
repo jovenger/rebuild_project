@@ -50,16 +50,22 @@ int buildFromName (const juce::String& name)
     }
 }
 
-ReleaseInfo parseRelease (const juce::String& json)
+namespace
+{
+ReleaseInfo parseReleaseVar (const juce::var& v)
 {
     ReleaseInfo r;
-    juce::var v;
-    if (juce::JSON::parse (json, v).failed() || ! v.isObject() || v.isArray())
+    if (! v.isObject() || v.isArray())
     {
         r.error = "Réponse GitHub illisible"_u8;
         return r;
     }
     r.tag = v.getProperty ("tag_name", {}).toString();
+    if (! r.tag.startsWith (kTagPrefix))
+    {
+        r.error = "Version d'une autre édition ignorée ("_u8 + r.tag + ")";
+        return r;
+    }
     r.title = v.getProperty ("name", {}).toString();
     r.notes = v.getProperty ("body", {}).toString();
     if (static_cast<bool> (v.getProperty ("draft", false)))
@@ -72,7 +78,7 @@ ReleaseInfo parseRelease (const juce::String& json)
         for (const auto& a : *assets)
         {
             const auto name = a.getProperty ("name", {}).toString();
-            if (! (name.startsWithIgnoreCase ("StudioVoix-Setup") && name.endsWithIgnoreCase (".exe")))
+            if (! (name.startsWithIgnoreCase (kSetupPrefix) && name.endsWithIgnoreCase (".exe")))
                 continue;
             r.assetName = name;
             r.assetApiUrl = a.getProperty ("url", {}).toString();
@@ -110,6 +116,47 @@ ReleaseInfo parseRelease (const juce::String& json)
     r.ok = true;
     return r;
 }
+} // namespace
+
+ReleaseInfo parseRelease (const juce::String& json)
+{
+    juce::var v;
+    if (juce::JSON::parse (json, v).failed())
+    {
+        ReleaseInfo r;
+        r.error = "Réponse GitHub illisible"_u8;
+        return r;
+    }
+    return parseReleaseVar (v);
+}
+
+ReleaseInfo parseReleaseList (const juce::String& json)
+{
+    juce::var v;
+    if (juce::JSON::parse (json, v).failed())
+    {
+        ReleaseInfo r;
+        r.error = "Réponse GitHub illisible"_u8;
+        return r;
+    }
+    if (! v.isArray())
+        return parseReleaseVar (v);
+    int seen = 0;
+    for (const auto& item : *v.getArray())
+    {
+        const auto tag = item.getProperty ("tag_name", {}).toString();
+        if (! tag.startsWith (kTagPrefix))
+            continue;
+        ++seen;
+        if (static_cast<bool> (item.getProperty ("draft", false)) || static_cast<bool> (item.getProperty ("prerelease", false)))
+            continue;
+        return parseReleaseVar (item);   // la liste GitHub est du plus récent au plus ancien
+    }
+    ReleaseInfo r;
+    r.error = seen == 0 ? "Aucune version publiée pour cette édition ("_u8 + juce::String (kTagPrefix) + "…)"
+                        : juce::String ("Seules des versions en brouillon existent pour cette édition"_u8);
+    return r;
+}
 
 juce::String describeHttpError (int status, bool hasToken)
 {
@@ -128,7 +175,8 @@ juce::String describeHttpError (int status, bool hasToken)
 ReleaseInfo fetchLatest (const juce::String& token, int timeoutMs)
 {
     const auto t0 = juce::Time::getMillisecondCounterHiRes();
-    const juce::String url = "https://api.github.com/repos/" + juce::String (kRepo) + "/releases/latest";
+    // Liste des dernières releases (les deux éditions partagent le dépôt) : on garde la plus récente de son édition.
+    const juce::String url = "https://api.github.com/repos/" + juce::String (kRepo) + "/releases?per_page=30";
     juce::WebInputStream stream (juce::URL (url), false);
     stream.withExtraHeaders (baseHeaders (token, "application/vnd.github+json")).withConnectionTimeout (timeoutMs).withNumRedirectsToFollow (3);
     const bool connected = stream.connect (nullptr);
@@ -138,7 +186,7 @@ ReleaseInfo fetchLatest (const juce::String& token, int timeoutMs)
         body.writeFromInputStream (stream, 4 * 1024 * 1024);
     ReleaseInfo r;
     if (status == 200)
-        r = parseRelease (body.toString());
+        r = parseReleaseList (body.toString());
     else
         r.error = describeHttpError (status, token.trim().isNotEmpty());
     r.httpStatus = status;

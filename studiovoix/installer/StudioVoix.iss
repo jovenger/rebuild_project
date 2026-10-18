@@ -10,17 +10,35 @@
 #ifndef StagingDir
   #define StagingDir "..\..\build\installer-staging"
 #endif
+; Édition : "classique" (StudioVoix) ou "IA" (StudioVoix IA) — nom, dossier, identifiant et verrou distincts,
+; les deux programmes peuvent être installés côte à côte.
+#ifndef Edition
+  #define Edition "classique"
+#endif
+#if Edition == "IA"
+  #define AppNameStr "StudioVoix IA"
+  #define ExeName "StudioVoixIA"
+  #define AppIdStr "{{3C1F7A2E-9B6D-4F0A-8E21-7D5C2B9A4E11}"
+  #define DirName "StudioVoix IA"
+  #define MutexName "StudioVoixIA_en_cours"
+#else
+  #define AppNameStr "StudioVoix"
+  #define ExeName "StudioVoix"
+  #define AppIdStr "{{8E2B5D2C-4E0F-4B7A-9C1E-5A7D3F1B2C64}"
+  #define DirName "StudioVoix"
+  #define MutexName "StudioVoix_en_cours"
+#endif
 
 [Setup]
-AppId={{8E2B5D2C-4E0F-4B7A-9C1E-5A7D3F1B2C64}
-AppName=StudioVoix
+AppId={#AppIdStr}
+AppName={#AppNameStr}
 AppVersion={#AppVersion}
 AppPublisher=StudioVoix
-DefaultDirName={autopf}\StudioVoix
-DefaultGroupName=StudioVoix
+DefaultDirName={autopf}\{#DirName}
+DefaultGroupName={#AppNameStr}
 DisableProgramGroupPage=yes
 OutputDir={#BuildDir}\installer
-OutputBaseFilename=StudioVoix-Setup-{#AppVersion}
+OutputBaseFilename={#ExeName}-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
@@ -29,8 +47,8 @@ WizardStyle=modern
 ; Installation sans droits administrateur par défaut (dossier utilisateur), "pour tous" au choix.
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-UninstallDisplayIcon={app}\StudioVoix.exe
-UninstallDisplayName=StudioVoix
+UninstallDisplayIcon={app}\{#ExeName}.exe
+UninstallDisplayName={#AppNameStr}
 
 [Languages]
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
@@ -39,23 +57,23 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "{#BuildDir}\StudioVoix_artefacts\Release\StudioVoix.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#BuildDir}\StudioVoix_artefacts\Release\{#ExeName}.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#BuildDir}\studiovoix_cli_artefacts\Release\studiovoix_cli.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StagingDir}\LISEZMOI.html"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StagingDir}\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\StudioVoix\StudioVoix"; Filename: "{app}\StudioVoix.exe"
-Name: "{autoprograms}\StudioVoix\Guide du matériel"; Filename: "{app}\docs\GUIDE_MATERIEL.html"
-Name: "{autoprograms}\StudioVoix\Lisez-moi"; Filename: "{app}\LISEZMOI.html"
-Name: "{autoprograms}\StudioVoix\Désinstaller StudioVoix"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\StudioVoix"; Filename: "{app}\StudioVoix.exe"; Tasks: desktopicon
+Name: "{autoprograms}\{#AppNameStr}\{#AppNameStr}"; Filename: "{app}\{#ExeName}.exe"
+Name: "{autoprograms}\{#AppNameStr}\Guide du matériel"; Filename: "{app}\docs\GUIDE_MATERIEL.html"
+Name: "{autoprograms}\{#AppNameStr}\Lisez-moi"; Filename: "{app}\LISEZMOI.html"
+Name: "{autoprograms}\{#AppNameStr}\Désinstaller {#AppNameStr}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppNameStr}"; Filename: "{app}\{#ExeName}.exe"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\docs\GUIDE_MATERIEL.html"; Description: "Ouvrir le guide du matériel (micro, casque, branchements)"; Flags: postinstall shellexec skipifsilent nowait
-Filename: "{app}\StudioVoix.exe"; Description: "{cm:LaunchProgram,StudioVoix}"; Flags: postinstall skipifsilent nowait unchecked runasoriginaluser
+Filename: "{app}\{#ExeName}.exe"; Description: "{cm:LaunchProgram,{#AppNameStr}}"; Flags: postinstall skipifsilent nowait unchecked runasoriginaluser
 ; Mise à jour depuis le programme (/RELANCER=1) : relance automatique après l'installation silencieuse.
-Filename: "{app}\StudioVoix.exe"; Flags: nowait runasoriginaluser; Check: RelancerApresMiseAJour
+Filename: "{app}\{#ExeName}.exe"; Flags: nowait runasoriginaluser; Check: RelancerApresMiseAJour
 
 [Code]
 // Mise à jour lancée par StudioVoix : le programme se ferme juste après avoir lancé l'installateur.
@@ -73,7 +91,7 @@ begin
   if RelancerApresMiseAJour then
   begin
     Attente := 0;
-    while CheckForMutexes('Global\StudioVoix_en_cours,Local\StudioVoix_en_cours') and (Attente < 60) do
+    while CheckForMutexes('Global\{#MutexName},Local\{#MutexName}') and (Attente < 60) do
     begin
       Sleep(500);
       Attente := Attente + 1;

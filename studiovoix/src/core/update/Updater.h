@@ -15,6 +15,14 @@
 namespace sv::update
 {
 constexpr const char* kRepo = "jovenger/rebuild_project";
+#ifndef SV_EDITION_IA
+ #define SV_EDITION_IA 0
+#endif
+/** Canal de l'édition : préfixe des tags de release et du nom de l'installateur. Classique : studiovoix-build<N> /
+    StudioVoix-Setup-… ; édition IA : studiovoix-ia-build<N> / StudioVoixIA-Setup-…. Chaque programme ne voit que
+    les versions de son édition. */
+constexpr const char* kTagPrefix = SV_EDITION_IA ? "studiovoix-ia-build" : "studiovoix-build";
+constexpr const char* kSetupPrefix = SV_EDITION_IA ? "StudioVoixIA-Setup" : "StudioVoix-Setup";
 
 /** Numéro de build de ce programme (SV_BUILD_NUMBER, 0 = compilation locale). */
 int currentBuild();
@@ -36,6 +44,9 @@ struct ReleaseInfo
 
 /** Lit la réponse JSON de l'API GitHub « release ». */
 ReleaseInfo parseRelease (const juce::String& json);
+/** Liste de releases GitHub (tableau JSON) : la plus récente de cette édition (préfixe du tag), ni brouillon ni
+    pré-version ; un objet seul est accepté aussi. */
+ReleaseInfo parseReleaseList (const juce::String& json);
 
 /** Message lisible pour un échec HTTP de la vérification (dépôt privé sans jeton, jeton refusé…). */
 juce::String describeHttpError (int status, bool hasToken);

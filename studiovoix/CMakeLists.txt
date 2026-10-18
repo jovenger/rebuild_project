@@ -7,6 +7,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(SV_BUILD_APP "Construire l'application graphique" ON)
 option(SV_BUILD_CLI "Construire l'outil en ligne de commande (inclut les tests)" ON)
+# Deux programmes à partir du même code : « StudioVoix » (classique) et « StudioVoix IA » (briques d'IA locales :
+# nettoyage, paroles, séparation). L'édition IA a son nom, son dossier de réglages et son canal de mise à jour.
+option(SV_EDITION_IA "Édition « StudioVoix IA » (briques d'IA locales, plus lourde)" OFF)
+if(SV_EDITION_IA)
+    set(SV_PRODUCT_NAME "StudioVoixIA")
+    set(SV_DISPLAY_NAME "StudioVoix IA")
+    set(SV_EDITION_FLAG 1)
+else()
+    set(SV_PRODUCT_NAME "StudioVoix")
+    set(SV_DISPLAY_NAME "StudioVoix")
+    set(SV_EDITION_FLAG 0)
+endif()
+message(STATUS "StudioVoix : édition ${SV_DISPLAY_NAME} (exécutable ${SV_PRODUCT_NAME})")
 # Numéro de build (CI : numéro d'exécution GitHub Actions) ; sert à détecter les mises à jour. 0 = compilation locale.
 set(SV_BUILD_NUMBER 0 CACHE STRING "Numéro de build de StudioVoix")
 
@@ -71,6 +84,7 @@ set(SV_COMMON_DEFINITIONS
     JUCE_STRICT_REFCOUNTEDPOINTER=1
     JUCE_DISPLAY_SPLASH_SCREEN=0
     SV_BUILD_NUMBER=${SV_BUILD_NUMBER})
+list(APPEND SV_COMMON_DEFINITIONS SV_EDITION_IA=${SV_EDITION_FLAG} SV_DISPLAY_NAME="${SV_DISPLAY_NAME}")
 
 set(SV_CORE_MODULES
     juce::juce_core
@@ -109,7 +123,7 @@ endif()
 
 if(SV_BUILD_APP)
     juce_add_gui_app(StudioVoix
-        PRODUCT_NAME "StudioVoix"
+        PRODUCT_NAME "${SV_PRODUCT_NAME}"
         COMPANY_NAME "StudioVoix"
         NEEDS_WEB_BROWSER FALSE
         NEEDS_CURL FALSE

@@ -15,6 +15,12 @@
 namespace
 {
 constexpr const char* kMod = "App";
+#ifndef SV_DISPLAY_NAME
+ #define SV_DISPLAY_NAME "StudioVoix"
+#endif
+#ifndef SV_EDITION_IA
+ #define SV_EDITION_IA 0
+#endif
 
 void onCrash (void*)
 {
@@ -63,8 +69,8 @@ public:
         juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
         // Verrou nommé tenu tant que le programme tourne : l'installateur de mise à jour attend qu'il soit libéré.
         if (! runningLock.enter (0))
-            SV_LOG_WARN (kMod, "Verrou « StudioVoix_en_cours » déjà pris (autre instance ?)"_u8);
-        SV_LOG_INFO (kMod, "Démarrage de StudioVoix "_u8 + getApplicationVersion() + " (" + juce::SystemStats::getOperatingSystemName()
+            SV_LOG_WARN (kMod, "Verrou « "_u8 + juce::String (kLockName) + " » déjà pris (autre instance ?)"_u8);
+        SV_LOG_INFO (kMod, "Démarrage de "_u8 + juce::String (SV_DISPLAY_NAME) + " " + getApplicationVersion() + " (" + juce::SystemStats::getOperatingSystemName()
                            + ", " + juce::String (juce::SystemStats::getNumCpus()) + " coeurs, " + juce::String (juce::SystemStats::getMemorySizeInMegabytes())
                            + " Mo) — journal : "_u8 + logFile.getFullPathName());
 
@@ -98,7 +104,7 @@ public:
         engine->setMetronome (settings->metronome());
 
         session = std::make_unique<sv::app::Session> (*engine, *settings);
-        mainWindow = std::make_unique<MainWindow> (getApplicationName(), *session);
+        mainWindow = std::make_unique<MainWindow> (SV_DISPLAY_NAME, *session);
 
         if (auto* mc = dynamic_cast<sv::app::MainComponent*> (mainWindow->getContentComponent()))
             mc->startup (commandLine);
@@ -131,7 +137,9 @@ public:
     void anotherInstanceStarted (const juce::String&) override {}
 
 private:
-    juce::InterProcessLock runningLock { "StudioVoix_en_cours" };
+    // Nom du verrou attendu par l'installateur (mise à jour) : propre à chaque édition.
+    static constexpr const char* kLockName = SV_EDITION_IA ? "StudioVoixIA_en_cours" : "StudioVoix_en_cours";
+    juce::InterProcessLock runningLock { kLockName };
     sv::app::StudioLookAndFeel lookAndFeel;
     std::unique_ptr<sv::app::AppSettings> settings;
     std::unique_ptr<sv::app::AudioEngine> engine;

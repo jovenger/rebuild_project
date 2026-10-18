@@ -19,6 +19,16 @@ branchements pour zéro retard, placement, réglages Windows, dépannage).
 
 Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
 
+**Deux programmes, un seul code** :
+- **StudioVoix** (classique) : tout ce qui est décrit ici, sans rien à télécharger. Installateur
+  `StudioVoix-Setup-…exe`, releases `studiovoix-build<N>`.
+- **StudioVoix IA** : le même studio plus des briques d'intelligence artificielle **gratuites et locales**
+  (nettoyage de voix DeepFilterNet, paroles reconnues et calées par whisper.cpp, séparation d'instru Demucs,
+  mastering par référence), téléchargées à la demande dans le programme (modèles de 2 Mo à quelques centaines de Mo,
+  calculs plus longs). Installateur `StudioVoixIA-Setup-…exe`, releases `studiovoix-ia-build<N>`, dossier et
+  réglages séparés (`StudioVoix IA`) : les deux programmes s'installent côte à côte et ouvrent les mêmes projets.
+  Chaque programme ne se met à jour que vers les versions de son édition.
+
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 
 ## Premier lancement

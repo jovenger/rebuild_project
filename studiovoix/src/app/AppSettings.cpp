@@ -8,12 +8,18 @@ namespace
 {
     constexpr const char* kMod = "Settings";
 
+#ifndef SV_EDITION_IA
+ #define SV_EDITION_IA 0
+#endif
+    // Dossier de réglages et de journaux : distinct par édition (les projets restent dans Documents\StudioVoix).
+    constexpr const char* kDataFolder = SV_EDITION_IA ? "StudioVoix IA" : "StudioVoix";
+
     juce::PropertiesFile::Options options()
     {
         juce::PropertiesFile::Options o;
-        o.applicationName = "StudioVoix";
+        o.applicationName = kDataFolder;
         o.filenameSuffix = ".settings";
-        o.folderName = "StudioVoix";
+        o.folderName = kDataFolder;
         o.osxLibrarySubFolder = "Application Support";
         o.storageFormat = juce::PropertiesFile::storeAsXML;
         o.millisecondsBeforeSaving = 500;
@@ -29,7 +35,7 @@ AppSettings::AppSettings()
 
 juce::File AppSettings::logsFolder()
 {
-    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("StudioVoix").getChildFile ("logs");
+    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile (kDataFolder).getChildFile ("logs");
 }
 
 std::unique_ptr<juce::XmlElement> AppSettings::audioDeviceState() { return file->getXmlValue ("audioDevice"); }

@@ -14,13 +14,45 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Deux programmes à partir du même code : « StudioVoix » (classique) et « StudioVoix IA » (briques d'IA locales).
+        # Chacun a son installateur, son dossier, ses réglages et son canal de mise à jour (préfixe de tag).
         include:
           - name: Windows (MSVC)
             os: windows-latest
             generator: ''
+            edition: 'OFF'
+            iss_edition: classique
+            exe: StudioVoix
+            setup: StudioVoix-Setup
+            dir: StudioVoix
+            data: StudioVoix
+            tag: studiovoix-build
+            title: StudioVoix build
+            latest: '--latest'
+          - name: Windows IA (MSVC)
+            os: windows-latest
+            generator: ''
+            edition: 'ON'
+            iss_edition: IA
+            exe: StudioVoixIA
+            setup: StudioVoixIA-Setup
+            dir: StudioVoix IA
+            data: StudioVoix IA
+            tag: studiovoix-ia-build
+            title: StudioVoix IA build
+            latest: '--latest=false'
           - name: Linux (GCC)
             os: ubuntu-24.04
             generator: '-G Ninja'
+            edition: 'OFF'
+            iss_edition: classique
+            exe: StudioVoix
+            setup: StudioVoix-Setup
+            dir: StudioVoix
+            data: StudioVoix
+            tag: studiovoix-build
+            title: StudioVoix build
+            latest: '--latest'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions:
@@ -37,7 +69,7 @@ jobs:
             libxinerama-dev libxcursor-dev libxcomposite-dev libxext-dev libxi-dev libfreetype-dev libfontconfig1-dev xvfb
 
       - name: Configuration
-        run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }} -DSV_BUILD_NUMBER=${{ github.run_number }}
+        run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }} -DSV_BUILD_NUMBER=${{ github.run_number }} -DSV_EDITION_IA=${{ matrix.edition }}
         env:
           SV_BUILD_APP: ON
 
@@ -51,23 +83,23 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           ./build/studiovoix_cli_artefacts/Release/studiovoix_cli demo --style trap -o demo
-          xvfb-run -a ./build/StudioVoix_artefacts/Release/StudioVoix --selftest demo/demo_instru.wav demo/demo_voix_brute.wav
-          grep AUTOTEST ~/.config/StudioVoix/logs/*.log
+          xvfb-run -a ./build/StudioVoix_artefacts/Release/${{ matrix.exe }} --selftest demo/demo_instru.wav demo/demo_voix_brute.wav
+          grep AUTOTEST ~/.config/"${{ matrix.data }}"/logs/*.log
 
       - name: Auto-test de l'application (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           & build\studiovoix_cli_artefacts\Release\studiovoix_cli.exe demo --style trap -o demo
-          $p = Start-Process -FilePath build\StudioVoix_artefacts\Release\StudioVoix.exe -ArgumentList '--selftest','demo\demo_instru.wav','demo\demo_voix_brute.wav' -Wait -PassThru
-          Get-Content "$env:APPDATA\StudioVoix\logs\*.log" | Select-String AUTOTEST
+          $p = Start-Process -FilePath build\StudioVoix_artefacts\Release\${{ matrix.exe }}.exe -ArgumentList '--selftest','demo\demo_instru.wav','demo\demo_voix_brute.wav' -Wait -PassThru
+          Get-Content "$env:APPDATA\${{ matrix.data }}\logs\*.log" | Select-String AUTOTEST
           exit $p.ExitCode
 
       - name: Journal des tests
         if: always()
         shell: bash
         run: |
-          for f in "$APPDATA/StudioVoix/logs/cli.log" "$HOME/.config/StudioVoix/logs/cli.log"; do
+          for f in "$APPDATA/${{ matrix.data }}/logs/cli.log" "$HOME/.config/${{ matrix.data }}/logs/cli.log"; do
             if [ -f "$f" ]; then tail -n 200 "$f"; fi
           done
 
@@ -92,7 +124,7 @@ jobs:
           }
           Write-Host "ISCC : $iscc"
           $build = (Resolve-Path build).Path
-          & $iscc "/DAppVersion=0.1.0-build${{ github.run_number }}" "/DBuildDir=$build" "/DStagingDir=$build\installer-staging" studiovoix/installer/StudioVoix.iss
+          & $iscc "/DAppVersion=0.1.0-build${{ github.run_number }}" "/DBuildDir=$build" "/DStagingDir=$build\installer-staging" "/DEdition=${{ matrix.iss_edition }}" studiovoix/installer/StudioVoix.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC : code $LASTEXITCODE" }
           Get-ChildItem build/installer
 
@@ -101,22 +133,22 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $setup = (Get-ChildItem build/installer/StudioVoix-Setup-*.exe | Select-Object -First 1).FullName
+          $setup = (Get-ChildItem build/installer/${{ matrix.setup }}-*.exe | Select-Object -First 1).FullName
           $p = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER','/LOG=install.log' -Wait -PassThru
           if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 40; throw "installation : code $($p.ExitCode)" }
-          $inst = Join-Path $env:LOCALAPPDATA 'Programs\StudioVoix'
-          foreach ($f in 'StudioVoix.exe','studiovoix_cli.exe','LISEZMOI.html','docs\GUIDE_MATERIEL.html','docs\img\montage_micro_usb.svg','unins000.exe') {
+          $inst = Join-Path $env:LOCALAPPDATA 'Programs\${{ matrix.dir }}'
+          foreach ($f in '${{ matrix.exe }}.exe','studiovoix_cli.exe','LISEZMOI.html','docs\GUIDE_MATERIEL.html','docs\img\montage_micro_usb.svg','unins000.exe') {
             if (-not (Test-Path (Join-Path $inst $f))) { throw "fichier manquant après installation : $f" }
           }
           & (Join-Path $inst 'studiovoix_cli.exe') test
           if ($LASTEXITCODE -ne 0) { throw "tests depuis le dossier installé : code $LASTEXITCODE" }
 
-          # Mise à jour comme depuis le bouton du programme : installateur lancé pendant que StudioVoix tourne,
+          # Mise à jour comme depuis le bouton du programme : installateur lancé pendant que le programme tourne,
           # il doit attendre sa fermeture (verrou nommé), installer par-dessus, puis relancer le programme.
-          $exe = Join-Path $inst 'StudioVoix.exe'
+          $exe = Join-Path $inst '${{ matrix.exe }}.exe'
           $app = Start-Process -FilePath $exe -PassThru
           Start-Sleep -Seconds 8
-          if ($app.HasExited) { throw "StudioVoix s'est fermé tout seul au démarrage (code $($app.ExitCode))" }
+          if ($app.HasExited) { throw "le programme s'est fermé tout seul au démarrage (code $($app.ExitCode))" }
           $upd = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/CLOSEAPPLICATIONS','/RELANCER=1','/CURRENTUSER','/LOG=update.log' -PassThru
           Start-Sleep -Seconds 4
           if ($upd.HasExited) { Get-Content update.log -Tail 40; throw "l'installateur n'a pas attendu la fermeture du programme" }
@@ -126,12 +158,12 @@ jobs:
           if ($upd.ExitCode -ne 0) { Get-Content update.log -Tail 40; throw "mise à jour : code $($upd.ExitCode)" }
           Select-String -Path update.log -Pattern 'attente de la fermeture' | ForEach-Object { Write-Host $_.Line }
           $relaunched = $null
-          for ($i = 0; $i -lt 30 -and -not $relaunched; $i++) { Start-Sleep -Seconds 1; $relaunched = Get-Process -Name StudioVoix -ErrorAction SilentlyContinue }
+          for ($i = 0; $i -lt 30 -and -not $relaunched; $i++) { Start-Sleep -Seconds 1; $relaunched = Get-Process -Name ${{ matrix.exe }} -ErrorAction SilentlyContinue }
           if (-not $relaunched) { Get-Content update.log -Tail 40; throw "le programme n'a pas été relancé après la mise à jour" }
           Write-Host "Mise à jour par-dessus + relance OK (PID $($relaunched.Id))"
           $relaunched | ForEach-Object { [void]$_.CloseMainWindow() }
           Start-Sleep -Seconds 5
-          Get-Process -Name StudioVoix -ErrorAction SilentlyContinue | Stop-Process -Force
+          Get-Process -Name ${{ matrix.exe }} -ErrorAction SilentlyContinue | Stop-Process -Force
           $u = Start-Process -FilePath (Join-Path $inst 'unins000.exe') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw "désinstallation : code $($u.ExitCode)" }
           Write-Host "Installation, tests et désinstallation OK"
@@ -140,9 +172,9 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v6
         with:
-          name: StudioVoix-Windows
+          name: ${{ matrix.exe }}-Windows
           path: |
-            build/StudioVoix_artefacts/Release/StudioVoix.exe
+            build/StudioVoix_artefacts/Release/${{ matrix.exe }}.exe
             build/studiovoix_cli_artefacts/Release/studiovoix_cli.exe
           if-no-files-found: warn
 
@@ -150,8 +182,8 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v6
         with:
-          name: StudioVoix-Setup
-          path: build/installer/StudioVoix-Setup-*.exe
+          name: ${{ matrix.setup }}
+          path: build/installer/${{ matrix.setup }}-*.exe
           if-no-files-found: error
 
       - name: Publication de la mise à jour (release GitHub, lue par le bouton « Mise à jour »)
@@ -161,9 +193,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $setup = (Get-ChildItem build/installer/StudioVoix-Setup-*.exe | Select-Object -First 1).FullName
-          $tag = "studiovoix-build${{ github.run_number }}"
+          $setup = (Get-ChildItem build/installer/${{ matrix.setup }}-*.exe | Select-Object -First 1).FullName
+          $tag = "${{ matrix.tag }}${{ github.run_number }}"
           git log -1 --format=%B | Out-File -Encoding utf8 notes.md
-          gh release create $tag $setup --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "StudioVoix build ${{ github.run_number }}" --notes-file notes.md --latest
+          gh release create $tag $setup --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "${{ matrix.title }} ${{ github.run_number }}" --notes-file notes.md ${{ matrix.latest }}
           if ($LASTEXITCODE -ne 0) { throw "publication de la release : code $LASTEXITCODE" }
           gh release view $tag --repo "${{ github.repository }}" --json tagName,assets --jq '.tagName + " : " + (.assets | map(.name + " (" + (.size|tostring) + " octets)") | join(", "))'

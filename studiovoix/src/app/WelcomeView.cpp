@@ -8,6 +8,9 @@ namespace sv::app
 namespace
 {
     constexpr const char* kMod = "Accueil";
+#ifndef SV_DISPLAY_NAME
+ #define SV_DISPLAY_NAME "StudioVoix"
+#endif
 
     struct RecentProject
     {
@@ -148,7 +151,7 @@ void WelcomeView::paint (juce::Graphics& g)
     const auto area = getLocalBounds().reduced (juce::jmax (40, getWidth() / 10), 40);
     g.setColour (theme::text);
     g.setFont (juce::FontOptions (40.0f, juce::Font::bold));
-    g.drawText ("StudioVoix", area.withHeight (60), juce::Justification::centredLeft);
+    g.drawText (SV_DISPLAY_NAME, area.withHeight (60), juce::Justification::centredLeft);
     g.setColour (theme::textDim);
     g.setFont (juce::FontOptions (16.0f));
     g.drawText ("Pose une instru, enregistre ta voix : le studio règle tout (autotune, effets, niveaux, mix) selon le style."_u8,
