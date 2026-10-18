@@ -32,6 +32,9 @@ FAMILLES = re.compile(r"^((sword_shield|axe_shield|longsword|mace_shield|axe|pol
                       # Les compagnons nommés (demande du pair, liste validée par JoVenGer le 18/10) : cinq sortes de plus,
                       # données par contrat seulement (hors du tirage des hommes ordinaires).
                       r"|(mace|hammer|sabre|sword|huntingsword)_[1-6])_\d+$")
+# La tenue du colonel (demande du pair, 18/10 : règle de JoVenGer du 6/10, « une tenue digne d'un colonel ») : celle du
+# capitaine de Malesov ; donnée par la décision choix_de_l_equipement de Scriptorium, jamais tirée.
+TENUES_EN_PLUS = ["ZachranaPtacka_malesovCaptain_05"]
 # Les préréglages à pavois peint (réponse 3 de JoVenGer), dont trois hors des six familles.
 PAVOIS = ["mace_shield_2_02", "mace_shield_2_03", "mace_shield_3_04", "mace_shield_4_02", "axe_shield_3_02",
           "axe_shield_3_03", "axe_shield_4_02", "huntingsword_shield_3_01", "huntingsword_shield_3_02",
@@ -139,7 +142,7 @@ def pieces_des_prereglages(clothing_xml, weapon_xml):
     pieces = {}
     for nom, corps in re.findall(r'<clothing_preset [^>]*clothing_preset_name="([^"]+)"[^>]*>(.*?)</clothing_preset>',
                                  clothing_xml, re.S):
-        if TENUES.match(nom) and "crimeScene" not in nom:
+        if (TENUES.match(nom) and "crimeScene" not in nom) or nom in TENUES_EN_PLUS:
             pieces[nom] = [g.lower() for g in re.findall(r"<Guid>([^<]+)</Guid>", corps)]
     for nom, corps in re.findall(r'<weapon_preset [^>]*weapon_preset_name="([^"]+)"[^>]*>(.*?)</weapon_preset>',
                                  weapon_xml, re.S):
@@ -193,7 +196,7 @@ def principal(arguments):
     couches, _ = couches_des_objets(item_xml, slot_xml)
     sans_couche = set()
     for nom in pieces:
-        if nom.startswith("soldier_generic"):
+        if nom.startswith("soldier_generic") or nom in TENUES_EN_PLUS:
             for g in pieces[nom]:
                 if couches.get(g, COUCHE_INCONNUE) == COUCHE_INCONNUE:
                     sans_couche.add(g)
@@ -210,6 +213,9 @@ def principal(arguments):
         pieces[nom] = [par_nom[n] for n in armes]
         munitions[nom] = par_nom[munition]
     erreurs = []
+    for nom in TENUES_EN_PLUS:
+        if nom not in pieces:
+            erreurs.append("tenue en plus absente du jeu : " + nom)
     for nom in PAVOIS:
         if nom not in pieces:
             erreurs.append("préréglage à pavois absent du jeu : " + nom)
@@ -234,7 +240,8 @@ def principal(arguments):
     debut = texte.index(DEBUT)
     fin = texte.index(FIN) + len(FIN)
     toutes = parties_des_objets(item_xml, slot_xml)
-    parties = {g: toutes[g] for nom in pieces if nom.startswith("soldier_generic") for g in pieces[nom] if g in toutes}
+    parties = {g: toutes[g] for nom in pieces if nom.startswith("soldier_generic") or nom in TENUES_EN_PLUS
+               for g in pieces[nom] if g in toutes}
     sans_torse = [n for n in pieces if n.startswith("soldier_generic") and "torse" not in {parties.get(g) for g in pieces[n]}]
     if sans_torse:
         print("Attention : %d tenue(s) sans pièce de torse : %s" % (len(sans_torse), ", ".join(sorted(sans_torse)[:5])))

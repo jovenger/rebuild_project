@@ -1306,6 +1306,7 @@ end
 -- Les pièces de chaque préréglage retenu (fiche 13, V71 b), dans l'ordre du jeu, créées une à une par le socle ;
 -- et l'objet des munitions de nos assemblages de tir (leur nombre est une règle de hommes.equipement).
 liaison.pieces_des_prereglages = {
+  ["ZachranaPtacka_malesovCaptain_05"] = { "3cea4901-cce2-4582-b4a0-c208df45cd53", "a79e8354-4706-4dde-bec3-51e1d88bf699", "808101ad-28ff-4425-ad2a-5fbe4f9fbbbe", "b1b9a304-4f2c-4e43-8f2c-166abf25243c", "62183c25-a930-4044-8e08-243c5d46c6cc", "c7793648-89e3-4730-9972-66a19f23ebf4", "b405d47f-2728-4e0c-8b6f-82ffcd4c0280", "219debf1-3e0a-4bad-b6bb-6bad5e334b8c", "f5c11ece-238d-4463-88ec-1f51c80c1bcf", "2e6c0926-0d37-4009-beb2-0a8edcb502cb" },
   ["axe_2_01"] = { "81494400-b654-4aa7-8f31-c95c689db5f6" },
   ["axe_3_01"] = { "53612e76-76fd-4dca-84b6-7905b986dc3b" },
   ["axe_5_01"] = { "0f0164d5-3746-4d07-a1ed-0f138225a6d9" },
@@ -1482,6 +1483,7 @@ liaison.parties_des_pieces = {
   ["233e4fbc-42b8-4a70-a699-8b1978419f0c"] = "jambes",
   ["260ccafb-0504-4c17-9833-304539d30698"] = "torse",
   ["263e6aa0-cffd-4c30-87ea-98e3fcaa4dc7"] = "jambes",
+  ["2e6c0926-0d37-4009-beb2-0a8edcb502cb"] = "torse",
   ["2f20e7ab-77ae-4c17-be1d-e6f4931769d5"] = "torse",
   ["3024ad3e-9647-41f7-9be6-0aa29c2e7bd2"] = "torse",
   ["315fa220-fcb8-44e3-9a68-545c6822ec9f"] = "torse",
@@ -1539,6 +1541,7 @@ liaison.parties_des_pieces = {
   ["b1b9a304-4f2c-4e43-8f2c-166abf25243c"] = "torse",
   ["b26e6866-c903-4238-9f64-24eca84fc34a"] = "torse",
   ["b29874c7-734e-448a-9227-b0b261c900d2"] = "torse",
+  ["b405d47f-2728-4e0c-8b6f-82ffcd4c0280"] = "jambes",
   ["b40942a9-f067-4a6d-8cd3-59a03e8a59d1"] = "torse",
   ["b49694c9-31dd-49f0-bc1b-be86644cf1fa"] = "jambes",
   ["b5bfc0d3-b4e2-421c-ae14-4bce9f1f54be"] = "jambes",

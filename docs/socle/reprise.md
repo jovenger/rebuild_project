@@ -501,7 +501,16 @@ aucune sonde dans l'arbre.
 
 **Reste**
 - La tenue des hommes : le socle seul, avec la décision remplaçable que le pair décrira ; trouver le soldat nu.
-- La caméra du dialogue (finitions) : un homme né par script peut être filmé (dames des bains) ; la cause est ailleurs.
+- Tenue (demandes du pair du 18/10, la tenue gardée par le socle seul) :
+  - fait : filet de la tenue de corps (6253eb9) ; service hommes.reequiper (d7603bc) ; A, la tenue du colonel enregistrée
+    sous « ZachranaPtacka_malesovCaptain_05 » (10 pièces, outils/equipement.py) : le DIRE au pair ;
+  - à faire : B, hommes.remplacer_une_piece(id, objet, etat) (même classe, neuve portée, ancienne détruite ; ne pas
+    passer par « otees », qui ôte par classe) ; C, une décision remplaçable « pièces non portées maintenant » que la
+    garde respecte (tête nue du colonel au camp) ; D, confirmer au pair : (1) le filet ne joue jamais sous
+    ne_pas_rhabiller (vérifier que ce champ du « quoi » de tenir arrive à activite_de), (2) la garde ne touche pas au
+    nombre de flèches et carreaux (le rhabillage COMPLÈTE les munitions jusqu'au nombre du préréglage : le dire).
+- Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
+  captures tombaient sur le menu des choix, où le jeu filme Henry. Les essais ci-dessus étaient sans objet.
 - Protocole de fenêtre : « fenêtre ouverte » au pair à chaque fin de séance, « fenêtre rendue » avant de relancer.
 - Liste de JoVenGer : `a_verifier_par_jovenger.md`.
 
