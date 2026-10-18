@@ -945,7 +945,11 @@ public:
             render::RenderSet rs;
             rs[leadId] = lr;
             rs[rawProj.instruTrack()->id] = render::renderTrack (rawProj, *rawProj.instruTrack(), cache, ctx);
-            expect (! render::computeAutoMix (rawProj, rs).autoMixApplied, "voix brute : pas de mix auto");
+            {
+                // Brut = aucun effet sur le son, mais le niveau voix / instru est géré quand même (le niveau n'est pas un effet).
+                const auto ms = render::computeAutoMix (rawProj, rs);
+                expect (ms.autoMixApplied && std::abs (ms.autoMix.vocalGainDb) <= 18.0f, "voix brute : niveau voix / instru géré ("_u8 + juce::String (ms.autoMix.vocalGainDb, 1) + " dB)");
+            }
             rawProj.findTrack (leadId)->raw = false;
             rawProj.findTrack (leadId)->styleId = "rock";
             expect (rawProj.trackStyle (*rawProj.findTrack (leadId)) == style::Style::Rock && rawProj.trackStyle (*rawProj.instruTrack()) == rawProj.style, "style propre à la piste");
@@ -1447,7 +1451,7 @@ public:
             const auto ms = render::computeAutoMix (op, rs);
             const float g = ms.autoTrackGain (dblId);
             expect (g <= -6.0f && g >= -8.0f, "doublage ramené : gain "_u8 + juce::String (g, 1) + " dB (visé -6 LU)"_u8);
-            expect (std::abs (ms.autoTrackGain (rawId)) < 1e-6f && std::abs (ms.autoTrackGain (ldId)) < 1e-6f, "piste brute et voix principale non touchées"_u8);
+            expect (ms.autoTrackGain (rawId) <= -6.0f && std::abs (ms.autoTrackGain (ldId)) < 1e-6f, "piste brute aussi ramenée à sa place (le niveau n'est pas un effet) ; voix principale intacte"_u8);
             expect (ms.balanceReport.contains ("Doublage") && ! ms.balanceReport.containsChar (0xC3), "rapport orchestre : " + ms.balanceReport);
             expect (ms.mixLufs > -100.0, "sonie du mixage mesurée : "_u8 + juce::String (ms.mixLufs, 1) + " LUFS");
             const auto mixed = render::mixdown (op, rs, ms);
@@ -1455,6 +1459,30 @@ public:
             const auto plain = render::mixdown (op, rs, none);
             expect (mixed.getRMSLevel (0, 48000, 48000) < plain.getRMSLevel (0, 48000, 48000), "le gain orchestre est appliqué au mixage"_u8);
             expect (std::abs (render::roleOffsetLu (style::Role::AdLib) + 9.0f) < 1e-6f && std::abs (render::roleOffsetLu (style::Role::Lead)) < 1e-6f, "places par rôle"_u8);
+        }
+
+        beginTest ("Autotune : gamme adaptee a la voix quand elle chante hors de la gamme du morceau");
+        {
+            // Voix en La mineur, projet déclaré en Mi majeur (4 notes sur 7 hors gamme) : l'autotune doit suivre la voix.
+            const auto keySig = aMinor();
+            auto voiceSig = synthVoice (defaultPhrases (keySig, 100.0, 20.0f), kSr);
+            dsp::AnalysisContext ctx;
+            ctx.key.root = 4;
+            ctx.key.minor = false;
+            ctx.key.confidence = 0.8f;
+            ctx.tempo.bpm = 100.0;
+            auto params = style::makeParams (style::Style::Trap, style::Role::Lead, {});
+            params.timing.strength = 0.0f;
+            const auto res = dsp::processVocal (voiceSig, kSr, params, ctx);
+            expect (res.report.outOfScaleFraction >= 0.3f, "notes hors Mi majeur mesurées : "_u8 + juce::String (res.report.outOfScaleFraction, 2));
+            expect (res.report.scaleAdapted && ! res.report.chromaticUsed, "gamme adaptée"_u8);
+            const auto& k = res.report.adaptedKey;
+            expect (k.contains (9) && k.contains (0) && k.contains (5) && ! k.contains (1) && ! k.contains (8), "gamme choisie = notes de La mineur / Do majeur : " + k.toFrench());
+            // Même voix avec la bonne tonalité : rien à adapter.
+            ctx.key = keySig;
+            ctx.key.confidence = 0.8f;
+            const auto ok = dsp::processVocal (voiceSig, kSr, params, ctx);
+            expect (! ok.report.scaleAdapted && ok.report.outOfScaleFraction < 0.25f, "tonalité juste : pas d'adaptation ("_u8 + juce::String (ok.report.outOfScaleFraction, 2) + ")");
         }
 
         beginTest ("Debruitage spectral et de-ecretage");

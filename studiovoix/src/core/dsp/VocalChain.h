@@ -27,6 +27,9 @@ struct VocalReport
     float deEssGrDb = 0.0f;
     float limiterGrDb = 0.0f;          // limiteur de sécurité en fin de piste (-1 dBTP), 0 si rien à faire
     float outOfScaleFraction = -1.0f;  // part des notes chantées hors de la gamme du morceau (avant autotune) ; -1 = inconnu
+    bool scaleAdapted = false;         // la voix chante dans une autre gamme : autotune vers la gamme de la voix (adaptedKey)
+    bool chromaticUsed = false;        // notes trop dispersées ou tonalité inconnue : correction note par note
+    MusicalKey adaptedKey;             // gamme réellement utilisée par l'autotune
     int syllablesRetimed = 0;
     CleanReport clean;
     LevelerReport leveler;

@@ -2,6 +2,8 @@
 
 #include "MasterChain.h"
 
+#include <array>
+
 #include "../AudioIO.h"
 #include "../Log.h"
 #include "PitchCorrector.h"
@@ -161,23 +163,74 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     // 2) Analyse.
     result.va = analysis::analyzeVoice (x, sampleRate);
     result.track = analysis::detectPitch (x, sampleRate);
-    if (context.key.confidence >= 0.3f)
+    // Gamme de l'autotune. Histogramme des classes de hauteur chantées (avant toute correction) : si la voix chante
+    // dans une autre gamme que celle du morceau, l'autotune tirerait vers de mauvaises notes. On choisit alors la
+    // gamme qui contient le plus de notes chantées ; si aucune gamme ne convient, correction note par note.
+    MusicalKey tuneKey = context.key;
+    bool chromatic = context.key.confidence < 0.2f;
     {
-        // Notes hors gamme avant toute correction : si la voix chante dans une autre tonalité que l'instru, l'autotune
-        // tirerait vers de mauvaises notes ; l'application le signale.
-        int voicedN = 0, outN = 0;
+        std::array<int, 12> hist {};
+        int voicedN = 0;
         for (size_t i = 0; i < result.track.frames.size(); ++i)
         {
             const auto& f = result.track.frames[i];
             if (! f.voiced || f.f0 <= 0.0f || f.confidence < 0.6f || ! result.va.isActiveAt (static_cast<double> (i) * result.track.hopSec))
                 continue;
             const int midi = juce::roundToInt (69.0f + 12.0f * std::log2 (f.f0 / 440.0f));
+            ++hist[static_cast<size_t> (((midi % 12) + 12) % 12)];
             ++voicedN;
-            outN += context.key.contains (((midi % 12) + 12) % 12) ? 0 : 1;
         }
+        auto inScale = [&] (const MusicalKey& k)
+        {
+            int in = 0;
+            for (int pc = 0; pc < 12; ++pc)
+                in += k.contains (pc) ? hist[static_cast<size_t> (pc)] : 0;
+            return voicedN > 0 ? static_cast<float> (in) / static_cast<float> (voicedN) : 1.0f;
+        };
         if (voicedN >= 50)
-            result.report.outOfScaleFraction = static_cast<float> (outN) / static_cast<float> (voicedN);
+        {
+            const float inProject = context.key.confidence >= 0.3f ? inScale (context.key) : 0.0f;
+            result.report.outOfScaleFraction = 1.0f - inProject;
+            if (inProject < 0.75f)
+            {
+                // Meilleure gamme pour cette voix (la plus de notes dedans ; à égalité, celle dont la tonique est la plus chantée).
+                MusicalKey best;
+                float bestScore = -1.0f, bestIn = 0.0f;
+                for (int minor = 0; minor < 2; ++minor)
+                    for (int root = 0; root < 12; ++root)
+                    {
+                        MusicalKey k;
+                        k.root = root;
+                        k.minor = minor == 1;
+                        const float in = inScale (k);
+                        const float score = in + 0.02f * static_cast<float> (hist[static_cast<size_t> (root)]) / static_cast<float> (voicedN);
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            bestIn = in;
+                            best = k;
+                        }
+                    }
+                if (bestIn >= 0.85f)
+                {
+                    best.confidence = bestIn;
+                    tuneKey = best;
+                    chromatic = false;
+                    result.report.scaleAdapted = true;
+                    SV_LOG_WARN (kMod, "Voix hors de la gamme du morceau ("_u8 + juce::String (juce::roundToInt (result.report.outOfScaleFraction * 100.0f))
+                                       + " % des notes) : autotune vers la gamme de la voix, "_u8 + best.toFrench() + " (" + juce::String (juce::roundToInt (bestIn * 100.0f)) + " % des notes dedans)");
+                }
+                else
+                {
+                    chromatic = true;
+                    result.report.chromaticUsed = true;
+                    SV_LOG_WARN (kMod, "Notes dispersées (meilleure gamme "_u8 + best.toFrench() + " : " + juce::String (juce::roundToInt (bestIn * 100.0f))
+                                       + " % seulement) : correction note par note, sans gamme"_u8);
+                }
+            }
+        }
     }
+    result.report.adaptedKey = tuneKey;
     if (result.report.nearSilent)
         result.va.phrases.clear();   // pas de backs ni d'ad-libs générés à partir du bruit
     result.report.phrases = static_cast<int> (result.va.phrases.size());
@@ -208,13 +261,14 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     if (params.pitch.enabled && params.pitch.amount > 0.01f)
     {
         PitchCorrectionParams pc;
-        pc.key = context.key;
-        // Tonalité incertaine (instru sans harmonie claire, pas encore d'instru) : notes chromatiques,
+        pc.key = tuneKey;
+        // Tonalité incertaine (instru sans harmonie claire, pas encore d'instru) ou notes dispersées : notes chromatiques,
         // sinon une note juste peut être tirée d'un demi-ton vers une gamme fausse.
-        pc.chromatic = context.key.confidence < 0.2f;
-        if (pc.chromatic)
+        pc.chromatic = chromatic;
+        if (pc.chromatic && ! result.report.chromaticUsed)
             SV_LOG_WARN (kMod, "Tonalité incertaine (confiance "_u8 + juce::String (context.key.confidence, 2)
                                + ") : justesse corrigée vers la note la plus proche, sans gamme"_u8);
+        result.report.chromaticUsed = pc.chromatic;
         pc.amount = params.pitch.amount;
         pc.retuneMs = params.pitch.retuneMs;
         pc.humanize = params.pitch.humanize;

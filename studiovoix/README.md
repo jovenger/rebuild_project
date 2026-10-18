@@ -97,14 +97,16 @@ EQ corrective, résonances, compression liée, niveau −14 dB, limiteur −1 dB
 
 **Orchestre** (équilibre automatique de toutes les pistes) : après chaque rendu, la sonie de chaque piste est mesurée
 et ramenée à sa place par rapport à la voix principale selon son rôle (doublage −6 LU, backs −7, harmonies −8,
-ad-libs −9, ambiance −14, instrument enregistré −4), bornée à −8 / +6 dB ; les pistes brutes ne sont pas touchées.
+ad-libs −9, ambiance −14, instrument enregistré −4), bornée à −8 / +6 dB. Une piste brute garde son son (aucun effet)
+mais son niveau est géré aussi, comme l'équilibre voix / instru : le niveau n'est pas un effet.
 Le panneau Voix IA affiche « Orchestre : gain auto ± x dB », la barre du haut la sonie du mixage (« Mix −14,0 LUFS »).
 
 **Alertes** : après chaque rendu, chaque piste **écrêtée à la source** (crête au-dessus de −0,2 dBFS avant traitement),
 qui **sature après traitement** (au-delà de +1 dBFS), **monte en flèche** ou est **plus forte que la voix
 principale** est signalée en orange dans son en-tête et dans la barre d'état (« Ingénieur du son : 2 alertes — … »),
-avec les horodatages ; si plus d'un quart des **notes chantées sont hors de la gamme du projet** (mesuré avant
-l'autotune), c'est signalé aussi, car l'autotune tirerait vers de mauvaises notes. Chaque piste traitée finit sous
+avec les horodatages. Si plus d'un quart des **notes chantées sont hors de la gamme du projet** (mesuré avant
+l'autotune), l'autotune **suit la gamme de la voix** (celle qui contient le plus de notes chantées, affichée dans le
+panneau : « Gamme adaptée à la voix : Sol mineur ») ; si aucune gamme ne convient, correction note par note et alerte. Chaque piste traitée finit sous
 −1 dBTP (limiteur de sécurité, transparent tant que rien ne dépasse).
 
 **Vumètres** : crête jouée par piste (barre dans l'en-tête, retombée douce) ; crête de sortie et sonie du mixage dans

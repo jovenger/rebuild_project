@@ -280,6 +280,12 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->track = std::move (result.track);
     r->va = std::move (result.va);
     r->report = result.report;
+    if (result.report.scaleAdapted)
+        r->problemsReport << (r->problemsReport.isEmpty() ? "" : "\n") << "Gamme adaptée à la voix : autotune vers "_u8 << result.report.adaptedKey.toFrench()
+                          << " (" << juce::roundToInt (result.report.outOfScaleFraction * 100.0f) << " % des notes étaient hors "_u8 << p.key.toFrench() << ")";
+    else if (result.report.chromaticUsed && result.report.outOfScaleFraction >= 0.25f)
+        r->problemsReport << (r->problemsReport.isEmpty() ? "" : "\n") << "Notes dispersées ("_u8 << juce::roundToInt (result.report.outOfScaleFraction * 100.0f)
+                          << " % hors "_u8 << p.key.toFrench() << ") : correction note par note, sans gamme"_u8;
     if (! result.report.leveler.surges.empty())
     {
         juce::StringArray s;
@@ -376,18 +382,18 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
         auto it = renders.find (id);
         return (it != renders.end() && it->second != nullptr && it->second->ok()) ? it->second.get() : nullptr;
     };
-    const TrackRender* leadR = (lead != nullptr && ! lead->raw) ? okRender (leadId) : nullptr;
+    const TrackRender* leadR = lead != nullptr ? okRender (leadId) : nullptr;
     if (leadR == nullptr)
-        return st;   // voix principale brute ou absente : pas de mix auto tant qu'aucun style n'est choisi
+        return st;   // pas de voix principale rendue : rien à équilibrer
 
     // 1) Orchestre : chaque piste (hors voix principale et instru) mesurée et ramenée à sa place par rapport à la voix
-    //    principale selon son rôle. Les pistes brutes ne sont pas touchées (importé = brut).
+    //    principale selon son rôle. Une piste brute garde son son (aucun effet) mais son niveau est géré aussi.
     const double leadLufs = loudness::integratedLufs (leadR->processed, p.sampleRate);
     {
         juce::StringArray lines;
         for (const auto& t : p.tracks)
         {
-            if (t.id == leadId || t.role == style::Role::Instru || t.raw || t.mute)
+            if (t.id == leadId || t.role == style::Role::Instru || t.mute)
                 continue;
             const auto* r = okRender (t.id);
             if (r == nullptr || leadLufs < -90.0)
@@ -427,7 +433,7 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
         Stereo all = makeStereo (n);
         for (const auto& t : p.tracks)
         {
-            if (! t.isVoice() || t.mute || t.raw)   // un instrument ou une piste brute ne creuse pas l'instru
+            if (! t.isVoice() || t.mute)   // un instrument enregistré ne creuse pas l'instru
                 continue;
             if (const auto* r = okRender (t.id))
                 place (*r, all, dbToGain (t.volumeDb + st.autoTrackGain (t.id)));
@@ -472,7 +478,7 @@ Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixSt
 
         float gl, gr;
         balanceGains (t.pan, gl, gr);
-        const float vocalGain = t.isVoice() && ! t.raw && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
         const float g = dbToGain (t.volumeDb + vocalGain + mixState.autoTrackGain (t.id));
         for (int i = 0; i < src->getNumSamples(); ++i)
         {

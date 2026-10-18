@@ -1486,7 +1486,7 @@ void Session::rebuildPlayState()
         AudioEngine::PlayTrack pt;
         pt.buffer = buf;
         pt.start = toDevice (r->startSample);
-        const float vocalGain = t.isVoice() && ! t.raw && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
         const float g = dbToGain (t.volumeDb + vocalGain + mixState.autoTrackGain (t.id));
         const float p = juce::jlimit (-1.0f, 1.0f, t.pan);
         auto& peak = trackPeaks[t.id];
@@ -1703,13 +1703,14 @@ juce::String Session::trackWarnings (int trackId) const
         w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
     for (const auto& su : r->report.leveler.surges)
         w.add ("monte en flèche "_u8 + su.describe() + (r->report.leveler.applied ? ", rabaissée"_u8 : ""));
-    if (t->isVoice() && r->report.outOfScaleFraction >= 0.25f)
+    if (t->isVoice() && r->report.chromaticUsed && r->report.outOfScaleFraction >= 0.25f)
         w.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors de la gamme "_u8 + proj.key.toFrench()
-               + " : vérifie la tonalité du projet (l'autotune tirerait vers de mauvaises notes)"_u8);
+               + " et aucune gamme ne convient : correction note par note (vérifie la tonalité du projet)"_u8);
     if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
         if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
         {
-            const double over = m.lufs + t->volumeDb - lead->second.lufs - (proj.findTrack (proj.leadTrackId()) != nullptr ? proj.findTrack (proj.leadTrackId())->volumeDb : 0.0f);
+            const double over = m.lufs + t->volumeDb + mixState.autoTrackGain (t->id) - lead->second.lufs
+                              - (proj.findTrack (proj.leadTrackId()) != nullptr ? proj.findTrack (proj.leadTrackId())->volumeDb : 0.0f);
             if (over > 1.0)
                 w.add ("plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU)");
         }
