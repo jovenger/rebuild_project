@@ -290,6 +290,20 @@ jobs:
           $setup = (Get-ChildItem build/installer/${{ matrix.setup }}-*.exe | Select-Object -First 1).FullName
           $tag = "${{ matrix.tag }}${{ github.run_number }}"
           git log -1 --format=%B | Out-File -Encoding utf8 notes.md
-          gh release create $tag $setup --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "${{ matrix.title }} ${{ github.run_number }}" --notes-file notes.md ${{ matrix.latest }}
-          if ($LASTEXITCODE -ne 0) { throw "publication de la release : code $LASTEXITCODE" }
+          # GitHub répond parfois « HTTP 403: Resource not accessible by integration » de façon intermittente (builds 61,
+          # 62, 65, sans changement de permissions) : jusqu'à 4 essais espacés de 30 s ; si la release existe déjà
+          # (création réussie mais envoi interrompu), on complète l'asset au lieu de recréer.
+          $ok = $false
+          for ($i = 1; $i -le 4; $i++) {
+            gh release view $tag --repo "${{ github.repository }}" *> $null
+            if ($LASTEXITCODE -eq 0) {
+              gh release upload $tag $setup --repo "${{ github.repository }}" --clobber
+            } else {
+              gh release create $tag $setup --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "${{ matrix.title }} ${{ github.run_number }}" --notes-file notes.md ${{ matrix.latest }}
+            }
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Write-Host "publication de la release : code $LASTEXITCODE (essai $i/4), nouvel essai dans 30 s"
+            Start-Sleep -Seconds 30
+          }
+          if (-not $ok) { throw "publication de la release : échec après 4 essais" }
           gh release view $tag --repo "${{ github.repository }}" --json tagName,assets --jq '.tagName + " : " + (.assets | map(.name + " (" + (.size|tostring) + " octets)") | join(", "))'
