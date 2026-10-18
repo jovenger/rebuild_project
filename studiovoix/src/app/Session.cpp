@@ -12,6 +12,13 @@ namespace
     constexpr const char* kMod = "Session";
     constexpr int kMaxUndo = 50;
     constexpr size_t kMaxMemoRenders = 12;
+    constexpr size_t kMaxMemoBytes = size_t (1) << 30;   // 1 Go : ~7 pistes de 3 min
+
+    size_t renderBytes (const render::TrackRender& r)
+    {
+        const auto samples = [] (const Stereo& b) { return static_cast<size_t> (b.getNumChannels()) * static_cast<size_t> (b.getNumSamples()); };
+        return (samples (r.processed) + samples (r.raw) + r.prepared.size()) * sizeof (float);
+    }
 
     juce::String trackJson (const project::Project& p, int id)
     {
@@ -1085,8 +1092,15 @@ void Session::restoreSnapshot (const juce::var& state)
             || storedGeneration[t.id] != renderGeneration[t.id])
             continue;   // rendu absent ou périmé : rien à garder
         renderMemo.push_back ({ t.id, trackJson (before, t.id) + beforeGlobal, r->second });
-        if (renderMemo.size() > kMaxMemoRenders)
-            renderMemo.pop_front();
+    }
+    for (;;)
+    {
+        size_t bytes = 0;
+        for (const auto& e : renderMemo)
+            bytes += renderBytes (*e.render);
+        if (renderMemo.empty() || (renderMemo.size() <= kMaxMemoRenders && bytes <= kMaxMemoBytes))
+            break;
+        renderMemo.pop_front();   // les plus anciens d'abord
     }
 
     for (auto it = renders.begin(); it != renders.end();)

@@ -5,12 +5,61 @@
 
 #include <algorithm>
 
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+ #include <emmintrin.h>
+ #define SV_PITCH_SSE2 1
+#else
+ #define SV_PITCH_SSE2 0
+#endif
+
 namespace sv::analysis
 {
 namespace
 {
     constexpr const char* kMod = "Pitch";
     constexpr double kAnalysisSr = 16000.0;
+
+    /** Somme des carrés de (a - b) sur n échantillons : coeur de la fonction de différence YIN. */
+    double sumSquaredDiff (const float* a, const float* b, int n) noexcept
+    {
+        double acc = 0.0;
+        int j = 0;
+       #if SV_PITCH_SSE2
+        // 8 échantillons par tour, chargements non alignés (b = a + tau).
+        __m128 acc0 = _mm_setzero_ps(), acc1 = _mm_setzero_ps();
+        for (; j + 7 < n; j += 8)
+        {
+            const __m128 d0 = _mm_sub_ps (_mm_loadu_ps (a + j), _mm_loadu_ps (b + j));
+            const __m128 d1 = _mm_sub_ps (_mm_loadu_ps (a + j + 4), _mm_loadu_ps (b + j + 4));
+            acc0 = _mm_add_ps (acc0, _mm_mul_ps (d0, d0));
+            acc1 = _mm_add_ps (acc1, _mm_mul_ps (d1, d1));
+        }
+        alignas (16) float lanes[4];
+        _mm_store_ps (lanes, _mm_add_ps (acc0, acc1));
+        acc = (static_cast<double> (lanes[0]) + lanes[1]) + (static_cast<double> (lanes[2]) + lanes[3]);
+       #else
+        // 4 accumulateurs indépendants : la boucle n'attend plus la latence de chaque addition.
+        double acc1 = 0.0, acc2 = 0.0, acc3 = 0.0;
+        for (; j + 3 < n; j += 4)
+        {
+            const double d0 = static_cast<double> (a[j]) - b[j];
+            const double d1 = static_cast<double> (a[j + 1]) - b[j + 1];
+            const double d2 = static_cast<double> (a[j + 2]) - b[j + 2];
+            const double d3 = static_cast<double> (a[j + 3]) - b[j + 3];
+            acc += d0 * d0;
+            acc1 += d1 * d1;
+            acc2 += d2 * d2;
+            acc3 += d3 * d3;
+        }
+        acc = (acc + acc1) + (acc2 + acc3);
+       #endif
+        for (; j < n; ++j)
+        {
+            const double diff = static_cast<double> (a[j]) - b[j];
+            acc += diff * diff;
+        }
+        return acc;
+    }
 }
 
 int PitchTrack::frameAt (double timeSec) const
@@ -88,31 +137,8 @@ PitchTrack detectPitch (const Mono& signal, double sampleRate, const PitchParams
             continue;
 
         // Fonction de différence.
-        // 4 accumulateurs indépendants : la boucle n'attend plus la latence de chaque addition.
         for (int tau = 1; tau <= tauMax; ++tau)
-        {
-            double acc0 = 0.0, acc1 = 0.0, acc2 = 0.0, acc3 = 0.0;
-            const float* a = frame.data();
-            const float* b = frame.data() + tau;
-            int j = 0;
-            for (; j + 3 < W; j += 4)
-            {
-                const double d0 = static_cast<double> (a[j]) - b[j];
-                const double d1 = static_cast<double> (a[j + 1]) - b[j + 1];
-                const double d2 = static_cast<double> (a[j + 2]) - b[j + 2];
-                const double d3 = static_cast<double> (a[j + 3]) - b[j + 3];
-                acc0 += d0 * d0;
-                acc1 += d1 * d1;
-                acc2 += d2 * d2;
-                acc3 += d3 * d3;
-            }
-            for (; j < W; ++j)
-            {
-                const double diff = static_cast<double> (a[j]) - b[j];
-                acc0 += diff * diff;
-            }
-            d[static_cast<size_t> (tau)] = (acc0 + acc1) + (acc2 + acc3);
-        }
+            d[static_cast<size_t> (tau)] = sumSquaredDiff (frame.data(), frame.data() + tau, W);
 
         // Différence normalisée cumulée.
         double running = 0.0;
