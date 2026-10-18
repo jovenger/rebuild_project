@@ -136,7 +136,7 @@ PitchCorrectionResult correctPitch (const Mono& input, double sampleRate, const 
         for (size_t k = 0; k < midi.size(); ++k)
         {
             const float candidate = nearestScaleMidi (base[k], params.key, params.chromatic);
-            if (candidate != currentTarget && std::abs (base[k] - currentTarget) > 0.5f + params.hysteresisSemis)
+            if (std::abs (candidate - currentTarget) > 0.01f && std::abs (base[k] - currentTarget) > 0.5f + params.hysteresisSemis)
                 currentTarget = candidate;
             const float corr = currentTarget - base[k];
             smoothedCorr += (corr - smoothedCorr) * alpha;
@@ -153,7 +153,7 @@ PitchCorrectionResult correctPitch (const Mono& input, double sampleRate, const 
     res.meanAbsCorrectionCents = counted > 0 ? static_cast<float> (absCents / counted) : 0.0f;
     res.audio = psolaShift (input, sampleRate, res.track, ratios);
     SV_LOG_INFO (kMod, "Gamme " + juce::String (params.chromatic ? "chromatique" : params.key.toFrench())
-                       + ", quantité "_u8 + juce::String (params.amount, 2) + ", vitesse " + juce::String (params.retuneMs, 0)
+                       + ", quantité "_u8 + juce::String (params.amount, 2) + ", vitesse " + juce::String (juce::roundToInt (params.retuneMs))
                        + " ms, correction moyenne " + juce::String (res.meanAbsCorrectionCents, 1) + " cents");
     return res;
 }

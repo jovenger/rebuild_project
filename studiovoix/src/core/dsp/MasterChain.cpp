@@ -134,12 +134,14 @@ Stereo master (const Stereo& mix, double sampleRate, const MasterSettings& setti
         double grSum = 0.0;
         float* L = out.getWritePointer (0);
         float* R = out.getWritePointer (1);
+        const float* dL = mix.getReadPointer (0);   // détection sur le signal non compressé
+        const float* dR = mix.getReadPointer (mix.getNumChannels() > 1 ? 1 : 0);
         for (int i = 0; i < n; ++i)
         {
-            const double s = 0.5 * (static_cast<double> (L[i]) * L[i] + static_cast<double> (R[i]) * R[i]);
+            const double s = 0.5 * (static_cast<double> (dL[i]) * dL[i] + static_cast<double> (dR[i]) * dR[i]);
             sq += s;
             if (i >= rmsLen)
-                sq -= 0.5 * (static_cast<double> (L[i - rmsLen]) * L[i - rmsLen] + static_cast<double> (R[i - rmsLen]) * R[i - rmsLen]);
+                sq -= 0.5 * (static_cast<double> (dL[i - rmsLen]) * dL[i - rmsLen] + static_cast<double> (dR[i - rmsLen]) * dR[i - rmsLen]);
             const float lvl = gainToDb (static_cast<float> (std::sqrt (std::max (0.0, sq / rmsLen))));
             const float target = lvl > threshold ? (lvl - threshold) * (1.0f - 1.0f / settings.glueRatio) : 0.0f;
             gr = target > gr ? att * gr + (1.0f - att) * target : rel * gr + (1.0f - rel) * target;

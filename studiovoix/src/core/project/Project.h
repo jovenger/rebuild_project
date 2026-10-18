@@ -76,6 +76,7 @@ struct Project
     std::vector<Marker> markers;
     juce::String lyrics;
     int lyricsBarsPerLine = 1;
+    double lyricsStartSec = 0.0;     // position où la première ligne doit être chantée
     dsp::LoudnessTarget target = dsp::LoudnessTarget::Spotify;
     bool masterEnabled = true;
     bool autoMixEnabled = true;

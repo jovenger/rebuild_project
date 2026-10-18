@@ -1,0 +1,226 @@
+#include "TransportBar.h"
+
+#include "core/Log.h"
+#include "core/analysis/KeyDetector.h"
+
+namespace sv::app
+{
+void LevelMeter::setLevel (float peak, bool clip)
+{
+    level = std::max (peak, level * 0.85f);
+    if (clip)
+    {
+        clipped = true;
+        clipUntilMs = juce::Time::currentTimeMillis() + 2000;
+    }
+    else if (juce::Time::currentTimeMillis() > clipUntilMs)
+    {
+        clipped = false;
+    }
+    repaint();
+}
+
+void LevelMeter::paint (juce::Graphics& g)
+{
+    auto r = getLocalBounds().toFloat();
+    g.setColour (juce::Colours::black);
+    g.fillRoundedRectangle (r, 3.0f);
+    const float db = gainToDb (level);
+    const float norm = juce::jlimit (0.0f, 1.0f, (db + 60.0f) / 60.0f);
+    auto bar = r.reduced (2.0f).withWidth ((r.getWidth() - 4.0f) * norm);
+    g.setColour (db > -3.0f ? juce::Colours::red : (db > -12.0f ? juce::Colours::orange : juce::Colours::limegreen));
+    g.fillRect (bar);
+    if (clipped)
+    {
+        g.setColour (juce::Colours::red);
+        g.fillRect (r.removeFromRight (14.0f).reduced (2.0f));
+    }
+    g.setColour (juce::Colours::white);
+    g.setFont (11.0f);
+    g.drawText (clipped ? juce::String ("SATURATION") : "Micro " + juce::String (juce::roundToInt (db)) + " dB", getLocalBounds().reduced (4, 0),
+                juce::Justification::centredLeft);
+}
+
+TransportBar::TransportBar (Session& s) : session (s)
+{
+    for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn, &undoBtn, &redoBtn, &homeBtn, &playBtn, &stopBtn, &recBtn })
+        addAndMakeVisible (*b);
+    for (auto* t : { &punch, &loop, &metronome })
+        addAndMakeVisible (*t);
+    for (auto* c : { &countdown, &keyBox, &styleBox })
+        addAndMakeVisible (*c);
+    for (auto* l : { &timeLabel, &bpmLabel, &bpmTitle, &keyTitle, &styleTitle, &countTitle, &autoGainLabel })
+        addAndMakeVisible (*l);
+    addAndMakeVisible (inputMeter);
+
+    recBtn.setColour (juce::TextButton::buttonColourId, juce::Colours::darkred);
+    recBtn.setTooltip ("Enregistrer sur la piste sélectionnée (touche R)"_u8);
+    playBtn.setTooltip ("Lecture / pause (barre d'espace)");
+    punch.setTooltip ("Réenregistre seulement la zone rouge (Maj + glisser sur la règle)"_u8);
+    loop.setTooltip ("Lecture en boucle de la zone verte (Alt + glisser sur la règle)"_u8);
+
+    timeLabel.setFont (juce::FontOptions (20.0f, juce::Font::bold));
+    timeLabel.setJustificationType (juce::Justification::centred);
+    bpmTitle.setText ("BPM", juce::dontSendNotification);
+    keyTitle.setText ("Tonalité"_u8, juce::dontSendNotification);
+    styleTitle.setText ("Style", juce::dontSendNotification);
+    countTitle.setText ("Compte", juce::dontSendNotification);
+    bpmLabel.setEditable (true);
+    bpmLabel.setColour (juce::Label::outlineColourId, juce::Colours::grey);
+    bpmLabel.setTooltip ("Tempo détecté automatiquement ; double-clic pour le corriger"_u8);
+    autoGainLabel.setFont (juce::FontOptions (11.0f));
+
+    countdown.addItem ("Aucun", 1);
+    countdown.addItem ("1 mesure", 2);
+    countdown.addItem ("2 mesures", 3);
+    for (int pc = 0; pc < 12; ++pc)
+    {
+        keyBox.addItem (analysis::pitchClassName (pc) + " majeur", 1 + pc);
+        keyBox.addItem (analysis::pitchClassName (pc) + " mineur", 13 + pc);
+    }
+    for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
+        styleBox.addItem (style::styleName (static_cast<style::Style> (i)), i + 1);
+
+    newBtn.onClick = [this] { if (onNew) onNew(); };
+    openBtn.onClick = [this] { if (onOpen) onOpen(); };
+    saveBtn.onClick = [this] { if (onSave) onSave(); };
+    instruBtn.onClick = [this] { if (onImportInstru) onImportInstru(); };
+    voiceBtn.onClick = [this] { if (onImportVoice) onImportVoice(); };
+    voiceBtn.setTooltip ("Importer une voix déjà enregistrée dans la piste sélectionnée"_u8);
+    exportBtn.onClick = [this] { if (onExport) onExport(); };
+    settingsBtn.onClick = [this] { if (onSettings) onSettings(); };
+    undoBtn.onClick = [this] { session.undo(); };
+    redoBtn.onClick = [this] { session.redo(); };
+    homeBtn.onClick = [this] { session.setPositionSec (0.0); };
+    playBtn.onClick = [this] { session.togglePlay(); };
+    stopBtn.onClick = [this] { session.stopTransport(); };
+    recBtn.onClick = [this] { if (onRecord) onRecord(); };
+    loop.onClick = [this] { if (onLoopToggled) onLoopToggled(); };
+    metronome.onClick = [this]
+    {
+        session.settings().setMetronome (metronome.getToggleState());
+        session.engine().setMetronome (metronome.getToggleState());
+    };
+    countdown.onChange = [this]
+    {
+        if (! updating)
+            session.settings().setCountdownBars (countdown.getSelectedId() - 1);
+    };
+    keyBox.onChange = [this]
+    {
+        if (updating)
+            return;
+        const int id = keyBox.getSelectedId();
+        MusicalKey k;
+        k.root = (id - 1) % 12;
+        k.minor = id > 12;
+        session.setKey (k);
+    };
+    styleBox.onChange = [this]
+    {
+        if (! updating)
+            session.setStyle (static_cast<style::Style> (styleBox.getSelectedId() - 1));
+    };
+    bpmLabel.onTextChange = [this]
+    {
+        const double v = bpmLabel.getText().replaceCharacter (',', '.').getDoubleValue();
+        if (v >= 40.0 && v <= 240.0)
+            session.setTempo (v);
+        else
+            refresh();
+    };
+    refresh();
+}
+
+void TransportBar::refresh()
+{
+    const juce::ScopedValueSetter<bool> svs (updating, true);
+    const auto& p = session.project();
+    bpmLabel.setText (juce::String (p.tempo.bpm, 1), juce::dontSendNotification);
+    keyBox.setSelectedId ((p.key.minor ? 13 : 1) + p.key.root, juce::dontSendNotification);
+    styleBox.setSelectedId (static_cast<int> (p.style) + 1, juce::dontSendNotification);
+    countdown.setSelectedId (session.settings().countdownBars() + 1, juce::dontSendNotification);
+    metronome.setToggleState (session.settings().metronome(), juce::dontSendNotification);
+    undoBtn.setEnabled (session.canUndo());
+    undoBtn.setTooltip (session.canUndo() ? "Annuler : " + session.undoLabel() : juce::String());
+    redoBtn.setEnabled (session.canRedo());
+    const float ag = session.vocalAutoGainDb();
+    autoGainLabel.setText (p.autoMixEnabled ? "Mix auto voix " + juce::String (ag, 1) + " dB" : juce::String ("Mix auto off"),
+                           juce::dontSendNotification);
+}
+
+void TransportBar::updateTime()
+{
+    const double t = session.positionSec();
+    const auto& tempo = session.project().tempo;
+    const double beats = (t - tempo.firstBeatSec) / tempo.beatSec();
+    const int bar = static_cast<int> (std::floor (beats / tempo.beatsPerBar)) + 1;
+    const int beat = static_cast<int> (std::floor (beats)) % tempo.beatsPerBar;
+    const int mins = static_cast<int> (t / 60.0);
+    const double secs = t - mins * 60.0;
+    timeLabel.setText (juce::String (mins) + ":" + juce::String (secs, 2).paddedLeft ('0', 5) + "   " + juce::String (bar) + "."
+                           + juce::String ((beat + tempo.beatsPerBar) % tempo.beatsPerBar + 1),
+                       juce::dontSendNotification);
+    auto& e = session.engine();
+    const bool rec = e.isRecording();
+    recBtn.setButtonText (rec ? (e.isInCountdown() ? "Compte..." : "STOP REC") : "REC");
+    recBtn.setColour (juce::TextButton::buttonColourId, rec ? juce::Colours::red : juce::Colours::darkred);
+    playBtn.setButtonText (e.isPlaying() ? "Pause" : "Lecture");
+    inputMeter.setLevel (e.inputPeak(), e.consumeClipFlag());
+    e.resetMeters();
+}
+
+void TransportBar::paint (juce::Graphics& g)
+{
+    g.fillAll (juce::Colour (0xff1e2228));
+    g.setColour (juce::Colours::black);
+    g.drawLine (0.0f, static_cast<float> (getHeight()) - 0.5f, static_cast<float> (getWidth()), static_cast<float> (getHeight()) - 0.5f);
+}
+
+void TransportBar::resized()
+{
+    auto r = getLocalBounds().reduced (6, 4);
+    auto row1 = r.removeFromTop (30);
+    r.removeFromTop (4);
+    auto row2 = r.removeFromTop (30);
+
+    for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn })
+    {
+        b->setBounds (row1.removeFromLeft (90));
+        row1.removeFromLeft (4);
+    }
+    row1.removeFromLeft (12);
+    undoBtn.setBounds (row1.removeFromLeft (80));
+    row1.removeFromLeft (4);
+    redoBtn.setBounds (row1.removeFromLeft (80));
+    row1.removeFromLeft (12);
+    inputMeter.setBounds (row1.removeFromRight (220));
+    row1.removeFromRight (8);
+    autoGainLabel.setBounds (row1.removeFromRight (140));
+
+    homeBtn.setBounds (row2.removeFromLeft (40));
+    row2.removeFromLeft (4);
+    playBtn.setBounds (row2.removeFromLeft (80));
+    row2.removeFromLeft (4);
+    stopBtn.setBounds (row2.removeFromLeft (60));
+    row2.removeFromLeft (4);
+    recBtn.setBounds (row2.removeFromLeft (90));
+    row2.removeFromLeft (8);
+    punch.setBounds (row2.removeFromLeft (90));
+    loop.setBounds (row2.removeFromLeft (80));
+    metronome.setBounds (row2.removeFromLeft (100));
+    countTitle.setBounds (row2.removeFromLeft (55));
+    countdown.setBounds (row2.removeFromLeft (100));
+    row2.removeFromLeft (8);
+    timeLabel.setBounds (row2.removeFromLeft (200));
+    row2.removeFromLeft (8);
+    bpmTitle.setBounds (row2.removeFromLeft (36));
+    bpmLabel.setBounds (row2.removeFromLeft (60));
+    row2.removeFromLeft (8);
+    keyTitle.setBounds (row2.removeFromLeft (64));
+    keyBox.setBounds (row2.removeFromLeft (130));
+    row2.removeFromLeft (8);
+    styleTitle.setBounds (row2.removeFromLeft (40));
+    styleBox.setBounds (row2.removeFromLeft (140));
+}
+} // namespace sv::app

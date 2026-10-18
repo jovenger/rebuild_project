@@ -239,23 +239,23 @@ float compress (Mono& x, double sr, const CompressorSettings& c)
     double sq = 0.0;
     double grSum = 0.0;
     long grCount = 0;
-    Mono dry;
-    if (c.mix < 0.999f)
-        dry = x;
+    // Le détecteur lit une copie non modifiée : la fenêtre RMS ne doit jamais contenir
+    // des échantillons déjà compressés (sinon l'estimation de niveau dérive).
+    const Mono dry = x;
 
     for (size_t i = 0; i < x.size(); ++i)
     {
         float levelDb;
         if (c.rmsDetector)
         {
-            sq += static_cast<double> (x[i]) * x[i];
+            sq += static_cast<double> (dry[i]) * dry[i];
             if (i >= static_cast<size_t> (rmsLen))
-                sq -= static_cast<double> (x[i - static_cast<size_t> (rmsLen)]) * x[i - static_cast<size_t> (rmsLen)];
+                sq -= static_cast<double> (dry[i - static_cast<size_t> (rmsLen)]) * dry[i - static_cast<size_t> (rmsLen)];
             levelDb = gainToDb (static_cast<float> (std::sqrt (std::max (0.0, sq) / rmsLen)));
         }
         else
         {
-            levelDb = gainToDb (std::abs (x[i]));
+            levelDb = gainToDb (std::abs (dry[i]));
         }
 
         float outDb;
@@ -276,7 +276,7 @@ float compress (Mono& x, double sr, const CompressorSettings& c)
         }
     }
 
-    if (! dry.empty())
+    if (c.mix < 0.999f)
         for (size_t i = 0; i < x.size(); ++i)
             x[i] = dry[i] * (1.0f - c.mix) + x[i] * c.mix;
 

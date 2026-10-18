@@ -170,7 +170,7 @@ GeneratedTrack makeDouble (const LeadAnalysis& lead, double sr, int index, int t
     for (size_t i = 0; i < t.audio.size(); ++i)
         t.audio[i] *= dbToGain (walkGain[i]);
 
-    t.detail = "retard " + juce::String (baseMs, 0) + " ms, " + juce::String (baseCents, 0) + " cents";
+    t.detail = "retard " + juce::String (juce::roundToInt (baseMs)) + " ms, " + juce::String (juce::roundToInt (baseCents)) + " cents";
     return t;
 }
 

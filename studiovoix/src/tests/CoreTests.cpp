@@ -267,6 +267,27 @@ public:
             logMessage ("écart avant "_u8 + juce::String (before, 1) + " dB, après "_u8 + juce::String (after, 1) + " dB, réduction "_u8 + juce::String (gr, 1) + " dB");
             expect (after < before - 10.0f, "compression effective");
         }
+        beginTest ("Compresseur RMS : reduction stable (pas de derive), attaque sans surplus");
+        {
+            // Sinus à -10 dBFS RMS, seuil -20, ratio 2, sans genou : réduction théorique 5 dB.
+            const float amp = dbToGain (-10.0f) * std::sqrt (2.0f);
+            Mono x (static_cast<size_t> (kSr * 0.5), 0.0f);
+            const auto tone = sine (220.0, 3.0, kSr, amp);
+            x.insert (x.end(), tone.begin(), tone.end());
+            dsp::CompressorSettings c;
+            c.thresholdDb = -20.0f;
+            c.ratio = 2.0f;
+            c.kneeDb = 0.0f;
+            c.attackMs = 10.0f;
+            c.releaseMs = 100.0f;
+            c.rmsDetector = true;
+            dsp::compress (x, kSr, c);
+            const float early = gainToDb (audio::rms (x.data() + static_cast<size_t> (0.6 * kSr), static_cast<size_t> (0.1 * kSr)));
+            const float late = gainToDb (audio::rms (x.data() + static_cast<size_t> (3.0 * kSr), static_cast<size_t> (0.4 * kSr)));
+            logMessage ("niveau après compression : début " + juce::String (early, 2) + " dB, fin " + juce::String (late, 2) + " dB (attendu -15)");
+            expectWithinAbsoluteError (late, -15.0f, 0.7f);
+            expect (std::abs (early - late) < 1.5f, "pas de dérive ni de surplus à l'attaque"_u8);
+        }
         beginTest ("De-esser : attenue le 's' sans toucher la voyelle");
         {
             VoicePhrase p;

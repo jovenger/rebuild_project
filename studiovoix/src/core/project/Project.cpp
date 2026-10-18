@@ -21,7 +21,7 @@ namespace
     }
 
     int getI (const juce::var& v, const char* key, int def) { return static_cast<int> (getD (v, key, def)); }
-    bool getB (const juce::var& v, const char* key, bool def) { return getD (v, key, def ? 1.0 : 0.0) != 0.0; }
+    bool getB (const juce::var& v, const char* key, bool def) { return std::abs (getD (v, key, def ? 1.0 : 0.0)) > 0.5; }
     juce::String getS (const juce::var& v, const char* key, const juce::String& def = {})
     {
         const auto x = v.getProperty (key, def);
@@ -169,6 +169,7 @@ juce::var Project::toVar() const
 
     root->setProperty ("lyrics", lyrics);
     root->setProperty ("lyricsBarsPerLine", lyricsBarsPerLine);
+    root->setProperty ("lyricsStartSec", lyricsStartSec);
     root->setProperty ("target", dsp::targetInfo (target).id);
     root->setProperty ("masterEnabled", masterEnabled);
     root->setProperty ("autoMixEnabled", autoMixEnabled);
@@ -275,6 +276,7 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
 
     p.lyrics = getS (v, "lyrics");
     p.lyricsBarsPerLine = juce::jlimit (1, 8, getI (v, "lyricsBarsPerLine", 1));
+    p.lyricsStartSec = std::max (0.0, getD (v, "lyricsStartSec", 0.0));
     p.target = dsp::targetFromId (getS (v, "target", "spotify"));
     p.masterEnabled = getB (v, "masterEnabled", true);
     p.autoMixEnabled = getB (v, "autoMixEnabled", true);

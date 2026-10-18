@@ -37,13 +37,29 @@ jobs:
       - name: Configuration
         run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }}
         env:
-          SV_BUILD_APP: OFF
+          SV_BUILD_APP: ON
 
       - name: Compilation
         run: cmake --build build --config Release --parallel
 
       - name: Tests
         run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Auto-test de l'application (Linux, écran virtuel)
+        if: runner.os == 'Linux'
+        run: |
+          ./build/studiovoix_cli_artefacts/Release/studiovoix_cli demo --style trap -o demo
+          xvfb-run -a ./build/StudioVoix_artefacts/Release/StudioVoix --selftest demo/demo_instru.wav demo/demo_voix_brute.wav
+          grep AUTOTEST ~/.config/StudioVoix/logs/*.log
+
+      - name: Auto-test de l'application (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & build\studiovoix_cli_artefacts\Release\studiovoix_cli.exe demo --style trap -o demo
+          $p = Start-Process -FilePath build\StudioVoix_artefacts\Release\StudioVoix.exe -ArgumentList '--selftest','demo\demo_instru.wav','demo\demo_voix_brute.wav' -Wait -PassThru
+          Get-Content "$env:APPDATA\StudioVoix\logs\*.log" | Select-String AUTOTEST
+          exit $p.ExitCode
 
       - name: Journal des tests
         if: always()

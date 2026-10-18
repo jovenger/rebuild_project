@@ -15,11 +15,11 @@ namespace
 juce::String describeParams (const style::VocalParams& p)
 {
     juce::StringArray s;
-    s.add ("autotune " + (p.pitch.enabled ? juce::String (p.pitch.amount, 2) + "/" + juce::String (p.pitch.retuneMs, 0) + "ms" : juce::String ("off")));
-    s.add ("HPF " + juce::String (p.eq.lowCutHz, 0) + "Hz");
-    s.add ("présence "_u8 + juce::String (p.eq.presenceDb, 1) + "dB@" + juce::String (p.eq.presenceHz, 0));
+    s.add ("autotune " + (p.pitch.enabled ? juce::String (p.pitch.amount, 2) + "/" + juce::String (juce::roundToInt (p.pitch.retuneMs)) + "ms" : juce::String ("off")));
+    s.add ("HPF " + juce::String (juce::roundToInt (p.eq.lowCutHz)) + "Hz");
+    s.add ("présence "_u8 + juce::String (p.eq.presenceDb, 1) + "dB@" + juce::String (juce::roundToInt (p.eq.presenceHz)));
     s.add ("air " + juce::String (p.eq.airDb, 1) + "dB");
-    s.add ("comp " + juce::String (p.comp.ratio, 1) + ":1@" + juce::String (p.comp.thresholdDb, 0) + "dB");
+    s.add ("comp " + juce::String (p.comp.ratio, 1) + ":1@" + juce::String (juce::roundToInt (p.comp.thresholdDb)) + "dB");
     s.add ("de-ess " + juce::String (p.deEss.amount, 2));
     s.add ("sat " + juce::String (p.sat.driveDb, 1) + "dB/" + juce::String (p.sat.mix, 2));
     s.add ("réverb "_u8 + juce::String (p.reverb.send, 2));
