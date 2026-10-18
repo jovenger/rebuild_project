@@ -1191,7 +1191,7 @@ JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
 
 
-FORMES_ADMISES_AU_PLUS = 33   # 18/10 : 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+FORMES_ADMISES_AU_PLUS = 34   # 18/10 : 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue) ; 34 avec </ProcessMessage> (les branches 'dialogMailbox', fiche 21 ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
 # (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; 27 avec EntityContext ; revues)
 # (16/10, V73 d 1 : 32 avec « <Else canSkip="1"> », la branche « sinon » de IsNightTimeOfDay, telle quelle dans
 # AI/events/randomEventsBehaviors.xml du jeu ; revue)
@@ -1310,6 +1310,9 @@ RELATIONS_DU_JEU_AU_PLUS = 8
 FAMILLES_DES_QUETES = [("Quests", os.path.join("Data", "Scripts.pak"), "Quests/"),
                        (os.path.join("Libs", "Storm"), os.path.join("Data", "IPL_GameData.pak"), "Libs/Storm/")]
 LIGNES_DES_QUETES_AU_PLUS = 16   # 18/10 : 13 relevées et revues ; au-delà, revoir la liste
+# 18/10, décision de JoVenGer : la commande de caméra de chaque réplique (<Commands>, <CameraCommand />, </Commands>)
+# est une ligne du jeu admise ici (Data/Scripts.pak, Quests/Final/Barbora/klaster/…/albik_o_leku/albik_o_leku.xml,
+# 22 fois, et d'autres dialogues des quêtes du jeu).
 
 
 def lignes_des_quetes_du_jeu(lignes_d_alex):
@@ -1600,6 +1603,14 @@ def verifier_la_vie_du_camp():
     if lancements == 0 or gardes != lancements:
         erreur("vie du camp : %d lancement(s) de la vie du camp dans le switch, %d sous le plafond de relances"
                % (lancements, gardes))
+    # Fiche 21 (vu en jeu le 18/10) : sans ses deux branches parallèles qui traitent la boîte 'dialogMailbox' sans fin,
+    # Henry voit « Parler » mais rien ne s'ouvre. Le switch doit garder un Parallel avec ces deux branches.
+    paralleles = switch.split("<Parallel ", 1)
+    branches = re.findall(r"<ProcessMessage inbox=\"&apos;dialogMailbox&apos;\"[^>]*timeout=\"&apos;-1&apos;\"[^>]*>\s*"
+                          r"<(Function_switch_handleDialog|Function_switch_handleChat) ", paralleles[-1])
+    if len(paralleles) != 2 or sorted(branches) != ["Function_switch_handleChat", "Function_switch_handleDialog"]:
+        erreur("dialogues : le switch doit traiter 'dialogMailbox' dans deux branches parallèles sans fin (dialogue, "
+               "conversation) ; trouvé : %s" % sorted(branches))
     if "$scriptorium_vie_arrets = $scriptorium_vie_arrets + 1" not in switch:
         erreur("vie du camp : le switch ne compte pas ses arrêts (scriptorium_vie_arrets)")
     # V73 b 2, vu en jeu : retenu par le plafond, le switch restait « à lancer » alors que le pouls repartait, et relançait

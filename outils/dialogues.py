@@ -67,7 +67,11 @@ def reponse(t, role, cle, contenu):
     """Une réplique, écrite sur plusieurs lignes comme dans les dialogues du jeu."""
     if contenu is None:
         return ['<Response Role="%s" />' % role]
-    return ['<Response Role="%s">' % role, "  " + texte(t, cle, contenu), "</Response>"]
+    # La commande de caméra de chaque réplique, sur trois lignes, comme dans les dialogues du jeu (Data/Scripts.pak,
+    # Quests/Final/Barbora/klaster/…/albik_o_leku/albik_o_leku.xml, 22 fois) : décision de JoVenGer du 18/10, ligne du
+    # jeu admise au contrôle d'absence (lignes des quêtes du jeu).
+    return ['<Response Role="%s">' % role, "  " + texte(t, cle, contenu), "  <Commands>", "    <CameraCommand />",
+            "  </Commands>", "</Response>"]
 
 
 def appel(arbre, choix, role):

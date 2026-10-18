@@ -19,9 +19,31 @@
       <Variable form="single" isPersistent="0" name="arret_dit" type="_bool" values="" />
       <Variable form="single" isPersistent="0" name="en_combat" type="_bool" values="" />
       <Variable form="single" isPersistent="0" name="etait_en_combat" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="demande_de_parole" type="dialogModule:onDialogRequest" values="" />
+      <Variable form="single" isPersistent="0" name="demande_de_causerie" type="dialog:chatRequest" values="" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
+        <!-- Fiche 21, vu en jeu le 18/10 : sans ces deux branches, Henry voyait "Parler" mais rien ne s'ouvrait (la
+             demande restait dans la boite 'dialogMailbox') ; avec elles, notre dialogue s'ouvre. Principe : l'interrupteur
+             du cerveau de base des villageois traite cette boite dans des branches paralleles qui ne s'arretent jamais. -->
+        <Parallel failureMode="Any" successMode="Any">
+        <Sequence>
+          <ClearInbox condition="" inbox="&apos;dialogMailbox&apos;" type="" />
+          <While condition="true" doFail="false" propagateChildFail="false">
+            <ProcessMessage inbox="&apos;dialogMailbox&apos;" variable="$demande_de_parole" timeout="&apos;-1&apos;" timeType="GameTime" Atomic="false" answerVar="" condition="" senderInfo="">
+              <Function_switch_handleDialog dialogRequest="$demande_de_parole" nodeLabel="52190001" />
+            </ProcessMessage>
+          </While>
+        </Sequence>
+        <Sequence>
+          <ClearInbox condition="" inbox="&apos;dialogMailbox&apos;" type="" />
+          <While condition="true" doFail="false" propagateChildFail="false">
+            <ProcessMessage inbox="&apos;dialogMailbox&apos;" variable="$demande_de_causerie" timeout="&apos;-1&apos;" timeType="GameTime" Atomic="false" answerVar="" condition="" senderInfo="">
+              <Function_switch_handleChat chatRequest="$demande_de_causerie" nodeLabel="52190002" />
+            </ProcessMessage>
+          </While>
+        </Sequence>
         <While condition="true" doFail="false" propagateChildFail="false">
           <Sequence>
             <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
@@ -114,6 +136,7 @@
             <Wait timeType="GameTime" duration="$tour" doFail="false" variation="" skipInLOD="false" />
           </Sequence>
         </While>
+        </Parallel>
       </Behavior>
     </Root>
     <ForestContainer />
