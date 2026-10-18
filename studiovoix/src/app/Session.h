@@ -113,6 +113,8 @@ public:
     juce::String statusText() const { return status; }
     bool isBusy() const { return activeJobs > 0 || ! pendingRenders.empty(); }
     float vocalAutoGainDb() const { return mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f; }
+    /** Bus voix : réduction moyenne du compresseur « colle » sur la somme des voix (dB), mesurée par le mix auto. */
+    float busGlueDb() const { return mixState.busGrDb; }
     /** Orchestre : gain automatique de la piste selon son rôle (0 pour la voix principale, l'instru et les pistes brutes). */
     float autoTrackGainDb (int trackId) const { return mixState.autoTrackGain (trackId); }
     double mixLufs() const { return mixState.mixLufs; }

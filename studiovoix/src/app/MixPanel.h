@@ -18,6 +18,7 @@ public:
 private:
     Session& session;
     juce::ToggleButton autoMix { "Mix automatique (voix / instru)" },
+        vocalBus { "Bus voix (toutes les voix compressées ensemble)"_u8 },
         master { juce::String (juce::CharPointer_UTF8 ("Mastering automatique à l'export")) };
     juce::Slider ducking;
     juce::Label duckingL, targetL, sectionsL, versionsL, adlibL, info;

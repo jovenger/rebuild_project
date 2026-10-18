@@ -101,6 +101,13 @@ ad-libs −9, ambiance −14, instrument enregistré −4), bornée à −8 / +6
 mais son niveau est géré aussi, comme l'équilibre voix / instru : le niveau n'est pas un effet.
 Le panneau Voix IA affiche « Orchestre : gain auto ± x dB », la barre du haut la sonie du mixage (« Mix −14,0 LUFS »).
 
+**Bus voix** (panneau Mix, activé par défaut) : toutes les voix (principale, doublages, backs, ad-libs, harmonies,
+ambiance) sont additionnées à part puis passent **ensemble** dans un même compresseur « colle » (RMS lié, seuil −20 dB,
+2:1, genou 6 dB, attaque 30 ms, relâche 200 ms, 1 à 4 dB de réduction), comme sur une console : les voix sonnent comme un
+seul ensemble au lieu de pistes posées côte à côte. Le rattrapage de gain égale la réduction moyenne mesurée par le mix
+auto, donc l'équilibre voix / instru ne bouge pas. Le même compresseur sert à la lecture (bloc par bloc, état conservé) et
+à l'export ; les pistes séparées (stems) n'y passent pas.
+
 **Alertes** : après chaque rendu, chaque piste **écrêtée à la source** (crête au-dessus de −0,2 dBFS avant traitement),
 qui **sature après traitement** (au-delà de +1 dBFS), **monte en flèche** ou est **plus forte que la voix
 principale** est signalée en orange dans son en-tête et dans la barre d'état (« Ingénieur du son : 2 alertes — … »),

@@ -73,6 +73,8 @@ struct MixState
     std::map<int, float> trackGainDb;   // « orchestre » : gain auto par piste (hors voix principale et instru) selon son rôle
     juce::String balanceReport;         // une ligne par piste équilibrée
     double mixLufs = -120.0;            // sonie du mixage avec les gains auto
+    float busGrDb = 0.0f;               // bus voix : réduction moyenne du compresseur « colle » (dB)
+    float busMakeupDb = 0.0f;           // bus voix : rattrapage de gain (= réduction moyenne, borné 0..4 dB)
     float autoTrackGain (int trackId) const
     {
         auto it = trackGainDb.find (trackId);
@@ -88,6 +90,11 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders);
 
 /** Somme des pistes (volume, panoramique, muet, solo, gain auto). */
 Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixState& mixState, bool useRaw = false);
+
+/** Quelles pistes additionner : toutes, seulement les voix (bus voix) ou seulement les autres. */
+enum class Pick { All, Voices, Others };
+/** Additionne les pistes audibles (volume, panoramique, gains auto) dans mixBuf (longueur = celle du mixage). */
+void sumTracks (const project::Project& p, const RenderSet& renders, const MixState& mixState, bool useRaw, Pick pick, Stereo& mixBuf);
 
 struct ExportOptions
 {

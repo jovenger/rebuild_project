@@ -5,6 +5,7 @@
 #include "../analysis/SpectrumAnalyzer.h"
 #include "../analysis/ContentClassifier.h"
 #include "../dsp/ProblemAnalyzer.h"
+#include "../dsp/Processors.h"
 #include "../dsp/TrackRepair.h"
 
 namespace sv::render
@@ -378,6 +379,11 @@ float roleOffsetLu (style::Role role)
     }
 }
 
+namespace
+{
+    long mixLength (const project::Project& p, const RenderSet& renders);   // définie avec le mixage, plus bas
+}
+
 MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
 {
     MixState st;
@@ -456,26 +462,47 @@ MixState computeAutoMix (const project::Project& p, const RenderSet& renders)
         st.autoMixApplied = true;
     }
 
-    // 3) Sonie du mixage obtenu (affichée dans la barre du haut).
+    // 3) Bus voix : les voix passent ensemble dans le compresseur « colle ». Le rattrapage de gain compense la
+    //    réduction moyenne pour que l'équilibre voix / instru calculé au-dessus reste vrai. Mesuré même si le bus est
+    //    désactivé : l'activer dans le panneau Mix ne demande alors aucun recalcul.
+    {
+        Stereo voices = makeStereo (static_cast<int> (mixLength (p, renders)));
+        sumTracks (p, renders, st, false, Pick::Voices, voices);
+        dsp::BusGlue glue;
+        glue.prepare (p.sampleRate);
+        st.busGrDb = glue.process (voices);
+        st.busMakeupDb = juce::jlimit (0.0f, 4.0f, st.busGrDb);
+        SV_LOG_INFO (kMod, "Bus voix : colle " + juce::String (st.busGrDb, 1) + " dB en moyenne, rattrapage +"
+                               + juce::String (st.busMakeupDb, 1) + " dB" + (p.vocalBusEnabled ? "" : " (bus désactivé)"_u8));
+    }
+
+    // 4) Sonie du mixage obtenu (affichée dans la barre du haut).
     st.mixLufs = loudness::integratedLufs (mixdown (p, renders, st), p.sampleRate);
     SV_LOG_INFO (kMod, "Mixage : " + juce::String (st.mixLufs, 1) + " LUFS avant mastering");
     return st;
 }
 
-Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixState& mixState, bool useRaw)
+namespace
 {
-    log::ScopedTimer timer (kMod, "mixage");
-    const juce::ScopedNoDenormals noDenormals;
-    long end = 0;
-    for (const auto& t : p.tracks)
-        if (auto it = renders.find (t.id); it != renders.end() && it->second != nullptr && it->second->ok())
-            end = std::max (end, it->second->startSample + it->second->processed.getNumSamples());
+    long mixLength (const project::Project& p, const RenderSet& renders)
+    {
+        long end = 0;
+        for (const auto& t : p.tracks)
+            if (auto it = renders.find (t.id); it != renders.end() && it->second != nullptr && it->second->ok())
+                end = std::max (end, it->second->startSample + it->second->processed.getNumSamples());
+        return std::max (0L, end);
+    }
+} // namespace
 
-    Stereo mixBuf = makeStereo (static_cast<int> (std::max (0L, end)));
+void sumTracks (const project::Project& p, const RenderSet& renders, const MixState& mixState, bool useRaw, Pick pick, Stereo& mixBuf)
+{
+    const long end = mixBuf.getNumSamples();
     const bool solo = anySolo (p);
     for (const auto& t : p.tracks)
     {
         if (t.mute || (solo && ! t.solo))
+            continue;
+        if ((pick == Pick::Voices && ! t.isVoice()) || (pick == Pick::Others && t.isVoice()))
             continue;
         auto it = renders.find (t.id);
         if (it == renders.end() || it->second == nullptr || ! it->second->ok())
@@ -497,6 +524,29 @@ Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixSt
             mixBuf.addSample (0, static_cast<int> (d), src->getSample (0, i) * g * gl);
             mixBuf.addSample (1, static_cast<int> (d), src->getSample (1, i) * g * gr);
         }
+    }
+}
+
+Stereo mixdown (const project::Project& p, const RenderSet& renders, const MixState& mixState, bool useRaw)
+{
+    log::ScopedTimer timer (kMod, "mixage");
+    const juce::ScopedNoDenormals noDenormals;
+    const int end = static_cast<int> (mixLength (p, renders));
+    Stereo mixBuf = makeStereo (end);
+    const bool bus = p.vocalBusEnabled && ! useRaw;
+    sumTracks (p, renders, mixState, useRaw, bus ? Pick::Others : Pick::All, mixBuf);
+    if (bus)
+    {
+        // Même compresseur « colle » que la lecture temps réel (dsp::BusGlue), appliqué ici en un seul bloc.
+        Stereo voices = makeStereo (end);
+        sumTracks (p, renders, mixState, useRaw, Pick::Voices, voices);
+        dsp::BusGlue glue;
+        glue.prepare (p.sampleRate);
+        glue.setMakeupDb (mixState.busMakeupDb);
+        const float gr = glue.process (voices);
+        for (int c = 0; c < 2 && end > 0; ++c)
+            mixBuf.addFrom (c, 0, voices, c, 0, end);
+        SV_LOG_DEBUG (kMod, "Bus voix au mixage : colle " + juce::String (gr, 1) + " dB, rattrapage +" + juce::String (mixState.busMakeupDb, 1) + " dB");
     }
     return mixBuf;
 }
@@ -575,6 +625,7 @@ ExportReport exportProject (const project::Project& p, const RenderSet& renders,
             if (it == renders.end() || it->second == nullptr || ! it->second->ok())
                 continue;
             project::Project solo = p;
+            solo.vocalBusEnabled = false;   // une piste séparée seule : le compresseur du bus voix n'aurait pas le même comportement
             for (auto& st : solo.tracks)
             {
                 st.solo = st.id == t.id;

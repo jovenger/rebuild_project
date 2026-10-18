@@ -71,6 +71,18 @@ namespace
         }
     };
 
+    /** Courbe statique du compresseur : réduction de gain (dB, positive) pour un niveau donné (seuil T, ratio R,
+        genou W). Partagée par compressLinked et BusGlue : une seule courbe dans tout le programme. */
+    inline float staticGainReductionDb (float levelDb, float T, float R, float W) noexcept
+    {
+        const float over = levelDb - T;
+        if (2.0f * over < -W)
+            return 0.0f;
+        if (2.0f * std::abs (over) <= W && W > 0.0f)
+            return std::max (0.0f, -(1.0f / R - 1.0f) * std::pow (over + W * 0.5f, 2.0f) / (2.0f * W));
+        return std::max (0.0f, over - over / R);
+    }
+
     void linkwitzRiley (const Mono& x, double sr, double freq, Mono& low, Mono& high)
     {
         low = x;
@@ -228,6 +240,63 @@ void applyCurveEq (Mono& x, double sr, const std::vector<float>& centersHz, cons
 }
 
 // ---------------------------------------------------------------------------------------------
+CompressorSettings BusGlue::settings()
+{
+    CompressorSettings c;
+    c.thresholdDb = -20.0f;
+    c.ratio = 2.0f;
+    c.kneeDb = 6.0f;
+    c.attackMs = 30.0f;
+    c.releaseMs = 200.0f;
+    c.rmsDetector = true;
+    return c;
+}
+
+void BusGlue::prepare (double sampleRate)
+{
+    const double sr = std::max (1000.0, sampleRate);
+    const auto c = settings();
+    att = static_cast<float> (std::exp (-1.0 / (sr * c.attackMs * 0.001)));
+    rel = static_cast<float> (std::exp (-1.0 / (sr * c.releaseMs * 0.001)));
+    rmsCoef = static_cast<float> (std::exp (-1.0 / (sr * 0.010)));
+    gr = 0.0f;
+    sq = 0.0f;
+}
+
+float BusGlue::process (float* const* channels, int numChannels, int numSamples) noexcept
+{
+    if (numChannels < 1 || numSamples < 1 || rmsCoef <= 0.0f)
+        return 0.0f;
+    const auto c = settings();
+    const float T = c.thresholdDb, R = c.ratio, W = c.kneeDb;
+    double grSum = 0.0;
+    int grCount = 0;
+    for (int i = 0; i < numSamples; ++i)
+    {
+        float det = 0.0f;
+        for (int k = 0; k < numChannels; ++k)
+            det = std::max (det, std::abs (channels[k][i]));
+        sq = rmsCoef * sq + (1.0f - rmsCoef) * det * det;
+        const float levelDb = gainToDb (std::sqrt (std::max (0.0f, sq)));
+        const float target = staticGainReductionDb (levelDb, T, R, W);
+        gr = target > gr ? att * gr + (1.0f - att) * target : rel * gr + (1.0f - rel) * target;
+        const float g = dbToGain (-gr) * makeup;
+        for (int k = 0; k < numChannels; ++k)
+            channels[k][i] *= g;
+        if (levelDb > T - 20.0f)
+        {
+            grSum += gr;
+            ++grCount;
+        }
+    }
+    return grCount > 0 ? static_cast<float> (grSum / grCount) : 0.0f;
+}
+
+float BusGlue::process (Stereo& audio) noexcept
+{
+    return process (audio.getArrayOfWritePointers(), audio.getNumChannels(), audio.getNumSamples());
+}
+
 float compressLinked (Stereo& audio, double sr, const CompressorSettings& c)
 {
     const int n = audio.getNumSamples(), chans = audio.getNumChannels();
@@ -267,15 +336,7 @@ float compressLinked (Stereo& audio, double sr, const CompressorSettings& c)
         }
         else
             levelDb = gainToDb (det);
-        float outDb;
-        const float over = levelDb - T;
-        if (2.0f * over < -W)
-            outDb = levelDb;
-        else if (2.0f * std::abs (over) <= W && W > 0.0f)
-            outDb = levelDb + (1.0f / R - 1.0f) * std::pow (over + W * 0.5f, 2.0f) / (2.0f * W);
-        else
-            outDb = T + over / R;
-        const float gr = smoother.process (std::max (0.0f, levelDb - outDb));
+        const float gr = smoother.process (staticGainReductionDb (levelDb, T, R, W));
         const float g = dbToGain (-gr) * makeup;
         for (int ch = 0; ch < chans; ++ch)
             audio.setSample (ch, i, audio.getSample (ch, i) * g);

@@ -6,7 +6,7 @@ namespace sv::app
 {
 MixPanel::MixPanel (Session& s) : session (s)
 {
-    for (auto* c : std::initializer_list<juce::Component*> { &autoMix, &master, &ducking, &duckingL, &targetL, &sectionsL, &versionsL, &adlibL,
+    for (auto* c : std::initializer_list<juce::Component*> { &autoMix, &vocalBus, &master, &ducking, &duckingL, &targetL, &sectionsL, &versionsL, &adlibL,
                                                              &info, &target, &sections, &versions, &copySection, &restore, &adlibBtn, &reanalyse })
         addAndMakeVisible (*c);
 
@@ -22,6 +22,11 @@ MixPanel::MixPanel (Session& s) : session (s)
     {
         if (! updating)
             session.updateProject ([v = autoMix.getToggleState()] (project::Project& p) { p.autoMixEnabled = v; }, false, "Mix automatique");
+    };
+    vocalBus.onClick = [this]
+    {
+        if (! updating)
+            session.updateProject ([v = vocalBus.getToggleState()] (project::Project& p) { p.vocalBusEnabled = v; }, false, "Bus voix");
     };
     master.onClick = [this]
     {
@@ -90,6 +95,7 @@ void MixPanel::refresh()
     const juce::ScopedValueSetter<bool> svs (updating, true);
     const auto& p = session.project();
     autoMix.setToggleState (p.autoMixEnabled, juce::dontSendNotification);
+    vocalBus.setToggleState (p.vocalBusEnabled, juce::dontSendNotification);
     master.setToggleState (p.masterEnabled, juce::dontSendNotification);
     ducking.setValue (p.duckingDb, juce::dontSendNotification);
     target.setSelectedId (static_cast<int> (p.target) + 1, juce::dontSendNotification);
@@ -122,6 +128,7 @@ void MixPanel::refresh()
     juce::String txt;
     txt << "Tonalité "_u8 << p.key.toFrench() << (p.keyManual ? " (manuelle)" : " (auto)") << ", " << juce::String (p.tempo.bpm, 1) << " BPM"
         << (p.tempoManual ? " (manuel)" : " (auto)") << "\nGain voix du mix auto : " << juce::String (session.vocalAutoGainDb(), 1) << " dB"
+        << "\nBus voix : colle " << juce::String (session.busGlueDb(), 1) << " dB" << (p.vocalBusEnabled ? "" : " (désactivé)"_u8)
         << "\nDossier du projet : " << p.folder.getFullPathName();
     info.setText (txt, juce::dontSendNotification);
 }
@@ -136,6 +143,7 @@ void MixPanel::resized()
     auto r = getLocalBounds().reduced (10);
     auto row = [&r] (int h = 26) { auto x = r.removeFromTop (h); r.removeFromTop (4); return x; };
     autoMix.setBounds (row());
+    vocalBus.setBounds (row());
     auto a = row();
     duckingL.setBounds (a.removeFromLeft (190));
     ducking.setBounds (a);

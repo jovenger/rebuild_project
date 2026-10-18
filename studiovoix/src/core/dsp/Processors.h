@@ -69,6 +69,27 @@ float compress (Mono& x, double sr, const CompressorSettings& c);
 /** Même compresseur sur plusieurs canaux liés (détecteur = canal le plus fort) : l'image stéréo ne bouge pas. */
 float compressLinked (Stereo& audio, double sr, const CompressorSettings& c);
 
+/** Compresseur « colle » du bus voix : toutes les voix (principale, doublages, backs, ad-libs, harmonies, ambiance)
+    passent ensemble dans un même compresseur RMS lié (seuil -20 dB, 2:1, genou 6 dB, attaque 30 ms, relâche 200 ms)
+    pour sonner comme un seul ensemble, puis un rattrapage de gain fixe. L'état est conservé d'un bloc à l'autre :
+    la même classe sert au rendu (un seul bloc) et à la lecture temps réel (blocs de la carte son). */
+class BusGlue
+{
+public:
+    static CompressorSettings settings();
+    void prepare (double sampleRate);
+    void setMakeupDb (float db) noexcept { makeup = dbToGain (db); }
+    /** Compresse en place numChannels canaux liés. Retourne la réduction de gain moyenne du bloc (dB, positive) sur les
+        passages actifs (niveau au-dessus de seuil - 20 dB). */
+    float process (float* const* channels, int numChannels, int numSamples) noexcept;
+    float process (Stereo& audio) noexcept;
+
+private:
+    float att = 0.0f, rel = 0.0f, rmsCoef = 0.0f, makeup = 1.0f;
+    float gr = 0.0f;   // réduction lissée (dB)
+    float sq = 0.0f;   // puissance RMS lissée (fenêtre ~10 ms)
+};
+
 // ---------------------------------------------------------------------------------------------
 struct DeEsserSettings
 {

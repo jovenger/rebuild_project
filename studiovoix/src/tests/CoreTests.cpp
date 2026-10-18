@@ -1454,11 +1454,76 @@ public:
             expect (ms.autoTrackGain (rawId) <= -6.0f && std::abs (ms.autoTrackGain (ldId)) < 1e-6f, "piste brute aussi ramenée à sa place (le niveau n'est pas un effet) ; voix principale intacte"_u8);
             expect (ms.balanceReport.contains ("Doublage") && ! ms.balanceReport.containsChar (0xC3), "rapport orchestre : " + ms.balanceReport);
             expect (ms.mixLufs > -100.0, "sonie du mixage mesurée : "_u8 + juce::String (ms.mixLufs, 1) + " LUFS");
-            const auto mixed = render::mixdown (op, rs, ms);
+            // Gains orchestre comparés sans bus voix (le bus compresserait autrement sans rattrapage mesuré).
+            project::Project noBus = op;
+            noBus.vocalBusEnabled = false;
             render::MixState none;
-            const auto plain = render::mixdown (op, rs, none);
-            expect (mixed.getRMSLevel (0, 48000, 48000) < plain.getRMSLevel (0, 48000, 48000), "le gain orchestre est appliqué au mixage"_u8);
+            const auto plain = render::mixdown (noBus, rs, none);
+            expect (render::mixdown (noBus, rs, ms).getRMSLevel (0, 48000, 48000) < plain.getRMSLevel (0, 48000, 48000), "le gain orchestre est appliqué au mixage"_u8);
+            const auto mixed = render::mixdown (op, rs, ms);   // avec bus voix
             expect (std::abs (render::roleOffsetLu (style::Role::AdLib) + 9.0f) < 1e-6f && std::abs (render::roleOffsetLu (style::Role::Lead)) < 1e-6f, "places par rôle"_u8);
+
+            // Bus voix : la somme des voix est compressée ensemble ; le rattrapage compense la réduction moyenne.
+            expect (ms.busGrDb > 0.5f && ms.busGrDb < 6.0f, "bus voix : colle mesurée "_u8 + juce::String (ms.busGrDb, 1) + " dB (attendu 0,5-6)");
+            expect (std::abs (ms.busMakeupDb - juce::jlimit (0.0f, 4.0f, ms.busGrDb)) < 1e-6f, "rattrapage = réduction moyenne bornée"_u8);
+            const auto withoutBus = render::mixdown (noBus, rs, ms);
+            Stereo onlyInstru = makeStereo (withoutBus.getNumSamples());
+            render::sumTracks (noBus, rs, ms, false, render::Pick::Others, onlyInstru);
+            // L'instru ne passe pas par le bus : identique dans les deux mixages une fois les voix retirées.
+            Stereo voicesBus = mixed, voicesPlain = withoutBus;
+            for (int c = 0; c < 2; ++c)
+            {
+                voicesBus.addFrom (c, 0, onlyInstru, c, 0, onlyInstru.getNumSamples(), -1.0f);
+                voicesPlain.addFrom (c, 0, onlyInstru, c, 0, onlyInstru.getNumSamples(), -1.0f);
+            }
+            const float rmsBus = voicesBus.getRMSLevel (0, 48000, 96000), rmsPlain = voicesPlain.getRMSLevel (0, 48000, 96000);
+            expect (std::abs (gainToDb (rmsBus) - gainToDb (rmsPlain)) < 1.0f,
+                    "bus voix : niveau des voix conservé à 1 dB près (bus "_u8 + juce::String (gainToDb (rmsBus), 1) + " dB, sans "_u8 + juce::String (gainToDb (rmsPlain), 1) + " dB)");
+        }
+
+        beginTest ("Bus voix : compresseur colle (reduction sur un ensemble fort, rien sur un ensemble faible, temps reel = rendu)");
+        {
+            auto tone = [] (float db, int n)
+            {
+                Stereo s (2, n);
+                for (int i = 0; i < n; ++i)
+                {
+                    const float v = dbToGain (db) * juce::MathConstants<float>::sqrt2 * std::sin (2.0f * juce::MathConstants<float>::pi * 220.0f * static_cast<float> (i) / static_cast<float> (kSr));
+                    s.setSample (0, i, v);
+                    s.setSample (1, i, v);
+                }
+                return s;
+            };
+            const int n = static_cast<int> (kSr) * 2;
+            Stereo loud = tone (-12.0f, n), quiet = tone (-36.0f, n);
+            dsp::BusGlue glue;
+            glue.prepare (kSr);
+            const float grLoud = glue.process (loud);
+            glue.prepare (kSr);
+            const float grQuiet = glue.process (quiet);
+            // -12 dB RMS, seuil -20, 2:1 -> ~4 dB de réduction en régime établi.
+            expect (grLoud > 2.5f && grLoud < 5.0f, "ensemble fort : "_u8 + juce::String (grLoud, 1) + " dB de réduction (attendu 2,5-5)");
+            expect (grQuiet < 0.05f, "ensemble faible : aucune réduction ("_u8 + juce::String (grQuiet, 2) + " dB)");
+            const float tail = loud.getRMSLevel (0, n - 4800, 4800);
+            expect (std::abs (gainToDb (tail) + 16.0f) < 0.7f, "régime établi : -12 dB -> "_u8 + juce::String (gainToDb (tail), 1) + " dB (attendu -16)");
+            // Blocs de carte son (512) = un seul bloc : même résultat échantillon par échantillon (état conservé).
+            Stereo blocks = tone (-12.0f, n), whole = tone (-12.0f, n);
+            glue.prepare (kSr);
+            for (int off = 0; off < n; off += 512)
+            {
+                float* ch[2] = { blocks.getWritePointer (0) + off, blocks.getWritePointer (1) + off };
+                glue.process (ch, 2, std::min (512, n - off));
+            }
+            glue.prepare (kSr);
+            glue.process (whole);
+            float maxDiff = 0.0f;
+            for (int i = 0; i < n; ++i)
+                maxDiff = std::max (maxDiff, std::abs (blocks.getSample (0, i) - whole.getSample (0, i)));
+            expect (maxDiff < 1e-5f, "temps réel par blocs = rendu en un bloc (écart max "_u8 + juce::String (maxDiff, 7) + ")");
+            // Même courbe statique que le compresseur de piste : compressLinked avec les mêmes réglages donne le même niveau final.
+            Stereo ref = tone (-12.0f, n);
+            dsp::compressLinked (ref, kSr, dsp::BusGlue::settings());
+            expect (std::abs (gainToDb (ref.getRMSLevel (0, n - 4800, 4800)) - gainToDb (tail)) < 0.3f, "une seule courbe de compression dans le programme"_u8);
         }
 
         beginTest ("Autotune : gamme adaptee a la voix quand elle chante hors de la gamme du morceau");

@@ -4,6 +4,7 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 
 #include "core/Types.h"
+#include "core/dsp/Processors.h"
 
 #include <memory>
 #include <mutex>
@@ -23,12 +24,15 @@ public:
         float gainL = 1.0f;
         float gainR = 1.0f;
         std::shared_ptr<std::atomic<float>> peak;   // crête jouée (après gain), lue et remise à zéro par l'interface
+        bool voiceBus = false;                       // passe par le bus voix (compresseur « colle ») si le bus est actif
     };
 
     struct PlayState
     {
         std::vector<PlayTrack> tracks;
         long length = 0;
+        bool busGlue = false;        // bus voix actif
+        float busMakeupDb = 0.0f;    // rattrapage de gain du bus (mesuré par le mix auto)
     };
 
     struct RecordRequest
@@ -179,6 +183,10 @@ private:
     std::atomic<float> inPeak { 0.0f }, outPeakL { 0.0f }, outPeakR { 0.0f }, heldPeak { 0.0f };
     std::atomic<bool> clipFlag { false };
     std::vector<float> inputScratch;
+
+    // Bus voix : somme des voix compressée ensemble (état conservé entre les blocs), tampons alloués au démarrage de la carte.
+    dsp::BusGlue busGlue;
+    std::vector<float> busScratch[2];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

@@ -1495,9 +1495,12 @@ void Session::rebuildPlayState()
         pt.peak = peak;
         pt.gainL = g * (p <= 0.0f ? 1.0f : 1.0f - p);
         pt.gainR = g * (p >= 0.0f ? 1.0f : 1.0f + p);
+        pt.voiceBus = t.isVoice();
         st->length = std::max (st->length, pt.start + static_cast<long> (buf->getNumSamples()));
         st->tracks.push_back (pt);
     }
+    st->busGlue = proj.vocalBusEnabled;
+    st->busMakeupDb = mixState.busMakeupDb;
     audioEngine.setPlayState (st);
 }
 

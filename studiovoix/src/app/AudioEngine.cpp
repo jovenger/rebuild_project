@@ -533,6 +533,14 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
                 const juce::SpinLock::ScopedTryLockType tl (stateLock);
                 if (tl.isLocked() && state != nullptr)
                 {
+                    // Bus voix : les voix sont d'abord sommées à part, compressées ensemble, puis ajoutées à la sortie.
+                    const bool bus = state->busGlue && numOut > 0 && static_cast<size_t> (chunk) <= busScratch[0].size();
+                    if (bus)
+                    {
+                        juce::FloatVectorOperations::clear (busScratch[0].data(), chunk);
+                        juce::FloatVectorOperations::clear (busScratch[1].data(), chunk);
+                        busGlue.setMakeupDb (state->busMakeupDb);
+                    }
                     for (const auto& t : state->tracks)
                     {
                         if (t.buffer == nullptr)
@@ -545,10 +553,13 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
                         const int srcOff = static_cast<int> (a - t.start);
                         const int dstOff = done + static_cast<int> (a - pos);
                         const int cnt = static_cast<int> (b - a);
-                        if (numOut > 0 && out[0] != nullptr)
-                            juce::FloatVectorOperations::addWithMultiply (out[0] + dstOff, t.buffer->getReadPointer (0) + srcOff, t.gainL, cnt);
-                        if (numOut > 1 && out[1] != nullptr)
-                            juce::FloatVectorOperations::addWithMultiply (out[1] + dstOff, t.buffer->getReadPointer (1) + srcOff, t.gainR, cnt);
+                        const bool toBus = bus && t.voiceBus;
+                        float* dstL = toBus ? busScratch[0].data() + static_cast<int> (a - pos) : (numOut > 0 && out[0] != nullptr ? out[0] + dstOff : nullptr);
+                        float* dstR = toBus ? busScratch[1].data() + static_cast<int> (a - pos) : (numOut > 1 && out[1] != nullptr ? out[1] + dstOff : nullptr);
+                        if (dstL != nullptr)
+                            juce::FloatVectorOperations::addWithMultiply (dstL, t.buffer->getReadPointer (0) + srcOff, t.gainL, cnt);
+                        if (dstR != nullptr)
+                            juce::FloatVectorOperations::addWithMultiply (dstR, t.buffer->getReadPointer (1) + srcOff, t.gainR, cnt);
                         if (t.peak != nullptr)
                         {
                             const float mx = std::max (t.buffer->getMagnitude (0, srcOff, cnt) * t.gainL,
@@ -556,6 +567,15 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
                             if (mx > t.peak->load())
                                 t.peak->store (mx);
                         }
+                    }
+                    if (bus)
+                    {
+                        float* chans[2] = { busScratch[0].data(), busScratch[1].data() };
+                        busGlue.process (chans, 2, chunk);
+                        if (out[0] != nullptr)
+                            juce::FloatVectorOperations::add (out[0] + done, chans[0], chunk);
+                        if (numOut > 1 && out[1] != nullptr)
+                            juce::FloatVectorOperations::add (out[1] + done, chans[1], chunk);
                     }
                 }
             }
@@ -645,6 +665,9 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
         juce::MessageManager::callAsync ([cb, oldRate, newRate] { cb (oldRate, newRate); });
     }
     inputScratch.assign (static_cast<size_t> (std::max (16384, device->getCurrentBufferSizeSamples() * 4)), 0.0f);
+    for (auto& b : busScratch)
+        b.assign (inputScratch.size(), 0.0f);
+    busGlue.prepare (newRate);
     SV_LOG_INFO (kMod, "Carte son démarrée : "_u8 + device->getName() + ", " + juce::String (device->getCurrentSampleRate(), 0)
                        + " Hz, tampon " + juce::String (device->getCurrentBufferSizeSamples()));
     if (std::abs (device->getCurrentSampleRate() - kProjectSampleRate) > 1.0)
