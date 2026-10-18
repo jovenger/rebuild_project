@@ -110,6 +110,9 @@ juce::String userTrackLabel (Role r);
 juce::String userTrackBaseName (Role r);
 /** Type proposé pour un fichier glissé dans le programme, d'après son nom (« instru », « voix », « guitare »…). */
 Role guessRoleForFile (const juce::String& fileName, bool projectHasInstru, bool leadHasTakes);
+/** Même chose avec le contenu reconnu (voiceContent : 1 = voix seule, 0 = musique, -1 = inconnu). Le nom du
+    fichier l'emporte s'il est explicite ; sinon le contenu décide. */
+Role guessRoleForImport (const juce::String& fileName, int voiceContent, bool projectHasInstru, bool leadHasTakes);
 
 /** Options de génération pré-cochées selon le style. */
 struct GenerationDefaults

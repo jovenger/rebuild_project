@@ -15,6 +15,7 @@
 #include "core/ai/AiClient.h"
 #include "core/ai/AiFeatures.h"
 #include "core/analysis/BeatLibrary.h"
+#include "core/analysis/ContentClassifier.h"
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/PitchCorrector.h"
 #include "core/dsp/PitchShifter.h"
@@ -957,6 +958,17 @@ public:
             expect (style::guessRoleForFile ("adlibs refrain.wav", true, true) == Role::AdLib);
             expect (style::guessRoleForFile ("morceau.mp3", false, false) == Role::Instru, "sans instru : un fichier inconnu devient l'instru");
             expect (style::guessRoleForFile ("morceau.mp3", true, false) == Role::Instrument);
+
+            // Contenu reconnu : une voix seule déposée ne devient pas l'instru.
+            const auto keySig = aMinor();
+            const auto voiceGuess = analysis::classifyContent (audio::monoToStereo (synthVoice (defaultPhrases (keySig, 100.0), kSr)), kSr);
+            expect (voiceGuess.voice, "voix seule reconnue : " + voiceGuess.reason);
+            const auto instruGuess = analysis::classifyContent (synthInstru (100.0, keySig, 8, kSr, false), kSr);
+            expect (! instruGuess.voice, "instru reconnue comme musique : " + instruGuess.reason);
+            expect (style::guessRoleForImport ("enregistrement 3.wav", 1, false, false) == Role::Lead, "voix reconnue -> voix principale");
+            expect (style::guessRoleForImport ("enregistrement 3.wav", 1, true, true) == Role::ManualBack, "voix reconnue, lead occupé -> back");
+            expect (style::guessRoleForImport ("enregistrement 3.wav", 0, false, false) == Role::Instru, "musique reconnue, pas d'instru -> instru");
+            expect (style::guessRoleForImport ("instru.wav", 1, false, false) == Role::Instru, "le nom explicite l'emporte");
         }
 
         beginTest ("Copie de refrain vers les sections semblables");

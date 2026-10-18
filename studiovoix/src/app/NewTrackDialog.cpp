@@ -1,6 +1,8 @@
 #include "NewTrackDialog.h"
 
+#include "core/AudioIO.h"
 #include "core/Log.h"
+#include "core/analysis/ContentClassifier.h"
 
 namespace sv::app
 {
@@ -80,7 +82,24 @@ void showImportDialog (Session& session, const juce::StringArray& files, double 
     }
     const auto& p = session.project();
     const auto* lead = p.findTrack (p.leadTrackId());
-    const auto guess = style::guessRoleForFile (audioFiles[0], p.instruTrack() != nullptr, lead != nullptr && ! lead->takes.empty());
+    // Contenu du premier fichier reconnu (voix seule ou musique) avant de proposer le type : ~0,3 s par minute d'audio.
+    int voiceContent = -1;
+    juce::String detected;
+    {
+        const auto loaded = audio::loadStereo (juce::File (audioFiles[0]), p.sampleRate, 60.0);
+        if (loaded.ok())
+        {
+            const auto g = analysis::classifyContent (loaded.buffer, p.sampleRate);
+            if (g.confidence > 0.0f)
+            {
+                voiceContent = g.voice ? 1 : 0;
+                detected = g.reason;
+            }
+        }
+        else
+            SV_LOG_WARN ("Import", "Contenu non reconnu (" + loaded.error + ") : type proposé d'après le nom"_u8);
+    }
+    const auto guess = style::guessRoleForImport (audioFiles[0], voiceContent, p.instruTrack() != nullptr, lead != nullptr && ! lead->takes.empty());
 
     // Types proposés : l'instru (beat) puis les types de « Nouvelle piste ».
     std::vector<style::Role> roles { style::Role::Instru };
@@ -99,9 +118,9 @@ void showImportDialog (Session& session, const juce::StringArray& files, double 
     const auto title = single ? "Importer « "_u8 + juce::File (audioFiles[0]).getFileName() + " »"_u8
                               : "Importer "_u8 + juce::String (audioFiles.size()) + " fichiers";
     auto* w = new juce::AlertWindow (title,
-                                     "Une nouvelle piste par fichier, placée à "_u8 + juce::String (startSec, 1)
-                                         + " s. Les effets se règlent tout seuls selon le type et le style ("_u8
-                                         + style::styleName (p.style) + ").",
+                                     (detected.isNotEmpty() ? "Reconnu : "_u8 + detected + "\n" : juce::String())
+                                         + "Une nouvelle piste par fichier, placée à "_u8 + juce::String (startSec, 1)
+                                         + " s, brute (aucun effet). Pour la traiter : clique sur la piste puis choisis un style dans « Effets »."_u8,
                                      juce::MessageBoxIconType::QuestionIcon);
     w->addComboBox ("type", labels, "Type");
     if (single)

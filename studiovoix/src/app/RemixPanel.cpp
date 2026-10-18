@@ -249,12 +249,13 @@ void RemixPanel::refresh()
                    juce::dontSendNotification);
     if (dragging)
         return;   // ne pas ramener le curseur à l'ancienne valeur pendant le geste
-    autotune.setValue (t->macros.autotune, juce::dontSendNotification);
-    presence.setValue (t->macros.presence, juce::dontSendNotification);
-    space.setValue (t->macros.space, juce::dontSendNotification);
-    energy.setValue (t->macros.energy, juce::dontSendNotification);
-    level.setValue (t->macros.level, juce::dontSendNotification);
-    timing.setValue (t->timingStrength, juce::dontSendNotification);
+    // Brut : tout à 0 (aucun effet) ; sinon les curseurs du style (0,5 = réglage du style).
+    autotune.setValue (t->raw ? 0.0 : t->macros.autotune, juce::dontSendNotification);
+    presence.setValue (t->raw ? 0.0 : t->macros.presence, juce::dontSendNotification);
+    space.setValue (t->raw ? 0.0 : t->macros.space, juce::dontSendNotification);
+    energy.setValue (t->raw ? 0.0 : t->macros.energy, juce::dontSendNotification);
+    level.setValue (t->raw ? 0.0 : t->macros.level, juce::dontSendNotification);
+    timing.setValue (t->raw ? 0.0 : t->timingStrength, juce::dontSendNotification);
     cleaning.setToggleState (t->cleaning, juce::dontSendNotification);
     referenceEq.setToggleState (t->referenceEq, juce::dontSendNotification);
     rawListen.setToggleState (! t->processingEnabled, juce::dontSendNotification);

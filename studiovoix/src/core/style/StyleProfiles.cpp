@@ -724,6 +724,19 @@ juce::String userTrackLabel (Role r)
     return roleName (r);
 }
 
+Role guessRoleForImport (const juce::String& fileName, int voiceContent, bool projectHasInstru, bool leadHasTakes)
+{
+    const auto byName = guessRoleForFile (fileName, projectHasInstru, leadHasTakes);
+    // Nom explicite (« voix », « instru », « guitare »…) : le résultat ne dépend pas de l'état du projet.
+    const bool explicitName = guessRoleForFile (fileName, true, leadHasTakes) == guessRoleForFile (fileName, false, leadHasTakes);
+    const auto fallback = projectHasInstru ? Role::Instrument : Role::Instru;
+    if (explicitName || voiceContent < 0)
+        return byName;
+    if (voiceContent == 1)
+        return leadHasTakes ? Role::ManualBack : Role::Lead;
+    return fallback;
+}
+
 Role guessRoleForFile (const juce::String& fileName, bool projectHasInstru, bool leadHasTakes)
 {
     const auto n = fileName.fromLastOccurrenceOf ("/", false, false).fromLastOccurrenceOf ("\\", false, false)

@@ -34,6 +34,7 @@ set(SV_CORE_SOURCES
     src/core/analysis/VoiceActivity.cpp
     src/core/analysis/SpectrumAnalyzer.cpp
     src/core/analysis/BeatLibrary.cpp
+    src/core/analysis/ContentClassifier.cpp
     src/core/dsp/PitchShifter.cpp
     src/core/dsp/PitchCorrector.cpp
     src/core/dsp/Processors.cpp

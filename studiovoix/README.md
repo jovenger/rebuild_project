@@ -63,13 +63,13 @@ harmonie plus large avec plus de réverb, un instrument sans autotune ni de-esse
 sélectionnée et armée : il n'y a plus qu'à appuyer sur R. Le type se change ensuite dans l'onglet **Voix IA**.
 
 **Glisser-déposer** : faire glisser un ou plusieurs fichiers audio (MP3, WAV, FLAC, AIFF, OGG) dans la fenêtre
-crée une nouvelle piste par fichier, placée là où on lâche sur la timeline (au début sinon). Le type est proposé
-d'après le nom du fichier (« instru », « beat » → instru ; « voix », « vocal » → voix ; « guitare », « piano »
-→ instrument…) et se change dans la fenêtre d'import.
+crée une nouvelle piste par fichier, placée là où on lâche sur la timeline (au début sinon). Le programme
+**reconnaît le contenu** (voix seule ou musique : hauteur de voix, largeur stéréo, poids des graves) et le nom du
+fichier (« instru », « beat », « voix », « guitare »…) pour proposer le type ; il se change dans la fenêtre d'import.
 
 **Importé = brut** : un fichier importé ou glissé (instru, morceau entier, voix déjà mixée…) reste tel quel :
 aucun effet, ni réverb, ni compression, ni mix auto. Clic sur la piste → le panneau **Voix IA** s'ouvre à droite
-sur « Effets : Aucun effet (brut) » ; choisir un style dans cette liste traite la piste dans ce style (chaque piste
+sur « Effets : Aucun effet (brut) », tous les curseurs à 0 ; choisir un style dans cette liste traite la piste dans ce style (chaque piste
 peut avoir son propre style). Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Les prises
 enregistrées au micro, elles, sont traitées automatiquement dans le style du projet.
 
