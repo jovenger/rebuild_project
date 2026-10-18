@@ -1931,6 +1931,10 @@ int runAllTests()
         const auto* r = runner.getResult (i);
         failures += r->failures;
         passes += r->passes;
+        // Les messages du lanceur JUCE vont dans la console de débogage sous Windows (invisibles dans la CI) :
+        // chaque échec est aussi écrit dans le journal, à la fin, pour être lisible dans « Journal des tests ».
+        if (r->failures > 0)
+            SV_LOG_ERROR ("Tests", "ÉCHEC : "_u8 + r->unitTestName + " / " + r->subcategoryName + " : " + r->messages.joinIntoString (" | "));
     }
     SV_LOG_INFO ("Tests", juce::String (passes) + " vérifications réussies, "_u8 + juce::String (failures) + " échecs"_u8);
     return failures == 0 ? 0 : 1;

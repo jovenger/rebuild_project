@@ -276,6 +276,9 @@ juce::String stageSummary (const ChainStage& s, const style::VocalParams& p)
         if (std::abs (p.eq.mudDb) > 0.05f) parts.add (db (p.eq.mudDb) + " " + hz (p.eq.mudHz));
         if (std::abs (p.eq.presenceDb) > 0.05f) parts.add (db (p.eq.presenceDb) + " " + hz (p.eq.presenceHz));
         if (std::abs (p.eq.airDb) > 0.05f) parts.add (db (p.eq.airDb) + " air");
+        // Case étroite : trois éléments au plus (le détail complet est dans l'info-bulle et le rapport).
+        while (parts.size() > 3)
+            parts.remove (parts.size() - 1);
         return parts.joinIntoString (", ");
     }
     if (id == "reso")    return num (p.resonance.thresholdDb) + " dB, max " + num (p.resonance.maxReductionDb);
