@@ -29,13 +29,14 @@ public:
     void mouseDrag (const juce::MouseEvent& e) override;   // glisser verticalement = changer l'ordre des pistes
     void mouseUp (const juce::MouseEvent& e) override;
     int trackId() const { return id; }
+    void startRename() { name.showEditor(); }
 
 private:
     Session& session;
     const int id;
     juce::Label name, info;
     RecArmButton arm;
-    juce::TextButton mute { "M" }, solo { "S" }, raw { "Brut" }, remove { "X" };
+    juce::TextButton mute { "M" }, solo { "S" }, raw { "Brut" }, remove { "X" }, more { "..." };   // « ⋯ » : menu de la piste
     juce::Slider volume, pan;
     LevelMeter meter;
     float meterLevel = 0.0f;
@@ -87,6 +88,7 @@ public:
     double loopStartSec() const { return loopA; }
     double loopEndSec() const { return loopB; }
     std::function<void()> onRegionsChanged;
+    std::function<void (int)> onOpenTrackPanel;   // « Style et effets de cette piste… » : ouvre le panneau de droite
 
     static constexpr int kDefaultHeaderWidth = 260;
     static constexpr int kRulerHeight = 48;
@@ -115,6 +117,7 @@ private:
 
     Session& session;
     std::vector<std::unique_ptr<TrackHeader>> headers;
+    std::unique_ptr<juce::FileChooser> chooser;   // menu de piste : remplacer l'instru / importer un fichier
     std::map<int, WaveCache> waves;
     double pxPerSec = 40.0;
     double viewStart = 0.0;

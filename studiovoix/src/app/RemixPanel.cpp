@@ -131,7 +131,18 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     addAndMakeVisible (aiClean);
     aiClean.setTooltip ("Réseau DeepFilterNet (gratuit, sur ce PC) appliqué à la prise brute avant les effets du style : souffle, bruit de pièce, "
                         "ronflement. Nécessite l'outil installé dans l'onglet IA locale ; résultat mis en cache dans le projet."_u8);
-    aiClean.onClick = [this] { if (! updating) session.updateTrack (shownTrack, [v = aiClean.getToggleState()] (project::Track& t) { t.aiClean = v; }, true, "Nettoyage IA"); };
+    aiClean.onClick = [this]
+    {
+        if (updating)
+            return;
+        const bool v = aiClean.getToggleState();
+        session.updateTrack (shownTrack, [v] (project::Track& t) { t.aiClean = v; }, true, "Nettoyage IA");
+        if (v && ! ai::local::deepFilterAvailable())   // outil absent : téléchargé à la demande, puis les voix sont recalculées
+        {
+            juce::WeakReference<Session> weak (&session);
+            session.ensureToolsThen ({ "deep-filter" }, "Nettoyage IA"_u8, [weak] { if (auto* s = weak.get()) s->updateProject ([] (project::Project&) {}, true, {}); });
+        }
+    };
 #endif
     referenceEq.onClick = [this]
     {
@@ -397,9 +408,9 @@ void RemixPanel::refresh()
     cleaning.setToggleState (t->cleaning, juce::dontSendNotification);
 #if SV_EDITION_IA
     aiClean.setToggleState (t->aiClean, juce::dontSendNotification);
-    aiClean.setEnabled (effects && ai::local::deepFilterAvailable());
+    aiClean.setEnabled (effects);
     aiClean.setButtonText (ai::local::deepFilterAvailable() ? "Nettoyage IA (DeepFilterNet, avant la chaîne)"_u8
-                                                            : "Nettoyage IA (DeepFilterNet) : installer l'outil dans IA locale"_u8);
+                                                            : "Nettoyage IA (DeepFilterNet) : téléchargé à la première utilisation"_u8);
 #endif
     referenceEq.setToggleState (t->referenceEq, juce::dontSendNotification);
     rawListen.setToggleState (! t->processingEnabled, juce::dontSendNotification);

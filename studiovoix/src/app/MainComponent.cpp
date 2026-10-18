@@ -33,14 +33,15 @@ MainComponent::MainComponent (Session& s)
     mixPanel = new MixPanel (session);
     aiPanel = new AiPanel (session);
     const auto tabColour = theme::panel;
-    tabs.addTab ("Voix IA", tabColour, remix, true);
+    tabs.addTab ("Piste", tabColour, remix, true);            // la piste sélectionnée : style, effets, chaîne
     tabs.addTab ("Paroles", tabColour, lyrics, true);
     tabs.addTab ("Mix & Master", tabColour, mixPanel, true);
-    tabs.addTab ("IA", tabColour, aiPanel, true);
+    tabs.addTab ("Assistant", tabColour, aiPanel, true);
 #if SV_EDITION_IA
     localAi = new LocalAiPanel (session);
-    tabs.addTab ("IA locale", tabColour, localAi, true);
+    tabs.addTab ("Outils IA", tabColour, localAi, true);
 #endif
+    timeline.onOpenTrackPanel = [this] (int) { tabs.setCurrentTabIndex (0); };
     tabs.setTabBarDepth (28);
 
     statusBar.setFont (juce::FontOptions (13.0f));

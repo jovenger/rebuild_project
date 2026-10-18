@@ -1,6 +1,7 @@
 #include "Session.h"
 
 #include "core/Log.h"
+#include <juce_gui_basics/juce_gui_basics.h>
 #if SV_EDITION_IA
  #include "core/ai/Lyrics.h"
  #include "core/ai/Separate.h"
@@ -828,10 +829,10 @@ void Session::pasteClipboard (int trackId, double atSec)
     setStatus (juce::String (n) + " bloc(s) collé(s) à "_u8 + juce::String (atSec, 2) + " s sur « "_u8 + t->name + " » (Ctrl+Z pour annuler)"_u8);
 }
 
-void Session::recognizeLyrics()
+void Session::recognizeLyrics (int trackId)
 {
 #if SV_EDITION_IA
-    const int leadId = proj.leadTrackId();
+    const int leadId = trackId >= 0 ? trackId : proj.leadTrackId();
     auto r = renderFor (leadId);
     if (r == nullptr || ! r->ok() || r->raw.getNumSamples() == 0)
     {
@@ -840,7 +841,8 @@ void Session::recognizeLyrics()
     }
     if (! ai::local::whisperAvailable())
     {
-        setStatus ("Reconnaissance des paroles : installe whisper.cpp et le modèle Whisper base dans IA locale"_u8);
+        juce::WeakReference<Session> weakSelf (this);
+        ensureToolsThen ({ "whisper-cli", "whisper-base" }, "Reconnaître les paroles"_u8, [weakSelf, trackId] { if (auto* s = weakSelf.get()) s->recognizeLyrics (trackId); });
         return;
     }
     const auto mono = std::make_shared<const Mono> (audio::toMono (r->raw));
@@ -899,7 +901,8 @@ void Session::separateInstru()
     }
     if (! ai::local::demucsAvailable())
     {
-        setStatus ("Séparation : installe Demucs et son modèle dans IA locale"_u8);
+        juce::WeakReference<Session> weakSelf (this);
+        ensureToolsThen ({ "demucs", "demucs-htdemucs" }, "Séparer l'instru"_u8, [weakSelf] { if (auto* s = weakSelf.get()) s->separateInstru(); });
         return;
     }
     const auto src = proj.audioDir().getChildFile (instru->sourceFile);
@@ -957,6 +960,97 @@ void Session::separateInstru()
 #else
     setStatus ("Séparation de l'instru : disponible dans StudioVoix IA"_u8);
 #endif
+}
+
+void Session::ensureToolsThen (const juce::StringArray& toolIds, const juce::String& purpose, std::function<void()> then)
+{
+    std::vector<const ai::local::ToolDef*> missing;
+    for (const auto& id : toolIds)
+        if (const auto* d = ai::local::findTool (id))
+            if (! ai::local::isInstalled (*d))
+                missing.push_back (d);
+    if (missing.empty())
+    {
+        then();
+        return;
+    }
+    if (installProgress != nullptr)
+    {
+        setStatus (purpose + " : un téléchargement est déjà en cours, patiente…"_u8);
+        return;
+    }
+    juce::String list;
+    for (const auto* d : missing)
+    {
+        if (d->url.isEmpty())
+        {
+            setStatus (purpose + " : "_u8 + d->name + " n'est pas disponible sur ce système"_u8);
+            SV_LOG_WARN (kMod, "Outil indisponible : " + d->id);
+            return;
+        }
+        list << "\n\u2022 " << d->name << (d->size > 0 ? " (" + juce::String (d->size / 1024 / 1024) + " Mo)" : juce::String());
+    }
+    SV_LOG_INFO (kMod, purpose + " : " + juce::String (static_cast<int> (missing.size())) + " outil(s) à télécharger"_u8);
+    juce::WeakReference<Session> weak (this);
+    juce::AlertWindow::showAsync (juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::QuestionIcon)
+                                      .withTitle (purpose)
+                                      .withMessage (purpose + " a besoin de télécharger une fois, gratuitement :"_u8 + list
+                                                    + "\n\nEnsuite l'action se lance toute seule (progression en bas de la fenêtre)."_u8)
+                                      .withButton ("Télécharger et continuer"_u8)
+                                      .withButton ("Annuler"),
+                                  [weak, missing, purpose, then] (int r)
+                                  {
+                                      auto* s = weak.get();
+                                      if (s == nullptr || r != 1)
+                                          return;
+                                      s->installThen (missing, purpose, then);
+                                  });
+}
+
+void Session::installThen (std::vector<const ai::local::ToolDef*> missing, const juce::String& purpose, std::function<void()> then)
+{
+    installProgress = std::make_shared<ai::local::Progress>();
+    installTotal = static_cast<int> (missing.size());
+    installIndex = 0;
+    installName = missing.front()->name;
+    lastInstallStatusMs = 0;
+    auto progress = installProgress;
+    juce::WeakReference<Session> weak (this);
+    pool.addJob ([weak, missing, progress, purpose, then]
+    {
+        juce::String error;
+        bool ok = true;
+        for (size_t i = 0; i < missing.size() && ok; ++i)
+        {
+            const auto name = missing[i]->name;
+            juce::MessageManager::callAsync ([weak, name, i]
+            {
+                if (auto* s = weak.get())
+                {
+                    s->installName = name;
+                    s->installIndex = static_cast<int> (i);
+                }
+            });
+            progress->fraction.store (0.0f);
+            progress->downloaded.store (0);
+            ok = ai::local::install (*missing[i], *progress, error);
+        }
+        juce::MessageManager::callAsync ([weak, ok, error, purpose, then]
+        {
+            auto* s = weak.get();
+            if (s == nullptr)
+                return;
+            s->installProgress = nullptr;
+            if (! ok)
+            {
+                s->setStatus (purpose + " : téléchargement échoué — "_u8 + error);
+                return;
+            }
+            s->setStatus ("Outils installés ; "_u8 + purpose + " démarre…"_u8);
+            s->sendChangeMessage();   // panneaux (Outils IA) à jour
+            then();
+        });
+    });
 }
 
 void Session::moveTrack (int trackId, int newIndex, const juce::String& undoLabel)
@@ -1568,6 +1662,16 @@ void Session::timerCallback()
         pendingRenders.clear();
         for (int id : ids)
             launchRender (id);
+    }
+
+    if (installProgress != nullptr && now - lastInstallStatusMs > 1000)
+    {
+        lastInstallStatusMs = now;
+        const float f = installProgress->fraction.load();
+        const auto mb = installProgress->downloaded.load() / 1024 / 1024;
+        status = "Téléchargement de "_u8 + installName + " (" + juce::String (installIndex + 1) + "/" + juce::String (installTotal) + ")… "_u8
+                 + (f > 0.0f ? juce::String (juce::roundToInt (f * 100.0f)) + " %" : juce::String (mb) + " Mo");
+        sendChangeMessage();   // sans passer par setStatus : pas une ligne de journal par seconde
     }
 
     if (dirty && proj.folder != juce::File() && now - lastAutosaveMs > 60000)

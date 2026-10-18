@@ -19,6 +19,15 @@ branchements pour zéro retard, placement, réglages Windows, dépannage).
 
 Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
 
+**Prise en main pratique** : tout ce qui concerne une piste est **sur la piste** — bouton « ⋯ » (ou clic droit) sur son
+en-tête : importer un fichier dans la piste, remplacer l'instru, style et effets (panneau de droite), reconnaître les
+paroles (IA), nettoyage IA de la voix, séparer l'instru en quatre pistes (IA), couper / fondus / supprimer un bloc,
+armer, ordre, renommer, supprimer. Les briques d'IA se téléchargent **depuis l'action elle-même** : si un outil manque,
+une boîte propose « Télécharger et continuer », la progression s'affiche en bas et l'action s'enchaîne toute seule
+(l'onglet Outils IA reste pour voir, installer ou supprimer les briques à la main). Projet vide : les deux premières
+étapes sont écrites dans la zone des pistes. Onglets de droite : Piste (la piste sélectionnée), Paroles, Mix & Master,
+Assistant, Outils IA.
+
 **Deux programmes, un seul code** :
 - **StudioVoix** (classique) : tout ce qui est décrit ici, sans rien à télécharger. Installateur
   `StudioVoix-Setup-…exe`, releases `studiovoix-build<N>`.

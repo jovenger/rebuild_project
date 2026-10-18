@@ -1,5 +1,9 @@
 #include "TimelineView.h"
 
+#if SV_EDITION_IA
+ #include "core/ai/AiClean.h"
+#endif
+
 #include "NewTrackDialog.h"
 #include "Theme.h"
 #include "core/Log.h"
@@ -51,8 +55,16 @@ void RecArmButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
 
 TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
 {
-    for (auto* c : std::initializer_list<juce::Component*> { &arm, &name, &info, &mute, &solo, &raw, &remove, &volume, &pan })
+    for (auto* c : std::initializer_list<juce::Component*> { &arm, &name, &info, &mute, &solo, &raw, &remove, &more, &volume, &pan })
         addAndMakeVisible (*c);
+    more.setButtonText ("\xE2\x8B\xAF"_u8);   // ⋯ (U+22EF) en octets UTF-8 : MSVC sans /utf-8 casserait l'échappement \u
+    more.setTooltip ("Tout ce qui concerne cette piste : importer, style et effets, IA, découpe, ordre, suppression (ou clic droit)"_u8);
+    more.onClick = [this]
+    {
+        session.selectTrack (id, false, false);
+        if (auto* tv = findParentComponentOfClass<TimelineView>())
+            tv->openTrackMenu (id);
+    };
 
     arm.setTooltip ("Armer la piste : le micro enregistrera sur cette piste (puis R ou REC)"_u8);
     arm.onClick = [this]
@@ -234,6 +246,8 @@ void TrackHeader::resized()
     arm.setBounds (top.removeFromLeft (20));
     top.removeFromLeft (4);
     remove.setBounds (top.removeFromRight (22));
+    top.removeFromRight (2);
+    more.setBounds (top.removeFromRight (24));
     top.removeFromRight (2);
     raw.setBounds (top.removeFromRight (40));
     top.removeFromRight (2);
@@ -717,6 +731,28 @@ void TimelineView::paint (juce::Graphics& g)
                       "S = couper | Suppr = effacer | Ctrl+C / X / V | Ctrl+molette = zoom | En-tête : glisser = ordre"_u8,
                       4, 2, headerWidth - 8, kRulerHeight - 4, juce::Justification::topLeft, 3);
 
+    // Projet encore vide : les deux premières étapes, en clair, dans la zone des pistes.
+    {
+        const auto& pr = session.project();
+        const auto* instru = pr.instruTrack();
+        const bool noInstru = instru == nullptr || instru->sourceFile.isEmpty();
+        bool anyTake = false;
+        for (const auto& t : pr.tracks)
+            anyTake = anyTake || ! t.takes.empty();
+        if ((noInstru || ! anyTake) && ! session.isRecording())
+        {
+            juce::String hint = noInstru ? "1. Dépose ton instru ici (ou bouton « Instru... » en haut)"_u8
+                                         : "2. Arme une piste voix (rond rouge) puis REC — ou dépose un fichier voix"_u8;
+            hint << "\nClic droit ou « \xE2\x8B\xAF » sur une piste : tout ce qui la concerne (style, effets, IA, découpe, ordre)"_u8;
+            const auto area = juce::Rectangle<int> (headerWidth, getHeight() - 72, w - headerWidth, 60).reduced (24, 0);
+            g.setColour (theme::panel.withAlpha (0.85f));
+            g.fillRoundedRectangle (area.toFloat(), theme::radius);
+            g.setColour (theme::text);
+            g.setFont (14.0f);
+            g.drawFittedText (hint, area.reduced (12, 4), juce::Justification::centred, 3);
+        }
+    }
+
     // Tête de lecture
     const int px = secToX (session.positionSec());
     if (px >= headerWidth && px <= w)
@@ -1127,6 +1163,28 @@ void TimelineView::showTrackMenu (int trackId, int takeId, double atSec)
         m.addItem (24, "Supprimer le bloc"_u8);
         m.addSeparator();
     }
+    // Tout ce qui concerne cette piste, au même endroit.
+    if (t->role == style::Role::Instru)
+    {
+        m.addItem (30, "Remplacer l'instru..."_u8);
+#if SV_EDITION_IA
+        m.addItem (31, "Séparer l'instru en 4 pistes : batterie, basse, autres, voix (IA)"_u8, t->sourceFile.isNotEmpty());
+#endif
+    }
+    else if (t->isRecordable())
+    {
+        m.addItem (32, "Importer un fichier audio dans cette piste..."_u8);
+        m.addItem (35, "Style et effets de cette piste... (panneau de droite)"_u8);
+#if SV_EDITION_IA
+        if (t->isVoice())
+        {
+            m.addItem (33, "Reconnaître les paroles de cette piste (IA)"_u8, ! t->takes.empty());
+            m.addItem (34, "Nettoyage IA de la voix (DeepFilterNet)"_u8, true, t->aiClean);
+        }
+#endif
+    }
+    m.addItem (36, "Renommer la piste"_u8);
+    m.addSeparator();
     m.addItem (10, "Nouvelle piste...");
     if (! t->takes.empty() || t->sourceFile.isNotEmpty())
         m.addItem (12, "Caler l'audio au début du morceau (0 s)"_u8);
@@ -1148,11 +1206,59 @@ void TimelineView::showTrackMenu (int trackId, int takeId, double atSec)
     else
         m.addItem (4, "Supprimer la piste (Suppr)");
     juce::WeakReference<Session> weak (&session);
-    m.showMenuAsync (juce::PopupMenu::Options(), [weak, trackId, takeId, atSec] (int r)
+    juce::Component::SafePointer<TimelineView> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options(), [weak, safe, trackId, takeId, atSec] (int r)
     {
         auto* s = weak.get();
         if (s == nullptr || r == 0)
             return;
+        if (r == 30 || r == 32)
+        {
+            if (safe == nullptr)
+                return;
+            const bool instru = r == 30;
+            safe->chooser = std::make_unique<juce::FileChooser> (instru ? juce::String ("Remplacer l'instru"_u8) : juce::String ("Fichier audio pour cette piste"_u8),
+                                                                 juce::File::getSpecialLocation (juce::File::userMusicDirectory), "*.wav;*.mp3;*.flac;*.aif;*.aiff;*.ogg");
+            safe->chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [weak, instru, trackId] (const juce::FileChooser& fc)
+            {
+                auto* s2 = weak.get();
+                if (s2 == nullptr || fc.getResult() == juce::File())
+                    return;
+                if (instru)
+                    s2->importInstru (fc.getResult());
+                else
+                    s2->importVoice (fc.getResult(), trackId);
+            });
+            return;
+        }
+#if SV_EDITION_IA
+        if (r == 31) { s->separateInstru(); return; }
+        if (r == 33) { s->recognizeLyrics (trackId); return; }
+        if (r == 34)
+        {
+            const auto* tr0 = s->project().findTrack (trackId);
+            const bool enable = tr0 != nullptr && ! tr0->aiClean;
+            s->updateTrack (trackId, [enable] (project::Track& tr) { tr.aiClean = enable; }, true, "Nettoyage IA");
+            if (enable && ! ai::local::deepFilterAvailable())
+                s->ensureToolsThen ({ "deep-filter" }, "Nettoyage IA"_u8, [weak] { if (auto* s3 = weak.get()) s3->updateProject ([] (project::Project&) {}, true, {}); });
+            return;
+        }
+#endif
+        if (r == 35)
+        {
+            s->selectTrack (trackId, false, false);
+            if (safe != nullptr && safe->onOpenTrackPanel)
+                safe->onOpenTrackPanel (trackId);
+            return;
+        }
+        if (r == 36)
+        {
+            if (safe != nullptr)
+                for (auto& h : safe->headers)
+                    if (h->trackId() == trackId)
+                        h->startRename();
+            return;
+        }
         if (r == 20)
             s->splitTake (trackId, takeId, atSec);
         else if (r == 21)

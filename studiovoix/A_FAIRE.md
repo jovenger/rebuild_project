@@ -11,6 +11,16 @@ revérifier au moment de l'achat. StudioVoix utilise WASAPI (pas d'ASIO dans cet
 Voir [docs/AUDIT_STUDIO.md](docs/AUDIT_STUDIO.md) : ce qui manque par rapport à un vrai programme de studio,
 comment les automatismes doivent être faits, ordre proposé.
 
+## Praticité (retour de Yann après essai du build 74 : « rien de pratique, il faut que ce qui concerne un truc soit dessus »)
+
+- Fait (build 75) : menu « ⋯ » / clic droit sur chaque piste regroupant toutes ses actions (import, remplacer l'instru,
+  style et effets, paroles IA, nettoyage IA, séparation IA, blocs, armer, ordre, renommer, supprimer) ; téléchargement
+  des outils IA à la demande depuis l'action (boîte « Télécharger et continuer », progression en bas, action enchaînée) ;
+  onglets renommés (Piste, Paroles, Mix & Master, Assistant, Outils IA) ; aide d'étapes dans la timeline vide.
+- À faire selon le prochain retour : panneau « Piste » adapté à l'instru (remplacer, séparer, caler) ; bouton
+  « Séparer » visible sur l'en-tête de l'instru ; sélection du style directement dans l'en-tête de piste ; réduire la
+  barre du haut (Nouveau / Ouvrir / Sauver dans l'accueil) ; glisser-déposer d'un fichier sur une piste existante.
+
 ## Édition « StudioVoix IA » (builds 52 et suivants)
 
 - Vérifier sur le PC de Yann : installation des outils (onglet IA locale), nettoyage DeepFilterNet sur une vraie prise,

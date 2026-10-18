@@ -5,6 +5,7 @@
 #include "AppSettings.h"
 #include "AudioEngine.h"
 #include "core/project/Renderer.h"
+#include "core/ai/LocalTools.h"
 
 #include <deque>
 #include <set>
@@ -87,7 +88,10 @@ public:
     bool hasClipboard() const { return ! clipboard.empty(); }
     /** Édition IA : reconnaît les paroles de la voix principale (whisper.cpp) et cale chaque mot ; remplit les paroles
         si elles sont vides. En arrière-plan ; statut et journal à la fin. */
-    void recognizeLyrics();
+    void recognizeLyrics (int trackId = -1);   // -1 = voix principale
+    /** Vérifie que les outils d'IA locale sont installés ; sinon propose en une boîte de les télécharger (progression
+        dans la barre d'état) puis enchaîne l'action. Déjà installés : l'action est lancée tout de suite. */
+    void ensureToolsThen (const juce::StringArray& toolIds, const juce::String& purpose, std::function<void()> then);
     /** Édition IA : sépare l'instru en quatre pistes (batterie, basse, autres, voix) avec Demucs ; l'instru d'origine
         est coupée (M). En arrière-plan (plusieurs minutes) ; statut et journal à la fin. */
     void separateInstru();
@@ -204,6 +208,12 @@ private:
     int autoMixGeneration = 0;
     int activeJobs = 0;
     juce::String status;
+    // Téléchargement d'outils à la demande (ensureToolsThen) : progression affichée par le timer
+    std::shared_ptr<ai::local::Progress> installProgress;
+    juce::String installName;
+    int installIndex = 0, installTotal = 0;
+    juce::int64 lastInstallStatusMs = 0;
+    void installThen (std::vector<const ai::local::ToolDef*> missing, const juce::String& purpose, std::function<void()> then);
     int selectedTrackId = -1;
     std::set<int> selectedTracks;   // sélection multiple (contient selectedTrackId quand il est valide)
     bool dirty = false;
