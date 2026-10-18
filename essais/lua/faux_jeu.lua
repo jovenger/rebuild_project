@@ -674,7 +674,7 @@ Scriptorium.noyau = { reglages = { delai_du_reveil_s = 0, guet_du_chargement_s =
 -- interrupteurs les éteignent un à un.
 Scriptorium.noyau.interrupteurs = { solde_de_la_semaine = 1, aguerrissement = 1, rangs_du_socle = 1, usure_en_points = 1,
   fautes_a_l_aube = 1, rencontres_de_patrouille = 1, contrats_a_duree = 1, exactions = 1, baisse_du_risque = 1, repas_du_socle = 1,
-  chevaux_de_la_compagnie = 1, un_lit_par_homme = 1 }
+  chevaux_de_la_compagnie = 1, un_lit_par_homme = 1, pillage_du_socle = 1 }
 local function photo_du_registre()
   local j = faux.registre_jetons
   if j.index == nil then

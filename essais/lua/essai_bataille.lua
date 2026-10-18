@@ -183,6 +183,21 @@ essai("bataille : forces, moral et poids des sortes", function()
   egal(bataille.force_de_la_bande({ sorte = "deserteurs", effectif = 5 }), 4, "cinq déserteurs")
 end)
 
+essai("bataille (la bascule, 18/10) : l'interrupteur « pillage_du_socle » éteint, une défaite ne prend rien au coffre", function()
+  preparer(400, 10, { "homme_d_armes", "pavoisier" })
+  Scriptorium.noyau.interrupteurs.pillage_du_socle = 0
+  bataille.reglages.part_des_morts = 1
+  FauxJeu.refuser_ennemis = true
+  bataille.lever_une_bande({ sorte = "coumans", effectif = 30, direction = 0, delai = 0 })
+  bataille.battre()
+  local r = bataille.resultats()[1]
+  egal(r.issue, "defaite", "défaite")
+  egal(r.pillage, 0, "rien de pillé par le socle")
+  egal(coffre.solde(), 400, "le coffre intact")
+  Scriptorium.noyau.interrupteurs.pillage_du_socle = 1
+  bataille.reglages.part_des_morts = 0.5
+end)
+
 -- Règle scellée de JoVenGer « bataille_au_loin » (relecture du pair, 17/10) : la règle tranche par passes
 -- (bataille.issue_au_loin, une accroche) ; l'issue dit ce qui s'est passé. Ici l'accroche est remplacée par des passes
 -- écrites d'avance, pour lire chaque issue.

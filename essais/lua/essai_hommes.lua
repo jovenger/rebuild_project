@@ -800,6 +800,38 @@ essai("dialogues (fiche 21) : l'accroche donne la réponse d'un homme ou du Dire
   end)
 end)
 
+essai("hommes (la bascule, 18/10) : l'accroche « après l'équipement » reçoit ce qui est donné (tenue, armes, munitions)", function()
+  preparer(10000, 0, 10)
+  local recus = {}
+  hommes.accrocher("apres_l_equipement", function(id, donne) table.insert(recus, { id = id, donne = donne }) end)
+  local a = hommes.embaucher({ role = "arbaletrier", semaines = 1, prime = 0 })
+  for _ = 1, 3 do hommes.battre() end
+  hommes.accroches.apres_l_equipement = {}
+  verifier(#recus >= 1, "appelée à l'équipement")
+  egal(recus[1].id, a, "pour l'homme")
+  egal(recus[1].donne.raison, "equipement", "la raison")
+  verifier(type(recus[1].donne.tenue) == "string" and type(recus[1].donne.armes) == "string", "la tenue et les armes")
+  verifier(#recus[1].donne.objets > 0, "les objets créés")
+  verifier(recus[1].donne.munitions and recus[1].donne.munitions.nombre > 0, "les munitions d'un arbalétrier")
+end)
+
+essai("hommes (la bascule, 18/10) : la décision « place_pour » donne le siège au repas ; par défaut la N-ième place pour le N-ième homme", function()
+  preparer(10000, 500, 12)
+  camp.agrandir()
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  local b = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  local libres = camp.places_libres("siege")
+  local repas_a, repas_b = hommes.activite_de(a, 12), hommes.activite_de(b, 12)
+  egal(repas_a.activite, "repas", "midi : le repas")
+  egal(repas_a.lieu, libres[1], "le premier siège libre au premier homme")
+  egal(repas_b.lieu, libres[2], "le second au second")
+  avec_remplacement(camp, "place_pour", function(id, sorte, l) return sorte == "siege" and l[#l] or nil end, function()
+    egal(hommes.activite_de(a, 12).lieu, libres[#libres], "Scriptorium choisit la place")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+end)
+
 essai("hommes : palier plein, l'âme du palier le plus proche ; jamais de refus faute d'âme", function()
   preparer(10000, 0, 10)
   camp.agrandir()

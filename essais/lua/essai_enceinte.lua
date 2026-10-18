@@ -54,6 +54,21 @@ essai("enceinte : chaque pièce prend le cap du camp et le quart de tour de son 
   end
 end)
 
+essai("enceinte (la bascule, 18/10) : la décision « place_valable » écarte une pièce ; elle n'est ni posée ni comptée reposée ; vraie par défaut", function()
+  preparer(enceinte.reglages.bois_palissade)
+  local ecartee = enceinte.plan[1].nom
+  avec_remplacement(enceinte, "place_valable", function(nom) return nom ~= ecartee end, function()
+    verifier(enceinte.batir(), "palissade")
+    local poses = {}
+    for _, o in ipairs(FauxJeu.objets_poses) do poses[o.nom] = true end
+    verifier(not poses["enceinte_" .. ecartee], "la pièce écartée n'est pas posée")
+    verifier(poses["enceinte_" .. enceinte.plan[2].nom], "les autres le sont")
+    egal(enceinte.objet_de(ecartee), nil, "pas d'objet pour elle")
+    local reposes = enceinte.redresser()
+    egal(reposes, 0, "au redressement, elle n'est pas comptée reposée")
+  end)
+end)
+
 essai("enceinte : à l'entrée en partie, pans, porte et tours sont reposés à neuf", function()
   preparer(enceinte.reglages.bois_palissade + enceinte.reglages.bois_tours)
   verifier(enceinte.batir(), "palissade")

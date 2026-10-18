@@ -55,6 +55,9 @@ Scriptorium.noyau.interrupteurs = Scriptorium.noyau.interrupteurs or {
   -- Fiche 18, 5 a (relecture du pair, 17/10) : un lit libre exigé à chaque embauche. Éteint, l'homme est engagé sans
   -- lit s'il n'en reste pas (chez Scriptorium, les hommes dorment en relève). Allumé par défaut.
   un_lit_par_homme = 1,
+  -- La bascule (demande du pair, 18/10) : le pillage du socle (une défaite d'une bande non postée prend la moitié du
+  -- coffre) ; Scriptorium a sa propre règle (pillage_des_caisses) et l'éteint. Allumé par défaut.
+  pillage_du_socle = 1,
 }
 
 function Scriptorium.actif(nom)

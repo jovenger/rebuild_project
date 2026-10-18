@@ -782,7 +782,8 @@ local function appliquer(d, b, issue, morts_par_le_jeu, blesses_donnes, gagne)
   end
   hommes().moral_pour_tous(issue.moral)
   -- Pillage en cas de défaite (pas pour une bande postée : elle se bat chez elle, fiche 17).
-  if issue.nom == "defaite" and not b.postee then
+  -- Interrupteur « pillage_du_socle » : Scriptorium a sa propre règle, il l'éteint (sinon le camp paierait deux fois).
+  if issue.nom == "defaite" and not b.postee and Scriptorium.actif("pillage_du_socle") then
     local pille = math.floor(coffre().solde() / 2)
     if pille > 0 then
       coffre().payer(pille, "pillage")

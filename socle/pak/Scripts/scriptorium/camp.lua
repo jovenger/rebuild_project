@@ -632,6 +632,18 @@ function camp.places_libres(sorte, pour)
 end
 Scriptorium.remplacable(camp, "places_libres", function(rendu) return type(rendu) == "table" end)
 
+-- Décision remplaçable (la bascule, demande du pair, 18/10) : la place de l'homme « id » parmi « libres » (places
+-- libres de la sorte « siege » ou « lit »), ou nil. Par défaut, la N-ième place libre pour le N-ième homme (pour le lit,
+-- parmi les hommes sans lit à eux) : deux hommes ne visent jamais la même place. Scriptorium y branche ses règles (les
+-- amis côte à côte, le lit de la tente choisie, la nuit le lit libre le plus proche).
+function camp.place_pour(id, sorte, libres)
+  local rang = Scriptorium.hommes and Scriptorium.hommes.rang_pour_une_place(id, sorte) or nil
+  return rang and libres[rang] or nil
+end
+Scriptorium.remplacable(camp, "place_pour", function(rendu)
+  return type(rendu) == "string" and camp.sorte_de(rendu) ~= nil
+end)
+
 function camp.occupant_de(nom)
   return donnees().places[nom]
 end

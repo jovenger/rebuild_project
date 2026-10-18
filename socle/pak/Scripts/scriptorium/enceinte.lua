@@ -160,9 +160,19 @@ end
 
 -- ---------------------------------------------------------------- pose
 
+-- Décision remplaçable (la bascule, demande du pair, 18/10) : cette pièce peut-elle être posée là ? Vrai par défaut.
+-- Scriptorium y branche sa règle (camp_selon_le_terrain : pas de tour sur l'eau ni sur une route).
+function enceinte.place_valable(nom, position)
+  return true
+end
+Scriptorium.remplacable(enceinte, "place_valable", function(rendu) return type(rendu) == "boolean" end)
+
 local function poser(d, e)
   local objet = d.objets[e.nom]
   if objet and objet.identifiant and jeu().objet_existe(objet.identifiant) then
+    return true
+  end
+  if objet and objet.ecartee then
     return true
   end
   -- Le cap tient compte de l'orientation du camp (vu le 14/10 : il l'ignorait), plus le quart de tour du modèle.
@@ -177,6 +187,11 @@ local function poser(d, e)
     position = { x = position.x - modele.centre.x * droite.x - modele.centre.y * devant.x,
                  y = position.y - modele.centre.x * droite.y - modele.centre.y * devant.y,
                  z = position.z }
+  end
+  if not Scriptorium.avis(enceinte, "place_valable", e.nom, position) then
+    d.objets[e.nom] = { ecartee = true }
+    jeu().journal("Enceinte : « " .. e.nom .. " » écartée (place non valable)")
+    return true
   end
   local identifiant = jeu().poser_objet(e.sorte, modele.chemin, position, cap, "enceinte_" .. e.nom)
   if identifiant == nil then
@@ -251,7 +266,7 @@ function enceinte.redresser()
   for _, e in ipairs(enceinte.plan) do
     if e.niveau <= d.niveau then
       local objet = d.objets[e.nom]
-      if not (objet and objet.identifiant and jeu().objet_existe(objet.identifiant)) then
+      if not (objet and (objet.ecartee or (objet.identifiant and jeu().objet_existe(objet.identifiant)))) then
         if poser(d, e) then reposes = reposes + 1 else manquants = manquants + 1 end
       end
     end

@@ -856,7 +856,11 @@ end
 -- du sac de l'homme ; si personne ne la prend, elle y reste, rien n'est détruit.
 -- « ronde_reprise » (fiche 15, V73 d 2 bis, choix de JoVenGer du 17/10, proposée par le pair) : un rondier reprend sa
 -- ronde ; l'accroche rend le numéro du point d'où il repart, ou rien (le point le plus proche).
-hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {}, ronde_reprise = {} }
+-- « apres_l_equipement » (la bascule, demande du pair, 18/10) : (identifiant, donne) chaque fois que le socle donne à un
+-- homme sa tenue, ses armes ou ses munitions : donne = { raison = "equipement" | "munitions", tenue, armes, objets =
+-- { identifiants créés }, munitions = { objet, nombre } } ; Scriptorium y fait payer l'homme (sa bourse, sinon une
+-- dette).
+hommes.accroches = { apres_le_rhabillage = {}, piece_otee = {}, ronde_reprise = {}, apres_l_equipement = {} }
 
 function hommes.accrocher(nom, fonction)
   local liste = hommes.accroches[nom]
@@ -1076,14 +1080,17 @@ local function equiper(d, f)
     end
     e.recreer_en_plus = nil
   end
+  local munitions_donnees = (munition and (e.munitions or 0) > 0) and { objet = munition, nombre = e.munitions } or nil
   local compte = jeu().equiper_homme(f.personnage, {
     retirer_naissance = not e.naissance_retiree,
     creer = a_creer,
     etat = hommes.equipement.etat_neuf,
-    munition = (munition and (e.munitions or 0) > 0) and { objet = munition, nombre = e.munitions } or nil,
+    munition = munitions_donnees,
     recreer = a_recreer,
     porter = liste_portee(f),
   })
+  appeler("apres_l_equipement", f.id, { raison = "equipement", tenue = e.tenue, armes = e.armes, objets = a_creer,
+                                        munitions = munitions_donnees })
   e.naissance_retiree = true
   e.etat = "a_completer"
   if e.anciennes then
@@ -1135,6 +1142,8 @@ local function rhabiller(d, f)
       if n < (e.munitions or 0) then
         jeu().creer_objet(f.personnage, munition, 1, e.munitions - n)
         jeu().journal("Hommes : « " .. f.nom .. " », munitions complétées (" .. n .. " -> " .. e.munitions .. ")")
+        appeler("apres_l_equipement", f.id, { raison = "munitions", objets = {},
+                                              munitions = { objet = munition, nombre = e.munitions - n } })
       end
     end
   end
@@ -1777,8 +1786,30 @@ function hommes.gardes(heure)
 end
 Scriptorium.remplacable(hommes, "gardes", function(rendu) return type(rendu) == "table" end)
 
-local function sieges_libres_pour(d)
-  return Scriptorium.avis(camp(), "places_libres", "siege")
+-- La bascule (demande du pair, 18/10) : le rang de l'homme pour une place (camp.place_pour) : son rang dans la
+-- compagnie pour un siège ; parmi les hommes sans lit à eux pour un lit. Rend nil s'il n'en a pas.
+function hommes.rang_pour_une_place(id, sorte)
+  local d = donnees()
+  local rang = 0
+  for _, autre in ipairs(d.ordre) do
+    local f = d.liste[autre]
+    if sorte ~= "lit" or (f and not f.lit) then
+      rang = rang + 1
+    end
+    if autre == id then
+      return rang
+    end
+  end
+  return nil
+end
+
+-- La place de l'homme (décision remplaçable camp.place_pour), parmi les places libres de la sorte.
+local function place_pour(id, sorte)
+  local libres = Scriptorium.avis(camp(), "places_libres", sorte)
+  if #libres == 0 then
+    return nil
+  end
+  return Scriptorium.avis(camp(), "place_pour", id, sorte, libres)
 end
 
 -- Le factionnaire (fiche 15, V73 d 1) : le point qu'il regarde, à « regard_m » devant son poste. « cap » : cap de
@@ -2113,21 +2144,19 @@ function hommes.activite_de(id, heure)
   end
   resultat.activite = activite
   if activite == "sommeil" then
-    resultat.lieu = f.lit
-    resultat.position = f.lit and camp().position_de(f.lit) or nil
+    -- La bascule (18/10) : un homme sans lit à lui (sommeil en relève, « un_lit_par_homme » éteint) dort à une place libre.
+    local lit = f.lit or place_pour(id, "lit")
+    resultat.lieu = lit
+    resultat.position = lit and camp().position_de(lit) or nil
   elseif activite == "entrainement" or activite == "des" then
     local p = hommes.points[(activite == "des") and "des" or "exercice"]
     resultat.lieu = (activite == "des") and "des" or "exercice"
     resultat.position = place_autour(p)
   elseif activite == "repas" or activite == "veillee" then
-    local sieges = sieges_libres_pour(d)
-    local rang = 0
-    for i, autre in ipairs(d.ordre) do
-      if autre == id then rang = i end
-    end
-    if rang >= 1 and rang <= #sieges then
-      resultat.lieu = sieges[rang]
-      resultat.position = camp().position_de(sieges[rang])
+    local siege = place_pour(id, "siege")
+    if siege then
+      resultat.lieu = siege
+      resultat.position = camp().position_de(siege)
     else
       resultat.lieu = "feu_central"
       resultat.position = place_autour(hommes.points.feu)
