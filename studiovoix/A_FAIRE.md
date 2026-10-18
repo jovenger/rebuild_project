@@ -18,13 +18,14 @@ comment les automatismes doivent être faits, ordre proposé.
   l'exécution réelle des outils sont impossibles depuis l'environnement de développement (réseau bloqué) ; seule la CI
   Windows a téléchargé les outils et relevé leurs empreintes.
 - Demucs (séparation d'instru) : intégration faite (outil `demucs` + modèle `demucs-htdemucs` au catalogue, module
-  `core/ai/Separate`, bouton dans IA locale, 4 pistes brutes créées, instru coupée). Binaire : compilation de
-  demucs.cpp en CI avec le GCC MinGW de l'image Windows (build 58 : CMake 4 ; 59 : MSVC refuse les drapeaux GCC ;
-  60 : PowerShell coupait « =3.5 » ; 61 : bash + Ninja ; 63 : wavpack `<intrin.h>` corrigé, reste une conversion
-  `path` → `string` dans demucs_mt.cpp, corrigée au build 64). Dès qu'elle réussit, la CI publie `demucs_mt.exe` dans
-  la release GitHub `outils-ia` (adresse déjà épinglée dans le catalogue) et le relevé d'empreintes suivant donne la
-  taille et le SHA-256 du binaire à épingler (modèle déjà épinglé : 83 994 361 octets). Non vérifié : exécution réelle de demucs_mt (PC de Yann) ; parties en
-  mono (les prises du projet sont mono) — stéréo à envisager.
+  `core/ai/Separate`, bouton dans IA locale, 4 pistes brutes créées, instru coupée). Binaire `demucs_mt.exe` compilé
+  par la CI (build 64 : GCC MinGW 15.2, statique, x86-64-v2, 6 327 386 octets) et publié dans la release GitHub
+  `outils-ia` ; taille et SHA-256 épinglés, comme ceux du modèle (83 994 361 octets). La CI ne recompile / republie
+  que si l'asset manque ou si le commit contient `[demucs]` (ré-épingler alors l'empreinte). Historique des essais :
+  58 CMake 4 ; 59 MSVC ; 60 PowerShell « =3.5 » ; 61 bash + Ninja ; 63 wavpack `<intrin.h>` ; 64 `path` → `string`.
+  Non vérifié : exécution réelle de demucs_mt sur un vrai morceau (PC de Yann : installer Demucs + modèle dans IA
+  locale, importer une instru, « Séparer l'instru en 4 pistes ») ; parties en mono (prises du projet) — stéréo à
+  envisager ; vitesse réelle (x86-64-v2 sans AVX2, plusieurs minutes attendues).
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.
 

@@ -84,6 +84,8 @@ namespace
 #if JUCE_WINDOWS
                 t.url = "https://github.com/jovenger/rebuild_project/releases/download/outils-ia/demucs_mt.exe";
                 t.fileName = "demucs_mt.exe";
+                t.size = 6327386;   // binaire publié par la CI (build 64) ; republié seulement sur demande ([demucs] dans le message de commit)
+                t.sha256 = "8821b0c9dd38114dda9c6a3eec1e308b2c66b4fd1b47a17789f4a8276b275502";
 #else
                 t.fileName = "demucs_mt";
 #endif

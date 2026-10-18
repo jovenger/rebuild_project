@@ -106,7 +106,18 @@ jobs:
         if: matrix.edition == 'ON'
         continue-on-error: true
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          # L'empreinte du binaire est épinglée dans LocalTools.cpp : on ne recompile (et ne republie) que si l'asset
+          # manque dans la release « outils-ia » ou si le message de commit contient [demucs] (penser alors à
+          # ré-épingler taille et SHA-256 affichés par l'étape de publication).
+          if gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "demucs_mt.exe" \
+             && [[ "$COMMIT_MESSAGE" != *"[demucs]"* ]]; then
+            echo "demucs_mt.exe déjà publié dans outils-ia et pas de [demucs] dans le commit : compilation sautée"
+            exit 0
+          fi
           # Le CMakeLists de demucs.cpp est écrit pour GCC (-Wall -Wextra, -Ofast -march=native, OpenBLAS par défaut) :
           # MSVC refuse ces drapeaux (build 59). On compile donc avec le GCC MinGW de l'image Windows, OpenMP seul
           # (sans BLAS), binaire statique (aucune DLL à livrer) et jeu d'instructions générique x86-64-v2 au lieu de
