@@ -3592,8 +3592,9 @@ end
 
 function liaison.dialogue_choix(arbre, choix, qui)
   local reponse = {}
+  local nom = nil
   local ok, erreur = pcall(function()
-    local nom = nom_de_l_interlocuteur(qui)
+    nom = nom_de_l_interlocuteur(qui)
     if type(liaison.reponse_du_dialogue) == "function" then
       reponse = liaison.reponse_du_dialogue(tostring(arbre), tostring(choix), nom) or {}
     end
@@ -3610,8 +3611,10 @@ function liaison.dialogue_choix(arbre, choix, qui)
     table.insert(poses, tostring(code))
   end
   pcall(function() Variables.SetGlobal(liaison.variable_du_colonel, reponse.colonel and 1 or 0) end)
+  -- Vu en jeu le 18/10 : le visage du dialogue n'était pas celui de l'homme visé ; l'interlocuteur lié par le jeu est
+  -- donc écrit au journal.
   liaison.journal("Dialogue : « " .. tostring(arbre) .. "/" .. tostring(choix) .. " » : codes " .. table.concat(poses, ", ")
-                  .. (reponse.colonel and " (colonel)" or ""))
+                  .. (reponse.colonel and " (colonel)" or "") .. " ; interlocuteur lié = " .. tostring(nom))
 end
 
 -- Pour le poste d'essai (fiche 18, 5 c, tranche 4 ; la nuit, la station ne se vise pas à l'écran) : ce que fait le jeu

@@ -220,7 +220,9 @@ class Ecrivain:
         self.ecrire(2, "<FaderDialog%s>" % attr(Name=self.nom, Time="ANYTIME"))
         self.ecrire(3, texte(self.t, self.cle("titre"), "Scriptorium, " + self.arbre))
         self.ecrire(3, "<Dialogue%s>" % attr(TechnicalStatus="Enabled", AllowFarewell="false", AllowGreeting="false"))
-        self.ecrire(4, "<Decision%s>" % attr(Name=self.nom + "_entree", Priority="General", DesignName="entree"))
+        # Vu en jeu le 18/10 : sans invite, l'unique suite d'entrée était proposée comme un choix, sous sa clé brute
+        # (scriptorium_socle.kutnohorsko.…_entree…) ; choisie d'office, « Oui, chef ? » ouvre directement le menu.
+        self.ecrire(4, "<Decision%s>" % attr(Name=self.nom + "_entree", Autoselect="true", Priority="General", DesignName="entree"))
         self.ecrire(5, "<Sequences>")
         self.ecrire(6, "<Sequence%s>" % attr(Name=self.nom + "_ouverture", DesignName="ouverture",
                                               ExitScript=appel(self.arbre, "ouverture", self.role), EndType="Decision"))

@@ -4,7 +4,7 @@
     <FaderDialog Name="scriptorium_socle_homme_tro" Time="ANYTIME">
       <Text StringName="ui_scriptorium_dlg_homme_titre" Text="Scriptorium, homme" />
       <Dialogue TechnicalStatus="Enabled" AllowFarewell="false" AllowGreeting="false">
-        <Decision Name="scriptorium_socle_homme_tro_entree" Priority="General" DesignName="entree">
+        <Decision Name="scriptorium_socle_homme_tro_entree" Autoselect="true" Priority="General" DesignName="entree">
           <Sequences>
             <Sequence Name="scriptorium_socle_homme_tro_ouverture" DesignName="ouverture" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'ouverture', dc['SCRIPTORIUM_SOCLE_HOMME']) end" EndType="Decision">
               <Elements>
