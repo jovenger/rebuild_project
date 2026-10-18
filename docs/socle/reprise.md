@@ -487,10 +487,21 @@ aucune sonde dans l'arbre.
   personnages (fb1fbfc) ; l'outil de la reprise, `outils/ames.py --releve` (6b103e2) ; les lieux de mission, neuf par
   carte, pris dans level.pak (da8ea9d).
 
+**Séance regroupée du 18/10 (accord direct de JoVenGer ; Scriptorium construit pour le socle, playline3, jamais sauvée)**
+- Vu en jeu : noms au-dessus des têtes ; dialogue ouvert ; annonce par texte au bandeau ; 9 lieux par carte au journal ;
+  la prise démarre (après correction du pair) ; plus d'oscillation (cabane imaginaire, corrigée chez le pair) ; la
+  baigneuse et trois lavandières menées hors de la Compagnie, à leurs postes sous la tente des bains.
+- Non vérifié : le geste tenu à l'image ; l'affrontement (pas d'ordre d'essai).
+- Défaut vu par JoVenGer : un soldat presque nu (sous-vêtement, coiffe, tour de cou, épée, bouclier, bottes). Cause non
+  trouvée : un homme engagé par Scriptorium sans ligne « équipé » chez nous, ou le colonel rhabillé par Scriptorium.
+  Décidé avec le pair : la tenue est gardée par le socle seul ; Scriptorium passera ses décisions par une décision
+  remplaçable (il écrit le détail).
+- Remis par le pair ; vérifié : liste des mods d'origine (empreinte), Partie 1 identique, « Continuer » sur playline1,
+  veilleur en marche.
+
 **Reste**
-- La séance regroupée en jeu (accord de JoVenGer, transmis par le pair) : Scriptorium construit pour notre monde,
-  installé à côté, sur notre partie d'essai. Attendre le signal du pair. À y voir : noms, compagnons, personnel mené,
-  lieux, geste ancré, affronter, annoncer_texte, les points de la bascule.
+- La tenue des hommes : le socle seul, avec la décision remplaçable que le pair décrira ; trouver le soldat nu.
+- La caméra du dialogue (finitions) : un homme né par script peut être filmé (dames des bains) ; la cause est ailleurs.
 - Protocole de fenêtre : « fenêtre ouverte » au pair à chaque fin de séance, « fenêtre rendue » avant de relancer.
 - Liste de JoVenGer : `a_verifier_par_jovenger.md`.
 
