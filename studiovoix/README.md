@@ -98,12 +98,13 @@ Machine Linux 4 cœurs, voix de 119 s, outil en ligne de commande (traitement s�
 
 | Étape | Durée |
 |---|---|
-| Analyse de l'instru (tonalité + tempo + structure) | ~1,4 s |
-| Traitement voix principale (après une prise) | ~4,2 s |
-| Génération des 6 pistes (doublages, harmonie, backs, ad-libs, ambiance) | ~1,6 s |
-| Traitement d'une piste générée | 2,2 à 3,1 s |
-| Mix auto + mastering + export | ~3 s |
-| Chaîne complète | ~35 s |
+| Chargement d'une instru de 3 min à 44,1 kHz (MP3/WAV) | ~0,45 s |
+| Analyse de l'instru (tonalité + tempo + structure) | ~0,6 s |
+| Traitement voix principale (après une prise) | ~2,8 s |
+| Génération des 6 pistes (doublages, harmonie, backs, ad-libs, ambiance) | ~1,5 s |
+| Traitement d'une piste générée | 1,8 à 2,4 s |
+| Mix auto + mastering + export | ~2,7 s |
+| Chaîne complète | ~27 s (46,5 s avant les optimisations) |
 
 Dans l'application, les pistes sont traitées en parallèle (jusqu'à 3 en même temps) : temps réel
 inférieur à la colonne « séquentiel ». Non mesuré sur Windows.
@@ -139,7 +140,7 @@ une licence commerciale JUCE est nécessaire.**
 
 Vérifié automatiquement (CI Windows MSVC + Linux GCC) :
 
-- compilation, 242 vérifications de tests ;
+- compilation, 276 vérifications de tests ;
 - auto-test de l'application : import, analyse, rendu, génération, annuler/rétablir, export à −14,00 LUFS,
   prise annulée pendant son traitement, réouverture du projet pendant des calculs ;
 - installateur Windows : installation silencieuse, tests lancés depuis le dossier installé, désinstallation.
