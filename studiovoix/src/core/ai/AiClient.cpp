@@ -12,7 +12,7 @@ namespace
 
     juce::String maskKey (const juce::String& key)
     {
-        return key.length() > 8 ? key.substring (0, 4) + "…" + key.getLastCharacters (4) : juce::String ("(courte)");
+        return key.length() > 8 ? key.substring (0, 4) + "…"_u8 + key.getLastCharacters (4) : juce::String ("(courte)");
     }
 }
 
@@ -50,7 +50,7 @@ juce::String describeHttpError (int status, const juce::String& serverMessage)
         default:  m = "Erreur du service (HTTP "_u8 + juce::String (status) + ")"; break;
     }
     if (serverMessage.isNotEmpty())
-        m << " — " << serverMessage.substring (0, 300);
+        m << " — "_u8 << serverMessage.substring (0, 300);
     return m;
 }
 
@@ -144,7 +144,7 @@ ClaudeResponse parseClaudeResponse (int httpStatus, const juce::String& body, bo
 
 ClaudeResponse askClaude (const ClaudeRequest& rq)
 {
-    log::ScopedTimer timer (kMod, "requête Claude");
+    log::ScopedTimer timer (kMod, "requête Claude"_u8);
     if (rq.apiKey.trim().isEmpty())
     {
         ClaudeResponse r;
@@ -156,8 +156,8 @@ ClaudeResponse askClaude (const ClaudeRequest& rq)
             << "x-api-key: " << rq.apiKey.trim() << "\r\n"
             << "anthropic-version: 2023-06-01\r\n"
             << "anthropic-beta: server-side-fallback-2026-07-01\r\n";
-    SV_LOG_INFO (kMod, "Claude : modèle " + rq.model + ", effort " + rq.effort + ", clé " + maskKey (rq.apiKey.trim())
-                       + ", " + juce::String (rq.user.length()) + " caractères envoyés");
+    SV_LOG_INFO (kMod, "Claude : modèle "_u8 + rq.model + ", effort " + rq.effort + ", clé "_u8 + maskKey (rq.apiKey.trim())
+                       + ", " + juce::String (rq.user.length()) + " caractères envoyés"_u8);
 
     const auto http = postJson (kClaudeUrl, headers, buildClaudeBody (rq), rq.timeoutMs);
     if (http.error.isNotEmpty() && http.status == 0)
@@ -169,7 +169,7 @@ ClaudeResponse askClaude (const ClaudeRequest& rq)
     }
     auto res = parseClaudeResponse (http.status, http.body.toString(), ! rq.schema.isVoid());
     if (res.ok)
-        SV_LOG_INFO (kMod, "Réponse de " + res.model + " : " + juce::String (res.inputTokens) + " jetons en entrée, "
+        SV_LOG_INFO (kMod, "Réponse de "_u8 + res.model + " : " + juce::String (res.inputTokens) + " jetons en entrée, "_u8
                            + juce::String (res.outputTokens) + " en sortie");
     else
         SV_LOG_ERROR (kMod, "Claude : " + res.error);
@@ -179,7 +179,7 @@ ClaudeResponse askClaude (const ClaudeRequest& rq)
 // ---------------------------------------------------------------------------------------------
 MusicResponse composeMusic (const MusicRequest& rq, const juce::File& outFileWithoutExtension)
 {
-    log::ScopedTimer timer (kMod, "génération musicale");
+    log::ScopedTimer timer (kMod, "génération musicale"_u8);
     MusicResponse res;
     if (rq.apiKey.trim().isEmpty())
     {
@@ -200,7 +200,7 @@ MusicResponse composeMusic (const MusicRequest& rq, const juce::File& outFileWit
     juce::String headers;
     headers << "Content-Type: application/json\r\n"
             << "xi-api-key: " << rq.apiKey.trim() << "\r\n";
-    SV_LOG_INFO (kMod, "Génération d'instru : " + juce::String (rq.lengthMs / 1000) + " s, modèle " + rq.modelId + ", clé " + maskKey (rq.apiKey.trim()));
+    SV_LOG_INFO (kMod, "Génération d'instru : "_u8 + juce::String (rq.lengthMs / 1000) + " s, modèle "_u8 + rq.modelId + ", clé "_u8 + maskKey (rq.apiKey.trim()));
 
     const auto http = postJson (kMusicUrl, headers, juce::JSON::toString (juce::var (root), true), rq.timeoutMs);
     if (http.status != 200)
@@ -210,7 +210,7 @@ MusicResponse composeMusic (const MusicRequest& rq, const juce::File& outFileWit
         if (juce::JSON::parse (http.body.toString(), v).wasOk())
             serverMsg = v.getProperty ("detail", {}).toString();
         res.error = http.status == 0 ? http.error : describeHttpError (http.status, serverMsg);
-        SV_LOG_ERROR (kMod, "Génération musicale : " + res.error);
+        SV_LOG_ERROR (kMod, "Génération musicale : "_u8 + res.error);
         return res;
     }
     if (http.body.getSize() < 1024)
@@ -231,7 +231,7 @@ MusicResponse composeMusic (const MusicRequest& rq, const juce::File& outFileWit
         return res;
     }
     res.ok = true;
-    SV_LOG_INFO (kMod, "Instru générée : " + res.file.getFullPathName() + " (" + juce::String ((int) (http.body.getSize() / 1024)) + " Ko)");
+    SV_LOG_INFO (kMod, "Instru générée : "_u8 + res.file.getFullPathName() + " (" + juce::String ((int) (http.body.getSize() / 1024)) + " Ko)");
     return res;
 }
 } // namespace sv::ai

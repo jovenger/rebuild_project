@@ -47,8 +47,11 @@ juce::String AudioEngine::openDevice (const juce::XmlElement* savedState)
         SV_LOG_WARN (kMod, "Initialisation : " + err);
 
    #if JUCE_WINDOWS
-    if (savedState == nullptr)
+    // Premier lancement, ou carte mémorisée impossible à ouvrir (débranchée, prise en exclusif par une autre appli).
+    if (savedState == nullptr || devices.getCurrentAudioDevice() == nullptr)
     {
+        if (savedState != nullptr)
+            SV_LOG_WARN (kMod, "Carte son mémorisée impossible à ouvrir : recherche d'un mode de repli"_u8);
         // Priorité au mode exclusif (latence minimale), puis repli progressif.
         for (const char* type : { "Windows Audio (Exclusive Mode)", "Windows Audio (Low Latency Mode)", "Windows Audio" })
         {
@@ -115,6 +118,19 @@ juce::String AudioEngine::describeDevice() const
          + " ms, sortie " + juce::String (d->getOutputLatencyInSamples() * 1000.0 / sr, 1) + " ms";
 }
 
+long AudioEngine::wavFileLength (const juce::File& f)
+{
+    juce::WavAudioFormat wav;
+    std::unique_ptr<juce::AudioFormatReader> r (wav.createReaderFor (new juce::FileInputStream (f), true));
+    return r != nullptr ? static_cast<long> (r->lengthInSamples) : -1;
+}
+
+juce::String AudioEngine::deviceKey() const
+{
+    const auto setup = devices.getAudioDeviceSetup();
+    return devices.getCurrentAudioDeviceType() + " | " + setup.inputDeviceName + " | " + setup.outputDeviceName;
+}
+
 int AudioEngine::inputLatency() const
 {
     auto* d = devices.getCurrentAudioDevice();
@@ -145,7 +161,7 @@ void AudioEngine::play()
 void AudioEngine::stop()
 {
     playing.store (false);
-    clickRemaining = 0;
+    clickReset.store (true);
 }
 
 void AudioEngine::setPosition (long samples)
@@ -180,10 +196,17 @@ bool AudioEngine::startRecording (const RecordRequest& request, juce::String& er
         error = "Un enregistrement est déjà en cours"_u8;
         return false;
     }
-    if (devices.getCurrentAudioDevice() == nullptr)
+    auto* device = devices.getCurrentAudioDevice();
+    if (device == nullptr)
     {
         error = "Aucune carte son : vérifie les paramètres audio"_u8;
         SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+    if (device->getActiveInputChannels().isZero())
+    {
+        error = "Aucune entrée micro active : choisis l'entrée (et ses canaux) dans Paramètres"_u8;
+        SV_LOG_ERROR (kMod, error + " (" + describeDevice() + ")");
         return false;
     }
 
@@ -220,22 +243,31 @@ bool AudioEngine::startRecording (const RecordRequest& request, juce::String& er
     {
         const juce::ScopedLock sl (writerLock);
         writer = std::make_unique<juce::AudioFormatWriter::ThreadedWriter> (w.release(), writerThread, 1 << 17);
+        // En-tête WAV réécrit environ chaque seconde (thread disque) : la prise reste lisible après un plantage.
+        writer->setFlushInterval (static_cast<int> (currentSampleRate.load()));
     }
 
     currentRequest = request;
+    currentRequest.recordStart = std::max (0L, request.recordStart);
+    recSampleRate = currentSampleRate.load();
+    recInputLatency = inputLatency();
+    recOutputLatency = outputLatency();
+    firstWrittenSet.store (false);
+    droppedSamples.store (0);
+    recordingSuspended.store (false);
     firstWritten.store (-1);
     writtenSamples.store (0);
     recPeak.store (0.0f);
     recClipped.store (false);
     writeOverflow.store (false);
-    recordStartPos.store (request.recordStart);
-    loopOn.store (false);
-    position.store (request.recordStart - std::max (0L, request.prerollSamples));
+    recordStartPos.store (currentRequest.recordStart);
+    loopWasOn = loopOn.exchange (false);
+    position.store (currentRequest.recordStart - std::max (0L, request.prerollSamples));
     recording.store (true);
     playing.store (true);
 
     SV_LOG_INFO (kMod, "Enregistrement démarré : "_u8 + request.file.getFileName() + ", départ "_u8
-                       + juce::String (request.recordStart / currentSampleRate.load(), 3) + " s, compte à rebours "_u8
+                       + juce::String (currentRequest.recordStart / currentSampleRate.load(), 3) + " s, compte à rebours "_u8
                        + juce::String (request.prerollSamples / currentSampleRate.load(), 2) + " s"
                        + (request.punch ? ", punch " + juce::String (request.punchIn / currentSampleRate.load(), 2) + "-"
                                               + juce::String (request.punchOut / currentSampleRate.load(), 2) + " s"
@@ -254,23 +286,57 @@ AudioEngine::RecordedTake AudioEngine::stopRecording()
     }
     recording.store (false);
     playing.store (false);
+    std::unique_ptr<juce::AudioFormatWriter::ThreadedWriter> closing;
     {
         const juce::ScopedLock sl (writerLock);
-        writer.reset();   // vide la file et ferme le fichier
+        closing = std::move (writer);
     }
+    closing.reset();   // vide la file et ferme le fichier, hors du verrou utilisé par le thread audio
+    loopOn.store (loopWasOn);
+    if (position.load() < 0)
+        position.store (0);   // arrêt pendant le compte à rebours au début du morceau
 
     take.file = currentRequest.file;
     take.firstWrittenPosition = firstWritten.load();
     take.numSamples = writtenSamples.load();
-    take.inputLatency = inputLatency();
-    take.outputLatency = outputLatency();
+    take.droppedSamples = droppedSamples.load();
+    take.sampleRate = recSampleRate;
+    take.inputLatency = recInputLatency;     // latences du matériel qui a réellement enregistré
+    take.outputLatency = recOutputLatency;
     take.clipped = recClipped.load();
     take.peakDb = gainToDb (recPeak.load());
-    take.ok = take.numSamples > 0 && take.firstWrittenPosition >= 0;
+    take.ok = take.numSamples > 0 && firstWrittenSet.load();
     if (! take.ok)
         take.error = "Prise vide (arrêtée pendant le compte à rebours ?)"_u8;
     if (writeOverflow.load())
         SV_LOG_ERROR (kMod, "Le disque n'a pas suivi : des échantillons ont pu être perdus dans "_u8 + take.file.getFileName());
+
+    if (take.ok)
+    {
+        juce::StringArray warnings;
+        const long onDisk = wavFileLength (take.file);
+        if (onDisk <= 0)
+        {
+            take.ok = false;
+            take.error = "Fichier de prise illisible après écriture (disque plein ?) : "_u8 + take.file.getFileName();
+            SV_LOG_ERROR (kMod, take.error);
+        }
+        else if (onDisk < take.numSamples)
+        {
+            warnings.add ("le disque n'a pas tout écrit ("_u8 + juce::String ((take.numSamples - onDisk) / recSampleRate, 2) + " s manquantes)");
+            take.numSamples = onDisk;
+        }
+        if (take.droppedSamples > 0)
+            warnings.add ("le disque n'a pas suivi : " + juce::String (juce::roundToInt (take.droppedSamples * 1000.0 / recSampleRate))
+                          + " ms perdues, un décalage est possible"_u8);
+        if (recordingSuspended.load())
+            warnings.add ("carte son arrêtée pendant la prise : prise coupée à cet instant"_u8);
+        if (take.peakDb < -60.0f)
+            warnings.add ("prise quasi silencieuse (crête "_u8 + juce::String (take.peakDb, 1) + " dBFS) : vérifie l'entrée micro dans Paramètres"_u8);
+        take.warning = warnings.joinIntoString (" ; ");
+        if (take.warning.isNotEmpty())
+            SV_LOG_WARN (kMod, "Prise à vérifier : "_u8 + take.warning);
+    }
 
     SV_LOG_INFO (kMod, "Enregistrement arrêté : "_u8 + juce::String (take.numSamples / currentSampleRate.load(), 2) + " s, crête "_u8
                        + juce::String (take.peakDb, 1) + " dBFS" + (take.clipped ? " (SATURATION détectée)"_u8 : juce::String())
@@ -347,6 +413,8 @@ int AudioEngine::finishCalibration (juce::String& report)
 
 void AudioEngine::renderClicks (float* const* out, int numOutputChannels, int numSamples, long blockStart, bool countdownOnly)
 {
+    if (clickReset.exchange (false))
+        clickRemaining = 0;
     const double sr = currentSampleRate.load();
     const double period = sr * 60.0 / bpm.load();
     const double first = firstBeat.load() * sr;
@@ -448,7 +516,8 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
 
     if (playing.load())
     {
-        long pos = position.load();
+        const long startPos = position.load();
+        long pos = startPos;
         const bool isRec = recording.load();
         int done = 0;
         while (done < numSamples)
@@ -494,7 +563,7 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
         }
 
         // Écriture de la prise (uniquement à partir du point de départ, après le compte à rebours).
-        if (isRec)
+        if (isRec && ! recordingSuspended.load())
         {
             const long blockStart = pos - numSamples;   // pas de boucle pendant l'enregistrement
             const long recStart = recordStartPos.load();
@@ -506,11 +575,20 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
                 if (writer != nullptr)
                 {
                     const float* chans[1] = { mono + offset };
-                    if (! writer->write (chans, count))
-                        writeOverflow.store (true);
-                    if (firstWritten.load() < 0)
-                        firstWritten.store (blockStart + offset);
-                    writtenSamples.store (writtenSamples.load() + count);
+                    if (writer->write (chans, count))
+                    {
+                        if (! firstWrittenSet.load())
+                        {
+                            firstWritten.store (blockStart + offset);
+                            firstWrittenSet.store (true);
+                        }
+                        writtenSamples.store (writtenSamples.load() + count);
+                    }
+                    else
+                    {
+                        writeOverflow.store (true);   // file pleine : bloc perdu, compté à part
+                        droppedSamples.store (droppedSamples.load() + count);
+                    }
                     if (peak > recPeak.load())
                         recPeak.store (peak);
                     if (peak >= 0.98f)
@@ -518,7 +596,9 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
                 }
             }
         }
-        position.store (pos);
+        // Un déplacement demandé par l'UI pendant ce bloc (saut, départ du compte à rebours) est conservé.
+        long expected = startPos;
+        position.compare_exchange_strong (expected, pos);
     }
 
     // Écoute logicielle (désactivée par défaut : retour direct par le micro).
@@ -548,7 +628,13 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
 
 void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
-    currentSampleRate.store (device->getCurrentSampleRate());
+    const double newRate = device->getCurrentSampleRate();
+    const double oldRate = currentSampleRate.exchange (newRate);
+    if (std::abs (oldRate - newRate) > 1.0 && onSampleRateChanged)
+    {
+        auto cb = onSampleRateChanged;
+        juce::MessageManager::callAsync ([cb, oldRate, newRate] { cb (oldRate, newRate); });
+    }
     inputScratch.assign (static_cast<size_t> (std::max (16384, device->getCurrentBufferSizeSamples() * 4)), 0.0f);
     SV_LOG_INFO (kMod, "Carte son démarrée : "_u8 + device->getName() + ", " + juce::String (device->getCurrentSampleRate(), 0)
                        + " Hz, tampon " + juce::String (device->getCurrentBufferSizeSamples()));
@@ -559,7 +645,20 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 
 void AudioEngine::audioDeviceStopped()
 {
-    juce::MessageManager::callAsync ([] { SV_LOG_INFO (kMod, "Carte son arrêtée"_u8); });
+    const bool wasRecording = recording.load();
+    if (wasRecording)
+        recordingSuspended.store (true);   // ne rien écrire venant d'une autre carte rouverte entre-temps
+    auto cb = wasRecording ? onDeviceLostWhileRecording : std::function<void()>();
+    juce::MessageManager::callAsync ([wasRecording, cb]
+    {
+        SV_LOG_INFO (kMod, "Carte son arrêtée"_u8);
+        if (wasRecording)
+        {
+            SV_LOG_ERROR (kMod, "Carte son arrêtée pendant l'enregistrement : prise arrêtée"_u8);
+            if (cb)
+                cb();
+        }
+    });
 }
 
 void AudioEngine::audioDeviceError (const juce::String& errorMessage)

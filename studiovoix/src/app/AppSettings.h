@@ -19,8 +19,12 @@ public:
     void setAudioDeviceState (const juce::XmlElement* xml);
     int manualLatencyOffsetMs() const;          // ajouté au recalage (peut être négatif)
     void setManualLatencyOffsetMs (int ms);
-    int calibratedOffsetSamples() const;        // mesuré par le calibrage, 0 sinon
-    void setCalibratedOffsetSamples (int s);
+    /** Calibrage : retard mesuré au-delà des latences annoncées par le pilote (ms), valable pour un matériel donné. */
+    bool hasCalibration() const;
+    double calibrationResidualMs() const;
+    juce::String calibrationDeviceKey() const;
+    void setCalibration (double residualMs, const juce::String& deviceKey);
+    void clearCalibration();
     int inputChannelMode() const;               // 0 = auto (moyenne), 1 = entrée 1, 2 = entrée 2
     void setInputChannelMode (int m);
     float inputTrimDb() const;

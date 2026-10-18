@@ -65,7 +65,7 @@ public:
         instruPrompt.setMultiLine (true, true);
         instruPrompt.setTextToShowWhenEmpty ("Description de l'instru (en anglais de préférence), ou clique sur « Décrire l'instru d'après mes paroles »"_u8,
                                              juce::Colours::grey);
-        lengthL.setText ("Durée", juce::dontSendNotification);
+        lengthL.setText ("Durée"_u8, juce::dontSendNotification);
         length.setRange (30.0, 300.0, 10.0);
         length.setValue (120.0);
         length.setTextValueSuffix (" s");
@@ -191,7 +191,7 @@ AiPanel::AiPanel (Session& s) : session (s), content (std::make_unique<Content>(
             auto w = std::make_shared<ai::WritingResult> (ai::helpWrite (settings, request, *p));
             return std::function<void()> ([this, w]
             {
-                content->writeResult.setText (w->ok ? w->lyrics + (w->notes.isNotEmpty() ? "\n\n— Conseils : " + w->notes : juce::String()) : w->error, false);
+                content->writeResult.setText (w->ok ? w->lyrics + (w->notes.isNotEmpty() ? "\n\n— Conseils : "_u8 + w->notes : juce::String()) : w->error, false);
             });
         });
     };
@@ -288,8 +288,8 @@ AiPanel::AiPanel (Session& s) : session (s), content (std::make_unique<Content>(
             const int n = lib->scan (folder);
             return std::function<void()> ([this, lib, n]
             {
-                content->instruResult.setText (juce::String ((int) lib->beats.size()) + " instrus dans la bibliothèque (" + juce::String (n)
-                                                   + " nouvellement analysées)", false);
+                content->instruResult.setText (juce::String ((int) lib->beats.size()) + " instrus dans la bibliothèque ("_u8 + juce::String (n)
+                                                   + " nouvellement analysées)"_u8, false);
             });
         });
     };
@@ -325,12 +325,12 @@ AiPanel::AiPanel (Session& s) : session (s), content (std::make_unique<Content>(
                     if (id > 10)
                         break;
                     content->lastResults.push_back (b);
-                    content->beatResults.addItem (juce::String (juce::roundToInt (score * 100)) + " % — " + juce::File (b.path).getFileNameWithoutExtension()
+                    content->beatResults.addItem (juce::String (juce::roundToInt (score * 100)) + " % — "_u8 + juce::File (b.path).getFileNameWithoutExtension()
                                                       + " (" + juce::String (b.bpm, 0) + " BPM, " + b.key.toFrench() + ")", id++);
                 }
                 if (! content->lastResults.empty())
                     content->beatResults.setSelectedId (1, juce::dontSendNotification);
-                content->instruResult.setText ("Critères : " + juce::String (brief->bpmMin, 0) + "-" + juce::String (brief->bpmMax, 0) + " BPM, énergie "_u8
+                content->instruResult.setText ("Critères : "_u8 + juce::String (brief->bpmMin, 0) + "-" + juce::String (brief->bpmMax, 0) + " BPM, énergie "_u8
                                                    + juce::String (brief->energy, 2) + (brief->minor ? ", mineur" : ", majeur") + "\n" + brief->explanation
                                                    + (ranked->empty() ? "\nAucune instru trouvée dans le dossier."_u8 : juce::String()),
                                                false);
@@ -426,7 +426,7 @@ void AiPanel::runAsync (const juce::String& what, std::function<std::function<vo
     if (busy)
         return;
     setBusy (true, what);
-    SV_LOG_INFO (kMod, "Tâche IA : " + what);
+    SV_LOG_INFO (kMod, "Tâche IA : "_u8 + what);
     juce::Component::SafePointer<AiPanel> safe (this);
     juce::Thread::launch ([safe, job, what]
     {
@@ -437,7 +437,7 @@ void AiPanel::runAsync (const juce::String& what, std::function<std::function<vo
         }
         catch (const std::exception& e)
         {
-            const juce::String msg = juce::String ("Erreur pendant « ") + what + " » : " + e.what();
+            const juce::String msg = juce::String ("Erreur pendant « "_u8) + what + " » : "_u8 + e.what();
             done = [msg] { SV_LOG_ERROR (kMod, msg); };
         }
         juce::MessageManager::callAsync ([safe, done, what]

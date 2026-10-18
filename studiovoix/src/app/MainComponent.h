@@ -35,7 +35,8 @@ private:
     void doImportInstru();
     void doImportVoice();
     void doRecord();
-    void openProjectWithRecovery (const juce::File& folder);
+    /** atStartup : en cas d'échec, un projet vide est créé (sinon le projet courant est conservé). */
+    void openProjectWithRecovery (const juce::File& folder, bool atStartup = false);
     void createDefaultProject();
     void showMessage (const juce::String& title, const juce::String& text);
     void startSelfTest (const juce::StringArray& args);

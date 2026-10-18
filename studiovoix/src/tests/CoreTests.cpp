@@ -287,7 +287,7 @@ public:
             dsp::compress (x, kSr, c);
             const float early = gainToDb (audio::rms (x.data() + static_cast<size_t> (0.6 * kSr), static_cast<size_t> (0.1 * kSr)));
             const float late = gainToDb (audio::rms (x.data() + static_cast<size_t> (3.0 * kSr), static_cast<size_t> (0.4 * kSr)));
-            logMessage ("niveau après compression : début " + juce::String (early, 2) + " dB, fin " + juce::String (late, 2) + " dB (attendu -15)");
+            logMessage ("niveau après compression : début "_u8 + juce::String (early, 2) + " dB, fin " + juce::String (late, 2) + " dB (attendu -15)");
             expectWithinAbsoluteError (late, -15.0f, 0.7f);
             expect (std::abs (early - late) < 1.5f, "pas de dérive ni de surplus à l'attaque"_u8);
         }
@@ -785,6 +785,9 @@ public:
             p.addTrack (style::Role::Lead, "Voix");
             const auto d = ai::diagnoseMixLocal (p, {}, 0.0f);
             expect (d.ok && d.text.contains ("instru"));
+            // Accents intacts : un texte UTF-8 lu comme ASCII donnerait "Ã©" au lieu de "é".
+            expect (d.text.contains ("Diagnostic (local) :\n•"_u8) && ! d.text.containsChar (0xC3), "accents du diagnostic : " + d.text.substring (0, 80));
+            expect (! ai::describeHttpError (401, {}).containsChar (0xC3), "accents des erreurs HTTP");
             const auto b = ai::briefFromStyle (style::Style::Trap);
             expect (b.bpmMin >= 120.0 && b.bpmMax <= 160.0 && b.prompt.isNotEmpty());
         }

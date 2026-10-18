@@ -15,7 +15,7 @@ SettingsDialog::SettingsDialog (Session& s)
 {
     for (auto* c : std::initializer_list<juce::Component*> { &deviceSelector, &latencyInfo, &offsetL, &calibResult, &levelResult, &inputL, &trimL,
                                                              &countL, &aiTitle, &aiInfo, &textKeyL, &modelL, &musicKeyL, &offset, &trim,
-                                                             &calibrate, &levelTest, &openLogs, &closeBtn, &monitoring, &propose, &aiEnabled,
+                                                             &calibrate, &resetCalib, &levelTest, &openLogs, &closeBtn, &monitoring, &propose, &aiEnabled,
                                                              &inputMode, &textKey, &model, &musicKey })
         addAndMakeVisible (*c);
 
@@ -33,10 +33,13 @@ SettingsDialog::SettingsDialog (Session& s)
     offset.setTooltip ("Positif : la prise est avancée davantage. À utiliser si ta voix tombe un peu en retard ou en avance."_u8);
     offset.onValueChange = [this] { session.settings().setManualLatencyOffsetMs (static_cast<int> (offset.getValue())); };
 
-    const int cal = st.calibratedOffsetSamples();
-    calibResult.setText (cal > 0 ? "Calibrage enregistré : "_u8 + juce::String (cal * 1000.0 / session.deviceRate(), 1) + " ms (remplace la valeur du pilote)"
-                                 : juce::String ("Pas de calibrage : la latence annoncée par le pilote est utilisée."_u8),
-                         juce::dontSendNotification);
+    refreshCalibrationText();
+    resetCalib.setTooltip ("Oublie le calibrage : seules les latences annoncées par le pilote sont utilisées."_u8);
+    resetCalib.onClick = [this]
+    {
+        session.settings().clearCalibration();
+        refreshCalibrationText();
+    };
     calibrate.setTooltip ("Pose le casque contre le micro, volume moyen, puis clique : 5 clics sont joués et mesurés."_u8);
     calibrate.onClick = [this]
     {
@@ -129,6 +132,19 @@ SettingsDialog::~SettingsDialog()
     SV_LOG_INFO (kMod, "Paramètres fermés : "_u8 + session.engine().describeDevice());
 }
 
+void SettingsDialog::refreshCalibrationText()
+{
+    const auto& st = session.settings();
+    juce::String text;
+    if (! st.hasCalibration())
+        text = "Pas de calibrage : la latence annoncée par le pilote est utilisée."_u8;
+    else if (st.calibrationDeviceKey() != session.engine().deviceKey())
+        text = "Calibrage fait pour un autre matériel : ignoré. Refais-le avec la carte actuelle."_u8;
+    else
+        text = "Calibrage actif : "_u8 + juce::String (st.calibrationResidualMs(), 1) + " ms ajoutées aux latences du pilote."_u8;
+    calibResult.setText (text, juce::dontSendNotification);
+}
+
 void SettingsDialog::refreshLatency()
 {
     latencyInfo.setText (session.engine().describeDevice()
@@ -149,8 +165,11 @@ void SettingsDialog::timerCallback()
         const int off = e.finishCalibration (report);
         if (off > 0)
         {
-            session.settings().setCalibratedOffsetSamples (off);
-            report << "\nCalibrage enregistré."_u8;
+            // On garde seulement l'écart que le pilote n'annonce pas : il reste valable si le tampon change.
+            const double sr = e.sampleRate();
+            const double residualMs = (off - (e.inputLatency() + e.outputLatency())) * 1000.0 / sr;
+            session.settings().setCalibration (residualMs, e.deviceKey());
+            report << "\nCalibrage enregistré pour ce matériel ("_u8 << juce::String (residualMs, 1) << " ms au-delà du pilote)."_u8;
         }
         calibResult.setText (report, juce::dontSendNotification);
         calibrate.setEnabled (true);
@@ -191,7 +210,9 @@ void SettingsDialog::resized()
     offsetL.setBounds (a.removeFromLeft (220));
     offset.setBounds (a);
     a = row (28);
-    calibrate.setBounds (a.removeFromLeft (200));
+    calibrate.setBounds (a.removeFromLeft (170));
+    a.removeFromLeft (6);
+    resetCalib.setBounds (a.removeFromLeft (110));
     a.removeFromLeft (8);
     calibResult.setBounds (a.withHeight (40));
     r.removeFromTop (14);

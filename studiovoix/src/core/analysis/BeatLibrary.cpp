@@ -128,7 +128,7 @@ int BeatLibrary::scan (const juce::File& folder, const ProgressFn& progress)
             }
             else
             {
-                SV_LOG_WARN (kMod, "Beat ignoré (" + f.getFileName() + ") : " + err);
+                SV_LOG_WARN (kMod, "Beat ignoré ("_u8 + f.getFileName() + ") : " + err);
             }
         }
         if (progress && ! progress (static_cast<float> (i + 1) / static_cast<float> (files.size())))
@@ -136,7 +136,7 @@ int BeatLibrary::scan (const juce::File& folder, const ProgressFn& progress)
     }
     beats = std::move (result);
     saveCache (folder);
-    SV_LOG_INFO (kMod, juce::String ((int) beats.size()) + " beats dans la bibliothèque (" + juce::String (analysed) + " nouvellement analysés)");
+    SV_LOG_INFO (kMod, juce::String ((int) beats.size()) + " beats dans la bibliothèque ("_u8 + juce::String (analysed) + " nouvellement analysés)"_u8);
     return analysed;
 }
 

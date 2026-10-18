@@ -25,7 +25,9 @@ private:
     juce::AudioDeviceSelectorComponent deviceSelector;
     juce::Label latencyInfo, offsetL, calibResult, levelResult, inputL, trimL, countL, aiTitle, aiInfo, textKeyL, modelL, musicKeyL;
     juce::Slider offset, trim;
-    juce::TextButton calibrate { "Calibrer la latence" }, levelTest { "Test du niveau du micro (5 s)" }, openLogs { "Ouvrir le dossier des journaux" },
+    void refreshCalibrationText();
+
+    juce::TextButton calibrate { "Calibrer la latence" }, resetCalib { juce::String (juce::CharPointer_UTF8 ("Réinitialiser")) }, levelTest { "Test du niveau du micro (5 s)" }, openLogs { "Ouvrir le dossier des journaux" },
         closeBtn { "Fermer" };
     juce::ToggleButton monitoring { "M'entendre à travers le logiciel (sinon : retour direct du micro, 0 ms)"_u8 },
         propose { "Proposer la génération des backs après chaque prise"_u8 }, aiEnabled { "Activer l'IA connectée (facultatif)"_u8 };

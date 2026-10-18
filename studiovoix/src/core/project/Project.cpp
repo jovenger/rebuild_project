@@ -36,11 +36,29 @@ namespace
             error = "Dossier impossible à créer : "_u8 + dir.getErrorMessage();
             return false;
         }
-        // Écriture atomique : fichier temporaire puis remplacement.
+        // Écriture atomique : fichier temporaire vérifié (disque plein, erreur d'écriture), puis remplacement.
         juce::TemporaryFile tmp (file);
-        if (! tmp.getFile().replaceWithText (juce::JSON::toString (v, false)))
+        const auto text = juce::JSON::toString (v, false);
         {
-            error = "Écriture impossible : "_u8 + tmp.getFile().getFullPathName();
+            juce::FileOutputStream out (tmp.getFile());
+            if (out.failedToOpen())
+            {
+                error = "Écriture impossible : "_u8 + tmp.getFile().getFullPathName() + " (" + out.getStatus().getErrorMessage() + ")";
+                return false;
+            }
+            const bool written = out.writeText (text, false, false, nullptr);
+            out.flush();
+            if (! written || out.getStatus().failed())
+            {
+                error = "Écriture incomplète (disque plein ?) : "_u8 + tmp.getFile().getFullPathName() + " " + out.getStatus().getErrorMessage();
+                return false;
+            }
+        }
+        const auto expected = static_cast<juce::int64> (text.getNumBytesAsUTF8());
+        if (tmp.getFile().getSize() != expected)
+        {
+            error = "Fichier écrit tronqué ("_u8 + juce::String (tmp.getFile().getSize()) + "/" + juce::String (expected) + " octets) : "
+                    + file.getFullPathName();
             return false;
         }
         if (! tmp.overwriteTargetFileWithTemporary())

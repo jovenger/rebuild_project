@@ -51,6 +51,9 @@ public:
         int outputLatency = 0;
         bool clipped = false;
         float peakDb = -120.0f;
+        double sampleRate = kProjectSampleRate;   // fréquence de la carte pendant la prise (celle du WAV)
+        long droppedSamples = 0;                  // perdus faute de place dans la file d'écriture disque
+        juce::String warning;                     // prise gardée mais à vérifier (disque, silence, carte perdue)
         RecordRequest request;
     };
 
@@ -62,6 +65,14 @@ public:
     /** Ouvre la carte son : WASAPI exclusif en priorité sous Windows, puis repli. Retourne un message d'erreur ou vide. */
     juce::String openDevice (const juce::XmlElement* savedState);
     juce::String describeDevice() const;
+    /** Identifiant du matériel courant (type | entrée | sortie) auquel le calibrage est rattaché. */
+    juce::String deviceKey() const;
+    /** Longueur réelle (échantillons) d'un WAV, -1 s'il est illisible. */
+    static long wavFileLength (const juce::File& file);
+
+    /** Appelés sur le thread UI (fixés une fois par la session). */
+    std::function<void()> onDeviceLostWhileRecording;
+    std::function<void (double oldRate, double newRate)> onSampleRateChanged;
     double sampleRate() const { return currentSampleRate.load(); }
     int inputLatency() const;
     int outputLatency() const;
@@ -143,9 +154,16 @@ private:
     std::atomic<float> recPeak { 0.0f };
     std::atomic<bool> recClipped { false };
     std::atomic<bool> writeOverflow { false };
+    std::atomic<bool> firstWrittenSet { false };
+    std::atomic<long> droppedSamples { 0 };
+    std::atomic<bool> recordingSuspended { false };   // carte arrêtée pendant la prise : plus rien n'est écrit
     RecordRequest currentRequest;
+    bool loopWasOn = false;
+    double recSampleRate = kProjectSampleRate;
+    int recInputLatency = 0, recOutputLatency = 0;
 
     // Clics
+    std::atomic<bool> clickReset { false };   // demandé par l'UI, appliqué par le thread audio
     int clickRemaining = 0;
     double clickPhase = 0.0;
     double clickFreq = 1500.0;

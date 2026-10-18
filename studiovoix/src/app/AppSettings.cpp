@@ -41,8 +41,25 @@ void AppSettings::setAudioDeviceState (const juce::XmlElement* xml)
 
 int AppSettings::manualLatencyOffsetMs() const { return juce::jlimit (-200, 200, file->getIntValue ("latencyOffsetMs", 0)); }
 void AppSettings::setManualLatencyOffsetMs (int ms) { file->setValue ("latencyOffsetMs", juce::jlimit (-200, 200, ms)); }
-int AppSettings::calibratedOffsetSamples() const { return juce::jlimit (-48000, 48000, file->getIntValue ("calibratedOffset", 0)); }
-void AppSettings::setCalibratedOffsetSamples (int s) { file->setValue ("calibratedOffset", s); }
+bool AppSettings::hasCalibration() const { return file->containsKey ("calibResidualMs") && file->getValue ("calibDeviceKey").isNotEmpty(); }
+double AppSettings::calibrationResidualMs() const { return juce::jlimit (-200.0, 200.0, file->getDoubleValue ("calibResidualMs", 0.0)); }
+juce::String AppSettings::calibrationDeviceKey() const { return file->getValue ("calibDeviceKey"); }
+
+void AppSettings::setCalibration (double residualMs, const juce::String& deviceKey)
+{
+    file->setValue ("calibResidualMs", juce::jlimit (-200.0, 200.0, residualMs));
+    file->setValue ("calibDeviceKey", deviceKey);
+    file->removeValue ("calibratedOffset");   // ancien format (échantillons, sans matériel associé)
+    SV_LOG_INFO (kMod, "Calibrage enregistré : "_u8 + juce::String (residualMs, 1) + " ms au-delà du pilote pour " + deviceKey);
+}
+
+void AppSettings::clearCalibration()
+{
+    file->removeValue ("calibResidualMs");
+    file->removeValue ("calibDeviceKey");
+    file->removeValue ("calibratedOffset");
+    SV_LOG_INFO (kMod, "Calibrage réinitialisé : latences du pilote seules"_u8);
+}
 int AppSettings::inputChannelMode() const { return juce::jlimit (0, 2, file->getIntValue ("inputChannelMode", 0)); }
 void AppSettings::setInputChannelMode (int m) { file->setValue ("inputChannelMode", juce::jlimit (0, 2, m)); }
 float AppSettings::inputTrimDb() const { return static_cast<float> (juce::jlimit (-24.0, 24.0, file->getDoubleValue ("inputTrimDb", 0.0))); }

@@ -41,7 +41,15 @@ MainComponent::MainComponent (Session& s)
     transport.onImportInstru = [this] { doImportInstru(); };
     transport.onImportVoice = [this] { doImportVoice(); };
     transport.onExport = [this] { ExportDialog::show (session); };
-    transport.onSettings = [this] { SettingsDialog::show (session); };
+    transport.onSettings = [this]
+    {
+        if (session.isRecording())
+        {
+            session.setStatus ("Paramètres indisponibles pendant l'enregistrement : arrête la prise d'abord"_u8);
+            return;
+        }
+        SettingsDialog::show (session);
+    };
     transport.onRecord = [this] { doRecord(); };
     transport.onLoopToggled = [this]
     {
@@ -89,12 +97,12 @@ void MainComponent::startup (const juce::String& commandLine)
     const juce::File arg (commandLine.unquoted().trim());
     if (commandLine.isNotEmpty() && arg.exists())
     {
-        openProjectWithRecovery (arg);
+        openProjectWithRecovery (arg, true);
         return;
     }
     const auto last = session.settings().lastProject();
     if (last.isDirectory() && last.getChildFile ("projet.svx").existsAsFile())
-        openProjectWithRecovery (last);
+        openProjectWithRecovery (last, true);
     else
         createDefaultProject();
     grabKeyboardFocus();
@@ -200,7 +208,7 @@ namespace
                 case 4:
                     if (! idle())
                         return;
-                    if (countGenerated() != 0) { fail ("annuler n'a pas retiré les pistes générées"); return; }
+                    if (countGenerated() != 0) { fail ("annuler n'a pas retiré les pistes générées"_u8); return; }
                     log ("étape 4 : annuler OK"_u8);
                     session.redo();
                     next();
@@ -233,6 +241,62 @@ namespace
                     if (! exportOk) { fail ("export : " + exportInfo); return; }
                     log ("étape 6 : export OK — "_u8 + exportInfo);
                     if (! session.save (err)) { fail ("sauvegarde : " + err); return; }
+                    // Étapes 7-9 : une prise annulée pendant son traitement ne doit pas revenir.
+                    backTrackId = session.addVocalTrack (style::Role::ManualBack, "Autotest back");
+                    session.importVoice (voice, backTrackId);
+                    next();
+                    break;
+                case 7:
+                    if (session.trackStatus (backTrackId).startsWith ("Traitement"))
+                    {
+                        session.undo();   // annule l'import pendant le rendu
+                        log ("étape 7 : annuler pendant le traitement de la prise"_u8);
+                        next();
+                    }
+                    else if (idle() && session.renderFor (backTrackId) != nullptr)
+                    {
+                        log ("étape 7 : rendu terminé avant l'annulation (fenêtre manquée), annulation quand même"_u8);
+                        session.undo();
+                        next();
+                    }
+                    break;
+                case 8:
+                    if (! idle())
+                        return;
+                    if (const auto* t = session.project().findTrack (backTrackId); t == nullptr || ! t->takes.empty())
+                    {
+                        fail ("annuler n'a pas retiré la prise de la piste de test"_u8);
+                        return;
+                    }
+                    if (session.renderFor (backTrackId) != nullptr)
+                    {
+                        fail ("la prise annulée est revenue (rendu périmé appliqué)"_u8);
+                        return;
+                    }
+                    log ("étape 8 : prise annulée pendant son traitement : bien absente"_u8);
+                    // Étapes 9-10 : rouvrir le projet pendant des calculs ne doit pas bloquer l'état « occupé ».
+                    session.renderAll();
+                    next();
+                    break;
+                case 9:
+                    if (! session.isBusy())
+                        return;
+                    {
+                        int running = 0;
+                        for (const auto& t : session.project().tracks)
+                            running += session.trackStatus (t.id).startsWith ("Traitement") ? 1 : 0;
+                        if (running == 0)
+                            return;
+                        const auto folder = session.project().folder;
+                        if (! session.openProject (folder, false, err)) { fail ("réouverture : " + err); return; }
+                        log ("étape 9 : projet rouvert pendant "_u8 + juce::String (running) + " rendu(s) en cours");
+                    }
+                    next();
+                    break;
+                case 10:
+                    if (! idle() || ! allRendered())
+                        return;
+                    log ("étape 10 : après réouverture, tous les rendus terminés (pas de blocage)"_u8);
                     stopTimer();
                     SV_LOG_INFO ("AUTOTEST", "RÉUSSI"_u8);
                     juce::JUCEApplication::getInstance()->setApplicationReturnValue (0);
@@ -247,7 +311,7 @@ namespace
         juce::File instru, voice;
         int step = 0;
         juce::int64 stepStart = 0;
-        int generated = 0, tracksAfterGen = 0;
+        int generated = 0, tracksAfterGen = 0, backTrackId = -1;
         bool exportDone = false, exportOk = false;
         juce::String exportInfo;
     };
@@ -270,8 +334,17 @@ void MainComponent::createDefaultProject()
         showMessage ("Création du projet impossible"_u8, err);
 }
 
-void MainComponent::openProjectWithRecovery (const juce::File& folder)
+void MainComponent::openProjectWithRecovery (const juce::File& folder, bool atStartup)
 {
+    if (! folder.isDirectory() && folder.getFileName() != "projet.svx")
+    {
+        showMessage ("Ouverture impossible",
+                     "Choisis le fichier projet.svx d'un dossier de projet. Les anciennes versions (dossier historique) "
+                     "se restaurent depuis l'onglet Mix & Master."_u8);
+        if (atStartup)
+            createDefaultProject();
+        return;
+    }
     const auto dir = folder.isDirectory() ? folder : folder.getParentDirectory();
     if (project::Project::hasNewerAutosave (dir))
     {
@@ -281,7 +354,7 @@ void MainComponent::openProjectWithRecovery (const juce::File& folder)
                                           .withMessage ("Une sauvegarde automatique plus récente existe (fermeture inattendue ?). La restaurer ?"_u8)
                                           .withButton ("Restaurer")
                                           .withButton ("Ouvrir la version enregistrée"_u8),
-                                      [safe, dir] (int r)
+                                      [safe, dir, atStartup] (int r)
                                       {
                                           if (safe == nullptr)
                                               return;
@@ -289,7 +362,8 @@ void MainComponent::openProjectWithRecovery (const juce::File& folder)
                                           if (! safe->session.openProject (dir, r == 1, err))
                                           {
                                               safe->showMessage ("Ouverture impossible", err);
-                                              safe->createDefaultProject();
+                                              if (atStartup)
+                                                  safe->createDefaultProject();   // sinon le projet courant reste ouvert
                                           }
                                       });
         return;
@@ -298,7 +372,8 @@ void MainComponent::openProjectWithRecovery (const juce::File& folder)
     if (! session.openProject (dir, false, err))
     {
         showMessage ("Ouverture impossible", err);
-        createDefaultProject();
+        if (atStartup)
+            createDefaultProject();   // sinon le projet courant reste ouvert
     }
 }
 

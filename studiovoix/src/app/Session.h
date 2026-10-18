@@ -104,6 +104,13 @@ private:
     void startGeneration (int leadTrackId, const gen::GenerationOptions& options);
     void refreshContext();
     void afterProjectLoaded();
+    /** Avant de remplacer le projet : termine une prise, sauvegarde auto, ignore les tâches de l'ancien projet. */
+    void beforeProjectChange();
+    /** Ajoute une prise terminée (ou récupérée après plantage) à sa piste ; false si elle n'a pas pu l'être. */
+    bool addRecordedTake (const AudioEngine::RecordedTake& take, int trackId, const juce::String& deviceKey, bool recovered);
+    /** Prises interrompues (plantage, coupure) retrouvées grâce à leur fichier de description. */
+    void recoverInterruptedTakes();
+    void handleSampleRateChange (double oldRate, double newRate);
     long toDevice (long projectSamples) const;
     long toProject (long deviceSamples) const;
 
@@ -140,6 +147,29 @@ private:
     };
     std::deque<MemoRender> renderMemo;
     std::map<int, int> storedGeneration;   // génération du rendu actuellement dans renders
+
+    int epoch = 0;                        // change avec le projet : les résultats des anciennes tâches sont ignorés
+    int instruAnalysisGeneration = 0;     // seule la dernière analyse d'instru demandée est appliquée
+    juce::String contextRefPath;          // fichier dont le spectre de référence est dans context
+
+    // Enregistrement en cours
+    int recordingTrackId = -1;
+    juce::String recordingDeviceKey;
+    juce::File recordingSidecar;          // description de la prise (récupération après plantage)
+
+    // Boucle (en secondes, réappliquée si la fréquence de la carte change)
+    bool loopEnabled = false;
+    double loopStartSec = 0.0, loopEndSec = 0.0;
+
+    // Lecture : instru avec creux (partagé, sans copie) et tampons rééchantillonnés à la fréquence de la carte
+    std::shared_ptr<const Stereo> duckedInstruShared;
+    struct ResampledBuffer
+    {
+        std::weak_ptr<const Stereo> source;
+        double rate = 0.0;
+        std::shared_ptr<const Stereo> buffer;
+    };
+    std::map<const Stereo*, ResampledBuffer> resampleCache;
 
     juce::ThreadPool pool;   // déclaré en dernier : détruit en premier (attend les tâches)
 

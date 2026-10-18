@@ -73,14 +73,14 @@ namespace
         return ids;
     }
 
-    const char* kSystemEngineer =
-        "Tu es l'ingénieur du son intégré au logiciel StudioVoix (enregistrement de voix sur instru : rap, trap, pop urbaine, "
-        "R&B, drill, afro, rock, latino). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "
-        "0,5 = réglage de base du style. autotune : 0 = aucun, 0,5 = style, 1 = effet robot. presence : 0 = voix chaude/sombre, "
-        "1 = voix brillante et devant. space : quantité de réverb + délai (0 = sec). energy : compression + saturation. "
-        "level : volume de la piste (0,5 = normal, ±12 dB). reverbTrim / delayTrim : ajustement fin de la réverb ou du délai seuls "
-        "(0,5 = neutre). timingStrength : recalage rythmique des syllabes (0 = désactivé). Fais des changements mesurés "
-        "(en général ±0,05 à ±0,3) sauf demande explicite. Réponds en français, simplement, sans jargon inutile.";
+    const juce::String kSystemEngineer =
+        "Tu es l'ingénieur du son intégré au logiciel StudioVoix (enregistrement de voix sur instru : rap, trap, pop urbaine, "_u8
+        "R&B, drill, afro, rock, latino). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "_u8
+        "0,5 = réglage de base du style. autotune : 0 = aucun, 0,5 = style, 1 = effet robot. presence : 0 = voix chaude/sombre, "_u8
+        "1 = voix brillante et devant. space : quantité de réverb + délai (0 = sec). energy : compression + saturation. "_u8
+        "level : volume de la piste (0,5 = normal, ±12 dB). reverbTrim / delayTrim : ajustement fin de la réverb ou du délai seuls "_u8
+        "(0,5 = neutre). timingStrength : recalage rythmique des syllabes (0 = désactivé). Fais des changements mesurés "_u8
+        "(en général ±0,05 à ±0,3) sauf demande explicite. Réponds en français, simplement, sans jargon inutile."_u8;
 }
 
 juce::String describeProjectForAi (const project::Project& p, const render::RenderSet& renders, float vocalAutoGainDb)
@@ -111,7 +111,7 @@ juce::String describeProjectForAi (const project::Project& p, const render::Rend
             s << " | sonie " << juce::String (lufs, 1) << " LUFS";
             if (t.isVocal())
             {
-                s << ", justesse corrigée en moyenne " << juce::String (juce::roundToInt (r.report.meanCorrectionCents)) << " cents, compression "
+                s << ", justesse corrigée en moyenne "_u8 << juce::String (juce::roundToInt (r.report.meanCorrectionCents)) << " cents, compression "
                   << juce::String (r.report.compGrDb, 1) << " dB, de-esser " << juce::String (r.report.deEssGrDb, 1) << " dB";
                 // Spectre en 5 zones (graves, bas-médiums, médiums, présence, air).
                 const auto spec = analysis::averageSpectrum (audio::toMono (r.processed), p.sampleRate);
@@ -130,8 +130,8 @@ juce::String describeProjectForAi (const project::Project& p, const render::Rend
                         return c > 0 ? 10.0 * std::log10 (e / c) : -120.0;
                     };
                     const double ref = zone (500, 2000);
-                    s << ", spectre relatif aux médiums : graves " << juce::String (zone (60, 250) - ref, 1) << " dB, bas-médiums "
-                      << juce::String (zone (250, 500) - ref, 1) << " dB, présence " << juce::String (zone (2000, 6000) - ref, 1)
+                    s << ", spectre relatif aux médiums : graves "_u8 << juce::String (zone (60, 250) - ref, 1) << " dB, bas-médiums "_u8
+                      << juce::String (zone (250, 500) - ref, 1) << " dB, présence "_u8 << juce::String (zone (2000, 6000) - ref, 1)
                       << " dB, air " << juce::String (zone (6000, 16000) - ref, 1) << " dB";
                 }
             }
@@ -172,7 +172,7 @@ MacroAdvice adviseMacros (const AiSettings& s, const juce::String& request, cons
     rq.effort = "low";
     rq.maxTokens = 4000;
     rq.system = kSystemEngineer;
-    rq.user = "Projet :\n" + projectSummary + "\nPiste concernée : #" + juce::String (trackId) + " " + t->name + "\nCurseurs actuels : autotune "
+    rq.user = "Projet :\n" + projectSummary + "\nPiste concernée : #"_u8 + juce::String (trackId) + " " + t->name + "\nCurseurs actuels : autotune "
             + juce::String (t->macros.autotune, 2) + ", presence " + juce::String (t->macros.presence, 2) + ", space "
             + juce::String (t->macros.space, 2) + ", energy " + juce::String (t->macros.energy, 2) + ", level " + juce::String (t->macros.level, 2)
             + ", reverbTrim " + juce::String (t->macros.reverbTrim, 2) + ", delayTrim " + juce::String (t->macros.delayTrim, 2)
@@ -191,7 +191,7 @@ MacroAdvice adviseMacros (const AiSettings& s, const juce::String& request, cons
         a.macros = local.macros;
         a.error = res.error;
         a.explanation = "IA indisponible (" + res.error + ")"
-                      + (local.understood ? " — assistant local : " + local.changes.joinIntoString (", ") : juce::String());
+                      + (local.understood ? " — assistant local : "_u8 + local.changes.joinIntoString (", ") : juce::String());
         return a;
     }
     const auto& j = res.json;
@@ -237,12 +237,12 @@ MixDiagnosis diagnoseMixLocal (const project::Project& p, const render::RenderSe
                    + (diff < -3.0 ? " : la voix risque d'être noyée (monte le volume ou active le mix auto)."_u8
                       : diff > 5.0 ? " : la voix est très en avant (baisse un peu le volume)."_u8 : " : équilibre correct."_u8));
         if (ll->report.meanCorrectionCents > 40.0f)
-            notes.add ("Justesse corrigée de " + juce::String (juce::roundToInt (ll->report.meanCorrectionCents))
+            notes.add ("Justesse corrigée de "_u8 + juce::String (juce::roundToInt (ll->report.meanCorrectionCents))
                        + " cents en moyenne : vérifie la tonalité détectée ou fais une nouvelle prise plus juste."_u8);
         if (ll->report.compGrDb > 12.0f)
             notes.add ("Compression forte (" + juce::String (ll->report.compGrDb, 1) + " dB) : baisse le curseur Énergie si la voix sonne écrasée."_u8);
         if (ll->report.clean.noiseFloorDb > -50.0f)
-            notes.add ("Bruit de fond élevé (" + juce::String (ll->report.clean.noiseFloorDb, 1) + " dB) : enregistre dans un endroit plus calme ou rapproche-toi du micro."_u8);
+            notes.add ("Bruit de fond élevé ("_u8 + juce::String (ll->report.clean.noiseFloorDb, 1) + " dB) : enregistre dans un endroit plus calme ou rapproche-toi du micro."_u8);
 
         const auto spec = analysis::averageSpectrum (audio::toMono (ll->processed), p.sampleRate);
         if (spec.valid())
@@ -278,7 +278,7 @@ MixDiagnosis diagnoseMixLocal (const project::Project& p, const render::RenderSe
         notes.add ("Astuce : colle tes paroles dans l'onglet Paroles pour le prompteur."_u8);
 
     d.ok = true;
-    d.text = "Diagnostic (local) :\n• " + notes.joinIntoString ("\n• ");
+    d.text = "Diagnostic (local) :\n• "_u8 + notes.joinIntoString ("\n• "_u8);
     return d;
 }
 
@@ -294,13 +294,13 @@ MixDiagnosis diagnoseMix (const AiSettings& s, const project::Project& p, const 
     rq.effort = "medium";
     rq.maxTokens = 8000;
     rq.system = kSystemEngineer;
-    rq.user = "Voici les mesures du mix (calculées par le logiciel) :\n" + describeProjectForAi (p, renders, vocalAutoGainDb)
+    rq.user = "Voici les mesures du mix (calculées par le logiciel) :\n"_u8 + describeProjectForAi (p, renders, vocalAutoGainDb)
             + "\nPremier diagnostic automatique :\n" + local.text
-            + "\n\nFais un diagnostic d'ingénieur du son : ce qui va bien, ce qui pose problème, et 3 à 6 actions concrètes "
-              "à faire dans StudioVoix (curseurs, volumes, génération, nouvelle prise). Court et clair.";
-    rq.schema = object ({ { "summary", prop ("string", "Diagnostic général en 2-3 phrases") },
-                          { "actions", arrayOf (object ({ { "track", prop ("string", "Piste concernée ou 'mix'") },
-                                                          { "action", prop ("string", "Action concrète dans StudioVoix") } })) } });
+            + "\n\nFais un diagnostic d'ingénieur du son : ce qui va bien, ce qui pose problème, et 3 à 6 actions concrètes "_u8
+              "à faire dans StudioVoix (curseurs, volumes, génération, nouvelle prise). Court et clair."_u8;
+    rq.schema = object ({ { "summary", prop ("string", "Diagnostic général en 2-3 phrases"_u8) },
+                          { "actions", arrayOf (object ({ { "track", prop ("string", "Piste concernée ou 'mix'"_u8) },
+                                                          { "action", prop ("string", "Action concrète dans StudioVoix"_u8) } })) } });
     const auto res = askClaude (rq);
     if (! res.ok)
     {
@@ -314,7 +314,7 @@ MixDiagnosis diagnoseMix (const AiSettings& s, const project::Project& p, const 
     d.text << "Diagnostic (IA) :\n" << res.json.getProperty ("summary", {}).toString() << "\n";
     if (const auto* actions = res.json.getProperty ("actions", {}).getArray())
         for (const auto& a : *actions)
-            d.text << "\n• [" << a.getProperty ("track", {}).toString() << "] " << a.getProperty ("action", {}).toString();
+            d.text << "\n• ["_u8 << a.getProperty ("track", {}).toString() << "] " << a.getProperty ("action", {}).toString();
     return d;
 }
 
@@ -332,13 +332,13 @@ WritingResult helpWrite (const AiSettings& s, const juce::String& request, const
     rq.model = s.model;
     rq.effort = "medium";
     rq.maxTokens = 8000;
-    rq.system = "Tu aides un artiste à écrire ses textes (rap, trap, pop urbaine, R&B, drill, afro, rock, latino), en français sauf demande contraire. "
+    rq.system = "Tu aides un artiste à écrire ses textes (rap, trap, pop urbaine, R&B, drill, afro, rock, latino), en français sauf demande contraire. "_u8
                 "Respecte son univers et son vocabulaire, propose des rimes riches et un flow qui tombe sur les temps. "
-                "Une ligne = une mesure, sauf indication contraire. Pas de contenu haineux ni d'incitation à la violence réelle.";
+                "Une ligne = une mesure, sauf indication contraire. Pas de contenu haineux ni d'incitation à la violence réelle."_u8;
     rq.user = "Style : " + style::styleName (p.style) + ", " + juce::String (p.tempo.bpm, 0) + " BPM, " + juce::String (p.lyricsBarsPerLine)
             + " mesure(s) par ligne.\nParoles actuelles :\n" + (p.lyrics.trim().isNotEmpty() ? p.lyrics : juce::String ("(vide)"))
             + "\n\nDemande : " + request;
-    rq.schema = object ({ { "lyrics", prop ("string", "Texte proposé, une ligne par phrase") },
+    rq.schema = object ({ { "lyrics", prop ("string", "Texte proposé, une ligne par phrase"_u8) },
                           { "notes", prop ("string", "Conseils courts : flow, placement, rimes") } });
     const auto res = askClaude (rq);
     if (! res.ok)
@@ -402,9 +402,9 @@ CustomStyle createCustomStyle (const AiSettings& s, const juce::String& descript
     rq.effort = "medium";
     rq.maxTokens = 4000;
     rq.system = kSystemEngineer;
-    rq.user = "Crée un style de traitement vocal sur mesure à partir de cette description : \"" + description
+    rq.user = "Crée un style de traitement vocal sur mesure à partir de cette description : \""_u8 + description
             + "\".\nChoisis le style de base le plus proche parmi : " + styleIds().joinIntoString (", ")
-            + ", puis les curseurs (0 à 1) et les pistes à générer (doublages 0-3, harmonies 0-3, backs mots clés, ad-libs, ambiance).";
+            + ", puis les curseurs (0 à 1) et les pistes à générer (doublages 0-3, harmonies 0-3, backs mots clés, ad-libs, ambiance)."_u8;
     const auto intProp = prop ("integer");
     rq.schema = object ({ { "name", prop ("string", "Nom court du style") },
                           { "base", enumOf (styleIds(), "Style de base") },
@@ -471,15 +471,15 @@ InstruBrief briefFromLyrics (const AiSettings& s, const juce::String& lyrics, st
     rq.model = s.model;
     rq.effort = "low";
     rq.maxTokens = 4000;
-    rq.system = "Tu es directeur artistique. À partir de paroles, tu décris l'instrumental idéal pour un générateur musical "
-                "(description en anglais, sans voix, sans nom d'artiste réel) et des critères de recherche.";
-    rq.user = "Style visé : " + style::styleName (st) + "\nParoles :\n" + lyrics.substring (0, 6000);
+    rq.system = "Tu es directeur artistique. À partir de paroles, tu décris l'instrumental idéal pour un générateur musical "_u8
+                "(description en anglais, sans voix, sans nom d'artiste réel) et des critères de recherche."_u8;
+    rq.user = "Style visé : "_u8 + style::styleName (st) + "\nParoles :\n" + lyrics.substring (0, 6000);
     rq.schema = object ({ { "prompt", prop ("string", "Description de l'instru en anglais (instruments, ambiance, rythme), sans voix") },
                           { "bpmMin", prop ("number") }, { "bpmMax", prop ("number") },
-                          { "energy", prop ("number", "0 calme à 1 très énergique") },
+                          { "energy", prop ("number", "0 calme à 1 très énergique"_u8) },
                           { "minor", prop ("boolean", "Tonalité mineure ?"_u8) },
-                          { "lengthSec", prop ("integer", "Durée conseillée en secondes") },
-                          { "explanation", prop ("string", "Pourquoi cette instru colle au texte (en français)") } });
+                          { "lengthSec", prop ("integer", "Durée conseillée en secondes"_u8) },
+                          { "explanation", prop ("string", "Pourquoi cette instru colle au texte (en français)"_u8) } });
     const auto res = askClaude (rq);
     if (! res.ok)
     {

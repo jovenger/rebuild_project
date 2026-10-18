@@ -468,7 +468,7 @@ int copySectionToSimilar (project::Project& p, int trackId, int sectionIndex, Au
         return 0;
     }
 
-    int copies = 0;
+    int copies = 0, failed = 0;
     for (size_t i = 0; i < p.sections.size(); ++i)
     {
         const auto& dst = p.sections[i];
@@ -484,7 +484,9 @@ int copySectionToSimilar (project::Project& p, int trackId, int sectionIndex, Au
         juce::String err;
         if (! audio::writeMonoWavFloat (p.audioDir().getChildFile (tk.file), part, p.sampleRate, err))
         {
-            error = err;
+            ++failed;
+            error = juce::String (failed) + " copie(s) impossible(s) : " + err;
+            SV_LOG_ERROR (kMod, "Copie de section vers \"" + dst.label + "\" impossible : " + err);
             continue;
         }
         t->takes.push_back (tk);
