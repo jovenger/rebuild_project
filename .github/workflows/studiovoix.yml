@@ -117,6 +117,10 @@ jobs:
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/sevagh/demucs.cpp demucs-src
           sed -i 's/-march=native/-march=x86-64-v2 -mtune=generic/' demucs-src/CMakeLists.txt
           grep -n "march" demucs-src/CMakeLists.txt
+          # libnyquist/wavpack appelle l'intrinsèque MSVC _BitScanReverse sous _WIN32 sans inclure <intrin.h> (GCC MinGW
+          # le fournit dans cet en-tête) : erreur « implicit declaration » au build 61.
+          sed -i '1i #include <intrin.h>' demucs-src/vendor/libnyquist/third_party/wavpack/src/wavpack_local.h
+          head -3 demucs-src/vendor/libnyquist/third_party/wavpack/src/wavpack_local.h
           cmake -S demucs-src -B demucs-build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" \
             -DUSE_OPENBLAS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
             "-DCMAKE_EXE_LINKER_FLAGS=-static -static-libgcc -static-libstdc++"
