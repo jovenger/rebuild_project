@@ -17,6 +17,7 @@ public:
 private:
     Session& session;
     int lastLine = -2;
+    int lastWord = -2;
 };
 
 class LyricsPanel final : public juce::Component
@@ -34,6 +35,7 @@ private:
     juce::ComboBox barsPerLine;
     juce::Label barsLabel, startLabel;
     juce::TextButton startHere { juce::String (juce::CharPointer_UTF8 ("Les paroles démarrent ici")) };
+    juce::TextButton recognize { "Reconnaître les paroles (IA)"_u8 };   // édition IA
     Prompter prompter;
     bool updating = false;
 };

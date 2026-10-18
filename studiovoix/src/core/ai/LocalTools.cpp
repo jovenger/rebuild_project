@@ -41,11 +41,31 @@ namespace
 #if JUCE_WINDOWS
                 t.url = "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe";
                 t.fileName = "deep-filter.exe";
+                t.size = 26912256;   // relevé par la CI (build 53)
+                t.sha256 = "75e11fa16445f560cb6b021521ddb89e89270d13b83089705d98776f58fd7915";
 #elif JUCE_LINUX
                 t.url = "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-x86_64-unknown-linux-gnu";
                 t.fileName = "deep-filter";
 #else
                 t.fileName = "deep-filter";
+#endif
+                v.push_back (t);
+            }
+            // whisper.cpp : binaire whisper-cli (Windows, archive avec ses DLL) ; sur Linux / macOS pas de binaire publié.
+            {
+                ToolDef t;
+                t.id = "whisper-cli";
+                t.name = "whisper.cpp (moteur de reconnaissance)";
+                t.description = "Programme qui reconnaît les paroles avec un modèle Whisper, sur le processeur de ce PC. "
+                                "Archive d'environ 10 Mo (binaire et bibliothèques)."_u8;
+                t.licence = "MIT";
+                t.executable = true;
+                t.archive = true;
+#if JUCE_WINDOWS
+                t.url = "https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.6/whisper-bin-x64.zip";
+                t.fileName = "whisper-cli.exe";
+#else
+                t.fileName = "whisper-cli";
 #endif
                 v.push_back (t);
             }
@@ -59,6 +79,8 @@ namespace
                 t.licence = "MIT";
                 t.url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin";
                 t.fileName = "ggml-base.bin";
+                t.size = 147951465;   // relevé par la CI (build 53)
+                t.sha256 = "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe";
                 v.push_back (t);
             }
             return v;
@@ -86,7 +108,16 @@ juce::File toolsFolder()
 
 void setToolsFolder (const juce::File& folder) { overrideFolder() = folder; }
 
-juce::File toolFile (const ToolDef& t) { return toolsFolder().getChildFile (t.fileName); }
+juce::File toolFile (const ToolDef& t)
+{
+    if (! t.archive)
+        return toolsFolder().getChildFile (t.fileName);
+    // Archive extraite dans outils/<id>/ : le binaire peut être dans un sous-dossier (Release/…).
+    const auto dir = toolsFolder().getChildFile (t.id);
+    juce::Array<juce::File> found;
+    dir.findChildFiles (found, juce::File::findFiles, true, t.fileName);
+    return found.isEmpty() ? dir.getChildFile (t.fileName) : found.getReference (0);
+}
 
 bool isInstalled (const ToolDef& t)
 {
@@ -202,6 +233,34 @@ bool install (const ToolDef& t, Progress& progress, juce::String& error)
     }
     else
         SV_LOG_WARN (kMod, t.name + " : empreinte non encore relevée, fichier accepté sans vérification (SHA-256 "_u8 + digest + ", " + juce::String (size) + " octets)");
+    if (t.archive)
+    {
+        const auto dir = toolsFolder().getChildFile (t.id);
+        dir.deleteRecursively();
+        juce::ZipFile zip (temp);
+        const auto result = zip.uncompressTo (dir, true);
+        temp.deleteFile();
+        if (result.failed() || zip.getNumEntries() == 0)
+        {
+            error = "Archive illisible : "_u8 + result.getErrorMessage();
+            SV_LOG_ERROR (kMod, t.name + " : " + error);
+            dir.deleteRecursively();
+            return false;
+        }
+        const auto exe = toolFile (t);
+        if (! exe.existsAsFile())
+        {
+            error = "Archive sans "_u8 + t.fileName;
+            SV_LOG_ERROR (kMod, t.name + " : " + error);
+            dir.deleteRecursively();
+            return false;
+        }
+        exe.setExecutePermission (true);
+        progress.fraction.store (1.0f);
+        SV_LOG_INFO (kMod, t.name + " installé : "_u8 + exe.getFullPathName() + " (" + juce::String (zip.getNumEntries()) + " fichiers, "
+                           + juce::String (juce::roundToInt ((juce::Time::getMillisecondCounterHiRes() - t0) / 1000.0)) + " s)");
+        return true;
+    }
     const auto dest = toolFile (t);
     dest.deleteFile();
     if (! temp.moveFileTo (dest))
@@ -221,6 +280,15 @@ bool install (const ToolDef& t, Progress& progress, juce::String& error)
 
 bool remove (const ToolDef& t)
 {
+    if (t.archive)
+    {
+        const auto dir = toolsFolder().getChildFile (t.id);
+        if (! dir.isDirectory())
+            return false;
+        const bool okDir = dir.deleteRecursively();
+        SV_LOG_INFO (kMod, t.name + (okDir ? " supprimé"_u8 : " : suppression impossible"_u8));
+        return okDir;
+    }
     const auto f = toolFile (t);
     if (! f.existsAsFile())
         return false;

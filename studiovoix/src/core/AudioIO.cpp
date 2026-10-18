@@ -160,6 +160,7 @@ juce::String extensionFor (FileFormat format)
     {
         case FileFormat::Wav24:
         case FileFormat::Wav32Float: return ".wav";
+        case FileFormat::Wav16: return ".wav";
         case FileFormat::Flac24:     return ".flac";
         case FileFormat::Mp3_320:    return ".mp3";
     }
@@ -454,6 +455,10 @@ bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate,
             audioFormat = std::make_unique<juce::WavAudioFormat>();
             options = options.withBitsPerSample (32).withSampleFormat (juce::AudioFormatWriterOptions::SampleFormat::floatingPoint);
             break;
+        case FileFormat::Wav16:
+            audioFormat = std::make_unique<juce::WavAudioFormat>();
+            options = options.withBitsPerSample (16);
+            break;
         case FileFormat::Flac24:
             audioFormat = std::make_unique<juce::FlacAudioFormat>();
             options = options.withBitsPerSample (24);
@@ -535,6 +540,14 @@ bool writeMonoWavFloat (const juce::File& file, const Mono& data, double sampleR
     Stereo mono (1, static_cast<int> (data.size()));
     std::copy (data.begin(), data.end(), mono.getWritePointer (0));
     return writeFile (file, mono, sampleRate, FileFormat::Wav32Float, error);
+}
+
+bool writeMonoWav16 (const juce::File& file, const Mono& data, double sampleRate, juce::String& error)
+{
+    Stereo mono (1, static_cast<int> (data.size()));
+    for (size_t i = 0; i < data.size(); ++i)
+        mono.setSample (0, static_cast<int> (i), juce::jlimit (-1.0f, 1.0f, data[i]));
+    return writeFile (file, mono, sampleRate, FileFormat::Wav16, error);
 }
 
 double envelopeLagMs (const Mono& a, const Mono& b, double sr, int maxMs)

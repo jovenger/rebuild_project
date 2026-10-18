@@ -23,6 +23,7 @@ struct ToolDef
     juce::int64 size = 0;       // taille attendue en octets (0 = inconnue)
     juce::String sha256;        // empreinte attendue (hexadécimal minuscule, vide = non relevée)
     bool executable = false;    // binaire à lancer (sinon modèle lu par le programme)
+    bool archive = false;       // téléchargement = archive zip, extraite dans outils/<id>/ ; fileName = binaire à y trouver
     juce::String licence;
 };
 

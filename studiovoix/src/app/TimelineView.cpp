@@ -586,6 +586,24 @@ void TimelineView::paint (juce::Graphics& g)
             g.drawText (st.isNotEmpty() ? st : juce::String ("Vide — arme la piste (rond rouge) et appuie sur REC"_u8),
                         headerWidth + 10, y, 600, trackHeight, juce::Justification::centredLeft);
         }
+        if (! t.words.empty() && pxPerSec >= 30.0)
+        {
+            // Mots reconnus et calés : affichés sous la forme d'onde, le mot en cours en accent.
+            const double now = session.positionSec();
+            g.setFont (juce::FontOptions (10.5f));
+            int lastRight = -1000;
+            for (const auto& wd : t.words)
+            {
+                const int x1 = secToX (wd.startSec), x2 = secToX (wd.endSec);
+                if (x2 < headerWidth || x1 > w || x1 < lastRight + 2)
+                    continue;
+                const bool current = now >= wd.startSec && now < wd.endSec;
+                g.setColour (current ? theme::accent2 : theme::text.withAlpha (0.75f));
+                const int width = juce::jmax (12, juce::GlyphArrangement::getStringWidthInt (g.getCurrentFont(), wd.text) + 4);
+                g.drawText (wd.text, x1, y + trackHeight - 16, width, 14, juce::Justification::centredLeft);
+                lastRight = x1 + width;
+            }
+        }
         if (selTrack == t.id)
         {
             if (selB > selA)

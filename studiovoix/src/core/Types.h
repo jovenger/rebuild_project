@@ -23,6 +23,14 @@ constexpr double kProjectSampleRate = 48000.0;
 /** Rappel de progression [0..1]. Retourne false pour demander l'annulation. */
 using ProgressFn = std::function<bool (float)>;
 
+/** Mot de paroles calé sur la timeline (reconnaissance IA ou saisie). */
+struct LyricWord
+{
+    juce::String text;
+    double startSec = 0.0;
+    double endSec = 0.0;
+};
+
 inline float dbToGain (float db) noexcept { return std::pow (10.0f, db / 20.0f); }
 inline float gainToDb (float g, float floorDb = -120.0f) noexcept
 {

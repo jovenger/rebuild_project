@@ -56,6 +56,7 @@ struct Track
     bool isCorrection() const { return styleId == "correction"; }
     std::vector<plugins::PluginSlot> plugins;   // inserts VST3 appliqués après les effets
     std::map<juce::String, plugins::StageOverride> stages;   // chaîne visible : étapes contournées / réglées à la main (clé = étape)
+    std::vector<LyricWord> words;    // paroles reconnues et calées (édition IA), positions absolues sur la timeline
 
     // Pistes générées / instru
     juce::String sourceFile;         // relatif à audio/ (piste générée) ou chemin de l'instru

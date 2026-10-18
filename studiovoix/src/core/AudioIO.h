@@ -25,7 +25,7 @@ LoadResult loadStereo (const juce::File& file, double targetSampleRate, double m
 bool loadMono (const juce::File& file, double targetSampleRate, Mono& out, juce::String& error,
                double maxSeconds = 1800.0);
 
-enum class FileFormat { Wav24, Wav32Float, Flac24, Mp3_320 };
+enum class FileFormat { Wav24, Wav32Float, Flac24, Mp3_320, Wav16 };
 
 juce::String extensionFor (FileFormat format);
 
@@ -38,6 +38,8 @@ bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate,
                 juce::String& error);
 
 bool writeMonoWavFloat (const juce::File& file, const Mono& data, double sampleRate, juce::String& error);
+/** WAV 16 bits mono (format attendu par whisper-cli et d'autres outils). */
+bool writeMonoWav16 (const juce::File& file, const Mono& data, double sampleRate, juce::String& error);
 
 Mono toMono (const Stereo& buffer);
 Stereo monoToStereo (const Mono& mono);

@@ -7,6 +7,7 @@
 #include "core/plugins/ChainStages.h"
 #include "core/ai/LocalTools.h"
 #include "core/ai/AiClean.h"
+#include "core/ai/Lyrics.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -806,6 +807,7 @@ public:
         lead.takes.push_back (tk);
         lead.stages["comp"].bypass = true;
         lead.stages["eq"].state = plugins::defaultInternalState (*plugins::findInternal ("interne:eq"));
+        lead.words = { { "Je", 1.0, 1.4 }, { "pose", 1.4, 1.9 } };
         const int leadId = lead.id;   // la référence 'lead' devient invalide quand d'autres pistes sont ajoutées
         p.armedTrackId = leadId;
         expect (p.save (err), err);
@@ -820,6 +822,8 @@ public:
         expectWithinAbsoluteError (q.findTrack (leadId)->macros.autotune, 0.8f, 1.0e-4f);
         expectEquals (q.findTrack (leadId)->takes.size(), static_cast<size_t> (1));
         expect (q.findTrack (leadId)->takes[0].fadeIn == 480 && q.findTrack (leadId)->takes[0].fadeOut == 960, "fondus du bloc enregistrés"_u8);
+        expect (q.findTrack (leadId)->words.size() == 2 && q.findTrack (leadId)->words[1].text == "pose" && std::abs (q.findTrack (leadId)->words[1].endSec - 1.9) < 1e-9,
+                "mots calés enregistrés"_u8);
         expect (q.findTrack (leadId)->stages.size() == 2 && q.findTrack (leadId)->stages.at ("comp").bypass
                     && q.findTrack (leadId)->stages.at ("eq").state == lead.stages.at ("eq").state, "chaîne réglée à la main enregistrée"_u8);
         expectEquals (static_cast<int> (q.listVersions().size()), 1);
@@ -830,9 +834,10 @@ public:
             const auto& list = ai::local::tools();
             expect (list.size() >= 2 && ai::local::findTool ("deep-filter") != nullptr && ai::local::findTool ("whisper-base") != nullptr, "catalogue");
             for (const auto& t : list)
-                expect (t.id.isNotEmpty() && t.name.isNotEmpty() && t.fileName.isNotEmpty() && t.url.startsWith ("https://") && t.licence.isNotEmpty()
-                            && ! t.description.containsChar (0xC3),
-                        "outil complet : " + t.id);
+                expect (t.id.isNotEmpty() && t.name.isNotEmpty() && t.fileName.isNotEmpty() && (t.url.isEmpty() || t.url.startsWith ("https://"))
+                            && t.licence.isNotEmpty() && ! t.description.containsChar (0xC3),
+                        "outil complet : " + t.id);   // url vide = pas de binaire publié pour ce système (whisper-cli hors Windows)
+            expect (ai::local::findTool ("deep-filter")->url.isNotEmpty() && ai::local::findTool ("whisper-base")->url.isNotEmpty(), "outils disponibles ici");
             const auto toolsDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_outils_test_" + juce::String (juce::Time::currentTimeMillis()));
             toolsDir.createDirectory();
             ai::local::setToolsFolder (toolsDir);
@@ -899,6 +904,42 @@ public:
             expect (! res.applied && res.note.contains ("48 kHz"), "fréquence refusée : " + res.note);
             ai::local::setToolsFolder (juce::File());
             dir.deleteRecursively();
+        }
+
+        beginTest ("Paroles IA : lecture du JSON whisper, lignes, sauvegarde des mots");
+        {
+            const juce::String json = R"({"transcription":[
+                {"timestamps":{"from":"00:00:01,000","to":"00:00:01,400"},"offsets":{"from":1000,"to":1400},"text":" Je"},
+                {"offsets":{"from":1400,"to":1900},"text":" pose"},
+                {"offsets":{"from":1900,"to":2300},"text":" ma"},
+                {"offsets":{"from":2300,"to":2800},"text":" voix"},
+                {"offsets":{"from":2850,"to":3000},"text":" [Musique]"},
+                {"offsets":{"from":4000,"to":4500},"text":" sur"},
+                {"offsets":{"from":4500,"to":5200},"text":" l'instru"},
+                {"offsets":{"from":5300,"to":5200},"text":" bug"},
+                {"offsets":{"from":6000,"to":6100},"text":"   "}]})";
+            const auto words = ai::local::parseWhisperJson (json, 10.0);
+            expect (words.size() == 6, "6 mots (annotations, vides et temps inversés ignorés) : " + juce::String (static_cast<int> (words.size())));
+            expect (words.size() == 6 && words[0].text == "Je" && std::abs (words[0].startSec - 11.0) < 1e-6 && std::abs (words[0].endSec - 11.4) < 1e-6
+                        && words[5].text == "l'instru" && std::abs (words[5].endSec - 15.2) < 1e-6,
+                    "temps décalés de l'offset et texte nettoyé"_u8);
+            expect (ai::local::wordsToLyrics (words) == "Je pose ma voix\nsur l'instru", "lignes coupées sur les silences : [" + ai::local::wordsToLyrics (words) + "]");
+            expect (ai::local::parseWhisperJson ("pas du json", 0.0).empty() && ai::local::parseWhisperJson ("{\"x\":1}", 0.0).empty(), "JSON illisible ou sans transcription");
+            expect (! ai::local::whisperAvailable(), "whisper absent ici");
+            juce::String err;
+            double sec = 0.0;
+            Mono voice (48000, 0.1f);
+            expect (ai::local::transcribeWithWhisper (voice, 48000.0, juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_whisper_test"), 0.0, err, sec).empty()
+                        && err.contains ("install"), "sans outil : vide avec raison : " + err);
+            // WAV 16 bits mono relu.
+            const auto wav = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_wav16_test.wav");
+            Mono tone (16000);
+            for (size_t i = 0; i < tone.size(); ++i)
+                tone[i] = 0.5f * std::sin (2.0f * juce::MathConstants<float>::pi * 440.0f * static_cast<float> (i) / 16000.0f);
+            expect (audio::writeMonoWav16 (wav, tone, 16000.0, err), err);
+            Mono back;
+            expect (audio::loadMono (wav, 16000.0, back, err) && back.size() == tone.size() && std::abs (back[4000] - tone[4000]) < 1e-3f, "WAV 16 bits relu : " + err);
+            wav.deleteFile();
         }
 
         beginTest ("Chaine visible : etapes <-> reglages (aller-retour, contournement, reglage manuel, sauvegarde)");

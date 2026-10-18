@@ -1,6 +1,9 @@
 #include "Session.h"
 
 #include "core/Log.h"
+#if SV_EDITION_IA
+ #include "core/ai/Lyrics.h"
+#endif
 #include "core/analysis/KeyDetector.h"
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/Loudness.h"
@@ -822,6 +825,66 @@ void Session::pasteClipboard (int trackId, double atSec)
     int n = 0;
     updateTrack (trackId, [&] (project::Track& tr) { n = project::pasteTakes (tr, clipboard, at, proj.nextTakeId); }, true, "Coller (Ctrl+V)"_u8);
     setStatus (juce::String (n) + " bloc(s) collé(s) à "_u8 + juce::String (atSec, 2) + " s sur « "_u8 + t->name + " » (Ctrl+Z pour annuler)"_u8);
+}
+
+void Session::recognizeLyrics()
+{
+#if SV_EDITION_IA
+    const int leadId = proj.leadTrackId();
+    auto r = renderFor (leadId);
+    if (r == nullptr || ! r->ok() || r->raw.getNumSamples() == 0)
+    {
+        setStatus ("Reconnaissance des paroles : enregistre ou importe d'abord la voix principale"_u8);
+        return;
+    }
+    if (! ai::local::whisperAvailable())
+    {
+        setStatus ("Reconnaissance des paroles : installe whisper.cpp et le modèle Whisper base dans IA locale"_u8);
+        return;
+    }
+    const auto mono = std::make_shared<const Mono> (audio::toMono (r->raw));
+    const double offset = static_cast<double> (r->startSample) / proj.sampleRate;
+    const auto work = proj.audioDir().getChildFile ("cache_ia");
+    const double sr = proj.sampleRate;
+    setStatus ("Reconnaissance des paroles en cours (whisper.cpp)…"_u8);
+    SV_LOG_INFO (kMod, "Reconnaissance des paroles : "_u8 + juce::String (mono->size() / sr, 1) + " s de voix principale");
+    ++activeJobs;
+    juce::WeakReference<Session> weak (this);
+    const int ep = epoch;
+    pool.addJob ([weak, mono, offset, work, sr, leadId, ep]
+    {
+        juce::String error;
+        double seconds = 0.0;
+        auto words = std::make_shared<std::vector<LyricWord>> (ai::local::transcribeWithWhisper (*mono, sr, work, offset, error, seconds));
+        juce::MessageManager::callAsync ([weak, words, error, seconds, leadId, ep]
+        {
+            auto* s = weak.get();
+            if (s == nullptr || ep != s->epoch)
+                return;
+            --s->activeJobs;
+            if (words->empty())
+            {
+                s->setStatus ("Reconnaissance des paroles : "_u8 + error);
+                return;
+            }
+            const bool fillLyrics = s->proj.lyrics.trim().isEmpty();
+            s->updateProject ([words, leadId, fillLyrics] (project::Project& p)
+            {
+                if (auto* t = p.findTrack (leadId))
+                    t->words = *words;
+                if (fillLyrics)
+                {
+                    p.lyrics = ai::local::wordsToLyrics (*words);
+                    p.lyricsStartSec = words->front().startSec;
+                }
+            }, false, "Paroles reconnues"_u8);
+            s->setStatus (juce::String (static_cast<int> (words->size())) + " mots reconnus et calés en "_u8 + juce::String (seconds, 1) + " s"
+                          + (fillLyrics ? " (paroles remplies)"_u8 : juce::String()));
+        });
+    });
+#else
+    setStatus ("Reconnaissance des paroles : disponible dans StudioVoix IA"_u8);
+#endif
 }
 
 void Session::moveTrack (int trackId, int newIndex, const juce::String& undoLabel)

@@ -39,6 +39,12 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
   en cache dans `audio/cache_ia` du projet (empreinte du contenu), ligne « Nettoyage IA : … » dans le rapport de la
   piste ; case à décocher par piste. Exige 48 kHz (fréquence du projet).
 
+  **Paroles reconnues et calées** (StudioVoix IA, onglet Paroles → « Reconnaître les paroles (IA) ») : whisper.cpp
+  écoute la voix principale, écrit les paroles si elles sont vides (une ligne par phrase, coupée sur les silences) et
+  cale chaque mot sur la timeline : prompteur karaoké (ligne en cours, mot en cours en rose), mots affichés sous les
+  blocs de la voix principale quand la timeline est assez zoomée, mots sauvegardés dans le projet. Outils : whisper.cpp
+  (binaire Windows) et modèle Whisper base, à installer dans IA locale.
+
 Export MP3 : poser `lame.exe` à côté de `StudioVoix.exe` (ou dans le PATH). Sans lui : WAV / FLAC.
 
 ## Premier lancement

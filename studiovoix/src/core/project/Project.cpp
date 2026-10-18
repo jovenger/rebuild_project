@@ -255,6 +255,19 @@ juce::var Project::toVar() const
             tks.add (juce::var (x));
         }
         o->setProperty ("takes", tks);
+        if (! t.words.empty())
+        {
+            juce::Array<juce::var> ws;
+            for (const auto& w : t.words)
+            {
+                auto* x = new juce::DynamicObject();
+                x->setProperty ("t", w.text);
+                x->setProperty ("a", w.startSec);
+                x->setProperty ("b", w.endSec);
+                ws.add (juce::var (x));
+            }
+            o->setProperty ("words", ws);
+        }
         if (! t.stages.empty())
         {
             auto* so = new juce::DynamicObject();
@@ -390,6 +403,16 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
                         t.takes.push_back (tk);
                     else
                         SV_LOG_WARN (kMod, "Prise invalide ignorée dans la piste "_u8 + t.name);
+                }
+            if (const auto* ws = o.getProperty ("words", {}).getArray())
+                for (const auto& x : *ws)
+                {
+                    LyricWord w;
+                    w.text = getS (x, "t");
+                    w.startSec = getD (x, "a", 0.0);
+                    w.endSec = std::max (w.startSec, getD (x, "b", 0.0));
+                    if (w.text.isNotEmpty())
+                        t.words.push_back (w);
                 }
             if (auto* so = o.getProperty ("stages", {}).getDynamicObject())
                 for (const auto& prop : so->getProperties())
