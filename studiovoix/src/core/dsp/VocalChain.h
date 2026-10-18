@@ -28,6 +28,7 @@ struct VocalReport
     int syllablesRetimed = 0;
     CleanReport clean;
     int phrases = 0;
+    bool nearSilent = false;   // prise quasi silencieuse (mauvaise entrée ?) : pas amplifiée
 };
 
 struct VocalResult

@@ -106,7 +106,9 @@ Mono psolaShift (const Mono& input, double sampleRate, const analysis::PitchTrac
 
         const int ta = marks[nearest];
         const double paMark = periodAt (ta);
-        const int half = std::max (2, static_cast<int> (std::round (std::max (paMark, std::min (ps, 1.5 * paMark)))));
+        // Fenêtre de ±1 période d'analyse (TD-PSOLA classique). Plus large, les grains se recouvrent
+        // trop quand on descend (octave en dessous) et la période d'origine survit : pas de transposition.
+        const int half = std::max (2, static_cast<int> (std::round (paMark)));
         const float gain = markVoiced[nearest] ? 1.0f : options.unvoicedGain;
         const int tsi = static_cast<int> (std::round (ts));
 

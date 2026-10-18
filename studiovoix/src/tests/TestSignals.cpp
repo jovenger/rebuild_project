@@ -12,7 +12,7 @@ namespace
     float formantGain (double f)
     {
         // Voyelle "a" : F1 730 Hz, F2 1090 Hz, F3 2440 Hz.
-        auto peak = [] (double f, double fc, double bw) { return 1.0 / (1.0 + std::pow ((f - fc) / (bw * 0.5), 2.0)); };
+        auto peak = [] (double freq, double fc, double bw) { return 1.0 / (1.0 + std::pow ((freq - fc) / (bw * 0.5), 2.0)); };
         return static_cast<float> (0.03 + peak (f, 730, 160) + 0.5 * peak (f, 1090, 180) + 0.25 * peak (f, 2440, 250));
     }
 }

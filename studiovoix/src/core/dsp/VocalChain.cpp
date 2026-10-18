@@ -60,8 +60,17 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     if (const auto fixed = audio::sanitize (x.data(), x.size()); fixed > 0)
         SV_LOG_WARN (kMod, juce::String ((int) fixed) + " échantillons non finis corrigés en entrée"_u8);
 
-    // 1) Normalisation d'entrée.
-    const float inGain = gainForActiveRms (x, sampleRate, params.inputTargetDb);
+    // 1) Normalisation d'entrée. Une prise quasi silencieuse (souvent la mauvaise entrée micro) n'est pas
+    //    amplifiée : +60 dB de souffle traité comme une voix n'aide personne.
+    const float rawLevelDb = activeLevelDb (x, sampleRate);
+    result.report.nearSilent = rawLevelDb < -65.0f;
+    float inGain = gainForActiveRms (x, sampleRate, params.inputTargetDb);
+    if (result.report.nearSilent)
+    {
+        inGain = std::min (1.0f, inGain);
+        SV_LOG_WARN (kMod, "Prise quasi silencieuse ("_u8 + juce::String (rawLevelDb, 1)
+                           + " dBFS) : pas d'amplification, aucune phrase retenue (vérifie l'entrée micro)"_u8);
+    }
     for (auto& v : x)
         v *= inGain;
     result.report.inputGainDb = gainToDb (inGain);
@@ -70,6 +79,8 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     // 2) Analyse.
     result.va = analysis::analyzeVoice (x, sampleRate);
     result.track = analysis::detectPitch (x, sampleRate);
+    if (result.report.nearSilent)
+        result.va.phrases.clear();   // pas de backs ni d'ad-libs générés à partir du bruit
     result.report.phrases = static_cast<int> (result.va.phrases.size());
     if (! step (0.20f)) return result;
 
@@ -96,6 +107,12 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     {
         PitchCorrectionParams pc;
         pc.key = context.key;
+        // Tonalité incertaine (instru sans harmonie claire, pas encore d'instru) : notes chromatiques,
+        // sinon une note juste peut être tirée d'un demi-ton vers une gamme fausse.
+        pc.chromatic = context.key.confidence < 0.2f;
+        if (pc.chromatic)
+            SV_LOG_WARN (kMod, "Tonalité incertaine (confiance "_u8 + juce::String (context.key.confidence, 2)
+                               + ") : justesse corrigée vers la note la plus proche, sans gamme"_u8);
         pc.amount = params.pitch.amount;
         pc.retuneMs = params.pitch.retuneMs;
         pc.humanize = params.pitch.humanize;
@@ -140,7 +157,9 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     if (! step (0.75f)) return result;
 
     // 8) Niveau de sortie.
-    const float outGain = gainForActiveRms (x, sampleRate, params.outputDb);
+    float outGain = gainForActiveRms (x, sampleRate, params.outputDb);
+    if (result.report.nearSilent)
+        outGain = std::min (1.0f, outGain);
     for (auto& v : x)
         v *= outGain;
 

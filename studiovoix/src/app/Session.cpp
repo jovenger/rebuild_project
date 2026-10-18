@@ -555,6 +555,8 @@ void Session::refreshContext()
 {
     auto ctx = std::make_shared<dsp::AnalysisContext>();
     ctx->key = proj.key;
+    if (proj.keyManual)
+        ctx->key.confidence = 1.0f;   // tonalité choisie par l'utilisateur : certaine
     ctx->tempo = proj.tempo;
     const juce::String refPath = proj.referenceFile;
     // Le spectre de référence n'est repris que s'il vient du même fichier (sinon : vide jusqu'au nouveau calcul).
@@ -1032,6 +1034,8 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
     if (proj.findTrack (trackId)->isVocal())
         trackStatuses[trackId] << " | justesse " << juce::String (juce::roundToInt (rep.meanCorrectionCents)) << " c, comp "
                                << juce::String (rep.compGrDb, 1) << " dB";
+    if (rep.nearSilent)
+        trackStatuses[trackId] << " | PRISE QUASI SILENCIEUSE : vérifie l'entrée micro"_u8;
 
     // Génération en attente de ce rendu ?
     if (auto it = pendingGeneration.find (trackId); it != pendingGeneration.end())
@@ -1188,6 +1192,9 @@ void Session::startGeneration (int leadTrackId, const gen::GenerationOptions& op
     la.va = leadRender->va;
     la.key = proj.key;
     la.tempo = proj.tempo;
+    if (! proj.keyManual && proj.key.confidence < 0.2f)
+        SV_LOG_WARN (kMod, "Harmonies calculées sur une tonalité incertaine ("_u8 + proj.key.toFrench() + ", confiance "
+                           + juce::String (proj.key.confidence, 2) + ") : corrige la tonalité si elles sonnent faux"_u8);
     auto lead = std::make_shared<gen::LeadAnalysis> (std::move (la));
     auto opts = options;
     if (opts.adLibFolder == juce::File() && proj.adLibFolder.isNotEmpty())
@@ -1196,7 +1203,8 @@ void Session::startGeneration (int leadTrackId, const gen::GenerationOptions& op
     const double sr = proj.sampleRate;
     const long start = leadRender->startSample;
     ++activeJobs;
-    setStatus ("Génération des backs, harmonies, ad-libs…"_u8);
+    setStatus ("Génération des backs, harmonies, ad-libs…"_u8
+               + (! proj.keyManual && proj.key.confidence < 0.2f ? " (tonalité incertaine : vérifie les harmonies)"_u8 : juce::String()));
     const int ep = epoch;
     juce::WeakReference<Session> weak (this);
     pool.addJob ([weak, lead, opts, audioDir, sr, leadTrackId, start, ep]

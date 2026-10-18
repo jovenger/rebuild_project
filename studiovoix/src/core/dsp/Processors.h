@@ -142,6 +142,8 @@ Stereo placeStereo (const Mono& x, double sr, float pan, float width, float gain
 
 /** Gain qui amène le RMS des passages actifs à targetDb. */
 float gainForActiveRms (const Mono& x, double sr, float targetDb);
+/** Niveau RMS (dBFS) des passages actifs (-120 si silence). */
+float activeLevelDb (const Mono& x, double sr);
 
 /** Délai fractionnaire variable (doublages) : delaySamples par échantillon. */
 Mono variableDelay (const Mono& x, const std::vector<float>& delaySamples);

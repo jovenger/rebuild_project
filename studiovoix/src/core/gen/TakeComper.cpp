@@ -151,6 +151,9 @@ CompResult compBest (const std::vector<TakeInput>& takes, double sampleRate, con
     bounds.push_back (static_cast<double> (b - a) / sr);
 
     const long fade = static_cast<long> (sr * 0.02);
+    CompResult latest;          // repli : la dernière prise gagne (calculé seulement si nécessaire)
+    bool latestReady = false;
+    int fallbackSlots = 0;
     for (size_t s = 0; s < slots.size(); ++s)
     {
         const double s0 = slots[s].first, s1 = slots[s].second;
@@ -249,7 +252,29 @@ CompResult compBest (const std::vector<TakeInput>& takes, double sampleRate, con
             }
         }
         if (best < 0)
+        {
+            // Aucune prise ne couvre tout le créneau (prises qui se chevauchent en partie) :
+            // on garde la dernière prise sur chaque zone, plutôt qu'un silence.
+            if (! latestReady)
+            {
+                latest = compLatest (takes, sampleRate);
+                latestReady = true;
+            }
+            ++fallbackSlots;
+            for (long p = std::max (0L, segA - fade); p < std::min (b - a, segB + fade); ++p)
+            {
+                float w = 1.0f;
+                if (p < segA + fade)
+                    w = static_cast<float> (p - (segA - fade)) / static_cast<float> (2 * fade);
+                else if (p >= segB - fade)
+                    w = static_cast<float> ((segB + fade) - p) / static_cast<float> (2 * fade);
+                w = juce::jlimit (0.0f, 1.0f, w);
+                const long idx = a + p - latest.startSample;
+                if (idx >= 0 && idx < static_cast<long> (latest.audio.size()))
+                    res.audio[static_cast<size_t> (p)] += latest.audio[static_cast<size_t> (idx)] * w;
+            }
             continue;
+        }
         ++wins[best];
         res.segments.push_back ({ a + segA, a + segB, best, bestScore });
 
@@ -270,6 +295,8 @@ CompResult compBest (const std::vector<TakeInput>& takes, double sampleRate, con
     for (const auto& [k, c] : wins)
         parts.add ("prise " + juce::String (takes[static_cast<size_t> (k)].id) + " : " + juce::String (c) + " phrase(s)");
     res.summary = juce::String (juce::CharPointer_UTF8 ("Meilleure prise par phrase — ")) + parts.joinIntoString (", ");
+    if (fallbackSlots > 0)
+        SV_LOG_WARN (kMod, juce::String (fallbackSlots) + " zone(s) sans prise complète : dernière prise utilisée"_u8);
     SV_LOG_INFO (kMod, res.summary);
     return res;
 }

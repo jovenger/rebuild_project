@@ -199,7 +199,11 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         params.width = std::max (params.width, t.genWidth);
     }
 
-    auto result = dsp::processVocal (raw, p.sampleRate, params, ctx, progress);
+    // Le premier temps fort est mesuré depuis le début du morceau, la prise commence à « start » :
+    // la grille du recalage rythmique est exprimée dans le temps de la prise.
+    auto takeCtx = ctx;
+    takeCtx.tempo.firstBeatSec -= static_cast<double> (start) / p.sampleRate;
+    auto result = dsp::processVocal (raw, p.sampleRate, params, takeCtx, progress);
     if (result.cancelled)
     {
         r->error = "Rendu annulé"_u8;

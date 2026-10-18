@@ -301,7 +301,8 @@ float deEss (Mono& x, double sr, const DeEsserSettings& d)
         const float fe = gainToDb (fullEnv.process (x[i]));
         const float he = gainToDb (highEnv.process (high[i]));
         const float excess = he - (fe + d.offsetDb);
-        const float target = juce::jlimit (0.0f, d.maxReductionDb, excess * d.amount * 1.5f);
+        // Silence (traîne, pauses) : enveloppes au plancher, aucune sifflante à traiter ni à compter.
+        const float target = fe > -60.0f ? juce::jlimit (0.0f, d.maxReductionDb, excess * d.amount * 1.5f) : 0.0f;
         const float gr = smoother.process (target);
         x[i] = low[i] + high[i] * dbToGain (-gr);
         if (gr > 0.5f)
@@ -619,6 +620,8 @@ Stereo placeStereo (const Mono& x, double sr, float pan, float width, float gain
     }
     return out;
 }
+
+float activeLevelDb (const Mono& x, double sr) { return rmsActiveDb (x, sr); }
 
 float gainForActiveRms (const Mono& x, double sr, float targetDb)
 {

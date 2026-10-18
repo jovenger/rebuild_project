@@ -67,15 +67,19 @@ TimingResult correctTiming (const Mono& input, double sampleRate, const TempoInf
     // (sinon la normalisation mélangerait du silence et atténuerait l'attaque).
     const long fade = static_cast<long> (sampleRate * 0.005);
     std::vector<double> acc (static_cast<size_t> (n), 0.0), wsum (static_cast<size_t> (n), 0.0);
+    long prevOutEnd = 0;
     for (size_t k = 0; k < segs.size(); ++k)
     {
         const auto& s = segs[k];
-        const long outStart = s.a + s.shift;
+        // Un segment ne commence jamais après la fin du précédent : l'éventuel trou est comblé par
+        // l'audio qui précède son attaque (fin de la syllabe précédente), au lieu d'un silence.
+        const long outStart = k > 0 ? std::min (s.a + s.shift, prevOutEnd) : s.a + s.shift;
         long outEnd = s.b + s.shift;
         if (k + 1 < segs.size())
             outEnd = std::min (outEnd, segs[k + 1].a + segs[k + 1].shift);
         if (outEnd <= outStart)
             continue;
+        prevOutEnd = outEnd;
         for (long o = outStart - fade; o < outEnd + fade; ++o)
         {
             double w = 1.0;

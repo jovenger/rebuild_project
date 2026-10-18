@@ -139,6 +139,17 @@ public:
             expectWithinAbsoluteError (measured, expected, 3.0f);
             expect (std::abs (static_cast<double> (up.size()) - static_cast<double> (v.size())) < 1.0, "durée conservée"_u8);
         }
+        beginTest ("PSOLA : -12 demi-tons (octave en dessous, harmonie basse et nappe)");
+        {
+            VoicePhrase p;
+            p.notes = { { 57.0f, 1.2, 0.0f } };   // La 2 = 220 Hz
+            const auto v = synthVoice ({ p }, kSr, 0.2, 0.0f);
+            const auto track = analysis::detectPitch (v, kSr);
+            const auto down = dsp::psolaShiftSemitones (v, kSr, track, -12.0f);
+            const float measured = medianF0 (down, kSr, 0.35, 1.2);
+            logMessage ("PSOLA -12 : attendu 110 Hz, mesure " + juce::String (measured, 1) + " Hz");
+            expectWithinAbsoluteError (measured, 110.0f, 4.0f);
+        }
         beginTest ("Autotune : voix desaccordee de +35 cents ramenee sur la gamme");
         {
             const auto key = aMinor();
@@ -308,6 +319,24 @@ public:
             logMessage ("voyelle " + juce::String (vowelDelta, 2) + " dB, sifflante " + juce::String (sDelta, 2) + " dB");
             expect (std::abs (vowelDelta) < 1.0f, "voyelle préservée"_u8);
             expect (sDelta < -3.0f, "sifflante réduite d'au moins 3 dB"_u8);
+        }
+        beginTest ("De-esser : rien de compte dans le silence");
+        {
+            Mono silence (static_cast<size_t> (kSr * 2), 0.0f);
+            dsp::DeEsserSettings d;
+            expectWithinAbsoluteError (dsp::deEss (silence, kSr, d), 0.0f, 1.0e-6f);
+        }
+        beginTest ("Chaine vocale : prise quasi silencieuse non amplifiee");
+        {
+            juce::Random rnd (3);
+            Mono hiss (static_cast<size_t> (kSr * 3));
+            for (auto& s : hiss)
+                s = (rnd.nextFloat() * 2.0f - 1.0f) * 1.0e-4f;   // environ -85 dBFS
+            dsp::AnalysisContext ctx;
+            const auto res = dsp::processVocal (hiss, kSr, style::makeParams (style::Style::Trap, style::Role::Lead, {}), ctx);
+            expect (res.report.nearSilent && res.report.phrases == 0, "prise quasi silencieuse détectée"_u8);
+            const float pk = audio::peak (res.audio.getReadPointer (0), static_cast<size_t> (res.audio.getNumSamples()));
+            expect (gainToDb (pk) < -50.0f, "pas amplifiée : crête "_u8 + juce::String (gainToDb (pk), 1) + " dBFS");
         }
         beginTest ("Saturation : pas de NaN, niveau conserve");
         {
@@ -621,6 +650,19 @@ public:
             logMessage (res.summary);
             expect (phrase2FromGood, "phrase 2 prise dans la prise 1");
             expect (audio::peak (res.audio.data(), res.audio.size()) < 0.99f, "pas d'écrêtage dans l'assemblage"_u8);
+        }
+        beginTest ("Meilleure prise : zone couverte par deux prises partielles -> pas de silence");
+        {
+            Mono tone (static_cast<size_t> (10 * kSr), 0.0f);
+            for (size_t i = static_cast<size_t> (3 * kSr); i < static_cast<size_t> (8 * kSr); ++i)
+                tone[i] = 0.3f * static_cast<float> (std::sin (2.0 * juce::MathConstants<double>::pi * 220.0 * static_cast<double> (i) / kSr));
+            std::vector<gen::TakeInput> t3 = { { &tone, 0, 0, static_cast<long> (6 * kSr), 1 },
+                                               { &tone, 0, static_cast<long> (4 * kSr), static_cast<long> (10 * kSr), 2 } };
+            const auto res = gen::compBest (t3, kSr, key, tempo, style::Style::PopUrbaine);
+            const long i0 = static_cast<long> (5 * kSr) - res.startSample;
+            const float lvl = i0 >= 0 && i0 + static_cast<long> (kSr) <= static_cast<long> (res.audio.size())
+                                  ? audio::rms (res.audio.data() + i0, static_cast<size_t> (kSr)) : 0.0f;
+            expect (lvl > 0.1f, "niveau entre 5 et 6 s : "_u8 + juce::String (lvl, 3));
         }
         beginTest ("Derniere prise : punch-in remplace la zone");
         {
