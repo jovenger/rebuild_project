@@ -49,6 +49,8 @@ public:
     void setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId);
     /** Inserts VST3 d'une piste (ajout, retrait, état, contournement) ; rendu recalculé. */
     void setTrackPlugins (int trackId, std::vector<plugins::PluginSlot> slots, const juce::String& undoLabel);
+    /** Chaîne visible : réglage manuel d'une étape (nullptr = revenir au réglage du style). Annulable, piste rendue à nouveau. */
+    void setTrackStage (int trackId, const juce::String& stageId, const plugins::StageOverride* override, const juce::String& undoLabel);
     /** Correction automatique sur toutes les pistes enregistrées / importées (pas l'instru, pas les générées). */
     void correctAllTracks();
     /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer.

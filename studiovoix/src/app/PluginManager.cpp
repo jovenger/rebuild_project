@@ -329,7 +329,8 @@ void PluginManager::showAddMenu (juce::Component* anchor, std::function<void (co
     m.addSectionHeader ("Effets intégrés"_u8);
     const auto& internals = plugins::internalPlugins();
     for (size_t i = 0; i < internals.size(); ++i)
-        m.addItem (100000 + static_cast<int> (i), juce::String (juce::CharPointer_UTF8 (internals[i].name)));
+        if (internals[i].insertable)
+            m.addItem (100000 + static_cast<int> (i), juce::String (juce::CharPointer_UTF8 (internals[i].name)));
     m.addSeparator();
     m.addSectionHeader ("Plugins VST3");
     if (types.isEmpty())

@@ -39,6 +39,23 @@ PluginSlot PluginSlot::fromVar (const juce::var& v)
     return s;
 }
 
+juce::var StageOverride::toVar() const
+{
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("bypass", bypass);
+    o->setProperty ("state", state.toBase64Encoding());
+    return juce::var (o);
+}
+
+StageOverride StageOverride::fromVar (const juce::var& v)
+{
+    StageOverride s;
+    s.bypass = static_cast<bool> (v.getProperty ("bypass", false));
+    if (! s.state.fromBase64Encoding (v.getProperty ("state", {}).toString()))
+        s.state.reset();
+    return s;
+}
+
 void setInstanceFactory (InstanceFactory factory) { factoryRef() = std::move (factory); }
 bool hasInstanceFactory() { return static_cast<bool> (factoryRef()); }
 

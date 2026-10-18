@@ -24,6 +24,17 @@ struct PluginSlot
     static PluginSlot fromVar (const juce::var& v);
 };
 
+/** Réglage manuel d'une étape de la chaîne du style (case de la chaîne visible d'une piste) : étape contournée
+    et / ou réglages (JSON des paramètres de l'effet intégré correspondant ; vide = réglages du style). */
+struct StageOverride
+{
+    bool bypass = false;
+    juce::MemoryBlock state;
+
+    juce::var toVar() const;
+    static StageOverride fromVar (const juce::var& v);
+};
+
 /** Crée une instance prête (buses stéréo, non temps réel) ; nullptr + err si impossible. */
 using InstanceFactory = std::function<std::unique_ptr<juce::AudioProcessor> (const PluginSlot& slot, double sampleRate,
                                                                               int blockSize, juce::String& error)>;

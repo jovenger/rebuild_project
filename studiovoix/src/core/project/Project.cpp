@@ -254,6 +254,13 @@ juce::var Project::toVar() const
             tks.add (juce::var (x));
         }
         o->setProperty ("takes", tks);
+        if (! t.stages.empty())
+        {
+            auto* so = new juce::DynamicObject();
+            for (const auto& [id, ov] : t.stages)
+                so->setProperty (juce::Identifier (id), ov.toVar());
+            o->setProperty ("stages", juce::var (so));
+        }
         if (! t.plugins.empty())
         {
             juce::Array<juce::var> pl;
@@ -382,6 +389,9 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
                     else
                         SV_LOG_WARN (kMod, "Prise invalide ignorée dans la piste "_u8 + t.name);
                 }
+            if (auto* so = o.getProperty ("stages", {}).getDynamicObject())
+                for (const auto& prop : so->getProperties())
+                    t.stages[prop.name.toString()] = plugins::StageOverride::fromVar (prop.value);
             if (const auto* pl = o.getProperty ("plugins", {}).getArray())
                 for (const auto& x : *pl)
                 {

@@ -22,6 +22,7 @@ struct InternalPluginDef
     const char* identifier;   // "interne:eq"…
     const char* name;         // UTF-8
     std::vector<ParamSpec> params;
+    bool insertable = true;   // false : sert seulement à régler une étape de la chaîne du style (pas un insert)
 };
 
 const std::vector<InternalPluginDef>& internalPlugins();

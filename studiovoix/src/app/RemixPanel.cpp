@@ -4,6 +4,8 @@
 #include "PluginManager.h"
 #include "StyleMenu.h"
 #include "core/dsp/ProblemAnalyzer.h"
+#include "core/dsp/VocalChain.h"
+#include "core/plugins/ChainStages.h"
 #include "core/Log.h"
 #include "core/assistant/CommandParser.h"
 
@@ -34,6 +36,23 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     addAndMakeVisible (treatmentBox);
     addAndMakeVisible (pluginsTitle);
     addAndMakeVisible (addPluginBtn);
+    addAndMakeVisible (chainTitle);
+    chainTitle.setText ("Chaîne de la piste (clic = réglages, clic droit = contourner / style)"_u8, juce::dontSendNotification);
+    chainTitle.setFont (juce::FontOptions (13.0f, juce::Font::bold));
+    for (const auto& st : plugins::chainStages())
+    {
+        auto c = std::make_unique<StageCase>();
+        const juce::String id (st.id);
+        c->onPress = [this, id] (bool popup)
+        {
+            if (popup)
+                showStageMenu (id);
+            else
+                openStageEditor (id);
+        };
+        addAndMakeVisible (*c);
+        stageCases.push_back (std::move (c));
+    }
     pluginsTitle.setText ("Effets en plus", juce::dontSendNotification);
     pluginsTitle.setFont (juce::FontOptions (13.0f, juce::Font::bold));
     addPluginBtn.setTooltip ("Ajoute un effet intégré (égaliseur, compresseur, de-esser, saturation, réverb, délai, porte, limiteur, "
@@ -144,7 +163,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     };
     resetBtn.onClick = [this]
     {
-        session.updateTrack (shownTrack, [] (project::Track& t) { t.macros = {}; t.timingStrength = 0.0f; }, true, "Réglages du style"_u8);
+        session.updateTrack (shownTrack, [] (project::Track& t) { t.macros = {}; t.timingStrength = 0.0f; t.stages.clear(); }, true, "Réglages du style"_u8);
     };
     generateBtn.onClick = [this]
     {
@@ -335,6 +354,7 @@ void RemixPanel::refresh()
     {
         title.setText ("Aucune piste sélectionnée"_u8, juce::dontSendNotification);
         report.setText ({}, false);
+        updateStageCases (nullptr);
         return;
     }
     const bool instru = t->role == style::Role::Instru;
@@ -345,6 +365,7 @@ void RemixPanel::refresh()
     const auto trackStyleName = style::styleName (session.project().trackStyle (*t));
     title.setText (t->name + "  (" + style::roleName (t->role) + (t->raw ? juce::String (", brut") : ", style " + trackStyleName) + ")",
                    juce::dontSendNotification);
+    updateStageCases (t);
     if (dragging)
         return;   // ne pas ramener le curseur à l'ancienne valeur pendant le geste
     // Brut : tout à 0 (aucun effet) ; sinon les curseurs du style (0,5 = réglage du style).
@@ -412,7 +433,12 @@ void RemixPanel::refresh()
         // Effets réglés automatiquement par le style (et les curseurs) : affichés même avant la première prise.
         const auto st = session.project().trackStyle (*t);
         txt << "\n\nEffets appliqués (style "_u8 << style::styleName (st) << ", " << style::roleName (t->role) << ") :\n"
-            << dsp::describeChain (style::makeParams (st, t->role, t->macros, ! t->isGenerated()));
+            << dsp::describeChain (chainParams (*t, true));
+        if (! t->stages.empty())
+        {
+            auto manual = chainParams (*t, false);
+            txt << "\nChaîne réglée à la main : "_u8 << plugins::applyStageOverrides (t->stages, manual);
+        }
         if (auto r = session.renderFor (shownTrack); r != nullptr && r->problemsReport.isNotEmpty())
             txt << "\n" << r->problemsReport;
     }
@@ -428,6 +454,121 @@ void RemixPanel::refresh()
 void RemixPanel::paint (juce::Graphics& g)
 {
     g.fillAll (juce::Colour (0xff1e2228));
+}
+
+style::VocalParams RemixPanel::chainParams (const project::Track& t, bool withOverrides) const
+{
+    auto p = style::makeParams (session.project().trackStyle (t), t.role, t.macros, ! t.isGenerated());
+    p.timing.strength = t.timingStrength;
+    p.clean.enabled = t.cleaning;
+    if (withOverrides && ! t.stages.empty())
+        plugins::applyStageOverrides (t.stages, p);
+    return p;
+}
+
+void RemixPanel::updateStageCases (const project::Track* t)
+{
+    // Cases seulement pour une piste voix traitée par un style (brute : aucun effet ; correction automatique : réglages
+    // déduits de l'analyse, lisibles dans le rapport).
+    const bool show = t != nullptr && t->isVocal() && ! t->raw && ! t->isCorrection();
+    if (show != chainVisible)
+    {
+        chainVisible = show;
+        chainTitle.setVisible (show);
+        for (auto& c : stageCases)
+            c->setVisible (show);
+        resized();
+    }
+    if (! show)
+        return;
+    const auto base = chainParams (*t, false);
+    const auto& stages = plugins::chainStages();
+    for (size_t i = 0; i < stages.size() && i < stageCases.size(); ++i)
+    {
+        const auto& st = stages[i];
+        auto& c = *stageCases[i];
+        const auto it = t->stages.find (juce::String (st.id));
+        const bool bypassed = it != t->stages.end() && it->second.bypass;
+        const bool manual = it != t->stages.end() && ! bypassed && it->second.state.getSize() > 0;
+        auto p = base;
+        if (it != t->stages.end())
+            plugins::applyStageOverrides ({ { it->first, it->second } }, p);
+        const bool active = ! bypassed && plugins::stageActive (st, p);
+        const juce::String name (juce::CharPointer_UTF8 (st.name));
+        c.setButtonText (name + (bypassed ? " (off)" : active ? " : " + plugins::stageSummary (st, p) : juce::String (" : off")));
+        c.setColour (juce::TextButton::buttonColourId, bypassed ? juce::Colour (0xff5a3d1e) : active ? (manual ? juce::Colour (0xff2b5d8a) : juce::Colour (0xff2e6b3a))
+                                                                                                    : juce::Colour (0xff2a2f36));
+        c.setColour (juce::TextButton::textColourOffId, active || bypassed ? juce::Colours::white : juce::Colours::grey);
+        c.setTooltip (name + " : " + (bypassed ? juce::String ("contourné (clic droit pour le rétablir)"_u8)
+                                             : (manual ? juce::String ("réglé à la main — "_u8) : juce::String ("réglé par le style — "_u8)) + plugins::stageSummary (st, p))
+                      + "\nClic : réglages. Clic droit : contourner / revenir au réglage du style."_u8);
+    }
+}
+
+void RemixPanel::openStageEditor (const juce::String& stageId)
+{
+    const auto* t = session.project().findTrack (shownTrack);
+    const auto* st = plugins::findStage (stageId);
+    if (t == nullptr || st == nullptr)
+        return;
+    const auto it = t->stages.find (stageId);
+    plugins::PluginSlot slot;
+    slot.identifier = st->pluginId;
+    slot.name = juce::String (juce::CharPointer_UTF8 (st->name));
+    slot.state = it != t->stages.end() && it->second.state.getSize() > 0 ? it->second.state : plugins::stageState (*st, chainParams (*t, false));
+    const int trackId = shownTrack;
+    juce::WeakReference<Session> weak (&session);
+    SV_LOG_INFO ("VoixIA", "Chaîne de « "_u8 + t->name + " » : réglages de l'étape "_u8 + stageId + " ouverts"_u8);
+    PluginManager::instance().openEditor (slot, [weak, trackId, stageId] (const juce::MemoryBlock& state)
+    {
+        auto* s = weak.get();
+        if (s == nullptr)
+            return;
+        plugins::StageOverride ov;
+        ov.bypass = false;
+        ov.state = state;
+        s->setTrackStage (trackId, stageId, &ov, "Réglage de l'étape "_u8 + stageId);
+    });
+}
+
+void RemixPanel::showStageMenu (const juce::String& stageId)
+{
+    const auto* t = session.project().findTrack (shownTrack);
+    const auto* st = plugins::findStage (stageId);
+    if (t == nullptr || st == nullptr)
+        return;
+    const auto it = t->stages.find (stageId);
+    const bool bypassed = it != t->stages.end() && it->second.bypass;
+    juce::PopupMenu m;
+    m.addSectionHeader (juce::String (juce::CharPointer_UTF8 (st->name)));
+    m.addItem (1, "Réglages..."_u8);
+    m.addItem (2, "Contourner cette étape"_u8, true, bypassed);
+    m.addItem (3, "Revenir au réglage du style"_u8, it != t->stages.end());
+    const int trackId = shownTrack;
+    juce::WeakReference<Session> weak (&session);
+    juce::Component::SafePointer<RemixPanel> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options(), [weak, safe, trackId, stageId, bypassed] (int r)
+    {
+        auto* s = weak.get();
+        if (s == nullptr || r == 0)
+            return;
+        if (r == 1)
+        {
+            if (safe != nullptr)
+                safe->openStageEditor (stageId);
+        }
+        else if (r == 2)
+        {
+            plugins::StageOverride ov;
+            ov.bypass = ! bypassed;
+            if (const auto* tr = s->project().findTrack (trackId))
+                if (auto it2 = tr->stages.find (stageId); it2 != tr->stages.end())
+                    ov.state = it2->second.state;   // les réglages manuels sont gardés derrière le contournement
+            s->setTrackStage (trackId, stageId, &ov, ov.bypass ? "Contourner l'étape "_u8 + stageId : "Rétablir l'étape "_u8 + stageId);
+        }
+        else if (r == 3)
+            s->setTrackStage (trackId, stageId, nullptr, "Étape "_u8 + stageId + " : réglage du style"_u8);
+    });
 }
 
 void RemixPanel::resized()
@@ -463,6 +604,22 @@ void RemixPanel::resized()
     loadPresetBtn.setBounds (a);
     generateBtn.setBounds (row (32));
     r.removeFromTop (4);
+    if (chainVisible)
+    {
+        chainTitle.setBounds (row (20));
+        const int perRow = 3, gap = 4;
+        for (size_t i = 0; i < stageCases.size(); i += perRow)
+        {
+            a = row (24);
+            const int w = (a.getWidth() - gap * (perRow - 1)) / perRow;
+            for (int k = 0; k < perRow && i + static_cast<size_t> (k) < stageCases.size(); ++k)
+            {
+                stageCases[i + static_cast<size_t> (k)]->setBounds (a.removeFromLeft (w));
+                a.removeFromLeft (gap);
+            }
+        }
+        r.removeFromTop (4);
+    }
     a = row (24);
     pluginsTitle.setBounds (a.removeFromLeft (110));
     addPluginBtn.setBounds (a.removeFromLeft (150));

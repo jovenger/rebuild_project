@@ -44,6 +44,20 @@ private:
     {
         juce::TextButton open, bypass { "B" }, remove { "X" };
     };
+    // Chaîne visible : une case par étape du style (clic = réglages dans la fenêtre de l'effet, clic droit = contourner /
+    // revenir au style). Les inserts (effets en plus, VST3) viennent après.
+    struct StageCase final : public juce::TextButton
+    {
+        std::function<void (bool popup)> onPress;
+        void clicked (const juce::ModifierKeys& mods) override { if (onPress) onPress (mods.isPopupMenu()); }
+    };
+    juce::Label chainTitle;
+    std::vector<std::unique_ptr<StageCase>> stageCases;
+    bool chainVisible = false;
+    void updateStageCases (const project::Track* t);
+    style::VocalParams chainParams (const project::Track& t, bool withOverrides) const;
+    void openStageEditor (const juce::String& stageId);
+    void showStageMenu (const juce::String& stageId);
     juce::Label pluginsTitle;
     juce::TextButton addPluginBtn { "+ Effet / plugin..." };
     std::vector<std::unique_ptr<PluginRow>> pluginRows;

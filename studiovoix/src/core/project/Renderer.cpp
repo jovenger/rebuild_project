@@ -6,6 +6,7 @@
 #include "../analysis/ContentClassifier.h"
 #include "../dsp/ProblemAnalyzer.h"
 #include "../dsp/Processors.h"
+#include "../plugins/ChainStages.h"
 #include "../dsp/TrackRepair.h"
 
 namespace sv::render
@@ -262,6 +263,13 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         }
     }
     params.referenceEq = t.referenceEq;
+    if (! t.stages.empty())
+    {
+        // Chaîne visible : les cases contournées ou réglées à la main s'appliquent par-dessus le style / la correction.
+        const auto line = plugins::applyStageOverrides (t.stages, params);
+        if (line.isNotEmpty())
+            SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » : chaîne réglée à la main — "_u8 + line);
+    }
     if (t.isGenerated())
     {
         params.pan = t.genPan;

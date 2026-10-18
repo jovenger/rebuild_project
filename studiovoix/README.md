@@ -131,6 +131,14 @@ commande `studiovoix_cli artefacts` (voir plus bas) : 0 trou sur les 34 chaînes
 **Son polyphonique** (chœurs à plusieurs voix, piano, morceau entier) : la correction de justesse est coupée
 automatiquement, qu'on choisisse un style ou la correction — elle ferait des « vagues » sur ce type de son.
 
+**Chaîne visible de la piste** (onglet Voix IA, piste voix traitée par un style) : onze cases dans l'ordre de la
+chaîne — Nettoyage, Niveleur, Autotune, EQ, Résonances, Compresseur, De-esser, Compresseur 2, Saturation, Réverb,
+Délai — choisies et réglées **automatiquement par le style** (vert = active avec son réglage en clair, gris = éteinte
+par le style, orange = contournée, bleu = réglée à la main). Clic sur une case → la fenêtre de curseurs de l'effet,
+pré-remplie avec les valeurs du style (la piste est recalculée à la fermeture) ; clic droit → « Contourner cette
+étape », « Revenir au réglage du style ». Ces réglages s'appliquent par-dessus le style, sont sauvegardés dans le
+projet et annulables ; « Réglages du style » les efface tous. Les inserts (ci-dessous) viennent après la chaîne.
+
 **Effets en plus sur une piste** : onglet Voix IA → « + Effet / plugin… ». Le menu propose d'abord les
 **effets intégrés** (rien à installer) : égaliseur (coupe-bas, graves, bas-médium, présence, air, coupe-haut),
 compresseur (seuil, ratio, attaque, relâche, gain, mélange parallèle), de-esser, saturation, réverb, délai calé

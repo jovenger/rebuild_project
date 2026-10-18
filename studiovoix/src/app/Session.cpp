@@ -601,6 +601,25 @@ void Session::setTrackPlugins (int trackId, std::vector<plugins::PluginSlot> slo
     updateTrack (trackId, [s = std::move (slots)] (project::Track& tr) { tr.plugins = s; }, true, undoLabel);
 }
 
+void Session::setTrackStage (int trackId, const juce::String& stageId, const plugins::StageOverride* override, const juce::String& undoLabel)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return;
+    SV_LOG_INFO (kMod, "Chaîne de « "_u8 + t->name + " », étape "_u8 + stageId + " : "
+                       + (override == nullptr ? juce::String ("réglage du style"_u8) : override->bypass ? juce::String ("contournée"_u8) : juce::String ("réglée à la main"_u8)));
+    std::optional<plugins::StageOverride> copy;
+    if (override != nullptr)
+        copy = *override;
+    updateTrack (trackId, [stageId, copy] (project::Track& tr)
+    {
+        if (copy.has_value())
+            tr.stages[stageId] = *copy;
+        else
+            tr.stages.erase (stageId);
+    }, true, undoLabel);
+}
+
 void Session::correctAllTracks()
 {
     std::vector<int> ids;

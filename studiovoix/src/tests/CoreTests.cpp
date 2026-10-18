@@ -4,6 +4,7 @@
 #include "TestSignals.h"
 
 #include "core/AudioIO.h"
+#include "core/plugins/ChainStages.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -801,6 +802,8 @@ public:
         tk.fadeIn = 480;
         tk.fadeOut = 960;
         lead.takes.push_back (tk);
+        lead.stages["comp"].bypass = true;
+        lead.stages["eq"].state = plugins::defaultInternalState (*plugins::findInternal ("interne:eq"));
         const int leadId = lead.id;   // la référence 'lead' devient invalide quand d'autres pistes sont ajoutées
         p.armedTrackId = leadId;
         expect (p.save (err), err);
@@ -815,8 +818,52 @@ public:
         expectWithinAbsoluteError (q.findTrack (leadId)->macros.autotune, 0.8f, 1.0e-4f);
         expectEquals (q.findTrack (leadId)->takes.size(), static_cast<size_t> (1));
         expect (q.findTrack (leadId)->takes[0].fadeIn == 480 && q.findTrack (leadId)->takes[0].fadeOut == 960, "fondus du bloc enregistrés"_u8);
+        expect (q.findTrack (leadId)->stages.size() == 2 && q.findTrack (leadId)->stages.at ("comp").bypass
+                    && q.findTrack (leadId)->stages.at ("eq").state == lead.stages.at ("eq").state, "chaîne réglée à la main enregistrée"_u8);
         expectEquals (static_cast<int> (q.listVersions().size()), 1);
         expectEquals (q.armedTrackId, leadId);
+
+        beginTest ("Chaine visible : etapes <-> reglages (aller-retour, contournement, reglage manuel, sauvegarde)");
+        {
+            const auto base = style::makeParams (style::Style::Rap, style::Role::Lead, {}, true);
+            int active = 0;
+            for (const auto& st : plugins::chainStages())
+            {
+                const juce::String stName (juce::CharPointer_UTF8 (st.name));
+                expect (plugins::findInternal (st.pluginId) != nullptr, "effet intégré de l'étape "_u8 + stName);
+                auto q = base;
+                plugins::applyStageState (st, plugins::stageState (st, base), q);
+                expect (plugins::stageSummary (st, q) == plugins::stageSummary (st, base) && plugins::stageActive (st, q) == plugins::stageActive (st, base),
+                        "aller-retour état -> réglages sans changement : "_u8 + stName + " (" + plugins::stageSummary (st, base) + " -> " + plugins::stageSummary (st, q) + ")");
+                plugins::bypassStage (st, q);
+                expect (! plugins::stageActive (st, q), "contournement : "_u8 + stName + " éteint"_u8);
+                active += plugins::stageActive (st, base) ? 1 : 0;
+            }
+            expect (active >= 6, "le style Rap allume au moins 6 étapes ("_u8 + juce::String (active) + ")");
+            const auto instr = style::makeParams (style::Style::Trap, style::Role::Instrument, {});
+            expect (! plugins::stageActive (*plugins::findStage ("tune"), instr) && ! plugins::stageActive (*plugins::findStage ("deess"), instr)
+                        && ! plugins::stageActive (*plugins::findStage ("delay"), instr),
+                    "instrument : cases autotune, de-esser et délai éteintes par le style"_u8);
+
+            // Réglage manuel + contournement appliqués par-dessus le style.
+            std::map<juce::String, plugins::StageOverride> ov;
+            ov["comp"].bypass = true;
+            const auto* eq = plugins::findStage ("eq");
+            ov["eq"].state = plugins::withInternalParam (*plugins::findInternal (eq->pluginId), plugins::stageState (*eq, base), "presDb", 6.0f);
+            auto pr = base;
+            const auto line = plugins::applyStageOverrides (ov, pr);
+            expect (pr.comp.ratio <= 1.0f && std::abs (pr.eq.presenceDb - 6.0f) < 1e-4f && std::abs (pr.eq.lowCutHz - base.eq.lowCutHz) < 1e-4f,
+                    "compresseur contourné, présence +6 dB, reste de l'EQ du style : " + line);
+            expect (line.contains ("Compresseur") && line.contains ("EQ") && ! line.containsChar (0xC3), "ligne lisible : " + line);
+            expect (dsp::describeChain (pr) != dsp::describeChain (base), "le rapport reflète la chaîne réglée à la main"_u8);
+
+            // Sauvegarde / lecture.
+            const auto v = ov["eq"].toVar();
+            const auto back = plugins::StageOverride::fromVar (v);
+            expect (! back.bypass && back.state == ov["eq"].state, "StageOverride aller-retour JSON");
+            expect (plugins::findInternal ("interne:tune") != nullptr && ! plugins::findInternal ("interne:tune")->insertable
+                        && plugins::findInternal ("interne:comp")->insertable, "autotune : étape seulement, compresseur insérable"_u8);
+        }
 
         beginTest ("Edition des blocs : couper, rogner, fondus, supprimer ; fondus appliques a l'assemblage");
         {

@@ -68,6 +68,20 @@ namespace
                 { "gain", "Gain d'entrée", -12.0f, 24.0f, 0.0f, "dB" } } },
             { "interne:width", "Largeur stéréo",
               { { "width", "Largeur (100 = inchangé)", 0.0f, 200.0f, 100.0f, "%" } } },
+            // Étapes de la chaîne du style sans équivalent insert : réglées par leur case dans la chaîne visible.
+            { "interne:clean", "Nettoyage",
+              { { "hpf", "Coupe-bas", 20.0f, 400.0f, 90.0f, "Hz" },
+                { "denoise", "Débruitage spectral", 0.0f, 30.0f, 12.0f, "dB" },
+                { "gate", "Atténuation des silences", 0.0f, 40.0f, 12.0f, "dB" },
+                { "breath", "Respirations", 0.0f, 20.0f, 8.0f, "dB" },
+                { "plosive", "Plosives p / b (0 / 1)", 0.0f, 1.0f, 1.0f, "" },
+                { "declip", "Dé-écrêtage (0 / 1)", 0.0f, 1.0f, 1.0f, "" } },
+              false },
+            { "interne:tune", "Autotune",
+              { { "amount", "Quantité", 0.0f, 100.0f, 50.0f, "%" },
+                { "retune", "Vitesse (petit = effet marqué)", 1.0f, 200.0f, 30.0f, "ms" },
+                { "humanize", "Naturel (variations gardées)", 0.0f, 100.0f, 50.0f, "%" } },
+              false },
         };
         return list;
     }
@@ -140,6 +154,11 @@ juce::String applyInternal (Stereo& audio, double sr, double bpm, const PluginSl
     const auto* def = findInternal (slot.identifier);
     if (def == nullptr)
         return slot.name + " : effet intégré inconnu"_u8;
+    if (! def->insertable)
+    {
+        SV_LOG_WARN (kMod, slot.name + " : règle une étape de la chaîne du style, pas un insert (ignoré)"_u8);
+        return slot.name + " : pas un insert (ignoré)"_u8;
+    }
     const auto t0 = juce::Time::getMillisecondCounterHiRes();
     auto P = [&] (const char* id) { return internalParam (*def, slot.state, id); };
     const juce::String id (slot.identifier);

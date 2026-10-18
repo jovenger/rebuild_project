@@ -9,6 +9,8 @@
 
 #include <juce_core/juce_core.h>
 
+#include <map>
+
 // Modèle de projet StudioVoix. Un projet = un dossier :
 //   projet.svx        description JSON
 //   audio/            prises (WAV 32 bits flottants, jamais modifiées) et pistes générées
@@ -52,6 +54,7 @@ struct Track
     juce::String styleId;            // style propre à la piste ; vide = style du projet ; "correction" = correction automatique
     bool isCorrection() const { return styleId == "correction"; }
     std::vector<plugins::PluginSlot> plugins;   // inserts VST3 appliqués après les effets
+    std::map<juce::String, plugins::StageOverride> stages;   // chaîne visible : étapes contournées / réglées à la main (clé = étape)
 
     // Pistes générées / instru
     juce::String sourceFile;         // relatif à audio/ (piste générée) ou chemin de l'instru
