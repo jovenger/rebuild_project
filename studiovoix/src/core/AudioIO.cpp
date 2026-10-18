@@ -1,0 +1,413 @@
+#include "AudioIO.h"
+
+#include "Log.h"
+
+namespace sv::audio
+{
+namespace
+{
+    constexpr const char* kMod = "AudioIO";
+
+    juce::AudioFormatManager& formatManager()
+    {
+        static juce::AudioFormatManager manager;
+        static const bool registered = [] { manager.registerBasicFormats(); return true; }();
+        juce::ignoreUnused (registered);
+        return manager;
+    }
+
+    // Rééchantillonnage sinc fenêtré (Blackman), 24 points de chaque côté.
+    // Le noyau est tabulé (512 pas par échantillon) pour éviter sin/cos dans la boucle.
+    void resampleChannel (const float* in, int inLen, float* out, int outLen, double ratio /* from/to */)
+    {
+        constexpr int halfTaps = 24;
+        constexpr int resolution = 512;
+        const double cutoff = ratio > 1.0 ? 1.0 / ratio : 1.0;   // anti-repliement en sous-échantillonnage
+        const double pi = juce::MathConstants<double>::pi;
+
+        const int tableSize = 2 * halfTaps * resolution + 2;
+        std::vector<float> table (static_cast<size_t> (tableSize));
+        for (int i = 0; i < tableSize; ++i)
+        {
+            const double x = static_cast<double> (i) / resolution - halfTaps;   // [-halfTaps, halfTaps]
+            const double xc = x * cutoff;
+            const double sinc = std::abs (xc) < 1.0e-9 ? 1.0 : std::sin (pi * xc) / (pi * xc);
+            const double wpos = (x + halfTaps) / (2.0 * halfTaps);
+            const double w = (wpos <= 0.0 || wpos >= 1.0)
+                               ? 0.0
+                               : 0.42 - 0.5 * std::cos (2.0 * pi * wpos) + 0.08 * std::cos (4.0 * pi * wpos);
+            table[static_cast<size_t> (i)] = static_cast<float> (sinc * w * cutoff);
+        }
+
+        for (int n = 0; n < outLen; ++n)
+        {
+            const double t = n * ratio;
+            const int centre = static_cast<int> (std::floor (t));
+            double acc = 0.0, wsum = 0.0;
+
+            for (int k = centre - halfTaps + 1; k <= centre + halfTaps; ++k)
+            {
+                const double pos = (t - k + halfTaps) * resolution;
+                const int idx = static_cast<int> (pos);
+                if (idx < 0 || idx >= tableSize - 1)
+                    continue;
+                const double frac = pos - idx;
+                const double coeff = table[static_cast<size_t> (idx)] * (1.0 - frac)
+                                   + table[static_cast<size_t> (idx + 1)] * frac;
+                wsum += coeff;
+                if (k >= 0 && k < inLen)
+                    acc += coeff * in[k];
+            }
+
+            out[n] = static_cast<float> (wsum > 1.0e-9 ? acc / wsum : acc);
+        }
+    }
+}
+
+juce::String extensionFor (FileFormat format)
+{
+    switch (format)
+    {
+        case FileFormat::Wav24:
+        case FileFormat::Wav32Float: return ".wav";
+        case FileFormat::Flac24:     return ".flac";
+        case FileFormat::Mp3_320:    return ".mp3";
+    }
+    return ".wav";
+}
+
+float peak (const float* data, size_t n)
+{
+    float p = 0.0f;
+    for (size_t i = 0; i < n; ++i)
+        p = std::max (p, std::abs (data[i]));
+    return p;
+}
+
+float rms (const float* data, size_t n)
+{
+    if (n == 0)
+        return 0.0f;
+    double acc = 0.0;
+    for (size_t i = 0; i < n; ++i)
+        acc += static_cast<double> (data[i]) * data[i];
+    return static_cast<float> (std::sqrt (acc / static_cast<double> (n)));
+}
+
+bool hasNonFinite (const float* data, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+        if (! std::isfinite (data[i]))
+            return true;
+    return false;
+}
+
+size_t sanitize (float* data, size_t n)
+{
+    size_t fixed = 0;
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (! std::isfinite (data[i]))
+        {
+            data[i] = 0.0f;
+            ++fixed;
+        }
+    }
+    return fixed;
+}
+
+void applyFade (float* data, size_t size, size_t start, size_t len, bool fadeIn)
+{
+    if (len == 0 || start >= size)
+        return;
+    len = std::min (len, size - start);
+    for (size_t i = 0; i < len; ++i)
+    {
+        const float g = static_cast<float> (i) / static_cast<float> (len);
+        data[start + i] *= fadeIn ? g : (1.0f - g);
+    }
+}
+
+Mono toMono (const Stereo& buffer)
+{
+    const int n = buffer.getNumSamples();
+    Mono out (static_cast<size_t> (std::max (0, n)), 0.0f);
+    const int ch = buffer.getNumChannels();
+    if (ch == 0)
+        return out;
+    for (int c = 0; c < ch; ++c)
+    {
+        const float* src = buffer.getReadPointer (c);
+        for (int i = 0; i < n; ++i)
+            out[static_cast<size_t> (i)] += src[i];
+    }
+    const float scale = 1.0f / static_cast<float> (ch);
+    for (auto& v : out)
+        v *= scale;
+    return out;
+}
+
+Stereo monoToStereo (const Mono& mono)
+{
+    Stereo s (2, static_cast<int> (mono.size()));
+    for (int c = 0; c < 2; ++c)
+        std::copy (mono.begin(), mono.end(), s.getWritePointer (c));
+    return s;
+}
+
+Mono resample (const Mono& in, double fromSr, double toSr)
+{
+    if (in.empty() || fromSr <= 0.0 || toSr <= 0.0 || std::abs (fromSr - toSr) < 1.0e-6)
+        return in;
+    const double ratio = fromSr / toSr;
+    const int outLen = static_cast<int> (std::floor (static_cast<double> (in.size()) / ratio));
+    Mono out (static_cast<size_t> (std::max (0, outLen)));
+    resampleChannel (in.data(), static_cast<int> (in.size()), out.data(), outLen, ratio);
+    return out;
+}
+
+Stereo resample (const Stereo& in, double fromSr, double toSr)
+{
+    if (in.getNumSamples() == 0 || fromSr <= 0.0 || toSr <= 0.0 || std::abs (fromSr - toSr) < 1.0e-6)
+        return Stereo (in);
+    const double ratio = fromSr / toSr;
+    const int outLen = static_cast<int> (std::floor (in.getNumSamples() / ratio));
+    Stereo out (in.getNumChannels(), std::max (0, outLen));
+    for (int c = 0; c < in.getNumChannels(); ++c)
+        resampleChannel (in.getReadPointer (c), in.getNumSamples(), out.getWritePointer (c), outLen, ratio);
+    return out;
+}
+
+LoadResult loadStereo (const juce::File& file, double targetSampleRate, double maxSeconds)
+{
+    LoadResult result;
+    log::ScopedTimer timer (kMod, "chargement " + file.getFileName());
+
+    if (! file.existsAsFile())
+    {
+        result.error = "Fichier introuvable : " + file.getFullPathName();
+        SV_LOG_ERROR (kMod, result.error);
+        return result;
+    }
+
+    constexpr juce::int64 maxBytes = (juce::int64) 2 * 1024 * 1024 * 1024;
+    if (file.getSize() <= 0 || file.getSize() > maxBytes)
+    {
+        result.error = "Taille de fichier invalide (" + juce::String (file.getSize()) + " octets) : " + file.getFileName();
+        SV_LOG_ERROR (kMod, result.error);
+        return result;
+    }
+
+    std::unique_ptr<juce::AudioFormatReader> reader (formatManager().createReaderFor (file));
+    if (reader == nullptr)
+    {
+        result.error = "Format audio non reconnu : " + file.getFileName();
+        SV_LOG_ERROR (kMod, result.error);
+        return result;
+    }
+
+    const auto sr = reader->sampleRate;
+    const auto length = reader->lengthInSamples;
+    const int channels = static_cast<int> (reader->numChannels);
+
+    if (sr < 8000.0 || sr > 384000.0 || length <= 0 || channels <= 0)
+    {
+        result.error = "Paramètres audio invalides (taux "_u8 + juce::String (sr) + ", longueur "
+                     + juce::String (length) + ", canaux " + juce::String (channels) + ")";
+        SV_LOG_ERROR (kMod, result.error);
+        return result;
+    }
+
+    if (static_cast<double> (length) / sr > maxSeconds)
+    {
+        result.error = "Fichier trop long (" + juce::String (static_cast<double> (length) / sr, 1)
+                     + " s, max " + juce::String (maxSeconds, 0) + " s)";
+        SV_LOG_ERROR (kMod, result.error);
+        return result;
+    }
+
+    const int n = static_cast<int> (length);
+    juce::AudioBuffer<float> raw (channels, n);
+    if (! reader->read (&raw, 0, n, 0, true, true))
+    {
+        result.error = "Lecture impossible : " + file.getFileName();
+        SV_LOG_ERROR (kMod, result.error);
+        return result;
+    }
+
+    // Conversion en stéréo : mono dupliqué, >2 canaux mixés.
+    Stereo stereo (2, n);
+    if (channels == 1)
+    {
+        stereo.copyFrom (0, 0, raw, 0, 0, n);
+        stereo.copyFrom (1, 0, raw, 0, 0, n);
+    }
+    else if (channels == 2)
+    {
+        stereo.copyFrom (0, 0, raw, 0, 0, n);
+        stereo.copyFrom (1, 0, raw, 1, 0, n);
+    }
+    else
+    {
+        stereo.clear();
+        for (int c = 0; c < channels; ++c)
+            stereo.addFrom (c % 2, 0, raw, c, 0, n, 2.0f / static_cast<float> (channels));
+        SV_LOG_WARN (kMod, juce::String (channels) + " canaux mixés en stéréo"_u8);
+    }
+
+    for (int c = 0; c < 2; ++c)
+    {
+        const auto fixed = sanitize (stereo.getWritePointer (c), static_cast<size_t> (n));
+        if (fixed > 0)
+            SV_LOG_WARN (kMod, juce::String ((int) fixed) + " valeurs non finies corrigées (canal "_u8 + juce::String (c) + ")");
+    }
+
+    result.originalSampleRate = sr;
+    result.originalChannels = channels;
+    result.sampleRate = targetSampleRate;
+    result.buffer = resample (stereo, sr, targetSampleRate);
+
+    SV_LOG_INFO (kMod, "Chargé "_u8 + file.getFileName() + " : " + juce::String (channels) + " canal(aux), "
+                       + juce::String (sr, 0) + " Hz -> " + juce::String (targetSampleRate, 0) + " Hz, "
+                       + juce::String (result.buffer.getNumSamples() / targetSampleRate, 2) + " s");
+    return result;
+}
+
+bool loadMono (const juce::File& file, double targetSampleRate, Mono& out, juce::String& error, double maxSeconds)
+{
+    auto res = loadStereo (file, targetSampleRate, maxSeconds);
+    if (! res.ok())
+    {
+        error = res.error;
+        return false;
+    }
+    out = toMono (res.buffer);
+    return true;
+}
+
+juce::File findLameExecutable()
+{
+   #if JUCE_WINDOWS
+    const juce::String exeName ("lame.exe");
+    const juce::String separator (";");
+   #else
+    const juce::String exeName ("lame");
+    const juce::String separator (":");
+   #endif
+
+    const auto sibling = juce::File::getSpecialLocation (juce::File::currentExecutableFile).getSiblingFile (exeName);
+    if (sibling.existsAsFile())
+        return sibling;
+
+    juce::StringArray paths;
+    paths.addTokens (juce::SystemStats::getEnvironmentVariable ("PATH", {}), separator, "\"");
+    for (const auto& p : paths)
+    {
+        if (p.trim().isEmpty())
+            continue;
+        const juce::File candidate = juce::File (p.trim()).getChildFile (exeName);
+        if (candidate.existsAsFile())
+            return candidate;
+    }
+    return {};
+}
+
+bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate, FileFormat format, juce::String& error)
+{
+    log::ScopedTimer timer (kMod, "écriture "_u8 + file.getFileName());
+
+    if (buffer.getNumSamples() <= 0)
+    {
+        error = "Rien à écrire (tampon vide)"_u8;
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+
+    const auto dir = file.getParentDirectory().createDirectory();
+    if (dir.failed())
+    {
+        error = "Dossier impossible à créer : "_u8 + dir.getErrorMessage();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+
+    std::unique_ptr<juce::AudioFormat> audioFormat;
+    auto options = juce::AudioFormatWriterOptions{}
+                       .withSampleRate (sampleRate)
+                       .withNumChannels (buffer.getNumChannels());
+
+    switch (format)
+    {
+        case FileFormat::Wav24:
+            audioFormat = std::make_unique<juce::WavAudioFormat>();
+            options = options.withBitsPerSample (24);
+            break;
+        case FileFormat::Wav32Float:
+            audioFormat = std::make_unique<juce::WavAudioFormat>();
+            options = options.withBitsPerSample (32).withSampleFormat (juce::AudioFormatWriterOptions::SampleFormat::floatingPoint);
+            break;
+        case FileFormat::Flac24:
+            audioFormat = std::make_unique<juce::FlacAudioFormat>();
+            options = options.withBitsPerSample (24);
+            break;
+        case FileFormat::Mp3_320:
+        {
+            const auto lame = findLameExecutable();
+            if (! lame.existsAsFile())
+            {
+                error = "Export MP3 impossible : lame.exe introuvable (le placer à côté de StudioVoix.exe). "_u8
+                        "Exporte en WAV ou FLAC en attendant.";
+                SV_LOG_ERROR (kMod, error);
+                return false;
+            }
+            audioFormat = std::make_unique<juce::LAMEEncoderAudioFormat> (lame);
+            options = options.withBitsPerSample (16);
+            const auto qualities = audioFormat->getQualityOptions();
+            const int idx = qualities.indexOf ("320 kbps");
+            options = options.withQualityOptionIndex (idx >= 0 ? idx : juce::jmax (0, qualities.size() - 1));
+            break;
+        }
+    }
+
+    if (file.existsAsFile() && ! file.deleteFile())
+    {
+        error = "Impossible de remplacer " + file.getFullPathName();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+
+    std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (file);
+    if (static_cast<juce::FileOutputStream*> (stream.get())->failedToOpen())
+    {
+        error = "Ouverture en écriture impossible : "_u8 + file.getFullPathName();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+
+    auto writer = audioFormat->createWriterFor (stream, options);
+    if (writer == nullptr)
+    {
+        error = "Création de l'encodeur impossible pour "_u8 + file.getFileName();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+
+    if (! writer->writeFromAudioSampleBuffer (buffer, 0, buffer.getNumSamples()))
+    {
+        error = "Échec d'écriture des échantillons : "_u8 + file.getFileName();
+        SV_LOG_ERROR (kMod, error);
+        return false;
+    }
+
+    writer.reset();
+    SV_LOG_INFO (kMod, "Écrit "_u8 + file.getFullPathName() + " (" + juce::String (buffer.getNumSamples() / sampleRate, 2) + " s)");
+    return true;
+}
+
+bool writeMonoWavFloat (const juce::File& file, const Mono& data, double sampleRate, juce::String& error)
+{
+    Stereo mono (1, static_cast<int> (data.size()));
+    std::copy (data.begin(), data.end(), mono.getWritePointer (0));
+    return writeFile (file, mono, sampleRate, FileFormat::Wav32Float, error);
+}
+} // namespace sv::audio

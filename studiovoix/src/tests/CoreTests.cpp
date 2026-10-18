@@ -1,0 +1,708 @@
+// Tests unitaires du coeur StudioVoix (framework juce::UnitTest).
+// Lancement : studiovoix_cli test
+
+#include "TestSignals.h"
+
+#include "core/AudioIO.h"
+#include "core/Log.h"
+#include "core/Loudness.h"
+#include "core/analysis/KeyDetector.h"
+#include "core/analysis/PitchDetector.h"
+#include "core/analysis/StructureDetector.h"
+#include "core/analysis/TempoDetector.h"
+#include "core/analysis/VoiceActivity.h"
+#include "core/assistant/CommandParser.h"
+#include "core/dsp/MasterChain.h"
+#include "core/dsp/PitchCorrector.h"
+#include "core/dsp/PitchShifter.h"
+#include "core/dsp/Processors.h"
+#include "core/dsp/TimingCorrector.h"
+#include "core/dsp/VocalChain.h"
+#include "core/gen/BackingGenerator.h"
+#include "core/gen/TakeComper.h"
+#include "core/project/Project.h"
+#include "core/project/Renderer.h"
+
+namespace sv::test
+{
+namespace
+{
+    constexpr double kSr = 48000.0;
+
+    MusicalKey aMinor()
+    {
+        MusicalKey k;
+        k.root = 9;
+        k.minor = true;
+        return k;
+    }
+
+    MusicalKey cMajor()
+    {
+        MusicalKey k;
+        k.root = 0;
+        k.minor = false;
+        return k;
+    }
+
+    float bandRmsDb (const Mono& x, double sr, double lo, double hi, size_t a, size_t b)
+    {
+        Mono y (x.begin() + static_cast<long> (a), x.begin() + static_cast<long> (std::min (b, x.size())));
+        if (lo > 0.0)
+            dsp::highPass (y, sr, lo, 4);
+        if (hi > 0.0)
+            dsp::lowPass (y, sr, hi, 4);
+        return gainToDb (audio::rms (y.data(), y.size()));
+    }
+}
+
+class LoudnessTests final : public juce::UnitTest
+{
+public:
+    LoudnessTests() : juce::UnitTest ("Sonie LUFS / crete vraie", "studiovoix") {}
+
+    void runTest() override
+    {
+        beginTest ("EBU 3341 : sinus 1 kHz -23 dBFS stereo = -23 LUFS");
+        {
+            const auto s = sine (1000.0, 20.0, kSr, dbToGain (-23.0f));
+            const auto st = audio::monoToStereo (s);
+            const double l = loudness::integratedLufs (st, kSr);
+            logMessage ("mesure : " + juce::String (l, 3) + " LUFS");
+            expectWithinAbsoluteError (l, -23.0, 0.1);
+        }
+        beginTest ("Crete vraie d'un sinus 0,5");
+        {
+            const auto st = audio::monoToStereo (sine (997.0, 1.0, kSr, 0.5f));
+            expectWithinAbsoluteError (loudness::truePeakDb (st), -6.02, 0.15);
+        }
+        beginTest ("Silence = -120");
+        {
+            expectEquals (loudness::integratedLufs (makeStereo (48000), kSr), -120.0);
+        }
+    }
+};
+
+class ResampleTests final : public juce::UnitTest
+{
+public:
+    ResampleTests() : juce::UnitTest ("Reechantillonnage", "studiovoix") {}
+
+    void runTest() override
+    {
+        beginTest ("44,1 kHz -> 48 kHz conserve frequence et niveau");
+        const auto s = sine (1000.0, 2.0, 44100.0, 0.5f);
+        const auto r = audio::resample (s, 44100.0, 48000.0);
+        expectWithinAbsoluteError (static_cast<double> (r.size()), 96000.0, 2.0);
+        const float rmsIn = audio::rms (s.data() + 4410, 44100);
+        const float rmsOut = audio::rms (r.data() + 4800, 48000);
+        expectWithinAbsoluteError (gainToDb (rmsOut) - gainToDb (rmsIn), 0.0f, 0.1f);
+        int crossings = 0;
+        for (size_t i = 4801; i < 52800; ++i)
+            crossings += (r[i - 1] < 0.0f && r[i] >= 0.0f) ? 1 : 0;
+        expectWithinAbsoluteError (crossings, 1000, 2);
+    }
+};
+
+class PitchTests final : public juce::UnitTest
+{
+public:
+    PitchTests() : juce::UnitTest ("Hauteur YIN / PSOLA / autotune", "studiovoix") {}
+
+    void runTest() override
+    {
+        beginTest ("YIN sur sinus 220 Hz");
+        {
+            const auto s = sine (220.0, 1.0, kSr, 0.3f);
+            expectWithinAbsoluteError (medianF0 (s, kSr), 220.0f, 1.0f);
+        }
+        beginTest ("YIN sur voix de synthese (La 2 = 220 Hz)");
+        {
+            VoicePhrase p;
+            p.notes = { { 57.0f, 1.0, 0.0f } };
+            const auto v = synthVoice ({ p }, kSr, 0.2, 0.0f);
+            expectWithinAbsoluteError (medianF0 (v, kSr, 0.3, 1.1), 220.0f, 2.5f);
+        }
+        beginTest ("PSOLA : +2 demi-tons");
+        {
+            VoicePhrase p;
+            p.notes = { { 55.0f, 1.2, 0.0f } };   // Sol 2 = 196 Hz
+            const auto v = synthVoice ({ p }, kSr, 0.2, 0.0f);
+            const auto track = analysis::detectPitch (v, kSr);
+            const auto up = dsp::psolaShiftSemitones (v, kSr, track, 2.0f);
+            const float expected = 196.0f * std::pow (2.0f, 2.0f / 12.0f);
+            const float measured = medianF0 (up, kSr, 0.35, 1.2);
+            logMessage ("PSOLA : attendu " + juce::String (expected, 1) + " Hz, mesure " + juce::String (measured, 1) + " Hz");
+            expectWithinAbsoluteError (measured, expected, 3.0f);
+            expect (std::abs (static_cast<double> (up.size()) - static_cast<double> (v.size())) < 1.0, "durée conservée"_u8);
+        }
+        beginTest ("Autotune : voix desaccordee de +35 cents ramenee sur la gamme");
+        {
+            const auto key = aMinor();
+            auto phrases = defaultPhrases (key, 100.0, 35.0f);
+            const auto v = synthVoice (phrases, kSr, 0.5, 0.0f);
+            dsp::PitchCorrectionParams pc;
+            pc.key = key;
+            pc.amount = 1.0f;
+            pc.retuneMs = 5.0f;
+            const auto res = dsp::correctPitch (v, kSr, pc);
+            const auto after = analysis::detectPitch (res.audio, kSr);
+            double devBefore = 0.0, devAfter = 0.0;
+            int nb = 0, na = 0;
+            const auto before = res.track;
+            for (const auto& f : before.frames)
+                if (f.voiced)
+                {
+                    const float m = analysis::hzToMidi (f.f0);
+                    devBefore += std::abs (m - dsp::nearestScaleMidi (m, key, false)) * 100.0;
+                    ++nb;
+                }
+            for (const auto& f : after.frames)
+                if (f.voiced)
+                {
+                    const float m = analysis::hzToMidi (f.f0);
+                    devAfter += std::abs (m - dsp::nearestScaleMidi (m, key, false)) * 100.0;
+                    ++na;
+                }
+            devBefore /= std::max (1, nb);
+            devAfter /= std::max (1, na);
+            logMessage ("écart moyen à la gamme : avant "_u8 + juce::String (devBefore, 1) + " cents, après "_u8 + juce::String (devAfter, 1) + " cents");
+            expect (devBefore > 25.0, "la voix de test doit être désaccordée"_u8);
+            expect (devAfter < 10.0, "la correction doit ramener la voix à moins de 10 cents"_u8);
+        }
+        beginTest ("Degres diatoniques");
+        {
+            const auto key = aMinor();
+            expectEquals (dsp::diatonicShift (72.0f, key, 2), 76.0f);   // Do -> Mi
+            expectEquals (dsp::diatonicShift (69.0f, key, 4), 76.0f);   // La -> Mi
+            expectEquals (dsp::diatonicShift (69.0f, key, -7), 57.0f);  // octave en dessous
+            expectEquals (dsp::nearestScaleMidi (70.0f, key, false), 69.0f);   // Sib -> La (Si plus loin? 71) : 69 et 71 à égalité, 69 retenu
+        }
+    }
+};
+
+class AnalysisTests final : public juce::UnitTest
+{
+public:
+    AnalysisTests() : juce::UnitTest ("Analyse instru et voix", "studiovoix") {}
+
+    void runTest() override
+    {
+        beginTest ("Tonalite : instru en La mineur");
+        {
+            const auto instru = synthInstru (140.0, aMinor(), 16, kSr, false);
+            const auto k = analysis::detectKey (audio::toMono (instru), kSr);
+            logMessage ("détecté : "_u8 + k.key.toFrench());
+            expectEquals (k.key.root, 9);
+            expect (k.key.minor, "mode mineur attendu");
+        }
+        beginTest ("Tonalite : instru en Do majeur");
+        {
+            const auto instru = synthInstru (100.0, cMajor(), 16, kSr, false);
+            const auto k = analysis::detectKey (audio::toMono (instru), kSr);
+            logMessage ("détecté : "_u8 + k.key.toFrench());
+            expectEquals (k.key.root, 0);
+            expect (! k.key.minor, "mode majeur attendu");
+        }
+        beginTest ("Tempo 140 BPM");
+        {
+            const auto instru = synthInstru (140.0, aMinor(), 16, kSr, false);
+            const auto t = analysis::detectTempo (audio::toMono (instru), kSr);
+            expectWithinAbsoluteError (t.bpm, 140.0, 1.5);
+            const double beat = 60.0 / 140.0;
+            const double phase = std::fmod (t.firstBeatSec, beat * 4.0);
+            expect (phase < 0.03 || beat * 4.0 - phase < 0.03, "premier temps fort proche de 0 (mesure) : " + juce::String (t.firstBeatSec, 3));
+        }
+        beginTest ("Tempo 95 BPM");
+        {
+            const auto instru = synthInstru (95.0, cMajor(), 12, kSr, false);
+            const auto t = analysis::detectTempo (audio::toMono (instru), kSr);
+            expectWithinAbsoluteError (t.bpm, 95.0, 1.5);
+        }
+        beginTest ("Structure : refrains detectes");
+        {
+            TempoInfo tempo;
+            tempo.bpm = 120.0;
+            tempo.firstBeatSec = 0.0;
+            const auto instru = synthInstru (120.0, aMinor(), 32, kSr, true);
+            const auto secs = analysis::detectStructure (audio::toMono (instru), kSr, tempo);
+            int choruses = 0;
+            for (const auto& s : secs)
+                choruses += s.kind == "refrain" ? 1 : 0;
+            logMessage (juce::String ((int) secs.size()) + " sections, " + juce::String (choruses) + " refrains");
+            expect (secs.size() >= 3, "au moins 3 sections");
+            expect (choruses >= 2, "au moins 2 refrains");
+            expect (choruses < static_cast<int> (secs.size()), "les couplets ne sont pas tous des refrains");
+        }
+        beginTest ("Activite vocale : 4 phrases");
+        {
+            const auto v = synthVoice (defaultPhrases (aMinor(), 100.0), kSr);
+            const auto va = analysis::analyzeVoice (v, kSr);
+            expectEquals (static_cast<int> (va.phrases.size()), 4);
+            if (! va.phrases.empty())
+                expect (va.phrases[0].syllableOnsets.size() >= 3, "attaques de syllabes détectées : "_u8
+                                                                   + juce::String ((int) va.phrases[0].syllableOnsets.size()));
+        }
+    }
+};
+
+class ProcessorTests final : public juce::UnitTest
+{
+public:
+    ProcessorTests() : juce::UnitTest ("Effets voix", "studiovoix") {}
+
+    void runTest() override
+    {
+        beginTest ("Compresseur : reduit l'ecart fort / faible");
+        {
+            Mono x = sine (440.0, 1.0, kSr, dbToGain (-30.0f));
+            const auto loud = sine (440.0, 1.0, kSr, dbToGain (-6.0f));
+            x.insert (x.end(), loud.begin(), loud.end());
+            const float before = gainToDb (audio::rms (x.data() + 48000, 48000)) - gainToDb (audio::rms (x.data(), 48000));
+            dsp::CompressorSettings c;
+            c.thresholdDb = -24.0f;
+            c.ratio = 4.0f;
+            const float gr = dsp::compress (x, kSr, c);
+            const float after = gainToDb (audio::rms (x.data() + 60000, 30000)) - gainToDb (audio::rms (x.data() + 10000, 30000));
+            logMessage ("écart avant "_u8 + juce::String (before, 1) + " dB, après "_u8 + juce::String (after, 1) + " dB, réduction "_u8 + juce::String (gr, 1) + " dB");
+            expect (after < before - 10.0f, "compression effective");
+        }
+        beginTest ("De-esser : attenue le 's' sans toucher la voyelle");
+        {
+            VoicePhrase p;
+            p.notes = { { 57.0f, 0.6, 0.0f } };
+            p.sibilantAtEnd = true;
+            const auto v = synthVoice ({ p }, kSr, 0.2, 0.0f);
+            Mono y = v;
+            dsp::DeEsserSettings d;
+            d.amount = 0.8f;
+            dsp::deEss (y, kSr, d);
+            const size_t vowelA = static_cast<size_t> (0.3 * kSr), vowelB = static_cast<size_t> (0.7 * kSr);
+            const size_t sA = static_cast<size_t> (0.8 * kSr), sB = static_cast<size_t> (0.92 * kSr);
+            const float vowelDelta = bandRmsDb (y, kSr, 0, 3000, vowelA, vowelB) - bandRmsDb (v, kSr, 0, 3000, vowelA, vowelB);
+            const float sDelta = bandRmsDb (y, kSr, 5000, 0, sA, sB) - bandRmsDb (v, kSr, 5000, 0, sA, sB);
+            logMessage ("voyelle " + juce::String (vowelDelta, 2) + " dB, sifflante " + juce::String (sDelta, 2) + " dB");
+            expect (std::abs (vowelDelta) < 1.0f, "voyelle préservée"_u8);
+            expect (sDelta < -3.0f, "sifflante réduite d'au moins 3 dB"_u8);
+        }
+        beginTest ("Saturation : pas de NaN, niveau conserve");
+        {
+            Mono x = sine (220.0, 1.0, kSr, 0.4f);
+            const float before = audio::rms (x.data(), x.size());
+            dsp::SaturationSettings s { 9.0f, 1.0f, 0.2f };
+            dsp::saturate (x, kSr, s);
+            expect (! audio::hasNonFinite (x.data(), x.size()));
+            expectWithinAbsoluteError (gainToDb (audio::rms (x.data() + 4800, x.size() - 9600)) - gainToDb (before), 0.0f, 1.0f);
+        }
+        beginTest ("Reverberation : niveau de retour calibre");
+        {
+            const auto x = synthVoice (defaultPhrases (aMinor(), 100.0), kSr);
+            dsp::ReverbSettings r;
+            r.send = 1.0f;
+            const auto wet = dsp::reverbReturn (x, kSr, r);
+            const float inDb = gainToDb (audio::rms (x.data(), x.size()));
+            const float wetDb = gainToDb (wet.getRMSLevel (0, 0, wet.getNumSamples()));
+            logMessage ("retour réverb (send 1) : "_u8 + juce::String (wetDb - inDb, 1) + " dB par rapport à l'entrée"_u8);
+            expect (wetDb - inDb > -15.0f && wetDb - inDb < 3.0f, "niveau de retour plausible");
+        }
+        beginTest ("Delai : premiere repetition au bon temps");
+        {
+            Mono x (static_cast<size_t> (kSr * 2), 0.0f);
+            x[1000] = 1.0f;
+            dsp::DelaySettings d;
+            d.send = 1.0f;
+            d.noteBeats = 1.0f;
+            d.feedback = 0.0f;
+            d.hpfHz = 20.0f;
+            d.lpfHz = 20000.0f;
+            const auto out = dsp::delayReturn (x, kSr, 120.0, d);
+            int peakIdx = 0;
+            float pk = 0.0f;
+            for (int i = 0; i < out.getNumSamples(); ++i)
+                if (std::abs (out.getSample (0, i)) > pk)
+                {
+                    pk = std::abs (out.getSample (0, i));
+                    peakIdx = i;
+                }
+            expectWithinAbsoluteError (peakIdx, 1000 + 24000, 2);
+        }
+        beginTest ("Nettoyage : respiration attenuee, voix intacte");
+        {
+            auto phrases = defaultPhrases (aMinor(), 100.0);
+            const auto v = synthVoice (phrases, kSr);
+            Mono y = v;
+            const auto va = analysis::analyzeVoice (y, kSr);
+            const auto track = analysis::detectPitch (y, kSr);
+            dsp::CleanSettings cs;
+            cs.hpfHz = 80.0f;
+            const auto rep = dsp::clean (y, kSr, cs, track, va);
+            logMessage ("respirations traitées : "_u8 + juce::String (rep.breathsTreated) + ", plosives : " + juce::String (rep.plosivesTreated));
+            expect (! audio::hasNonFinite (y.data(), y.size()));
+            const float dv = gainToDb (audio::rms (y.data(), y.size())) - gainToDb (audio::rms (v.data(), v.size()));
+            expect (std::abs (dv) < 1.5f, "niveau global conservé ("_u8 + juce::String (dv, 2) + " dB)");
+        }
+        beginTest ("Recalage rythmique : attaque decalee de 30 ms ramenee sur la grille");
+        {
+            TempoInfo tempo;
+            tempo.bpm = 120.0;   // grille de doubles croches = 125 ms
+            tempo.firstBeatSec = 0.0;
+            Mono x (static_cast<size_t> (kSr * 3), 0.0f);
+            const double onset = 1.0 + 0.030;   // 30 ms après le temps
+            const auto burst = sine (300.0, 0.3, kSr, 0.5f);
+            for (size_t i = 0; i < burst.size(); ++i)
+                x[static_cast<size_t> (onset * kSr) + i] = burst[i] * std::min (1.0f, static_cast<float> (i) / 100.0f);
+            const auto va = analysis::analyzeVoice (x, kSr);
+            dsp::TimingParams tp;
+            tp.strength = 1.0f;
+            const auto res = dsp::correctTiming (x, kSr, tempo, va, tp);
+            const auto va2 = analysis::analyzeVoice (res.audio, kSr);
+            expect (! va2.phrases.empty(), "phrase présente"_u8);
+            if (! va2.phrases.empty())
+            {
+                logMessage ("attaque après recalage : "_u8 + juce::String (va2.phrases[0].startSec, 3) + " s");
+                expectWithinAbsoluteError (va2.phrases[0].startSec, 1.0, 0.015);
+            }
+        }
+    }
+};
+
+class MasterTests final : public juce::UnitTest
+{
+public:
+    MasterTests() : juce::UnitTest ("Mastering", "studiovoix") {}
+
+    void runTest() override
+    {
+        const auto instru = synthInstru (140.0, aMinor(), 8, kSr, false);
+        for (auto target : { dsp::LoudnessTarget::Spotify, dsp::LoudnessTarget::AppleMusic, dsp::LoudnessTarget::Fort })
+        {
+            const auto info = dsp::targetInfo (target);
+            beginTest ("Cible " + info.name);
+            dsp::MasterSettings ms;
+            ms.target = target;
+            dsp::MasterReport rep;
+            const auto out = dsp::master (instru, kSr, ms, rep);
+            logMessage (juce::String (rep.outputLufs, 2) + " LUFS, " + juce::String (rep.truePeakDb, 2) + " dBTP");
+            expectWithinAbsoluteError (rep.outputLufs, static_cast<double> (info.lufs), 0.5);
+            expect (rep.truePeakDb <= info.ceilingDbTp + 0.15, "crête vraie sous le plafond"_u8);
+            expect (! audio::hasNonFinite (out.getReadPointer (0), static_cast<size_t> (out.getNumSamples())));
+        }
+        beginTest ("Limiteur : aucun echantillon au-dessus du plafond");
+        {
+            Stereo loud = audio::monoToStereo (sine (100.0, 1.0, kSr, 1.5f));
+            dsp::limitStereo (loud, kSr, -1.0f);
+            const float pk = std::max (loud.getMagnitude (0, 0, loud.getNumSamples()), loud.getMagnitude (1, 0, loud.getNumSamples()));
+            expect (pk <= dbToGain (-1.0f) + 1.0e-5f, "crête "_u8 + juce::String (gainToDb (pk), 3) + " dBFS");
+        }
+    }
+};
+
+class AssistantTests final : public juce::UnitTest
+{
+public:
+    AssistantTests() : juce::UnitTest ("Assistant texte", "studiovoix") {}
+
+    void runTest() override
+    {
+        style::Macros m;
+        beginTest ("normalisation des accents");
+        logMessage ("normalise : [" + assistant::normalise ("Plus de réverb, d'énergie"_u8) + "]");
+        expectEquals (assistant::normalise ("Plus de réverb"_u8), juce::String ("plus de reverb"));
+        beginTest ("plus de reverb");
+        expect (assistant::apply (juce::String (juce::CharPointer_UTF8 ("plus de réverb")), m).macros.reverbTrim > 0.5f);
+        beginTest ("voix plus sombre");
+        expect (assistant::apply ("voix plus sombre", m).macros.presence < 0.5f);
+        beginTest ("beaucoup moins d'autotune");
+        expectWithinAbsoluteError (assistant::apply ("beaucoup moins d'autotune", m).macros.autotune, 0.2f, 0.001f);
+        beginTest ("trop de delai");
+        expect (assistant::apply (juce::String (juce::CharPointer_UTF8 ("il y a trop de délai")), m).macros.delayTrim < 0.5f);
+        beginTest ("un peu plus d'energie");
+        expectWithinAbsoluteError (assistant::apply (juce::String (juce::CharPointer_UTF8 ("un peu plus d'énergie")), m).macros.energy, 0.57f, 0.001f);
+        beginTest ("phrase incomprise");
+        expect (! assistant::apply ("bonjour", m).understood);
+        beginTest ("plus naturel = moins d'autotune");
+        expect (assistant::apply ("plus naturel", m).macros.autotune < 0.5f);
+    }
+};
+
+class GeneratorTests final : public juce::UnitTest
+{
+public:
+    GeneratorTests() : juce::UnitTest ("Generation backs / harmonies / ad-libs", "studiovoix") {}
+
+    void runTest() override
+    {
+        const auto key = aMinor();
+        const auto voice = synthVoice (defaultPhrases (key, 100.0), kSr);
+        gen::LeadAnalysis la;
+        la.prepared = voice;
+        la.track = analysis::detectPitch (voice, kSr);
+        la.va = analysis::analyzeVoice (voice, kSr);
+        la.key = key;
+        la.tempo.bpm = 100.0;
+
+        beginTest ("Options par defaut du style trap");
+        {
+            gen::GenerationOptions o = gen::GenerationOptions::fromDefaults (style::generationDefaults (style::Style::Trap));
+            o.ambiance = true;
+            const auto tracks = gen::generate (la, kSr, o);
+            int doubles = 0, harmonies = 0, backs = 0, adlibs = 0, amb = 0;
+            for (const auto& t : tracks)
+            {
+                expect (! audio::hasNonFinite (t.audio.data(), t.audio.size()), "pas de NaN : " + t.name);
+                expectEquals (static_cast<int> (t.audio.size()), static_cast<int> (voice.size()));
+                doubles += t.role == style::Role::Double;
+                harmonies += t.role == style::Role::Harmony;
+                backs += t.role == style::Role::KeywordBack;
+                adlibs += t.role == style::Role::AdLib;
+                amb += t.role == style::Role::Ambiance;
+            }
+            expectEquals (doubles, 2);
+            expectEquals (harmonies, 1);
+            expectEquals (backs, 1);
+            expectEquals (adlibs, 1);
+            expectEquals (amb, 1);
+        }
+        beginTest ("Harmonie : tierce au-dessus dans la gamme");
+        {
+            VoicePhrase p;
+            p.notes = { { 57.0f, 1.2, 0.0f } };   // La 2
+            const auto v = synthVoice ({ p }, kSr, 0.2, 0.0f);
+            gen::LeadAnalysis l2 = la;
+            l2.prepared = v;
+            l2.track = analysis::detectPitch (v, kSr);
+            l2.va = analysis::analyzeVoice (v, kSr);
+            const auto h = gen::makeHarmony (l2, kSr, 0);
+            const float f = medianF0 (h.audio, kSr, 0.4, 1.2);
+            logMessage ("harmonie : " + juce::String (f, 1) + " Hz (attendu Do, MIDI 60 = 261,6 Hz)");
+            expectWithinAbsoluteError (f, 261.63f, 261.63f * 0.03f);
+        }
+        beginTest ("Backs mots cles : uniquement en fin de phrase");
+        {
+            const auto t = gen::makeKeywordBacks (la, kSr, 2);
+            for (const auto& ph : la.va.phrases)
+            {
+                const size_t a = static_cast<size_t> (ph.startSec * kSr);
+                const size_t mid = static_cast<size_t> ((ph.startSec + ph.duration() * 0.25) * kSr);
+                const float startRms = audio::rms (t.audio.data() + a, mid - a);
+                const size_t e = static_cast<size_t> (ph.endSec * kSr);
+                const size_t s = static_cast<size_t> ((ph.endSec - 0.2) * kSr);
+                const float endRms = audio::rms (t.audio.data() + s, e - s);
+                expect (endRms > 0.01f, "contenu en fin de phrase");
+                expect (startRms < endRms * 0.1f, "pas de contenu au début de phrase"_u8);
+            }
+        }
+        beginTest ("Ad-libs sans banque : places dans les silences");
+        {
+            gen::GenerationOptions o;
+            o.adLibDensity = 1.0f;
+            juce::Random rng (3);
+            int placed = 0;
+            const auto t = gen::makeAdLibs (la, kSr, o, rng, placed);
+            expect (placed >= 2, "ad-libs placés : "_u8 + juce::String (placed));
+            for (const auto& ph : la.va.phrases)
+            {
+                const size_t a = static_cast<size_t> ((ph.startSec + 0.05) * kSr);
+                const size_t b = static_cast<size_t> ((ph.endSec - 0.05) * kSr);
+                expect (audio::rms (t.audio.data() + a, b - a) < 1.0e-4f, "pas d'ad-lib pendant une phrase");
+            }
+        }
+    }
+};
+
+class CompTests final : public juce::UnitTest
+{
+public:
+    CompTests() : juce::UnitTest ("Assemblage des prises", "studiovoix") {}
+
+    void runTest() override
+    {
+        const auto key = aMinor();
+        TempoInfo tempo;
+        tempo.bpm = 100.0;
+        const auto phrases = defaultPhrases (key, 100.0);
+        const Mono good = synthVoice (phrases, kSr, 0.5, 15.0f, 1);
+        Mono bad = synthVoice (phrases, kSr, 0.5, 15.0f, 2);
+        // Prise 2 : saturation numérique violente sur la phrase 2.
+        const auto va = analysis::analyzeVoice (good, kSr);
+        expect (va.phrases.size() == 4, "4 phrases");
+        if (va.phrases.size() < 4)
+            return;
+        for (size_t i = static_cast<size_t> (va.phrases[1].startSec * kSr); i < static_cast<size_t> (va.phrases[1].endSec * kSr); ++i)
+            bad[i] = juce::jlimit (-1.0f, 1.0f, bad[i] * 40.0f);
+
+        std::vector<gen::TakeInput> takes (2);
+        takes[0] = { &good, 0, 0, static_cast<long> (good.size()), 1 };
+        takes[1] = { &bad, 0, 0, static_cast<long> (bad.size()), 2 };
+
+        beginTest ("Meilleure prise : la phrase saturee vient de la prise propre");
+        {
+            const auto res = gen::compBest (takes, kSr, key, tempo, style::Style::PopUrbaine);
+            bool phrase2FromGood = false;
+            const long mid = static_cast<long> (0.5 * (va.phrases[1].startSec + va.phrases[1].endSec) * kSr);
+            for (const auto& s : res.segments)
+                if (mid >= s.start && mid < s.end)
+                    phrase2FromGood = s.takeIndex == 0;
+            logMessage (res.summary);
+            expect (phrase2FromGood, "phrase 2 prise dans la prise 1");
+            expect (audio::peak (res.audio.data(), res.audio.size()) < 0.99f, "pas d'écrêtage dans l'assemblage"_u8);
+        }
+        beginTest ("Derniere prise : punch-in remplace la zone");
+        {
+            Mono punch (good.size(), 0.0f);
+            for (size_t i = 48000; i < 96000; ++i)
+                punch[i] = 0.25f;
+            std::vector<gen::TakeInput> t2 = { takes[0], { &punch, 0, 48000, 96000, 3 } };
+            const auto res = gen::compLatest (t2, kSr);
+            expectWithinAbsoluteError (res.audio[70000], 0.25f, 1.0e-4f);
+            expectWithinAbsoluteError (res.audio[20000], good[20000], 1.0e-6f);
+        }
+    }
+};
+
+class ProjectTests final : public juce::UnitTest
+{
+public:
+    ProjectTests() : juce::UnitTest ("Projet / sauvegarde / rendu", "studiovoix") {}
+
+    void runTest() override
+    {
+        const auto root = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("studiovoix_tests_" + juce::String (juce::Time::currentTimeMillis()));
+        juce::String err;
+
+        beginTest ("Recalage de latence");
+        expectEquals (project::compensatedTakeStart (48000, 256, 512, 0), 47232L);
+        expectEquals (project::compensatedTakeStart (100, 256, 512, 0), -668L);
+
+        beginTest ("Creation, sauvegarde et rechargement");
+        const auto folder = project::createProjectFolder (root, "Test projet", err);
+        expect (folder.isDirectory(), err);
+        project::Project p;
+        p.folder = folder;
+        p.name = "Test";
+        p.style = style::Style::Trap;
+        p.key = aMinor();
+        p.tempo.bpm = 140.0;
+        p.lyrics = juce::String (juce::CharPointer_UTF8 ("Première ligne\nDeuxième ligne"));
+        auto& instru = p.addTrack (style::Role::Instru, "Instru");
+        instru.sourceFile = "instru.wav";
+        auto& lead = p.addTrack (style::Role::Lead, "Voix");
+        lead.macros.autotune = 0.8f;
+        project::Take tk;
+        tk.id = p.nextTakeId++;
+        tk.file = "prise1.wav";
+        tk.startSample = 0;
+        tk.regionStart = 0;
+        tk.regionEnd = 48000 * 8;
+        lead.takes.push_back (tk);
+        const int leadId = lead.id;   // la référence 'lead' devient invalide quand d'autres pistes sont ajoutées
+        expect (p.save (err), err);
+        expect (p.saveVersion ("test", err), err);
+        expect (p.saveAutosave (err), err);
+
+        project::Project q;
+        expect (project::Project::load (folder, q, err), err);
+        expectEquals (q.tracks.size(), p.tracks.size());
+        expect (q.style == style::Style::Trap);
+        expectEquals (q.lyrics, p.lyrics);
+        expectWithinAbsoluteError (q.findTrack (leadId)->macros.autotune, 0.8f, 1.0e-4f);
+        expectEquals (q.findTrack (leadId)->takes.size(), static_cast<size_t> (1));
+        expectEquals (static_cast<int> (q.listVersions().size()), 1);
+
+        beginTest ("Fichier corrompu refuse proprement");
+        {
+            const auto bad = root.getChildFile ("corrompu");
+            bad.createDirectory();
+            bad.getChildFile ("projet.svx").replaceWithText ("{ pas du json");
+            project::Project r;
+            juce::String e2;
+            expect (! project::Project::load (bad, r, e2));
+            expect (e2.isNotEmpty());
+        }
+
+        beginTest ("Chaine complete : instru + voix -> remix, generation, mix, master, export");
+        {
+            const auto key = aMinor();
+            const auto instruAudio = synthInstru (100.0, key, 8, kSr, false);
+            const auto voice = synthVoice (defaultPhrases (key, 100.0), kSr);
+            expect (audio::writeFile (p.audioDir().getChildFile ("instru.wav"), instruAudio, kSr, audio::FileFormat::Wav24, err), err);
+            expect (audio::writeMonoWavFloat (p.audioDir().getChildFile ("prise1.wav"), voice, kSr, err), err);
+            p.findTrack (leadId)->takes[0].regionEnd = static_cast<long> (voice.size());
+
+            render::AudioCache cache;
+            const auto ctx = render::makeContext (p, cache);
+            render::RenderSet set;
+            for (const auto& t : p.tracks)
+            {
+                auto r = render::renderTrack (p, t, cache, ctx);
+                expect (r->ok(), r->error);
+                set[t.id] = r;
+            }
+            auto leadRender = set[leadId];
+            gen::GenerationOptions o = gen::GenerationOptions::fromDefaults (style::generationDefaults (p.style));
+            const auto ids = render::generateBackingTracks (p, leadId, *leadRender, o, err);
+            expect (! ids.empty(), "pistes générées"_u8);
+            for (int id : ids)
+            {
+                auto r = render::renderTrack (p, *p.findTrack (id), cache, ctx);
+                expect (r->ok(), r->error);
+                set[id] = r;
+            }
+            render::ExportOptions eo;
+            eo.outDir = p.exportDir();
+            eo.baseName = "test_mix";
+            eo.stems = true;
+            const auto rep = render::exportProject (p, set, eo);
+            expect (rep.ok, rep.error);
+            expect (rep.mixFile.existsAsFile(), "fichier de mix écrit"_u8);
+            expectEquals (rep.stemFiles.size(), static_cast<int> (p.tracks.size()));
+            logMessage ("mix : " + juce::String (rep.master.outputLufs, 2) + " LUFS, " + juce::String (rep.master.truePeakDb, 2)
+                        + " dBTP, gain voix auto " + juce::String (rep.vocalGainDb, 1) + " dB");
+            expectWithinAbsoluteError (rep.master.outputLufs, -14.0, 0.6);
+
+            auto reread = audio::loadStereo (rep.mixFile, kSr);
+            expect (reread.ok(), reread.error);
+            expect (! audio::hasNonFinite (reread.buffer.getReadPointer (0), static_cast<size_t> (reread.buffer.getNumSamples())));
+        }
+
+        beginTest ("Copie de refrain vers les sections semblables");
+        {
+            p.sections = { { 0.0, 2.0, "Refrain 1", "refrain", 1, -10.0f }, { 2.0, 4.0, "Couplet 1", "couplet", 0, -12.0f },
+                           { 4.0, 6.0, "Refrain 2", "refrain", 1, -10.0f } };
+            render::AudioCache cache;
+            const int copies = render::copySectionToSimilar (p, leadId, 0, cache, err);
+            expectEquals (copies, 1);
+        }
+
+        root.deleteRecursively();
+    }
+};
+
+// Instances statiques : enregistrement automatique auprès de juce::UnitTest.
+static LoudnessTests loudnessTests;
+static ResampleTests resampleTests;
+static PitchTests pitchTests;
+static AnalysisTests analysisTests;
+static ProcessorTests processorTests;
+static MasterTests masterTests;
+static AssistantTests assistantTests;
+static GeneratorTests generatorTests;
+static CompTests compTests;
+static ProjectTests projectTests;
+
+int runAllTests()
+{
+    juce::UnitTestRunner runner;
+    runner.setAssertOnFailure (false);
+    runner.runTestsInCategory ("studiovoix");
+    int failures = 0, passes = 0;
+    for (int i = 0; i < runner.getNumResults(); ++i)
+    {
+        const auto* r = runner.getResult (i);
+        failures += r->failures;
+        passes += r->passes;
+    }
+    SV_LOG_INFO ("Tests", juce::String (passes) + " vérifications réussies, "_u8 + juce::String (failures) + " échecs"_u8);
+    return failures == 0 ? 0 : 1;
+}
+} // namespace sv::test
