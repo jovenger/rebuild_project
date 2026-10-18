@@ -6,6 +6,10 @@
 #include "Session.h"
 #include "core/Log.h"
 
+#if JUCE_WINDOWS
+ #include <windows.h>
+#endif
+
 namespace
 {
 constexpr const char* kMod = "App";
@@ -61,6 +65,23 @@ public:
                            + ", " + juce::String (juce::SystemStats::getNumCpus()) + " coeurs, " + juce::String (juce::SystemStats::getMemorySizeInMegabytes())
                            + " Mo) — journal : "_u8 + logFile.getFullPathName());
 
+#if JUCE_WINDOWS
+        // Lancé « en tant qu'administrateur » : Windows bloque le glisser-déposer depuis l'Explorateur (UIPI).
+        {
+            HANDLE token = nullptr;
+            if (OpenProcessToken (GetCurrentProcess(), TOKEN_QUERY, &token))
+            {
+                TOKEN_ELEVATION elev {};
+                DWORD size = sizeof (elev);
+                if (GetTokenInformation (token, TokenElevation, &elev, sizeof (elev), &size) && elev.TokenIsElevated)
+                    SV_LOG_WARN (kMod, "Programme lancé en administrateur : le glisser-déposer de fichiers depuis l'Explorateur "
+                                       "est bloqué par Windows. Lance StudioVoix normalement (sans « Exécuter en tant qu'administrateur »)."_u8);
+                else
+                    SV_LOG_INFO (kMod, "Programme lancé sans élévation (glisser-déposer possible)"_u8);
+                CloseHandle (token);
+            }
+        }
+#endif
         settings = std::make_unique<sv::app::AppSettings>();
         engine = std::make_unique<sv::app::AudioEngine>();
         auto saved = settings->audioDeviceState();

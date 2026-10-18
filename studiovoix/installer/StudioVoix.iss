@@ -53,7 +53,7 @@ Name: "{autodesktop}\StudioVoix"; Filename: "{app}\StudioVoix.exe"; Tasks: deskt
 
 [Run]
 Filename: "{app}\docs\GUIDE_MATERIEL.html"; Description: "Ouvrir le guide du matériel (micro, casque, branchements)"; Flags: postinstall shellexec skipifsilent nowait
-Filename: "{app}\StudioVoix.exe"; Description: "{cm:LaunchProgram,StudioVoix}"; Flags: postinstall skipifsilent nowait unchecked
+Filename: "{app}\StudioVoix.exe"; Description: "{cm:LaunchProgram,StudioVoix}"; Flags: postinstall skipifsilent nowait unchecked runasoriginaluser
 ; Mise à jour depuis le programme (/RELANCER=1) : relance automatique après l'installation silencieuse.
 Filename: "{app}\StudioVoix.exe"; Flags: nowait runasoriginaluser; Check: RelancerApresMiseAJour
 

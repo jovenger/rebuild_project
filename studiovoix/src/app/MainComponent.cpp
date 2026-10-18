@@ -520,14 +520,15 @@ void MainComponent::installUpdateAndRestart()
 // --- Glisser-déposer -----------------------------------------------------------------------
 bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
 {
-    for (const auto& f : files)
-        if (isImportableAudioFile (f))
-            return true;
-    return false;
+    // Tout fichier est accepté au survol : un format non lisible est expliqué au dépôt (sinon Windows
+    // affiche juste un curseur « interdit », sans aucune indication).
+    return ! files.isEmpty();
 }
 
-void MainComponent::fileDragEnter (const juce::StringArray&, int, int)
+void MainComponent::fileDragEnter (const juce::StringArray& files, int x, int y)
 {
+    SV_LOG_INFO (kMod, "Glisser : "_u8 + juce::String (files.size()) + " fichier(s) au-dessus de la fenêtre (" + juce::String (x) + ", "
+                       + juce::String (y) + ") : " + files.joinIntoString (" | ").substring (0, 300));
     fileDragActive = true;
     repaint();
 }
@@ -542,6 +543,19 @@ void MainComponent::filesDropped (const juce::StringArray& files, int x, int y)
 {
     fileDragActive = false;
     repaint();
+    juce::StringArray rejected;
+    for (const auto& f : files)
+        if (! isImportableAudioFile (f))
+            rejected.add (juce::File (f).getFileName());
+    if (rejected.size() == files.size())
+    {
+        SV_LOG_WARN (kMod, "Dépôt refusé, format non pris en charge : "_u8 + rejected.joinIntoString (", "));
+        showMessage ("Format non pris en charge",
+                     "Fichier(s) : " + rejected.joinIntoString (", ") + "\n\nFormats acceptés : WAV, MP3, FLAC, AIFF, OGG.\n"
+                     "Un enregistrement de téléphone (.m4a, .aac, .opus, .wma) doit d'abord être converti en WAV ou MP3 "
+                     "(par exemple avec Audacity ou un convertisseur en ligne)."_u8);
+        return;
+    }
     double startSec = 0.0;
     const auto inTimeline = timeline.timeAtPoint (timeline.getLocalPoint (this, juce::Point<int> (x, y)), startSec);
     if (! inTimeline || startSec < 0.25)
