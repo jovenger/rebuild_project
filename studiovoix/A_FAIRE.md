@@ -23,9 +23,11 @@ comment les automatismes doivent être faits, ordre proposé.
   `outils-ia` ; taille et SHA-256 épinglés, comme ceux du modèle (83 994 361 octets). La CI ne recompile / republie
   que si l'asset manque ou si le commit contient `[demucs]` (ré-épingler alors l'empreinte). Historique des essais :
   58 CMake 4 ; 59 MSVC ; 60 PowerShell « =3.5 » ; 61 bash + Ninja ; 63 wavpack `<intrin.h>` ; 64 `path` → `string`.
-  Non vérifié : exécution réelle de demucs_mt sur un vrai morceau (PC de Yann : installer Demucs + modèle dans IA
-  locale, importer une instru, « Séparer l'instru en 4 pistes ») ; parties en mono (prises du projet) — stéréo à
-  envisager ; vitesse réelle (x86-64-v2 sans AVX2, plusieurs minutes attendues).
+  Exécution réelle vérifiée par la CI Windows (`studiovoix_cli outils-essai` sur la démo, build 66) : deep-filter OK
+  (2,5 s), whisper-cli OK (4 s, 0 mot : voix de démo synthétique) ; demucs_mt : empreinte ré-épinglée sur l'asset
+  courant (le build 65 l'avait remplacé), exécution réelle au build suivant. Reste à vérifier sur le PC de Yann : un
+  vrai morceau (qualité de la séparation, vitesse x86-64-v2 sans AVX2, plusieurs minutes attendues) ; parties en mono
+  (prises du projet) — stéréo à envisager.
 - Linux : les téléchargements d'outils échouent (JUCE sans curl) ; sans effet pour Windows, à activer (JUCE_USE_CURL)
   si une version Linux est un jour distribuée.
 
