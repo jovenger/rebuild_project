@@ -11,6 +11,7 @@ namespace
 {
     constexpr const char* kMod = "Session";
     constexpr int kMaxUndo = 50;
+    constexpr size_t kMaxMemoRenders = 12;
 
     juce::String trackJson (const project::Project& p, int id)
     {
@@ -19,6 +20,13 @@ namespace
         if (const auto* t = p.findTrack (id))
             single.tracks.push_back (*t);
         return juce::JSON::toString (single.toVar(), true);
+    }
+
+    // Contexte d'analyse partagé par toutes les pistes (style, tonalité, tempo, référence).
+    juce::String globalSignature (const project::Project& p)
+    {
+        return "|" + style::styleId (p.style) + "|" + juce::String (p.key.root) + (p.key.minor ? "m" : "M") + "|"
+               + juce::String (p.tempo.bpm, 6) + "|" + juce::String (p.tempo.firstBeatSec, 6) + "|" + p.referenceFile;
     }
 
     juce::String uniqueStamp() { return juce::Time::getCurrentTime().formatted ("%Y%m%d_%H%M%S"); }
@@ -123,6 +131,8 @@ void Session::afterProjectLoaded()
     mixState = {};
     undoStack.clear();
     redoStack.clear();
+    renderMemo.clear();
+    storedGeneration.clear();
     cache.clear();
     dirty = false;
     selectedTrackId = proj.leadTrackId();
@@ -779,6 +789,7 @@ void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const r
         return;
     }
     renders[trackId] = result;
+    storedGeneration[trackId] = generation;
     const auto& rep = result->report;
     trackStatuses[trackId] = result->compSummary.isNotEmpty() && ! proj.findTrack (trackId)->isGenerated()
                                ? "Prêt — "_u8 + result->compSummary
@@ -1038,6 +1049,7 @@ void Session::pushUndo (const juce::String& label)
     if (static_cast<int> (undoStack.size()) > kMaxUndo)
         undoStack.erase (undoStack.begin());
     redoStack.clear();
+    renderMemo.clear();
 }
 
 void Session::restoreSnapshot (const juce::var& state)
@@ -1061,13 +1073,50 @@ void Session::restoreSnapshot (const juce::var& state)
     for (const auto& t : proj.tracks)
         if (globalChange || trackJson (before, t.id) != trackJson (proj, t.id))
             toRender.insert (t.id);
+
+    // Mise de côté des rendus à jour des pistes qui changent ou disparaissent (pour rétablir / annuler).
+    const auto beforeGlobal = globalSignature (before);
+    for (const auto& t : before.tracks)
+    {
+        if (proj.findTrack (t.id) != nullptr && toRender.count (t.id) == 0)
+            continue;
+        const auto r = renders.find (t.id);
+        if (r == renders.end() || r->second == nullptr || pendingRenders.count (t.id) > 0
+            || storedGeneration[t.id] != renderGeneration[t.id])
+            continue;   // rendu absent ou périmé : rien à garder
+        renderMemo.push_back ({ t.id, trackJson (before, t.id) + beforeGlobal, r->second });
+        if (renderMemo.size() > kMaxMemoRenders)
+            renderMemo.pop_front();
+    }
+
     for (auto it = renders.begin(); it != renders.end();)
         it = proj.findTrack (it->first) == nullptr ? renders.erase (it) : std::next (it);
     if (globalChange)
         refreshContext();
     audioEngine.setTempo (proj.tempo.bpm, proj.tempo.firstBeatSec);
+
+    const auto nowGlobal = globalSignature (proj);
+    int reused = 0;
     for (int id : toRender)
-        requestRender (id);
+    {
+        const auto sig = trackJson (proj, id) + nowGlobal;
+        const auto m = std::find_if (renderMemo.begin(), renderMemo.end(),
+                                     [&] (const MemoRender& e) { return e.trackId == id && e.signature == sig; });
+        if (m == renderMemo.end())
+        {
+            requestRender (id);
+            continue;
+        }
+        renders[id] = m->render;
+        storedGeneration[id] = ++renderGeneration[id];   // invalide un rendu en cours pour cette piste
+        pendingRenders.erase (id);
+        trackStatuses[id] = "Prêt"_u8;
+        renderMemo.erase (m);
+        ++reused;
+    }
+    SV_LOG_INFO (kMod, "Restauration : " + juce::String (static_cast<int> (toRender.size())) + " piste(s) modifiée(s), "
+                       + juce::String (reused) + " rendu(s) réutilisé(s) sans recalcul, "
+                       + juce::String (static_cast<int> (renderMemo.size())) + " en réserve");
     if (proj.findTrack (selectedTrackId) == nullptr)
         selectedTrackId = proj.leadTrackId();
     markDirty();

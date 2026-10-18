@@ -6,6 +6,7 @@
 #include "AudioEngine.h"
 #include "core/project/Renderer.h"
 
+#include <deque>
 #include <set>
 
 // Contrôleur central : projet + rendus en tâche de fond + moteur audio + annuler/rétablir + sauvegarde auto.
@@ -128,6 +129,17 @@ private:
     juce::int64 lastAutosaveMs = 0;
 
     std::vector<Snapshot> undoStack, redoStack;
+
+    // Rendus mis de côté par annuler / rétablir : réutilisés si la piste et le contexte sont identiques,
+    // vidés dès que « rétablir » n'est plus possible (nouvelle action, autre projet).
+    struct MemoRender
+    {
+        int trackId = -1;
+        juce::String signature;
+        std::shared_ptr<const render::TrackRender> render;
+    };
+    std::deque<MemoRender> renderMemo;
+    std::map<int, int> storedGeneration;   // génération du rendu actuellement dans renders
 
     juce::ThreadPool pool;   // déclaré en dernier : détruit en premier (attend les tâches)
 
