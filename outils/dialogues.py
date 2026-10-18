@@ -323,7 +323,10 @@ def principal(arguments):
         if os.path.isfile(chemin):
             with open(chemin, "r", encoding="utf-8", newline="") as f:
                 ancien = f.read()
-        if ancien == contenu:
+        # Les fins de ligne ne comptent pas (git peut les convertir à l'extraction).
+        if ancien is not None and ancien.replace("
+", "
+") == contenu:
             continue
         a_jour = False
         if "--verifier" in arguments:
