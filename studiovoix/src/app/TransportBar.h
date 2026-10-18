@@ -50,7 +50,7 @@ private:
     juce::TextButton homeBtn { "|<" }, playBtn { "Lecture" }, stopBtn { "Stop" }, recBtn { "REC" };
     juce::ToggleButton punch { "Punch-in" }, loop { "Boucle" }, metronome { juce::String (juce::CharPointer_UTF8 ("Métronome")) };
     juce::ComboBox countdown, keyBox, styleBox;
-    juce::Label timeLabel, bpmLabel, bpmTitle, keyTitle, styleTitle, countTitle, autoGainLabel, mixLabel;
+    juce::Label timeLabel, bpmLabel, bpmTitle, keyTitle, styleTitle, countTitle, mixLabel;
     LevelMeter inputMeter, outputMeter;
     bool updating = false;
 };

@@ -56,7 +56,7 @@ TransportBar::TransportBar (Session& s) : session (s)
     outputMeter.setLabel ("Sortie");
     addAndMakeVisible (outputMeter);
     mixLabel.setTooltip ("Sonie du mixage (avant mastering), mesurée après le mix auto et l'orchestre"_u8);
-    for (auto* l : { &timeLabel, &bpmLabel, &bpmTitle, &keyTitle, &styleTitle, &countTitle, &autoGainLabel, &mixLabel })
+    for (auto* l : { &timeLabel, &bpmLabel, &bpmTitle, &keyTitle, &styleTitle, &countTitle, &mixLabel })
         addAndMakeVisible (*l);
     addAndMakeVisible (inputMeter);
 
@@ -75,7 +75,6 @@ TransportBar::TransportBar (Session& s) : session (s)
     bpmLabel.setEditable (true);
     bpmLabel.setColour (juce::Label::outlineColourId, juce::Colours::grey);
     bpmLabel.setTooltip ("Tempo détecté automatiquement ; double-clic pour le corriger"_u8);
-    autoGainLabel.setFont (juce::FontOptions (11.0f));
 
     countdown.addItem ("Aucun", 1);
     countdown.addItem ("1 mesure", 2);
@@ -158,8 +157,6 @@ void TransportBar::refresh()
     undoBtn.setTooltip (session.canUndo() ? "Annuler : " + session.undoLabel() : juce::String());
     redoBtn.setEnabled (session.canRedo());
     const float ag = session.vocalAutoGainDb();
-    autoGainLabel.setText (p.autoMixEnabled ? "Mix auto voix " + juce::String (ag, 1) + " dB" : juce::String ("Mix auto off"),
-                           juce::dontSendNotification);
     // Sonie du mixage + gain auto de la voix sur une seule étiquette (place limitée).
     mixLabel.setText ((session.mixLufs() > -100.0 ? "Mix " + juce::String (session.mixLufs(), 1) + " LUFS" : juce::String ("Mix - LUFS"))
                           + (p.autoMixEnabled ? " | voix " + juce::String (ag >= 0.0f ? "+" : "") + juce::String (ag, 1) + " dB" : juce::String (" | mix auto off")),
@@ -241,8 +238,7 @@ void TransportBar::resized()
     outputMeter.setBounds (row1.removeFromRight (110));
     row1.removeFromRight (4);
     mixLabel.setBounds (row1.removeFromRight (std::min (190, std::max (120, row1.getWidth()))));
-    autoGainLabel.setBounds (0, 0, 0, 0);
-    autoGainLabel.setVisible (false);
+
 
     homeBtn.setBounds (row2.removeFromLeft (40));
     row2.removeFromLeft (4);

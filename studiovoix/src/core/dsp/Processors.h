@@ -66,6 +66,8 @@ struct CompressorSettings
 };
 /** Retourne la réduction de gain moyenne (dB, positive) pendant les passages actifs. */
 float compress (Mono& x, double sr, const CompressorSettings& c);
+/** Même compresseur sur plusieurs canaux liés (détecteur = canal le plus fort) : l'image stéréo ne bouge pas. */
+float compressLinked (Stereo& audio, double sr, const CompressorSettings& c);
 
 // ---------------------------------------------------------------------------------------------
 struct DeEsserSettings

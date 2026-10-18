@@ -280,6 +280,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->track = std::move (result.track);
     r->va = std::move (result.va);
     r->report = result.report;
+    if (params.dryGain >= 0.5f)   // une ambiance (réverb seule) n'a pas de son direct à comparer
     {
         // Garde-fou : le traitement ne doit pas décaler la piste (sinon la voix flotte par rapport à l'instru).
         Mono out = audio::toMono (r->processed);

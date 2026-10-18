@@ -575,4 +575,16 @@ double envelopeLagMs (const Mono& a, const Mono& b, double sr, int maxMs)
     }
     return static_cast<double> (bestLag);
 }
+
+Mono channel (const Stereo& buffer, int channelIndex)
+{
+    const float* d = buffer.getReadPointer (channelIndex);
+    return Mono (d, d + buffer.getNumSamples());
+}
+
+void setChannel (Stereo& buffer, int channelIndex, const Mono& mono)
+{
+    for (int i = 0; i < buffer.getNumSamples() && i < static_cast<int> (mono.size()); ++i)
+        buffer.setSample (channelIndex, i, mono[static_cast<size_t> (i)]);
+}
 } // namespace sv::audio

@@ -325,60 +325,6 @@ int cmdPresets()
     return 0;
 }
 
-int cmdDebugChain (const Args& args)
-{
-    const double sr = sv::kProjectSampleRate;
-    sv::Mono x;
-    juce::String err;
-    if (args.positional.isEmpty() || ! sv::audio::loadMono (fileArg (args.positional[0]), sr, x, err))
-    {
-        std::cerr << err << std::endl;
-        return 1;
-    }
-    const auto p = sv::style::makeParams (sv::style::styleFromId (args.get ("style", "trap")), sv::style::Role::Lead, {});
-    auto va = sv::analysis::analyzeVoice (x, sr);
-    if (va.phrases.empty())
-        return 1;
-    const double onset = va.phrases[0].startSec;
-    auto report = [&] (const char* stage, const sv::Mono& y)
-    {
-        auto rmsAt = [&] (double a, double b)
-        {
-            const size_t ia = static_cast<size_t> (a * sr), ib = std::min (y.size(), static_cast<size_t> (b * sr));
-            return sv::gainToDb (sv::audio::rms (y.data() + ia, ib - ia));
-        };
-        std::vector<float> lv;
-        for (const auto& ph : va.phrases)
-            lv.push_back (rmsAt (ph.startSec + 0.3, ph.endSec - 0.05));
-        std::sort (lv.begin(), lv.end());
-        std::cout << stage << " : attaque " << rmsAt (onset, onset + 0.1) - lv[lv.size() / 2] << " dB / phrase, crête "
-                  << sv::gainToDb (sv::audio::peak (y.data(), y.size())) << " dBFS\n";
-    };
-    report ("brut", x);
-    const float g = sv::dsp::gainForActiveRms (x, sr, p.inputTargetDb);
-    for (auto& v : x) v *= g;
-    report ("normalisé", x);
-    auto track = sv::analysis::detectPitch (x, sr);
-    sv::dsp::clean (x, sr, p.clean, track, va);
-    report ("nettoyé", x);
-    sv::dsp::PitchCorrectionParams pc;
-    pc.key = sv::analysis::detectKey (x, sr).key;
-    pc.amount = p.pitch.amount; pc.retuneMs = p.pitch.retuneMs; pc.humanize = p.pitch.humanize;
-    x = sv::dsp::correctPitch (x, sr, pc, &track).audio;
-    report ("autotune", x);
-    sv::dsp::applyEq (x, sr, p.eq);
-    report ("EQ", x);
-    std::cout << "  GR comp1 " << sv::dsp::compress (x, sr, p.comp) << " dB\n";
-    report ("comp1", x);
-    std::cout << "  GR comp2 " << sv::dsp::compress (x, sr, p.comp2) << " dB\n";
-    report ("comp2", x);
-    sv::dsp::deEss (x, sr, p.deEss);
-    report ("de-esser", x);
-    sv::dsp::saturate (x, sr, p.sat);
-    report ("saturation", x);
-    return 0;
-}
-
 // ---------------------------------------------------------------------------------------------
 // Détecteur d'artefacts : compare l'enveloppe d'entrée et de sortie dans les passages chantés.
 // Trou = gain qui plonge de plus de 6 dB sous son voisinage pendant 30 à 500 ms alors que l'entrée est stable ;
@@ -664,7 +610,6 @@ int main (int argc, char* argv[])
         else if (cmd == "song")    code = cmdSong (args);
         else if (cmd == "demo")    code = cmdDemo (args);
         else if (cmd == "master")  code = cmdMaster (args);
-        else if (cmd == "debugchain") code = cmdDebugChain (args);
         else if (cmd == "artefacts") code = cmdArtefacts (args);
         else if (cmd == "presets") code = cmdPresets();
         else if (cmd == "assistant")

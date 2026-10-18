@@ -57,6 +57,10 @@ void applyFade (float* data, size_t size, size_t start, size_t len, bool fadeIn)
 /** Cherche lame (encodeur MP3) à côté de l'exécutable puis dans le PATH. */
 juce::File findLameExecutable();
 
+/** Un canal d'un tampon stéréo copié en mono, et l'inverse (traitements mono appliqués canal par canal). */
+Mono channel (const Stereo& buffer, int channelIndex);
+void setChannel (Stereo& buffer, int channelIndex, const Mono& mono);
+
 /** Décalage temporel (ms) de b par rapport à a, par corrélation des enveloppes (5 ms, pas 1 ms) sur ±maxMs.
     > 0 = b est en retard. Sert à vérifier qu'un traitement ne décale pas une piste. */
 double envelopeLagMs (const Mono& a, const Mono& b, double sampleRate, int maxMs = 500);

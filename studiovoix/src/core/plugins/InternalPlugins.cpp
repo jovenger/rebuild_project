@@ -88,16 +88,8 @@ namespace
         return b;
     }
 
-    Mono channel (const Stereo& a, int c)
-    {
-        return Mono (a.getReadPointer (c), a.getReadPointer (c) + a.getNumSamples());
-    }
-
-    void setChannel (Stereo& a, int c, const Mono& m)
-    {
-        for (int i = 0; i < a.getNumSamples() && i < static_cast<int> (m.size()); ++i)
-            a.setSample (c, i, m[static_cast<size_t> (i)]);
-    }
+    using audio::channel;
+    using audio::setChannel;
 }
 
 const std::vector<InternalPluginDef>& internalPlugins() { return defs(); }
@@ -174,13 +166,7 @@ juce::String applyInternal (Stereo& audio, double sr, double bpm, const PluginSl
     else if (id == "interne:comp")
     {
         dsp::CompressorSettings cs { P ("thr"), P ("ratio"), 6.0f, P ("att"), P ("rel"), P ("makeup"), P ("mix") / 100.0f, false };
-        float gr = 0.0f;
-        for (int c = 0; c < 2; ++c)
-        {
-            auto m = channel (audio, c);
-            gr = std::max (gr, dsp::compress (m, sr, cs));
-            setChannel (audio, c, m);
-        }
+        const float gr = dsp::compressLinked (audio, sr, cs);   // canaux liés : l'image stéréo ne bouge pas
         note << " (" << juce::String (gr, 1) << " dB de réduction)"_u8;
     }
     else if (id == "interne:deess")

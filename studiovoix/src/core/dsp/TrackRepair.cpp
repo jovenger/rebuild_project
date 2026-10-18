@@ -14,12 +14,8 @@ namespace
 {
     constexpr const char* kMod = "Reparation";
 
-    Mono channel (const Stereo& a, int c) { return Mono (a.getReadPointer (c), a.getReadPointer (c) + a.getNumSamples()); }
-    void setChannel (Stereo& a, int c, const Mono& m)
-    {
-        for (int i = 0; i < a.getNumSamples() && i < static_cast<int> (m.size()); ++i)
-            a.setSample (c, i, m[static_cast<size_t> (i)]);
-    }
+    using audio::channel;
+    using audio::setChannel;
 }
 
 juce::String RepairReport::summary() const
@@ -41,67 +37,6 @@ juce::String RepairReport::summary() const
     l.add ("niveau " + juce::String (outputGainDb >= 0.0f ? "+" : "") + juce::String (outputGainDb, 1) + " dB"
            + (limiterGrDb > 0.1f ? ", limiteur -" + juce::String (limiterGrDb, 1) + " dB" : juce::String()));
     return l.joinIntoString ("\n");
-}
-
-float compressStereo (Stereo& audio, double sr, const CompressorSettings& c)
-{
-    const int n = audio.getNumSamples();
-    if (c.ratio <= 1.0f || n == 0 || audio.getNumChannels() < 1)
-        return 0.0f;
-    const float T = c.thresholdDb, R = c.ratio, W = std::max (0.0f, c.kneeDb);
-    const float att = static_cast<float> (std::exp (-1.0 / (sr * std::max (0.01f, c.attackMs) * 0.001)));
-    const float rel = static_cast<float> (std::exp (-1.0 / (sr * std::max (0.01f, c.releaseMs) * 0.001)));
-    const float makeup = dbToGain (c.makeupDb);
-    const int rmsLen = std::max (1, static_cast<int> (sr * 0.01));
-    const int chans = audio.getNumChannels();
-    const Stereo dry (audio);
-    double sq = 0.0, grSum = 0.0;
-    long grCount = 0;
-    float smooth = 0.0f;
-    for (int i = 0; i < n; ++i)
-    {
-        float det = 0.0f;
-        for (int ch = 0; ch < chans; ++ch)
-            det = std::max (det, std::abs (dry.getSample (ch, i)));
-        float levelDb;
-        if (c.rmsDetector)
-        {
-            sq += static_cast<double> (det) * det;
-            if (i >= rmsLen)
-            {
-                float old = 0.0f;
-                for (int ch = 0; ch < chans; ++ch)
-                    old = std::max (old, std::abs (dry.getSample (ch, i - rmsLen)));
-                sq -= static_cast<double> (old) * old;
-            }
-            levelDb = gainToDb (static_cast<float> (std::sqrt (std::max (0.0, sq) / rmsLen)));
-        }
-        else
-            levelDb = gainToDb (det);
-        float outDb;
-        const float over = levelDb - T;
-        if (2.0f * over < -W)
-            outDb = levelDb;
-        else if (2.0f * std::abs (over) <= W && W > 0.0f)
-            outDb = levelDb + (1.0f / R - 1.0f) * std::pow (over + W * 0.5f, 2.0f) / (2.0f * W);
-        else
-            outDb = T + over / R;
-        const float target = std::max (0.0f, levelDb - outDb);
-        smooth = target > smooth ? att * smooth + (1.0f - att) * target : rel * smooth + (1.0f - rel) * target;
-        const float g = dbToGain (-smooth) * makeup;
-        for (int ch = 0; ch < chans; ++ch)
-            audio.setSample (ch, i, audio.getSample (ch, i) * g);
-        if (levelDb > T - 20.0f)
-        {
-            grSum += smooth;
-            ++grCount;
-        }
-    }
-    if (c.mix < 0.999f)
-        for (int ch = 0; ch < chans; ++ch)
-            for (int i = 0; i < n; ++i)
-                audio.setSample (ch, i, dry.getSample (ch, i) * (1.0f - c.mix) + audio.getSample (ch, i) * c.mix);
-    return grCount > 0 ? static_cast<float> (grSum / grCount) : 0.0f;
 }
 
 RepairReport repairStereo (Stereo& audio, double sr, const style::VocalParams& p)
@@ -142,9 +77,9 @@ RepairReport repairStereo (Stereo& audio, double sr, const style::VocalParams& p
         rep.resonance = suppressResonancesStereo (audio, sr, p.resonance);
 
     // 4) Compression liée, niveau cible, limiteur.
-    rep.compGrDb = compressStereo (audio, sr, p.comp);
+    rep.compGrDb = compressLinked (audio, sr, p.comp);
     if (p.comp2.ratio > 1.0f)
-        rep.compGrDb += compressStereo (audio, sr, p.comp2);
+        rep.compGrDb += compressLinked (audio, sr, p.comp2);
     const float g = gainForActiveRms (audio::toMono (audio), sr, p.outputDb);
     rep.outputGainDb = gainToDb (g);
     audio.applyGain (g);

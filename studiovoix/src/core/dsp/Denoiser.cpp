@@ -2,8 +2,7 @@
 
 #include "../AudioIO.h"
 #include "../Log.h"
-
-#include <juce_dsp/juce_dsp.h>
+#include "Stft.h"
 
 #include <cmath>
 
@@ -44,13 +43,8 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
         return rep;
     rep.noiseBeforeDb = levelDbOfInactive (x, sr, va);
 
-    juce::dsp::FFT fft (kOrder);
-    std::vector<float> window (static_cast<size_t> (kFft));
-    for (int i = 0; i < kFft; ++i)
-        window[static_cast<size_t> (i)] = std::sqrt (0.5f - 0.5f * std::cos (2.0f * juce::MathConstants<float>::pi * i / kFft));   // racine de Hann : analyse × synthèse = Hann, somme constante au pas 1/4
-
-    const int numFrames = (n + kHop - 1) / kHop + 3;
-    std::vector<float> buf (static_cast<size_t> (2 * kFft));
+    Stft stft (kOrder, n);
+    const int numFrames = stft.numFrames;
     std::vector<float> power (static_cast<size_t> (kBins));
 
     // 1) Profil de bruit : moyenne des spectres de puissance des trames inactives (sinon les 10 % les plus calmes).
@@ -59,19 +53,9 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
     frameEnergy.reserve (static_cast<size_t> (numFrames));
     auto analyse = [&] (int frameIndex)
     {
-        const int start = frameIndex * kHop - kFft;
-        std::fill (buf.begin(), buf.end(), 0.0f);
-        for (int i = 0; i < kFft; ++i)
-        {
-            const int idx = start + i;
-            buf[static_cast<size_t> (i)] = (idx >= 0 && idx < n) ? x[static_cast<size_t> (idx)] * window[static_cast<size_t> (i)] : 0.0f;
-        }
-        fft.performRealOnlyForwardTransform (buf.data(), true);
+        stft.forward (x.data(), frameIndex);
         for (int k = 0; k < kBins; ++k)
-        {
-            const float re = buf[static_cast<size_t> (2 * k)], im = buf[static_cast<size_t> (2 * k + 1)];
-            power[static_cast<size_t> (k)] = re * re + im * im;
-        }
+            power[static_cast<size_t> (k)] = stft.power (k);
     };
     int inactiveCount = 0;
     for (int f = 0; f < numFrames; ++f)
@@ -119,8 +103,7 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
     int voiceFrames = 0;
     for (int f = 0; f < numFrames; ++f)
     {
-        const int start = f * kHop - kFft;
-        const double tSec = (f * kHop - kFft / 2) / sr;
+        const double tSec = stft.frameTimeSec (f, sr);
         const bool speech = (tSec >= 0.0 && va.isActiveAt (tSec)) || (voiced != nullptr && voiced->voicedAt (tSec));
         const float over = speech ? 1.0f : 2.0f;
         const float floorGain = speech ? floorGainVoice : floorGainQuiet;
@@ -145,31 +128,12 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
             gp = g > gp ? 0.6f * g + 0.4f * gp : 0.25f * g + 0.75f * gp;
             gain[static_cast<size_t> (k)] = gp;
         }
-        // Spectre complexe de la trame (nouvelle analyse pour les parties réelle / imaginaire).
-        std::fill (buf.begin(), buf.end(), 0.0f);
-        for (int i = 0; i < kFft; ++i)
-        {
-            const int idx = start + i;
-            buf[static_cast<size_t> (i)] = (idx >= 0 && idx < n) ? x[static_cast<size_t> (idx)] * window[static_cast<size_t> (i)] : 0.0f;
-        }
-        fft.performRealOnlyForwardTransform (buf.data(), true);
+        // Le spectre complexe de la trame est encore dans stft.buf (analyse ci-dessus) : gains appliqués, synthèse.
         for (int k = 0; k < kBins; ++k)
-        {
-            buf[static_cast<size_t> (2 * k)] *= gain[static_cast<size_t> (k)];
-            buf[static_cast<size_t> (2 * k + 1)] *= gain[static_cast<size_t> (k)];
-        }
-        fft.performRealOnlyInverseTransform (buf.data());
-        for (int i = 0; i < kFft; ++i)
-        {
-            const int idx = start + i;
-            if (idx >= 0 && idx < n)
-                out[static_cast<size_t> (idx)] += buf[static_cast<size_t> (i)] * window[static_cast<size_t> (i)];
-        }
+            stft.scaleBin (k, gain[static_cast<size_t> (k)]);
+        stft.inverseAdd (out.data(), f);
     }
-    // Normalisation : analyse × synthèse = Hann, dont la somme au pas 1/4 vaut 2.
-    const float norm = 0.5f;
-    for (int i = 0; i < n; ++i)
-        x[static_cast<size_t> (i)] = out[static_cast<size_t> (i)] * norm;
+    x = std::move (out);
     rep.noiseAfterDb = levelDbOfInactive (x, sr, va);
     SV_LOG_INFO (kMod, "Bruit dans les silences : " + juce::String (rep.noiseBeforeDb, 1) + " -> " + juce::String (rep.noiseAfterDb, 1)
                        + " dBFS (" + juce::String (rep.noiseFrames) + " trames de profil, max -" + juce::String (maxReductionDb, 0) + " dB, "

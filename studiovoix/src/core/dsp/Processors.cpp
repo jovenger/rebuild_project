@@ -228,37 +228,45 @@ void applyCurveEq (Mono& x, double sr, const std::vector<float>& centersHz, cons
 }
 
 // ---------------------------------------------------------------------------------------------
-float compress (Mono& x, double sr, const CompressorSettings& c)
+float compressLinked (Stereo& audio, double sr, const CompressorSettings& c)
 {
-    if (c.ratio <= 1.0f || x.empty())
+    const int n = audio.getNumSamples(), chans = audio.getNumChannels();
+    if (c.ratio <= 1.0f || n == 0 || chans < 1)
         return 0.0f;
-
     const float T = c.thresholdDb, R = c.ratio, W = std::max (0.0f, c.kneeDb);
     GainSmoother smoother (sr, c.attackMs, c.releaseMs);
     const float makeup = dbToGain (c.makeupDb);
     const int rmsLen = std::max (1, static_cast<int> (sr * 0.01));
-    double sq = 0.0;
-    double grSum = 0.0;
-    long grCount = 0;
-    // Le détecteur lit une copie non modifiée : la fenêtre RMS ne doit jamais contenir
-    // des échantillons déjà compressés (sinon l'estimation de niveau dérive).
-    const Mono dry = x;
-
-    for (size_t i = 0; i < x.size(); ++i)
+    // Le détecteur lit une copie non modifiée : la fenêtre RMS ne doit jamais contenir des échantillons déjà
+    // compressés (sinon l'estimation de niveau dérive). makeCopyOf : vraie copie même si audio est une vue sur des
+    // données externes (le constructeur de copie de JUCE partagerait alors les mêmes échantillons).
+    Stereo dry;
+    dry.makeCopyOf (audio);
+    auto detector = [&] (int i)
     {
+        float d = 0.0f;
+        for (int ch = 0; ch < chans; ++ch)
+            d = std::max (d, std::abs (dry.getSample (ch, i)));
+        return d;
+    };
+    double sq = 0.0, grSum = 0.0;
+    long grCount = 0;
+    for (int i = 0; i < n; ++i)
+    {
+        const float det = detector (i);
         float levelDb;
         if (c.rmsDetector)
         {
-            sq += static_cast<double> (dry[i]) * dry[i];
-            if (i >= static_cast<size_t> (rmsLen))
-                sq -= static_cast<double> (dry[i - static_cast<size_t> (rmsLen)]) * dry[i - static_cast<size_t> (rmsLen)];
+            sq += static_cast<double> (det) * det;
+            if (i >= rmsLen)
+            {
+                const float old = detector (i - rmsLen);
+                sq -= static_cast<double> (old) * old;
+            }
             levelDb = gainToDb (static_cast<float> (std::sqrt (std::max (0.0, sq) / rmsLen)));
         }
         else
-        {
-            levelDb = gainToDb (std::abs (dry[i]));
-        }
-
+            levelDb = gainToDb (det);
         float outDb;
         const float over = levelDb - T;
         if (2.0f * over < -W)
@@ -267,21 +275,30 @@ float compress (Mono& x, double sr, const CompressorSettings& c)
             outDb = levelDb + (1.0f / R - 1.0f) * std::pow (over + W * 0.5f, 2.0f) / (2.0f * W);
         else
             outDb = T + over / R;
-
         const float gr = smoother.process (std::max (0.0f, levelDb - outDb));
-        x[i] *= dbToGain (-gr) * makeup;
+        const float g = dbToGain (-gr) * makeup;
+        for (int ch = 0; ch < chans; ++ch)
+            audio.setSample (ch, i, audio.getSample (ch, i) * g);
         if (levelDb > T - 20.0f)
         {
             grSum += gr;
             ++grCount;
         }
     }
-
     if (c.mix < 0.999f)
-        for (size_t i = 0; i < x.size(); ++i)
-            x[i] = dry[i] * (1.0f - c.mix) + x[i] * c.mix;
-
+        for (int ch = 0; ch < chans; ++ch)
+            for (int i = 0; i < n; ++i)
+                audio.setSample (ch, i, dry.getSample (ch, i) * (1.0f - c.mix) + audio.getSample (ch, i) * c.mix);
     return grCount > 0 ? static_cast<float> (grSum / grCount) : 0.0f;
+}
+
+float compress (Mono& x, double sr, const CompressorSettings& c)
+{
+    if (x.empty())
+        return 0.0f;
+    float* data = x.data();
+    juce::AudioBuffer<float> view (&data, 1, static_cast<int> (x.size()));   // vue sur le vecteur, sans copie
+    return compressLinked (view, sr, c);
 }
 
 // ---------------------------------------------------------------------------------------------

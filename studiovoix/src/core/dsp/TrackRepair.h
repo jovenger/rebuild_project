@@ -24,6 +24,4 @@ struct RepairReport
 /** Applique la correction sur un son stéréo (canaux liés : image inchangée). */
 RepairReport repairStereo (Stereo& audio, double sampleRate, const style::VocalParams& params);
 
-/** Compresseur stéréo lié (détecteur = canal le plus fort). Renvoie la réduction moyenne (dB). */
-float compressStereo (Stereo& audio, double sampleRate, const CompressorSettings& c);
 } // namespace sv::dsp

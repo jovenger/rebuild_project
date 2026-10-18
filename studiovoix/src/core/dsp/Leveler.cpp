@@ -3,7 +3,7 @@
 #include "../AudioIO.h"
 #include "../Log.h"
 
-#include <juce_dsp/juce_dsp.h>
+#include "Stft.h"
 
 #include <algorithm>
 #include <cmath>
@@ -248,43 +248,6 @@ namespace
         return b;
     }
 
-    struct Stft
-    {
-        juce::dsp::FFT fft { kOrder };
-        std::vector<float> window;
-        std::vector<float> buf;
-        int n = 0, numFrames = 0;
-        explicit Stft (int numSamples) : window (static_cast<size_t> (kFft)), buf (static_cast<size_t> (2 * kFft)), n (numSamples)
-        {
-            for (int i = 0; i < kFft; ++i)
-                window[static_cast<size_t> (i)] = std::sqrt (0.5f - 0.5f * std::cos (2.0f * juce::MathConstants<float>::pi * i / kFft));
-            numFrames = (n + kHop - 1) / kHop + 3;
-        }
-        int frameStart (int f) const { return f * kHop - kFft; }
-        void forward (const float* x, int f)
-        {
-            const int start = frameStart (f);
-            std::fill (buf.begin(), buf.end(), 0.0f);
-            for (int i = 0; i < kFft; ++i)
-            {
-                const int idx = start + i;
-                buf[static_cast<size_t> (i)] = (idx >= 0 && idx < n) ? x[idx] * window[static_cast<size_t> (i)] : 0.0f;
-            }
-            fft.performRealOnlyForwardTransform (buf.data(), true);
-        }
-        void inverseAdd (float* out, int f)
-        {
-            fft.performRealOnlyInverseTransform (buf.data());
-            const int start = frameStart (f);
-            for (int i = 0; i < kFft; ++i)
-            {
-                const int idx = start + i;
-                if (idx >= 0 && idx < n)
-                    out[idx] += buf[static_cast<size_t> (i)] * window[static_cast<size_t> (i)] * 0.5f;   // Hann au pas 1/4 : somme = 2
-            }
-        }
-    };
-
     /** Niveau (dB) de chaque bande pour le spectre courant de stft.buf. */
     void bandLevels (const Stft& stft, const BandLayout& lay, std::vector<float>& out)
     {
@@ -294,8 +257,7 @@ namespace
             double p = 0.0;
             for (int b = lay.binLo[k]; b < lay.binHi[k]; ++b)
             {
-                const float re = stft.buf[static_cast<size_t> (2 * b)], im = stft.buf[static_cast<size_t> (2 * b + 1)];
-                p += static_cast<double> (re) * re + static_cast<double> (im) * im;
+                p += stft.power (b);
             }
             p /= std::max (1, lay.binHi[k] - lay.binLo[k]);
             out[k] = 10.0f * std::log10 (static_cast<float> (p) + 1e-20f);
@@ -334,7 +296,7 @@ namespace
     /** Réductions (dB, >= 0) par trame et par bande, calculées sur le signal détecteur. */
     std::vector<std::vector<float>> resonanceReductions (const Mono& det, double sr, const ResonanceSettings& s, const BandLayout& lay, ResonanceReport& rep)
     {
-        Stft stft (static_cast<int> (det.size()));
+        Stft stft (kOrder, static_cast<int> (det.size()));
         std::vector<std::vector<float>> red (static_cast<size_t> (stft.numFrames), std::vector<float> (lay.centreHz.size(), 0.0f));
         std::vector<float> lv, ex, smooth (lay.centreHz.size(), 0.0f);
         const double hopSec = kHop / sr;
@@ -405,7 +367,7 @@ namespace
     /** Applique les réductions à un canal (gain par bin interpolé entre centres de bandes, en log-fréquence). */
     void applyReductions (float* x, int n, double sr, const std::vector<std::vector<float>>& red, const BandLayout& lay, float mix)
     {
-        Stft stft (n);
+        Stft stft (kOrder, n);
         std::vector<float> out (static_cast<size_t> (n), 0.0f);
         std::vector<float> binGain (static_cast<size_t> (kBins), 1.0f);
         const int nb = static_cast<int> (lay.centreHz.size());
@@ -435,8 +397,7 @@ namespace
             binGain[0] = 1.0f;
             for (int b = 0; b < kBins; ++b)
             {
-                stft.buf[static_cast<size_t> (2 * b)] *= binGain[static_cast<size_t> (b)];
-                stft.buf[static_cast<size_t> (2 * b + 1)] *= binGain[static_cast<size_t> (b)];
+                stft.scaleBin (b, binGain[static_cast<size_t> (b)]);
             }
             stft.inverseAdd (out.data(), f);
         }
