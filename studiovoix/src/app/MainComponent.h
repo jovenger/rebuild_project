@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "AiPanel.h"
 #include "LyricsPanel.h"
 #include "MixPanel.h"
 #include "RemixPanel.h"
@@ -46,6 +47,7 @@ private:
     RemixPanel* remix = nullptr;
     LyricsPanel* lyrics = nullptr;
     MixPanel* mixPanel = nullptr;
+    AiPanel* aiPanel = nullptr;
     juce::Label statusBar;
     juce::TooltipWindow tooltips { this, 700 };
     std::unique_ptr<juce::FileChooser> chooser;

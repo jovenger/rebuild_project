@@ -24,10 +24,12 @@ MainComponent::MainComponent (Session& s)
     remix = new RemixPanel (session);
     lyrics = new LyricsPanel (session);
     mixPanel = new MixPanel (session);
+    aiPanel = new AiPanel (session);
     const auto tabColour = juce::Colour (0xff1e2228);
     tabs.addTab ("Voix IA", tabColour, remix, true);
     tabs.addTab ("Paroles", tabColour, lyrics, true);
     tabs.addTab ("Mix & Master", tabColour, mixPanel, true);
+    tabs.addTab ("IA", tabColour, aiPanel, true);
     tabs.setTabBarDepth (28);
 
     statusBar.setFont (juce::FontOptions (13.0f));
@@ -430,6 +432,7 @@ void MainComponent::refreshAll()
     if (remix != nullptr) remix->refresh();
     if (lyrics != nullptr) lyrics->refresh();
     if (mixPanel != nullptr) mixPanel->refresh();
+    if (aiPanel != nullptr) aiPanel->refresh();
     statusBar.setText ((session.isBusy() ? juce::String ("[Calcul en cours] ") : juce::String()) + session.statusText(), juce::dontSendNotification);
 }
 

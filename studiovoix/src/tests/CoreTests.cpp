@@ -12,6 +12,9 @@
 #include "core/analysis/TempoDetector.h"
 #include "core/analysis/VoiceActivity.h"
 #include "core/assistant/CommandParser.h"
+#include "core/ai/AiClient.h"
+#include "core/ai/AiFeatures.h"
+#include "core/analysis/BeatLibrary.h"
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/PitchCorrector.h"
 #include "core/dsp/PitchShifter.h"
@@ -699,6 +702,99 @@ public:
     }
 };
 
+class AiTests final : public juce::UnitTest
+{
+public:
+    AiTests() : juce::UnitTest ("IA facultative (hors ligne)", "studiovoix") {}
+
+    void runTest() override
+    {
+        beginTest ("Corps de requete Claude : modele, sortie JSON structuree, repli");
+        {
+            ai::ClaudeRequest rq;
+            rq.system = "sys";
+            rq.user = "bonjour";
+            auto* schema = new juce::DynamicObject();
+            schema->setProperty ("type", "object");
+            rq.schema = juce::var (schema);
+            juce::var v;
+            expect (juce::JSON::parse (ai::buildClaudeBody (rq), v).wasOk());
+            expectEquals (v.getProperty ("model", {}).toString(), juce::String ("claude-opus-5-5"));
+            expectEquals (v.getProperty ("output_config", {}).getProperty ("format", {}).getProperty ("type", {}).toString(), juce::String ("json_schema"));
+            expectEquals (v.getProperty ("output_config", {}).getProperty ("effort", {}).toString(), juce::String ("medium"));
+            expectEquals (v.getProperty ("fallbacks", {}).toString(), juce::String ("default"));
+            expect (v.getProperty ("thinking", juce::var()).isVoid(), "pas de paramètre thinking (toujours actif sur ce modèle)"_u8);
+            expectEquals (v.getProperty ("messages", {})[0].getProperty ("content", {}).toString(), juce::String ("bonjour"));
+        }
+        beginTest ("Lecture des reponses : succes JSON, refus, erreur 401");
+        {
+            const auto ok = ai::parseClaudeResponse (200, R"({"model":"claude-opus-5-5","stop_reason":"end_turn","content":[{"type":"thinking","thinking":""},{"type":"text","text":"{\"a\":1}"}],"usage":{"input_tokens":10,"output_tokens":5}})", true);
+            expect (ok.ok, ok.error);
+            expectEquals (static_cast<int> (ok.json.getProperty ("a", 0)), 1);
+            expectEquals (ok.outputTokens, 5);
+            const auto refusal = ai::parseClaudeResponse (200, R"({"stop_reason":"refusal","content":[]})", false);
+            expect (! refusal.ok && refusal.error.isNotEmpty());
+            const auto unauth = ai::parseClaudeResponse (401, R"({"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}})", false);
+            expect (! unauth.ok);
+            expect (unauth.error.contains ("Clé API invalide"_u8), unauth.error);
+        }
+        beginTest ("Sans cle : l'assistant avance retombe sur l'assistant local");
+        {
+            project::Project p;
+            auto& t = p.addTrack (style::Role::Lead, "Voix");
+            ai::AiSettings s;   // désactivée
+            const auto a = ai::adviseMacros (s, "plus de reverb", p, t.id, {});
+            expect (a.ok && ! a.usedAi);
+            expect (a.macros.reverbTrim > 0.5f);
+            const auto w = ai::helpWrite (s, "un couplet", p);
+            expect (! w.ok && w.error.isNotEmpty(), "l'écriture exige l'IA"_u8);
+        }
+        beginTest ("Diagnostic local et brief d'instru par style");
+        {
+            project::Project p;
+            p.addTrack (style::Role::Lead, "Voix");
+            const auto d = ai::diagnoseMixLocal (p, {}, 0.0f);
+            expect (d.ok && d.text.contains ("instru"));
+            const auto b = ai::briefFromStyle (style::Style::Trap);
+            expect (b.bpmMin >= 120.0 && b.bpmMax <= 160.0 && b.prompt.isNotEmpty());
+        }
+        beginTest ("Style sur mesure : aller-retour JSON");
+        {
+            ai::CustomStyle c;
+            c.name = "Drill sombre";
+            c.base = style::Style::Drill;
+            c.macros.space = 0.8f;
+            c.generation.harmonies = 2;
+            const auto back = ai::CustomStyle::fromVar (c.toVar());
+            expectEquals (back.name, c.name);
+            expect (back.base == style::Style::Drill);
+            expectWithinAbsoluteError (back.macros.space, 0.8f, 1.0e-4f);
+            expectEquals (back.generation.harmonies, 2);
+        }
+        beginTest ("Bibliotheque de beats : analyse et classement");
+        {
+            const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_beats_" + juce::String (juce::Time::currentTimeMillis()));
+            dir.createDirectory();
+            juce::String err;
+            expect (audio::writeFile (dir.getChildFile ("trap140.wav"), synthInstru (140.0, aMinor(), 8, kSr, true), kSr, audio::FileFormat::Wav24, err), err);
+            expect (audio::writeFile (dir.getChildFile ("rnb75.wav"), synthInstru (75.0, cMajor(), 6, kSr, false), kSr, audio::FileFormat::Wav24, err), err);
+            analysis::BeatLibrary lib;
+            expectEquals (lib.scan (dir), 2);
+            expect (analysis::BeatLibrary::cacheFileFor (dir).existsAsFile(), "cache écrit"_u8);
+            analysis::BeatCriteria trap;
+            trap.bpmMin = 135;
+            trap.bpmMax = 145;
+            trap.energy = 0.8f;
+            const auto ranked = lib.rank (trap);
+            expect (! ranked.empty() && juce::File (ranked.front().second.path).getFileName() == "trap140.wav",
+                    "la trap à 140 BPM doit arriver en tête"_u8);
+            analysis::BeatLibrary again;
+            expectEquals (again.scan (dir), 0);   // tout vient du cache
+            dir.deleteRecursively();
+        }
+    }
+};
+
 // Instances statiques : enregistrement automatique auprès de juce::UnitTest.
 static LoudnessTests loudnessTests;
 static ResampleTests resampleTests;
@@ -710,6 +806,7 @@ static AssistantTests assistantTests;
 static GeneratorTests generatorTests;
 static CompTests compTests;
 static ProjectTests projectTests;
+static AiTests aiTests;
 
 int runAllTests()
 {

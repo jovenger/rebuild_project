@@ -89,6 +89,16 @@ void AppSettings::setMusicAiKey (const juce::String& key) { file->setValue ("mus
 bool AppSettings::aiEnabled() const { return file->getBoolValue ("aiEnabled", false); }
 void AppSettings::setAiEnabled (bool b) { file->setValue ("aiEnabled", b); }
 
+juce::var AppSettings::customStyles() const
+{
+    juce::var v;
+    if (juce::JSON::parse (file->getValue ("customStyles", "[]"), v).failed() || ! v.isArray())
+        return juce::var (juce::Array<juce::var>());
+    return v;
+}
+
+void AppSettings::setCustomStyles (const juce::var& list) { file->setValue ("customStyles", juce::JSON::toString (list, true)); }
+
 void AppSettings::save()
 {
     if (! file->saveIfNeeded())

@@ -58,6 +58,9 @@ public:
     void setMusicAiKey (const juce::String& key);
     bool aiEnabled() const;
     void setAiEnabled (bool b);
+    /** Styles sur mesure créés par l'IA (tableau JSON). */
+    juce::var customStyles() const;
+    void setCustomStyles (const juce::var& list);
 
     void save();
     static juce::File logsFolder();

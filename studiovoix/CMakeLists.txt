@@ -31,6 +31,7 @@ set(SV_CORE_SOURCES
     src/core/analysis/StructureDetector.cpp
     src/core/analysis/VoiceActivity.cpp
     src/core/analysis/SpectrumAnalyzer.cpp
+    src/core/analysis/BeatLibrary.cpp
     src/core/dsp/PitchShifter.cpp
     src/core/dsp/PitchCorrector.cpp
     src/core/dsp/Processors.cpp
@@ -42,6 +43,8 @@ set(SV_CORE_SOURCES
     src/core/gen/TakeComper.cpp
     src/core/mix/AutoMixer.cpp
     src/core/assistant/CommandParser.cpp
+    src/core/ai/AiClient.cpp
+    src/core/ai/AiFeatures.cpp
     src/core/project/Project.cpp
     src/core/project/Renderer.cpp)
 
@@ -114,7 +117,8 @@ if(SV_BUILD_APP)
         src/app/MixPanel.cpp
         src/app/GenerateDialog.cpp
         src/app/SettingsDialog.cpp
-        src/app/ExportDialog.cpp)
+        src/app/ExportDialog.cpp
+        src/app/AiPanel.cpp)
 
     target_include_directories(StudioVoix PRIVATE src)
     target_compile_definitions(StudioVoix PRIVATE
