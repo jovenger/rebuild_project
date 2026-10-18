@@ -42,6 +42,7 @@ struct TrackRender
     analysis::VoiceActivity va;
     dsp::VocalReport report;
     juce::String compSummary;
+    juce::String problemsReport;    // correction automatique : défauts constatés et corrections
     juce::String error;
     bool ok() const { return error.isEmpty(); }
 };

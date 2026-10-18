@@ -18,6 +18,7 @@
 #include "core/analysis/ContentClassifier.h"
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/PitchCorrector.h"
+#include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/PitchShifter.h"
 #include "core/dsp/Processors.h"
 #include "core/dsp/TimingCorrector.h"
@@ -969,6 +970,39 @@ public:
             expect (style::guessRoleForImport ("enregistrement 3.wav", 1, true, true) == Role::ManualBack, "voix reconnue, lead occupé -> back");
             expect (style::guessRoleForImport ("enregistrement 3.wav", 0, false, false) == Role::Instru, "musique reconnue, pas d'instru -> instru");
             expect (style::guessRoleForImport ("instru.wav", 1, false, false) == Role::Instru, "le nom explicite l'emporte");
+        }
+
+        beginTest ("Correction automatique : defauts mesures et corriges");
+        {
+            const auto keySig = aMinor();
+            auto voiceSig = synthVoice (defaultPhrases (keySig, 100.0, 35.0f), kSr);   // faux de 35 cents
+            for (auto& v : voiceSig)
+                v = v * 0.05f + 0.02f;   // trop bas (-26 dB) + composante continue
+            auto problems = dsp::analyzeTrackProblems (voiceSig, kSr, keySig, true);
+            expect (problems.activeLevelDb < -24.0f, "niveau bas mesuré : " + juce::String (problems.activeLevelDb, 1));
+            expect (std::abs (problems.dcOffset - 0.02f) < 0.01f, "composante continue mesurée");
+            expect (problems.pitchDeviationCents > 15.0f, "justesse approximative mesurée : " + juce::String (problems.pitchDeviationCents, 1));
+            expect (! problems.found.isEmpty(), "défauts listés"_u8);
+            const auto params = dsp::correctionParams (problems, true);
+            expect (params.pitch.enabled && params.reverb.send <= 0.0f && params.delay.send <= 0.0f && params.sat.mix <= 0.0f,
+                    "correction : justesse activée, aucun effet de style"_u8);
+            expect (! problems.fixes.isEmpty() && ! dsp::describeProblems (problems).containsChar (0xC3), "rapport lisible");
+            dsp::AnalysisContext ctx;
+            ctx.key = keySig;
+            ctx.tempo.bpm = 100.0;
+            const auto res = dsp::processVocal (voiceSig, kSr, params, ctx);
+            const auto lvl = dsp::activeLevelDb (audio::toMono (res.audio), kSr);
+            expect (lvl > -20.0f && lvl < -8.0f, "niveau corrigé : " + juce::String (lvl, 1) + " dB");
+            expect (res.report.meanCorrectionCents > 5.0f, "justesse corrigée : " + juce::String (res.report.meanCorrectionCents, 1) + " c");
+
+            project::Project cp = p;
+            cp.findTrack (leadId)->raw = false;
+            cp.findTrack (leadId)->styleId = dsp::kCorrectionStyleId;
+            expect (cp.findTrack (leadId)->isCorrection() && cp.trackStyle (*cp.findTrack (leadId)) == cp.style);
+            project::Project back2;
+            juce::String loadErr2;
+            expect (project::Project::fromVar (cp.toVar(), back2, loadErr2) && back2.findTrack (leadId)->isCorrection() && back2.loadWarnings.isEmpty(),
+                    "pseudo-style correction sauvegardé / rechargé sans avertissement");
         }
 
         beginTest ("Copie de refrain vers les sections semblables");

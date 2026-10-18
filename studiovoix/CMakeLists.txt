@@ -40,6 +40,7 @@ set(SV_CORE_SOURCES
     src/core/dsp/Processors.cpp
     src/core/dsp/TimingCorrector.cpp
     src/core/dsp/VocalChain.cpp
+    src/core/dsp/ProblemAnalyzer.cpp
     src/core/dsp/MasterChain.cpp
     src/core/style/StyleProfiles.cpp
     src/core/gen/BackingGenerator.cpp

@@ -46,7 +46,8 @@ struct Track
     std::vector<Take> takes;
     // Fichier importé / glissé : brut (aucun effet, hors mix auto) tant qu'aucun style n'est choisi dans le panneau.
     bool raw = false;
-    juce::String styleId;            // style propre à la piste ; vide = style du projet
+    juce::String styleId;            // style propre à la piste ; vide = style du projet ; "correction" = correction automatique
+    bool isCorrection() const { return styleId == "correction"; }
 
     // Pistes générées / instru
     juce::String sourceFile;         // relatif à audio/ (piste générée) ou chemin de l'instru
@@ -111,7 +112,7 @@ struct Project
     int leadTrackId() const;
     const Track* instruTrack() const;
     /** Style qui traite cette piste : le sien s'il est choisi, sinon celui du projet. */
-    style::Style trackStyle (const Track& t) const { return t.styleId.isNotEmpty() ? style::styleFromId (t.styleId) : style; }
+    style::Style trackStyle (const Track& t) const { return t.styleId.isNotEmpty() && ! t.isCorrection() ? style::styleFromId (t.styleId) : style; }
     double lengthSec() const;   // fin de la dernière prise ou de l'instru (approx.)
 
     juce::var toVar() const;

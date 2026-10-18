@@ -2,6 +2,7 @@
 
 #include "GenerateDialog.h"
 #include "StyleMenu.h"
+#include "core/dsp/ProblemAnalyzer.h"
 #include "core/Log.h"
 #include "core/assistant/CommandParser.h"
 
@@ -43,6 +44,8 @@ RemixPanel::RemixPanel (Session& s) : session (s)
             session.setTrackTreatment (shownTrack, true, {});
         else if (id == 2)
             session.setTrackTreatment (shownTrack, false, {});   // instru : creux sous la voix
+        else if (id == 3)
+            session.setTrackTreatment (shownTrack, false, dsp::kCorrectionStyleId);
         else if (id > 100)
             session.setTrackTreatment (shownTrack, false, style::styleId (static_cast<style::Style> (id - 101)));
     };
@@ -209,6 +212,7 @@ void RemixPanel::fillTreatmentBox (bool instru)
         return;
     }
     treatmentBox.addItem ("Aucun (brut, aucun effet)", 1);
+    treatmentBox.addItem ("Correction automatique (son propre : niveau, bruit, EQ, sifflantes, justesse)"_u8, 3);
     // Styles par famille : identifiant = 101 + indice du style.
     for (const auto& g : style::styleGroups())
     {
@@ -242,7 +246,8 @@ void RemixPanel::refresh()
     const bool instru = t->role == style::Role::Instru;
     if (treatmentBox.getNumItems() == 0 || instru != treatmentForInstru || treatmentProjectStyle != static_cast<int> (session.project().style))
         fillTreatmentBox (instru);   // libellé « Style du projet (…) » à jour, sans tout reconstruire à chaque rafraîchissement
-    treatmentBox.setSelectedId (t->raw ? 1 : (instru ? 2 : 101 + static_cast<int> (session.project().trackStyle (*t))), juce::dontSendNotification);
+    treatmentBox.setSelectedId (t->raw ? 1 : t->isCorrection() ? 3 : (instru ? 2 : 101 + static_cast<int> (session.project().trackStyle (*t))),
+                                juce::dontSendNotification);
     const auto trackStyleName = style::styleName (session.project().trackStyle (*t));
     title.setText (t->name + "  (" + style::roleName (t->role) + (t->raw ? juce::String (", brut") : ", style " + trackStyleName) + ")",
                    juce::dontSendNotification);
@@ -282,12 +287,23 @@ void RemixPanel::refresh()
         txt << "\n\nAucun effet : le son tel quel, hors mix auto. Choisis un style dans « Style » ci-dessus : tous les réglages "
                "de ce style (autotune, EQ, compresseurs, de-esser, saturation, réverb, délai) s'appliquent à cette piste."_u8;
     }
+    else if (vocal && t->isCorrection())
+    {
+        txt << "\n\nCorrection automatique : le son est analysé et remis propre (niveau, bruit, équilibre, sifflantes, justesse), "
+               "sans effet de style.\n"_u8;
+        if (auto r = session.renderFor (shownTrack); r != nullptr && r->problemsReport.isNotEmpty())
+            txt << r->problemsReport;
+        else
+            txt << "Analyse en cours…"_u8;
+    }
     else if (vocal)
     {
         // Effets réglés automatiquement par le style (et les curseurs) : affichés même avant la première prise.
         const auto st = session.project().trackStyle (*t);
         txt << "\n\nEffets appliqués (style "_u8 << style::styleName (st) << ", " << style::roleName (t->role) << ") :\n"
             << dsp::describeChain (style::makeParams (st, t->role, t->macros, ! t->isGenerated()));
+        if (auto r = session.renderFor (shownTrack); r != nullptr && r->problemsReport.isNotEmpty())
+            txt << "\n" << r->problemsReport;
     }
     else if (t->role == style::Role::Instru)
     {

@@ -2,6 +2,7 @@
 
 #include "core/Log.h"
 #include "core/analysis/KeyDetector.h"
+#include "core/dsp/ProblemAnalyzer.h"
 #include "core/analysis/StructureDetector.h"
 #include "core/analysis/TempoDetector.h"
 
@@ -459,8 +460,10 @@ void Session::setTrackTreatment (int trackId, bool raw, const juce::String& trac
         return;
     if (t->raw == raw && t->styleId == trackStyleId)
         return;
-    const auto label = raw ? juce::String ("brut, sans effet") : (t->role == style::Role::Instru ? juce::String ("creux sous la voix (mix auto)")
-                                                              : "style " + style::styleName (trackStyleId.isNotEmpty() ? style::styleFromId (trackStyleId) : proj.style));
+    const auto label = raw ? juce::String ("brut, sans effet")
+                           : trackStyleId == dsp::kCorrectionStyleId ? juce::String ("correction automatique (son propre, sans effet de style)")
+                           : t->role == style::Role::Instru ? juce::String ("creux sous la voix (mix auto)")
+                           : "style " + style::styleName (trackStyleId.isNotEmpty() ? style::styleFromId (trackStyleId) : proj.style);
     SV_LOG_INFO (kMod, "Traitement de « "_u8 + t->name + " » : " + label);
     updateTrack (trackId, [raw, trackStyleId] (project::Track& tr) { tr.raw = raw; tr.styleId = trackStyleId; }, true, "Traitement de la piste");
     if (auto* tr = proj.findTrack (trackId); tr != nullptr && tr->role == style::Role::Lead && ! raw && ! tr->takes.empty())
@@ -582,6 +585,31 @@ void Session::armTrack (int trackId)
     markDirty();
     setStatus (t != nullptr ? "Piste armée : « "_u8 + t->name + " » — le micro enregistrera ici (R)"_u8
                             : juce::String ("Aucune piste armée : R enregistre sur la piste sélectionnée"_u8));
+}
+
+void Session::correctAllTracks()
+{
+    std::vector<int> ids;
+    for (const auto& t : proj.tracks)
+        if (t.isRecordable() && ! t.takes.empty() && ! t.isCorrection())
+            ids.push_back (t.id);
+    if (ids.empty())
+    {
+        setStatus ("Rien à corriger : aucune piste enregistrée ou importée"_u8);
+        return;
+    }
+    pushUndo ("Correction automatique de " + juce::String (static_cast<int> (ids.size())) + " piste(s)");
+    for (const int id : ids)
+        if (auto* t = proj.findTrack (id))
+        {
+            t->raw = false;
+            t->styleId = dsp::kCorrectionStyleId;
+            requestRender (id);
+        }
+    markDirty();
+    launchAutoMix();
+    SV_LOG_INFO (kMod, "Correction automatique lancée sur "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s)");
+    setStatus ("Analyse et correction de " + juce::String (static_cast<int> (ids.size())) + " piste(s) : niveau, bruit, EQ, sifflantes, justesse…"_u8);
 }
 
 int Session::recordTargetTrack() const

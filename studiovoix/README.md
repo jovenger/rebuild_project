@@ -77,6 +77,16 @@ réglages du style (autotune, EQ, compresseurs, de-esser, saturation, réverb, d
 style. Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Le style de la barre du haut sert aux pistes
 générées, au mastering et aux propositions, pas aux pistes brutes.
 
+**Correction automatique** (son propre, sans effet de style) : bouton **Corriger tout** dans la barre du haut, ou
+« Style : Correction automatique » sur une piste. Le programme mesure les défauts de chaque piste enregistrée ou
+importée (niveau trop bas ou trop fort, saturation, composante continue, bruit de fond, boue dans le bas-médium,
+dureté, sifflantes, justesse approximative) et les corrige : niveau remis à −14 dB, bruit réduit dans les silences,
+EQ corrective dosée sur la mesure, de-esser dosé, justesse ramenée doucement vers la gamme (voix seule uniquement),
+puis mix auto. Le panneau Voix IA affiche les défauts constatés et les corrections. Annulable (Ctrl+Z).
+
+**Son polyphonique** (chœurs à plusieurs voix, piano, morceau entier) : la correction de justesse est coupée
+automatiquement, qu'on choisisse un style ou la correction — elle ferait des « vagues » sur ce type de son.
+
 **Plusieurs pistes à la fois** : Ctrl enfoncé + clic sur chaque piste (elles restent sélectionnées), puis clic droit →
 « Supprimer les N pistes » (ou touche Suppr). Ctrl+Z revient en arrière.
 

@@ -32,7 +32,7 @@ public:
     bool punchEnabled() const { return punch.getToggleState(); }
     bool loopEnabled() const { return loop.getToggleState(); }
 
-    std::function<void()> onNew, onOpen, onSave, onImportInstru, onImportVoice, onExport, onSettings, onRecord, onLoopToggled, onUpdate;
+    std::function<void()> onNew, onOpen, onSave, onImportInstru, onImportVoice, onExport, onSettings, onRecord, onLoopToggled, onUpdate, onCorrectAll;
 
     /** Bouton « Mise à jour » (en haut à droite) : texte, info-bulle, mise en avant (nouvelle version), cliquable. */
     void setUpdateButton (const juce::String& text, const juce::String& tooltip, bool highlight, bool enabled);
@@ -42,7 +42,7 @@ private:
     juce::TextButton newBtn { "Nouveau" }, openBtn { "Ouvrir" }, saveBtn { "Sauver" }, instruBtn { "Instru..." },
         voiceBtn { "Voix..." }, exportBtn { "Exporter" }, settingsBtn { juce::String (juce::CharPointer_UTF8 ("Paramètres")) },
         undoBtn { "Annuler" }, redoBtn { juce::String (juce::CharPointer_UTF8 ("Rétablir")) },
-        updateBtn { juce::String (juce::CharPointer_UTF8 ("Mise à jour")) };
+        updateBtn { juce::String (juce::CharPointer_UTF8 ("Mise à jour")) }, correctBtn { "Corriger tout" };
     juce::TextButton homeBtn { "|<" }, playBtn { "Lecture" }, stopBtn { "Stop" }, recBtn { "REC" };
     juce::ToggleButton punch { "Punch-in" }, loop { "Boucle" }, metronome { juce::String (juce::CharPointer_UTF8 ("Métronome")) };
     juce::ComboBox countdown, keyBox, styleBox;

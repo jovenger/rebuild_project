@@ -47,6 +47,8 @@ public:
     /** Panneau de la piste : brut (aucun effet, hors mix auto) ou traité dans un style (vide = style du projet).
         Pour l'instru : non brute = creux sous la voix (mix auto). */
     void setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId);
+    /** Correction automatique sur toutes les pistes enregistrées / importées (pas l'instru, pas les générées). */
+    void correctAllTracks();
     /** Bouton REC d'une piste : une seule piste armée à la fois ; -1 = désarmer.
         Cliquer sur une piste enregistrable l'arme aussi (selectTrack). */
     void armTrack (int trackId);

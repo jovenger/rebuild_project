@@ -14,6 +14,7 @@ struct ContentGuess
     float voicedFraction = 0.0f;  // 0..1 : part des trames actives avec une hauteur de voix
     float stereoWidth = 0.0f;     // 0 = mono, 1 = canaux indépendants
     float lowRatio = 0.0f;        // énergie sous 120 Hz / énergie totale
+    float beatRegularity = 0.0f;  // confiance du tempo (0..1) : un beat a des transitoires périodiques
     float confidence = 0.0f;      // 0..1
     juce::String reason;          // lisible, pour la fenêtre d'import et le journal
 };

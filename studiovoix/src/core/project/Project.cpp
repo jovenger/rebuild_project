@@ -340,7 +340,7 @@ bool Project::fromVar (const juce::var& v, Project& out, juce::String& error)
             t.cleaning = getB (o, "cleaning", true);
             t.raw = getB (o, "raw", false);
             t.styleId = getS (o, "style");
-            if (t.styleId.isNotEmpty() && style::styleId (style::styleFromId (t.styleId)) != t.styleId)
+            if (t.styleId.isNotEmpty() && ! t.isCorrection() && style::styleId (style::styleFromId (t.styleId)) != t.styleId)
             {
                 p.loadWarnings.add ("style inconnu « "_u8 + t.styleId + " » sur la piste " + t.name + " : style du projet utilisé"_u8);
                 t.styleId.clear();

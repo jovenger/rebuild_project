@@ -3,6 +3,8 @@
 #include "../Log.h"
 #include "../Loudness.h"
 #include "../analysis/SpectrumAnalyzer.h"
+#include "../analysis/ContentClassifier.h"
+#include "../dsp/ProblemAnalyzer.h"
 
 namespace sv::render
 {
@@ -200,9 +202,35 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         return r;
     }
 
-    auto params = style::makeParams (p.trackStyle (t), t.role, t.macros, ! t.isGenerated());
-    params.timing.strength = t.timingStrength;
-    params.clean.enabled = t.cleaning;
+    style::VocalParams params;
+    if (t.isCorrection())
+    {
+        // Correction automatique : défauts mesurés sur le son brut, réglages déduits (son propre, sans effet de style).
+        const bool vocal = t.isVoice();
+        auto problems = dsp::analyzeTrackProblems (raw, p.sampleRate, ctx.key, vocal);
+        params = dsp::correctionParams (problems, vocal);
+        r->problemsReport = dsp::describeProblems (problems);
+        SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » : correction automatique — "_u8 + r->problemsReport.replace ("\n", " | "));
+    }
+    else
+    {
+        params = style::makeParams (p.trackStyle (t), t.role, t.macros, ! t.isGenerated());
+        params.timing.strength = t.timingStrength;
+        params.clean.enabled = t.cleaning;
+        if (! t.isGenerated() && params.pitch.enabled)
+        {
+            // Fichier importé polyphonique (chœurs, piano, morceau) : l'autotune ferait des vagues ; on le coupe.
+            const auto content = analysis::classifyContent (audio::monoToStereo (raw), p.sampleRate);
+            if (! content.voice)
+            {
+                params.pitch.enabled = false;
+                params.timing.strength = 0.0f;
+                r->problemsReport = "Son polyphonique ou musical ("_u8 + content.reason + ") : correction de justesse et recalage désactivés, "
+                                    "le reste du style est appliqué."_u8;
+                SV_LOG_WARN (kMod, "Piste « "_u8 + t.name + " » : " + r->problemsReport);
+            }
+        }
+    }
     params.referenceEq = t.referenceEq;
     if (t.isGenerated())
     {

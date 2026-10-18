@@ -54,6 +54,15 @@ MainComponent::MainComponent (Session& s)
     };
     transport.onRecord = [this] { doRecord(); };
     transport.onUpdate = [this] { onUpdateClicked(); };
+    transport.onCorrectAll = [this]
+    {
+        if (session.isRecording())
+        {
+            session.setStatus ("Correction : arrête d'abord l'enregistrement"_u8);
+            return;
+        }
+        session.correctAllTracks();
+    };
     updates.onChange = [this] { onUpdateStateChanged(); };
     transport.onLoopToggled = [this]
     {

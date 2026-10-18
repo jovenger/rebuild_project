@@ -45,7 +45,7 @@ void LevelMeter::paint (juce::Graphics& g)
 
 TransportBar::TransportBar (Session& s) : session (s)
 {
-    for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn, &undoBtn, &redoBtn, &homeBtn, &playBtn, &stopBtn, &recBtn, &updateBtn })
+    for (auto* b : { &newBtn, &openBtn, &saveBtn, &instruBtn, &voiceBtn, &exportBtn, &settingsBtn, &undoBtn, &redoBtn, &homeBtn, &playBtn, &stopBtn, &recBtn, &updateBtn, &correctBtn })
         addAndMakeVisible (*b);
     for (auto* t : { &punch, &loop, &metronome })
         addAndMakeVisible (*t);
@@ -90,6 +90,9 @@ TransportBar::TransportBar (Session& s) : session (s)
     voiceBtn.setTooltip ("Importer une voix déjà enregistrée dans la piste sélectionnée"_u8);
     exportBtn.onClick = [this] { if (onExport) onExport(); };
     updateBtn.onClick = [this] { if (onUpdate) onUpdate(); };
+    correctBtn.onClick = [this] { if (onCorrectAll) onCorrectAll(); };
+    correctBtn.setTooltip ("Analyse chaque piste enregistrée ou importée et la remet propre : niveau, bruit, équilibre, "
+                           "sifflantes, justesse (sans effet de style). Annulable."_u8);
     setUpdateButton ("Mise à jour"_u8, "Vérifier s'il existe une nouvelle version"_u8, false, true);
     settingsBtn.onClick = [this] { if (onSettings) onSettings(); };
     undoBtn.onClick = [this] { session.undo(); };
@@ -214,6 +217,8 @@ void TransportBar::resized()
     undoBtn.setBounds (row1.removeFromLeft (80));
     row1.removeFromLeft (4);
     redoBtn.setBounds (row1.removeFromLeft (80));
+    row1.removeFromLeft (12);
+    correctBtn.setBounds (row1.removeFromLeft (110));
     row1.removeFromLeft (12);
     updateBtn.setBounds (row1.removeFromRight (170));
     row1.removeFromRight (8);
