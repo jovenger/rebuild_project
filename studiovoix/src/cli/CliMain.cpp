@@ -9,6 +9,9 @@
 
 #include "core/AudioIO.h"
 #include "core/ai/LocalTools.h"
+#include "core/ai/AiClean.h"
+#include "core/ai/Lyrics.h"
+#include "core/ai/Separate.h"
 #include "core/Log.h"
 #include "core/Loudness.h"
 #include "core/analysis/KeyDetector.h"
@@ -84,6 +87,8 @@ void usage()
                  "  presets                                effets pre-regles de chaque style (Markdown)\n"
                  "  outils                                 outils d'IA locale connus et leur etat\n"
                  "  outils-empreintes [--dossier d]        telecharge chaque outil et affiche taille + SHA-256 (CI)\n"
+                 "  outils-essai --voix v.wav --instru i.wav [--dossier d] [--sortie s]\n"
+                 "                                         execute vraiment deep-filter, whisper-cli et demucs_mt (CI)\n"
                  "styles : rap trap pop_urbaine rnb drill afro rock latino rap_melodique boom_bap pop\n"
                  "         variete dancehall zouk amapiano gospel electro acoustique rap_conscient\n"
                  "         rap_hardcore cloud_rap rage plugg emo_rap afro_trap lofi phonk jersey_club\n"
@@ -650,6 +655,100 @@ int main (int argc, char* argv[])
                           << (t.sha256.isNotEmpty() ? (t.sha256 == p.downloadSha256 ? " (conforme)" : " (DIFFERENT de l'empreinte epinglee)") : " (a epingler)")
                           << (t.archive ? " [archive ; binaire extrait " + std::to_string (f.getSize()) + " octets]" : "") << "\n";
             }
+        }
+        else if (cmd == "outils-essai")
+        {
+            // Exécution réelle des outils d'IA locale (CI Windows : outils déjà téléchargés par outils-empreintes dans
+            // --dossier). Chaque outil est lancé sur les fichiers donnés ; résultats écrits dans --sortie ; code 1 si l'un
+            // d'eux manque ou échoue. C'est la seule vérification d'exécution possible hors du PC de Yann.
+            const auto folder = args.has ("dossier") ? juce::File (args.get ("dossier"))
+                                                     : juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sv_outils");
+            sv::ai::local::setToolsFolder (folder);
+            const auto out = fileArg (args.get ("sortie", "essai_ia"));
+            out.createDirectory();
+            const double sr = 48000.0;
+            code = 0;
+            int done = 0;
+            juce::String err;
+            if (args.has ("voix"))
+            {
+                sv::Mono voice;
+                if (! sv::audio::loadMono (fileArg (args.get ("voix")), sr, voice, err))
+                {
+                    std::cout << "voix illisible : " << err << "\n";
+                    code = 1;
+                }
+                else
+                {
+                    if (sv::ai::local::deepFilterAvailable())
+                    {
+                        sv::Mono cleaned = voice;
+                        const auto r = sv::ai::local::cleanWithDeepFilter (cleaned, sr, out.getChildFile ("cache_ia"));
+                        std::cout << "deep-filter : " << (r.applied ? "OK" : "ECHEC") << " | " << r.note << " | " << juce::String (r.seconds, 1) << " s | rms avant "
+                                  << juce::String (sv::audio::rms (voice.data(), voice.size()), 4) << " apres " << juce::String (sv::audio::rms (cleaned.data(), cleaned.size()), 4) << "\n";
+                        if (r.applied && sv::audio::writeMonoWavFloat (out.getChildFile ("voix_nettoyee.wav"), cleaned, sr, err))
+                            ++done;
+                        else
+                            code = 1;
+                    }
+                    else
+                    {
+                        std::cout << "deep-filter : NON INSTALLE dans " << folder.getFullPathName() << "\n";
+                        code = 1;
+                    }
+                    if (sv::ai::local::whisperAvailable())
+                    {
+                        juce::String werr;
+                        double sec = 0.0;
+                        const auto words = sv::ai::local::transcribeWithWhisper (voice, sr, out.getChildFile ("whisper"), 0.0, werr, sec);
+                        // Le processus a tourné si des mots sortent, ou si le seul grief est « aucun mot » (voix de démo synthétique).
+                        const bool ran = ! words.empty() || werr.contains ("Aucun mot");
+                        std::cout << "whisper-cli : " << (ran ? "OK" : "ECHEC") << " | " << words.size() << " mot(s) en " << juce::String (sec, 1) << " s"
+                                  << (werr.isNotEmpty() ? " | " + werr : juce::String()) << "\n";
+                        if (! words.empty())
+                            std::cout << "  texte : " << sv::ai::local::wordsToLyrics (words).replaceCharacter ('\n', ' ').substring (0, 300) << "\n";
+                        if (ran) ++done; else code = 1;
+                    }
+                    else
+                    {
+                        std::cout << "whisper-cli : NON INSTALLE (binaire ou modele)\n";
+                        code = 1;
+                    }
+                }
+            }
+            if (args.has ("instru"))
+            {
+                auto ins = sv::audio::loadStereo (fileArg (args.get ("instru")), sr);
+                if (! ins.ok())
+                {
+                    std::cout << "instru illisible : " << ins.error << "\n";
+                    code = 1;
+                }
+                else if (sv::ai::local::demucsAvailable())
+                {
+                    const auto st = sv::ai::local::separateWithDemucs (ins.buffer, sr, out.getChildFile ("demucs"));
+                    std::cout << "demucs_mt : " << (st.ok ? "OK" : "ECHEC") << " | " << st.note << "\n";
+                    if (st.ok)
+                    {
+                        const std::pair<const char*, const sv::Mono*> parts[4] = { { "batterie", &st.drums }, { "basse", &st.bass }, { "autres", &st.other }, { "voix", &st.vocals } };
+                        for (const auto& [name, data] : parts)
+                        {
+                            std::cout << "  " << name << " : " << data->size() << " ech., rms " << juce::String (sv::audio::rms (data->data(), data->size()), 4) << "\n";
+                            if (! sv::audio::writeMonoWavFloat (out.getChildFile (juce::String ("partie_") + name + ".wav"), *data, sr, err))
+                                std::cout << "  ecriture impossible : " << err << "\n";
+                        }
+                        ++done;
+                    }
+                    else
+                        code = 1;
+                }
+                else
+                {
+                    std::cout << "demucs_mt : NON INSTALLE (binaire ou modele)\n";
+                    code = 1;
+                }
+            }
+            std::cout << done << " outil(s) execute(s) avec succes, resultats dans " << out.getFullPathName() << "\n";
         }
         else if (cmd == "assistant")
         {

@@ -102,6 +102,24 @@ jobs:
         run: |
           ./build/studiovoix_cli_artefacts/Release/studiovoix_cli outils-empreintes --dossier "$RUNNER_TEMP/sv_outils" || echo "relevé incomplet (voir ci-dessus)"
 
+      - name: Essai réel des outils d'IA locale (deep-filter, whisper-cli, demucs_mt sur la démo)
+        if: matrix.edition == 'ON' && runner.os == 'Windows'
+        continue-on-error: true
+        shell: bash
+        run: |
+          # Les outils ont été téléchargés par l'étape précédente ; on les exécute vraiment sur la voix et l'instru de démo.
+          ./build/studiovoix_cli_artefacts/Release/studiovoix_cli outils-essai --dossier "$RUNNER_TEMP/sv_outils" \
+            --voix demo/demo_voix_brute.wav --instru demo/demo_instru.wav --sortie "$RUNNER_TEMP/sv_essai"
+
+      - name: Artefact de l'essai IA (voix nettoyée, parties Demucs)
+        if: matrix.edition == 'ON' && runner.os == 'Windows'
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: essai-ia
+          path: ${{ runner.temp }}/sv_essai/*.wav
+          if-no-files-found: warn
+
       - name: Demucs (demucs.cpp) — compilation expérimentale pour l'édition IA
         if: matrix.edition == 'ON'
         continue-on-error: true
