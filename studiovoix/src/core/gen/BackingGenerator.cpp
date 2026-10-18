@@ -157,12 +157,12 @@ GeneratedTrack makeDouble (const LeadAnalysis& lead, double sr, int index, int t
         ratios[i] = std::pow (2.0f, (baseCents + 3.0f * walkPitch[i]) / 1200.0f);
     Mono shifted = dsp::psolaShift (lead.prepared, sr, lead.track, ratios);
 
-    // Retard variable (14 à 30 ms) : imite un second passage humain.
+    // Retard variable court (6 à 16 ms, comme un doublage ADT) : épaissit sans s'entendre comme une voix décalée.
     const auto walkDelay = smoothRandomWalk (shifted.size(), sr, 0.08, rng);
     std::vector<float> delays (shifted.size());
-    const float baseMs = 14.0f + 8.0f * static_cast<float> (index);
+    const float baseMs = 9.0f + 4.0f * static_cast<float> (index);
     for (size_t i = 0; i < delays.size(); ++i)
-        delays[i] = static_cast<float> ((baseMs + 5.0f * walkDelay[i]) * 0.001 * sr);
+        delays[i] = static_cast<float> ((baseMs + 3.0f * walkDelay[i]) * 0.001 * sr);
     t.audio = dsp::variableDelay (shifted, delays);
 
     // Légère variation de niveau (±1 dB).

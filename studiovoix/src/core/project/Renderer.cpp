@@ -280,6 +280,14 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->track = std::move (result.track);
     r->va = std::move (result.va);
     r->report = result.report;
+    {
+        // Garde-fou : le traitement ne doit pas décaler la piste (sinon la voix flotte par rapport à l'instru).
+        Mono out = audio::toMono (r->processed);
+        out.resize (raw.size());
+        r->processingLagMs = static_cast<float> (audio::envelopeLagMs (raw, out, p.sampleRate, 200));
+        if (std::abs (r->processingLagMs) > 5.0f)
+            SV_LOG_WARN (kMod, "Piste « "_u8 + t.name + " » : le traitement décale le son de "_u8 + juce::String (r->processingLagMs, 0) + " ms");
+    }
     if (result.report.scaleAdapted)
         r->problemsReport << (r->problemsReport.isEmpty() ? "" : "\n") << "Gamme adaptée à la voix : autotune vers "_u8 << result.report.adaptedKey.toFrench()
                           << " (" << juce::roundToInt (result.report.outOfScaleFraction * 100.0f) << " % des notes étaient hors "_u8 << p.key.toFrench() << ")";
@@ -359,9 +367,9 @@ float roleOffsetLu (style::Role role)
 {
     switch (role)
     {
-        case style::Role::Double:      return -6.0f;
+        case style::Role::Double:      return -9.0f;   // un doublage se devine, il ne s'entend pas comme une seconde voix
         case style::Role::KeywordBack: return -7.0f;
-        case style::Role::Harmony:     return -8.0f;
+        case style::Role::Harmony:     return -9.0f;
         case style::Role::AdLib:       return -9.0f;
         case style::Role::Ambiance:    return -14.0f;
         case style::Role::Instrument:  return -4.0f;

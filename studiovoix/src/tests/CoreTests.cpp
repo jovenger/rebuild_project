@@ -1446,11 +1446,11 @@ public:
             render::RenderSet rs;
             rs[inst.id] = tone (-24.0f, 110.0f);
             rs[ldId] = tone (-16.0f, 440.0f);
-            rs[dblId] = tone (-14.0f, 660.0f);    // doublage plus fort que la voix : doit redescendre vers -6 LU
+            rs[dblId] = tone (-14.0f, 660.0f);    // doublage plus fort que la voix : doit redescendre vers -9 LU (borne -8 dB)
             rs[rawId] = tone (-14.0f, 880.0f);
             const auto ms = render::computeAutoMix (op, rs);
             const float g = ms.autoTrackGain (dblId);
-            expect (g <= -6.0f && g >= -8.0f, "doublage ramené : gain "_u8 + juce::String (g, 1) + " dB (visé -6 LU)"_u8);
+            expect (g <= -7.9f && g >= -8.0f, "doublage ramené : gain "_u8 + juce::String (g, 1) + " dB (visé -9 LU, borné à -8 dB)"_u8);
             expect (ms.autoTrackGain (rawId) <= -6.0f && std::abs (ms.autoTrackGain (ldId)) < 1e-6f, "piste brute aussi ramenée à sa place (le niveau n'est pas un effet) ; voix principale intacte"_u8);
             expect (ms.balanceReport.contains ("Doublage") && ! ms.balanceReport.containsChar (0xC3), "rapport orchestre : " + ms.balanceReport);
             expect (ms.mixLufs > -100.0, "sonie du mixage mesurée : "_u8 + juce::String (ms.mixLufs, 1) + " LUFS");

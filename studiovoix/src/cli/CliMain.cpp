@@ -392,13 +392,15 @@ struct ArtefactMetrics
     int jumps = 0;
     float maxJumpDb = 0.0f;
     int validFrames = 0;
+    double lagMs = 0.0;           // décalage temporel sortie - entrée (corrélation des enveloppes), > 0 = la sortie est en retard
     // Un saut de 4-5 dB à une frontière voyelle / sifflante vient de l'EQ (présence) : normal. Seuls les sauts
     // nombreux ou très grands comptent comme artefact.
-    bool bad() const { return holes > 0 || oscillationDb > 1.5f || jumps > 6 || maxJumpDb > 7.0f; }
+    bool bad() const { return holes > 0 || oscillationDb > 1.5f || jumps > 6 || maxJumpDb > 7.0f || std::abs (lagMs) > 15.0; }
     juce::String str() const
     {
         return juce::String (holes) + " trou(s)" + (holes > 0 ? " (pire -" + juce::String (worstHoleDb, 1) + " dB à "_u8 + juce::String (worstHoleSec, 2) + " s)" : juce::String())
-               + ", oscillation " + juce::String (oscillationDb, 2) + " dB, " + juce::String (jumps) + " saut(s)" + (jumps > 0 ? " (max " + juce::String (maxJumpDb, 1) + " dB)" : juce::String());
+               + ", oscillation " + juce::String (oscillationDb, 2) + " dB, " + juce::String (jumps) + " saut(s)" + (jumps > 0 ? " (max " + juce::String (maxJumpDb, 1) + " dB)" : juce::String())
+               + ", décalage "_u8 + juce::String (lagMs, 1) + " ms";
     }
 };
 
@@ -433,6 +435,7 @@ ArtefactMetrics measureArtefacts (const sv::Mono& in, const sv::Mono& out, doubl
         std::sort (w.begin(), w.end());
         return w[w.size() / 2];
     };
+    m.lagMs = sv::audio::envelopeLagMs (in, out, sr, 500);
     // Trous.
     int run = 0;
     float runDepth = 0.0f;

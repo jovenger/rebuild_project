@@ -536,4 +536,43 @@ bool writeMonoWavFloat (const juce::File& file, const Mono& data, double sampleR
     std::copy (data.begin(), data.end(), mono.getWritePointer (0));
     return writeFile (file, mono, sampleRate, FileFormat::Wav32Float, error);
 }
+
+double envelopeLagMs (const Mono& a, const Mono& b, double sr, int maxMs)
+{
+    const int n = static_cast<int> (std::min (a.size(), b.size()));
+    const int hop = std::max (1, static_cast<int> (sr * 0.001)), win = std::max (hop, static_cast<int> (sr * 0.005));
+    const int frames = n / hop;
+    if (frames < 2 * maxMs + 10)
+        return 0.0;
+    std::vector<float> ea (static_cast<size_t> (frames)), eb (static_cast<size_t> (frames));
+    double ma = 0.0, mb = 0.0;
+    for (int f = 0; f < frames; ++f)
+    {
+        const int s = f * hop, e = std::min (n, s + win);
+        ea[static_cast<size_t> (f)] = std::max (-60.0f, gainToDb (rms (a.data() + s, static_cast<size_t> (e - s))));
+        eb[static_cast<size_t> (f)] = std::max (-60.0f, gainToDb (rms (b.data() + s, static_cast<size_t> (e - s))));
+        ma += ea[static_cast<size_t> (f)];
+        mb += eb[static_cast<size_t> (f)];
+    }
+    ma /= frames;
+    mb /= frames;
+    double best = -1.0e300;
+    int bestLag = 0;
+    for (int lag = -maxMs; lag <= maxMs; ++lag)
+    {
+        double sum = 0.0;
+        int c = 0;
+        for (int f = std::max (0, -lag); f < frames && f + lag < frames; ++f)
+        {
+            sum += (ea[static_cast<size_t> (f)] - ma) * (eb[static_cast<size_t> (f + lag)] - mb);
+            ++c;
+        }
+        if (c > 0 && sum / c > best)
+        {
+            best = sum / c;
+            bestLag = lag;
+        }
+    }
+    return static_cast<double> (bestLag);
+}
 } // namespace sv::audio

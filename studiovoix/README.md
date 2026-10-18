@@ -96,7 +96,7 @@ analyse sur la somme mono, réparation **stéréo liée** (image inchangée) : d
 EQ corrective, résonances, compression liée, niveau −14 dB, limiteur −1 dBTP ; puis creux sous la voix (mix auto).
 
 **Orchestre** (équilibre automatique de toutes les pistes) : après chaque rendu, la sonie de chaque piste est mesurée
-et ramenée à sa place par rapport à la voix principale selon son rôle (doublage −6 LU, backs −7, harmonies −8,
+et ramenée à sa place par rapport à la voix principale selon son rôle (doublage −9 LU, backs −7, harmonies −9,
 ad-libs −9, ambiance −14, instrument enregistré −4), bornée à −8 / +6 dB. Une piste brute garde son son (aucun effet)
 mais son niveau est géré aussi, comme l'équilibre voix / instru : le niveau n'est pas un effet.
 Le panneau Voix IA affiche « Orchestre : gain auto ± x dB », la barre du haut la sonie du mixage (« Mix −14,0 LUFS »).
@@ -108,6 +108,10 @@ avec les horodatages. Si plus d'un quart des **notes chantées sont hors de la g
 l'autotune), l'autotune **suit la gamme de la voix** (celle qui contient le plus de notes chantées, affichée dans le
 panneau : « Gamme adaptée à la voix : Sol mineur ») ; si aucune gamme ne convient, correction note par note et alerte. Chaque piste traitée finit sous
 −1 dBTP (limiteur de sécurité, transparent tant que rien ne dépasse).
+
+**Pas de décalage** : après chaque rendu, le décalage temporel entre le son brut et le son traité est mesuré (corrélation
+des enveloppes) ; au-delà de 15 ms, alerte sur la piste. Les doublages générés sont des doublages serrés (6–16 ms de
+retard variable, −9 LU) : ils épaississent la voix sans s'entendre comme une seconde voix décalée.
 
 **Vumètres** : crête jouée par piste (barre dans l'en-tête, retombée douce) ; crête de sortie et sonie du mixage dans
 la barre du haut.

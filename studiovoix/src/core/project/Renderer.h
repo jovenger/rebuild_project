@@ -44,6 +44,7 @@ struct TrackRender
     juce::String compSummary;
     juce::String problemsReport;    // correction automatique : défauts constatés et corrections
     juce::StringArray pluginNotes;  // inserts VST3 appliqués (ou erreurs)
+    float processingLagMs = 0.0f;   // décalage temporel traité / brut (corrélation des enveloppes) ; doit rester ~0
     juce::String error;
     bool ok() const { return error.isEmpty(); }
 };
@@ -79,7 +80,7 @@ struct MixState
     }
 };
 
-/** Place visée d'un rôle par rapport à la voix principale (LU) : doublage -6, backs -7, harmonies -8, ad-libs -9,
+/** Place visée d'un rôle par rapport à la voix principale (LU) : doublage -9, backs -7, harmonies -9, ad-libs -9,
     ambiance -14, instrument enregistré -4. */
 float roleOffsetLu (style::Role role);
 

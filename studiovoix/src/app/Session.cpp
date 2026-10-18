@@ -1703,6 +1703,8 @@ juce::String Session::trackWarnings (int trackId) const
         w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
     for (const auto& su : r->report.leveler.surges)
         w.add ("monte en flèche "_u8 + su.describe() + (r->report.leveler.applied ? ", rabaissée"_u8 : ""));
+    if (std::abs (r->processingLagMs) > 15.0f)
+        w.add ("traitement décalé de "_u8 + juce::String (r->processingLagMs, 0) + " ms par rapport au son brut (à signaler)"_u8);
     if (t->isVoice() && r->report.chromaticUsed && r->report.outOfScaleFraction >= 0.25f)
         w.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors de la gamme "_u8 + proj.key.toFrench()
                + " et aucune gamme ne convient : correction note par note (vérifie la tonalité du projet)"_u8);
