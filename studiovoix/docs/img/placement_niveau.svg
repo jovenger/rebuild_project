@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3A4155"/>
+      <stop offset="0.5" stop-color="#2A3042"/>
+      <stop offset="1" stop-color="#1D2231"/>
+    </linearGradient>
+    <linearGradient id="meter" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1FA971"/>
+      <stop offset="0.82" stop-color="#1FA971"/>
+      <stop offset="0.88" stop-color="#F5C33B"/>
+      <stop offset="0.94" stop-color="#F08A24"/>
+      <stop offset="0.98" stop-color="#E5484D"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#6C4CF5"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="958" height="438" rx="18" fill="#F7F8FB" stroke="#E2E5EE" stroke-width="2"/>
+  <text x="40" y="58" font-size="24" font-weight="700" fill="#1F2430">Placement du micro et niveau d'entrée</text>
+  <text x="40" y="86" font-size="15" fill="#5B6275">Une voix propre se joue avant le logiciel : distance constante, anti-pop, gain bien réglé.</text>
+
+  <!-- Chanteur (profil) -->
+  <path d="M96 404 C 96 330, 140 300, 182 300 C 214 300, 236 318, 244 340 L 252 404 Z" fill="#C9CEDA"/>
+  <path d="M150 300 C 150 286, 156 276, 160 270 L 196 270 C 200 280, 204 292, 206 302 Z" fill="#E7C4A8"/>
+  <path d="M140 196 C 140 148, 176 126, 210 132 C 244 138, 262 166, 258 196 C 256 210, 266 220, 270 232 C 272 238, 266 240, 260 240 C 262 250, 258 256, 254 258 C 256 266, 250 272, 240 272 C 232 274, 224 276, 214 280 L 166 280 C 150 260, 140 230, 140 196 Z" fill="#F0CFB4"/>
+  <path d="M140 196 C 136 150, 172 122, 214 128 C 238 132, 256 146, 262 170 C 244 156, 218 152, 196 160 C 184 170, 182 188, 176 200 C 166 210, 150 214, 140 196 Z" fill="#3B2F2A"/>
+  <circle cx="232" cy="196" r="4" fill="#3B2F2A"/>
+  <path d="M252 250 q 6 2 10 -2" fill="none" stroke="#B9826A" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Anti-pop -->
+  <ellipse cx="350" cy="238" rx="12" ry="46" fill="#FFFFFF" fill-opacity="0.6" stroke="#2A3042" stroke-width="5"/>
+  <line x1="350" y1="284" x2="350" y2="404" stroke="#5B6275" stroke-width="4"/>
+  <!-- Micro (légèrement hors axe) -->
+  <g transform="rotate(-12 470 240)">
+    <rect x="430" y="214" width="120" height="52" rx="26" fill="url(#body)"/>
+    <rect x="432" y="218" width="54" height="44" rx="22" fill="#4A5166"/>
+    <g stroke="#2A3042" stroke-width="2"><line x1="446" y1="220" x2="446" y2="260"/><line x1="460" y1="218" x2="460" y2="262"/><line x1="474" y1="220" x2="474" y2="260"/></g>
+  </g>
+  <line x1="520" y1="250" x2="560" y2="404" stroke="#5B6275" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Distances -->
+  <line x1="268" y1="330" x2="336" y2="330" stroke="#6C4CF5" stroke-width="3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="302" y="352" font-size="15" font-weight="700" fill="#6C4CF5" text-anchor="middle">5 cm</text>
+  <line x1="268" y1="378" x2="432" y2="378" stroke="#6C4CF5" stroke-width="3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="450" y="384" font-size="15" font-weight="700" fill="#6C4CF5">15 à 20 cm</text>
+  <text x="470" y="170" font-size="13" fill="#5B6275" text-anchor="middle">légèrement de biais :</text>
+  <text x="470" y="188" font-size="13" fill="#5B6275" text-anchor="middle">moins de « p » et de « b »</text>
+
+  <!-- Niveau -->
+  <rect x="610" y="120" width="320" height="230" rx="14" fill="#FFFFFF" stroke="#E2E5EE" stroke-width="2"/>
+  <text x="630" y="152" font-size="17" font-weight="700" fill="#1F2430">Test du niveau du micro</text>
+  <text x="630" y="174" font-size="13" fill="#5B6275">chante ton passage le plus fort</text>
+  <rect x="630" y="196" width="280" height="26" rx="6" fill="url(#meter)"/>
+  <rect x="826" y="190" width="42" height="38" rx="6" fill="none" stroke="#1F2430" stroke-width="3"/>
+  <g font-size="12" fill="#5B6275" text-anchor="middle">
+    <text x="630" y="242">−40</text><text x="742" y="242">−24</text><text x="826" y="242">−12</text><text x="868" y="242">−6</text><text x="910" y="242">0</text>
+  </g>
+  <text x="770" y="272" font-size="14" font-weight="700" fill="#137A50" text-anchor="middle">crêtes entre −12 et −6 dBFS</text>
+  <text x="630" y="302" font-size="13" fill="#5B6275">Rouge = saturation : baisse le gain du micro.</text>
+  <text x="630" y="322" font-size="13" fill="#5B6275">Trop bas (−24 et moins) : monte le gain</text>
+  <text x="630" y="340" font-size="13" fill="#5B6275">ou rapproche-toi.</text>
+</svg>

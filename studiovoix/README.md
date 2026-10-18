@@ -6,7 +6,8 @@ ambiance sur des pistes séparées. Fonctionne entièrement en local ; l'IA (cl�
 
 ## Récupérer le programme (Windows)
 
-Guide du matériel conseillé (micro, casque, branchements, illustrations) : à venir, voir `A_FAIRE.md`.
+**Avant le premier enregistrement : [guide du matériel](docs/GUIDE_MATERIEL.md)** (micro, casque,
+branchements pour zéro retard, placement, réglages Windows, dépannage).
 
 1. GitHub → dépôt `jovenger/rebuild_project` → onglet **Actions** → workflow **StudioVoix**.
 2. Ouvrir la dernière exécution verte → section **Artifacts** → **StudioVoix-Windows** (zip).
