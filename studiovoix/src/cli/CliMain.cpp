@@ -80,7 +80,8 @@ void usage()
                  "  master <mix> [--target t] -o sortie.wav\n"
                  "  assistant <phrase>                     teste l'assistant texte\n"
                  "  presets                                effets pre-regles de chaque style (Markdown)\n"
-                 "styles : rap trap pop_urbaine rnb drill afro rock latino\n"
+                 "styles : rap trap pop_urbaine rnb drill afro rock latino rap_melodique boom_bap pop\n"
+                 "         variete dancehall zouk amapiano gospel electro acoustique\n"
                  "cibles : spotify youtube apple tiktok fort none\n";
 }
 

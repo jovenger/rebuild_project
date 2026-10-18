@@ -75,7 +75,8 @@ namespace
 
     const juce::String kSystemEngineer =
         "Tu es l'ingénieur du son intégré au logiciel StudioVoix (enregistrement de voix sur instru : rap, trap, pop urbaine, "_u8
-        "R&B, drill, afro, rock, latino). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "_u8
+        "R&B, drill, afro, rock, latino, rap mélodique, boom bap, pop, variété, dancehall, zouk / kompa, amapiano, gospel, "_u8
+        "électro / house, acoustique / folk). Le logiciel traite le son lui-même : tu choisis seulement des réglages. Les curseurs vont de 0 à 1, "_u8
         "0,5 = réglage de base du style. autotune : 0 = aucun, 0,5 = style, 1 = effet robot. presence : 0 = voix chaude/sombre, "_u8
         "1 = voix brillante et devant. space : quantité de réverb + délai (0 = sec). energy : compression + saturation. "_u8
         "level : volume de la piste (0,5 = normal, ±12 dB). reverbTrim / delayTrim : ajustement fin de la réverb ou du délai seuls "_u8
@@ -453,6 +454,16 @@ InstruBrief briefFromStyle (style::Style st)
         case style::Style::Drill:      b.bpmMin = 138; b.bpmMax = 146; b.energy = 0.85f; b.prompt = "UK drill instrumental, sliding 808s, syncopated hi-hats, dark piano"; break;
         case style::Style::Rock:       b.bpmMin = 110; b.bpmMax = 140; b.energy = 0.8f; b.prompt = "Energetic rock instrumental, driving live drums, distorted electric guitars, bass guitar"; break;
         case style::Style::Latino:     b.bpmMin = 88;  b.bpmMax = 100; b.energy = 0.7f; b.prompt = "Reggaeton instrumental, dembow rhythm, deep bass, latin percussion, catchy synth lead"; break;
+        case style::Style::RapMelodique: b.bpmMin = 95; b.bpmMax = 130; b.energy = 0.7f; b.prompt = "Melodic rap instrumental, emotional guitar or piano melody, 808 bass, modern trap drums"; break;
+        case style::Style::BoomBap:    b.bpmMin = 85;  b.bpmMax = 95;  b.energy = 0.55f; b.prompt = "Classic boom bap hip-hop instrumental, dusty drum break, jazzy sample chops, upright bass"; break;
+        case style::Style::Pop:        b.bpmMin = 100; b.bpmMax = 125; b.energy = 0.65f; b.minor = false; b.prompt = "Modern pop instrumental, bright synths, punchy drums, catchy chord progression"; break;
+        case style::Style::Variete:    b.bpmMin = 80;  b.bpmMax = 115; b.energy = 0.45f; b.minor = false; b.prompt = "French chanson instrumental, piano and acoustic guitar, warm strings, light drums"; break;
+        case style::Style::Dancehall:  b.bpmMin = 90;  b.bpmMax = 105; b.energy = 0.8f; b.prompt = "Dancehall shatta riddim instrumental, syncopated drums, heavy sub bass, snappy snare, Caribbean percussion"; break;
+        case style::Style::Zouk:       b.bpmMin = 95;  b.bpmMax = 125; b.energy = 0.55f; b.prompt = "Zouk kompa instrumental, smooth guitar licks, warm synth pads, steady kompa groove, sensual bass"; break;
+        case style::Style::Amapiano:   b.bpmMin = 110; b.bpmMax = 115; b.energy = 0.6f; b.prompt = "Amapiano instrumental, log drum bass, shakers, soulful piano chords, deep house groove"; break;
+        case style::Style::Gospel:     b.bpmMin = 65;  b.bpmMax = 95;  b.energy = 0.5f; b.minor = false; b.prompt = "Gospel soul instrumental, Hammond organ, piano chords, live drums, warm bass"; break;
+        case style::Style::Electro:    b.bpmMin = 120; b.bpmMax = 128; b.energy = 0.8f; b.prompt = "House dance instrumental, four-on-the-floor kick, sidechained synth chords, driving bassline"; break;
+        case style::Style::Acoustique: b.bpmMin = 70;  b.bpmMax = 110; b.energy = 0.35f; b.minor = false; b.prompt = "Acoustic folk instrumental, fingerpicked acoustic guitar, soft percussion, warm and intimate"; break;
         case style::Style::Afro:
         case style::Style::Count:      b.bpmMin = 100; b.bpmMax = 116; b.energy = 0.65f; b.prompt = "Afrobeats instrumental, log drums, percussive groove, bright guitar and synths"; break;
     }

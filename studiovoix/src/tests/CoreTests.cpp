@@ -615,8 +615,15 @@ public:
             dsp::AnalysisContext ctx;
             ctx.key = key;
             ctx.tempo.bpm = 100.0;
-            for (const auto st : { style::Style::Rock, style::Style::Latino })
+            expect (! style::makeParams (style::Style::BoomBap, style::Role::Lead, {}).pitch.enabled, "boom bap : pas d'autotune");
+            expect (style::makeParams (style::Style::Acoustique, style::Role::Lead, {}).pitch.amount
+                    < style::makeParams (style::Style::RapMelodique, style::Role::Lead, {}).pitch.amount,
+                    "acoustique : moins d'autotune que rap melodique");
+            expect (style::styleFromId ("rap_melodique") == style::Style::RapMelodique && style::styleFromId ("inconnu") == style::Style::Rap,
+                    "ids des nouveaux styles");
+            for (int i = 0; i < static_cast<int> (style::Style::Count); ++i)
             {
+                const auto st = static_cast<style::Style> (i);
                 const auto res = dsp::processVocal (voice, kSr, style::makeParams (st, style::Role::Lead, {}), ctx);
                 const auto* l = res.audio.getReadPointer (0);
                 expect (! audio::hasNonFinite (l, static_cast<size_t> (res.audio.getNumSamples())), "pas de NaN : " + style::styleId (st));

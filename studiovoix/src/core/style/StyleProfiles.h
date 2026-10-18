@@ -10,7 +10,14 @@
 // Ce sont des points de départ raisonnables, à affiner à l'oreille.
 namespace sv::style
 {
-enum class Style { Rap = 0, Trap, PopUrbaine, RnB, Drill, Afro, Rock, Latino, Count };
+// Ordre = ordre d'affichage. Les fichiers (projet, "Mon son", IA) stockent l'identifiant texte, jamais l'indice :
+// ajouter un style à la fin ne casse aucun projet existant.
+enum class Style
+{
+    Rap = 0, Trap, PopUrbaine, RnB, Drill, Afro, Rock, Latino,
+    RapMelodique, BoomBap, Pop, Variete, Dancehall, Zouk, Amapiano, Gospel, Electro, Acoustique,
+    Count
+};
 
 enum class Role
 {

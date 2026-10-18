@@ -19,6 +19,16 @@ namespace
         { "afro", "Afro" },
         { "rock", "Rock" },
         { "latino", "Latino / Reggaeton" },
+        { "rap_melodique", "Rap mélodique" },
+        { "boom_bap", "Boom bap / Old school" },
+        { "pop", "Pop" },
+        { "variete", "Variété / Chanson" },
+        { "dancehall", "Dancehall / Shatta" },
+        { "zouk", "Zouk / Kompa" },
+        { "amapiano", "Amapiano" },
+        { "gospel", "Gospel / Soul" },
+        { "electro", "Électro / House" },
+        { "acoustique", "Acoustique / Folk" },
     };
     static_assert (std::size (kStyles) == static_cast<size_t> (Style::Count), "un nom par style");
     constexpr int kLastStyle = static_cast<int> (Style::Count) - 1;
@@ -148,6 +158,138 @@ namespace
                 p.sat = { 4.0f, 0.25f, 0.1f };
                 p.reverb.send = 0.18f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
                 p.delay.send = 0.18f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::RapMelodique:
+                // Rap chanté (mélo) : autotune très présent mais pas robotique, voix devant, délai noire en fin de phrase.
+                p.pitch = { true, 0.95f, 8.0f, 0.1f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.5f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 4.0f, 0.0f };
+                p.comp = { -22.0f, 5.0f, 6.0f, 4.0f, 70.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 4.0f, 0.3f, 0.1f };
+                p.reverb.send = 0.18f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 25.0f;
+                p.delay.send = 0.18f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.3f; p.delay.pingPong = true; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::BoomBap:
+                // Rap old school : voix naturelle sans autotune, corps dans le bas-médium, compression qui laisse passer
+                // l'attaque, saturation chaude, pièce courte presque sèche.
+                p.pitch = { false, 0.0f, 100.0f, 1.0f };
+                p.clean.hpfHz = 80.0f;
+                p.eq = { 80.0f, 200.0f, 1.0f, 350.0f, -2.0f, 1.0f, 3000.0f, 3.5f, 0.9f, 12000.0f, 1.0f, 0.0f };
+                p.comp = { -18.0f, 4.0f, 6.0f, 10.0f, 100.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -24.0f, 2.0f, 8.0f, 20.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 4.0f, 0.35f, 0.25f };
+                p.reverb.send = 0.06f; p.reverb.roomSize = 0.3f; p.reverb.damping = 0.65f; p.reverb.preDelayMs = 15.0f;
+                p.delay.send = 0.08f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.15f; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Pop:
+                // Pop actuelle : justesse transparente, beaucoup d'air, de-esser plus haut, réverb et délai noire.
+                p.pitch = { true, 0.6f, 25.0f, 0.5f };
+                p.clean.hpfHz = 90.0f;
+                p.eq = { 90.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.8f, 12000.0f, 4.5f, 0.0f };
+                p.comp = { -20.0f, 4.0f, 6.0f, 6.0f, 90.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.sat = { 2.5f, 0.2f, 0.1f };
+                p.reverb.send = 0.22f; p.reverb.roomSize = 0.6f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 35.0f;
+                p.delay.send = 0.15f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.25f;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Variete:
+                // Variété / chanson : texte intelligible, voix naturelle et chaude, compression douce, réverb de salle.
+                p.pitch = { true, 0.3f, 50.0f, 0.8f };
+                p.clean.hpfHz = 80.0f;
+                p.eq = { 80.0f, 200.0f, 1.0f, 300.0f, -1.5f, 1.0f, 3000.0f, 2.0f, 0.8f, 12000.0f, 2.5f, 0.0f };
+                p.comp = { -20.0f, 3.0f, 8.0f, 12.0f, 140.0f, 0.0f, 1.0f, true };
+                p.comp2 = { -26.0f, 1.8f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 1.5f, 0.15f, 0.1f };
+                p.reverb.send = 0.25f; p.reverb.roomSize = 0.65f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 35.0f;
+                p.delay.send = 0.08f; p.delay.noteBeats = 1.0f; p.delay.feedback = 0.2f;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Dancehall:
+                // Dancehall / shatta : autotune marqué, voix très en avant et saturée, échos croche façon dub.
+                p.pitch = { true, 0.9f, 8.0f, 0.2f };
+                p.clean.hpfHz = 110.0f;
+                p.eq = { 110.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3000.0f, 4.0f, 1.0f, 12000.0f, 3.0f, 0.0f };
+                p.comp = { -22.0f, 6.0f, 4.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.65f, 10.0f, -8.0f };
+                p.sat = { 6.0f, 0.4f, 0.15f };
+                p.reverb.send = 0.12f; p.reverb.roomSize = 0.45f; p.reverb.damping = 0.55f; p.reverb.preDelayMs = 20.0f;
+                p.delay.send = 0.22f; p.delay.noteBeats = 0.5f; p.delay.feedback = 0.35f; p.delay.pingPong = true; p.delay.throwsOnly = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Zouk:
+                // Zouk / kompa : voix douce et brillante, autotune lissé, réverb ample, délai croche pointée.
+                p.pitch = { true, 0.75f, 20.0f, 0.4f };
+                p.clean.hpfHz = 90.0f;
+                p.eq = { 90.0f, 200.0f, 1.0f, 300.0f, -1.5f, 1.0f, 3000.0f, 2.0f, 0.8f, 12000.0f, 3.5f, 0.0f };
+                p.comp = { -22.0f, 3.5f, 8.0f, 10.0f, 120.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6200.0f, 0.75f, 10.0f, -8.0f };
+                p.sat = { 2.0f, 0.2f, 0.1f };
+                p.reverb.send = 0.28f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 35.0f;
+                p.delay.send = 0.15f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.3f;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Amapiano:
+                // Amapiano : voix posée dans l'espace (log drums très présents), réverb longue, délai croche pointée ping-pong.
+                p.pitch = { true, 0.6f, 20.0f, 0.4f };
+                p.clean.hpfHz = 100.0f;
+                p.eq = { 100.0f, 200.0f, 0.0f, 300.0f, -2.0f, 1.0f, 3500.0f, 2.5f, 0.9f, 12000.0f, 3.5f, 0.0f };
+                p.comp = { -20.0f, 4.0f, 6.0f, 8.0f, 110.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -26.0f, 2.0f, 8.0f, 25.0f, 200.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 2.5f, 0.2f, 0.1f };
+                p.reverb.send = 0.30f; p.reverb.roomSize = 0.75f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 40.0f;
+                p.delay.send = 0.22f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.4f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Gospel:
+                // Gospel / soul : grosse dynamique gardée (compression parallèle), justesse discrète, réverb de grande salle.
+                p.pitch = { true, 0.2f, 60.0f, 0.9f };
+                p.clean.hpfHz = 80.0f;
+                p.eq = { 80.0f, 200.0f, 1.5f, 350.0f, -1.5f, 1.0f, 3000.0f, 2.0f, 0.8f, 12000.0f, 3.0f, 0.0f };
+                p.comp = { -22.0f, 3.0f, 8.0f, 15.0f, 160.0f, 0.0f, 0.85f, true };
+                p.comp2 = { -28.0f, 2.0f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6000.0f, 0.7f, 10.0f, -8.0f };
+                p.sat = { 2.0f, 0.2f, 0.1f };
+                p.reverb.send = 0.32f; p.reverb.roomSize = 0.8f; p.reverb.damping = 0.45f; p.reverb.preDelayMs = 45.0f;
+                p.delay.send = 0.08f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.2f;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Electro:
+                // Électro / house : voix fine (coupe-bas haut) et très brillante pour passer au-dessus du kick,
+                // compression rapide, grands espaces.
+                p.pitch = { true, 0.8f, 12.0f, 0.2f };
+                p.clean.hpfHz = 120.0f;
+                p.eq = { 120.0f, 200.0f, 0.0f, 300.0f, -3.0f, 1.0f, 3500.0f, 3.0f, 0.9f, 12000.0f, 5.0f, 0.0f };
+                p.comp = { -22.0f, 5.0f, 6.0f, 3.0f, 60.0f, 0.0f, 1.0f, false };
+                p.comp2 = { -28.0f, 2.0f, 8.0f, 20.0f, 150.0f, 0.0f, 1.0f, true };
+                p.deEss = { 7000.0f, 0.75f, 10.0f, -8.0f };
+                p.sat = { 3.0f, 0.25f, 0.1f };
+                p.reverb.send = 0.25f; p.reverb.roomSize = 0.7f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 40.0f;
+                p.delay.send = 0.22f; p.delay.noteBeats = 0.75f; p.delay.feedback = 0.4f; p.delay.pingPong = true;
+                p.outputDb = -14.0f;
+                break;
+            case Style::Acoustique:
+                // Acoustique / folk : le plus naturel possible, compression légère, pièce moyenne, slapback discret.
+                p.pitch = { true, 0.15f, 80.0f, 0.9f };
+                p.clean.hpfHz = 75.0f;
+                p.eq = { 75.0f, 200.0f, 1.0f, 300.0f, -2.0f, 1.0f, 3000.0f, 1.5f, 0.8f, 12000.0f, 3.0f, 0.0f };
+                p.comp = { -20.0f, 2.5f, 10.0f, 15.0f, 150.0f, 0.0f, 1.0f, true };
+                p.comp2 = { -26.0f, 1.6f, 10.0f, 30.0f, 250.0f, 0.0f, 1.0f, true };
+                p.deEss = { 6500.0f, 0.6f, 10.0f, -8.0f };
+                p.sat = { 1.0f, 0.1f, 0.1f };
+                p.reverb.send = 0.20f; p.reverb.roomSize = 0.55f; p.reverb.damping = 0.5f; p.reverb.preDelayMs = 30.0f;
+                p.delay.send = 0.06f; p.delay.noteBeats = 0.25f; p.delay.feedback = 0.1f;
                 p.outputDb = -14.0f;
                 break;
         }
@@ -370,6 +512,16 @@ GenerationDefaults generationDefaults (Style s)
         case Style::Drill:      g = { 1, 0, true, true, false, 0.0f, 1, 0.5f }; break;
         case Style::Rock:       g = { 2, 1, true, false, false, 0.0f, 2, 0.2f }; break;
         case Style::Latino:     g = { 1, 2, true, true, true, 0.4f, 2, 0.55f }; break;
+        case Style::RapMelodique: g = { 2, 1, true, true, true, 0.4f, 2, 0.5f }; break;
+        case Style::BoomBap:    g = { 1, 0, true, true, false, 0.0f, 2, 0.35f }; break;
+        case Style::Pop:        g = { 2, 2, true, false, true, 0.5f, 2, 0.25f }; break;
+        case Style::Variete:    g = { 1, 1, false, false, true, 0.4f, 1, 0.1f }; break;
+        case Style::Dancehall:  g = { 1, 1, true, true, false, 0.0f, 2, 0.65f }; break;
+        case Style::Zouk:       g = { 1, 2, false, true, true, 0.6f, 2, 0.3f }; break;
+        case Style::Amapiano:   g = { 1, 2, false, true, true, 0.7f, 2, 0.4f }; break;
+        case Style::Gospel:     g = { 1, 2, false, true, true, 0.6f, 1, 0.3f }; break;
+        case Style::Electro:    g = { 2, 1, true, false, true, 0.6f, 2, 0.2f }; break;
+        case Style::Acoustique: g = { 1, 1, false, false, false, 0.0f, 1, 0.1f }; break;
         case Style::Afro:
         case Style::Count:      g = { 1, 2, false, true, true, 0.6f, 2, 0.5f }; break;
     }
@@ -387,6 +539,16 @@ MasterTone masterTone (Style s)
         case Style::Drill:      return { 1.5f, 0.5f, 0.5f };
         case Style::Rock:       return { 0.5f, 1.0f, 0.0f };
         case Style::Latino:     return { 1.5f, 1.0f, 1.0f };
+        case Style::RapMelodique: return { 1.5f, 1.0f, 1.0f };
+        case Style::BoomBap:    return { 1.0f, 0.0f, 2.0f };
+        case Style::Pop:        return { 0.5f, 1.5f, 1.5f };
+        case Style::Variete:    return { 0.5f, 1.0f, 2.0f };
+        case Style::Dancehall:  return { 1.5f, 1.0f, 1.0f };
+        case Style::Zouk:       return { 1.0f, 1.0f, 1.0f };
+        case Style::Amapiano:   return { 1.5f, 0.5f, 0.5f };
+        case Style::Gospel:     return { 1.0f, 1.0f, 1.0f };
+        case Style::Electro:    return { 1.5f, 1.5f, 0.0f };
+        case Style::Acoustique: return { 0.0f, 1.0f, 1.5f };
         case Style::Afro:
         case Style::Count:      return { 1.0f, 1.0f, 1.0f };
     }
