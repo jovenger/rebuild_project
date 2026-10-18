@@ -1,0 +1,64 @@
+name: StudioVoix
+
+on:
+  push:
+    branches: [ main, 'claude/**' ]
+    paths:
+      - 'studiovoix/**'
+      - '.github/workflows/studiovoix.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows (MSVC)
+            os: windows-latest
+            generator: ''
+          - name: Linux (GCC)
+            os: ubuntu-24.04
+            generator: '-G Ninja'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dépendances Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build libasound2-dev libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxcomposite-dev libxext-dev libxi-dev libfreetype-dev libfontconfig1-dev xvfb
+
+      - name: Configuration
+        run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }}
+        env:
+          SV_BUILD_APP: OFF
+
+      - name: Compilation
+        run: cmake --build build --config Release --parallel
+
+      - name: Tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Journal des tests
+        if: always()
+        shell: bash
+        run: |
+          for f in "$APPDATA/StudioVoix/logs/cli.log" "$HOME/.config/StudioVoix/logs/cli.log"; do
+            if [ -f "$f" ]; then tail -n 200 "$f"; fi
+          done
+
+      - name: Artefact Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudioVoix-Windows
+          path: |
+            build/StudioVoix_artefacts/Release/StudioVoix.exe
+            build/studiovoix_cli_artefacts/Release/studiovoix_cli.exe
+          if-no-files-found: warn
