@@ -3592,6 +3592,27 @@ essai("embauche (5 a) : un lit par homme, un interrupteur (éteint : engagé san
   egal(id and hommes.fiche(id).contrat.semaines, hommes.reglages.semaines_max, "le plus long contrat")
 end)
 
+essai("nuit (vu en jeu le 19/10) : sur un camp sans Directeur, aucun homme ne dort dans le lit réservé au Directeur", function()
+  preparer(5000, 100, 10)
+  egal(Scriptorium.directeur.est_installe and Scriptorium.directeur.est_installe() or false, false, "pas de Directeur")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local ids = {}
+    for i = 1, 8 do
+      ids[i] = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    end
+    local au_lit = 0
+    for _, id in ipairs(ids) do
+      local a = hommes.activite_de(id, 23)
+      verifier(a.lieu ~= "lit_directeur", "« " .. hommes.fiche(id).nom .. " » pas dans le lit du Directeur")
+      if a.lieu and camp.sorte_de(a.lieu) == "lit" then au_lit = au_lit + 1 end
+    end
+    verifier(au_lit > 0, "des hommes au lit (" .. au_lit .. ")")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 -- ---------------------------------------------------------------- fiche 19, grappe 3 : les décisions des hommes remplaçables
 
 essai("décisions des hommes (fiche 19) : le choix de l'équipement (A5, A22, A23) ; munitions de Scriptorium ; faux, impossible ; boiteux, celui du socle", function()

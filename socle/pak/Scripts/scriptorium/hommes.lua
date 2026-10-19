@@ -2009,9 +2009,10 @@ function hommes.rang_pour_une_place(id, sorte)
   return nil
 end
 
--- La place de l'homme (décision remplaçable camp.place_pour), parmi les places libres de la sorte.
+-- La place de l'homme (décision remplaçable camp.place_pour), parmi les places libres de la sorte, sans celles réservées
+-- à un autre (vu en jeu le 19/10 : sur un camp sans Directeur, un homme dormait dans le lit du Directeur).
 local function place_pour(id, sorte)
-  local libres = Scriptorium.avis(camp(), "places_libres", sorte)
+  local libres = Scriptorium.avis(camp(), "places_libres", sorte, "hommes")
   if #libres == 0 then
     return nil
   end
