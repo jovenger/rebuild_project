@@ -89,6 +89,16 @@
     perception. Il se peut donc qu'ils ne réagissent déjà à aucun crime. **Seule la mesure en jeu le dira.**
 - **Le duel et le pugilat** : notre ordre d'attaque passe déjà `relationOverride="true"` à la fonction du jeu
   (`callInterrupt_attack`, V54) : il rend l'attaque possible sans changer la faction. Ces règles viendront plus tard.
+  - **La fin de l'attaque** (vu en jeu le 19/10, séance avec des hommes : le duel fini chez Scriptorium, Henry restait en
+    combat contre l'homme, la vie du camp, priorité 100, ne remplaçait jamais l'attaque, priorité 160, et la nuit de
+    Scriptorium ne se mettait pas en place) : l'interruption d'attaque du jeu ne finit qu'à la chute de la cible. Le jeu
+    lève une réaction par `callInterrupt_stopReaction` (priorité 199, ignorePriority ; données
+    `switch:interruptData:stopReaction` : `reactorCount`, `forgetCrimeInfo` ; modèles lus dans Scripts.pak :
+    `AI/crime/processInterruptMessages.xml`, `AI/crime/stopCrime.xml`, `AI/npc/basic/switch/handleOnSoulRevived.xml`) ;
+    `interrupt_stopReaction` retire le lien `crime_reactor` du joueur et attend au plus 15 s. Chez nous : l'ordre 9 de
+    notre arbre l'appelle (un réacteur, rien d'oublié, comme `handleOnSoulRevived`), `liaison.cesser_l_attaque` le
+    pose, et `hommes` le donne dès qu'un homme quitte « affronter » pour une autre activité (essai : la levée à chaque
+    fin, jamais pendant). Non vérifié en jeu.
 - **Lire la faction en jeu** : `AI.GetFactionOf(id)` rend son nom (`Scripts/Entities/Triggers/AreaTrigger.lua`) ;
   `soul:GetFactionID()` rend son numéro (`Scripts/Utils/EntityUtils.lua`).
 - **Ce que la conversation Scriptorium a transmis du mod d'Alex** (16/10, principe seulement) : sa faction de compagnie

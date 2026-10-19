@@ -841,7 +841,9 @@ essai("hommes (la bascule, 18/10) : affronter un personnage précis, à l'arme o
   verifier(not hommes.tenir(a, "travail", { activite = "affronter", fin = "liberation" }), "sans cible : refusé")
   verifier(not hommes.tenir(a, "travail", { activite = "affronter", cible = pb, jusqu_a = "demain", fin = "liberation" }), "fin boiteuse : refusée")
   FauxJeu.attaques = {}
+  FauxJeu.cessations = {}
   verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = pb, arme = false, fin = "liberation" }), "pugilat tenu")
+  egal(#FauxJeu.cessations, 0, "rien à lever au début")
   egal(#FauxJeu.attaques, 1, "l'attaque imposée")
   egal(FauxJeu.attaques[1].cible, pb, "contre la cible")
   egal(FauxJeu.attaques[1].attaquant, pa, "par l'homme")
@@ -851,15 +853,19 @@ essai("hommes (la bascule, 18/10) : affronter un personnage précis, à l'arme o
   FauxJeu.inconscients = { [pb] = true }
   hommes.battre()
   verifier(hommes.activite_de(a, 10).activite ~= "affronter", "la tenue est lâchée")
+  egal(#FauxJeu.cessations, 1, "vu en jeu le 19/10 : l'attaque est levée à la fin")
+  egal(FauxJeu.cessations[1], pa, "chez l'attaquant")
   FauxJeu.inconscients = nil
   -- Jusqu'à la mort : assommée ne suffit pas.
   verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = pb, jusqu_a = "mort", fin = "liberation" }), "duel à mort tenu")
   FauxJeu.inconscients = { [pb] = true }
   hommes.battre()
   egal(hommes.activite_de(a, 10).activite, "affronter", "assommée seulement : il continue")
+  egal(#FauxJeu.cessations, 1, "tant qu'il affronte, rien n'est levé")
   FauxJeu.personnages_morts[pb] = true
   hommes.battre()
   verifier(hommes.activite_de(a, 10).activite ~= "affronter", "morte : fini")
+  egal(#FauxJeu.cessations, 2, "levée de nouveau à cette fin")
   FauxJeu.inconscients = nil
   -- Henry comme cible.
   FauxJeu.attaques = {}
@@ -867,7 +873,8 @@ essai("hommes (la bascule, 18/10) : affronter un personnage précis, à l'arme o
   egal(FauxJeu.attaques[#FauxJeu.attaques].cible, "henry", "la cible est Henry")
   verifier(FauxJeu.attaques[#FauxJeu.attaques].options.arme, "à l'arme par défaut")
   hommes.lacher(a, "travail")
-  FauxJeu.attaques = nil
+  egal(#FauxJeu.cessations, 3, "la tenue lâchée (le duel contre Henry fini) : l'attaque est levée")
+  FauxJeu.attaques, FauxJeu.cessations = nil, nil
 end)
 
 essai("hommes : palier plein, l'âme du palier le plus proche ; jamais de refus faute d'âme", function()

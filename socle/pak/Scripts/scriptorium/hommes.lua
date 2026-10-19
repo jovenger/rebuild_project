@@ -3251,6 +3251,12 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
   if f.derniere_activite ~= resume then
+    -- Vu en jeu le 19/10 : l'attaque d'un affrontement ne finit qu'à la chute de la cible ; à la fin de la tenue (ou
+    -- pour toute autre activité), elle est levée avant le nouvel ordre, sinon Henry reste en combat.
+    if a.activite ~= "affronter" and f.derniere_activite and string.find(f.derniere_activite, "^affronter@")
+        and jeu().cesser_l_attaque then
+      jeu().journal("Hommes : « " .. f.nom .. " » cesse d'affronter : " .. tostring(jeu().cesser_l_attaque(f.personnage)))
+    end
     local position, objet, sorte = but_de(a)
     -- La ronde (fiche 15, V73 d 2) : à la pose de la tenue, le point de départ (Scriptorium espace ses gardes, réponse
     -- 2 a de JoVenGer) ; sinon, et ensuite (rechargement, secours, reprise après une règle plus forte), le point le plus

@@ -452,6 +452,12 @@ function faux.ordonner_l_attaque(cible, attaquant, options)
   table.insert(faux.attaques, { cible = cible, attaquant = attaquant, options = options })
   return "attaque : essai"
 end
+-- La fin d'un affrontement : les attaques levées (attaquant).
+function faux.cesser_l_attaque(attaquant)
+  faux.cessations = faux.cessations or {}
+  table.insert(faux.cessations, attaquant)
+  return "cesser l'attaque : essai"
+end
 function faux.ennemis_vivants(liste)
   local n = 0
   for _, identifiant in ipairs(liste) do

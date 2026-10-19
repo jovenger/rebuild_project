@@ -2801,6 +2801,13 @@ function liaison.ordonner_l_attaque(cible, attaquant, options)
     .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre 8 " .. tostring(ordre_ok)
 end
 
+-- La fin d'un affrontement (vu en jeu le 19/10 : le duel fini, l'attaque du jeu restait posée, Henry restait en combat
+-- et la nuit de Scriptorium ne se mettait pas en place). L'ordre 9 : l'arbre lève l'attaque comme le jeu lève une
+-- réaction (callInterrupt_stopReaction, AI/npc/basic/switch/handleOnSoulRevived.xml). Rend une ligne.
+function liaison.cesser_l_attaque(attaquant)
+  return "cesser l'attaque : " .. poser_l_ordre(entite_nommee(attaquant), 9)
+end
+
 -- Le garde du jeu (V49) : une âme de garde de Kuttenberg faite pour être appelée par le jeu (extraGuards, cerveau
 -- npc_basic), née par script à 4 m d'Henry, sur sa gauche, et éveillée. Vient-il défendre Henry contre le brigand du jeu ?
 liaison.ame_du_garde_du_jeu = "0e1aba06-82de-4270-b0ec-46a8b4744abc"   -- extraGuards_kutnaHora_soldiers_guards_7

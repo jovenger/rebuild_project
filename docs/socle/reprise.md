@@ -541,8 +541,8 @@ aucune sonde dans l'arbre.
     au journal du pair), le duel (départ, cercle à 57 m, fin par fuite) ;
   - **défauts chez nous, à corriger** : (1) « affronter » ne défait pas sa cible à la fin
     (liaison.ordonner_l_attaque : arme tirée, scriptorium_essai_cible, ordre 8, callInterrupt_attack ; aucun inverse) :
-    Henry reste en combat, la nuit de Scriptorium (gardes, ronde) ne se met pas en place ; chercher dans les arbres du
-    jeu l'appel qui fait cesser le combat, puis essai au banc ; (2) le secours qui pose un homme (SetWorldPos) pendant
+    Henry reste en combat, la nuit de Scriptorium (gardes, ronde) ne se met pas en place ; CORRIGÉ au banc (ordre 9 :
+    callInterrupt_stopReaction, comme le jeu ; liaison.cesser_l_attaque ; fiche 14), non vérifié en jeu ; (2) le secours qui pose un homme (SetWorldPos) pendant
     une marche menée le laisse figé en posture en T (Albrecht ; un nouveau geste ne le répare pas) ; (3)
     changer_de_palier rhabille mais ne refait pas les armes (sword_shield_3_01 au palier 1) ; (4) le lit du Directeur
     donné à un homme sur un camp sans Directeur : à voir ;

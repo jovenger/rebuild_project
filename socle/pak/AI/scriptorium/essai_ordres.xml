@@ -21,6 +21,7 @@
       <Variable form="single" isPersistent="0" name="etait_en_combat" type="_bool" values="" />
       <Variable form="single" isPersistent="0" name="demande_de_parole" type="dialogModule:onDialogRequest" values="" />
       <Variable form="single" isPersistent="0" name="demande_de_causerie" type="dialog:chatRequest" values="" />
+      <Variable form="single" isPersistent="0" name="arret_du_combat" type="switch:interruptData:stopReaction" values="" />
     </Variables>
     <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
       <Behavior canSkip="1">
@@ -68,6 +69,20 @@
                   <Sequence>
                     <Function_callInterrupt_attack target="$scriptorium_essai_cible" questBehavior="true" relationOverride="true" ignorePriority="true" priority="160" initiator="$enum:switch_interruptInitiator.switch" stimulusKind="$enum:crime_stimulusKind.enemy" previousReaction="$enum:crime_reactionKind.unknown" criminalFreshness="$enum:crime_criminalFreshness.unknown" defenceMode="false" escalatedFromFailedSurrender="false" freshlyAttributedCrime="false" information="$renseignement" assaultData="" nodeLabel="73110801" />
                     <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1" />
+                  </Sequence>
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
+            <!-- Vu en jeu le 19/10 : l'attaque (ordre 8, priorite 160) ne finit qu'a la chute de la cible ; un duel fini
+                 laissait Henry en combat, et la vie du camp (priorite 100) ne la remplacait jamais. L'ordre 9 la leve
+                 comme le jeu leve une reaction (switch/handleOnSoulRevived : un seul reacteur, rien d'oublie). -->
+            <IfCondition condition="$scriptorium_essai_ordre == 9" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Sequence>
+                    <Expression expressions="$arret_du_combat.reactorCount = 1&#10;$arret_du_combat.forgetCrimeInfo = false" />
+                    <Function_callInterrupt_stopReaction ignorePriority="true" stopReactionData="$arret_du_combat" nodeLabel="73110806" />
                   </Sequence>
                 </SuppressFailure>
                 <Expression expressions="$scriptorium_essai_ordre = 0" />
