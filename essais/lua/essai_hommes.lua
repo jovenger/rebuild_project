@@ -855,6 +855,11 @@ essai("hommes (la bascule, 18/10) : affronter un personnage précis, à l'arme o
   verifier(hommes.activite_de(a, 10).activite ~= "affronter", "la tenue est lâchée")
   egal(#FauxJeu.cessations, 1, "vu en jeu le 19/10 : l'attaque est levée à la fin")
   egal(FauxJeu.cessations[1], pa, "chez l'attaquant")
+  local journal_a = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "à rhabiller (fin d'affrontement)", 1, true) then journal_a = journal_a + 1 end
+  end
+  verifier(journal_a >= 1, "vu sur une copie le 19/10 : remis à rhabiller à la fin de l'affrontement")
   FauxJeu.inconscients = nil
   -- Jusqu'à la mort : assommée ne suffit pas.
   verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = pb, jusqu_a = "mort", fin = "liberation" }), "duel à mort tenu")

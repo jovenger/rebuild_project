@@ -3287,6 +3287,11 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     if a.activite ~= "affronter" and f.derniere_activite and string.find(f.derniere_activite, "^affronter@")
         and jeu().cesser_l_attaque then
       jeu().journal("Hommes : « " .. f.nom .. " » cesse d'affronter : " .. tostring(jeu().cesser_l_attaque(f.personnage)))
+      -- Vu sur une copie de la partie de JoVenGer le 19/10 : levée ainsi, l'attaque ne compte plus de « fin de combat »
+      -- au cerveau, et l'homme, déshabillé par le combat, n'était plus remis à rhabiller (torse nu).
+      if marquer_a_rhabiller(f) then
+        jeu().journal("Hommes : « " .. f.nom .. " » à rhabiller (fin d'affrontement)")
+      end
     end
     local position, objet, sorte = but_de(a)
     -- La ronde (fiche 15, V73 d 2) : à la pose de la tenue, le point de départ (Scriptorium espace ses gardes, réponse

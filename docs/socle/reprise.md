@@ -599,6 +599,12 @@ aucune sonde dans l'arbre.
     séance « gardée » ; retour arrière : Scriptorium_securite61019_233035_871440_seance_du_socle. Vérifié : Partie 1
     identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse. Reste à voir en jeu :
     le colonel habillé après un chargement, et son geste à la marmite (séance de sonde proposée par le pair).
+- **Séance de sonde du matin (19/10 vers 23 h 40, accord direct de JoVenGer, copie, jamais sauvée ; la garde du pair
+  refusée par son système, la mienne posée : elle a vu « playline2 » au chargement)** : le colonel « équipé » dès les
+  premiers battements (au journal) ; à l'image, Matěj torse nu après un affrontement (corrigé au banc : « à rhabiller
+  (fin d'affrontement) », non installé) ; deux hommes encore collés au mur de la cabane ; chez le pair : la tâche
+  « hors cabane » de son moteur du camp (pose et retire un geste huit fois en sept secondes), cause probable de
+  l'hésitation du matin et des hommes collés à la cabane.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

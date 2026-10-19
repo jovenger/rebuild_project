@@ -715,3 +715,8 @@
 - La posture en T du colonel : pas un secours (aucune téléportation au journal) ; il tenait le geste
   « woman_cookingCampfire_loop » (à la marmite, choisi par Scriptorium). Non expliquée ; à revoir une fois l'homme
   habillé. Non vérifié en jeu.
+- Vu sur une seconde copie (19/10, vers 23 h 40) : la file tourne, le colonel est « équipé » dès les premiers battements
+  (au journal ; pas vu à l'image, il marchait sa ronde). Mais Matěj de Talmberk, après un affrontement avec Vít Hrom
+  (lancé par Scriptorium), était torse nu : la levée de l'attaque par l'ordre 9 (fiche 14) ne compte plus de « fin de
+  combat » au cerveau, et l'homme n'était plus marqué « à rhabiller ». Désormais, à la fin d'un affrontement, l'homme est
+  marqué « à rhabiller (fin d'affrontement) ». Essai (vérifié qu'il échoue sans). Non vérifié en jeu.
