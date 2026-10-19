@@ -506,8 +506,16 @@ aucune sonde dans l'arbre.
   Décision de JoVenGer (19/10, transmise par le pair) : la tenue suit TOUJOURS le grade (changer_de_palier à chaque
   promotion). Les arbalétriers naissent en rôle « arbaletrier ». Les hommes libres sont branchés : forge, armurier, bains,
   fouille, portage et chantiers prendront nos hommes (plus d'ordres « scriptorium »).
-- À voir à la prochaine séance regroupée (date proposée par le pair à JoVenGer) : la pièce mise au sac (tête nue du
-  colonel), le remplacement à la forge, la tenue du colonel, les hommes libres au travail, et le soldat nu disparu.
+- Séance regroupée du 19/10 (accord direct de JoVenGer, playline3, jamais sauvée ; remis par le pair, vérifié : liste des
+  mods d'origine, Partie 1 identique, « Continuer » sur playline1, veilleur en marche) :
+  - vu à l'image : le colonel en tenue de capitaine, TÊTE NUE au camp (bassinet rangé au sac) ; les hommes en attente
+    d'équipement entièrement vêtus de leur tenue de naissance (le soldat nu du 18/10 ne venait donc pas de l'attente) ;
+  - au journal : deux arbalétriers engagés par Scriptorium, équipés en assemblages d'arbalétrier (arbalète au dos non
+    vue à l'image) ; les 4 femmes des bains menées (« seller » : leur repos voulu) ; aucune erreur, aucun refus, aucun
+    homme à rhabiller ;
+  - la file d'habillage (un homme à la fois, ~30-40 s chacun) : gardée, accord du pair.
+- Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
+  libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
   captures tombaient sur le menu des choix, où le jeu filme Henry. Les essais ci-dessus étaient sans objet.
 - Protocole de fenêtre : « fenêtre ouverte » au pair à chaque fin de séance, « fenêtre rendue » avant de relancer.
