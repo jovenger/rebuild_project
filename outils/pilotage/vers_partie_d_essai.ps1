@@ -9,7 +9,9 @@
 # bien sélectionné), puis confirmer_sauvegarde.ps1 -Attendu "<ligne>/<sauvegarde>".
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
 # -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.
-param([switch]$Charger, [switch]$SansDevmode, [ValidateSet("playline2", "playline3", "playline9")][string]$Ligne = "playline2")
+# -SansInstallation (après la bascule, 19/10) : le jeu est lancé avec le socle déjà installé (vérifier ce que joue la
+# partie de JoVenGer), sans installer.py.
+param([switch]$Charger, [switch]$SansDevmode, [switch]$SansInstallation, [ValidateSet("playline2", "playline3", "playline9")][string]$Ligne = "playline2")
 $racine = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
 $jeu = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 $journal = Join-Path $jeu "kcd.log"
@@ -21,7 +23,7 @@ if (Get-Process -Name KingdomCome -ErrorAction SilentlyContinue) { "le jeu est l
 $derniere = Sauvegarde-De-Continuer
 if (-not $Charger -and $derniere.Ligne -ne $Ligne) { "« Continuer » reprendrait " + $derniere.Ligne + "\" + $derniere.Nom + " : pas la partie d'essai demandée ; arrêt (prendre -Charger)"; return }
 Set-Location $racine
-py -3.13 noyau\installer.py --jeu $jeu | Select-Object -Last 1
+if ($SansInstallation) { "installation sautée : le socle déjà installé est joué" } else { py -3.13 noyau\installer.py --jeu $jeu | Select-Object -Last 1 }
 $t0 = Get-Date
 $arguments = @("-applaunch", "1771300"); if (-not $SansDevmode) { $arguments += "-devmode" }
 Start-Process -FilePath "C:\Program Files (x86)\Steam\steam.exe" -ArgumentList $arguments

@@ -562,6 +562,19 @@ aucune sonde dans l'arbre.
   - fin de séance : JoVenGer a choisi (question du pair) de GARDER ce socle pour tous les jours : sa version est
     désormais 29ad4f6 (pak du 19/10, 20:09) ; retour arrière : Scriptorium_securite61019_193225_498548_seance_du_socle.
     Vérifié : Partie 1 identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse.
+- **Vérification complète de SA sauvegarde (19/10 au soir, accord direct de JoVenGer, copie de playline1utosave1912 dans
+  playline2, jamais sauvée, rangée jeu ouvert ; rien installé : vers_partie_d_essai.ps1 -SansInstallation)** :
+  - au journal : tous les morceaux prêts, réglages sans refus, camp redressé (0 manquant), Directeur à son lit, aucune
+    erreur ; chez le pair : 16 hommes, colonel Havel le Borgne, caisse 606,78, garde de jour à 6 de quart, ronde de jour,
+    Directeur, marque, caisse d'Henry, camp adopté, dialogues justes ;
+  - à l'image (9 h) : cabane, tente du Directeur, tour de guet, forge, râteliers ; « Le Directeur » au-dessus de lui ;
+    l'écu bleu du camp SUR LA CARTE, à part d'Henry une fois éloigné (la correction de la répétition 5 tient) ;
+  - **MANQUE CHEZ NOUS, à faire** : la nuit, aucun homme n'a de lit (10 « sommeil (nil) : sans but » ; Directeur à son
+    lit). Sur un camp adopté, camp.places_libres rend une liste vide (voulu), et camp.place_pour n'accepte qu'un nom
+    du plan, but_de() ne vise que les objets du plan : les 11 lits hauts et les 4 tentes achetés par JoVenGer à
+    l'Aménagement de Scriptorium ne servent à personne. À faire : une place de Scriptorium donnée par l'objet du jeu
+    (nom d'entité, classe Bed, sorte, tente), la liste venant du pair ;
+  - à surveiller (pair) : des hommes serrés contre le mur de la cabane (un point de métier ou de passage trop près).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
