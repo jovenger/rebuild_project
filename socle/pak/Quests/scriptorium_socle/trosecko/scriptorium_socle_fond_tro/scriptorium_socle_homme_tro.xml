@@ -915,7 +915,7 @@
                               <Sequence Name="scriptorium_socle_homme_tro_code_102" DesignName="code 38" EntryCondition="gvar('scriptorium_dialogue_code_1') == 38" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_HOMME">
-                                    <Text StringName="ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_p1_38" Text="À vos ordres ! Tout le monde au rassemblement, en armes !" />
+                                    <Text StringName="ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_p1_38" Text="À vos ordres ! Tout le monde au feu, pour l'appel !" />
                                     <Commands>
                                       <CameraCommand />
                                     </Commands>

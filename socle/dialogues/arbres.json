@@ -87,7 +87,7 @@
             {"place": 1, "code": 43, "texte": "C'est justement ce que je fais, chef."}], "fin": "menu"},
           {"nom": "rassemble_les_hommes", "condition": "colonel", "invite": "Rassemble les hommes.",
            "henry": "Rassemble les hommes.", "repliques": [
-            {"place": 1, "code": 38, "texte": "À vos ordres ! Tout le monde au rassemblement, en armes !"},
+            {"place": 1, "code": 38, "texte": "À vos ordres ! Tout le monde au feu, pour l'appel !"},
             {"place": 1, "code": 39, "texte": "Ils sont déjà rassemblés, chef."},
             {"place": 1, "code": 40, "texte": "Je suis déjà en tournée, chef. Je la termine d'abord ?"},
             {"place": 1, "code": 43, "texte": "C'est justement ce que je fais, chef."}], "fin": "menu"},
