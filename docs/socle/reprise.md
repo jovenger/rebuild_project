@@ -619,6 +619,12 @@ aucune sonde dans l'arbre.
   personnel mené n'était jamais secouru (b9564e9) ; chez le pair, les places du personnel et des hommes rentrés d'un
   métier dans la cabane, la garde composée par l'énergie, la forge de Kunrát. À installer : socle b9564e9 (avec 8c5b6ea,
   87b9c14, d50c70a), Scriptorium du pair 63ee0241, sur l'accord de JoVenGer.
+  - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 20/10, 1 h 25) : socle b9564e9, Scriptorium 63ee0241 ;
+    retour arrière : Scriptorium_securite61020_012413_521706_seance_du_socle. Puis, sur sa demande : tout enregistré
+    et l'ordinateur éteint par le pair.
+- **Pour la prochaine session** : rien d'ouvert chez nous. À voir en jeu un jour : le lever du matin avec les lits ; la
+  posture en T du colonel au geste de la marmite (non revue) ; l'idée de rendre la cabane obstacle de navigation (pair,
+  plus tard).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
