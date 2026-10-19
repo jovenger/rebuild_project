@@ -12,6 +12,22 @@ $copie = Join-Path $racine "securite\mod_order_origine_2026-10-14_170426\mod_ord
 $empreinte = "75A3A33CC968B4868E40EDCFA2286252E299AE49230C0B6668A3A2E1252A404C"
 
 if (Get-Process -Name KingdomCome -ErrorAction SilentlyContinue) { "le jeu est lancé : le fermer d'abord"; return }
+# Après la bascule (19/10/2026) : Mods\scriptorium_socle est le mod de tous les jours de JoVenGer ; rien sans une séance
+# ouverte par le programme Scriptorium (même test que noyau/installer.py, seance_ouverte : le dernier dossier
+# Scriptorium_securite\*_seance_du_socle, trié en ordinal, a un etat.txt dont la première ligne non vide est « en cours »).
+$seances = Join-Path (Split-Path -Parent $racine) "Scriptorium_securite"
+$noms = [string[]]@(Get-ChildItem -LiteralPath $seances -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name.EndsWith("_seance_du_socle") } | ForEach-Object { $_.Name })
+if ($noms.Count -eq 0) { "pas de séance ouverte (aucune séance dans $seances) : rien n'est changé"; return }
+[Array]::Sort($noms, [StringComparer]::Ordinal)
+$derniere = $noms[$noms.Count - 1]
+$fichier_etat = Join-Path (Join-Path $seances $derniere) "etat.txt"
+$etat = ""
+if (Test-Path -LiteralPath $fichier_etat) {
+  $etat = @([IO.File]::ReadAllLines($fichier_etat, [Text.Encoding]::UTF8) | ForEach-Object { $_.Trim([char]0xFEFF, ' ', "`t") } | Where-Object { $_ -ne "" } | Select-Object -First 1)
+  $etat = if ($etat.Count -gt 0) { $etat[0].ToLowerInvariant() } else { "" }
+}
+if ($etat -ne "en cours") { "pas de séance ouverte (dernière séance $derniere : « $etat ») : rien n'est changé"; return }
+"séance ouverte : $derniere"
 # Garde du disque (16/10/2026, conseil de la conversation Scriptorium) : les sauvegardes du jeu sont sur C ; sous 1 Go
 # libre, une sauvegarde peut échouer ou être tronquée.
 $libre_c = [Math]::Round((Get-PSDrive C).Free / 1GB, 2)

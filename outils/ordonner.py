@@ -78,6 +78,7 @@ def principal(arguments):
     cible = installer.verifier_cible(jeu)
     if not os.path.isfile(os.path.join(cible, "mod.manifest")):
         installer.refuser("le socle n'est pas installé dans " + cible)
+    installer.exiger_une_seance()
     numero, chemin = ecrire(cible, commande)
     print("Ordre n° %d écrit : %s -> %s" % (numero, commande, chemin))
     return 0

@@ -7,6 +7,8 @@ Usage (sur le PC de JoVenGer) :
 
 Garanties :
 - n'écrit que dans <jeu>\\Mods\\scriptorium_socle ; refuse tout autre chemin ;
+- refuse hors d'une séance ouverte par le programme Scriptorium (depuis la bascule du 19/10/2026, ce dossier est le mod
+  de tous les jours de JoVenGer ; voir seance_ouverte) ;
 - refuse en dur les dossiers du Scriptorium actuel, de sa copie de sécurité et des trois mods
   scriptorium, scriptorium_regles, scriptorium_lumiere, ainsi que Data\\ du jeu ;
 - met de côté l'ancien mod d'essai dans securite/<date>/ avant de le remplacer ;
@@ -39,6 +41,46 @@ MORCEAUX_INTERDITS = ["desktop/scriptorium/", "desktop/scriptorium", "scriptoriu
 def refuser(message):
     print("REFUS : " + message)
     sys.exit(2)
+
+
+# Après la bascule (19/10/2026) : Mods\scriptorium_socle est le mod de tous les jours de JoVenGer. Rien n'y est écrit
+# hors d'une séance ouverte par le programme Scriptorium (outils_de_session/seance_du_socle.py « installer ») : le dernier
+# dossier <Bureau>\Scriptorium_securite\*_seance_du_socle (ordre des noms, donc des dates) a un etat.txt dont la première
+# ligne non vide est « en cours » (sinon « remise » ou « gardee » ; les anciens dossiers sans etat.txt : pas de séance).
+SEANCES = os.path.join(os.path.dirname(RACINE), "Scriptorium_securite")
+SUFFIXE_DES_SEANCES = "_seance_du_socle"
+
+
+def seance_ouverte(dossier=None):
+    """Rend (True, nom du dossier de la séance) si une séance est ouverte, sinon (False, raison)."""
+    dossier = dossier or SEANCES
+    if not os.path.isdir(dossier):
+        return False, "dossier des mises de côté introuvable : " + dossier
+    seances = sorted(n for n in os.listdir(dossier)
+                     if n.endswith(SUFFIXE_DES_SEANCES) and os.path.isdir(os.path.join(dossier, n)))
+    if not seances:
+        return False, "aucune séance dans " + dossier
+    derniere = seances[-1]
+    chemin = os.path.join(dossier, derniere, "etat.txt")
+    if not os.path.isfile(chemin):
+        return False, "la dernière séance (%s) n'a pas d'etat.txt" % derniere
+    try:
+        with open(chemin, encoding="utf-8-sig") as fichier:
+            lignes = [l.strip() for l in fichier.read().splitlines() if l.strip()]
+    except (OSError, UnicodeDecodeError) as erreur:
+        return False, "etat.txt illisible (%s) : %s" % (derniere, erreur)
+    etat = lignes[0].lower() if lignes else ""
+    if etat != "en cours":
+        return False, "la dernière séance (%s) est « %s »" % (derniere, etat or "vide")
+    return True, derniere
+
+
+def exiger_une_seance():
+    ouverte, detail = seance_ouverte()
+    if not ouverte:
+        refuser("pas de séance ouverte (%s) : Mods\\%s est le mod de tous les jours de JoVenGer, rien n'y est écrit"
+                % (detail, NOM_DU_MOD))
+    print("Séance ouverte : " + detail)
 
 
 def verifier_cible(jeu):
@@ -124,6 +166,7 @@ def principal(arguments):
         return 2
     jeu = arguments[arguments.index("--jeu") + 1]
     cible = verifier_cible(jeu)
+    exiger_une_seance()
     if "--sans-verification" not in arguments:
         verification_complete()
     if "--sans-mise-de-cote" not in arguments:

@@ -238,6 +238,7 @@ def principal(arguments):
     if not reste:
         print(__doc__)
         return 2
+    installer.exiger_une_seance()
     if reste[0] == "--retirer":
         for chemin_de_valeur in reste[1:]:
             if not retirer(donnees, chemin_de_valeur):

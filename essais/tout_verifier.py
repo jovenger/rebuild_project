@@ -218,6 +218,94 @@ def verifier_reglages_par_fichier():
     return nombre
 
 
+def verifier_seances():
+    """Après la bascule (19/10/2026) : l'installateur, ordonner, regler et recharger n'écrivent dans
+    Mods\\scriptorium_socle (le mod de tous les jours de JoVenGer) que pendant une séance ouverte par le programme
+    Scriptorium (installer.seance_ouverte). Rend le nombre de cas éprouvés."""
+    import tempfile
+    import installer
+    import ordonner
+    import recharger
+    import regler
+
+    def etat(dossier, nom, contenu):
+        os.makedirs(os.path.join(dossier, nom))
+        if contenu is not None:
+            with open(os.path.join(dossier, nom, "etat.txt"), "wb") as fichier:
+                fichier.write(contenu)
+
+    cas = 0
+    with tempfile.TemporaryDirectory() as dossier:
+        seances = os.path.join(dossier, "Scriptorium_securite")
+        ouverte_a = "20261019_120000_000003_seance_du_socle"
+        # Chaque étape remplit un peu plus le dossier, puis la séance attendue (None : pas de séance).
+        etapes = [
+            (lambda: None, None),                                                       # dossier absent
+            (lambda: os.makedirs(seances), None),                                       # aucune séance
+            (lambda: etat(seances, "20261019_084036_seance_du_socle", None), None),     # ancien, sans etat.txt
+            (lambda: etat(seances, "20261019_090000_123456_seance_du_socle", b"en cours"),
+             "20261019_090000_123456_seance_du_socle"),
+            (lambda: etat(seances, "20261019_100000_000001_seance_du_socle", b"remise"), None),  # la dernière compte
+            (lambda: etat(seances, "20261019_110000_000002_seance_du_socle", b"gardee"), None),
+            (lambda: etat(seances, ouverte_a, "﻿  En Cours  \r\n".encode("utf-8")), ouverte_a),  # BOM, casse
+            (lambda: open(os.path.join(seances, "20261019_130000_000004_seance_du_socle"), "w").close(),
+             ouverte_a),                                                                # un fichier n'en est pas une
+        ]
+        for numero, (etape, nom) in enumerate(etapes, start=1):
+            ouverte = nom is not None
+            etape()
+            vu, detail = installer.seance_ouverte(seances)
+            cas += 1
+            if vu != ouverte or (ouverte and detail != nom):
+                erreur("séance, cas %d : attendu %s %s, vu %s %s" % (numero, ouverte, nom, vu, detail))
+
+        # Les outils refusent AVANT d'écrire, et écrivent pendant une séance.
+        jeu = os.path.join(dossier, "jeu")
+        cible = os.path.join(jeu, "Mods", installer.NOM_DU_MOD)
+        os.makedirs(os.path.join(jeu, "Data"))
+        os.makedirs(cible)
+        with open(os.path.join(cible, "mod.manifest"), "w", encoding="ascii") as fichier:
+            fichier.write("<kcd_mod/>")
+        appels = [
+            ("installateur", lambda: installer.principal(["--jeu", jeu, "--sans-verification", "--sans-mise-de-cote"])),
+            ("ordonner", lambda: ordonner.principal(["--jeu", jeu, "scriptorium_bilan"])),
+            ("regler", lambda: regler.principal(["--jeu", jeu, "--retirer", "hommes.ration"])),
+            ("recharger", lambda: recharger.principal(["--jeu", jeu, "hommes"])),
+        ]
+        ancien = installer.SEANCES
+        sortie = sys.stdout
+        try:
+            installer.SEANCES = os.path.join(dossier, "aucune")
+            for nom, appel in appels:
+                avant = sorted(os.listdir(cible))
+                code = None
+                try:
+                    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+                    code = appel()
+                except SystemExit as sortie_outil:
+                    code = sortie_outil.code
+                finally:
+                    sys.stdout.close()
+                    sys.stdout = sortie
+                cas += 1
+                if code != 2 or sorted(os.listdir(cible)) != avant:
+                    erreur("séance : %s hors séance devrait refuser sans rien écrire (code %s)" % (nom, code))
+            installer.SEANCES = seances
+            try:
+                sys.stdout = open(os.devnull, "w", encoding="utf-8")
+                code = ordonner.principal(["--jeu", jeu, "scriptorium_bilan"])
+            finally:
+                sys.stdout.close()
+                sys.stdout = sortie
+            cas += 1
+            if code != 0 or not os.path.isfile(os.path.join(cible, ordonner.NOM_DU_FICHIER)):
+                erreur("séance : pendant une séance, ordonner devrait écrire son ordre")
+        finally:
+            installer.SEANCES = ancien
+            sys.stdout = sortie
+    return cas
+
+
 def verifier_identifiants():
     """Les entités posées par la vraie liaison sont désignées par leur nom (une chaîne que le registre
     sait garder), pas par entite.id, donnée du moteur refusée au registre (vu en jeu le 14/10)."""
@@ -1923,6 +2011,9 @@ def principal(arguments):
                   % verifier_reglages_par_fichier())
         else:
             print("2. banc Lua : non lancé (syntaxe en erreur)")
+
+    print("2 quater bis. séances : %d cas éprouvés ; installateur, ordonner, regler et recharger refusent hors séance "
+          "sans rien écrire" % verifier_seances())
 
     print("2 quinquies. âmes : %d âmes des réserves, table et liaison accordées, notre cerveau et la Compagnie partout" % verifier_ames())
     print("2 sexies. équipement : %d préréglages dans la liaison, chaque règle trouve les siens" % verifier_equipement())

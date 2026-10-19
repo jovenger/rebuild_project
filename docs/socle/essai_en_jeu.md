@@ -2,6 +2,8 @@
 
 Rappel : rien de tout ceci ne touche au Scriptorium actuel, à son git ni à ses trois mods. Le socle s'installe dans `Mods\scriptorium_socle`, à part.
 
+**Depuis la bascule du 19/10/2026** : `Mods\scriptorium_socle` est le mod de tous les jours de JoVenGer (version figée 0e0113b). L'installateur, `outils/ordonner.py`, `outils/regler.py` (sauf `--liste` et `--voir`), `outils/recharger.py` et `outils/pilotage/debut_essai.ps1` **refusent sans rien écrire** hors d'une séance ouverte par le programme Scriptorium (`outils_de_session/seance_du_socle.py installer`, côté Scriptorium) : le dernier dossier `<Bureau>\Scriptorium_securite\*_seance_du_socle` (trié par nom, en ordinal) doit avoir un `etat.txt` dont la première ligne non vide est « en cours » (`installer.seance_ouverte`, éprouvé au banc, section 2 quater bis). Déroulé d'une séance : jeu fermé ; Scriptorium « installer » (met de côté les deux mods et l'ordre) ; ma version d'essai par l'installateur ; une copie de sa partie (`playline2` ou `playline4`, rangée jeu ouvert), jamais `playline1` ; Scriptorium « remettre » ou « garder ». `fin_essai.ps1` ne remet plus la liste des mods que si c'est celle d'une séance (le socle seul). Les sections ci-dessous datent d'avant la bascule.
+
 ## 1. Préparer le PC (une fois)
 1. Cloner ce dépôt : `git clone https://github.com/jovenger/rebuild_project "C:\Users\maste\Desktop\rebuild_project"` (décision D9), puis se placer sur la branche `ccr-c18b8b50-tespti`.
 2. Installer le banc : `py -3.13 -m pip install lupa`.

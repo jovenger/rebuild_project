@@ -55,6 +55,7 @@ def principal(arguments):
     cible = installer.verifier_cible(jeu)
     if not os.path.isfile(os.path.join(cible, "mod.manifest")):
         installer.refuser("le socle n'est pas installé dans " + cible)
+    installer.exiger_une_seance()
     dossier = os.path.join(cible, "recharge")
     os.makedirs(dossier, exist_ok=True)
     for nom in reste:
