@@ -550,6 +550,15 @@ aucune sonde dans l'arbre.
     demande les places libres « pour les hommes », comme le compte des lits ; essai, vérifié qu'il échoue sans) ;
   - défauts chez le pair (notés de son côté) : nom du dialogue des hommes (corrigé), loisir qui bloque missions,
     métiers, exercice et troupe, nom tiré au hasard dans l'annonce du duel, « vers le est ».
+- **Séance de vérification (19/10 au soir, accord direct de JoVenGer, playline3, jamais sauvée, remis par le pair)** :
+  - VU JUSTE : la fin du duel (« cesse d'affronter : ordre 9 : posé » ; bandeau « Henry remporte le duel » ; plus
+    d'icône de combat, la vue tourne librement ; chez le pair : IsInCombatMode faux, en_bataille faux) ; le lit du
+    Directeur laissé libre la nuit (4 hommes aux lits des tentes, 2 sans lit) ; le secours par la téléportation du jeu
+    (4 téléportations « ordre 10 : posé », puis « tient le geste », plus aucun « figé » ; posture vue au journal
+    seulement, sauf Albrecht, debout, sans posture en T) ; chez le pair : le palier payé (les forts mieux habillés),
+    le nom de l'adversaire et « vers le sud-est » ;
+  - reste chez le pair : la garde de nuit (CampPatrollers vide : sa nuit prenait ses gardes dans la garde de jour de
+    l'ancien mod, absente dans notre monde ; les hommes sans lit restent « sommeil sans but »).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
