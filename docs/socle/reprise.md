@@ -530,6 +530,24 @@ aucune sonde dans l'arbre.
   vu au-dessus de lui ; au chargement, la carte reste sans écu ; la sonde du pair éteint puis rallume la marque et
   l'écu bleu apparaît sur la carte (à côté du drapeau rouge, à part d'Henry). JoVenGer l'a aussi sur la carte dans sa
   partie : la correction est chez le pair (la prise éteint la marque une fois à la reprise), à voir au vrai jour.
+- **Bascule faite (19/10, ordre de JoVenGer)** : Mods\scriptorium_socle est son mod de tous les jours (version figée
+  0e0113b). Verrou des séances (6214ad2) : rien n'y est écrit hors d'une séance ouverte par Scriptorium.
+- **Séance avec des hommes (19/10, accord direct de JoVenGer, playline3, jamais sauvée, remis par le pair)** :
+  - incident au lancement : en mode « Charger », Entrée est tombée sur « Continuer » (sa partie a commencé à charger) ;
+    jeu arrêté pendant le chargement, rien d'écrit (vérifié) ; vers_partie_d_essai.ps1 corrigé : plus d'Entrée, arrêt
+    sur une capture, arrêt du jeu si un chargement paraît ;
+  - vu juste : l'embauche par Scriptorium (6 hommes, 0 pièce introuvable), le colonel (tenue de capitaine, tête nue),
+    les dialogues d'un homme et du colonel (codes et répliques selon l'état), « Double la garde », l'appel au feu (vu
+    au journal du pair), le duel (départ, cercle à 57 m, fin par fuite) ;
+  - **défauts chez nous, à corriger** : (1) « affronter » ne défait pas sa cible à la fin
+    (liaison.ordonner_l_attaque : arme tirée, scriptorium_essai_cible, ordre 8, callInterrupt_attack ; aucun inverse) :
+    Henry reste en combat, la nuit de Scriptorium (gardes, ronde) ne se met pas en place ; chercher dans les arbres du
+    jeu l'appel qui fait cesser le combat, puis essai au banc ; (2) le secours qui pose un homme (SetWorldPos) pendant
+    une marche menée le laisse figé en posture en T (Albrecht ; un nouveau geste ne le répare pas) ; (3)
+    changer_de_palier rhabille mais ne refait pas les armes (sword_shield_3_01 au palier 1) ; (4) le lit du Directeur
+    donné à un homme sur un camp sans Directeur : à voir ;
+  - défauts chez le pair (notés de son côté) : nom du dialogue des hommes (corrigé), loisir qui bloque missions,
+    métiers, exercice et troupe, nom tiré au hasard dans l'annonce du duel, « vers le est ».
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

@@ -4,8 +4,9 @@
 # Sans -Charger : par « Continuer » ; refuse si la sauvegarde que « Continuer » reprendrait (la plus récente par l'heure
 # de son en-tête, mesuré en V59 ; sauvegardes.ps1) n'est pas dans la ligne demandée ; vérifie au journal que c'est bien cette ligne qui se charge, sinon ferme le jeu sans
 # sauvegarder ; dit si le chargement a échoué (retour au menu principal).
-# Avec -Charger : va seulement jusqu'à la liste « Charger partie » et la capture (D:\socle_captures\captures\charger_partie.png),
-# sans rien valider ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "<ligne>/<sauvegarde>".
+# Avec -Charger : descend seulement jusqu'à « Charger partie », SANS Entrée, et capture le menu
+# (D:\socle_captures\captures\menu_avant_entree.png) ; la suite se fait à vue (Entrée à la main si « Charger partie » est
+# bien sélectionné), puis confirmer_sauvegarde.ps1 -Attendu "<ligne>/<sauvegarde>".
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
 # -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.
 param([switch]$Charger, [switch]$SansDevmode, [ValidateSet("playline2", "playline3", "playline9")][string]$Ligne = "playline2")
@@ -31,8 +32,15 @@ Start-Sleep -Seconds 4
 $p = Get-Process -Name KingdomCome; $h = $p.MainWindowHandle
 if (-not (Mettre-Le-Jeu-Devant)) { "le jeu ne vient pas au premier plan : rien n'est tapé, arrêt"; return }
 if ($Charger) {
-  Touche Bas; Touche Bas; Touche Entree; Start-Sleep -Seconds 3
-  "liste des parties à regarder : " + (Capture "charger_partie")
+  # Vu le 19/10 (après la bascule) : les deux Bas perdus (menu pas encore prêt), Entrée est tombée sur « Continuer »,
+  # qui reprend désormais la partie de JoVenGer (jeu arrêté pendant le chargement, rien d'écrit). Donc plus d'Entrée
+  # ici : on s'arrête sur « Charger partie » sélectionné, capture à regarder, puis Entrée à la main. Et si un
+  # chargement apparaît quand même au journal, le jeu est arrêté sans sauvegarde.
+  Start-Sleep -Seconds 6
+  Touche Bas; Start-Sleep -Milliseconds 500; Touche Bas; Start-Sleep -Seconds 1
+  $charge = Select-String -Path $journal -Pattern "Loading saved game" | Select-Object -Last 1
+  if ($charge) { Stop-Process -Id $p.Id -Force; "chargement inattendu (" + $charge.Line.Trim() + ") : jeu arrêté sans sauvegarde"; return }
+  "menu à regarder AVANT Entrée (« Charger partie » doit être sélectionné) : " + (Capture "menu_avant_entree")
   return
 }
 Touche Entree
