@@ -206,11 +206,32 @@ function camp.point(x, y, cap)
   return Scriptorium.avis(camp, "dans_le_monde", d.ancre, x, y, cap)
 end
 
-local function emplacement_par_nom(nom)
+-- Les places déclarées par Scriptorium (contrat avec le pair, 19/10, sur demande de JoVenGer : les lits achetés à
+-- l'Aménagement servent aux hommes) : des objets du jeu hors du plan, désignés par leur nom d'entité (stable d'un
+-- chargement à l'autre ; l'identifiant, lui, change), en mémoire seulement (la prise les redéclare à chaque battement).
+-- nom -> { nom, sorte } ; l'ordre de la déclaration est gardé dans camp.ordre_des_places_declarees.
+camp.places_declarees = camp.places_declarees or {}
+camp.ordre_des_places_declarees = camp.ordre_des_places_declarees or {}
+
+local function emplacement_du_plan(nom)
   for _, e in ipairs(camp.plan) do
     if e.nom == nom then
       return e
     end
+  end
+  return nil
+end
+
+-- Un emplacement du plan, sinon une place déclarée ({ nom, sorte, niveau = 0, declaree = true } : sans coordonnées du
+-- plan, elle se lit par son objet du jeu).
+local function emplacement_par_nom(nom)
+  local e = emplacement_du_plan(nom)
+  if e then
+    return e
+  end
+  local p = camp.places_declarees[nom]
+  if p then
+    return { nom = p.nom, sorte = p.sorte, niveau = 0, declaree = true }
   end
   return nil
 end
@@ -703,6 +724,11 @@ end
 function camp.objet_du_jeu_de(nom)
   local objet = donnees().objets[nom]
   local e = emplacement_par_nom(nom)
+  -- Une place déclarée : l'objet du jeu est elle-même, relu par son nom ; absente (l'Aménagement pas encore reposé
+  -- après un chargement), nil.
+  if e and e.declaree then
+    return jeu().objet_existe(nom) and nom or nil
+  end
   local du_jeu = e and camp.objets_du_jeu[e.sorte]
   if not objet or not objet.du_jeu or not du_jeu or not du_jeu.places[1] then
     return nil
@@ -726,6 +752,20 @@ function camp.abord_de(nom)
     return nil
   end
   local ecart = tonumber(camp.reglages.ecart_d_abord) or 0
+  -- Une place déclarée : à « ecart » de son objet, du côté opposé au centre du camp ; sinon l'objet lui-même.
+  if e.declaree then
+    local la = jeu().position_d_un_objet(nom)
+    local centre = la and camp.point(0, 0, 0)
+    if not centre then
+      return la
+    end
+    local dx, dy = la.x - centre.x, la.y - centre.y
+    local loin_du_centre = math.sqrt(dx * dx + dy * dy)
+    if loin_du_centre <= 0.01 then
+      return la
+    end
+    return { x = la.x + ecart * dx / loin_du_centre, y = la.y + ecart * dy / loin_du_centre, z = la.z }
+  end
   local x, y
   local loin = math.sqrt(e.x * e.x + e.y * e.y)
   if camp.sortes_places[e.sorte] and loin > 0.01 then
@@ -743,6 +783,9 @@ function camp.position_de(nom)
   if not d.fonde or not e or e.niveau > d.niveau then
     return nil
   end
+  if e.declaree then
+    return jeu().position_d_un_objet(nom)
+  end
   return Scriptorium.avis(camp, "dans_le_monde", d.ancre, e.x, e.y, e.cap)
 end
 
@@ -751,18 +794,28 @@ function camp.objet_de(nom)
   return objet and objet.identifiant or nil
 end
 
--- Les places libres d'une sorte (« lit » ou « siege »), dans l'ordre du plan.
--- Avec « pour », les places réservées à quelqu'un d'autre sont écartées.
+-- Les places libres d'une sorte (« lit » ou « siege »), dans l'ordre du plan, puis les places déclarées libres de la
+-- sorte, dans l'ordre de leur déclaration (sur un camp adopté, celles-là seules). Avec « pour », les places du plan
+-- réservées à quelqu'un d'autre sont écartées ; une place déclarée n'est réservée à personne (Scriptorium écarte avant
+-- de déclarer les lits qui ne sont pas aux hommes).
 function camp.places_libres(sorte, pour)
   local d = donnees()
   local libres = {}
-  if not d.fonde or d.adopte then
+  if not d.fonde then
     return libres
   end
-  for _, e in ipairs(camp.plan) do
-    if e.sorte == sorte and camp.sortes_places[sorte] and e.niveau <= d.niveau and d.places[e.nom] == nil
-       and (pour == nil or e.reserve == nil or e.reserve == pour) then
-      table.insert(libres, e.nom)
+  if not d.adopte then
+    for _, e in ipairs(camp.plan) do
+      if e.sorte == sorte and camp.sortes_places[sorte] and e.niveau <= d.niveau and d.places[e.nom] == nil
+         and (pour == nil or e.reserve == nil or e.reserve == pour) then
+        table.insert(libres, e.nom)
+      end
+    end
+  end
+  for _, nom in ipairs(camp.ordre_des_places_declarees) do
+    local p = camp.places_declarees[nom]
+    if p and p.sorte == sorte and d.places[nom] == nil then
+      table.insert(libres, nom)
     end
   end
   return libres
@@ -809,19 +862,91 @@ function camp.liberer(nom)
   return true
 end
 
--- Nombre de lits et de sièges au niveau courant.
+-- Nombre de lits et de sièges au niveau courant, places déclarées comprises (sur un camp adopté, celles-là seules : le
+-- plan n'y a aucun meuble).
 function camp.capacite()
   local d = donnees()
   local lits, sieges = 0, 0
   if d.fonde then
-    for _, e in ipairs(camp.plan) do
-      if e.niveau <= d.niveau then
-        if e.sorte == "lit" then lits = lits + 1 end
-        if e.sorte == "siege" then sieges = sieges + 1 end
+    if not d.adopte then
+      for _, e in ipairs(camp.plan) do
+        if e.niveau <= d.niveau then
+          if e.sorte == "lit" then lits = lits + 1 end
+          if e.sorte == "siege" then sieges = sieges + 1 end
+        end
       end
+    end
+    for _, nom in ipairs(camp.ordre_des_places_declarees) do
+      local p = camp.places_declarees[nom]
+      if p and p.sorte == "lit" then lits = lits + 1 end
+      if p and p.sorte == "siege" then sieges = sieges + 1 end
     end
   end
   return { lits = lits, sieges = sieges, niveau = d.niveau }
+end
+
+-- Les places déclarées, lisibles, dans l'ordre de la déclaration : { { nom, sorte }, ... } (des copies).
+function camp.liste_des_places_declarees()
+  local liste = {}
+  for _, nom in ipairs(camp.ordre_des_places_declarees) do
+    local p = camp.places_declarees[nom]
+    if p then
+      table.insert(liste, { nom = p.nom, sorte = p.sorte })
+    end
+  end
+  return liste
+end
+
+-- Contrat avec le pair (19/10) : Scriptorium déclare ses places, toutes à la fois (jamais une liste partielle) :
+-- liste = { { nom = "<nom d'entité du jeu>", sorte = "lit" }, ... }. Toute la liste est refusée au premier élément
+-- boiteux. Une réservation (d.places) que le registre ignore reste réservée (après un chargement, l'objet ne revient
+-- qu'une fois l'Aménagement reposé) ; seule une déclaration qui OMET un nom réservé hors du plan le libère (l'objet a
+-- été retiré), et l'homme qui l'avait le perd (hommes.lit_retire). Rend vrai, ou faux et la raison.
+function camp.declarer_les_places(liste)
+  local d = donnees()
+  if type(liste) ~= "table" then
+    return refuser("places_invalides", tostring(liste))
+  end
+  local nouvelles, ordre = {}, {}
+  for i, p in ipairs(liste) do
+    if type(p) ~= "table" or type(p.nom) ~= "string" or p.nom == "" then
+      return refuser("places_invalides", "élément " .. i .. " sans nom")
+    end
+    if not camp.sortes_places[p.sorte] then
+      return refuser("places_invalides", p.nom .. " : sorte " .. tostring(p.sorte))
+    end
+    if emplacement_du_plan(p.nom) then
+      return refuser("places_invalides", p.nom .. " : nom d'une place du plan")
+    end
+    if nouvelles[p.nom] then
+      return refuser("places_invalides", p.nom .. " : en double")
+    end
+    nouvelles[p.nom] = { nom = p.nom, sorte = p.sorte }
+    table.insert(ordre, p.nom)
+  end
+  local retirees = {}
+  for nom in pairs(d.places) do
+    if not emplacement_du_plan(nom) and not nouvelles[nom] then
+      table.insert(retirees, nom)
+    end
+  end
+  table.sort(retirees)
+  local nombre_avant = #camp.ordre_des_places_declarees
+  camp.places_declarees, camp.ordre_des_places_declarees = nouvelles, ordre
+  for _, nom in ipairs(retirees) do
+    d.places[nom] = nil
+    jeu().journal("Camp : place « " .. nom .. " » retirée par Scriptorium, sa réservation est libérée")
+    if Scriptorium.hommes and Scriptorium.hommes.lit_retire then
+      Scriptorium.hommes.lit_retire(nom)
+    end
+  end
+  if #retirees > 0 then
+    enregistrer()
+  end
+  if #ordre ~= nombre_avant or #retirees > 0 then
+    jeu().journal("Camp : " .. #ordre .. " place(s) déclarée(s) par Scriptorium (avant : " .. nombre_avant .. ")")
+  end
+  return true
 end
 
 Scriptorium.declarer_morceau("camp", function()

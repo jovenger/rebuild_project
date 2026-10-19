@@ -140,3 +140,23 @@ Géométrie (rotation et décalage) ; fondation et positions des objets ; double
   l'entité ; reposé à neuf à chaque chargement, il serait vidé. Une voie à part, après un essai en jeu.
 - Pour la prise : la cabane d'Henry, sa tente et les pièces de l'Aménagement (lit, sièges ; pas le coffre).
 - Non vérifié en jeu.
+
+## Les places déclarées par Scriptorium (contrat avec le pair, 19/10/2026, sur demande de JoVenGer)
+- Vu sur la sauvegarde de JoVenGer (vérification du 19/10) : sur son camp adopté, aucun homme n'avait de lit la nuit ;
+  les 11 lits hauts et les 4 tentes achetés à l'Aménagement de Scriptorium ne servaient à personne (le plan n'a aucun
+  meuble sur un camp adopté, et une place ne pouvait être qu'un nom du plan).
+- `camp.declarer_les_places(liste)`, liste = `{ { nom = "<nom d'entité du jeu>", sorte = "lit" }, ... }` : toute la
+  liste à la fois (Scriptorium ne déclare jamais une liste partielle), refusée au premier élément boiteux (nom vide, nom
+  du plan, en double, sorte hors de `camp.sortes_places`). Une liste vide est acceptée. Registre en mémoire seulement
+  (`camp.places_declarees`, ordre dans `camp.ordre_des_places_declarees`) ; lecture : `camp.liste_des_places_declarees()`.
+- Une place déclarée se lit par son objet du jeu, par son nom (stable ; l'identifiant change à chaque chargement) :
+  `objet_du_jeu_de` rend le nom s'il existe, sinon nil ; `position_de` sa position ; `abord_de` à `ecart_d_abord` de
+  l'objet, du côté opposé au centre du camp. `sorte_de`, `reserver`, `liberer`, `occupant_de`, `place_pour` marchent
+  sans changement. `places_libres` les ajoute après le plan (sur un camp adopté, elles seules) ; `capacite` les compte.
+- Règle : une réservation que le registre ignore reste réservée (après un chargement, l'objet revient avec
+  l'Aménagement) ; une déclaration qui OMET un nom réservé hors du plan le libère, et l'homme qui l'avait le perd
+  (`hommes.lit_retire`, une ligne au journal).
+- Limite connue : la règle par défaut `camp.place_pour` range aussi les hommes de garde ; un lit peut rester vide
+  pendant leur quart. Sur le camp de JoVenGer, la chaîne des règles de Scriptorium la remplace.
+- Essais : `essai_camp.lua` (le contrat), `essai_hommes.lua` (la nuit sur un camp adopté). Non vérifié en jeu (le « use »
+  des StanceSmartObject de l'Aménagement, catégorie Bed, devrait marcher comme pour nos lits).

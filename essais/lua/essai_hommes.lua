@@ -3613,6 +3613,54 @@ essai("nuit (vu en jeu le 19/10) : sur un camp sans Directeur, aucun homme ne do
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, les hommes dorment aux lits déclarés par Scriptorium, chacun le sien ; un lit retiré est perdu par son homme", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local ids = {}
+    for i = 1, 7 do
+      ids[i] = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    end
+    -- La garde de nuit du socle prend ses hommes ; seuls les dormeurs comptent.
+    local dormeurs = {}
+    for _, id in ipairs(ids) do
+      local a = hommes.activite_de(id, 23)
+      if a.activite == "sommeil" then
+        table.insert(dormeurs, id)
+        egal(a.lieu, nil, "sans lit déclaré, sans but")
+      end
+    end
+    verifier(#dormeurs >= 4, "au moins quatre dormeurs (" .. #dormeurs .. ")")
+    local lits = { "ScriptoEditeur_43_1_so", "ScriptoEditeur_44_1_so", "ScriptoEditeur_45_1_so" }
+    verifier(camp.declarer_les_places({ { nom = lits[1], sorte = "lit" }, { nom = lits[2], sorte = "lit" },
+                                        { nom = lits[3], sorte = "lit" } }), "lits déclarés")
+    local vus, au_lit = {}, 0
+    for _, id in ipairs(dormeurs) do
+      local lieu = hommes.activite_de(id, 23).lieu
+      if lieu then
+        egal(camp.sorte_de(lieu), "lit", "un lit déclaré (" .. tostring(lieu) .. ")")
+        verifier(not vus[lieu], "chacun le sien (" .. lieu .. ")")
+        vus[lieu], au_lit = true, au_lit + 1
+      end
+    end
+    -- La règle par défaut (camp.place_pour) range aussi les gardes : un lit peut rester vide pendant leur quart ; sur le
+    -- camp de JoVenGer, la chaîne des règles de Scriptorium la remplace.
+    verifier(au_lit >= 1 and au_lit <= 3, "des dormeurs aux lits déclarés (" .. au_lit .. ")")
+    -- Un homme qui a un lit à lui (réservé) le perd quand Scriptorium le retire.
+    verifier(camp.reserver(lits[3], ids[1]), "réservé")
+    Scriptorium.registre.lire("hommes").liste[ids[1]].lit = lits[3]
+    verifier(camp.declarer_les_places({ { nom = lits[1], sorte = "lit" }, { nom = lits[2], sorte = "lit" } }), "redéclarés sans lui")
+    egal(hommes.fiche(ids[1]).lit, nil, "il a perdu son lit")
+    egal(camp.occupant_de(lits[3]), nil, "le lit libéré")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 -- ---------------------------------------------------------------- fiche 19, grappe 3 : les décisions des hommes remplaçables
 
 essai("décisions des hommes (fiche 19) : le choix de l'équipement (A5, A22, A23) ; munitions de Scriptorium ; faux, impossible ; boiteux, celui du socle", function()

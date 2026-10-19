@@ -63,6 +63,10 @@ function depart()
     Scriptorium.hommes.rattrapages_en_attente = {}
     Scriptorium.hommes.gardien = { vus = {}, relances = 0, utiles = 0, repeches = 0 }
   end
+  -- Les places déclarées par Scriptorium (19/10) vivent en mémoire.
+  if Scriptorium.camp then
+    Scriptorium.camp.places_declarees, Scriptorium.camp.ordre_des_places_declarees = {}, {}
+  end
   if Scriptorium.bataille then
     Scriptorium.bataille.relances = {}
     Scriptorium.bataille.vus = {}

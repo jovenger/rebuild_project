@@ -949,6 +949,23 @@ local function liberer_place(f)
   f.lit = nil
 end
 
+-- Une place déclarée par Scriptorium a été retirée (camp.declarer_les_places l'a omise : l'objet n'est plus là) :
+-- l'homme qui l'avait pour lit n'en a plus ; il dormira à une place libre (place_pour). Rend son identifiant, ou nil.
+function hommes.lit_retire(nom)
+  local d = donnees()
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if f and f.lit == nom then
+      f.lit = nil
+      f.derniere_activite = nil
+      enregistrer()
+      jeu().journal("Hommes : « " .. f.nom .. " » perd son lit « " .. nom .. " » (retiré par Scriptorium)")
+      return id
+    end
+  end
+  return nil
+end
+
 local function faire_partir(d, f, cause, cle, garder_le_corps)
   local corps = nil
   if f.personnage and f.admis then

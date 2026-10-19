@@ -112,6 +112,64 @@ essai("camp (la bascule, 19/10) : un camp adopté est fondé à son ancre, sans 
   verifier(#FauxJeu.objets_poses > avant, "avec ses objets")
 end)
 
+essai("camp (contrat avec le pair, 19/10) : les places déclarées par Scriptorium : refus d'une liste boiteuse ; libres et comptées sur un camp adopté ; lues par leur objet ; une réservation inconnue reste, une place omise est libérée", function()
+  depart()
+  camp.adopter({ x = 100, y = 200, z = 30 }, 0, "kutnohorsko")
+  local ok, raison = camp.declarer_les_places({ { nom = "lit_1a", sorte = "lit" } })
+  egal(raison, "places_invalides", "le nom d'une place du plan refusé")
+  ok, raison = camp.declarer_les_places({ { nom = "A", sorte = "lit" }, { nom = "A", sorte = "lit" } })
+  egal(raison, "places_invalides", "un nom en double refusé")
+  ok, raison = camp.declarer_les_places({ { nom = "A", sorte = "table" } })
+  egal(raison, "places_invalides", "une sorte inconnue refusée")
+  ok, raison = camp.declarer_les_places({ { nom = "", sorte = "lit" } })
+  egal(raison, "places_invalides", "un nom vide refusé")
+  egal(#camp.places_libres("lit"), 0, "une liste refusée n'applique rien")
+  local liste = { { nom = "ScriptoEditeur_43_1_so", sorte = "lit" }, { nom = "ScriptoEditeur_44_1_so", sorte = "lit" },
+                  { nom = "ScriptoEditeur_45_1_so", sorte = "lit" } }
+  verifier(camp.declarer_les_places(liste), "déclarées")
+  local libres = camp.places_libres("lit", "hommes")
+  egal(#libres, 3, "trois lits libres sur un camp adopté")
+  egal(libres[1], "ScriptoEditeur_43_1_so", "dans l'ordre de la déclaration")
+  local lue = camp.liste_des_places_declarees()
+  egal(#lue, 3, "lisibles en liste")
+  egal(lue[2].nom, "ScriptoEditeur_44_1_so", "dans l'ordre, avec .nom")
+  egal(lue[2].sorte, "lit", "et .sorte")
+  egal(#camp.places_libres("siege"), 0, "aucun siège")
+  egal(camp.capacite().lits, 3, "comptés")
+  egal(camp.sorte_de("ScriptoEditeur_44_1_so"), "lit", "leur sorte connue")
+  egal(camp.place_pour("x", "lit", libres) == nil or camp.sorte_de(camp.place_pour("x", "lit", libres)) == "lit", true, "place_pour les accepte")
+  -- Lues par leur objet du jeu, à chaque fois.
+  egal(camp.objet_du_jeu_de("ScriptoEditeur_43_1_so"), nil, "objet absent : nil")
+  FauxJeu.objets_existants["ScriptoEditeur_43_1_so"] = true
+  FauxJeu.positions_des_objets = { ScriptoEditeur_43_1_so = { x = 110, y = 200, z = 30 } }
+  egal(camp.objet_du_jeu_de("ScriptoEditeur_43_1_so"), "ScriptoEditeur_43_1_so", "l'objet est elle-même")
+  local p = camp.position_de("ScriptoEditeur_43_1_so")
+  verifier(p and proche(p.x, 110), "sa position, celle de l'objet")
+  local a = camp.abord_de("ScriptoEditeur_43_1_so")
+  verifier(a and proche(a.x, 110 + camp.reglages.ecart_d_abord) and proche(a.y, 200), "abordé à l'écart, du côté opposé au centre")
+  -- Réservée : plus libre ; une redéclaration sans elle la libère et prévient les hommes.
+  verifier(camp.reserver("ScriptoEditeur_44_1_so", "h1"), "réservée")
+  egal(#camp.places_libres("lit"), 2, "plus libre")
+  local retires = {}
+  local ancien = Scriptorium.hommes.lit_retire
+  Scriptorium.hommes.lit_retire = function(nom) table.insert(retires, nom) end
+  local ok2, erreur = pcall(function()
+    -- Après un chargement : le registre est vide (mémoire), la réservation reste.
+    camp.places_declarees, camp.ordre_des_places_declarees = {}, {}
+    egal(camp.occupant_de("ScriptoEditeur_44_1_so"), "h1", "le registre l'ignore, elle reste réservée")
+    verifier(camp.declarer_les_places(liste), "redéclarées")
+    egal(#retires, 0, "rien libéré quand elle est déclarée")
+    verifier(camp.declarer_les_places({ liste[1], liste[3] }), "déclarées sans elle")
+    egal(camp.occupant_de("ScriptoEditeur_44_1_so"), nil, "omise : libérée")
+    egal(retires[1], "ScriptoEditeur_44_1_so", "les hommes prévenus")
+    verifier(camp.declarer_les_places({}), "une liste vide acceptée")
+    egal(#camp.places_libres("lit"), 0, "plus aucune place")
+  end)
+  Scriptorium.hommes.lit_retire = ancien
+  FauxJeu.positions_des_objets = nil
+  verifier(ok2, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("camp (la bascule, 19/10) : un décor posé par son modèle et sa classe, gardé au registre, reposé à neuf à l'entrée en partie, retiré à la demande et à la levée", function()
   depart()
   local ok, raison = camp.poser_un_decor("cabane", "objects/cabane.cgf", { x = 1, y = 2, z = 3 }, 90)
