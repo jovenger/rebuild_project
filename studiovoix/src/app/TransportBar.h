@@ -7,7 +7,7 @@
 // Barre du haut : fichiers, transport, enregistrement, tempo, tonalité, style, vu-mètre d'entrée.
 namespace sv::app
 {
-class LevelMeter final : public juce::Component
+class LevelMeter final : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     void setLevel (float peak, bool clip);
@@ -17,6 +17,8 @@ public:
 
 private:
     float level = 0.0f;
+    float holdLevel = 0.0f;      // crête tenue (trait) ~1,5 s
+    juce::int64 holdUntilMs = 0;
     bool clipped = false;
     bool compact = false;
     juce::String label { "Micro" };

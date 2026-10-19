@@ -45,6 +45,9 @@ comment les automatismes doivent être faits, ordre proposé.
   (compresseur, second compresseur, niveleur, résonances, EQ, saturation, de-esser, débruitage, pré-délai) ; valeurs
   réellement utilisées affichées dans la chaîne (TrackRender::paramsUsed) + ligne « Réglé d'après la mesure » ; instru
   brute analysée et rapport affiché, sans modification. Test unitaire ajouté.
+- Fait (build 82), demande « une bande par piste où on voit le volume et le plafond avant que ça sature » : vumètres
+  d'en-tête rehaussés (11 px) et lisibles : zones vert / orange (−12) / rouge (0 dB, plafond en trait blanc),
+  graduations, crête tenue 1,5 s, témoin de saturation 2 s ; même dessin pour les vumètres micro / sortie du haut.
 - À vérifier avec Yann : quels styles « défaussent » la voix (trop compressé ? saturé ? trop de réverb ?) pour ajuster
   le preset de ce style (valeurs dans StyleProfiles.cpp, cases du panneau Piste).
 - Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans

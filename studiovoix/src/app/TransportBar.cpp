@@ -11,12 +11,18 @@ namespace sv::app
 void LevelMeter::setLevel (float peak, bool clip)
 {
     level = std::max (peak, level * 0.85f);
-    if (clip)
+    const auto now = juce::Time::currentTimeMillis();
+    if (peak >= holdLevel || now > holdUntilMs)
+    {
+        holdLevel = peak;
+        holdUntilMs = now + 1500;
+    }
+    if (clip || peak >= 0.999f)   // plafond atteint : saturation (témoin tenu 2 s)
     {
         clipped = true;
-        clipUntilMs = juce::Time::currentTimeMillis() + 2000;
+        clipUntilMs = now + 2000;
     }
-    else if (juce::Time::currentTimeMillis() > clipUntilMs)
+    else if (now > clipUntilMs)
     {
         clipped = false;
     }
@@ -25,18 +31,51 @@ void LevelMeter::setLevel (float peak, bool clip)
 
 void LevelMeter::paint (juce::Graphics& g)
 {
+    // Vumètre de crête : échelle -48 … +3 dBFS, vert jusqu'à -12, orange jusqu'à 0 (le plafond, trait blanc), rouge au-delà ;
+    // crête tenue 1,5 s (trait), témoin de saturation 2 s (bloc rouge à droite) ; graduations -24 / -12 / -6 / 0.
     auto r = getLocalBounds().toFloat();
     g.setColour (juce::Colours::black);
     g.fillRoundedRectangle (r, 3.0f);
+    const auto clipBox = clipped ? r.removeFromRight (12.0f) : juce::Rectangle<float>();
+    const auto inner = r.reduced (2.0f, 1.5f);
+    constexpr float kMinDb = -48.0f, kMaxDb = 3.0f;
+    const auto xFor = [&inner] (float dbv) { return inner.getX() + inner.getWidth() * juce::jlimit (0.0f, 1.0f, (dbv - kMinDb) / (kMaxDb - kMinDb)); };
     const float db = gainToDb (level);
-    const float norm = juce::jlimit (0.0f, 1.0f, (db + 60.0f) / 60.0f);
-    auto bar = r.reduced (2.0f).withWidth ((r.getWidth() - 4.0f) * norm);
-    g.setColour (db > -3.0f ? juce::Colours::red : (db > -12.0f ? juce::Colours::orange : juce::Colours::limegreen));
-    g.fillRect (bar);
+    const float xLevel = xFor (db);
+    // Barre en trois zones.
+    const float x12 = xFor (-12.0f), x0 = xFor (0.0f);
+    if (xLevel > inner.getX())
+    {
+        g.setColour (juce::Colours::limegreen);
+        g.fillRect (juce::Rectangle<float> (inner.getX(), inner.getY(), std::min (xLevel, x12) - inner.getX(), inner.getHeight()));
+        if (xLevel > x12)
+        {
+            g.setColour (juce::Colours::orange);
+            g.fillRect (juce::Rectangle<float> (x12, inner.getY(), std::min (xLevel, x0) - x12, inner.getHeight()));
+        }
+        if (xLevel > x0)
+        {
+            g.setColour (juce::Colours::red);
+            g.fillRect (juce::Rectangle<float> (x0, inner.getY(), xLevel - x0, inner.getHeight()));
+        }
+    }
+    // Graduations et plafond (0 dB).
+    g.setColour (juce::Colours::white.withAlpha (0.35f));
+    for (const float tick : { -24.0f, -12.0f, -6.0f })
+        g.fillRect (juce::Rectangle<float> (xFor (tick), inner.getY(), 1.0f, inner.getHeight()));
+    g.setColour (juce::Colours::white);
+    g.fillRect (juce::Rectangle<float> (x0, r.getY(), 1.5f, r.getHeight()));
+    // Crête tenue.
+    if (holdLevel > 1.0e-4f)
+    {
+        const float xh = xFor (gainToDb (holdLevel));
+        g.setColour (xh > x0 ? juce::Colours::red : juce::Colours::white);
+        g.fillRect (juce::Rectangle<float> (xh - 1.0f, inner.getY(), 2.0f, inner.getHeight()));
+    }
     if (clipped)
     {
         g.setColour (juce::Colours::red);
-        g.fillRect (r.removeFromRight (14.0f).reduced (2.0f));
+        g.fillRoundedRectangle (clipBox.reduced (1.5f), 2.0f);
     }
     if (compact)
         return;

@@ -209,8 +209,10 @@ fond tournent en priorité basse pour ne pas voler le processeur à la lecture.
 des enveloppes) ; au-delà de 15 ms, alerte sur la piste. Les doublages générés sont des doublages serrés (6–16 ms de
 retard variable, −9 LU) : ils épaississent la voix sans s'entendre comme une seconde voix décalée.
 
-**Vumètres** : crête jouée par piste (barre dans l'en-tête, retombée douce) ; crête de sortie et sonie du mixage dans
-la barre du haut.
+**Vumètres** : crête jouée par piste (barre dans l'en-tête, retombée douce) et crête de sortie / micro dans la barre
+du haut, tous sur la même échelle −48 … +3 dBFS : vert, **orange au-dessus de −12 dB**, **rouge au-delà du plafond
+0 dB** (trait blanc), graduations −24 / −12 / −6, trait de crête tenue 1,5 s, bloc rouge « saturation » tenu 2 s quand
+le plafond est atteint ; sonie du mixage dans la barre du haut.
 
 **Pas de trou en pleine note** : la porte ne se ferme jamais tant que la voix est voisée (maintien 250 ms, expandeur 2:1,
 fermeture lente) et le débruitage est limité à 6 dB sans sur-soustraction sur les trames chantées. Vérifié par la

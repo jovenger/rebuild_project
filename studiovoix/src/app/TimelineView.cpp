@@ -85,6 +85,8 @@ TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
     info.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
     info.setInterceptsMouseClicks (false, false);
     meter.setCompact (true);
+    meter.setTooltip ("Niveau de lecture de la piste : vert, orange au-dessus de -12 dB, rouge au-delà du plafond 0 dB (trait blanc) ; "
+                      "trait = crête tenue, bloc rouge = saturation"_u8);
     meter.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (meter);
 
@@ -261,11 +263,11 @@ void TrackHeader::resized()
     top.removeFromRight (2);
     mute.setBounds (top.removeFromRight (22));
     name.setBounds (top);
-    meter.setBounds (r.removeFromTop (6).reduced (0, 1));
+    meter.setBounds (r.removeFromTop (8).reduced (0, 1));   // vumètre lisible : zones vert / orange / rouge, plafond 0 dB, crête tenue
     const bool faders = getHeight() >= 64;   // piste trop basse : seuls le nom et l'état restent
     if (faders)
     {
-        auto bottom = r.removeFromBottom (20);
+        auto bottom = r.removeFromBottom (18);
         pan.setBounds (bottom.removeFromRight (std::min (60, bottom.getWidth() / 3)));
         volume.setBounds (bottom);
     }
