@@ -586,7 +586,9 @@ aucune sonde dans l'arbre.
   - couchés : mesuré par le pair (tête à +0,27 m pour les 10 dormeurs, +1,5 m pour les 6 rondiers) ; à l'image, une
     tente vide (la 6 : 16 lits pour 10 dormeurs) et le nom d'un dormeur à travers la toile ; la ronde de nuit tourne ;
   - non vu : le lever du matin (jeu fermé avant le saut du pair).
-  - Prochaine étape : l'installation (ce77192 + 37416824) sur la décision de JoVenGer, posée par le pair.
+  - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 19/10, 23 h 06) : socle ce77192 + Scriptorium 37416824 ;
+    séance « gardée » ; retour arrière : Scriptorium_securite61019_230515_819024_seance_du_socle. Vérifié : Partie 1
+    identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
