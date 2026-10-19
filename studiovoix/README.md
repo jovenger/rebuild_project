@@ -23,9 +23,9 @@ Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
 Demucs, nouvelle piste enregistrée) n'est **pas modifiée** : aucun effet, aucun nettoyage. La seule chose automatique
 quand plusieurs pistes sont là, c'est **l'équilibrage des niveaux** entre pistes (le niveau n'est pas un effet). Les
 effets, c'est quand on les veut : choisir un **style** dans « Style » (panneau Piste), ou simplement **bouger un
-réglage** (Autotune, Présence…), cocher un nettoyage ou cliquer une **case de la chaîne** — la piste passe alors en
-traité par son style, avec ce réglage ; « Aucun (brut) » dans « Style » la remet telle quelle. Les curseurs d'une piste
-brute montrent les positions du style (ce qui s'appliquera au premier geste), ils ne sont jamais grisés. Les réglages
+effet de la chaîne** ou cocher un nettoyage — la piste passe alors en traité par son style ; « Aucun (brut) » dans
+« Style » la remet telle quelle. La chaîne d'une piste brute montre les effets du style (ce qui s'appliquera au premier
+clic). Les réglages
 d'une case de la chaîne (clic sur « Compresseur », « Réverb »…) s'appliquent **en direct** pendant qu'on bouge les
 curseurs (recalcul en quelques secondes, « [Calcul en cours] » en bas), une seule étape d'annulation à la fermeture.
 
@@ -109,8 +109,9 @@ accent violet → rose, cartes arrondies) est purement visuel : aucun calcul aud
    de-esser, saturation, réverb, délai) selon le style.
 5. Fenêtre de génération (après la prise) : cocher doublages (1-3), harmonies, backs mots clés, ad-libs,
    ambiance ; cases pré-cochées selon le style. Chaque élément sur sa piste.
-6. Onglet **Voix IA** : curseurs (autotune, présence, espace, énergie, niveau…), assistant texte
-   (« plus de reverb », « voix plus en avant »…), **Mon son** (mémorise tes réglages par style), référence.
+6. Onglet **Piste** : la chaîne d'effets du style, une ligne par effet avec ses réglages en clair (nettoyage, niveleur,
+   autotune, EQ, résonances, compresseur, de-esser, compresseur 2, saturation, réverb, délai) : clic = régler l'effet,
+   clic droit = désactiver / revenir au style ; assistant texte (« plus de reverb », « voix plus en avant »…), référence.
 7. Onglet **Mix & Master** : mix auto (voix calée sur l'instru + creux de l'instru sous la voix),
    cible de mastering : Spotify / YouTube (−14 LUFS), Apple (−16), TikTok (−14), Fort (−9), aucune ; crête −1 dBTP.
 8. **Exporter** (Ctrl+E) : morceau complet, pistes séparées (stems) en option.
@@ -305,11 +306,9 @@ home-studios francophones.
 - **Électro** : Électro / House, Afro house
 Les pistes générées reçoivent une variante adaptée du même pré-réglage : plus basses que la voix
 principale, coupe-bas plus haut, compression plus forte ; doublages plus secs, harmonies et ad-libs avec
-plus d'espace, ambiance presque entièrement en réverb. Les curseurs de l'onglet **Voix IA** affichent les
-**positions réelles du style** (autotune = quantité de correction, présence = EQ, espace = réverb + délai, énergie =
-compression + saturation) : Rap conscient ≈ autotune 0,10, Trap ≈ 0,80, R&B plus d'espace… Déplacer un curseur
-s'écarte d'autant du style ; double-clic = position du style ; **Mon son** mémorise tes positions pour ce style.
-L'onglet **Voix IA** affiche les effets réellement appliqués à la piste sélectionnée.
+plus d'espace, ambiance presque entièrement en réverb. L'onglet **Piste** affiche les effets réellement
+appliqués à la piste sélectionnée, effet par effet avec leurs réglages (plus de curseurs abstraits « présence / espace /
+énergie » ni de « Mon son » : le style s'applique tel quel, et chaque effet se règle dans sa propre fenêtre).
 
 Ordre de la chaîne : nettoyage → justesse (autotune) → EQ → compresseur (rapide, 4–7 dB) → de-esser →
 compresseur 2 (nivellement doux) → saturation → niveau → réverb + délai. Valeurs générées depuis le code

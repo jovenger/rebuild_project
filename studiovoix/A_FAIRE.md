@@ -36,6 +36,12 @@ comment les automatismes doivent être faits, ordre proposé.
   style (RemixPanel::ensureTreated), les curseurs montrent les positions du style au lieu de zéros.
 - Fait (build 79) : le bouton « Ingénieur du son » ne touche plus qu'aux pistes voix (jamais les prises d'instruments
   ni l'instru) ; leur correction reste possible à la main, piste par piste.
+- Fait (build 80), retour « tu imposes autotune / présence / espace / énergie / volume, ce n'est pas ça » : curseurs
+  abstraits et « Mon son » retirés du panneau Piste (plus de preset de curseurs réappliqué aux nouvelles pistes ni au
+  changement de style) ; la chaîne réelle du style (niveleur, résonances, compresseur, de-esser, saturation, réverb,
+  délai…) passe en premier, une ligne par effet avec ses réglages, clic = régler, clic droit = désactiver.
+- À vérifier avec Yann : quels styles « défaussent » la voix (trop compressé ? saturé ? trop de réverb ?) pour ajuster
+  le preset de ce style (valeurs dans StyleProfiles.cpp, cases du panneau Piste).
 - Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans
   Mix & Master) et demander le fichier `%APPDATA%\StudioVoix IA\logs\app.log` pour voir les décrochages du moteur
   temps réel (lignes `[Moteur]` / `xrun`).

@@ -125,8 +125,7 @@ bool Session::newProject (const juce::String& name, juce::String& error, style::
     created.adLibFolder = appSettings.adLibFolder().getFullPathName();
     created.style = projectStyle;   // tous les effets des pistes suivent ce style (makeParams)
     auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
-    if (appSettings.hasUserPreset (created.style))
-        lead.macros = appSettings.userPreset (created.style);
+    // Plus de « Mon son » (curseurs mémorisés) appliqué d'office : le style s'applique tel quel, réglages effet par effet.
     lead.raw = true;                  // tout arrive brut : aucun effet tant qu'on ne choisit pas un style (ou ne touche pas un réglage)
     created.armedTrackId = lead.id;   // le micro enregistre sur la voix principale tant qu'on n'arme pas une autre piste
     if (! created.save (error))
@@ -139,7 +138,7 @@ bool Session::newProject (const juce::String& name, juce::String& error, style::
     appSettings.setLastProject (folder);
     afterProjectLoaded();
     SV_LOG_INFO (kMod, "Nouveau projet \"" + name + "\" : style " + style::styleName (proj.style)
-                       + (appSettings.hasUserPreset (proj.style) ? " (avec \"Mon son\")" : " (réglages du style)"_u8));
+                       + " (réglages du style)"_u8);
     setStatus ("Nouveau projet : " + name + " (style " + style::styleName (proj.style) + ") — importe une instru pour commencer"_u8);
     return true;
 }
@@ -515,8 +514,6 @@ int Session::addVocalTrack (style::Role role, const juce::String& name)
 {
     pushUndo ("Ajout de piste");
     auto& t = proj.addTrack (role, name);
-    if (appSettings.hasUserPreset (proj.style))
-        t.macros = appSettings.userPreset (proj.style);
     selectedTrackId = t.id;
     markDirty();
     rebuildPlayState();
@@ -1197,10 +1194,9 @@ void Session::setStyle (style::Style s)
     // chaque piste reçoit ses effets quand on lui choisit un style dans son panneau.
     pushUndo ("Changement de style");
     proj.style = s;
-    if (appSettings.hasUserPreset (s))
-        for (auto& t : proj.tracks)
-            if (t.isVocal() && ! t.isGenerated())
-                t.macros = appSettings.userPreset (s);
+    for (auto& t : proj.tracks)
+        if (t.isVocal() && ! t.isGenerated())
+            t.macros = {};   // nouveau style = ses réglages tels quels (plus de curseurs mémorisés par-dessus)
     markDirty();
     renderAll();
     SV_LOG_INFO (kMod, "Style du morceau : " + style::styleName (s));

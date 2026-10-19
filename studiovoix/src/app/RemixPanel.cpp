@@ -20,10 +20,14 @@ namespace sv::app
 RemixPanel::RemixPanel (Session& s) : session (s)
 {
     for (auto* c : std::initializer_list<juce::Component*> { &title, &roleLabel, &report, &assistantResult, &roleBox, &compBox,
-                                                             &cleaning, &referenceEq, &rawListen, &referenceBtn, &savePresetBtn,
-                                                             &loadPresetBtn, &resetBtn, &generateBtn, &assistantBtn, &assistantText,
-                                                             &timing, &timingL })
+                                                             &cleaning, &referenceEq, &rawListen, &referenceBtn,
+                                                             &resetBtn, &generateBtn, &assistantBtn, &assistantText })
         addAndMakeVisible (*c);
+    // Retour de Yann : pas de curseurs abstraits (autotune / présence / espace / énergie / volume / recalage) ni de
+    // « Mon son » par-dessus les vrais effets — la chaîne du style (niveleur, résonances, compresseur, de-esser,
+    // saturation, réverb, délai…) est l'interface. Ces composants restent cachés : l'assistant texte agit encore dessus.
+    for (auto* c : std::initializer_list<juce::Component*> { &timing, &timingL, &savePresetBtn, &loadPresetBtn })
+        addChildComponent (*c);
 
     title.setFont (juce::FontOptions (16.0f, juce::Font::bold));
     report.setMultiLine (true, true);
@@ -43,7 +47,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
     addAndMakeVisible (pluginsTitle);
     addAndMakeVisible (addPluginBtn);
     addAndMakeVisible (chainTitle);
-    chainTitle.setText ("Chaîne de la piste (clic = réglages, clic droit = contourner / style)"_u8, juce::dontSendNotification);
+    chainTitle.setText ("Effets du style, dans l'ordre (clic = régler, clic droit = désactiver / revenir au style)"_u8, juce::dontSendNotification);
     chainTitle.setFont (juce::FontOptions (13.0f, juce::Font::bold));
     for (const auto& st : plugins::chainStages())
     {
@@ -211,8 +215,8 @@ RemixPanel::RemixPanel (Session& s) : session (s)
 
 void RemixPanel::setupMacro (juce::Slider& s, juce::Label& l, const juce::String& name, const juce::String& tip)
 {
-    addAndMakeVisible (s);
-    addAndMakeVisible (l);
+    addChildComponent (s);   // caché : la chaîne d'effets remplace les curseurs abstraits
+    addChildComponent (l);
     s.setRange (0.0, 1.0, 0.01);
     s.setDoubleClickReturnValue (true, 0.5);
     s.setTextBoxStyle (juce::Slider::TextBoxRight, false, 44, 18);
@@ -471,8 +475,8 @@ void RemixPanel::refresh()
     if (vocal && t->raw)
     {
         txt << "\n\nBrute : le son tel quel, aucun effet (seul son niveau est équilibré avec les autres pistes). Pour la traiter : "
-               "choisis un style dans « Style », ou bouge un réglage / clique une case de la chaîne — la piste passe alors en style "
-               << trackStyleName << " avec ce réglage."_u8;
+               "choisis un style dans « Style », ou clique un effet de la chaîne ci-dessus — la piste passe alors en style "
+               << trackStyleName << " avec les réglages de ce style."_u8;
     }
     else if (t->isCorrection())
     {
@@ -658,11 +662,12 @@ void RemixPanel::resized()
     a.removeFromLeft (6);
     compBox.setBounds (a);
     r.removeFromTop (4);
-    for (auto [s, l] : { std::pair { &autotune, &autotuneL }, { &presence, &presenceL }, { &space, &spaceL }, { &energy, &energyL }, { &level, &levelL }, { &timing, &timingL } })
+    if (chainVisible)
     {
-        a = row (26);
-        l->setBounds (a.removeFromLeft (120));
-        s->setBounds (a);
+        chainTitle.setBounds (row (20));
+        for (auto& c : stageCases)
+            c->setBounds (row (24));   // une ligne par effet : nom + réglages lisibles
+        r.removeFromTop (4);
     }
     cleaning.setBounds (row());
 #if SV_EDITION_IA
@@ -674,28 +679,8 @@ void RemixPanel::resized()
     referenceBtn.setBounds (a.removeFromLeft (a.getWidth() / 2 - 3));
     a.removeFromLeft (6);
     resetBtn.setBounds (a);
-    a = row (28);
-    savePresetBtn.setBounds (a.removeFromLeft (a.getWidth() / 2 - 3));
-    a.removeFromLeft (6);
-    loadPresetBtn.setBounds (a);
     generateBtn.setBounds (row (32));
     r.removeFromTop (4);
-    if (chainVisible)
-    {
-        chainTitle.setBounds (row (20));
-        const int perRow = 3, gap = 4;
-        for (size_t i = 0; i < stageCases.size(); i += perRow)
-        {
-            a = row (24);
-            const int w = (a.getWidth() - gap * (perRow - 1)) / perRow;
-            for (int k = 0; k < perRow && i + static_cast<size_t> (k) < stageCases.size(); ++k)
-            {
-                stageCases[i + static_cast<size_t> (k)]->setBounds (a.removeFromLeft (w));
-                a.removeFromLeft (gap);
-            }
-        }
-        r.removeFromTop (4);
-    }
     a = row (24);
     pluginsTitle.setBounds (a.removeFromLeft (110));
     addPluginBtn.setBounds (a.removeFromLeft (150));
