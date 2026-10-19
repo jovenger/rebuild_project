@@ -91,6 +91,13 @@ Relu par un agent de recherche, sans aucun code : `journee_du_camp`, `nuit_du_ca
    jusqu'au but, pour mesurer son progrès, est gardé **en mémoire**, pas au registre (limite de 65 535 octets ; perdu au
    rechargement, il ne coûte rien). Les trois autres cas accordés (archers des tours, suivre Henry, retours au camp)
    viendront à leur pas.
+   **Comment il est posé** (vu en jeu le 19/10 : posé par `SetWorldPos` en pleine marche menée par le jeu, un homme
+   restait figé bras écartés, un nouveau geste ne le réparait pas) : la liaison ne le pose plus elle-même ; elle donne
+   le point à l'arbre (variable de cerveau `scriptorium_secours_point`) et l'ordre 10 de `scriptorium_essai_ordre` ;
+   l'arbre appelle la téléportation du jeu (`AI/npc/basic/switch/callInterrupt_teleport.xml` : interruption de
+   priorité 255, une `TeleportAction`), comme le jeu pour ses propres personnages. Vaut aussi pour le rattrapage derrière
+   Henry et le repêchage du gardien. Contrôlé au banc (2 ter : jamais `SetWorldPos`, le point et l'ordre donnés).
+   Non vérifié en jeu.
    **Le Directeur aussi** : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart (avant, à la
    veillée, il était posé dans le feu).
    L'essai V73 a contient forcément le pas 3 : à chaque changement de tranche (repas → exercice, veillée → sommeil), un

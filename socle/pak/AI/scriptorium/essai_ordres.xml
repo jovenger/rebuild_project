@@ -88,6 +88,16 @@
                 <Expression expressions="$scriptorium_essai_ordre = 0" />
               </Sequence>
             </IfCondition>
+            <!-- Vu en jeu le 19/10 : pose par la liaison (SetWorldPos) en pleine marche, un homme restait fige bras
+                 ecartes. L'ordre 10 : le secours passe par la teleportation du jeu (switch/callInterrupt_teleport). -->
+            <IfCondition condition="$scriptorium_essai_ordre == 10" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Function_callInterrupt_teleport positionVec3="$scriptorium_secours_point" positionWuid="" useWuidPosition="false" nodeLabel="73110808" />
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
             <IfCondition condition="$etat_de_la_vie == 0 &amp; $relances &lt; $relances_max" failOnCondition="false">
               <SuppressFailure>
                 <Sequence>

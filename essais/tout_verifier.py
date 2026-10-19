@@ -584,6 +584,16 @@ def verifier_identifiants():
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une erreur de la ronde n'est pas écrite" end
         l.au_point_de_ronde(nil, donnees)
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une entité absente n'est pas dite" end
+        -- Le secours (vu en jeu le 19/10 : posé par SetWorldPos en pleine marche, un homme restait figé bras écartés) :
+        -- la liaison ne pose plus le personnage ; elle donne le point à l'arbre et l'ordre 10 (la téléportation du jeu).
+        System.entites["scriptorium_rondier"] = rondier
+        XGenAIModule.variables = {}
+        function rondier:SetWorldPos() error("SetWorldPos au secours") end
+        local dit = l.poser_en_secours("scriptorium_rondier", { x = 5, y = 6, z = 0 })
+        local sp = XGenAIModule.variables.scriptorium_secours_point
+        if not sp or sp.x ~= 5 or sp.y ~= 6 or sp.z ~= 7 then return "secours : point mal donné (" .. tostring(dit) .. ")" end
+        if XGenAIModule.variables.scriptorium_essai_ordre ~= 10 then return "secours : ordre 10 non posé (" .. tostring(dit) .. ")" end
+        rondier.SetWorldPos = nil
         -- Le rassemblement (fiche 15, V73 e) : l'ordre de poste écrit l'allure, 1 en courant, 0 sinon (une garde qui suit
         -- un briefing ne court pas).
         System.entites["scriptorium_rondier"] = rondier

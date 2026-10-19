@@ -4160,7 +4160,11 @@ function liaison.ecart_au_but(identifiant, but)
 end
 
 -- Le secours d'un homme bloqué (fiche 15, réponse 1 de JoVenGer) : posé sur une place libre près de « position » (jamais
--- à moins d'un mètre d'un autre personnage). Rend une ligne.
+-- à moins d'un mètre d'un autre personnage). Vu en jeu le 19/10 : posé par SetWorldPos en pleine marche menée par le
+-- jeu, un homme restait figé bras écartés, et un nouveau geste ne le réparait pas. Le jeu ne déplace jamais ainsi un
+-- personnage qui agit : il passe par son interruption de téléportation (AI/npc/basic/switch/callInterrupt_teleport.xml,
+-- priorité 255, une TeleportAction). La liaison donne donc le point à l'arbre (scriptorium_secours_point) et l'ordre 10 ;
+-- l'arbre appelle la fonction du jeu. Rend une ligne.
 function liaison.poser_en_secours(identifiant, position)
   local entite = entite_nommee(identifiant)
   if not entite or not position then
@@ -4170,8 +4174,15 @@ function liaison.poser_en_secours(identifiant, position)
   if not place then
     return "aucune place libre près du but"
   end
-  local ok, erreur = pcall(function() entite:SetWorldPos(place) end)
-  return ok and string.format("posé en (%.1f, %.1f)", place.x, place.y) or ("refusé : " .. tostring(erreur))
+  local this_lu, this = pcall(function() return entite.this end)
+  if not this_lu or type(this) ~= "table" then
+    return "sans this : secours impossible"
+  end
+  local point_pose, refus = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_secours_point", place) end)
+  if not point_pose then
+    return "point du secours refusé : " .. tostring(refus)
+  end
+  return string.format("téléporté par le jeu vers (%.1f, %.1f) : ", place.x, place.y) .. poser_l_ordre(entite, 10)
 end
 
 -- Les contextes que posait le « use » du jeu autour d'un siège ou d'un lit (V73 c) ; notre propre posture (fiche 12,

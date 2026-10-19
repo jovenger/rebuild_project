@@ -543,7 +543,8 @@ aucune sonde dans l'arbre.
     (liaison.ordonner_l_attaque : arme tirée, scriptorium_essai_cible, ordre 8, callInterrupt_attack ; aucun inverse) :
     Henry reste en combat, la nuit de Scriptorium (gardes, ronde) ne se met pas en place ; CORRIGÉ au banc (ordre 9 :
     callInterrupt_stopReaction, comme le jeu ; liaison.cesser_l_attaque ; fiche 14), non vérifié en jeu ; (2) le secours qui pose un homme (SetWorldPos) pendant
-    une marche menée le laisse figé en posture en T (Albrecht ; un nouveau geste ne le répare pas) ; (3) PAS UN DÉFAUT :
+    une marche menée le laisse figé en posture en T (Albrecht ; un nouveau geste ne le répare pas) : CORRIGÉ au banc
+    (le secours passe par la téléportation du jeu, ordre 10, callInterrupt_teleport ; fiche 15) ; (3) PAS UN DÉFAUT :
     la famille epee_bouclier donne sword_shield de rang 3 au palier 1 (hommes.equipement.familles), sword_shield_3_01
     est juste ; (4) le lit du Directeur donné à un homme sur un camp sans Directeur : CORRIGÉ au banc (place_pour
     demande les places libres « pour les hommes », comme le compte des lits ; essai, vérifié qu'il échoue sans) ;
