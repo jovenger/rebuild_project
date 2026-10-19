@@ -1,0 +1,150 @@
+#pragma once
+
+#include "../Types.h"
+#include "../dsp/Leveler.h"
+#include "../dsp/Processors.h"
+#include "../dsp/TimingCorrector.h"
+
+#include <juce_core/juce_core.h>
+
+#include <vector>
+
+// Profils de style : réglages de départ de la chaîne vocale pour chaque style et chaque rôle de piste.
+// Ce sont des points de départ raisonnables, à affiner à l'oreille.
+namespace sv::style
+{
+// Ordre = ordre d'affichage. Les fichiers (projet, "Mon son", IA) stockent l'identifiant texte, jamais l'indice :
+// ajouter un style à la fin ne casse aucun projet existant.
+enum class Style
+{
+    Rap = 0, Trap, PopUrbaine, RnB, Drill, Afro, Rock, Latino,
+    RapMelodique, BoomBap, Pop, Variete, Dancehall, Zouk, Amapiano, Gospel, Electro, Acoustique,
+    RapConscient, RapHardcore, CloudRap, Rage, Plugg, EmoRap, AfroTrap, LoFi, Phonk, JerseyClub, Rai, Bouyon,
+    FunkBresilien, AfroHouse, Country,
+    Count
+};
+
+enum class Role
+{
+    Instru = 0,
+    Lead,          // voix principale
+    Double,        // doublage généré
+    Harmony,       // harmonie générée
+    KeywordBack,   // backs sur les mots clés (fins de phrases)
+    AdLib,         // ad-libs
+    Ambiance,      // nappe / ambiance
+    ManualBack,    // back enregistré à la main
+    Instrument,    // instrument enregistré ou importé (guitare, clavier, basse…) : ni autotune ni de-esser
+    Count
+};
+
+/** Familles affichées dans les listes (chaque style apparaît dans exactement une famille). */
+struct StyleGroup
+{
+    const char* name;   // UTF-8
+    std::vector<Style> styles;
+};
+const std::vector<StyleGroup>& styleGroups();
+
+juce::String styleId (Style s);           // identifiant stable ("trap")
+juce::String styleName (Style s);         // nom affiché ("Trap")
+Style styleFromId (const juce::String& id);
+juce::String roleId (Role r);
+juce::String roleName (Role r);
+Role roleFromId (const juce::String& id);
+
+/** Curseurs simples (0..1, 0,5 = réglage du style). */
+struct Macros
+{
+    float autotune = 0.5f;
+    float presence = 0.5f;
+    float space = 0.5f;
+    float energy = 0.5f;
+    float level = 0.5f;          // volume relatif de la piste (0,5 = 0 dB, ±12 dB)
+    float reverbTrim = 0.5f;     // ajustements fins demandés par l'assistant
+    float delayTrim = 0.5f;
+    bool custom = false;         // false : les curseurs suivent les positions du style (styleMacros) ; true : valeurs choisies
+
+    juce::var toVar() const;
+    static Macros fromVar (const juce::var& v);
+};
+
+struct VocalParams;
+/** Positions des curseurs impliquées par les réglages d'un style (autotune = quantité, présence = EQ, espace =
+    réverb + délai, énergie = compression + saturation, volume = 0,5). Chaque style a donc ses propres positions. */
+Macros styleMacros (const VocalParams& base);
+/** Curseurs effectifs : m si custom, sinon les positions du style (volume et ajustements fins de m conservés). */
+Macros resolveMacros (const Macros& m, const VocalParams& base);
+
+struct PitchSettings
+{
+    bool enabled = true;
+    float amount = 0.5f;
+    float retuneMs = 30.0f;
+    float humanize = 0.5f;
+};
+
+/** Tous les réglages d'une piste vocale. */
+struct VocalParams
+{
+    float inputTargetDb = -20.0f;   // normalisation d'entrée (RMS des passages actifs)
+    dsp::CleanSettings clean;
+    dsp::LevelerSettings leveler;        // niveau régulier d'un passage à l'autre (après le nettoyage)
+    dsp::TimingParams timing;
+    PitchSettings pitch;
+    dsp::EqSettings eq;
+    dsp::ResonanceSettings resonance;    // bandes qui dépassent leur voisinage rabaissées (après l'EQ)
+    dsp::CompressorSettings comp;
+    dsp::CompressorSettings comp2;   // compresseur de nivellement (ratio 1 = désactivé)
+    dsp::DeEsserSettings deEss;
+    dsp::SaturationSettings sat;
+    dsp::ReverbSettings reverb;
+    dsp::DelaySettings delay;
+    float outputDb = -6.0f;          // niveau de sortie (RMS actif) avant le fader
+    float dryGain = 1.0f;            // 0 = seulement les effets (ambiance)
+    float pan = 0.0f;
+    float width = 0.0f;
+    bool referenceEq = false;
+    float referenceStrength = 0.6f;
+};
+
+/** Réglages de départ pour un style et un rôle, puis application des curseurs.
+    recordedByUser : piste enregistrée à la main (pas générée) ; un doublage, une harmonie, des ad-libs ou une
+    ambiance chantés au micro gardent alors la correction de justesse du style (une piste générée vient d'une
+    voix déjà corrigée). */
+VocalParams makeParams (Style s, Role r, const Macros& macros, bool recordedByUser = false);
+
+/** Types de piste proposés par « Nouvelle piste » (dans l'ordre d'affichage). */
+const std::vector<Role>& userTrackRoles();
+/** Libellé du type dans « Nouvelle piste » et nom de base des pistes créées ("Back", "Harmonie"…). */
+juce::String userTrackLabel (Role r);
+juce::String userTrackBaseName (Role r);
+/** Type proposé pour un fichier glissé dans le programme, d'après son nom (« instru », « voix », « guitare »…). */
+Role guessRoleForFile (const juce::String& fileName, bool projectHasInstru, bool leadHasTakes);
+/** Même chose avec le contenu reconnu (voiceContent : 1 = voix seule, 0 = musique, -1 = inconnu). Le nom du
+    fichier l'emporte s'il est explicite ; sinon le contenu décide. */
+Role guessRoleForImport (const juce::String& fileName, int voiceContent, bool projectHasInstru, bool leadHasTakes);
+
+/** Options de génération pré-cochées selon le style. */
+struct GenerationDefaults
+{
+    int doubles = 1;
+    int harmonies = 0;
+    bool keywordBacks = true;
+    bool adLibs = false;
+    bool ambiance = false;
+    float ambianceLevel = 0.5f;     // 0..1
+    int keywordSyllables = 2;       // syllabes doublées en fin de phrase
+    float adLibDensity = 0.5f;      // probabilité d'ad-lib dans un silence
+};
+GenerationDefaults generationDefaults (Style s);
+
+/** Profils de mastering par style : inclinaison spectrale. */
+struct MasterTone
+{
+    float lowShelfDb = 0.0f;
+    float highShelfDb = 0.0f;
+    float vocalOverInstruLu = 0.0f;   // sonie de la voix principale par rapport à l'instru
+};
+MasterTone masterTone (Style s);
+} // namespace sv::style

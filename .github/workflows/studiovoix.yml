@@ -1,0 +1,349 @@
+name: StudioVoix
+
+on:
+  push:
+    branches: [ main, 'claude/**' ]
+    paths:
+      - 'studiovoix/**'
+      - '.github/workflows/studiovoix.yml'
+  workflow_dispatch:
+
+# Un seul run par branche : un nouveau commit annule le run précédent. Évite les builds inutiles et le refus
+# « HTTP 403: Resource not accessible by integration » à la création de release, observé uniquement sur les runs dont
+# le commit avait été dépassé par un push pendant leur exécution (builds 61, 62, 65, 66 ; jamais sur les autres).
+concurrency:
+  group: studiovoix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Deux programmes à partir du même code : « StudioVoix » (classique) et « StudioVoix IA » (briques d'IA locales).
+        # Chacun a son installateur, son dossier, ses réglages et son canal de mise à jour (préfixe de tag).
+        include:
+          - name: Windows (MSVC)
+            os: windows-latest
+            generator: ''
+            edition: 'OFF'
+            iss_edition: classique
+            exe: StudioVoix
+            setup: StudioVoix-Setup
+            dir: StudioVoix
+            data: StudioVoix
+            tag: studiovoix-build
+            title: StudioVoix build
+            latest: '--latest'
+          - name: Windows IA (MSVC)
+            os: windows-latest
+            generator: ''
+            edition: 'ON'
+            iss_edition: IA
+            exe: StudioVoixIA
+            setup: StudioVoixIA-Setup
+            dir: StudioVoix IA
+            data: StudioVoix IA
+            tag: studiovoix-ia-build
+            title: StudioVoix IA build
+            latest: '--latest=false'
+          - name: Linux (GCC)
+            os: ubuntu-24.04
+            generator: '-G Ninja'
+            edition: 'OFF'
+            iss_edition: classique
+            exe: StudioVoix
+            setup: StudioVoix-Setup
+            dir: StudioVoix
+            data: StudioVoix
+            tag: studiovoix-build
+            title: StudioVoix build
+            latest: '--latest'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: write   # publication de la release (mise à jour automatique depuis le programme)
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Dépendances Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build libasound2-dev libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxcomposite-dev libxext-dev libxi-dev libfreetype-dev libfontconfig1-dev xvfb
+
+      - name: Configuration
+        run: cmake -S studiovoix -B build ${{ matrix.generator }} -DCMAKE_BUILD_TYPE=Release -DSV_BUILD_APP=${{ env.SV_BUILD_APP }} -DSV_BUILD_NUMBER=${{ github.run_number }} -DSV_EDITION_IA=${{ matrix.edition }}
+        env:
+          SV_BUILD_APP: ON
+
+      - name: Compilation
+        run: cmake --build build --config Release --parallel
+
+      - name: Tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Auto-test de l'application (Linux, écran virtuel)
+        if: runner.os == 'Linux'
+        run: |
+          ./build/studiovoix_cli_artefacts/Release/studiovoix_cli demo --style trap -o demo
+          xvfb-run -a ./build/StudioVoix_artefacts/Release/${{ matrix.exe }} --selftest demo/demo_instru.wav demo/demo_voix_brute.wav
+          grep AUTOTEST ~/.config/"${{ matrix.data }}"/logs/*.log
+
+      - name: Auto-test de l'application (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & build\studiovoix_cli_artefacts\Release\studiovoix_cli.exe demo --style trap -o demo
+          $p = Start-Process -FilePath build\StudioVoix_artefacts\Release\${{ matrix.exe }}.exe -ArgumentList '--selftest','demo\demo_instru.wav','demo\demo_voix_brute.wav' -Wait -PassThru
+          Get-Content "$env:APPDATA\${{ matrix.data }}\logs\*.log" | Select-String AUTOTEST
+          exit $p.ExitCode
+
+      - name: Empreintes des outils d'IA locale (téléchargement réel, à épingler dans LocalTools.cpp)
+        if: matrix.edition == 'ON' || runner.os == 'Linux'
+        continue-on-error: true
+        shell: bash
+        run: |
+          ./build/studiovoix_cli_artefacts/Release/studiovoix_cli outils-empreintes --dossier "$RUNNER_TEMP/sv_outils" || echo "relevé incomplet (voir ci-dessus)"
+
+      - name: Essai réel des outils d'IA locale (deep-filter, whisper-cli, demucs_mt sur la démo)
+        if: matrix.edition == 'ON' && runner.os == 'Windows'
+        shell: bash
+        run: |
+          # Les outils ont été téléchargés par l'étape précédente ; on les exécute vraiment sur la voix et l'instru de démo.
+          ./build/studiovoix_cli_artefacts/Release/studiovoix_cli outils-essai --dossier "$RUNNER_TEMP/sv_outils" \
+            --voix demo/demo_voix_brute.wav --instru demo/demo_instru.wav --sortie "$RUNNER_TEMP/sv_essai"
+
+      - name: Artefact de l'essai IA (voix nettoyée, parties Demucs)
+        if: matrix.edition == 'ON' && runner.os == 'Windows'
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: essai-ia
+          path: ${{ runner.temp }}/sv_essai/*.wav
+          if-no-files-found: warn
+
+      - name: Demucs (demucs.cpp) — compilation expérimentale pour l'édition IA
+        if: matrix.edition == 'ON'
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          # L'empreinte du binaire est épinglée dans LocalTools.cpp : on ne recompile (et ne republie) que si l'asset
+          # manque dans la release « outils-ia » ou si le message de commit contient [demucs] (penser alors à
+          # ré-épingler taille et SHA-256 affichés par l'étape de publication). Si GitHub ne répond pas (403
+          # intermittents, build 65), on considère l'asset présent : ne jamais écraser un binaire épinglé par erreur.
+          # Attention : le marqueur est cherché tel quel dans tout le message — ne pas l'écrire dans un commit ordinaire
+          # (le build 69 a republié le binaire parce que son message décrivait la règle).
+          present=inconnu
+          for i in 1 2 3; do
+            if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
+              present=non; grep -qx "demucs_mt.exe" <<< "$names" && grep -qx "demucs_mt_avx2.exe" <<< "$names" && present=oui; break
+            elif grep -qi "not found" <<< "$names"; then
+              present=non; break
+            fi
+            echo "gh release view outils-ia : échec (essai $i/3) : $names"; sleep 15
+          done
+          echo "asset demucs_mt.exe présent : $present"
+          if [[ "$present" != "non" && "$COMMIT_MESSAGE" != *"[demucs]"* ]]; then
+            echo "demucs_mt.exe déjà publié (ou état inconnu) et pas de [demucs] dans le commit : compilation sautée"
+            exit 0
+          fi
+          # Le CMakeLists de demucs.cpp est écrit pour GCC (-Wall -Wextra, -Ofast -march=native, OpenBLAS par défaut) :
+          # MSVC refuse ces drapeaux (build 59). On compile donc avec le GCC MinGW de l'image Windows, OpenMP seul
+          # (sans BLAS), binaire statique (aucune DLL à livrer) et jeu d'instructions générique x86-64-v2 au lieu de
+          # « native » (sinon le binaire ne tournerait que sur un processeur identique à celui de la CI).
+          # Shell bash + Ninja : PowerShell coupait « =3.5 » en deux arguments (build 60) et le générateur MinGW
+          # Makefiles refuse un sh.exe dans le PATH.
+          gcc --version
+          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/sevagh/demucs.cpp demucs-src
+          # Deux variantes : x86-64-v2 (tout processeur depuis ~2009) et x86-64-v3 (AVX2, ~2× plus rapide avec Eigen) ;
+          # le programme choisit selon le processeur (juce::SystemStats::hasAVX2).
+          sed -i 's/-march=native/-march=x86-64-v2 -mtune=generic/' demucs-src/CMakeLists.txt
+          grep -n "march" demucs-src/CMakeLists.txt
+          # libnyquist/wavpack appelle l'intrinsèque MSVC _BitScanReverse sous _WIN32 sans inclure <intrin.h> (GCC MinGW
+          # le fournit dans cet en-tête) : erreur « implicit declaration » au build 61.
+          sed -i '1i #include <intrin.h>' demucs-src/vendor/libnyquist/third_party/wavpack/src/wavpack_local.h
+          head -3 demucs-src/vendor/libnyquist/third_party/wavpack/src/wavpack_local.h
+          # Sous Windows std::filesystem::path ne se convertit pas implicitement en std::string (build 63).
+          sed -i 's/write_audio_file(target_waveform, p_target);/write_audio_file(target_waveform, p_target.string());/' demucs-src/cli-apps/demucs_mt.cpp
+          grep -n "p_target.string" demucs-src/cli-apps/demucs_mt.cpp
+          for variant in v2 v3; do
+            sed -i "s/-march=x86-64-v[23]/-march=x86-64-$variant/" demucs-src/CMakeLists.txt
+            cmake -S demucs-src -B "demucs-build-$variant" -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" \
+              -DUSE_OPENBLAS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+              "-DCMAKE_EXE_LINKER_FLAGS=-static -static-libgcc -static-libstdc++"
+            cmake --build "demucs-build-$variant" --parallel --target demucs_mt.cpp.main
+          done
+          find demucs-build-v2 demucs-build-v3 -name "*.exe" -o -name "*.dll" | xargs ls -l
+
+      - name: Artefact Demucs (expérimental)
+        if: matrix.edition == 'ON'
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: demucs-experimental
+          path: |
+            demucs-build-*/demucs_mt.cpp.main.exe
+          if-no-files-found: warn
+
+      - name: Publication de l'outil Demucs (release « outils-ia », téléchargée par l'onglet IA locale)
+        if: matrix.edition == 'ON' && github.event_name == 'push'
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ ! -f demucs-build-v2/demucs_mt.cpp.main.exe ] || [ ! -f demucs-build-v3/demucs_mt.cpp.main.exe ]; then
+            echo "binaires Demucs incomplets : rien à publier"; exit 0
+          fi
+          cp demucs-build-v2/demucs_mt.cpp.main.exe demucs_mt.exe
+          cp demucs-build-v3/demucs_mt.cpp.main.exe demucs_mt_avx2.exe
+          ls -l demucs_mt.exe demucs_mt_avx2.exe
+          sha256sum demucs_mt.exe demucs_mt_avx2.exe
+          # Jamais d'écrasement d'un asset existant sans [demucs] dans le commit : l'empreinte est épinglée dans le
+          # programme (le binaire MinGW n'est pas reproductible à l'octet). État inconnu (gh en échec) = on ne publie pas.
+          present=inconnu
+          for i in 1 2 3; do
+            if names=$(gh release view outils-ia --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>&1); then
+              present=non; grep -qx "demucs_mt.exe" <<< "$names" && grep -qx "demucs_mt_avx2.exe" <<< "$names" && present=oui; break
+            elif grep -qi "not found" <<< "$names"; then
+              present=release-absente; break
+            fi
+            echo "gh release view outils-ia : échec (essai $i/3) : $names"; sleep 15
+          done
+          echo "asset demucs_mt.exe présent : $present"
+          if [[ "$present" == "inconnu" ]]; then echo "état de la release inconnu : publication sautée par prudence"; exit 0; fi
+          if [[ "$present" == "oui" && "$COMMIT_MESSAGE" != *"[demucs]"* ]]; then echo "asset déjà publié, non remplacé (forcer avec [demucs] et ré-épingler l'empreinte)"; exit 0; fi
+          if [[ "$present" == "release-absente" ]]; then
+            gh release create outils-ia --repo "$GITHUB_REPOSITORY" --title "Outils IA locale (binaires compilés par la CI)" \
+              --notes "demucs_mt.exe : demucs.cpp (licence MIT, https://github.com/sevagh/demucs.cpp) compilé avec GCC MinGW, statique, x86-64-v2. Téléchargé par StudioVoix IA (onglet IA locale)." \
+              --latest=false
+          fi
+          gh release upload outils-ia demucs_mt.exe demucs_mt_avx2.exe --repo "$GITHUB_REPOSITORY" --clobber
+          echo "PUBLIÉ : ré-épingler dans LocalTools.cpp les tailles et SHA-256 ci-dessus (deux variantes)"
+
+      - name: Journal des tests
+        if: always()
+        shell: bash
+        run: |
+          for f in "$APPDATA/${{ matrix.data }}/logs/cli.log" "$HOME/.config/${{ matrix.data }}/logs/cli.log"; do
+            if [ -f "$f" ]; then tail -n 200 "$f"; fi
+          done
+
+      - name: Installateur Windows (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python studiovoix/installer/md_to_html.py studiovoix/README.md build/installer-staging/LISEZMOI.html
+          if ($LASTEXITCODE -ne 0) { throw "conversion du README : code $LASTEXITCODE" }
+          python studiovoix/installer/md_to_html.py studiovoix/docs/GUIDE_MATERIEL.md build/installer-staging/docs/GUIDE_MATERIEL.html
+          if ($LASTEXITCODE -ne 0) { throw "conversion du guide : code $LASTEXITCODE" }
+          New-Item -ItemType Directory -Force build/installer-staging/docs/img | Out-Null
+          Copy-Item studiovoix/docs/img/*.svg build/installer-staging/docs/img/
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $c = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'; if (Test-Path $c) { $iscc = $c } }
+          if (-not $iscc) {
+            Write-Host "Inno Setup absent de l'image : installation de la version 6.7.1 (Chocolatey)"
+            choco install innosetup --version=6.7.1 -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "installation d'Inno Setup : code $LASTEXITCODE" }
+            $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          }
+          Write-Host "ISCC : $iscc"
+          $build = (Resolve-Path build).Path
+          & $iscc "/DAppVersion=0.1.0-build${{ github.run_number }}" "/DBuildDir=$build" "/DStagingDir=$build\installer-staging" "/DEdition=${{ matrix.iss_edition }}" studiovoix/installer/StudioVoix.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC : code $LASTEXITCODE" }
+          Get-ChildItem build/installer
+
+      - name: Vérification de l'installateur (installation silencieuse)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Get-ChildItem build/installer/${{ matrix.setup }}-*.exe | Select-Object -First 1).FullName
+          $p = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER','/LOG=install.log' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 40; throw "installation : code $($p.ExitCode)" }
+          $inst = Join-Path $env:LOCALAPPDATA 'Programs\${{ matrix.dir }}'
+          foreach ($f in '${{ matrix.exe }}.exe','studiovoix_cli.exe','LISEZMOI.html','docs\GUIDE_MATERIEL.html','docs\img\montage_micro_usb.svg','unins000.exe') {
+            if (-not (Test-Path (Join-Path $inst $f))) { throw "fichier manquant après installation : $f" }
+          }
+          & (Join-Path $inst 'studiovoix_cli.exe') test
+          if ($LASTEXITCODE -ne 0) { throw "tests depuis le dossier installé : code $LASTEXITCODE" }
+
+          # Mise à jour comme depuis le bouton du programme : installateur lancé pendant que le programme tourne,
+          # il doit attendre sa fermeture (verrou nommé), installer par-dessus, puis relancer le programme.
+          $exe = Join-Path $inst '${{ matrix.exe }}.exe'
+          $app = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 8
+          if ($app.HasExited) { throw "le programme s'est fermé tout seul au démarrage (code $($app.ExitCode))" }
+          $upd = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/CLOSEAPPLICATIONS','/RELANCER=1','/CURRENTUSER','/LOG=update.log' -PassThru
+          Start-Sleep -Seconds 4
+          if ($upd.HasExited) { Get-Content update.log -Tail 40; throw "l'installateur n'a pas attendu la fermeture du programme" }
+          [void]$app.CloseMainWindow()
+          if (-not $app.WaitForExit(15000)) { Stop-Process -Id $app.Id -Force; Write-Host "fermeture forcée du programme" }
+          if (-not $upd.WaitForExit(120000)) { throw "mise à jour : délai dépassé" }
+          if ($upd.ExitCode -ne 0) { Get-Content update.log -Tail 40; throw "mise à jour : code $($upd.ExitCode)" }
+          Select-String -Path update.log -Pattern 'attente de la fermeture' | ForEach-Object { Write-Host $_.Line }
+          $relaunched = $null
+          for ($i = 0; $i -lt 30 -and -not $relaunched; $i++) { Start-Sleep -Seconds 1; $relaunched = Get-Process -Name ${{ matrix.exe }} -ErrorAction SilentlyContinue }
+          if (-not $relaunched) { Get-Content update.log -Tail 40; throw "le programme n'a pas été relancé après la mise à jour" }
+          Write-Host "Mise à jour par-dessus + relance OK (PID $($relaunched.Id))"
+          $relaunched | ForEach-Object { [void]$_.CloseMainWindow() }
+          Start-Sleep -Seconds 5
+          Get-Process -Name ${{ matrix.exe }} -ErrorAction SilentlyContinue | Stop-Process -Force
+          $u = Start-Process -FilePath (Join-Path $inst 'unins000.exe') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          if ($u.ExitCode -ne 0) { throw "désinstallation : code $($u.ExitCode)" }
+          Write-Host "Installation, tests et désinstallation OK"
+
+      - name: Artefact Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.exe }}-Windows
+          path: |
+            build/StudioVoix_artefacts/Release/${{ matrix.exe }}.exe
+            build/studiovoix_cli_artefacts/Release/studiovoix_cli.exe
+          if-no-files-found: warn
+
+      - name: Artefact installateur Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.setup }}
+          path: build/installer/${{ matrix.setup }}-*.exe
+          if-no-files-found: error
+
+      - name: Publication de la mise à jour (release GitHub, lue par le bouton « Mise à jour »)
+        if: runner.os == 'Windows' && github.event_name == 'push'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Get-ChildItem build/installer/${{ matrix.setup }}-*.exe | Select-Object -First 1).FullName
+          $tag = "${{ matrix.tag }}${{ github.run_number }}"
+          git log -1 --format=%B | Out-File -Encoding utf8 notes.md
+          # GitHub répond parfois « HTTP 403: Resource not accessible by integration » de façon intermittente (builds 61,
+          # 62, 65, sans changement de permissions) : jusqu'à 4 essais espacés de 30 s ; si la release existe déjà
+          # (création réussie mais envoi interrompu), on complète l'asset au lieu de recréer.
+          $ok = $false
+          for ($i = 1; $i -le 4; $i++) {
+            gh release view $tag --repo "${{ github.repository }}" *> $null
+            if ($LASTEXITCODE -eq 0) {
+              gh release upload $tag $setup --repo "${{ github.repository }}" --clobber
+            } else {
+              gh release create $tag $setup --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "${{ matrix.title }} ${{ github.run_number }}" --notes-file notes.md ${{ matrix.latest }}
+            }
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Write-Host "publication de la release : code $LASTEXITCODE (essai $i/4), nouvel essai dans 30 s"
+            Start-Sleep -Seconds 30
+          }
+          if (-not $ok) { throw "publication de la release : échec après 4 essais" }
+          gh release view $tag --repo "${{ github.repository }}" --json tagName,assets --jq '.tagName + " : " + (.assets | map(.name + " (" + (.size|tostring) + " octets)") | join(", "))'
