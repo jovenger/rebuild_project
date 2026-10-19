@@ -46,4 +46,10 @@ style::VocalParams correctionParams (TrackProblems& problems, bool vocal);
 
 /** Résumé lisible (défauts puis corrections). */
 juce::String describeProblems (const TrackProblems& p);
+
+/** Ingénieur du son : adapte les réglages d'un style aux mesures de la prise (dynamique, sifflantes, boue, dureté,
+    bruit, résonances, écrêtage) et au tempo. Le style donne le caractère (attaque, relâchement, couleur, quantité de
+    réverb / délai) ; la mesure donne les valeurs (ratio et seuil du compresseur, de-esser, EQ corrective, niveleur,
+    saturation, pré-délai). Retourne les lignes lisibles (« compresseur 3:1 … (dynamique mesurée 8 dB) »). */
+juce::StringArray fitStyleToMeasurement (style::VocalParams& v, const TrackProblems& p, double bpm);
 } // namespace sv::dsp

@@ -174,6 +174,17 @@ seul ensemble au lieu de pistes posées côte à côte. Le rattrapage de gain é
 auto, donc l'équilibre voix / instru ne bouge pas. Le même compresseur sert à la lecture (bloc par bloc, état conservé) et
 à l'export ; les pistes séparées (stems) n'y passent pas.
 
+**Ingénieur du son à chaque prise** : quand un style est appliqué, la prise est **mesurée** (dynamique, sifflantes,
+boue 200–400 Hz, dureté 2,5–5 kHz, bruit de fond, résonances, écrêtage) et les valeurs du style en découlent : ratio et
+seuil du compresseur selon la dynamique mesurée (prise déjà régulière → compression légère, second compresseur retiré ;
+prise très dynamique → ratio du style), de-esser dosé sur les sifflantes, EQ corrigée de la boue / dureté en trop ou en
+moins, niveleur ±2 à ±6 dB, résonances rabaissées à la mesure, saturation réduite sur une prise dure ou écrêtée,
+débruitage dosé sur le bruit, pré-délai de réverb calé sur le tempo. Le style garde son caractère (attaque, relâchement,
+couleur, quantité de réverb / délai). Le panneau Piste affiche les valeurs réellement utilisées dans la chaîne et la
+ligne « Réglé d'après la mesure de la prise : … ». L'instru posée est analysée aussi (écrêtage, bruit, niveau
+irrégulier, résonances, boue, dureté) et le résultat affiché dans son panneau, mais elle n'est **pas modifiée** :
+« Style : Correction automatique » pour la réparer.
+
 **Corrections automatiques, pas des avertissements** : l'ingénieur du son **corrige** d'abord — écrêtage de la source
 réparé (dé-écrêtage), montées en flèche rabaissées (niveleur), piste plus forte que la voix principale ramenée en place
 (orchestre), gamme adaptée à la voix — et le panneau « Piste » liste ce qui a été fait (« Corrigé automatiquement : … »).

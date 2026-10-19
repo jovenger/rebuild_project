@@ -216,6 +216,17 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
             r->problemsReport = dsp::describeProblems (problems) + "\nRéparation : "_u8 + rep.summary().replace ("\n", " ; ");
             SV_LOG_INFO (kMod, "Instru « "_u8 + t.name + " » : correction automatique — "_u8 + r->problemsReport.replace ("\n", " | "));
         }
+        else
+        {
+            // Instru jouée telle quelle : analysée quand même (écrêtage, bruit, niveau irrégulier, résonances, boue, dureté)
+            // pour le signaler ; la correction ne s'applique que sur demande.
+            log::ScopedTimer at (kMod, "analyse de l'instru (non modifiée)"_u8);
+            const auto problems = dsp::analyzeTrackProblems (audio::toMono (r->raw), p.sampleRate, ctx.key, false);
+            r->problemsReport = "Instru analysée, jouée telle quelle — "_u8
+                                + (problems.found.isEmpty() ? juce::String ("aucun défaut notable"_u8) : problems.found.joinIntoString (" ; "))
+                                + (problems.found.isEmpty() ? juce::String() : juce::String (". « Style : Correction automatique » pour la réparer."_u8));
+            SV_LOG_INFO (kMod, "Instru « "_u8 + t.name + " » : " + r->problemsReport);
+        }
         applyTrackPlugins (p, t, *r);
         return r;
     }
@@ -278,8 +289,21 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
                 SV_LOG_WARN (kMod, "Piste « "_u8 + t.name + " » : " + r->problemsReport);
             }
         }
+        if (! t.isGenerated())
+        {
+            // Ingénieur du son : la prise est mesurée (dynamique, sifflantes, boue, dureté, bruit, résonances, écrêtage)
+            // et les valeurs du style en découlent ; le style garde son caractère. Les pistes générées viennent d'une
+            // voix déjà traitée : elles gardent la variante du style telle quelle.
+            log::ScopedTimer at (kMod, "mesure de la prise « "_u8 + t.name + " »"_u8);
+            const auto problems = dsp::analyzeTrackProblems (raw, p.sampleRate, ctx.key, t.isVoice());
+            r->fitNotes = dsp::fitStyleToMeasurement (params, problems, ctx.tempo.bpm);
+            const auto measured = "Mesuré sur la prise : "_u8 + (problems.found.isEmpty() ? juce::String ("aucun défaut notable"_u8) : problems.found.joinIntoString (" ; "));
+            r->problemsReport = r->problemsReport.isEmpty() ? measured : r->problemsReport + "\n" + measured;
+        }
     }
     params.referenceEq = t.referenceEq;
+    r->paramsUsed = params;   // avant les cases réglées à la main : « revenir au réglage du style » retombe sur ces valeurs
+    r->paramsStyle = static_cast<int> (p.trackStyle (t));
     if (! t.stages.empty())
     {
         // Chaîne visible : les cases contournées ou réglées à la main s'appliquent par-dessus le style / la correction.

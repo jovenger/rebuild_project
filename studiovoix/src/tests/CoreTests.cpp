@@ -1626,6 +1626,41 @@ public:
             expect (repHeld.meanReductionDb < 1.5f, "harmoniques fixes : réduction moyenne "_u8 + juce::String (repHeld.meanReductionDb, 2) + " dB");
         }
 
+        beginTest ("Ingenieur du son : reglages du style ajustes a la mesure de la prise");
+        {
+            dsp::TrackProblems flat;        // prise déjà régulière, propre
+            flat.vocal = true;
+            flat.levelRangeDb = 3.0f;
+            flat.noiseFloorDb = -70.0f;
+            flat.sibilanceDb = -12.0f;
+            dsp::TrackProblems wild;        // prise très dynamique, sifflante, boueuse, dure, bruyante, écrêtée
+            wild.vocal = true;
+            wild.levelRangeDb = 16.0f;
+            wild.noiseFloorDb = -40.0f;
+            wild.sibilanceDb = 4.0f;
+            wild.mudExcessDb = 4.0f;
+            wild.harshExcessDb = 3.0f;
+            wild.clippedSamples = 50;
+            wild.resonanceDb = 5.0f;
+            const auto base = style::makeParams (style::Style::Trap, style::Role::Lead, {}, true);
+            auto a = base;
+            const auto notesA = dsp::fitStyleToMeasurement (a, flat, 140.0);
+            auto b = base;
+            const auto notesB = dsp::fitStyleToMeasurement (b, wild, 140.0);
+            expect (a.comp.ratio <= 2.0f && a.comp.ratio < b.comp.ratio, "prise régulière : compression légère ("_u8 + juce::String (a.comp.ratio, 1) + ":1 contre " + juce::String (b.comp.ratio, 1) + ":1)");
+            expect (std::abs (b.comp.ratio - base.comp.ratio) < 0.01f, "prise très dynamique : ratio du style conservé"_u8);
+            expect (a.comp.thresholdDb > b.comp.thresholdDb, "seuil plus haut sur la prise régulière"_u8);
+            expect (a.comp2.ratio <= 1.0f && b.comp2.ratio > 1.0f, "second compresseur retiré seulement sur la prise régulière"_u8);
+            expect (b.deEss.amount > a.deEss.amount && b.deEss.amount > base.deEss.amount, "de-esser dosé sur les sifflantes mesurées"_u8);
+            expect (b.eq.mudDb <= -4.0f && b.eq.presenceDb < base.eq.presenceDb, "EQ corrigée de la boue et de la dureté mesurées"_u8);
+            expect (b.sat.mix < base.sat.mix, "saturation réduite sur une prise écrêtée"_u8);
+            expect (b.resonance.maxReductionDb > base.resonance.maxReductionDb, "résonances rabaissées à la mesure"_u8);
+            expect (b.clean.denoiseDb > a.clean.denoiseDb, "débruitage dosé sur le bruit de fond"_u8);
+            expect (std::abs (a.reverb.preDelayMs - 53.0f) < 1.0f, "pré-délai calé sur le tempo (140 BPM → 54 ms) : "_u8 + juce::String (a.reverb.preDelayMs, 1));
+            expect (std::abs (a.comp.attackMs - base.comp.attackMs) < 0.01f && std::abs (a.comp.releaseMs - base.comp.releaseMs) < 0.01f, "caractère du style conservé (attaque / relâchement)"_u8);
+            expect (! notesA.isEmpty() && notesB.size() > notesA.size(), "lignes lisibles : " + notesB.joinIntoString (" ; "));
+        }
+
         beginTest ("Analyse : montee brusque signalee, correction avec niveleur");
         {
             Mono y (static_cast<size_t> (kSr) * 8);

@@ -500,6 +500,8 @@ void RemixPanel::refresh()
             auto manual = chainParams (*t, false);
             txt << "\nChaîne réglée à la main : "_u8 << plugins::applyStageOverrides (t->stages, manual);
         }
+        if (auto r = session.renderFor (shownTrack); r != nullptr && ! r->fitNotes.isEmpty())
+            txt << "\nRéglé d'après la mesure de la prise : "_u8 << r->fitNotes.joinIntoString (" ; ");
         if (auto r = session.renderFor (shownTrack); r != nullptr && r->problemsReport.isNotEmpty())
             txt << "\n" << r->problemsReport;
     }
@@ -519,9 +521,13 @@ void RemixPanel::paint (juce::Graphics& g)
 
 style::VocalParams RemixPanel::chainParams (const project::Track& t, bool withOverrides) const
 {
-    auto p = style::makeParams (session.project().trackStyle (t), t.role, t.macros, ! t.isGenerated());
+    const auto st = session.project().trackStyle (t);
+    auto p = style::makeParams (st, t.role, t.macros, ! t.isGenerated());
     p.timing.strength = t.timingStrength;
     p.clean.enabled = t.cleaning;
+    // Piste rendue avec ce style : les valeurs affichées sont celles réellement utilisées (style ajusté à la mesure de la prise).
+    if (auto r = session.renderFor (t.id); r != nullptr && r->ok() && ! t.raw && ! t.isCorrection() && r->paramsStyle == static_cast<int> (st))
+        p = r->paramsUsed;
     if (withOverrides && ! t.stages.empty())
         plugins::applyStageOverrides (t.stages, p);
     return p;

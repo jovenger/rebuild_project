@@ -40,6 +40,11 @@ comment les automatismes doivent être faits, ordre proposé.
   abstraits et « Mon son » retirés du panneau Piste (plus de preset de curseurs réappliqué aux nouvelles pistes ni au
   changement de style) ; la chaîne réelle du style (niveleur, résonances, compresseur, de-esser, saturation, réverb,
   délai…) passe en premier, une ligne par effet avec ses réglages, clic = régler, clic droit = désactiver.
+- Fait (build 81), demande « est-ce que le programme étudie le son à la fin d'un enregistrement ? » : oui désormais —
+  dsp::fitStyleToMeasurement : la prise est mesurée (analyzeTrackProblems) et les valeurs du style en découlent
+  (compresseur, second compresseur, niveleur, résonances, EQ, saturation, de-esser, débruitage, pré-délai) ; valeurs
+  réellement utilisées affichées dans la chaîne (TrackRender::paramsUsed) + ligne « Réglé d'après la mesure » ; instru
+  brute analysée et rapport affiché, sans modification. Test unitaire ajouté.
 - À vérifier avec Yann : quels styles « défaussent » la voix (trop compressé ? saturé ? trop de réverb ?) pour ajuster
   le preset de ce style (valeurs dans StyleProfiles.cpp, cases du panneau Piste).
 - Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans

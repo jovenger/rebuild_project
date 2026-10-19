@@ -310,6 +310,116 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
     return v;
 }
 
+juce::StringArray fitStyleToMeasurement (style::VocalParams& v, const TrackProblems& p, double bpm)
+{
+    juce::StringArray n;
+    const float dyn = p.levelRangeDb;   // étendue du niveau court terme (P90 - P10) : la dynamique de la prise
+
+    // Compresseur principal : le ratio du style est un maximum, atteint pour une prise très dynamique (14 dB et plus) ;
+    // une prise déjà régulière (4 dB) ne reçoit qu'un contrôle léger. Le seuil suit : plus haut si régulière, plus bas
+    // si la dynamique est grande. Attaque et relâchement (le caractère du style) ne bougent pas.
+    if (v.comp.ratio > 1.0f)
+    {
+        const float styleRatio = v.comp.ratio;
+        const float t = juce::jlimit (0.0f, 1.0f, (dyn - 4.0f) / 10.0f);
+        v.comp.ratio = juce::jlimit (1.5f, std::max (1.5f, styleRatio), 1.5f + (styleRatio - 1.5f) * t);
+        v.comp.thresholdDb = juce::jlimit (-30.0f, -10.0f, v.comp.thresholdDb + (10.0f - dyn) * 0.4f);
+        n.add ("compresseur "_u8 + juce::String (v.comp.ratio, 1) + ":1, seuil " + juce::String (juce::roundToInt (v.comp.thresholdDb)) + " dB (dynamique mesurée "_u8
+               + juce::String (juce::roundToInt (dyn)) + " dB)");
+    }
+    if (v.comp2.ratio > 1.0f && dyn < 5.0f)
+    {
+        v.comp2.ratio = 1.0f;
+        n.add ("second compresseur retiré (prise déjà régulière)"_u8);
+    }
+
+    // Niveleur : amplitude de correction selon la dynamique ; montées en flèche mesurées → baisse autorisée adaptée.
+    if (v.leveler.enabled)
+    {
+        const float range = dyn > 12.0f ? 6.0f : dyn < 6.0f ? 2.0f : 4.0f;
+        v.leveler.maxBoostDb = range;
+        v.leveler.maxCutDb = range;
+        float worstSurge = 0.0f;
+        for (const auto& su : p.surges)
+            worstSurge = std::max (worstSurge, su.overDb);
+        if (worstSurge > 0.0f)
+            v.leveler.surgeCutDb = juce::jlimit (6.0f, 18.0f, worstSurge + 2.0f);
+        n.add ("niveleur ±"_u8 + juce::String (juce::roundToInt (range)) + " dB" + (p.surges.empty() ? juce::String() : ", "_u8 + juce::String (static_cast<int> (p.surges.size())) + " montée(s) rabaissée(s)"_u8));
+    }
+
+    // Résonances : rabaissées à la mesure (le style n'en met que 3 dB par défaut).
+    if (p.resonanceDb >= 3.0f)
+    {
+        v.resonance.enabled = true;
+        v.resonance.maxReductionDb = juce::jlimit (3.0f, 6.0f, 1.5f + p.resonanceDb);
+        n.add ("résonances mesurées +"_u8 + juce::String (p.resonanceDb, 1) + " dB : rabaissées jusqu'à -"_u8 + juce::String (juce::roundToInt (v.resonance.maxReductionDb)) + " dB"_u8);
+    }
+
+    // EQ : la couleur du style reste, corrigée de ce que la prise a en trop ou en moins (boue 200-400 Hz, dureté 2,5-5 kHz).
+    if (p.mudExcessDb >= 1.0f)
+    {
+        v.eq.mudDb = std::min (v.eq.mudDb, -std::min (6.0f, p.mudExcessDb));
+        n.add ("bas-médium "_u8 + db1 (v.eq.mudDb) + " (boue mesurée +"_u8 + juce::String (p.mudExcessDb, 1) + " dB)");
+    }
+    else if (p.mudExcessDb <= -2.0f && v.eq.mudDb < 0.0f)
+    {
+        v.eq.mudDb = std::min (0.0f, v.eq.mudDb + 1.5f);
+        n.add ("bas-médium moins creusé ("_u8 + db1 (v.eq.mudDb) + ", voix fine)"_u8);
+    }
+    if (p.harshExcessDb >= 1.0f)
+    {
+        v.eq.presenceDb = std::max (-4.0f, v.eq.presenceDb - std::min (5.0f, p.harshExcessDb));
+        n.add ("présence "_u8 + db1 (v.eq.presenceDb) + " (dureté mesurée +"_u8 + juce::String (p.harshExcessDb, 1) + " dB)");
+    }
+    else if (p.harshExcessDb <= -2.0f)
+    {
+        v.eq.presenceDb += 1.5f;
+        n.add ("présence "_u8 + db1 (v.eq.presenceDb) + " (voix sourde)"_u8);
+    }
+
+    // Saturation : une prise dure ou déjà écrêtée sature mal → dosée plus bas.
+    if (v.sat.mix > 0.0f && (p.harshExcessDb >= 2.0f || p.clippedSamples > 0))
+    {
+        v.sat.driveDb = std::max (0.0f, v.sat.driveDb - 3.0f);
+        v.sat.mix *= 0.6f;
+        n.add ("saturation réduite ("_u8 + db1 (v.sat.driveDb) + ", " + juce::String (juce::roundToInt (v.sat.mix * 100.0f)) + " %) : "
+               + (p.clippedSamples > 0 ? "prise écrêtée à la source"_u8 : "prise dure"_u8));
+    }
+
+    // De-esser : dosé sur les sifflantes mesurées (5-9 kHz par rapport à 1-4 kHz).
+    if (p.vocal && v.deEss.amount > 0.0f)
+    {
+        const float before = v.deEss.amount;
+        v.deEss.amount = p.sibilanceDb < -8.0f ? juce::jlimit (0.1f, 0.9f, before * 0.5f)
+                                               : juce::jlimit (0.2f, 0.9f, before + p.sibilanceDb * 0.06f);
+        if (std::abs (v.deEss.amount - before) >= 0.05f)
+            n.add ("de-esser "_u8 + juce::String (juce::roundToInt (v.deEss.amount * 100.0f)) + " % (sifflantes mesurées "_u8 + db1 (p.sibilanceDb) + ")");
+    }
+
+    // Nettoyage : débruitage et porte dosés sur le bruit de fond mesuré.
+    if (v.clean.enabled)
+    {
+        v.clean.denoiseDb = p.noiseFloorDb > -45.0f ? 20.0f : (p.noiseFloorDb > -60.0f ? 14.0f : 8.0f);
+        v.clean.gateRangeDb = p.noiseFloorDb > -45.0f ? 18.0f : (p.noiseFloorDb > -60.0f ? 10.0f : 4.0f);
+        n.add ("débruitage -"_u8 + juce::String (juce::roundToInt (v.clean.denoiseDb)) + " dB (bruit de fond mesuré "_u8 + juce::String (juce::roundToInt (p.noiseFloorDb)) + " dBFS)");
+    }
+
+    // Réverb : pré-délai calé sur le tempo (une triple croche, 15-60 ms), envoi réduit si la prise est bruyante (la réverb étale le bruit).
+    if (v.reverb.send > 0.0f && bpm > 40.0)
+    {
+        v.reverb.preDelayMs = juce::jlimit (15.0f, 60.0f, static_cast<float> (60000.0 / bpm / 8.0));
+        juce::String line = "réverb pré-délai "_u8 + juce::String (juce::roundToInt (v.reverb.preDelayMs)) + " ms (tempo " + juce::String (juce::roundToInt (bpm)) + ")";
+        if (p.noiseFloorDb > -45.0f)
+        {
+            v.reverb.send *= 0.8f;
+            line << ", envoi réduit (prise bruyante)"_u8;
+        }
+        n.add (line);
+    }
+    SV_LOG_INFO (kMod, "Réglages du style ajustés à la mesure : "_u8 + n.joinIntoString (" ; "));
+    return n;
+}
+
 juce::String describeProblems (const TrackProblems& p)
 {
     juce::String s;
