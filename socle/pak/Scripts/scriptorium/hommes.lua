@@ -4147,6 +4147,16 @@ function hommes.lacher_un_personnage(personnage, regle)
   if not f then
     return true
   end
+  -- Vu sur une copie de la partie de JoVenGer le 19/10 : la dernière tenue lâchée, hommes.lacher donnait encore un ordre
+  -- « attendre » à un personnage que Scriptorium venait de faire disparaître (« introuvable ») : sans plus aucune tenue,
+  -- il n'est plus mené, sans ordre.
+  if f.tenues and f.tenues[regle] and next(f.tenues, nil) == regle and next(f.tenues, regle) == nil then
+    d.menes[id] = nil
+    hommes.suivi[id] = nil
+    enregistrer()
+    jeu().journal("Hommes : « " .. tostring(personnage) .. " » n'est plus mené")
+    return true
+  end
   local ok, raison = hommes.lacher(id, regle)
   if next(f.tenues or {}) == nil then
     d.menes[id] = nil
@@ -4189,7 +4199,14 @@ function hommes.mener_le_personnel(d, heure, rapport)
           if rapport then rapport.changements = rapport.changements + 1 end
         end
       end
-      ordonner_un_homme(d, id, heure, rapport, true)
+      -- Sans plus aucune tenue (toutes échues), il n'est plus mené, sans ordre.
+      if next(f.tenues) == nil then
+        jeu().journal("Hommes : « " .. f.personnage .. " » n'est plus mené (tenues échues)")
+        d.menes[id] = nil
+        hommes.suivi[id] = nil
+      else
+        ordonner_un_homme(d, id, heure, rapport, true)
+      end
     end
   end
 end

@@ -215,3 +215,9 @@ Comportement :
 - `hommes.personnel_mene()` : la liste des personnages menés.
 - Au battement : tenues échues, personnage disparu oublié, ordre redonné ; pas de secours (fait pour nos hommes au camp).
 - Non vérifié en jeu.
+
+## Un mené sans plus aucune tenue ne reçoit plus d'ordre (vu sur une copie de la partie de JoVenGer, 19/10/2026)
+- Vu : « Ordre à ScriptoClient_scr_client_1 : attendre (nil) : introuvable » : la prise lâchait la dernière tenue d'un
+  client que Scriptorium venait de faire disparaître, et `hommes.lacher` lui donnait encore un ordre « attendre ».
+- Désormais : la dernière tenue lâchée (`hommes.lacher_un_personnage`), ou toutes ses tenues échues au battement
+  (`hommes.mener_le_personnel`), le personnage n'est plus mené, sans aucun ordre. Essai (vérifié qu'il échoue sans).

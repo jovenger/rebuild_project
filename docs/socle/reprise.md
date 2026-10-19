@@ -610,7 +610,8 @@ aucune sonde dans l'arbre.
   juste : 0 erreur, 0 refus, 16 lits, 0 doublon, colonel équipé, points d'activité hors de la cabane (correction du
   pair) ; chez nous : le Directeur envoyé aux places du plan (dans la cabane) sur un camp adopté, des hommes collés à
   lui contre le mur (corrigé au banc : « remplace », fiches 03 et 06, non installé) ; chez le pair : l'alternance
-  ronde/sommeil de la garde composée pendant la veillée, et un client de taverne mené alors qu'il n'existe pas.
+  ronde/sommeil de la garde composée pendant la veillée ; et chez nous, un mené sans plus aucune tenue recevait encore un
+  ordre (« introuvable ») : corrigé au banc (lâché ou tenues échues : plus mené, sans ordre ; essai), non installé.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

@@ -1193,8 +1193,17 @@ essai("personnel mené (18/10) : un personnage hors de la Compagnie tenu par nos
   egal(dernier.lieu, "bains", "son lieu")
   hommes.battre()
   egal(#hommes.liste(), avant, "toujours hors de l'effectif après un battement")
+  local ordres_avant = #FauxJeu.ordres
   verifier(hommes.lacher_un_personnage("dame_des_bains", "travail"), "lâchée")
   egal(#hommes.personnel_mene(), 0, "plus menée")
+  egal(#FauxJeu.ordres, ordres_avant, "vu le 19/10 : sa dernière tenue lâchée, plus aucun ordre (« attendre » vers un introuvable)")
+  -- Une tenue échue (une heure) : au battement suivant, plus menée, sans ordre.
+  verifier(hommes.tenir_un_personnage("dame_des_bains", "travail", { activite = "garde", lieu = "bains", position = { x = 3, y = 4, z = 0 }, fin = FauxJeu.heure + 1 }), "tenue d'une heure")
+  FauxJeu.heure = FauxJeu.heure + 2
+  ordres_avant = #FauxJeu.ordres
+  hommes.mener_le_personnel(Scriptorium.registre.lire("hommes"), FauxJeu.heure, nil)
+  egal(#hommes.personnel_mene(), 0, "sa tenue échue : plus menée")
+  egal(#FauxJeu.ordres, ordres_avant, "et sans ordre")
   local ok, raison = hommes.tenir_un_personnage("inconnu", "travail", { activite = "garde", fin = "liberation" })
   egal(ok, false, "personnage introuvable refusé")
   egal(raison, "personnage_introuvable", "raison")
