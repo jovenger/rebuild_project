@@ -625,11 +625,13 @@ void Session::correctAllTracks()
 {
     std::vector<int> ids;
     for (const auto& t : proj.tracks)
-        if (((t.isRecordable() && ! t.takes.empty()) || (t.role == style::Role::Instru && t.sourceFile.isNotEmpty())) && ! t.isCorrection())
+        // Voix seulement : les prises d'instruments et l'instru ne sont jamais touchées (demande de Yann) ;
+        // leur correction reste possible à la main, piste par piste (« Style » du panneau Piste).
+        if (t.isVoice() && t.isRecordable() && ! t.takes.empty() && ! t.isCorrection())
             ids.push_back (t.id);
     if (ids.empty())
     {
-        setStatus ("Rien à corriger : aucune piste enregistrée ou importée"_u8);
+        setStatus ("Rien à corriger : aucune piste voix enregistrée ou importée (les instruments et l'instru ne sont jamais touchés)"_u8);
         return;
     }
     pushUndo ("Correction automatique de " + juce::String (static_cast<int> (ids.size())) + " piste(s)");
@@ -643,7 +645,7 @@ void Session::correctAllTracks()
     markDirty();
     launchAutoMix();
     SV_LOG_INFO (kMod, "Correction automatique lancée sur "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s)");
-    setStatus ("Ingénieur du son : analyse et correction de "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s), instru comprise : niveau régulier, bruit, résonances, EQ, sifflantes, justesse…"_u8);
+    setStatus ("Ingénieur du son : analyse et correction de "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s) voix (instruments et instru non touchés) : niveau régulier, bruit, résonances, EQ, sifflantes, justesse…"_u8);
 }
 
 int Session::recordTargetTrack() const

@@ -138,8 +138,8 @@ style. Pour l'instru : « Brute » ou « Creux sous la voix (mix auto) ». Le st
 générées, au mastering et aux propositions, pas aux pistes brutes.
 
 **Ingénieur du son automatique** (son propre, sans effet de style) : bouton **Ingénieur du son** dans la barre du
-haut (toutes les pistes, instru comprise), ou « Style : Correction automatique » sur une piste. Le programme mesure les défauts de chaque piste enregistrée ou
-importée (niveau trop bas ou trop fort, saturation, composante continue, bruit de fond, boue dans le bas-médium,
+haut (pistes **voix** seulement : il ne touche jamais aux prises d'instruments ni à l'instru), ou « Style : Correction
+automatique » sur une piste. Le programme mesure les défauts de chaque piste voix enregistrée ou importée (niveau trop bas ou trop fort, saturation, composante continue, bruit de fond, boue dans le bas-médium,
 dureté, sifflantes, justesse approximative) et les corrige : niveau remis à −14 dB, bruit réduit dans les silences,
 EQ corrective dosée sur la mesure, de-esser dosé, justesse ramenée doucement vers la gamme (voix seule uniquement),
 puis mix auto. Le panneau Voix IA affiche les défauts constatés et les corrections. Annulable (Ctrl+Z).
@@ -151,7 +151,7 @@ horodaté dans le rapport (« à 1:32, +14 dB ») et rabaissé jusqu'à 12–18 
 rabaisse une bande (tiers d'octave) seulement quand elle dépasse à la fois ses voisines et son propre niveau habituel
 (dureté par moments), graves protégés ; les harmoniques fixes d'une voix tenue ne sont pas touchées.
 
-**Correction de l'instru** : « Style : Correction automatique » sur la piste instru (ou le bouton Ingénieur du son) :
+**Correction de l'instru** (à la main seulement) : « Style : Correction automatique » sur la piste instru :
 analyse sur la somme mono, réparation **stéréo liée** (image inchangée) : dé-écrêtage, coupe-bas, débruitage, niveleur,
 EQ corrective, résonances, compression liée, niveau −14 dB, limiteur −1 dBTP ; puis creux sous la voix (mix auto).
 

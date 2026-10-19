@@ -110,9 +110,9 @@ TransportBar::TransportBar (Session& s) : session (s)
     exportBtn.onClick = [this] { if (onExport) onExport(); };
     updateBtn.onClick = [this] { if (onUpdate) onUpdate(); };
     correctBtn.onClick = [this] { if (onCorrectAll) onCorrectAll(); };
-    correctBtn.setTooltip ("Ingénieur du son automatique : analyse chaque piste (voix, instruments, instru) et la remet propre : niveau "
-                           "régulier d'un passage à l'autre, bruit, écrêtage, résonances, équilibre, sifflantes, justesse (sans effet de "
-                           "style), puis mix auto. Annulable."_u8);
+    correctBtn.setTooltip ("Ingénieur du son automatique : analyse chaque piste voix et la remet propre : niveau régulier d'un passage "
+                           "à l'autre, bruit, écrêtage, résonances, équilibre, sifflantes, justesse (sans effet de style), puis mix auto. "
+                           "Ne touche jamais aux instruments ni à l'instru. Annulable."_u8);
     setUpdateButton ("Mise à jour"_u8, "Vérifier s'il existe une nouvelle version"_u8, false, true);
     settingsBtn.onClick = [this] { if (onSettings) onSettings(); };
     undoBtn.onClick = [this] { session.undo(); };

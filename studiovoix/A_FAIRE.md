@@ -34,6 +34,8 @@ comment les automatismes doivent être faits, ordre proposé.
   Demucs) ; seul l'équilibrage des niveaux est automatique. Pour ne pas retomber sur « rien ne fonctionne » : les
   curseurs, cases et la chaîne d'une piste brute restent actifs et le premier geste passe la piste en traité par son
   style (RemixPanel::ensureTreated), les curseurs montrent les positions du style au lieu de zéros.
+- Fait (build 79) : le bouton « Ingénieur du son » ne touche plus qu'aux pistes voix (jamais les prises d'instruments
+  ni l'instru) ; leur correction reste possible à la main, piste par piste.
 - Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans
   Mix & Master) et demander le fichier `%APPDATA%\StudioVoix IA\logs\app.log` pour voir les décrochages du moteur
   temps réel (lignes `[Moteur]` / `xrun`).
