@@ -127,7 +127,7 @@ bool Session::newProject (const juce::String& name, juce::String& error, style::
     auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
     if (appSettings.hasUserPreset (created.style))
         lead.macros = appSettings.userPreset (created.style);
-    lead.raw = false;                 // traitée d'emblée par le style du projet (tout automatique) ; « Brut » pour écouter sans effet
+    lead.raw = true;                  // tout arrive brut : aucun effet tant qu'on ne choisit pas un style (ou ne touche pas un réglage)
     created.armedTrackId = lead.id;   // le micro enregistre sur la voix principale tant qu'on n'arme pas une autre piste
     if (! created.save (error))
     {
@@ -273,8 +273,8 @@ void Session::importInstru (const juce::File& file)
     instru->name = "Instru : " + file.getFileNameWithoutExtension();
     instru->sourceFile = dest.getFileName();
     instru->sourceStart = 0;
-    instru->raw = false;                       // corrigée d'emblée : dé-écrêtage, bruit, niveau régulier, résonances, limiteur
-    instru->styleId = dsp::kCorrectionStyleId; // (creux sous la voix réglable dans Mix & Master, 0 dB = aucun)
+    instru->raw = true;       // importée = brute : jouée telle quelle (seul son niveau est équilibré) ; correction ou creux sur demande (panneau Piste)
+    instru->styleId = {};
     const int instruId = instru->id;
     markDirty();
     setStatus ("Analyse de l'instru (tempo, tonalité, structure)…"_u8);
@@ -496,7 +496,7 @@ int Session::importAsNewTrack (const juce::File& file, style::Role role, const j
         setStatus ("Fichier illisible (" + file.getFileName() + ") : " + err);
         return -1;
     }
-    const int id = addUserTrack (role, name);   // une seule étape d'annulation : la piste et sa prise ; traitée par le style du projet
+    const int id = addUserTrack (role, name);   // une seule étape d'annulation : la piste et sa prise ; brute (addUserTrack)
     if (! addTakeFromAudio (id, data, startSec, err))
     {
         SV_LOG_ERROR (kMod, "Copie du fichier déposé impossible : "_u8 + err);
@@ -506,7 +506,7 @@ int Session::importAsNewTrack (const juce::File& file, style::Role role, const j
     SV_LOG_INFO (kMod, "Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " ("
                        + juce::String (static_cast<double> (data.size()) / proj.sampleRate, 1) + " s) en "
                        + juce::String (juce::roundToInt (juce::Time::getMillisecondCounterHiRes() - t0)) + " ms");
-    setStatus ("Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " : traitée par le style du projet (« Brut » pour l'écouter sans effet, « ⋯ » pour tout le reste)"_u8);
+    setStatus ("Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " : brute, jouée telle quelle (niveau équilibré) — « Style » à droite ou un réglage pour la traiter"_u8);
     return id;
 }
 
@@ -539,7 +539,9 @@ int Session::addUserTrack (style::Role role, const juce::String& name)
         rebuildPlayState();
     }
     proj.armedTrackId = trackId;
-    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ") : traitée par le style du projet, sélectionnée et armée"_u8);
+    if (auto* nt = proj.findTrack (trackId))
+        nt->raw = true;   // tout arrive brut : aucun effet tant qu'un style n'est pas choisi ou un réglage touché
+    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ") : brute, sélectionnée et armée"_u8);
     setStatus ("Piste « "_u8 + name + " » ajoutée, brute (aucun effet) et armée : R pour enregistrer ; « Effets » à droite pour choisir un style"_u8);
     return trackId;
 }
@@ -936,7 +938,7 @@ void Session::separateInstru()
             for (const auto& [name, data] : parts)
             {
                 auto& t = s->proj.addTrack (style::Role::Instrument, juce::String::fromUTF8 (name));
-                t.raw = false;  // traitée comme un instrument (nettoyage, niveau), « Brut » pour l'écouter telle quelle
+                t.raw = true;   // partie séparée = brute : jouée telle quelle, niveau équilibré ; traitement sur demande
                 juce::String err;
                 if (s->addTakeFromAudio (t.id, *data, startSec, err))
                     ++created;

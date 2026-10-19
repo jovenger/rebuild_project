@@ -18,6 +18,7 @@ public:
 private:
     void setupMacro (juce::Slider& s, juce::Label& l, const juce::String& name, const juce::String& tip);
     void commitMacros (const juce::String& undoLabel);
+    void ensureTreated (const juce::String& why);   // piste brute : la passe en traité par son style avant d'appliquer un réglage
     void applyAssistant();
 
     Session& session;

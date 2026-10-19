@@ -29,6 +29,11 @@ comment les automatismes doivent être faits, ordre proposé.
   note sans analyse de gamme (réglage sauvegardé dans le projet). Instru importée en mode « Correction » par défaut
   (dé-écrêtage, débruitage, niveleur, résonances, limiteur) ; rendus de fond en priorité basse (moins de risque de
   décrochage à la lecture).
+- Fait (build 78), retour « du moment qu'on insère une piste, elle ne doit pas être modifiée » : retour au brut
+  par défaut pour tout ce qui est inséré (voix importée / déposée / nouvelle, instru, prises d'instruments, parties
+  Demucs) ; seul l'équilibrage des niveaux est automatique. Pour ne pas retomber sur « rien ne fonctionne » : les
+  curseurs, cases et la chaîne d'une piste brute restent actifs et le premier geste passe la piste en traité par son
+  style (RemixPanel::ensureTreated), les curseurs montrent les positions du style au lieu de zéros.
 - Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans
   Mix & Master) et demander le fichier `%APPDATA%\StudioVoix IA\logs\app.log` pour voir les décrochages du moteur
   temps réel (lignes `[Moteur]` / `xrun`).

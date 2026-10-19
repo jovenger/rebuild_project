@@ -249,7 +249,7 @@ namespace
                     {
                         // Fichier importé = brut ; le choix d'un style dans le panneau le traite.
                         const auto* lt = session.project().findTrack (session.project().leadTrackId());
-                        if (lt == nullptr || lt->raw) { fail ("voix principale : devrait être traitée par le style du projet dès le départ"_u8); return; }
+                        if (lt == nullptr || ! lt->raw) { fail ("voix importée : devrait arriver brute (aucun effet)"_u8); return; }
                         session.setTrackTreatment (lt->id, false, {});
                         if (session.project().findTrack (session.project().leadTrackId())->raw) { fail ("style non appliqué à la voix"_u8); return; }
                         log ("étape 1 bis : voix importée brute, puis style du projet appliqué depuis le panneau"_u8);
@@ -324,7 +324,7 @@ namespace
                     if (session.recordTargetTrack() != session.project().leadTrackId()) { fail ("clic sur une piste : devrait l'armer"_u8); return; }
                     session.selectTrack (backTrackId);
                     if (session.recordTargetTrack() != backTrackId) { fail ("clic sur la piste back : devrait l'armer"_u8); return; }
-                    if (session.project().findTrack (backTrackId)->raw) { fail ("nouvelle piste : devrait être traitée par le style du projet"_u8); return; }
+                    if (! session.project().findTrack (backTrackId)->raw) { fail ("nouvelle piste : devrait être brute (aucun effet)"_u8); return; }
                     {
                         // Sélection multiple (Ctrl + clic) puis suppression groupée, annulée ensuite.
                         const int extra = session.addUserTrack (style::Role::Harmony, session.nextTrackName (style::Role::Harmony));

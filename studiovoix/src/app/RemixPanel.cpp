@@ -51,6 +51,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
         const juce::String id (st.id);
         c->onPress = [this, id] (bool popup)
         {
+            ensureTreated ("case "_u8 + id);   // piste brute : cliquer une case de la chaîne la passe en traité
             if (popup)
                 showStageMenu (id);
             else
@@ -128,7 +129,13 @@ RemixPanel::RemixPanel (Session& s) : session (s)
                                  true, "Assemblage des prises");
     };
 
-    cleaning.onClick = [this] { if (! updating) session.updateTrack (shownTrack, [v = cleaning.getToggleState()] (project::Track& t) { t.cleaning = v; }, true, "Nettoyage"); };
+    cleaning.onClick = [this]
+    {
+        if (updating)
+            return;
+        ensureTreated ("Nettoyage");
+        session.updateTrack (shownTrack, [v = cleaning.getToggleState()] (project::Track& t) { t.cleaning = v; }, true, "Nettoyage");
+    };
 #if SV_EDITION_IA
     addAndMakeVisible (aiClean);
     aiClean.setTooltip ("Réseau DeepFilterNet (gratuit, sur ce PC) appliqué à la prise brute avant les effets du style : souffle, bruit de pièce, "
@@ -138,6 +145,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
         if (updating)
             return;
         const bool v = aiClean.getToggleState();
+        ensureTreated ("Nettoyage IA");
         session.updateTrack (shownTrack, [v] (project::Track& t) { t.aiClean = v; }, true, "Nettoyage IA");
         if (v && ! ai::local::deepFilterAvailable())   // outil absent : téléchargé à la demande, puis les voix sont recalculées
         {
@@ -152,6 +160,7 @@ RemixPanel::RemixPanel (Session& s) : session (s)
             return;
         if (referenceEq.getToggleState() && session.project().referenceFile.isEmpty())
             session.setStatus ("Choisis d'abord un morceau de référence (bouton ci-dessous)"_u8);
+        ensureTreated ("EQ de référence"_u8);
         session.updateTrack (shownTrack, [v = referenceEq.getToggleState()] (project::Track& t) { t.referenceEq = v; }, true, "EQ de référence"_u8);
     };
     rawListen.onClick = [this] { if (! updating) session.updateTrack (shownTrack, [v = ! rawListen.getToggleState()] (project::Track& t) { t.processingEnabled = v; }, false, {}); };
@@ -223,10 +232,20 @@ void RemixPanel::setupMacro (juce::Slider& s, juce::Label& l, const juce::String
     l.setText (name, juce::dontSendNotification);
 }
 
+void RemixPanel::ensureTreated (const juce::String& why)
+{
+    const auto* t = session.project().findTrack (shownTrack);
+    if (t == nullptr || ! t->raw || t->isGenerated())
+        return;
+    SV_LOG_INFO ("VoixIA", "Piste brute « "_u8 + t->name + " » passée en traité (" + why + ")");
+    session.setTrackTreatment (shownTrack, false, t->styleId);
+}
+
 void RemixPanel::commitMacros (const juce::String& undoLabelText)
 {
     if (updating || shownTrack < 0)
         return;
+    ensureTreated (undoLabelText);
     style::Macros m;
     if (const auto* t = session.project().findTrack (shownTrack))
         m = t->macros;
@@ -356,13 +375,14 @@ void RemixPanel::refresh()
     shownTrack = session.selectedTrack();
     const auto* t = session.project().findTrack (shownTrack);
     const bool vocal = t != nullptr && t->isVocal();
-    const bool effects = vocal && ! t->raw;   // brut : réglages d'effets grisés tant qu'aucun style n'est choisi
+    // Brute ou traitée, tous les réglages restent actifs : sur une piste brute, le premier geste (curseur, case, chaîne)
+    // la passe en traité par son style (ensureTreated), au lieu de curseurs grisés qui « ne font rien ».
     for (auto* c : std::initializer_list<juce::Component*> { &autotune, &presence, &space, &energy, &level, &timing, &cleaning, &referenceEq,
                                                              &rawListen, &savePresetBtn, &loadPresetBtn, &resetBtn, &assistantBtn, &assistantText })
-        c->setEnabled (effects);
+        c->setEnabled (vocal);
     for (auto* c : std::initializer_list<juce::Component*> { &roleBox, &compBox })
         c->setEnabled (vocal);
-    generateBtn.setEnabled (t != nullptr && t->role == style::Role::Lead && ! t->raw);
+    generateBtn.setEnabled (t != nullptr && t->role == style::Role::Lead);
     treatmentBox.setVisible (t != nullptr && ! t->isGenerated());
     treatmentLabel.setVisible (treatmentBox.isVisible());
     addPluginBtn.setEnabled (t != nullptr);
@@ -396,21 +416,22 @@ void RemixPanel::refresh()
     const auto base = style::makeParams (session.project().trackStyle (*t), t->role, {}, ! t->isGenerated());
     const auto stylePos = style::styleMacros (base);
     const auto cur = style::resolveMacros (t->macros, base);
-    autotune.setValue (t->raw ? 0.0 : cur.autotune, juce::dontSendNotification);
-    presence.setValue (t->raw ? 0.0 : cur.presence, juce::dontSendNotification);
-    space.setValue (t->raw ? 0.0 : cur.space, juce::dontSendNotification);
-    energy.setValue (t->raw ? 0.0 : cur.energy, juce::dontSendNotification);
-    level.setValue (t->raw ? 0.0 : cur.level, juce::dontSendNotification);
+    // Piste brute : les curseurs montrent les positions du style (ce qui s'appliquera au premier geste), pas des zéros.
+    autotune.setValue (cur.autotune, juce::dontSendNotification);
+    presence.setValue (cur.presence, juce::dontSendNotification);
+    space.setValue (cur.space, juce::dontSendNotification);
+    energy.setValue (cur.energy, juce::dontSendNotification);
+    level.setValue (cur.level, juce::dontSendNotification);
     autotune.setDoubleClickReturnValue (true, stylePos.autotune);
     presence.setDoubleClickReturnValue (true, stylePos.presence);
     space.setDoubleClickReturnValue (true, stylePos.space);
     energy.setDoubleClickReturnValue (true, stylePos.energy);
     level.setDoubleClickReturnValue (true, 0.5);
-    timing.setValue (t->raw ? 0.0 : t->timingStrength, juce::dontSendNotification);
+    timing.setValue (t->timingStrength, juce::dontSendNotification);
     cleaning.setToggleState (t->cleaning, juce::dontSendNotification);
 #if SV_EDITION_IA
     aiClean.setToggleState (t->aiClean, juce::dontSendNotification);
-    aiClean.setEnabled (effects);
+    aiClean.setEnabled (vocal);
     aiClean.setButtonText (ai::local::deepFilterAvailable() ? "Nettoyage IA (DeepFilterNet, avant la chaîne)"_u8
                                                             : "Nettoyage IA (DeepFilterNet) : téléchargé à la première utilisation"_u8);
 #endif
@@ -449,8 +470,9 @@ void RemixPanel::refresh()
         txt << "\nÀ faire : "_u8 << warn;
     if (vocal && t->raw)
     {
-        txt << "\n\nAucun effet : le son tel quel, hors mix auto. Choisis un style dans « Style » ci-dessus : tous les réglages "
-               "de ce style (autotune, EQ, compresseurs, de-esser, saturation, réverb, délai) s'appliquent à cette piste."_u8;
+        txt << "\n\nBrute : le son tel quel, aucun effet (seul son niveau est équilibré avec les autres pistes). Pour la traiter : "
+               "choisis un style dans « Style », ou bouge un réglage / clique une case de la chaîne — la piste passe alors en style "
+               << trackStyleName << " avec ce réglage."_u8;
     }
     else if (t->isCorrection())
     {
@@ -503,9 +525,9 @@ style::VocalParams RemixPanel::chainParams (const project::Track& t, bool withOv
 
 void RemixPanel::updateStageCases (const project::Track* t)
 {
-    // Cases seulement pour une piste voix traitée par un style (brute : aucun effet ; correction automatique : réglages
-    // déduits de l'analyse, lisibles dans le rapport).
-    const bool show = t != nullptr && t->isVocal() && ! t->raw && ! t->isCorrection();
+    // Cases pour une piste voix hors correction automatique (dont une piste brute : les cases montrent la chaîne du style,
+    // cliquer l'une d'elles passe la piste en traité). Correction automatique : réglages déduits de l'analyse, dans le rapport.
+    const bool show = t != nullptr && t->isVocal() && ! t->isCorrection();
     if (show != chainVisible)
     {
         chainVisible = show;

@@ -19,11 +19,15 @@ branchements pour zéro retard, placement, réglages Windows, dépannage).
 
 Les artefacts expirent au bout de 90 jours (relancer le workflow si besoin).
 
-**Tout automatique dès le départ** : chaque piste voix (nouvelle, enregistrée ou déposée) est traitée par le style du
-projet immédiatement — plus de piste « brute » à activer à la main ; le bouton **Brut** de l'en-tête sert à écouter
-sans effet. Les réglages d'une case de la chaîne (clic sur « Compresseur », « Réverb »…) s'appliquent **en direct**
-pendant qu'on bouge les curseurs (recalcul de la piste en quelques secondes, « [Calcul en cours] » en bas), et une
-seule étape d'annulation à la fermeture.
+**Tout arrive brut** : une piste insérée (fichier déposé, importé, instru, prise d'instrument, partie séparée par
+Demucs, nouvelle piste enregistrée) n'est **pas modifiée** : aucun effet, aucun nettoyage. La seule chose automatique
+quand plusieurs pistes sont là, c'est **l'équilibrage des niveaux** entre pistes (le niveau n'est pas un effet). Les
+effets, c'est quand on les veut : choisir un **style** dans « Style » (panneau Piste), ou simplement **bouger un
+réglage** (Autotune, Présence…), cocher un nettoyage ou cliquer une **case de la chaîne** — la piste passe alors en
+traité par son style, avec ce réglage ; « Aucun (brut) » dans « Style » la remet telle quelle. Les curseurs d'une piste
+brute montrent les positions du style (ce qui s'appliquera au premier geste), ils ne sont jamais grisés. Les réglages
+d'une case de la chaîne (clic sur « Compresseur », « Réverb »…) s'appliquent **en direct** pendant qu'on bouge les
+curseurs (recalcul en quelques secondes, « [Calcul en cours] » en bas), une seule étape d'annulation à la fermeture.
 
 **Prise en main pratique** : tout ce qui concerne une piste est **sur la piste** — bouton « ⋯ » (ou clic droit) sur son
 en-tête : importer un fichier dans la piste, remplacer l'instru, style et effets (panneau de droite), reconnaître les
@@ -184,9 +188,10 @@ mineur »), et sans gamme qui convienne, note par note. **Décochée** : correct
 plus proche, quelle que soit la tonalité) — aucune analyse de gamme, aucune mention de tonalité dans les rapports.
 Réglage par projet, sauvegardé, annulable.
 
-**Instru corrigée par défaut** : l'instru importée passe en mode « Correction » (dé-écrêtage, débruitage léger,
-niveleur, résonances, limiteur) et le creux sous la voix (ducking, 2,5 dB) est réglable jusqu'à 0 dans Mix & Master.
-Les rendus de fond tournent en priorité basse pour ne pas voler le processeur à la lecture.
+**Instru telle quelle** : l'instru importée est jouée brute (pas de creux sous la voix, pas de correction). Dans
+« Style » de son panneau : « Creux sous la voix » (ducking, profondeur réglable dans Mix & Master) ou « Correction
+automatique » (dé-écrêtage, débruitage léger, niveleur, résonances, limiteur) — sur demande seulement. Les rendus de
+fond tournent en priorité basse pour ne pas voler le processeur à la lecture.
 
 **Pas de décalage** : après chaque rendu, le décalage temporel entre le son brut et le son traité est mesuré (corrélation
 des enveloppes) ; au-delà de 15 ms, alerte sur la piste. Les doublages générés sont des doublages serrés (6–16 ms de
