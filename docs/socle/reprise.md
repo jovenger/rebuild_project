@@ -595,6 +595,10 @@ aucune sonde dans l'arbre.
   la tête est fausse pour un homme loin d'Henry) ; DÉFAUT CHEZ NOUS : le colonel presque nu et figé (la file d'habillage
   repartait toujours du début ; corrigé au banc, fiche 13, non installé) ; chez le pair : l'oscillation de Bohuslav
   (une file d'achat de Scriptorium).
+  - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 19/10, 23 h 31) : socle e0550ec (la file d'habillage) ;
+    séance « gardée » ; retour arrière : Scriptorium_securite61019_233035_871440_seance_du_socle. Vérifié : Partie 1
+    identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse. Reste à voir en jeu :
+    le colonel habillé après un chargement, et son geste à la marmite (séance de sonde proposée par le pair).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
