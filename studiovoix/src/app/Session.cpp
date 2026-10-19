@@ -273,7 +273,8 @@ void Session::importInstru (const juce::File& file)
     instru->name = "Instru : " + file.getFileNameWithoutExtension();
     instru->sourceFile = dest.getFileName();
     instru->sourceStart = 0;
-    instru->raw = true;   // importée = brute : pas de creux sous la voix tant qu'on ne le demande pas (panneau de la piste)
+    instru->raw = false;                       // corrigée d'emblée : dé-écrêtage, bruit, niveau régulier, résonances, limiteur
+    instru->styleId = dsp::kCorrectionStyleId; // (creux sous la voix réglable dans Mix & Master, 0 dB = aucun)
     const int instruId = instru->id;
     markDirty();
     setStatus ("Analyse de l'instru (tempo, tonalité, structure)…"_u8);
@@ -879,6 +880,7 @@ void Session::recognizeLyrics (int trackId)
         });
     });
 #else
+    juce::ignoreUnused (trackId);
     setStatus ("Reconnaissance des paroles : disponible dans StudioVoix IA"_u8);
 #endif
 }
@@ -2102,28 +2104,50 @@ juce::String Session::trackWarnings (int trackId) const
         return {};
     juce::StringArray w;
     const auto& m = it->second;
-    // Écrêtage à la source (micro ou fichier trop fort) ; après traitement, la chaîne vise des crêtes vers 0 dBFS
-    // (le limiteur du master s'en charge) : on n'alerte qu'au-delà de +1 dBFS.
-    if (m.rawPeakDb > -0.2f)
-        w.add ("enregistrement écrêté (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS) : baisse le gain du micro ou du fichier"_u8);
+    // Seulement ce que le programme ne peut pas corriger lui-même. Écrêtage à la source : signalé si rien ne l'a réparé
+    // (piste brute) ; une prise réparée par le dé-écrêtage reste un conseil pour la prochaine prise.
+    const bool declipped = r->report.clean.clippedRepaired > 0;
+    if (m.rawPeakDb > -0.2f && (t->raw || ! declipped))
+        w.add (t->role == style::Role::Instru ? juce::String ("fichier écrêté à la source (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS)"_u8)
+                                              : juce::String ("prise écrêtée (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS) : baisse le gain du micro pour la prochaine"_u8));
     if (m.peakDb > 1.0f)
         w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
-    for (const auto& su : r->report.leveler.surges)
-        w.add ("monte en flèche "_u8 + su.describe() + (r->report.leveler.applied ? ", rabaissée"_u8 : ""));
     if (std::abs (r->processingLagMs) > 15.0f)
         w.add ("traitement décalé de "_u8 + juce::String (r->processingLagMs, 0) + " ms par rapport au son brut (à signaler)"_u8);
-    if (t->isVoice() && r->report.chromaticUsed && r->report.outOfScaleFraction >= 0.25f)
-        w.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors de la gamme "_u8 + proj.key.toFrench()
-               + " et aucune gamme ne convient : correction note par note (vérifie la tonalité du projet)"_u8);
+    return w.joinIntoString (" ; ");
+}
+
+juce::String Session::trackCorrections (int trackId) const
+{
+    const auto* t = proj.findTrack (trackId);
+    auto it = trackMetrics.find (trackId);
+    auto r = renderFor (trackId);
+    if (t == nullptr || it == trackMetrics.end() || r == nullptr || ! r->ok())
+        return {};
+    juce::StringArray c;
+    const auto& m = it->second;
+    if (r->report.clean.clippedRepaired > 0)
+        c.add ("écrêtage réparé ("_u8 + juce::String (r->report.clean.clippedRepaired) + " échantillons)"_u8);
+    for (const auto& su : r->report.leveler.surges)
+        c.add ("montée "_u8 + su.describe() + (r->report.leveler.applied ? " rabaissée"_u8 : " (non rabaissée)"_u8));
+    if (t->isVoice() && r->report.outOfScaleFraction >= 0.25f)
+    {
+        if (r->report.scaleAdapted)
+            c.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors "_u8 + proj.key.toFrench()
+                   + " : accordée sur la gamme chantée, "_u8 + r->report.adaptedKey.toFrench());
+        else if (r->report.chromaticUsed && proj.scaleCorrection)
+            c.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors "_u8 + proj.key.toFrench()
+                   + " : accordée note par note"_u8);
+    }
     if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
         if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
         {
             const double over = m.lufs + t->volumeDb + mixState.autoTrackGain (t->id) - lead->second.lufs
                               - (proj.findTrack (proj.leadTrackId()) != nullptr ? proj.findTrack (proj.leadTrackId())->volumeDb : 0.0f);
             if (over > 1.0)
-                w.add ("plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU)");
+                c.add ("encore plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU) : baisse son volume ou relance l'Ingénieur du son"_u8);
         }
-    return w.joinIntoString (" ; ");
+    return c.joinIntoString (" ; ");
 }
 
 // ---------------------------------------------------------------------------------------------

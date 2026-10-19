@@ -15,6 +15,7 @@ namespace sv::dsp
 struct AnalysisContext
 {
     MusicalKey key;
+    bool useScale = true;               // false : autotune note par note (chromatique), sans gamme ni tonalité
     TempoInfo tempo;
     analysis::BandSpectrum reference;   // spectre du morceau de référence (optionnel)
     double referenceLufs = -120.0;      // sonie intégrée du morceau de référence (mastering par référence)

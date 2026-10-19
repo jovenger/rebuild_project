@@ -56,6 +56,16 @@ TransportBar::TransportBar (Session& s) : session (s)
     theme::setButtonKind (recBtn, "danger");
     for (auto* t : { &punch, &loop, &metronome })
         addAndMakeVisible (*t);
+    addAndMakeVisible (scaleToggle);
+    scaleToggle.setTooltip ("Coché : l'autotune tire les notes vers la gamme de la tonalité choisie. Décoché : correction note par note, "
+                            "sans gamme (la tonalité ne sert plus qu'aux harmonies générées)."_u8);
+    scaleToggle.onClick = [this]
+    {
+        if (updating)
+            return;
+        const bool v = scaleToggle.getToggleState();
+        session.updateProject ([v] (project::Project& p) { p.scaleCorrection = v; }, true, v ? "Accordage sur la gamme"_u8 : "Correction note par note"_u8);
+    };
     for (auto* c : { &countdown, &keyBox, &styleBox })
         addAndMakeVisible (*c);
     outputMeter.setLabel ("Sortie");
@@ -155,6 +165,7 @@ void TransportBar::refresh()
     if (! bpmLabel.isBeingEdited())   // setText fermerait l'éditeur en cours de saisie
         bpmLabel.setText (juce::String (p.tempo.bpm, 1), juce::dontSendNotification);
     keyBox.setSelectedId ((p.key.minor ? 13 : 1) + p.key.root, juce::dontSendNotification);
+    scaleToggle.setToggleState (p.scaleCorrection, juce::dontSendNotification);
     styleBox.setSelectedId (static_cast<int> (p.style) + 1, juce::dontSendNotification);
     countdown.setSelectedId (session.settings().countdownBars() + 1, juce::dontSendNotification);
     metronome.setToggleState (session.settings().metronome(), juce::dontSendNotification);
@@ -266,6 +277,8 @@ void TransportBar::resized()
     row2.removeFromLeft (8);
     keyTitle.setBounds (row2.removeFromLeft (64));
     keyBox.setBounds (row2.removeFromLeft (130));
+    row2.removeFromLeft (4);
+    scaleToggle.setBounds (row2.removeFromLeft (72));
     row2.removeFromLeft (8);
     styleTitle.setBounds (row2.removeFromLeft (40));
     styleBox.setBounds (row2.removeFromLeft (165));

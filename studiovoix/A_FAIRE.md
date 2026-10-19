@@ -21,6 +21,17 @@ comment les automatismes doivent être faits, ordre proposé.
   cases grisés tant qu'un style n'était pas choisi dans la liste « Type ») et les réglages d'une case ne s'appliquaient
   qu'à la fermeture de la fenêtre. Désormais : pistes traitées par le style du projet dès le départ (« Brut » = écoute
   sans effet), réglages de case appliqués en direct (250 ms après le dernier mouvement, une seule étape d'annulation).
+- Fait (build 77), retour « plein d'avertissements, blindé d'écriture, le fa majeur c'est une option, instru avec des
+  trous » : les en-têtes n'affichent plus la liste des alertes — ce qui est corrigé automatiquement (écrêtage, montées,
+  niveau vs voix principale, gamme) n'est plus affiché comme alerte mais listé dans le panneau « Piste » (« Corrigé
+  automatiquement : … ») ; seule une ligne courte « ⚠ … » reste pour ce qui demande une action (texte complet au survol,
+  « À faire : … » dans le panneau). Case « Gamme » à côté de la tonalité (barre du haut) : décochée = correction note par
+  note sans analyse de gamme (réglage sauvegardé dans le projet). Instru importée en mode « Correction » par défaut
+  (dé-écrêtage, débruitage, niveleur, résonances, limiteur) ; rendus de fond en priorité basse (moins de risque de
+  décrochage à la lecture).
+- Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans
+  Mix & Master) et demander le fichier `%APPDATA%\StudioVoix IA\logs\app.log` pour voir les décrochages du moteur
+  temps réel (lignes `[Moteur]` / `xrun`).
 - À faire selon le prochain retour : panneau « Piste » adapté à l'instru (remplacer, séparer, caler) ; bouton
   « Séparer » visible sur l'en-tête de l'instru ; sélection du style directement dans l'en-tête de piste ; réduire la
   barre du haut (Nouveau / Ouvrir / Sauver dans l'accueil) ; glisser-déposer d'un fichier sur une piste existante.

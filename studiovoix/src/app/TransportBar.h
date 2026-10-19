@@ -48,7 +48,8 @@ private:
         undoBtn { "Annuler" }, redoBtn { juce::String (juce::CharPointer_UTF8 ("Rétablir")) },
         updateBtn { juce::String (juce::CharPointer_UTF8 ("Mise à jour")) }, correctBtn { juce::String (juce::CharPointer_UTF8 ("Ingénieur du son")) };
     juce::TextButton homeBtn { "|<" }, playBtn { "Lecture" }, stopBtn { "Stop" }, recBtn { "REC" };
-    juce::ToggleButton punch { "Punch-in" }, loop { "Boucle" }, metronome { juce::String (juce::CharPointer_UTF8 ("Métronome")) };
+    juce::ToggleButton punch { "Punch-in" }, loop { "Boucle" }, metronome { juce::String (juce::CharPointer_UTF8 ("Métronome")) },
+        scaleToggle { "Gamme" };   // autotune contraint à la gamme de la tonalité (décoché : note par note)
     juce::ComboBox countdown, keyBox, styleBox;
     juce::Label timeLabel, bpmLabel, bpmTitle, keyTitle, styleTitle, countTitle, mixLabel;
     LevelMeter inputMeter, outputMeter;

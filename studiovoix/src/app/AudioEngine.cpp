@@ -162,6 +162,19 @@ void AudioEngine::stop()
 {
     playing.store (false);
     clickReset.store (true);
+    // Diagnostic « trous » : chaque arrêt résume ce qui a pu couper le son pendant la lecture.
+    const int misses = stateLockMisses.exchange (0);
+    if (misses > 0)
+        SV_LOG_WARN (kMod, juce::String (misses) + " bloc(s) joué(s) en silence : état des pistes verrouillé par l'interface à cet instant"_u8);
+    if (auto* d = devices.getCurrentAudioDevice())
+    {
+        const int x = d->getXRunCount();
+        if (x >= 0 && x != lastXruns)
+        {
+            SV_LOG_WARN (kMod, juce::String (x - lastXruns) + " décrochage(s) de la carte son (xrun) pendant cette lecture : tampon trop petit ou processeur saturé"_u8);
+            lastXruns = x;
+        }
+    }
 }
 
 void AudioEngine::setPosition (long samples)
@@ -531,6 +544,8 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* in, int 
 
             {
                 const juce::SpinLock::ScopedTryLockType tl (stateLock);
+                if (! tl.isLocked())
+                    stateLockMisses.fetch_add (1);
                 if (tl.isLocked() && state != nullptr)
                 {
                     // Bus voix : les voix sont d'abord sommées à part, compressées ensemble, puis ajoutées à la sortie.

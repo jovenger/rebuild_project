@@ -167,7 +167,10 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     // dans une autre gamme que celle du morceau, l'autotune tirerait vers de mauvaises notes. On choisit alors la
     // gamme qui contient le plus de notes chantées ; si aucune gamme ne convient, correction note par note.
     MusicalKey tuneKey = context.key;
-    bool chromatic = context.key.confidence < 0.2f;
+    bool chromatic = ! context.useScale || context.key.confidence < 0.2f;
+    if (! context.useScale)
+        result.report.chromaticUsed = true;   // choix de l'utilisateur (case « Gamme » décochée) : pas d'analyse de gamme
+    else
     {
         std::array<int, 12> hist {};
         int voicedN = 0;

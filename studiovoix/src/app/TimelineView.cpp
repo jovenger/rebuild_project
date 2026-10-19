@@ -161,9 +161,15 @@ void TrackHeader::refresh()
         st = "Prêt"_u8 + st.fromFirstOccurrenceOf (" | ", true, false);
     if (st.isNotEmpty())
         txt << "\n" << st;
+    // Les corrections automatiques ne s'affichent plus ici (panneau Piste) ; seul un conseil à suivre apparaît, court,
+    // le détail en info-bulle.
     const auto warn = session.trackWarnings (id);
     if (warn.isNotEmpty())
-        txt << "\n" << juce::String (juce::CharPointer_UTF8 ("\xe2\x9a\xa0 ")) << warn;
+    {
+        const auto first = warn.upToFirstOccurrenceOf (" ; ", false, false);
+        txt << "\n" << juce::String (juce::CharPointer_UTF8 ("\xe2\x9a\xa0 ")) << (first.length() > 64 ? first.substring (0, 61) + "..." : first);
+    }
+    info.setTooltip (warn.isNotEmpty() ? warn : juce::String());
     info.setColour (juce::Label::textColourId, warn.isNotEmpty() ? juce::Colour (0xffff8a65) : juce::Colours::lightgrey);
     info.setText (txt, juce::dontSendNotification);
     arm.setVisible (t->isRecordable());

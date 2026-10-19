@@ -169,13 +169,24 @@ seul ensemble au lieu de pistes posées côte à côte. Le rattrapage de gain é
 auto, donc l'équilibre voix / instru ne bouge pas. Le même compresseur sert à la lecture (bloc par bloc, état conservé) et
 à l'export ; les pistes séparées (stems) n'y passent pas.
 
-**Alertes** : après chaque rendu, chaque piste **écrêtée à la source** (crête au-dessus de −0,2 dBFS avant traitement),
-qui **sature après traitement** (au-delà de +1 dBFS), **monte en flèche** ou est **plus forte que la voix
-principale** est signalée en orange dans son en-tête et dans la barre d'état (« Ingénieur du son : 2 alertes — … »),
-avec les horodatages. Si plus d'un quart des **notes chantées sont hors de la gamme du projet** (mesuré avant
-l'autotune), l'autotune **suit la gamme de la voix** (celle qui contient le plus de notes chantées, affichée dans le
-panneau : « Gamme adaptée à la voix : Sol mineur ») ; si aucune gamme ne convient, correction note par note et alerte. Chaque piste traitée finit sous
-−1 dBTP (limiteur de sécurité, transparent tant que rien ne dépasse).
+**Corrections automatiques, pas des avertissements** : l'ingénieur du son **corrige** d'abord — écrêtage de la source
+réparé (dé-écrêtage), montées en flèche rabaissées (niveleur), piste plus forte que la voix principale ramenée en place
+(orchestre), gamme adaptée à la voix — et le panneau « Piste » liste ce qui a été fait (« Corrigé automatiquement : … »).
+Seul ce qui **demande une action de l'utilisateur** reste signalé (une seule ligne courte « ⚠ … » dans l'en-tête, texte
+complet au survol, détail dans « À faire : … » du panneau) : source écrêtée sur une piste écoutée en « Brut », piste qui
+sature encore après traitement, lecture en retard sur le calcul. Chaque piste traitée finit sous −1 dBTP (limiteur de
+sécurité, transparent tant que rien ne dépasse).
+
+**Gamme (case à cocher à côté de la tonalité, barre du haut)** : cochée, l'autotune tire les notes vers la gamme de la
+tonalité choisie ; si plus d'un quart des **notes chantées sont hors de la gamme du projet** (mesuré avant l'autotune),
+il **suit la gamme de la voix** (celle qui contient le plus de notes chantées : « Gamme adaptée à la voix : Sol
+mineur »), et sans gamme qui convienne, note par note. **Décochée** : correction note par note uniquement (la note la
+plus proche, quelle que soit la tonalité) — aucune analyse de gamme, aucune mention de tonalité dans les rapports.
+Réglage par projet, sauvegardé, annulable.
+
+**Instru corrigée par défaut** : l'instru importée passe en mode « Correction » (dé-écrêtage, débruitage léger,
+niveleur, résonances, limiteur) et le creux sous la voix (ducking, 2,5 dB) est réglable jusqu'à 0 dans Mix & Master.
+Les rendus de fond tournent en priorité basse pour ne pas voler le processeur à la lecture.
 
 **Pas de décalage** : après chaque rendu, le décalage temporel entre le son brut et le son traité est mesuré (corrélation
 des enveloppes) ; au-delà de 15 ms, alerte sur la piste. Les doublages générés sont des doublages serrés (6–16 ms de

@@ -146,6 +146,8 @@ private:
     std::atomic<bool> monitorOn { false };
     std::atomic<float> monitorGain { 1.0f };
     std::atomic<int> inputMode { 0 };
+    std::atomic<int> stateLockMisses { 0 };   // blocs joués en silence : état verrouillé par l'UI à cet instant (diagnostic « trous »)
+    int lastXruns = 0;                        // décrochages de la carte déjà signalés (thread UI)
     std::atomic<float> inputTrim { 1.0f };
     std::atomic<double> currentSampleRate { kProjectSampleRate };
 

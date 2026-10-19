@@ -138,6 +138,8 @@ public:
     juce::String trackStatus (int trackId) const;
     /** Alertes de l'ingénieur du son sur le rendu actuel : sature, monte en flèche, plus fort que la voix principale. */
     juce::String trackWarnings (int trackId) const;
+    /** Ce que l'ingénieur du son a corrigé tout seul sur le rendu actuel (montées rabaissées, écrêtage réparé, gamme adaptée…). */
+    juce::String trackCorrections (int trackId) const;
     struct TrackMetrics { float peakDb = -120.0f; float rawPeakDb = -120.0f; double lufs = -120.0; };
     juce::String statusText() const { return status; }
     bool isBusy() const { return activeJobs > 0 || ! pendingRenders.empty(); }
@@ -257,7 +259,9 @@ private:
     };
     std::map<const Stereo*, ResampledBuffer> resampleCache;
 
-    juce::ThreadPool pool;   // déclaré en dernier : détruit en premier (attend les tâches)
+    // Déclaré en dernier : détruit en premier (attend les tâches). Priorité basse : les rendus en tâche de fond ne doivent
+    // jamais voler le processeur à la lecture (trous dans le son).
+    juce::ThreadPool pool { juce::ThreadPoolOptions().withDesiredThreadPriority (juce::Thread::Priority::low) };
 
     JUCE_DECLARE_WEAK_REFERENCEABLE (Session)
     JUCE_DECLARE_NON_COPYABLE (Session)

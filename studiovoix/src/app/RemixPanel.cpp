@@ -443,6 +443,10 @@ void RemixPanel::refresh()
     if (const float ag = session.autoTrackGainDb (shownTrack); std::abs (ag) >= 0.3f)
         txt << "\nOrchestre : gain auto " << (ag >= 0.0f ? "+" : "") << juce::String (ag, 1) << " dB (place de la piste par rapport à la voix principale, "_u8
             << juce::String (render::roleOffsetLu (t->role), 0) << " LU)";
+    if (const auto corr = session.trackCorrections (shownTrack); corr.isNotEmpty())
+        txt << "\nCorrigé automatiquement : "_u8 << corr;
+    if (const auto warn = session.trackWarnings (shownTrack); warn.isNotEmpty())
+        txt << "\nÀ faire : "_u8 << warn;
     if (vocal && t->raw)
     {
         txt << "\n\nAucun effet : le son tel quel, hors mix auto. Choisis un style dans « Style » ci-dessus : tous les réglages "

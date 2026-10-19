@@ -91,6 +91,7 @@ dsp::AnalysisContext makeContext (const project::Project& p, AudioCache& cache)
 {
     dsp::AnalysisContext ctx;
     ctx.key = p.key;
+    ctx.useScale = p.scaleCorrection;
     ctx.tempo = p.tempo;
     if (p.referenceFile.isNotEmpty())
     {
