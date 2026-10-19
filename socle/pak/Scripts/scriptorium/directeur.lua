@@ -329,6 +329,19 @@ function directeur.activite(heure)
   local h = heure - math.floor(heure / 24) * 24
   for _, t in ipairs(directeur.journee) do
     if (t.de < t.a and h >= t.de and h < t.a) or (t.de > t.a and (h >= t.de or h < t.a)) then
+      -- Vu sur une copie de la partie de JoVenGer le 19/10 : sur un camp adopté, les places de notre plan sont relatives
+      -- à l'ancre (sa cabane) : le Directeur allait dans la cabane, et des hommes s'y collaient. Là, il prend la place
+      -- que Scriptorium déclare à la place de celle du plan (camp.declarer_les_places, « remplace ») ; sinon il reste à
+      -- sa place d'installation.
+      if camp().est_adopte and camp().est_adopte() then
+        local remplacant = camp().remplacant_de and camp().remplacant_de(t.lieu)
+        if remplacant then
+          return { activite = t.activite, lieu = remplacant, position = camp().position_de(remplacant) }
+        end
+        local p = d.lieu_de_naissance
+        return { activite = t.activite, lieu = "place_du_directeur",
+                 position = p and { x = p.x, y = p.y, z = p.z } or nil }
+      end
       return { activite = t.activite, lieu = t.lieu, position = camp().position_de(t.lieu) }
     end
   end

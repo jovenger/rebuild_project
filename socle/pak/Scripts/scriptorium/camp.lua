@@ -814,7 +814,7 @@ function camp.places_libres(sorte, pour)
   end
   for _, nom in ipairs(camp.ordre_des_places_declarees) do
     local p = camp.places_declarees[nom]
-    if p and p.sorte == sorte and d.places[nom] == nil then
+    if p and not p.remplace and p.sorte == sorte and d.places[nom] == nil then
       table.insert(libres, nom)
     end
   end
@@ -878,20 +878,30 @@ function camp.capacite()
     end
     for _, nom in ipairs(camp.ordre_des_places_declarees) do
       local p = camp.places_declarees[nom]
-      if p and p.sorte == "lit" then lits = lits + 1 end
-      if p and p.sorte == "siege" then sieges = sieges + 1 end
+      if p and not p.remplace and p.sorte == "lit" then lits = lits + 1 end
+      if p and not p.remplace and p.sorte == "siege" then sieges = sieges + 1 end
     end
   end
   return { lits = lits, sieges = sieges, niveau = d.niveau }
 end
 
--- Les places déclarées, lisibles, dans l'ordre de la déclaration : { { nom, sorte }, ... } (des copies).
+-- La place déclarée qui remplace la place « nom » du plan (« remplace »), ou nil.
+function camp.remplacant_de(nom)
+  for _, p in pairs(camp.places_declarees) do
+    if p.remplace == nom then
+      return p.nom
+    end
+  end
+  return nil
+end
+
+-- Les places déclarées, lisibles, dans l'ordre de la déclaration : { { nom, sorte, remplace }, ... } (des copies).
 function camp.liste_des_places_declarees()
   local liste = {}
   for _, nom in ipairs(camp.ordre_des_places_declarees) do
     local p = camp.places_declarees[nom]
     if p then
-      table.insert(liste, { nom = p.nom, sorte = p.sorte })
+      table.insert(liste, { nom = p.nom, sorte = p.sorte, remplace = p.remplace })
     end
   end
   return liste
@@ -912,8 +922,26 @@ function camp.declarer_les_places(liste)
     if type(p) ~= "table" or type(p.nom) ~= "string" or p.nom == "" then
       return refuser("places_invalides", "élément " .. i .. " sans nom")
     end
-    if not camp.sortes_places[p.sorte] then
-      return refuser("places_invalides", p.nom .. " : sorte " .. tostring(p.sorte))
+    -- « remplace » (vu sur une copie de la partie de JoVenGer le 19/10 : sur un camp adopté, le Directeur allait aux
+    -- places de notre plan, relatives à l'ancre, donc dans la cabane) : la place du plan que cet objet remplace (son
+    -- lit, son coffre, le feu) ; sa sorte est celle de la place remplacée ; jamais offerte aux hommes.
+    local sorte = p.sorte
+    if p.remplace ~= nil then
+      local e = type(p.remplace) == "string" and emplacement_du_plan(p.remplace)
+      if not e then
+        return refuser("places_invalides", p.nom .. " : remplace une place inconnue (" .. tostring(p.remplace) .. ")")
+      end
+      if sorte ~= nil and sorte ~= e.sorte then
+        return refuser("places_invalides", p.nom .. " : sorte " .. tostring(sorte) .. " pour remplacer " .. p.remplace)
+      end
+      sorte = e.sorte
+      for _, autre in pairs(nouvelles) do
+        if autre.remplace == p.remplace then
+          return refuser("places_invalides", p.remplace .. " : remplacée deux fois")
+        end
+      end
+    elseif not camp.sortes_places[sorte] then
+      return refuser("places_invalides", p.nom .. " : sorte " .. tostring(sorte))
     end
     if emplacement_du_plan(p.nom) then
       return refuser("places_invalides", p.nom .. " : nom d'une place du plan")
@@ -921,7 +949,7 @@ function camp.declarer_les_places(liste)
     if nouvelles[p.nom] then
       return refuser("places_invalides", p.nom .. " : en double")
     end
-    nouvelles[p.nom] = { nom = p.nom, sorte = p.sorte }
+    nouvelles[p.nom] = { nom = p.nom, sorte = sorte, remplace = p.remplace }
     table.insert(ordre, p.nom)
   end
   local retirees = {}

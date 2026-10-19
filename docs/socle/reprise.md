@@ -605,6 +605,12 @@ aucune sonde dans l'arbre.
   (fin d'affrontement) », non installé) ; deux hommes encore collés au mur de la cabane ; chez le pair : la tâche
   « hors cabane » de son moteur du camp (pose et retire un geste huit fois en sept secondes), cause probable de
   l'hésitation du matin et des hommes collés à la cabane.
+- **Séance de preuve commune (20/10 vers 0 h, accord direct de JoVenGer, copie, jamais sauvée ; tour complet d'une
+  journée par sauts d'horloge ; liste unique des problèmes, à la demande de JoVenGer : « arrête de tourner en rond »)** :
+  juste : 0 erreur, 0 refus, 16 lits, 0 doublon, colonel équipé, points d'activité hors de la cabane (correction du
+  pair) ; chez nous : le Directeur envoyé aux places du plan (dans la cabane) sur un camp adopté, des hommes collés à
+  lui contre le mur (corrigé au banc : « remplace », fiches 03 et 06, non installé) ; chez le pair : l'alternance
+  ronde/sommeil de la garde composée pendant la veillée, et un client de taverne mené alors qu'il n'existe pas.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

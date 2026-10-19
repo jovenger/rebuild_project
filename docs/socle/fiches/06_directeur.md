@@ -62,3 +62,10 @@ Installation et refus ; journée du Directeur ; menu complet, disponibilités et
 - Ordres d'essai : `scriptorium_essai_directeur_parler` (à 2,5 m devant Henry, face à lui) et
   `scriptorium_essai_directeur_parler_fin`.
 - Non vérifié en jeu.
+
+## Sur un camp adopté : jamais une place du plan (vu le 19/10 sur une copie de la partie de JoVenGer)
+- Sa journée (comptes au coffre, veillée au feu, sommeil à son lit) visait les places de notre plan, relatives à l'ancre :
+  sur le camp de JoVenGer, l'ancre est sa cabane, et le Directeur y entrait (0,8 m dans la boîte de la maison).
+- Désormais, sur un camp adopté, `directeur.activite` prend la place que Scriptorium déclare à la place de celle du plan
+  (`camp.declarer_les_places`, champ `remplace`, fiche 03) ; sans remplaçant, il reste à sa place d'installation
+  (`directeur.installer(position, cap)`). Essai (vérifié qu'il échoue sans). Non vérifié en jeu.

@@ -160,3 +160,8 @@ Géométrie (rotation et décalage) ; fondation et positions des objets ; double
   pendant leur quart. Sur le camp de JoVenGer, la chaîne des règles de Scriptorium la remplace.
 - Essais : `essai_camp.lua` (le contrat), `essai_hommes.lua` (la nuit sur un camp adopté). Non vérifié en jeu (le « use »
   des StanceSmartObject de l'Aménagement, catégorie Bed, devrait marcher comme pour nos lits).
+- **« remplace »** (vu sur une copie de la partie de JoVenGer le 19/10 : sur un camp adopté, le Directeur allait aux places
+  de notre plan, relatives à l'ancre, donc dans la cabane, et des hommes s'y collaient) : une entrée déclarée peut porter
+  `remplace = "<place du plan>"` (`lit_directeur`, `coffre_camp`, `feu_central`…) ; sa sorte est celle de la place
+  remplacée ; elle n'est jamais offerte aux hommes ni comptée ; une place n'est remplacée qu'une fois.
+  `camp.remplacant_de(nom)` la rend. Essai (`essai_directeur.lua`, vérifié qu'il échoue sans).

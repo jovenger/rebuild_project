@@ -57,6 +57,38 @@ essai("directeur (la bascule, 19/10) : installé à une place donnée sur un cam
   egal(FauxJeu.directeurs[#FauxJeu.directeurs].position.x, 110, "revenu à sa place")
 end)
 
+essai("directeur (vu sur une copie de la partie de JoVenGer le 19/10) : sur un camp adopté, jamais une place du plan (la cabane) ; il prend la place qui la remplace, sinon reste à sa place ; une place « remplace » n'est jamais offerte aux hommes", function()
+  depart()
+  directeur.retirer_entrees()
+  camp.adopter({ x = 100, y = 200, z = 30 }, 0, "kutnohorsko")
+  verifier(directeur.installer({ x = 110, y = 205, z = 31 }, 45), "installé à sa place")
+  local plan_coffre = camp.position_de("coffre_camp")
+  for _, h in ipairs({ 10, 21, 23 }) do
+    local a = directeur.activite(h)
+    verifier(a.lieu ~= "coffre_camp" and a.lieu ~= "lit_directeur" and a.lieu ~= "feu_central",
+             h .. " h : aucune place du plan (" .. tostring(a.lieu) .. ")")
+    egal(a.position and a.position.x, 110, h .. " h : sans remplaçant, à sa place d'installation")
+  end
+  local ok, raison = camp.declarer_les_places({ { nom = "lit_de_sa_tente", remplace = "lit_inconnu" } })
+  egal(raison, "places_invalides", "remplacer une place inconnue : refusé")
+  ok, raison = camp.declarer_les_places({ { nom = "x", sorte = "siege", remplace = "lit_directeur" } })
+  egal(raison, "places_invalides", "une sorte qui ne colle pas : refusée")
+  verifier(camp.declarer_les_places({ { nom = "lit_de_sa_tente", remplace = "lit_directeur" },
+                                      { nom = "sa_table", remplace = "coffre_camp" },
+                                      { nom = "ScriptoEditeur_3_3_so", sorte = "lit" } }), "déclarées")
+  FauxJeu.positions_des_objets = { lit_de_sa_tente = { x = 120, y = 210, z = 30 }, sa_table = { x = 125, y = 200, z = 30 } }
+  FauxJeu.objets_existants.lit_de_sa_tente = true
+  egal(directeur.activite(23).lieu, "lit_de_sa_tente", "la nuit : le lit qui remplace le sien")
+  egal(directeur.activite(23).position.x, 120, "à son lit")
+  egal(directeur.activite(10).lieu, "sa_table", "le jour : la place qui remplace le coffre")
+  egal(camp.sorte_de("lit_de_sa_tente"), "lit", "la sorte de la place remplacée")
+  egal(#camp.places_libres("lit"), 1, "le lit du Directeur jamais offert aux hommes")
+  egal(camp.capacite().lits, 1, "ni compté")
+  egal(camp.liste_des_places_declarees()[1].remplace, "lit_directeur", "lisible")
+  verifier(plan_coffre ~= nil, "la place du plan existe bien (sinon l'essai ne prouve rien)")
+  FauxJeu.positions_des_objets = nil
+end)
+
 essai("directeur (la bascule, 19/10) : la tâche « parler » : debout au point, tourné vers Henry, devant sa journée et devant « suivre » ; levée, il reprend sa journée", function()
   preparer(0, 10)
   local ok, raison = directeur.parler(true, { x = 1 }, { x = 0, y = 0, z = 0 })
