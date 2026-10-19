@@ -1025,6 +1025,50 @@ local function lignes_du_journal(texte)
   return n
 end
 
+essai("équipement (vu sur une copie de la partie de JoVenGer le 19/10) : la file d'habillage passe d'abord l'homme à équiper, et tourne : un homme plus loin dans la liste n'attend pas sans fin derrière les premiers sans cesse à rhabiller", function()
+  preparer(5000, 100, 10)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+  local ids = {}
+  for i = 1, 9 do
+    ids[i] = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0, famille = "hache" })
+  end
+  for _ = 1, 40 do hommes.battre() end
+  local d = Scriptorium.registre.lire("hommes")
+  for i = 1, 9 do
+    egal(d.liste[ids[i]].equipement.etat, "pret", "l'homme " .. i .. " prêt au départ")
+  end
+  -- Le neuvième (le colonel) à rééquiper ; les huit premiers remis à rhabiller à chaque battement.
+  verifier(hommes.reequiper(ids[9]), "à rééquiper")
+  local nom = hommes.fiche(ids[9]).nom
+  local avant = lignes_du_journal("« " .. nom .. " » équipé (")
+  for _ = 1, 3 do
+    for i = 1, 8 do d.liste[ids[i]].equipement.etat = "a_rhabiller" end
+    hommes.battre()
+  end
+  verifier(lignes_du_journal("« " .. nom .. " » équipé (") > avant, "le neuvième équipé tout de suite, devant les huit à rhabiller")
+  -- La file tourne : chacun des huit, remis à rhabiller à chaque battement, finit par passer.
+  local servis = {}
+  for _ = 1, 24 do
+    for i = 1, 8 do
+      if d.liste[ids[i]].equipement.etat == "pret" then
+        servis[i] = true
+        d.liste[ids[i]].equipement.etat = "a_rhabiller"
+      end
+    end
+    hommes.battre()
+  end
+  for i = 1, 8 do
+    if d.liste[ids[i]].equipement.etat ~= "a_rhabiller" then servis[i] = true end
+  end
+  local n = 0
+  for i = 1, 8 do if servis[i] then n = n + 1 end end
+  egal(n, 8, "en tournant, chacun des huit est servi")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("équipement (18/10, B) : remplacer une pièce portée par une neuve de la même classe, à l'état voulu ; une pièce non portée refusée", function()
   local id = homme_pret()
   local tenue = hommes.fiche(id).equipement.tenue

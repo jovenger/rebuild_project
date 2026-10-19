@@ -1396,21 +1396,33 @@ local function garde_suspendue(id, f)
 end
 
 -- Un homme par battement, jamais en bataille ; un homme que la garde ne doit pas toucher attend son tour (fiche 13).
+-- Vu sur une copie de la partie de JoVenGer le 19/10 : la file repartait toujours du premier de la liste ; les premiers,
+-- remis « à rhabiller » sans cesse (vie du camp relancée, fin de combat), passaient toujours devant, et le colonel,
+-- neuvième, restait à équiper, presque nu, pendant des heures de jeu. Désormais, par ordre : l'homme commencé (son
+-- second passage), puis un homme à équiper (sans sa tenue), puis un homme à rhabiller ; et dans chaque cas en tournant
+-- (la file reprend après le dernier servi).
 -- Rend l'identifiant de l'homme équipé ou rhabillé, ou faux.
+hommes.habillage_rang = 0
+
 local function equiper_un_homme(d)
-  if en_bataille() then
+  if en_bataille() or #d.ordre == 0 then
     return false
   end
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
-    if f.personnage and jeu().personnage_existe(f.personnage) then
-      if not f.equipement and est_combattant(f) and not f.admis then
-        choisir_l_equipement(d, f)
-      end
+    if f.personnage and jeu().personnage_existe(f.personnage) and not f.equipement and est_combattant(f)
+        and not f.admis then
+      choisir_l_equipement(d, f)
+    end
+  end
+  for _, voulu in ipairs({ "a_completer", "a_equiper", "a_rhabiller" }) do
+    for pas = 1, #d.ordre do
+      local rang = (hommes.habillage_rang + pas - 1) % #d.ordre + 1
+      local id = d.ordre[rang]
+      local f = d.liste[id]
       local etat = f.equipement and f.equipement.etat
       -- La garde n'est lue que pour un homme qui a quelque chose à faire (elle interroge l'arbitre).
-      local a_faire = etat == "a_equiper" or etat == "a_rhabiller" or etat == "a_completer"
-      if a_faire and not garde_suspendue(id, f) then
+      if etat == voulu and f.personnage and jeu().personnage_existe(f.personnage) and not garde_suspendue(id, f) then
         if etat == "a_equiper" then
           equiper(d, f)
         elseif etat == "a_rhabiller" then
@@ -1418,6 +1430,7 @@ local function equiper_un_homme(d)
         else
           completer(d, f)
         end
+        hommes.habillage_rang = rang
         return id
       end
     end

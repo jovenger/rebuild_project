@@ -700,3 +700,18 @@
 - Les munitions : la garde ne les compte pas ; le rhabillage complète jusqu'au nombre du préréglage, n'en retire jamais :
   les flèches et carreaux ramassés restent au sac.
 - Non vérifié en jeu (en particulier : une pièce recréée reste-t-elle bien au sac, sans être portée).
+
+## La file d'habillage, en tournant (vu sur une copie de la partie de JoVenGer, 19/10/2026)
+- Vu : le colonel (Havel le Borgne, neuvième de la liste) presque nu (caleçon, bottes) et figé bras écartés, près de la
+  marmite, des heures de jeu après le chargement. Au journal : « sera rééquipé (palier 1) » (la tenue du colonel, appelée
+  par la prise), puis jamais « équipé ». Lu en direct par le pair : état « a_equiper », rien ne le suspend (ni lit, ni
+  occupation, ni « ne_pas_rhabiller »).
+- Cause : un homme par battement (toutes les 30 s), et la file repartait toujours du premier de la liste ; les premiers,
+  remis « à rhabiller » sans cesse (vie du camp relancée, fin de combat), passaient toujours devant.
+- Désormais (`equiper_un_homme`) : par ordre, l'homme commencé (son second passage), puis un homme à équiper (sans sa
+  tenue), puis un homme à rhabiller ; et chaque fois en tournant (`hommes.habillage_rang`, en mémoire). Toujours un homme
+  par battement, jamais en bataille. Essai : neuf hommes, les huit premiers remis à rhabiller à chaque battement, le
+  neuvième équipé tout de suite, et chacun des huit servi (vérifié qu'il échoue avec l'ancienne file).
+- La posture en T du colonel : pas un secours (aucune téléportation au journal) ; il tenait le geste
+  « woman_cookingCampfire_loop » (à la marmite, choisi par Scriptorium). Non expliquée ; à revoir une fois l'homme
+  habillé. Non vérifié en jeu.

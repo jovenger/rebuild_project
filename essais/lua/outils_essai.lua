@@ -52,6 +52,7 @@ function depart()
     Scriptorium.hommes.fins_de_combat_vues = {}
     Scriptorium.hommes.lancements_vus = {}
     Scriptorium.hommes.garde_de_la_tenue_rang = 0
+    Scriptorium.hommes.habillage_rang = 0
     Scriptorium.hommes.en_ronde = {}
     Scriptorium.hommes.montures = {}
     Scriptorium.hommes.henry_monte, Scriptorium.hommes.henry_pied_lectures, Scriptorium.hommes.henry_force = false, 0, nil

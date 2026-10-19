@@ -589,6 +589,12 @@ aucune sonde dans l'arbre.
   - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 19/10, 23 h 06) : socle ce77192 + Scriptorium 37416824 ;
     séance « gardée » ; retour arrière : Scriptorium_securite61019_230515_819024_seance_du_socle. Vérifié : Partie 1
     identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse.
+- **Vérification de l'installation des lits (19/10 vers 23 h 15, demande de JoVenGer, accord direct, copie, jamais
+  sauvée, remis par le pair)** : la nuit juste (16 lits déclarés, 10 dormeurs chacun le sien, couchés, 0 erreur) ; le
+  lever juste au journal (aucun lit redemandé) et à l'image (personne couché en plein jour ; la mesure du pair par l'os de
+  la tête est fausse pour un homme loin d'Henry) ; DÉFAUT CHEZ NOUS : le colonel presque nu et figé (la file d'habillage
+  repartait toujours du début ; corrigé au banc, fiche 13, non installé) ; chez le pair : l'oscillation de Bohuslav
+  (une file d'achat de Scriptorium).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
