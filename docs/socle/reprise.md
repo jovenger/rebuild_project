@@ -519,13 +519,17 @@ aucune sonde dans l'arbre.
   de l'état et de la caisse (juste au groschen près), camp adopté, cabane d'Henry et tente du Directeur reposées par
   Scriptorium, caisse d'Henry visible à la tête du lit, Directeur repris et son dialogue en entier. L'écran noir : Henry
   épuisé et affamé dans cette sauvegarde (le jeu assombrit la vue), pas un défaut. Reste avant le vrai jour : la marque
-  du camp sur la carte (question du pair), la caisse d'Henry à ouvrir en jeu (aucune invite vue), puis l'ordre de
+  du camp sur la carte (réglée à la cinquième, ci-dessous), la caisse d'Henry à ouvrir en jeu (aucune invite vue), puis l'ordre de
   JoVenGer pour la vraie bascule.
 - Quatrième répétition (19/10, même accord, rangée, jamais sauvée, remis et vérifié) : la marque du camp est sur la
   BOUSSOLE (écu bleu), pas sur la carte, même à ~60 m du Directeur (question laissée au pair, rien à relancer chez
   nous) ; « Des fautes aujourd'hui ? » sans fautif : plus de sous-menu ; l'aller-retour de caisse (1000 donnés puis
   remis) juste au groschen près, arrondi prouvé par le pair. Vu : le Directeur affichait « Soldat » : il s'appelle
-  désormais « Le Directeur » (`hommes.nom_du_directeur`, fiche 13), non vérifié en jeu.
+  désormais « Le Directeur » (`hommes.nom_du_directeur`, fiche 13).
+- Cinquième répétition (19/10, accord direct de JoVenGer, rangée, jamais sauvée, remis et vérifié) : « Le Directeur »
+  vu au-dessus de lui ; au chargement, la carte reste sans écu ; la sonde du pair éteint puis rallume la marque et
+  l'écu bleu apparaît sur la carte (à côté du drapeau rouge, à part d'Henry). JoVenGer l'a aussi sur la carte dans sa
+  partie : la correction est chez le pair (la prise éteint la marque une fois à la reprise), à voir au vrai jour.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
