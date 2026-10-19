@@ -8,7 +8,8 @@
 $script:Sauvegardes = "$env:USERPROFILE\Saved Games\kingdomcome2\saves"
 $script:Rangement = "$env:USERPROFILE\Saved Games\kingdomcome2\essais_du_socle_rangees"
 # 18/10/2026 : playline4, la partie neuve d'essai (Partie 5), créée pour l'essai des dialogues sur une partie neuve.
-$script:LignesDEssai = @("playline2", "playline3", "playline4")
+# 19/10/2026 : playline9, la copie de la partie de JoVenGer (autosave1910) pour la répétition de la bascule (son accord direct).
+$script:LignesDEssai = @("playline2", "playline3", "playline4", "playline9")
 
 # L'heure de l'en-tête d'une sauvegarde (secondes), ou $null si l'en-tête est illisible.
 function Heure-De-Sauvegarde([string]$chemin) {

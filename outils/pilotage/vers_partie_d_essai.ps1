@@ -8,7 +8,7 @@
 # sans rien valider ; la suite se fait à vue, puis confirmer_sauvegarde.ps1 -Attendu "<ligne>/<sauvegarde>".
 # À employer seulement pendant une séance d'essai ouverte par debut_essai.ps1, avec l'accord de JoVenGer.
 # -SansDevmode : lance le jeu comme JoVenGer joue, sans -devmode.
-param([switch]$Charger, [switch]$SansDevmode, [ValidateSet("playline2", "playline3")][string]$Ligne = "playline2")
+param([switch]$Charger, [switch]$SansDevmode, [ValidateSet("playline2", "playline3", "playline9")][string]$Ligne = "playline2")
 $racine = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
 $jeu = "G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 $journal = Join-Path $jeu "kcd.log"
