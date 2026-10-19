@@ -500,8 +500,14 @@ aucune sonde dans l'arbre.
   veilleur en marche.
 
 **Reste**
-- La tenue des hommes : le socle seul, avec la décision remplaçable que le pair décrira ; trouver le soldat nu.
-- Tenue (demandes du pair du 18/10) : faites au banc (A à D, fiche 13) ; à voir en jeu, surtout la pièce mise au sac.
+- La tenue des hommes : gardée par le socle seul. Fait chez nous au banc (filet de la tenue de corps, reequiper,
+  remplacer_une_piece, pieces_au_sac, tenue du colonel ; fiche 13) ; branché chez le pair (bascule/prise 99558f89, le 19/10 :
+  tenue du colonel, tête nue au camp, forge, achats, ne_pas_rhabiller ; colonel_du_camp ne touche plus à la tenue).
+  Décision de JoVenGer (19/10, transmise par le pair) : la tenue suit TOUJOURS le grade (changer_de_palier à chaque
+  promotion). Les arbalétriers naissent en rôle « arbaletrier ». Les hommes libres sont branchés : forge, armurier, bains,
+  fouille, portage et chantiers prendront nos hommes (plus d'ordres « scriptorium »).
+- À voir à la prochaine séance regroupée (date proposée par le pair à JoVenGer) : la pièce mise au sac (tête nue du
+  colonel), le remplacement à la forge, la tenue du colonel, les hommes libres au travail, et le soldat nu disparu.
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
   captures tombaient sur le menu des choix, où le jeu filme Henry. Les essais ci-dessus étaient sans objet.
 - Protocole de fenêtre : « fenêtre ouverte » au pair à chaque fin de séance, « fenêtre rendue » avant de relancer.
