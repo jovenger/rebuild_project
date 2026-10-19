@@ -4,7 +4,7 @@
     "(Scriptorium\\docs\\socle\\DIALOGUES.md, 18/10/2026) ; outils/dialogues.py écrit d'ici les fichiers du jeu (projet de",
     "quêtes, rôles, règles Storm, textes). Un choix : invite (le menu), henry (ce que dit Henry), reponse (la première",
     "réplique), repliques (place 1 à 3, code, texte : choisie par la variable globale de sa place), fin (menu ou fermer),",
-    "condition (« colonel » : seulement au colonel). Une catégorie : ses choix, puis le retour au menu."
+    "condition (« colonel » : seulement au colonel). Une catégorie : ses choix, puis le retour au menu ; sans_sous_menu : les codes de sa réponse qui reviennent directement au menu."
   ],
   "repli": "Pardon, chef… j'avais la tête ailleurs.",
   "retour_aux_sujets": "Laissons cela.",
@@ -190,7 +190,8 @@
           {"nom": "on_continue", "invite": "Non, on continue comme ça.", "henry": "Non, on continue comme ça.", "repliques": [
             {"place": 1, "code": 6, "texte": "Comme vous voudrez, chef."}], "fin": "menu"}
         ]},
-        {"categorie": "les_fautes", "invite": "Des fautes aujourd'hui ?", "henry": "Des fautes aujourd'hui ?",
+        {"categorie": "les_fautes",
+      "sans_sous_menu": [4], "invite": "Des fautes aujourd'hui ?", "henry": "Des fautes aujourd'hui ?",
          "repliques_categorie": [
           {"place": 1, "code": 1, "texte": "Une rixe ce matin, chef."},
           {"place": 1, "code": 2, "texte": "Un vol dans le camp."},

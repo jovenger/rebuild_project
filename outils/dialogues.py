@@ -206,14 +206,19 @@ class Ecrivain:
         self.ecrire(p + 1, "<Sequences>")
         branches = [(r, "gvar('%s') == %d" % (variable, r["code"])) for r in places[numero]]
         branches.append(({"code": 0, "texte": self.donnees["repli"] if numero == 0 else None}, "gvar('%s') == 0" % variable))
+        # « sans_sous_menu » (demande du pair, 19/10) : les codes de la réponse après lesquels le sous-menu n'a pas de sens
+        # (« Rien, chef » : ni pardon ni sanction sans fautif) : la branche revient directement au menu.
+        sans_sous_menu = set(cat.get("sans_sous_menu", []))
         for r, condition in branches:
-            self.ecrire(p + 2, "<Sequence%s>" % attr(Name=self.nom_unique("code"), DesignName="code %d" % r["code"],
-                                                     EntryCondition=condition, EndType="Decision"))
+            direct = numero + 1 >= len(places) and r["code"] in sans_sous_menu
+            fin = attr(EndType="GoTo", GoToDecision=menu) if direct else attr(EndType="Decision")
+            self.ecrire(p + 2, "<Sequence%s%s>" % (attr(Name=self.nom_unique("code"), DesignName="code %d" % r["code"],
+                                                        EntryCondition=condition), fin))
             cle = self.cle(cat["categorie"], "repli") if (numero == 0 and r["code"] == 0) else self.cle(cat["categorie"], "p%d" % (numero + 1), r["code"])
             self.elements(p + 3, reponse(self.t, self.role if r["texte"] else "HENRY", cle, r["texte"]))
             if numero + 1 < len(places):
                 self.chaine_des_places_puis(p + 3, cat, places, menu, numero + 1)
-            else:
+            elif not direct:
                 self.sous_menu(p + 3, cat, menu)
             self.ecrire(p + 2, "</Sequence>")
         self.ecrire(p + 1, "</Sequences>")

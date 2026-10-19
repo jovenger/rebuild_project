@@ -514,6 +514,13 @@ aucune sonde dans l'arbre.
     vue à l'image) ; les 4 femmes des bains menées (« seller » : leur repos voulu) ; aucune erreur, aucun refus, aucun
     homme à rhabiller ;
   - la file d'habillage (un homme à la fois, ~30-40 s chacun) : gardée, accord du pair.
+- Trois répétitions de la bascule le 19/10 (sur des copies de sa partie, accord direct de JoVenGer à chaque fois ;
+  toujours rangées, jamais sauvées ; remis et vérifié après chacune). À la troisième, TOUT vu : reprise des valeurs,
+  de l'état et de la caisse (juste au groschen près), camp adopté, cabane d'Henry et tente du Directeur reposées par
+  Scriptorium, caisse d'Henry visible à la tête du lit, Directeur repris et son dialogue en entier. L'écran noir : Henry
+  épuisé et affamé dans cette sauvegarde (le jeu assombrit la vue), pas un défaut. Reste avant le vrai jour : la marque
+  du camp sur la carte (question du pair), la caisse d'Henry à ouvrir en jeu (aucune invite vue), puis l'ordre de
+  JoVenGer pour la vraie bascule.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

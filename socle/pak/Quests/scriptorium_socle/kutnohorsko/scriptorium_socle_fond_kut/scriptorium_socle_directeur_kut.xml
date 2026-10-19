@@ -5413,7 +5413,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_code_630" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_1') == 4" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_code_630" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_1') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                               <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_p1_4" Text="Rien, chef. Les hommes se tiennent bien." />
@@ -5422,88 +5422,8 @@
                               </Commands>
                             </Response>
                           </Elements>
-                          <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_631" Priority="General" DesignName="les_fautes">
-                            <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_632" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
-                                <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite" Text="Je pardonne." />
-                                <Elements>
-                                  <Response Role="HENRY">
-                                    <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_henry" Text="Je pardonne." />
-                                    <Commands>
-                                      <CameraCommand />
-                                    </Commands>
-                                  </Response>
-                                </Elements>
-                                <Decision Name="scriptorium_socle_directeur_kut_place1_633" Autoselect="true" Priority="General" DesignName="place 1">
-                                  <Sequences>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_634" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_1') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
-                                      <Elements>
-                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
-                                          <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_p1_5" Text="Bien, chef. Il s'en souviendra." />
-                                          <Commands>
-                                            <CameraCommand />
-                                          </Commands>
-                                        </Response>
-                                      </Elements>
-                                    </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_635" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
-                                      <Elements>
-                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
-                                          <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
-                                          <Commands>
-                                            <CameraCommand />
-                                          </Commands>
-                                        </Response>
-                                      </Elements>
-                                    </Sequence>
-                                  </Sequences>
-                                </Decision>
-                              </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_636" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
-                                <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite" Text="Sanctionne-le." />
-                                <Elements>
-                                  <Response Role="HENRY">
-                                    <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_henry" Text="Sanctionne-le." />
-                                    <Commands>
-                                      <CameraCommand />
-                                    </Commands>
-                                  </Response>
-                                </Elements>
-                                <Decision Name="scriptorium_socle_directeur_kut_place1_637" Autoselect="true" Priority="General" DesignName="place 1">
-                                  <Sequences>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_638" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_1') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
-                                      <Elements>
-                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
-                                          <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_p1_6" Text="Ce sera fait, chef." />
-                                          <Commands>
-                                            <CameraCommand />
-                                          </Commands>
-                                        </Response>
-                                      </Elements>
-                                    </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_639" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
-                                      <Elements>
-                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
-                                          <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
-                                          <Commands>
-                                            <CameraCommand />
-                                          </Commands>
-                                        </Response>
-                                      </Elements>
-                                    </Sequence>
-                                  </Sequences>
-                                </Decision>
-                              </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_retour_640" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
-                                <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
-                                <Elements>
-                                  <Response Role="HENRY" />
-                                </Elements>
-                              </Sequence>
-                            </Sequences>
-                          </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_code_641" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_code_631" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="Decision">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                               <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
@@ -5512,9 +5432,9 @@
                               </Commands>
                             </Response>
                           </Elements>
-                          <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_642" Priority="General" DesignName="les_fautes">
+                          <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_632" Priority="General" DesignName="les_fautes">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_643" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_633" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite" Text="Je pardonne." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5524,9 +5444,9 @@
                                     </Commands>
                                   </Response>
                                 </Elements>
-                                <Decision Name="scriptorium_socle_directeur_kut_place1_644" Autoselect="true" Priority="General" DesignName="place 1">
+                                <Decision Name="scriptorium_socle_directeur_kut_place1_634" Autoselect="true" Priority="General" DesignName="place 1">
                                   <Sequences>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_645" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_1') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_code_635" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_1') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
                                         <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                           <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_p1_5" Text="Bien, chef. Il s'en souviendra." />
@@ -5536,7 +5456,7 @@
                                         </Response>
                                       </Elements>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_646" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_code_636" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
                                         <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                           <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
@@ -5549,7 +5469,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_647" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_637" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite" Text="Sanctionne-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5559,9 +5479,9 @@
                                     </Commands>
                                   </Response>
                                 </Elements>
-                                <Decision Name="scriptorium_socle_directeur_kut_place1_648" Autoselect="true" Priority="General" DesignName="place 1">
+                                <Decision Name="scriptorium_socle_directeur_kut_place1_638" Autoselect="true" Priority="General" DesignName="place 1">
                                   <Sequences>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_649" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_1') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_code_639" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_1') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
                                         <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                           <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_p1_6" Text="Ce sera fait, chef." />
@@ -5571,7 +5491,7 @@
                                         </Response>
                                       </Elements>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_code_650" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_code_640" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
                                         <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                           <Text StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
@@ -5584,7 +5504,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_retour_651" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_retour_641" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
                                   <Response Role="HENRY" />
@@ -5596,7 +5516,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_le_coffre_652" DesignName="le_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_le_coffre_642" DesignName="le_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_invite" Text="Le coffre." />
                     <Elements>
                       <Response Role="HENRY">
@@ -5612,9 +5532,9 @@
                         </Commands>
                       </Response>
                     </Elements>
-                    <Decision Name="scriptorium_socle_directeur_kut_le_coffre_menu_653" Priority="General" DesignName="le_coffre">
+                    <Decision Name="scriptorium_socle_directeur_kut_le_coffre_menu_643" Priority="General" DesignName="le_coffre">
                       <Sequences>
-                        <Sequence Name="scriptorium_socle_directeur_kut_donne_de_l_argent_654" DesignName="donne_de_l_argent" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'donne_de_l_argent', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_donne_de_l_argent_644" DesignName="donne_de_l_argent" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'donne_de_l_argent', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_invite" Text="Donne-moi de l'argent du coffre." />
                           <Elements>
                             <Response Role="HENRY">
@@ -5624,9 +5544,9 @@
                               </Commands>
                             </Response>
                           </Elements>
-                          <Decision Name="scriptorium_socle_directeur_kut_place1_655" Autoselect="true" Priority="General" DesignName="place 1">
+                          <Decision Name="scriptorium_socle_directeur_kut_place1_645" Autoselect="true" Priority="General" DesignName="place 1">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_code_656" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_code_646" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                     <Text StringName="ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_p1_1" Text="Voilà mille gros, chef." />
@@ -5636,7 +5556,7 @@
                                   </Response>
                                 </Elements>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_code_657" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_code_647" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                     <Text StringName="ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_p1_2" Text="Le coffre est trop bas, chef." />
@@ -5646,7 +5566,7 @@
                                   </Response>
                                 </Elements>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_code_658" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_code_648" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                     <Text StringName="ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
@@ -5659,7 +5579,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_mets_au_coffre_659" DesignName="mets_au_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mets_au_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_mets_au_coffre_649" DesignName="mets_au_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mets_au_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_invite" Text="Mets ça au coffre." />
                           <Elements>
                             <Response Role="HENRY">
@@ -5669,9 +5589,9 @@
                               </Commands>
                             </Response>
                           </Elements>
-                          <Decision Name="scriptorium_socle_directeur_kut_place1_660" Autoselect="true" Priority="General" DesignName="place 1">
+                          <Decision Name="scriptorium_socle_directeur_kut_place1_650" Autoselect="true" Priority="General" DesignName="place 1">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_code_661" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_code_651" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                     <Text StringName="ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_p1_3" Text="Merci, chef. C'est au coffre." />
@@ -5681,7 +5601,7 @@
                                   </Response>
                                 </Elements>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_code_662" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_1') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_code_652" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_1') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                     <Text StringName="ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_p1_4" Text="Vous n'avez pas assez sur vous, chef." />
@@ -5691,7 +5611,7 @@
                                   </Response>
                                 </Elements>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_code_663" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                              <Sequence Name="scriptorium_socle_directeur_kut_code_653" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <Elements>
                                   <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                                     <Text StringName="ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
@@ -5704,7 +5624,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_retour_664" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
+                        <Sequence Name="scriptorium_socle_directeur_kut_retour_654" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
                             <Response Role="HENRY" />

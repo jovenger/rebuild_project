@@ -1165,6 +1165,17 @@ def verifier_textes():
                             capture_output=True, text=True, encoding="utf-8", errors="replace")
     if a_jour.returncode != 0:
         erreur("dialogues : fichiers écrits par outils/dialogues.py pas à jour : " + " ; ".join(a_jour.stdout.split()))
+    # Demande du pair (19/10) : « Des fautes aujourd'hui ? » : la réponse « Rien, chef » (code 4) revient directement au
+    # menu, sans le sous-menu « Je pardonne / Sanctionne-le » ; une faute rapportée (codes 1 à 3) l'ouvre.
+    for chemin in fichiers(os.path.join(PAK, "Quests"), {".xml"}):
+        if "directeur" not in os.path.basename(chemin):
+            continue
+        bloc = lire(chemin).split('DesignName="les_fautes"', 1)[-1].split('DesignName="le_coffre"', 1)[0]
+        directs = {code: "GoTo" in balise for balise, code in
+                   re.findall(r'(<Sequence [^>]*DesignName="code (\d)"[^>]*>)', bloc) if code in "1234"}
+        if directs != {"1": False, "2": False, "3": False, "4": True}:
+            erreur("dialogues : %s : les fautes, sous-menu pour les codes 1 à 3 et retour direct pour le code 4 ; trouvé %s"
+                   % (relatif(chemin), directs))
     for cle, endroits in sorted(employees.items()):
         if cle not in definies:
             erreur("texte : clé employée mais jamais définie : %s (%s)" % (cle, endroits[0]))

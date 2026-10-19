@@ -66,3 +66,13 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
 - Le « Parler » du jeu absent : attendre le principe d'Alex par le pair, et essayer sur une partie neuve d'essai.
 - L'annonce « une bande approche » sans guetteur : silencieuse (seul un garde qui a vu donne l'alerte à l'écran).
 - La bascule : après les dialogues vus en jeu.
+
+## Le dialogue du Directeur vu en jeu (troisième répétition de la bascule, 19/10/2026)
+- Sur une copie de la partie de JoVenGer, monde du socle, le Directeur tenu par `directeur.parler` : le dialogue s'ouvre
+  (« Oui, chef ? », menu complet), la caméra le filme à ses répliques ; « Comment va le camp ? », « Trouve-nous une
+  mission » (sans hommes : « pas en état de partir »), « Donne-moi de l'argent du coffre » et « Mets ça au coffre »
+  (la caisse juste au groschen près, aller et retour, relue par le pair), « Que me conseilles-tu ? » puis « On continue
+  comme ça », « Des fautes aujourd'hui ? ». Aucune erreur.
+- Corrigé ensuite (demande du pair) : sans fautif (réponse « Rien, chef », code 4), le sous-menu « Je pardonne /
+  Sanctionne-le » n'est plus proposé : la branche revient au menu (`sans_sous_menu` dans socle/dialogues/arbres.json ;
+  contrôlé au banc). Non revu en jeu.
