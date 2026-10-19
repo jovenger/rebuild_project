@@ -33,9 +33,17 @@ Start-Sleep -Seconds 2
 $maintenant = Get-ChildItem "$env:USERPROFILE\Saved Games\kingdomcome2\saves\playline0" -File | Sort-Object Name | ForEach-Object { "$($_.Name)|$($_.Length)|$($_.LastWriteTime.Ticks)" }
 if (Compare-Object (Get-Content $etat) $maintenant) { "ATTENTION : la Partie 1 a changé depuis sa copie ; rien n'est rétabli sans l'accord de JoVenGer" }
 else { "Partie 1 identique à sa copie (" + $maintenant.Count + " fichiers)" }
-Copy-Item -LiteralPath $copie -Destination $liste -Force
-if ((Get-FileHash $liste -Algorithm SHA256).Hash -eq $empreinte) { "liste des mods d'origine remise : " + ((Get-Content $liste) -join " / ") }
-else { "ATTENTION : la liste des mods n'a pas l'empreinte d'origine" }
+# Garde-fou (19/10, plan du jour J de la bascule) : la liste n'est remise que si elle est celle d'une séance
+# (debut_essai.ps1 : le socle seul). Sinon (séance avec le pair, ou partie basculée de JoVenGer où le socle est son monde
+# de tous les jours), remettre l'ancienne liste y remettrait l'ancien monde : rien n'est touché.
+$actuelle = @(Get-Content $liste | Where-Object { $_.Trim() -ne "" })
+if ($actuelle.Count -ne 1 -or $actuelle[0].Trim() -ne "scriptorium_socle") {
+  "liste des mods NON remise : ce n'est pas celle d'une séance (" + ($actuelle -join " / ") + ") ; rien n'est changé"
+} else {
+  Copy-Item -LiteralPath $copie -Destination $liste -Force
+  if ((Get-FileHash $liste -Algorithm SHA256).Hash -eq $empreinte) { "liste des mods d'origine remise : " + ((Get-Content $liste) -join " / ") }
+  else { "ATTENTION : la liste des mods n'a pas l'empreinte d'origine" }
+}
 if (-not (Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "veilleur" })) { Start-Process -FilePath $veilleur; Start-Sleep -Seconds 4 }
 "veilleur relancé = " + [bool](Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "veilleur" })
 Ranger-Les-Essais | ForEach-Object {
