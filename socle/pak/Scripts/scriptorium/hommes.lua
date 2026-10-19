@@ -3788,7 +3788,11 @@ function hommes.battre()
   -- La bascule (l'affrontement, 18/10) : la cible à terre, la tenue se lâche ; sinon l'attaque est redonnée à qui ne se
   -- bat plus.
   hommes.veiller_les_affrontements(d)
+  -- Sans aucun homme, le personnel mené l'est encore (vu au banc le 20/10 : il ne recevait plus ni ordre ni secours).
   if #d.ordre == 0 and #d.anciens == 0 then
+    if d.menes and next(d.menes) then
+      hommes.mener_le_personnel(d, heure, rapport)
+    end
     return rapport
   end
   if d.derniere_heure == nil then
@@ -4178,7 +4182,9 @@ function hommes.personnel_mene()
 end
 
 -- Au battement : les tenues échues tombent (comme pour nos hommes), un personnage disparu n'est plus mené, et chacun
--- reçoit son ordre (sans le secours des hommes, fait pour la Compagnie et son camp).
+-- reçoit son ordre. Vu sur une copie de la partie de JoVenGer le 20/10 : des chasseurs et un jardinier menés, bloqués
+-- contre le mur de la cabane pendant des heures, sans jamais être secourus ; ils ont désormais le même secours que nos
+-- hommes (la téléportation du jeu, jamais sous les yeux d'Henry).
 function hommes.mener_le_personnel(d, heure, rapport)
   local menes = {}
   for cle_du_mene in pairs(d.menes or {}) do
@@ -4205,7 +4211,7 @@ function hommes.mener_le_personnel(d, heure, rapport)
         d.menes[id] = nil
         hommes.suivi[id] = nil
       else
-        ordonner_un_homme(d, id, heure, rapport, true)
+        ordonner_un_homme(d, id, heure, rapport, false)
       end
     end
   end

@@ -221,3 +221,8 @@ Comportement :
   client que Scriptorium venait de faire disparaître, et `hommes.lacher` lui donnait encore un ordre « attendre ».
 - Désormais : la dernière tenue lâchée (`hommes.lacher_un_personnage`), ou toutes ses tenues échues au battement
   (`hommes.mener_le_personnel`), le personnage n'est plus mené, sans aucun ordre. Essai (vérifié qu'il échoue sans).
+- Le personnel mené est secouru comme nos hommes (vu sur une copie de la partie de JoVenGer le 20/10 : deux chasseurs, un
+  jardinier et un porteur d'eau, envoyés par Scriptorium à une place dans la cabane puis à 40 m au sud, restés bloqués
+  contre le mur ouest pendant des heures) : `hommes.mener_le_personnel` donne désormais le secours (téléportation du jeu,
+  jamais sous les yeux d'Henry). Et sans aucun homme dans la Compagnie, le personnel est encore mené (il ne l'était plus).
+  Essai (vérifié qu'il échoue sans). Non vérifié en jeu.

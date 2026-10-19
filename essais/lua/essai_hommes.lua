@@ -2414,6 +2414,20 @@ essai("secours (fiche 15, V73 e) : au-delà de 150 m d'un but au camp, posé au 
   egal(#FauxJeu.secours, 0, "une sortie à 200 m : pas au premier battement")
 end)
 
+essai("secours (vu sur une copie de la partie de JoVenGer le 20/10) : un personnage mené, bloqué loin de son but, est secouru comme nos hommes", function()
+  preparer(5000, 100, 10)
+  FauxJeu.personnages_existants["chasseur"] = true
+  local but = camp.point(0, -6, 0)
+  verifier(hommes.tenir_un_personnage("chasseur", "travail", { activite = "geste", geste = "waiting_armsCrossed", lieu = "repos",
+                                                              position = but, fin = "liberation" }), "mené")
+  FauxJeu.secours = {}
+  FauxJeu.positions["chasseur"] = { x = but.x + 40, y = but.y, z = 0 }
+  for _ = 1, 4 do hommes.battre() end
+  verifier(#FauxJeu.secours >= 1, "bloqué à 40 m sans progrès : secouru")
+  egal(FauxJeu.secours[1].identifiant, "chasseur", "le mené lui-même")
+  hommes.lacher_un_personnage("chasseur", "travail")
+end)
+
 essai("secours (fiche 15, V73 e) : jamais sous les yeux d'Henry ; il détourne le regard, le secours pose ; sans lecture, il pose", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
