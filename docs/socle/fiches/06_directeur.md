@@ -52,3 +52,13 @@ Installation et refus ; journée du Directeur ; menu complet, disponibilités et
   chargement (gardés au registre). Sur un camp adopté, aucun lit du plan n'est réservé : son coucher lui vient de
   Scriptorium. Refus : camp_absent, deja_installe, position_invalide, cap_invalide.
 - Non vérifié en jeu.
+
+## La tâche « parler » (demande du pair, 19/10/2026)
+- Vu à la seconde répétition de la bascule : le Directeur, qui va et vient à sa journée, ne se laissait pas aborder pour
+  son dialogue (deux échecs).
+- `directeur.parler(true, position, regard)` : il se tient debout au point, tourné vers « regard » (Henry), jusqu'à
+  `directeur.parler(false)` ; elle passe devant sa journée et devant « suivre ». Refus : pas_de_directeur,
+  position_invalide.
+- Ordres d'essai : `scriptorium_essai_directeur_parler` (à 2,5 m devant Henry, face à lui) et
+  `scriptorium_essai_directeur_parler_fin`.
+- Non vérifié en jeu.

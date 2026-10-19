@@ -616,6 +616,18 @@ function poste.essai_objets_voir()
   return true
 end
 
+-- La bascule (demande du pair, 19/10) : le Directeur tenu debout à 2,5 m devant Henry, face à lui, pour son dialogue.
+function poste.essai_directeur_parler()
+  local point = devant_henry(2.5)
+  local ok, raison = Scriptorium.directeur.parler(true, point, jeu().position_du_joueur())
+  jeu().journal("Poste : le Directeur se tient devant Henry : " .. tostring(ok) .. " " .. tostring(raison or ""))
+  return ok == true
+end
+
+function poste.essai_directeur_parler_fin()
+  return Scriptorium.directeur.parler(false) == true
+end
+
 -- 5 b : le dernier vu rendu parlable, tenu debout à 2,5 m devant Henry, face à lui.
 function poste.essai_parlable()
   local hommes = Scriptorium.hommes
@@ -2802,6 +2814,8 @@ poste.commandes = {
   { nom = "scriptorium_essai_homme_aux_objets", fonction = function() return poste.essai_homme_aux_objets() end, aide = "Un homme refait avec une liste d'objets à l'état 0,5 (fiche 18)" },
   { nom = "scriptorium_essai_objets_voir", fonction = function() return poste.essai_objets_voir() end, aide = "Ce que porte le dernier vu, avec l'état" },
   { nom = "scriptorium_essai_parlable", fonction = function() return poste.essai_parlable() end, aide = "Le dernier vu parlable, debout devant Henry (fiche 18, 5 b)" },
+  { nom = "scriptorium_essai_directeur_parler", fonction = function() return poste.essai_directeur_parler() end, aide = "Le Directeur se tient debout à 2,5 m devant Henry, face à lui, pour son dialogue (la bascule, 19/10)" },
+  { nom = "scriptorium_essai_directeur_parler_fin", fonction = function() return poste.essai_directeur_parler_fin() end, aide = "Le Directeur reprend sa journée" },
   { nom = "scriptorium_essai_parlable_fin", fonction = function() return poste.essai_parlable_fin() end, aide = "Le dernier vu n'est plus parlable ni tenu" },
   { nom = "scriptorium_essai_admettre", fonction = function() return poste.essai_admettre() end, aide = "Un personnage né hors de la Compagnie, admis forgeron (fiche 18, 5 c)" },
   { nom = "scriptorium_essai_embaucher_metiers", fonction = function() return poste.essai_embaucher_metiers() end, aide = "Un cuisinier et un forgeron engagés" },

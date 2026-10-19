@@ -57,6 +57,25 @@ essai("directeur (la bascule, 19/10) : installé à une place donnée sur un cam
   egal(FauxJeu.directeurs[#FauxJeu.directeurs].position.x, 110, "revenu à sa place")
 end)
 
+essai("directeur (la bascule, 19/10) : la tâche « parler » : debout au point, tourné vers Henry, devant sa journée et devant « suivre » ; levée, il reprend sa journée", function()
+  preparer(0, 10)
+  local ok, raison = directeur.parler(true, { x = 1 }, { x = 0, y = 0, z = 0 })
+  egal(raison, "position_invalide", "un point boiteux refusé")
+  directeur.suivre(true)
+  FauxJeu.ordres = {}
+  verifier(directeur.parler(true, { x = 5, y = 6, z = 0 }, { x = 5, y = 3, z = 0 }), "tenu")
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(o.activite, "garde", "un poste")
+  egal(o.position.x, 5, "à son point")
+  egal(o.regard.y, 3, "tourné vers Henry")
+  directeur.battre()
+  egal(#FauxJeu.ordres, 1, "pas d'ordre redonné tant que rien ne change")
+  verifier(directeur.parler(false), "levé")
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite, "suivre", "il reprend « suivre »")
+  directeur.suivre(false)
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite ~= "garde", true, "puis sa journée")
+end)
+
 essai("directeur : sa journée, un ordre au changement", function()
   preparer(0, 10)
   egal(directeur.activite(10).activite, "comptes", "le jour, aux comptes")

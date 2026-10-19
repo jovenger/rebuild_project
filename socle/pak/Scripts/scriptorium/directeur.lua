@@ -287,8 +287,38 @@ function directeur.mene_une_formation()
   return d.installe == true and d.suivre == true and d.formation ~= nil and d.personnage ~= nil
 end
 
+-- La tâche « parler » (demande du pair, 19/10 : le dialogue du Directeur sans le poursuivre) : il se tient debout au
+-- point « position », tourné vers « regard » (Henry), jusqu'à directeur.parler(false). Elle passe devant sa journée et
+-- devant « suivre ». Rend vrai, ou faux et la raison.
+function directeur.parler(oui, position, regard)
+  local d = donnees()
+  if not d.installe then
+    return refuser("pas_de_directeur")
+  end
+  if oui == false then
+    d.parler = nil
+  else
+    local function point_valide(p)
+      return type(p) == "table" and type(p.x) == "number" and type(p.y) == "number" and type(p.z) == "number"
+    end
+    if not point_valide(position) or not point_valide(regard) then
+      return refuser("position_invalide")
+    end
+    d.parler = { position = { x = position.x, y = position.y, z = position.z },
+                 regard = { x = regard.x, y = regard.y, z = regard.z } }
+  end
+  d.derniere_activite = nil
+  enregistrer()
+  directeur.battre()
+  return true
+end
+
 function directeur.activite(heure)
   local d = donnees()
+  if d.parler then
+    return { activite = "garde", lieu = "parler", position = d.parler.position, regard = d.parler.regard,
+             signature = string.format("%.1f,%.1f", d.parler.position.x, d.parler.position.y) }
+  end
   if d.suivre then
     local suivi = d.formation and { mode = "mener", formation = d.formation } or nil
     -- V73 f 2 e : à cheval, dans son rôle (mener sa formation, ou suivre) ; sans cheval encore, à pied.
@@ -319,14 +349,15 @@ function directeur.battre()
     Scriptorium.hommes.preparer_la_monture_du_directeur(jeu().heure_du_jeu())
   end
   local a = Scriptorium.avis(directeur, "activite", jeu().heure_du_jeu())
-  local resume = a and (a.activite .. (a.suivi and ("/" .. tostring(a.suivi.mode) .. "/" .. tostring(a.suivi.cheval)) or ""))
+  local resume = a and (a.activite .. (a.suivi and ("/" .. tostring(a.suivi.mode) .. "/" .. tostring(a.suivi.cheval)) or "")
+                        .. (a.signature and ("#" .. a.signature) or ""))
   if a and d.derniere_activite ~= resume then
     -- Fiche 15, V73 a : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart, jamais dessus
     -- (avant, il était posé dans le feu à la veillée).
     local sorte = camp().sorte_de(a.lieu)
     local objet = sorte and camp().sortes_places[sorte] and camp().objet_du_jeu_de(a.lieu) or nil
     local position = objet and a.position or camp().abord_de(a.lieu) or a.position
-    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, nil, nil, a.chef, a.suivi)
+    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, a.regard, nil, a.chef, a.suivi)
     if Scriptorium.hommes then
       Scriptorium.hommes.ordre_donne_en_saut("directeur")
     end
