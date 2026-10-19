@@ -635,6 +635,21 @@ function faux.etat_objet(personnage, objet)
   end
   return nil
 end
+function faux.remplacer_un_objet(personnage, objet, etat)
+  if not faux.retirer_un_objet(personnage, objet) then return false end
+  faux.creer_objet(personnage, objet, etat, 1)
+  return faux.faire_porter(personnage, { objet }) == 1
+end
+-- Les pièces mises au sac (le jeu n'a pas de fonction pour ôter : retirée, recréée sans être portée).
+function faux.ranger_au_sac(personnage, objet)
+  local etat = faux.etat_objet(personnage, objet)
+  if etat == nil or not faux.retirer_un_objet(personnage, objet) then return false end
+  faux.creer_objet(personnage, objet, etat, 1)
+  faux.au_sac = faux.au_sac or {}
+  faux.au_sac[personnage] = faux.au_sac[personnage] or {}
+  faux.au_sac[personnage][objet] = true
+  return true
+end
 function faux.faire_porter(personnage, objets)
   local portes, introuvables = 0, {}
   faux.dernier_porter = { personnage = personnage, objets = objets }

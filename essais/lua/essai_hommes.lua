@@ -1002,6 +1002,81 @@ essai("équipement (18/10) : hommes.reequiper refait le choix au même palier, l
   hommes.choix_de_l_equipement = ancien
 end)
 
+-- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
+local function homme_pret()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  return id
+end
+local function lignes_du_journal(texte)
+  local n = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, texte, 1, true) then n = n + 1 end
+  end
+  return n
+end
+
+essai("équipement (18/10, B) : remplacer une pièce portée par une neuve de la même classe, à l'état voulu ; une pièce non portée refusée", function()
+  local id = homme_pret()
+  local tenue = hommes.fiche(id).equipement.tenue
+  local piece = tenue .. "_corps"
+  local avant = #hommes.ce_qu_il_porte(id)
+  verifier(hommes.remplacer_une_piece(id, piece, 0.6), "remplacée")
+  egal(a_dans_le_sac(id, piece), 1, "une seule pièce de cette classe")
+  egal(FauxJeu.etat_objet(personnage_de(id), piece), 0.6, "la neuve à 60 %")
+  egal(#hommes.ce_qu_il_porte(id), avant, "ce qu'il porte, inchangé dans les livres")
+  local ok, raison = hommes.remplacer_une_piece(id, "", 0.6)
+  egal(raison, "objet_invalide", "un objet vide refusé")
+  ok, raison = hommes.remplacer_une_piece(id, "0a1b2c3d-1111-2222-3333-444455556666", 0.6)
+  egal(raison, "piece_non_portee", "une pièce qu'il ne porte pas refusée")
+  ok, raison = hommes.remplacer_une_piece(id, piece, 1.5)
+  egal(raison, "etat_invalide", "un état hors de 0 à 1 refusé")
+end)
+
+essai("équipement (18/10, C) : une pièce au sac par la décision remplaçable, jamais remise par la garde ; la décision levée, elle est remise", function()
+  local id = homme_pret()
+  local tenue = hommes.fiche(id).equipement.tenue
+  local casque = tenue .. "_tete"
+  local ancien = hommes.pieces_au_sac
+  hommes.pieces_au_sac = function(i) if i == id then return { casque } end end
+  hommes.battre()
+  verifier(FauxJeu.au_sac and FauxJeu.au_sac[personnage_de(id)] and FauxJeu.au_sac[personnage_de(id)][casque], "rangé au sac")
+  egal(a_dans_le_sac(id, casque), 1, "toujours dans le sac")
+  for _, o in ipairs(hommes.ce_qu_il_porte(id)) do
+    verifier(o ~= casque, "plus dans ce qu'il porte")
+  end
+  egal(lignes_du_journal("range au sac " .. casque), 1, "une seule fois")
+  hommes.battre()
+  egal(lignes_du_journal("range au sac " .. casque), 1, "pas rangé de nouveau")
+  hommes.pieces_au_sac = ancien
+  hommes.battre()
+  egal(lignes_du_journal("remet " .. casque), 1, "la décision levée, il le remet")
+  local remis = false
+  for _, o in ipairs(hommes.ce_qu_il_porte(id)) do
+    if o == casque then remis = true end
+  end
+  verifier(remis, "de nouveau dans ce qu'il porte")
+end)
+
+essai("équipement (18/10, D 1) : le filet de la tenue de corps ne joue jamais sous une tenue « ne_pas_rhabiller » (le bain)", function()
+  local id = homme_pret()
+  local tenue = hommes.fiche(id).equipement.tenue
+  verifier(hommes.tenir(id, "travail", { activite = "garde", lieu = "bain", position = { x = 1, y = 1, z = 0 },
+                                          ne_pas_rhabiller = true, fin = "liberation" }), "tenu au bain")
+  egal(hommes.activite_de(id, 10).ne_pas_rhabiller, true, "le champ arrive jusqu'à l'activité")
+  FauxJeu.retirer_un_objet(personnage_de(id), tenue .. "_corps")
+  FauxJeu.retirer_un_objet(personnage_de(id), tenue .. "_jambes")
+  for _ = 1, 4 do hommes.battre() end
+  egal(lignes_du_journal("à rhabiller (plus de"), 0, "pas marqué au bain")
+  egal(a_dans_le_sac(id, tenue .. "_corps"), 0, "rien recréé au bain")
+  hommes.lacher(id, "travail")
+  for _ = 1, 4 do hommes.battre() end
+  verifier(lignes_du_journal("à rhabiller (plus de") >= 1, "sorti du bain, la garde le voit")
+  egal(a_dans_le_sac(id, tenue .. "_corps"), 1, "et il est rhabillé")
+end)
+
 essai("équipement : famille inconnue refusée ; sans famille, une des six est tirée et gardée", function()
   preparer(200, 10, 10)
   local id, raison = hommes.embaucher({ role = "homme_d_armes", semaines = 4, famille = "fronde" })

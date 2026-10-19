@@ -1689,6 +1689,31 @@ function liaison.etat_objet(personnage, objet)
   return (lu and type(piece) == "table") and tonumber(piece.health) or nil
 end
 
+-- Demande du pair (18/10, la forge : sous 30 %, la pièce est changée) : l'ancienne pièce de cet objet détruite, une
+-- neuve créée à « etat » et portée. L'ancienne d'abord : le jeu trouve une pièce par sa classe (FindItem), il ne faut
+-- jamais qu'il reste deux pièces de la même classe à ce moment. Rend vrai si la neuve est portée.
+function liaison.remplacer_un_objet(personnage, objet, etat)
+  if not liaison.retirer_un_objet(personnage, objet) then
+    return false
+  end
+  if not liaison.creer_objet(personnage, objet, etat, 1) then
+    return false
+  end
+  local portes = liaison.faire_porter(personnage, { objet })
+  return portes == 1
+end
+
+-- Demande du pair (18/10, tête nue au camp) : une pièce portée mise au sac. Le jeu n'a pas de fonction pour ôter une
+-- pièce (aucune dans Data/Scripts.pak) : elle est retirée puis recréée au même état, sans être portée (une pièce créée
+-- n'est portée que par EquipInventoryItem, V71 a3). Rend vrai si la pièce est au sac.
+function liaison.ranger_au_sac(personnage, objet)
+  local etat = liaison.etat_objet(personnage, objet)
+  if etat == nil or not liaison.retirer_un_objet(personnage, objet) then
+    return false
+  end
+  return liaison.creer_objet(personnage, objet, etat, 1)
+end
+
 -- Retire de son sac une pièce de cet objet. Rend vrai si le compte a baissé.
 function liaison.retirer_un_objet(personnage, objet)
   local entite = porteur(personnage)

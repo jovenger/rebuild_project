@@ -1183,6 +1183,15 @@ local function liste_portee(f)
       end
     end
   end
+  -- Demande du pair (18/10) : les pièces au sac (hommes.pieces_au_sac) restent dans le sac, jamais remises par la garde.
+  for _, objet in ipairs(e.au_sac or {}) do
+    for i = #liste, 1, -1 do
+      if liste[i] == objet then
+        table.remove(liste, i)
+        break
+      end
+    end
+  end
   return liste
 end
 
@@ -3795,6 +3804,7 @@ function hommes.battre()
     ordonner_un_homme(d, id, heure, rapport, false)
   end
   hommes.mener_le_personnel(d, heure, rapport)
+  hommes.appliquer_les_pieces_au_sac(d)
   local equipe = equiper_un_homme(d)
   if equipe then
     rapport.equipes = rapport.equipes + 1
@@ -4613,6 +4623,120 @@ function hommes.donner_une_piece(id, objet, etat, porter)
   enregistrer()
   jeu().journal("Hommes : une pièce donnée à « " .. f.nom .. " » (" .. objet .. ", état " .. etat .. ")")
   return true
+end
+
+-- Service pour Scriptorium (demande du pair, 18/10 : la forge, règles de JoVenGer du 22/09 et du 6/10) : une pièce que
+-- l'homme porte est changée pour une neuve de la même classe, à « etat » (0 à 1), portée ; l'ancienne est détruite. Ce
+-- qu'il porte ne change pas dans les livres du socle (même classe) ; une pièce donnée garde son nouvel état. Rend vrai,
+-- ou faux et la raison.
+function hommes.remplacer_une_piece(id, objet, etat)
+  local d = donnees()
+  local f = d.liste[id]
+  if not f then
+    return refuser("homme_inconnu", tostring(id))
+  end
+  if not (f.personnage and jeu().personnage_existe(f.personnage)) then
+    return refuser("homme_absent", f.nom)
+  end
+  -- Seule une pièce qu'il porte est acceptée (plus bas) : la forme de l'objet n'a pas à être éprouvée à part.
+  if type(objet) ~= "string" or objet == "" then
+    return refuser("objet_invalide", tostring(objet))
+  end
+  if type(etat) ~= "number" or etat <= 0 or etat > 1 then
+    return refuser("etat_invalide", tostring(etat))
+  end
+  objet = string.lower(objet)
+  local porte = false
+  for _, o in ipairs(liste_portee(f)) do
+    if o == objet then
+      porte = true
+    end
+  end
+  if not porte then
+    return refuser("piece_non_portee", f.nom .. " : " .. objet)
+  end
+  if not jeu().remplacer_un_objet(f.personnage, objet, etat) then
+    return refuser("remplacement_refuse", f.nom .. " : " .. objet)
+  end
+  for _, piece in ipairs((f.equipement and f.equipement.en_plus) or {}) do
+    if type(piece) == "table" and piece.objet == objet then
+      piece.etat = etat
+    end
+  end
+  enregistrer()
+  jeu().journal("Hommes : « " .. f.nom .. " » : une pièce remplacée par une neuve (" .. objet .. ", état " .. etat .. ")")
+  return true
+end
+
+-- Décision remplaçable (demande du pair, 18/10 : au camp, le colonel ôte son bassinet ; dehors, en alerte, au combat,
+-- il le remet) : les pièces de cet homme qui restent au sac maintenant, une liste d'objets, ou nil (aucune). Par défaut :
+-- aucune. Seules les pièces qu'il porte dans les livres du socle comptent ; les autres sont ignorées.
+function hommes.pieces_au_sac(id)
+  return nil
+end
+Scriptorium.remplacable(hommes, "pieces_au_sac", function(rendu)
+  if type(rendu) ~= "table" then
+    return false
+  end
+  for _, objet in ipairs(rendu) do
+    if type(objet) ~= "string" or objet == "" then
+      return false
+    end
+  end
+  return true
+end)
+
+-- Au battement : pour chaque homme équipé, la décision lue ; une pièce nouvellement au sac y est rangée, une pièce qui
+-- n'y est plus est remise. Jamais pour un homme absent ou pas encore équipé. Rend le nombre de pièces déplacées.
+function hommes.appliquer_les_pieces_au_sac(d)
+  local deplacees = 0
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    local e = f.equipement
+    if e and (e.etat == "pret" or e.etat == "a_completer") and f.personnage and jeu().personnage_existe(f.personnage) then
+      local portees = {}
+      local avant_le_sac = e.au_sac
+      e.au_sac = nil
+      for _, o in ipairs(liste_portee(f)) do
+        portees[o] = true
+      end
+      e.au_sac = avant_le_sac
+      local voulues = {}
+      for _, objet in ipairs(Scriptorium.avis(hommes, "pieces_au_sac", id) or {}) do
+        objet = string.lower(objet)
+        if portees[objet] then
+          voulues[objet] = true
+        end
+      end
+      local deja = {}
+      for _, objet in ipairs(e.au_sac or {}) do
+        deja[objet] = true
+      end
+      local neuves = {}
+      for objet in pairs(voulues) do
+        if deja[objet] then
+          table.insert(neuves, objet)
+        elseif jeu().ranger_au_sac(f.personnage, objet) then
+          table.insert(neuves, objet)
+          deplacees = deplacees + 1
+          jeu().journal("Hommes : « " .. f.nom .. " » range au sac " .. objet)
+        end
+      end
+      for objet in pairs(deja) do
+        if not voulues[objet] then
+          jeu().faire_porter(f.personnage, { objet })
+          deplacees = deplacees + 1
+          jeu().journal("Hommes : « " .. f.nom .. " » remet " .. objet)
+        end
+      end
+      table.sort(neuves)
+      e.au_sac = #neuves > 0 and neuves or nil
+    end
+  end
+  if deplacees > 0 then
+    enregistrer()
+  end
+  return deplacees
 end
 
 -- Accroche du guichet (fiche 13, V71 b) : une pièce qu'il ne porte plus (vendue, cassée, perdue) sort de ce qu'il porte.

@@ -680,3 +680,21 @@
   refait par la décision remplaçable `choix_de_l_equipement`, sans changer de palier ; les anciennes pièces sont
   offertes à l'accroche `piece_otee` une fois le nouveau porté (comme `changer_de_palier`, qui passe par le même chemin,
   `hommes.reequiper_la_fiche`).
+
+## La tenue gardée par le socle seul : les services pour Scriptorium (demandes du pair, 18-19/10/2026)
+- La tenue du colonel (règle de JoVenGer du 6/10) : « ZachranaPtacka_malesovCaptain_05 », la tenue du capitaine de
+  Malesov (10 pièces), connue par `outils/equipement.py` ; Scriptorium la rend par `choix_de_l_equipement`, puis
+  `hommes.reequiper(id)`.
+- `hommes.remplacer_une_piece(id, objet, etat)` (la forge, règles du 22/09 et du 6/10) : une pièce qu'il porte, changée
+  pour une neuve de la même classe, portée, à « etat » ; l'ancienne détruite AVANT (le jeu trouve une pièce par sa classe) ;
+  ce qu'il porte ne change pas dans les livres. Refus : homme_inconnu, homme_absent, objet_invalide, etat_invalide,
+  piece_non_portee, remplacement_refuse.
+- Décision remplaçable `hommes.pieces_au_sac(id)` (tête nue au camp, règle du 7/10) : les pièces qui restent au sac
+  maintenant (une liste, ou nil). Au battement, une pièce nouvellement au sac y est rangée ; plus voulue au sac, elle est
+  remise ; la garde ne remet jamais une pièce au sac. Le jeu n'a aucune fonction pour ôter une pièce (cherché dans
+  Data/Scripts.pak) : la pièce est retirée puis recréée au même état, sans être portée.
+- Le filet de la tenue de corps ne joue jamais sous une tenue « ne_pas_rhabiller » (le bain) : la garde est suspendue,
+  et le champ du « quoi » de `hommes.tenir` arrive bien jusqu'à l'activité (essai).
+- Les munitions : la garde ne les compte pas ; le rhabillage complète jusqu'au nombre du préréglage, n'en retire jamais :
+  les flèches et carreaux ramassés restent au sac.
+- Non vérifié en jeu (en particulier : une pièce recréée reste-t-elle bien au sac, sans être portée).
