@@ -559,6 +559,9 @@ aucune sonde dans l'arbre.
     le nom de l'adversaire et « vers le sud-est » ;
   - reste chez le pair : la garde de nuit (CampPatrollers vide : sa nuit prenait ses gardes dans la garde de jour de
     l'ancien mod, absente dans notre monde ; les hommes sans lit restent « sommeil sans but »).
+  - fin de séance : JoVenGer a choisi (question du pair) de GARDER ce socle pour tous les jours : sa version est
+    désormais 29ad4f6 (pak du 19/10, 20:09) ; retour arrière : Scriptorium_securite61019_193225_498548_seance_du_socle.
+    Vérifié : Partie 1 identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
