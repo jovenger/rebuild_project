@@ -575,6 +575,18 @@ aucune sonde dans l'arbre.
     l'Aménagement de Scriptorium ne servent à personne. À faire : une place de Scriptorium donnée par l'objet du jeu
     (nom d'entité, classe Bed, sorte, tente), la liste venant du pair ;
   - à surveiller (pair) : des hommes serrés contre le mur de la cabane (un point de métier ou de passage trop près).
+- **Séance des lits achetés (19/10 au soir, accord direct de JoVenGer, copie de autosave1912 dans playline2, jamais
+  sauvée ; socle ce77192, Scriptorium du pair d604c5b1 puis 37416824 ; remis par le pair)** :
+  - « Camp : 16 place(s) déclarée(s) par Scriptorium », une fois (les 4 tentes des hommes, 4 lits chacune ; les 11
+    lits hauts sont réservés au personnel de JoVenGer) ; zéro « sommeil : sans but » ; la liaison reconnaît les
+    ScriptoEditeur_*_so comme des lits du jeu (GroundBed, Bed_1Place_Low, type so_bed) ;
+  - premier passage : un homme oscillait entre deux lits et un lit était visé par deux hommes (la règle de Scriptorium
+    rechoisissait la place à chaque ordre) ; corrigé chez le pair (lit gardé pour la nuit, 37416824) ; second passage :
+    chacun son lit, aucun doublon, mêmes lits sur cinq relevés (pair) ;
+  - couchés : mesuré par le pair (tête à +0,27 m pour les 10 dormeurs, +1,5 m pour les 6 rondiers) ; à l'image, une
+    tente vide (la 6 : 16 lits pour 10 dormeurs) et le nom d'un dormeur à travers la toile ; la ronde de nuit tourne ;
+  - non vu : le lever du matin (jeu fermé avant le saut du pair).
+  - Prochaine étape : l'installation (ce77192 + 37416824) sur la décision de JoVenGer, posée par le pair.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
