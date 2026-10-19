@@ -521,6 +521,11 @@ aucune sonde dans l'arbre.
   épuisé et affamé dans cette sauvegarde (le jeu assombrit la vue), pas un défaut. Reste avant le vrai jour : la marque
   du camp sur la carte (question du pair), la caisse d'Henry à ouvrir en jeu (aucune invite vue), puis l'ordre de
   JoVenGer pour la vraie bascule.
+- Quatrième répétition (19/10, même accord, rangée, jamais sauvée, remis et vérifié) : la marque du camp est sur la
+  BOUSSOLE (écu bleu), pas sur la carte, même à ~60 m du Directeur (question laissée au pair, rien à relancer chez
+  nous) ; « Des fautes aujourd'hui ? » sans fautif : plus de sous-menu ; l'aller-retour de caisse (1000 donnés puis
+  remis) juste au groschen près, arrondi prouvé par le pair. Vu : le Directeur affichait « Soldat » : il s'appelle
+  désormais « Le Directeur » (`hommes.nom_du_directeur`, fiche 13), non vérifié en jeu.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

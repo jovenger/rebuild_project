@@ -644,13 +644,15 @@
   personnage : la section « Pas de jumeaux » reposait sur une hypothèse fausse. Le tirage par visage reste, sans effet.
 - Le nom affiché au-dessus de la tête vient du personnage (clé `ui_name_string_name`, vu en jeu : « Jan Kladivo »).
   `outils/ames.py` écrit un personnage à nous par âme des réserves nommées (combattants, gens de métier, femmes,
-  compagnons : 351), copie du personnage générique tiré, et `socle/textes/fr/text_ui_soul__scriptorium_socle.xml`.
+  compagnons, le Directeur : 352), copie du personnage générique tiré, et `socle/textes/fr/text_ui_soul__scriptorium_socle.xml`.
 - Le nom d'une âme : `hommes.nom_de_l_ame(ame)` (par `liaison.rang_de_l_ame`) : combattants puis gens de métier suivent
-  les noms d'époque, les femmes `hommes.nom_de_femme`, les compagnons leur liste ; `outils/ames.py` lit les mêmes listes
+  les noms d'époque, les femmes `hommes.nom_de_femme`, les compagnons leur liste, le Directeur `hommes.nom_du_directeur` ; `outils/ames.py` lit les mêmes listes
   dans hommes.lua, et le banc vérifie que chaque âme affiche le nom que donne le Lua, sans doublon.
 - À l'embauche, l'âme est tirée tout de suite et l'homme prend son nom ; un nom de contrat passe devant ; sans âme libre,
   l'intitulé de repli « Homme de la Compagnie », remplacé par le nom de l'âme reçue plus tard.
-- Pas de nom propre : le Directeur et les bandes (personnages génériques).
+- Le Directeur (demande du pair, 19/10 ; vu à la répétition 4 : il affichait « Soldat ») : « Le Directeur »
+  (`hommes.nom_du_directeur`), sur une copie de son personnage du jeu (GUARD_08, voix et visage inchangés).
+- Pas de nom propre : les bandes (personnages génériques).
 - Non vérifié en jeu (sauf le nom d'une âme et le visage, le 18/10).
 
 ## La reprise des hommes de JoVenGer (demande du pair, 18/10/2026)

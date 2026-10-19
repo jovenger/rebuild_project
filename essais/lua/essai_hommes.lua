@@ -1116,6 +1116,7 @@ essai("reprise (18/10) : la clé du relevé mène à son âme par son empreinte 
   local ame = hommes.ames_de_la_reprise["homme_deux"]
   egal(ame, FauxJeu.ame_de("reprise", 1, 2), "la deuxième âme de la reprise")
   egal(hommes.nom_de_l_ame(ame), "Petr", "son nom")
+  egal(hommes.nom_de_l_ame("ame_directeur_1_1"), hommes.nom_du_directeur, "le Directeur, le sien (19/10 : plus « Soldat »)")
   egal(hommes.ames_de_la_reprise["inconnu"], nil, "clé inconnue")
   egal(hommes.empreinte_de_cle("ab"), (5381 * 33 + 97) * 33 + 98, "l'empreinte (la même qu'outils/ames.py)")
   egal(hommes.nom_de_l_ame(hommes.ames_de_la_reprise["homme_un"]), "Jan « le Fort »", "le premier, guillemets compris")

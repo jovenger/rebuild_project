@@ -458,6 +458,9 @@ hommes.prenoms_de_femmes = {
 hommes.surnoms_de_femmes = { "la Rousse", "de Ledeč", "Vlková", "la Douce", "de Sázava", "Holubová" }
 -- Décision de JoVenGer (18/10, transmise par le pair) : l'intitulé de repli, partout où un nom manquerait.
 hommes.nom_de_repli = "Homme de la Compagnie"
+-- Le nom affiché au-dessus du Directeur (demande du pair, 19/10, d'après la décision de JoVenGer du 18/10 : chaque homme
+-- son nom ; vu en jeu à la répétition 4 : il affichait « Soldat », le nom du personnage du jeu).
+hommes.nom_du_directeur = "Le Directeur"
 
 local function jeu()
   return Scriptorium.jeu
@@ -595,7 +598,8 @@ end
 
 -- Décision de JoVenGer (18/10, transmise par le pair) : chaque homme son nom, fixé par son âme (le jeu l'affiche
 -- au-dessus de sa tête par le personnage de l'âme, outils/ames.py) : les combattants puis les gens de métier suivent les
--- noms d'époque, les femmes les leurs, les compagnons nommés leur liste. Le nom d'une âme de nos réserves, ou nil.
+-- noms d'époque, les femmes les leurs, les compagnons nommés leur liste, le Directeur le sien. Le nom d'une âme de nos
+-- réserves, ou nil.
 -- essais/tout_verifier.py vérifie que ce nom est celui que la table des textes donne au personnage de l'âme.
 function hommes.nom_de_l_ame(ame)
   local reserve, rang = nil, nil
@@ -618,6 +622,8 @@ function hommes.nom_de_l_ame(ame)
   elseif reserve == "reprise" then
     local h = (jeu().reprise_des_hommes or {})[rang + 1]
     return h and h.nom or nil
+  elseif reserve == "directeur" then
+    return hommes.nom_du_directeur
   end
   return nil
 end

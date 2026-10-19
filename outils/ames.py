@@ -38,7 +38,7 @@ TABLE_DES_FACTIONS = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "rpg
 TABLE_DES_PERSONNAGES = os.path.join(RACINE, "socle", "pak", "Libs", "Tables", "skald", "skald_character__scriptorium_socle.xml")
 TEXTES_DES_NOMS = os.path.join(RACINE, "socle", "textes", "fr", "text_ui_soul__scriptorium_socle.xml")
 HOMMES_LUA = os.path.join(RACINE, "socle", "pak", "Scripts", "scriptorium", "hommes.lua")
-RESERVES_NOMMEES = ("combattant", "metier", "femme", "compagnon")
+RESERVES_NOMMEES = ("combattant", "metier", "femme", "compagnon", "directeur")
 # La reprise des hommes de JoVenGer (demande du pair, 18/10) : réserve « reprise », code 8, un palier ; la liste gardée
 # dans la liaison (la même source que le jeu).
 LIAISON = os.path.join(RACINE, "socle", "pak", "Scripts", "scriptorium", "liaison.lua")
@@ -296,7 +296,11 @@ def listes_de_hommes_lua():
         return re.findall(r'"([^"]+)"', bloc.group(1))
     bloc = texte.split("\nhommes.compagnons = {", 1)[1].split("\n}", 1)[0]
     compagnons = re.findall(r'^  \{ nom = "([^"]+)"', bloc, re.M)
-    return liste("prenoms"), liste("surnoms"), liste("prenoms_de_femmes"), liste("surnoms_de_femmes"), compagnons
+    directeur = re.findall(r'^hommes\.nom_du_directeur = "([^"]+)"', texte, re.M)
+    if len(directeur) != 1:
+        raise SystemExit("REFUS : hommes.nom_du_directeur introuvable ou en double dans hommes.lua")
+    return (liste("prenoms"), liste("surnoms"), liste("prenoms_de_femmes"), liste("surnoms_de_femmes"), compagnons,
+            directeur[0])
 
 
 def nom_combine(prenoms, surnoms, i):
@@ -314,7 +318,7 @@ def nom_combine(prenoms, surnoms, i):
 def noms_des_reserves(reprise=()):
     """soul_name -> nom affiché, pour les réserves nommées et la reprise ; même calcul que hommes.nom_de_l_ame. Deux
     âmes des réserves n'ont jamais le même nom ; ceux de la reprise sont les noms de JoVenGer, tels quels."""
-    prenoms, surnoms, prenoms_f, surnoms_f, compagnons = listes_de_hommes_lua()
+    prenoms, surnoms, prenoms_f, surnoms_f, compagnons, directeur = listes_de_hommes_lua()
     noms = {}
     combattants = sum(sum(r["paliers"]) for r in RESERVES if r["reserve"] == "combattant")
     for r in RESERVES:
@@ -330,6 +334,8 @@ def noms_des_reserves(reprise=()):
                     noms[ame] = nom_combine(prenoms, surnoms, combattants + rang + 1)
                 elif r["reserve"] == "femme":
                     noms[ame] = nom_combine(prenoms_f, surnoms_f, rang + 1)
+                elif r["reserve"] == "directeur":
+                    noms[ame] = directeur
                 else:
                     if rang >= len(compagnons):
                         raise SystemExit("REFUS : plus d'âmes de compagnon que de compagnons dans hommes.lua")
