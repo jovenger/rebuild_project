@@ -5129,12 +5129,12 @@ end
 
 -- Fait venir le Directeur dans sa tente, sur son âme (fiche 13 : réserve « directeur », son personnage d'avant, celui
 -- d'extraGuards_dummy_6). Rend son identifiant, ou nil.
-function liaison.faire_venir_directeur(position, ame)
+function liaison.faire_venir_directeur(position, ame, cap)
   if ame == nil or position == nil then
     liaison.journal("Venue impossible pour le Directeur : " .. (ame == nil and "pas d'âme" or "pas de position"))
     return nil
   end
-  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, 0, { guidSharedSoulId = ame })
+  local identifiant, raison = faire_naitre("NPC", "Scriptorium_Directeur", position, tonumber(cap) or 0, { guidSharedSoulId = ame })
   if not identifiant then
     liaison.journal("Venue impossible pour le Directeur : " .. tostring(raison))
     return nil

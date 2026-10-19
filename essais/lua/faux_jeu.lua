@@ -497,7 +497,8 @@ function faux.partie_en_cours() return faux.partie end
 function faux.changer_porte(identifiant, etat)
   table.insert(faux.ordres_porte, { identifiant = identifiant, etat = etat })
 end
-function faux.faire_venir_directeur(position, ame)
+function faux.faire_venir_directeur(position, ame, cap)
+  faux.cap_du_directeur = cap
   if faux.refuser_directeur or ame == nil then return nil end
   local identifiant = "directeur_" .. (#faux.directeurs + 1) .. "_" .. faux.prochain_personnage
   faux.prochain_personnage = faux.prochain_personnage + 1

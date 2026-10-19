@@ -365,6 +365,92 @@ function camp.adopter(position, cap, carte)
   return true
 end
 
+-- Les décors (la bascule, demande du pair, 19/10) : un objet du jeu posé par son modèle à un point du monde, gardé au
+-- registre du camp (« decors » : nom -> { modele, classe, x, y, z, cap, identifiant }), reposé à l'entrée en partie s'il
+-- manque (un objet posé par script revient sans modèle au chargement, V63 : il est alors retiré et reposé), retiré par
+-- camp.retirer_un_decor ou à la levée du camp. « classe » : facultative ; BasicEntity (un décor) par défaut ; Bed ou
+-- Chair restent utilisables (les classes des lits et bancs du camp, vues en jeu). Rend vrai, ou faux et la raison.
+local classes_de_decor = { BasicEntity = true, Bed = true, Chair = true }
+
+local function poser_le_decor(nom, decor)
+  decor.identifiant = jeu().poser_objet("decor", decor.modele, { x = decor.x, y = decor.y, z = decor.z }, decor.cap,
+                                        "decor_" .. nom, decor.classe)
+  return decor.identifiant ~= nil
+end
+
+function camp.poser_un_decor(nom, modele, position, cap, classe)
+  local d = donnees()
+  if not d.fonde then
+    return refuser("pas_fonde")
+  end
+  if type(nom) ~= "string" or nom == "" then
+    return refuser("nom_invalide", tostring(nom))
+  end
+  if type(modele) ~= "string" or modele == "" then
+    return refuser("modele_invalide", tostring(modele))
+  end
+  if not position_valide(position) or (cap ~= nil and type(cap) ~= "number") then
+    return refuser("position_invalide", nom)
+  end
+  classe = classe or "BasicEntity"
+  if not classes_de_decor[classe] then
+    return refuser("classe_invalide", tostring(classe))
+  end
+  d.decors = d.decors or {}
+  local ancien = d.decors[nom]
+  if ancien and ancien.identifiant then
+    jeu().retirer_objet(ancien.identifiant)
+  end
+  local decor = { modele = modele, classe = classe, x = position.x, y = position.y, z = position.z, cap = cap or 0 }
+  d.decors[nom] = decor
+  local pose = poser_le_decor(nom, decor)
+  enregistrer()
+  if not pose then
+    jeu().journal("Camp : décor « " .. nom .. " » gardé au registre, pas posé (le jeu a refusé)")
+    return refuser("pose_refusee", nom)
+  end
+  jeu().journal("Camp : décor « " .. nom .. " » posé (" .. classe .. ", " .. modele .. ")")
+  return true
+end
+
+function camp.retirer_un_decor(nom)
+  local d = donnees()
+  local decor = d.decors and d.decors[nom]
+  if not decor then
+    return refuser("decor_inconnu", tostring(nom))
+  end
+  if decor.identifiant then
+    jeu().retirer_objet(decor.identifiant)
+  end
+  d.decors[nom] = nil
+  enregistrer()
+  return true
+end
+
+-- Les décors du camp, lisibles : nom -> { modele, classe, x, y, z, cap } (des copies).
+function camp.decors()
+  local liste = {}
+  for nom, decor in pairs(donnees().decors or {}) do
+    liste[nom] = { modele = decor.modele, classe = decor.classe, x = decor.x, y = decor.y, z = decor.z, cap = decor.cap }
+  end
+  return liste
+end
+
+-- À l'entrée en partie : chaque décor retiré et reposé à neuf (les objets posés par script reviennent sans modèle au
+-- chargement, V63). Rend le nombre de décors reposés.
+local function reposer_les_decors(d)
+  local n = 0
+  for nom, decor in pairs(d.decors or {}) do
+    if decor.identifiant then
+      jeu().retirer_objet(decor.identifiant)
+    end
+    if poser_le_decor(nom, decor) then
+      n = n + 1
+    end
+  end
+  return n
+end
+
 -- Le camp est-il adopté (la reprise du camp de JoVenGer) ?
 function camp.est_adopte()
   return donnees().adopte == true
@@ -549,6 +635,9 @@ function camp.relancer()
   if not d.fonde then
     return 0, 0
   end
+  if d.decors and next(d.decors) and camp.sur_sa_carte() then
+    jeu().journal("Camp : " .. reposer_les_decors(d) .. " décor(s) reposé(s) à neuf")
+  end
   if camp.reglages.reposer_tout_a_l_entree ~= 1 or not camp.sur_sa_carte() then
     return camp.redresser()
   end
@@ -588,6 +677,13 @@ function camp.lever()
       retires = retires + 1
     end
     d.postes[nom] = nil
+  end
+  for nom, decor in pairs(d.decors or {}) do
+    if decor.identifiant then
+      jeu().retirer_objet(decor.identifiant)
+      retires = retires + 1
+    end
+    d.decors[nom] = nil
   end
   d.fonde = false
   d.adopte = nil

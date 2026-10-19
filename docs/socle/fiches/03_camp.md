@@ -129,3 +129,14 @@ Géométrie (rotation et décalage) ; fondation et positions des objets ; double
   n'accepte qu'une place du plan du socle, donc Scriptorium mène ses hommes à ses propres meubles par ses tâches
   (`hommes.tenir`), et l'interrupteur `un_lit_par_homme` est éteint.
 - Non vérifié en jeu (à voir à la répétition de la bascule, sur une copie de sa partie).
+
+## Les décors du camp (la bascule, demande du pair, 19/10/2026)
+- `camp.poser_un_decor(nom, modele, position, cap, classe)` : un objet du jeu posé par son modèle à un point du monde,
+  gardé au registre du camp, reposé à neuf à l'entrée en partie (un objet posé par script revient sans modèle au
+  chargement, V63), retiré par `camp.retirer_un_decor(nom)` ou à la levée du camp. `camp.decors()` les liste.
+- « classe » : BasicEntity (un décor) par défaut ; Bed et Chair restent utilisables (les classes des lits et bancs du
+  camp, vues en jeu). Toute autre classe est refusée (`classe_invalide`).
+- Le coffre d'Henry (classe du jeu AnimStash, Scripts/Entities/WH/Stash) n'y est PAS admis : son contenu tient à
+  l'entité ; reposé à neuf à chaque chargement, il serait vidé. Une voie à part, après un essai en jeu.
+- Pour la prise : la cabane d'Henry, sa tente et les pièces de l'Aménagement (lit, sièges ; pas le coffre).
+- Non vérifié en jeu.

@@ -80,9 +80,11 @@ local function faire_venir(d, pres_d_henry)
     jeu().renvoyer_homme(d.personnage)
     d.personnage = nil
   end
-  -- V73 f 3 b : sur une autre carte, près d'Henry (derrière lui, hors de sa vue).
-  local position = pres_d_henry and hommes() and hommes().point_pres_d_henry() or camp().position_de("lit_directeur")
-  local personnage = jeu().faire_venir_directeur(position, ame)
+  -- V73 f 3 b : sur une autre carte, près d'Henry (derrière lui, hors de sa vue). La bascule (19/10) : sa place donnée à
+  -- l'installation (camp adopté : celle de Scriptorium), sinon son lit du plan.
+  local position = pres_d_henry and hommes() and hommes().point_pres_d_henry()
+    or (d.lieu_de_naissance and { x = d.lieu_de_naissance.x, y = d.lieu_de_naissance.y, z = d.lieu_de_naissance.z }) or camp().position_de("lit_directeur")
+  local personnage = jeu().faire_venir_directeur(position, ame, (not pres_d_henry and d.lieu_de_naissance) and d.lieu_de_naissance.cap or nil)
   if personnage == nil then
     jeu().journal("Directeur : le jeu n'a pas fait venir le Directeur ; il reste sur le registre")
     d.personnage = nil
@@ -167,7 +169,10 @@ function directeur.redonner_l_ordre()
   return directeur.battre()
 end
 
-function directeur.installer()
+-- « position » et « cap » (facultatifs ; la bascule, demande du pair, 19/10) : là où il naît et revient à chaque
+-- chargement (sur un camp adopté, la place que donne Scriptorium) ; sinon son lit du plan. Sur un camp adopté, aucun lit
+-- du plan n'est réservé (son coucher lui vient de Scriptorium). Rend vrai, ou faux et la raison.
+function directeur.installer(position, cap)
   local d = donnees()
   if not camp().est_fonde() then
     return refuser("camp_absent")
@@ -175,8 +180,17 @@ function directeur.installer()
   if d.installe then
     return refuser("deja_installe")
   end
+  if position ~= nil and (type(position) ~= "table" or type(position.x) ~= "number" or type(position.y) ~= "number"
+      or type(position.z) ~= "number") then
+    return refuser("position_invalide")
+  end
+  if cap ~= nil and type(cap) ~= "number" then
+    return refuser("cap_invalide", tostring(cap))
+  end
   d.installe = true
-  if camp().occupant_de("lit_directeur") == nil then
+  d.lieu_de_naissance = position and { x = position.x, y = position.y, z = position.z, cap = cap or 0 } or nil
+  local adopte = camp().est_adopte and camp().est_adopte()
+  if not adopte and camp().occupant_de("lit_directeur") == nil then
     camp().reserver("lit_directeur", "directeur")
   end
   faire_venir(d)

@@ -46,3 +46,9 @@
 
 ## Essais au banc (`essais/lua/essai_directeur.lua`)
 Installation et refus ; journée du Directeur ; menu complet, disponibilités et raisons ; chaque action (succès et refus) ; achats au prix juste et au coffre ; agrandissement payé en bois et en groschen ; rapport ; redressement ; départ avec le camp ; écriture puis relecture ; entrées ajoutées par d'autres morceaux.
+
+## L'installation à une place donnée (la bascule, demande du pair, 19/10/2026)
+- `directeur.installer(position, cap)` : « position » et « cap » facultatifs ; là où il naît et revient à chaque
+  chargement (gardés au registre). Sur un camp adopté, aucun lit du plan n'est réservé : son coucher lui vient de
+  Scriptorium. Refus : camp_absent, deja_installe, position_invalide, cap_invalide.
+- Non vérifié en jeu.

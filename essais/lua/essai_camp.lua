@@ -112,6 +112,30 @@ essai("camp (la bascule, 19/10) : un camp adopté est fondé à son ancre, sans 
   verifier(#FauxJeu.objets_poses > avant, "avec ses objets")
 end)
 
+essai("camp (la bascule, 19/10) : un décor posé par son modèle et sa classe, gardé au registre, reposé à neuf à l'entrée en partie, retiré à la demande et à la levée", function()
+  depart()
+  local ok, raison = camp.poser_un_decor("cabane", "objects/cabane.cgf", { x = 1, y = 2, z = 3 }, 90)
+  egal(raison, "pas_fonde", "sans camp, refusé")
+  camp.adopter({ x = 100, y = 200, z = 30 }, 0, "kutnohorsko")
+  local avant = #FauxJeu.objets_poses
+  verifier(camp.poser_un_decor("cabane", "objects/cabane.cgf", { x = 101, y = 202, z = 30 }, 90), "cabane posée")
+  verifier(camp.poser_un_decor("lit_henry", "objects/lit.cgf", { x = 103, y = 202, z = 30 }, 0, "Bed"), "lit posé, utilisable")
+  ok, raison = camp.poser_un_decor("x", "objects/x.cgf", { x = 1, y = 2, z = 3 }, 0, "Stash")
+  egal(raison, "classe_invalide", "une classe hors de la liste refusée")
+  egal(#FauxJeu.objets_poses, avant + 2, "deux objets posés")
+  local dernier = FauxJeu.objets_poses[#FauxJeu.objets_poses]
+  egal(dernier.classe, "Bed", "la classe gardée")
+  egal(camp.decors().cabane.modele, "objects/cabane.cgf", "au registre")
+  local retires_avant = #FauxJeu.objets_retires
+  camp.relancer()
+  egal(#FauxJeu.objets_poses, avant + 4, "reposés à neuf à l'entrée en partie")
+  egal(#FauxJeu.objets_retires, retires_avant + 2, "les anciens retirés d'abord")
+  verifier(camp.retirer_un_decor("cabane"), "cabane retirée")
+  egal(camp.decors().cabane, nil, "plus au registre")
+  verifier(camp.lever(), "camp levé")
+  egal(next(camp.decors()), nil, "les décors retirés à la levée")
+end)
+
 essai("camp : réglage à 1, à l'entrée en partie, tous les objets sont retirés et reposés à neuf", function()
   depart()
   camp.reglages.reposer_tout_a_l_entree = 1

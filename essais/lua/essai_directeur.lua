@@ -41,6 +41,22 @@ essai("directeur : installation, refus, personnage à sa tente", function()
   egal(FauxJeu.en_ecran, "@ui_scriptorium_directeur_installe", "annoncé")
 end)
 
+essai("directeur (la bascule, 19/10) : installé à une place donnée sur un camp adopté ; aucun lit du plan réservé ; il revient à sa place", function()
+  depart()
+  directeur.retirer_entrees()
+  camp.adopter({ x = 100, y = 200, z = 30 }, 0, "kutnohorsko")
+  local ok, raison = directeur.installer({ x = 1 }, 0)
+  egal(raison, "position_invalide", "une position boiteuse refusée")
+  verifier(directeur.installer({ x = 110, y = 205, z = 31 }, 45), "installé à sa place")
+  local p = FauxJeu.directeurs[#FauxJeu.directeurs].position
+  egal(p.x, 110, "à la place donnée")
+  egal(FauxJeu.cap_du_directeur, 45, "tourné vers son cap")
+  egal(camp.occupant_de("lit_directeur"), nil, "aucun lit du plan réservé")
+  FauxJeu.personnages_existants[directeur.personnage()] = nil
+  directeur.redresser()
+  egal(FauxJeu.directeurs[#FauxJeu.directeurs].position.x, 110, "revenu à sa place")
+end)
+
 essai("directeur : sa journée, un ordre au changement", function()
   preparer(0, 10)
   egal(directeur.activite(10).activite, "comptes", "le jour, aux comptes")
