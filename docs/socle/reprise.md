@@ -612,6 +612,13 @@ aucune sonde dans l'arbre.
   lui contre le mur (corrigé au banc : « remplace », fiches 03 et 06, non installé) ; chez le pair : l'alternance
   ronde/sommeil de la garde composée pendant la veillée ; et chez nous, un mené sans plus aucune tenue recevait encore un
   ordre (« introuvable ») : corrigé au banc (lâché ou tenues échues : plus mené, sans ordre ; essai), non installé.
+- **Séance de preuve unique (20/10, 0 h 30 à 1 h 10, accord direct de JoVenGer, copie, jamais sauvée ; trois passages)** :
+  au dernier passage, TOUT JUSTE : mur ouest de la cabane vide à 8 h et pendant deux minutes ; personnel sur les bancs
+  de l'Aménagement, forgeron à la forge ; Directeur à sa tente et à son lit (« remplace ») ; 16 lits + 3 remplaçants
+  déclarés ; 0 erreur, 0 refus, 0 introuvable, 0 sommeil sans but ; colonel équipé. Corrigé en route : chez nous, le
+  personnel mené n'était jamais secouru (b9564e9) ; chez le pair, les places du personnel et des hommes rentrés d'un
+  métier dans la cabane, la garde composée par l'énergie, la forge de Kunrát. À installer : socle b9564e9 (avec 8c5b6ea,
+  87b9c14, d50c70a), Scriptorium du pair 63ee0241, sur l'accord de JoVenGer.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
