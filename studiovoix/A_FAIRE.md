@@ -48,6 +48,10 @@ comment les automatismes doivent être faits, ordre proposé.
 - Fait (build 82), demande « une bande par piste où on voit le volume et le plafond avant que ça sature » : vumètres
   d'en-tête rehaussés (11 px) et lisibles : zones vert / orange (−12) / rouge (0 dB, plafond en trait blanc),
   graduations, crête tenue 1,5 s, témoin de saturation 2 s ; même dessin pour les vumètres micro / sortie du haut.
+- Fait (build 83), retour « pas de phrases dans les cases ; un petit panneau attention orange, clic = bulle, et une case
+  Corriger si le programme sait corriger » : en-tête sur une ligne courte ; bouton « ⚠ » seulement s'il y a un
+  problème ; bulle (CallOutBox) avec texte + « Corriger : … » (Session::trackIssues : correction automatique, nettoyage,
+  fader) ; pistes brutes analysées au rendu (défauts listés).
 - À vérifier avec Yann : quels styles « défaussent » la voix (trop compressé ? saturé ? trop de réverb ?) pour ajuster
   le preset de ce style (valeurs dans StyleProfiles.cpp, cases du panneau Piste).
 - Si les « trous » dans l'instru persistent : passer le ducking par défaut à 0 dB (actuellement 2,5 dB, réglable dans

@@ -84,6 +84,13 @@ TrackHeader::TrackHeader (Session& s, int trackId) : session (s), id (trackId)
     info.setFont (juce::FontOptions (11.0f));
     info.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
     info.setInterceptsMouseClicks (false, false);
+    warn.setButtonText ("\xE2\x9A\xA0"_u8);   // ⚠ (U+26A0) en octets UTF-8
+    warn.setColour (juce::TextButton::buttonColourId, juce::Colour (0xffe07b20));
+    warn.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
+    warn.setTooltip ("Problème sur cette piste : clique pour le lire et, si le programme sait le corriger, le corriger"_u8);
+    warn.setVisible (false);
+    warn.onClick = [this] { showIssues(); };
+    addAndMakeVisible (warn);
     meter.setCompact (true);
     meter.setTooltip ("Niveau de lecture de la piste : vert, orange au-dessus de -12 dB, rouge au-delà du plafond 0 dB (trait blanc) ; "
                       "trait = crête tenue, bloc rouge = saturation"_u8);
@@ -157,23 +164,18 @@ void TrackHeader::refresh()
     else if (t->styleId.isNotEmpty())
         txt << " | " << style::styleName (style::styleFromId (t->styleId));
     if (! t->takes.empty())
-        txt << " | " << juce::String ((int) t->takes.size()) << " prise(s)" << (t->comp == project::CompMode::Best ? " (meilleure auto)" : "");
-    auto st = session.trackStatus (id);
-    if (st.startsWith ("Prêt — "_u8))   // le détail des prises est dans le panneau ; l'en-tête reste sur deux lignes
-        st = "Prêt"_u8 + st.fromFirstOccurrenceOf (" | ", true, false);
-    if (st.isNotEmpty())
-        txt << "\n" << st;
-    // Les corrections automatiques ne s'affichent plus ici (panneau Piste) ; seul un conseil à suivre apparaît, court,
-    // le détail en info-bulle.
-    const auto warn = session.trackWarnings (id);
-    if (warn.isNotEmpty())
-    {
-        const auto first = warn.upToFirstOccurrenceOf (" ; ", false, false);
-        txt << "\n" << juce::String (juce::CharPointer_UTF8 ("\xe2\x9a\xa0 ")) << (first.length() > 64 ? first.substring (0, 61) + "..." : first);
-    }
-    info.setTooltip (warn.isNotEmpty() ? warn : juce::String());
-    info.setColour (juce::Label::textColourId, warn.isNotEmpty() ? juce::Colour (0xffff8a65) : juce::Colours::lightgrey);
+        txt << " | " << juce::String ((int) t->takes.size()) << " prise(s)";
+    // Une seule ligne courte ; le détail (prises, justesse, compression) en info-bulle ; les problèmes derrière « ⚠ ».
+    const auto st = session.trackStatus (id);
+    if (st.isNotEmpty() && ! st.startsWith ("Prêt"_u8))
+        txt << " | " << (st.length() > 24 ? st.substring (0, 22) + "…"_u8 : st);
+    info.setTooltip (st);
     info.setText (txt, juce::dontSendNotification);
+    if (const bool hasIssues = ! session.trackIssues (id).empty(); hasIssues != warn.isVisible())
+    {
+        warn.setVisible (hasIssues);
+        resized();
+    }
     arm.setVisible (t->isRecordable());
     arm.setToggleState (session.armedTrack() == id, juce::dontSendNotification);
     mute.setToggleState (t->mute, juce::dontSendNotification);
@@ -192,6 +194,66 @@ void TrackHeader::updateMeter()
     if (meterLevel < 1.0e-4f)
         meterLevel = 0.0f;
     meter.setLevel (meterLevel, false);
+}
+
+namespace
+{
+    // Contenu de la bulle « ⚠ » : un problème par ligne, bouton « Corriger : … » quand le programme sait le faire.
+    struct IssuesPanel final : public juce::Component
+    {
+        IssuesPanel (Session& s, std::vector<Session::TrackIssue> list) : session (s), issues (std::move (list))
+        {
+            int y = 6;
+            const int w = 360;
+            for (const auto& is : issues)
+            {
+                auto label = std::make_unique<juce::Label>();
+                label->setText (is.text, juce::dontSendNotification);
+                label->setFont (juce::FontOptions (13.0f));
+                label->setJustificationType (juce::Justification::topLeft);
+                label->setColour (juce::Label::textColourId, juce::Colours::white);
+                const int lines = juce::jlimit (1, 5, 1 + juce::GlyphArrangement::getStringWidthInt (juce::Font (juce::FontOptions (13.0f)), is.text) / (w - 24));
+                label->setBounds (10, y, w - 20, 17 * lines);
+                addAndMakeVisible (*label);
+                labels.push_back (std::move (label));
+                y += 17 * lines + 2;
+                auto btn = std::make_unique<juce::TextButton> (is.fixable() ? is.fixLabel : juce::String ("Pas de correction automatique : à faire soi-même"_u8));
+                btn->setEnabled (is.fixable());
+                if (is.fixable())
+                {
+                    btn->setColour (juce::TextButton::buttonColourId, juce::Colour (0xff2e6b3a));
+                    const auto fix = is.fix;
+                    btn->onClick = [this, fix]
+                    {
+                        SV_LOG_INFO ("Timeline", "Correction demandée depuis la bulle d'alerte"_u8);
+                        if (auto* box = findParentComponentOfClass<juce::CallOutBox>())
+                            box->dismiss();
+                        fix (session);
+                    };
+                }
+                btn->setBounds (10, y, w - 20, 24);
+                addAndMakeVisible (*btn);
+                buttons.push_back (std::move (btn));
+                y += 30;
+            }
+            setSize (w, y + 4);
+        }
+        void paint (juce::Graphics& g) override { g.fillAll (juce::Colour (0xff23262e)); }
+
+        Session& session;
+        std::vector<Session::TrackIssue> issues;
+        std::vector<std::unique_ptr<juce::Label>> labels;
+        std::vector<std::unique_ptr<juce::TextButton>> buttons;
+    };
+}
+
+void TrackHeader::showIssues()
+{
+    auto issues = session.trackIssues (id);
+    if (issues.empty())
+        return;
+    SV_LOG_INFO ("Timeline", "Bulle d'alerte ouverte sur la piste "_u8 + juce::String (id) + " (" + juce::String (static_cast<int> (issues.size())) + " problème(s))"_u8);
+    juce::CallOutBox::launchAsynchronously (std::make_unique<IssuesPanel> (session, std::move (issues)), warn.getScreenBounds(), nullptr);
 }
 
 void TrackHeader::paint (juce::Graphics& g)
@@ -259,6 +321,11 @@ void TrackHeader::resized()
     top.removeFromRight (2);
     raw.setBounds (top.removeFromRight (40));
     top.removeFromRight (2);
+    if (warn.isVisible())
+    {
+        warn.setBounds (top.removeFromRight (22));
+        top.removeFromRight (2);
+    }
     solo.setBounds (top.removeFromRight (22));
     top.removeFromRight (2);
     mute.setBounds (top.removeFromRight (22));

@@ -2095,25 +2095,95 @@ float Session::trackPeakNow (int trackId)
     return it != trackPeaks.end() && it->second != nullptr ? it->second->exchange (0.0f) : 0.0f;
 }
 
-juce::String Session::trackWarnings (int trackId) const
+std::vector<Session::TrackIssue> Session::trackIssues (int trackId) const
 {
+    std::vector<TrackIssue> issues;
     const auto* t = proj.findTrack (trackId);
     auto it = trackMetrics.find (trackId);
     auto r = renderFor (trackId);
     if (t == nullptr || it == trackMetrics.end() || r == nullptr || ! r->ok())
-        return {};
-    juce::StringArray w;
+        return issues;
     const auto& m = it->second;
-    // Seulement ce que le programme ne peut pas corriger lui-même. Écrêtage à la source : signalé si rien ne l'a réparé
-    // (piste brute) ; une prise réparée par le dé-écrêtage reste un conseil pour la prochaine prise.
-    const bool declipped = r->report.clean.clippedRepaired > 0;
-    if (m.rawPeakDb > -0.2f && (t->raw || ! declipped))
-        w.add (t->role == style::Role::Instru ? juce::String ("fichier écrêté à la source (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS)"_u8)
-                                              : juce::String ("prise écrêtée (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS) : baisse le gain du micro pour la prochaine"_u8));
+    const bool instru = t->role == style::Role::Instru;
+    // Corrections que le programme sait appliquer : « Correction automatique » sur la piste (dé-écrêtage, débruitage,
+    // niveleur, résonances, EQ corrective, limiteur −1 dBTP), nettoyage de la chaîne, baisse du fader.
+    const auto correctionFix = [trackId] (Session& s) { s.setTrackTreatment (trackId, false, dsp::kCorrectionStyleId); };
+
+    if (t->raw && ! t->isGenerated())
+    {
+        // Piste brute : les défauts mesurés sur le son (écrêtage, bruit, niveau irrégulier, résonances, boue, dureté,
+        // sifflantes), corrigeables d'un clic par la correction automatique.
+        juce::StringArray found;
+        for (const auto& f : r->problemsFound)
+            if (! f.startsWith ("instrument reconnu"_u8))   // information, pas un défaut
+                found.add (f);
+        if (! found.isEmpty())
+            issues.push_back ({ (instru ? "Instru : "_u8 : "Son brut : "_u8) + found.joinIntoString (" ; "),
+                                instru ? "Corriger : réparer l'instru (correction automatique, stéréo liée)"_u8
+                                       : "Corriger : son propre (correction automatique, sans effet de style)"_u8,
+                                correctionFix });
+        else if (m.rawPeakDb > -0.2f)
+            issues.push_back ({ (instru ? "Fichier écrêté à la source (crête "_u8 : "Prise écrêtée (crête "_u8) + juce::String (m.rawPeakDb, 1) + " dBFS)"_u8,
+                                "Corriger : dé-écrêtage (correction automatique)"_u8, correctionFix });
+    }
+    else
+    {
+        // Piste traitée : écrêtage à la source signalé si rien ne l'a réparé (nettoyage coupé) ; une prise réparée par le
+        // dé-écrêtage ne fait plus l'objet d'une alerte (conseil : baisser le gain du micro pour la prochaine).
+        const bool declipped = r->report.clean.clippedRepaired > 0;
+        if (m.rawPeakDb > -0.2f && ! declipped)
+        {
+            TrackIssue is;
+            is.text = instru ? "Fichier écrêté à la source (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS)"_u8
+                             : "Prise écrêtée (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS) : baisse le gain du micro pour la prochaine"_u8;
+            if (t->isVocal() && ! t->cleaning && ! t->isCorrection())
+            {
+                is.fixLabel = "Corriger : activer le nettoyage (dé-écrêtage)"_u8;
+                is.fix = [trackId] (Session& s) { s.updateTrack (trackId, [] (project::Track& tr) { tr.cleaning = true; }, true, "Nettoyage (dé-écrêtage)"_u8); };
+            }
+            else if (! t->isCorrection())
+            {
+                is.fixLabel = "Corriger : réparer (correction automatique)"_u8;
+                is.fix = correctionFix;
+            }
+            issues.push_back (std::move (is));
+        }
+    }
     if (m.peakDb > 1.0f)
-        w.add ("sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)");
+    {
+        TrackIssue is;
+        is.text = "Sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)";
+        if (t->raw && ! t->isGenerated() && issues.empty())
+        {
+            is.fixLabel = "Corriger : limiteur -1 dBTP (correction automatique)"_u8;
+            is.fix = correctionFix;
+        }
+        issues.push_back (std::move (is));
+    }
     if (std::abs (r->processingLagMs) > 15.0f)
-        w.add ("traitement décalé de "_u8 + juce::String (r->processingLagMs, 0) + " ms par rapport au son brut (à signaler)"_u8);
+        issues.push_back ({ "Traitement décalé de "_u8 + juce::String (juce::roundToInt (r->processingLagMs)) + " ms par rapport au son brut (à signaler)"_u8, {}, nullptr });
+    // Plus forte que la voix principale (sonie mesurée, fader et orchestre compris) : corrigeable par le fader.
+    if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
+        if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
+        {
+            const auto* lt = proj.findTrack (proj.leadTrackId());
+            const double over = m.lufs + t->volumeDb + mixState.autoTrackGain (t->id) - lead->second.lufs - (lt != nullptr ? lt->volumeDb : 0.0f);
+            if (over > 1.0)
+            {
+                const float cut = static_cast<float> (std::ceil (over * 2.0) / 2.0);   // au demi-dB
+                issues.push_back ({ "Plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU)"_u8,
+                                    "Corriger : baisser son volume de "_u8 + juce::String (cut, 1) + " dB",
+                                    [trackId, cut] (Session& s) { s.updateTrack (trackId, [cut] (project::Track& tr) { tr.volumeDb -= cut; }, true, "Volume baissé (plus forte que la voix principale)"_u8); } });
+            }
+        }
+    return issues;
+}
+
+juce::String Session::trackWarnings (int trackId) const
+{
+    juce::StringArray w;
+    for (const auto& is : trackIssues (trackId))
+        w.add (is.text);
     return w.joinIntoString (" ; ");
 }
 
@@ -2139,14 +2209,7 @@ juce::String Session::trackCorrections (int trackId) const
             c.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors "_u8 + proj.key.toFrench()
                    + " : accordée note par note"_u8);
     }
-    if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
-        if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
-        {
-            const double over = m.lufs + t->volumeDb + mixState.autoTrackGain (t->id) - lead->second.lufs
-                              - (proj.findTrack (proj.leadTrackId()) != nullptr ? proj.findTrack (proj.leadTrackId())->volumeDb : 0.0f);
-            if (over > 1.0)
-                c.add ("encore plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU) : baisse son volume ou relance l'Ingénieur du son"_u8);
-        }
+    juce::ignoreUnused (m);
     return c.joinIntoString (" ; ");
 }
 

@@ -206,6 +206,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
         {
             // Instru (fichier mixé) : défauts mesurés sur la somme mono, réparation stéréo liée (image inchangée).
             auto problems = dsp::analyzeTrackProblems (audio::toMono (r->raw), p.sampleRate, ctx.key, false);
+            r->problemsFound = problems.found;
             auto params = dsp::correctionParams (problems, false);
             const auto rep = dsp::repairStereo (r->processed, p.sampleRate, params);
             r->report.compGrDb = rep.compGrDb;
@@ -222,6 +223,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
             // pour le signaler ; la correction ne s'applique que sur demande.
             log::ScopedTimer at (kMod, "analyse de l'instru (non modifiée)"_u8);
             const auto problems = dsp::analyzeTrackProblems (audio::toMono (r->raw), p.sampleRate, ctx.key, false);
+            r->problemsFound = problems.found;
             r->problemsReport = "Instru analysée, jouée telle quelle — "_u8
                                 + (problems.found.isEmpty() ? juce::String ("aucun défaut notable"_u8) : problems.found.joinIntoString (" ; "))
                                 + (problems.found.isEmpty() ? juce::String() : juce::String (". « Style : Correction automatique » pour la réparer."_u8));
@@ -254,9 +256,17 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
     r->raw = audio::monoToStereo (raw);
     if (t.raw && ! t.isGenerated())
     {
-        // Brut : le son tel qu'importé, sans aucun effet ni normalisation.
+        // Brut : le son tel qu'importé, sans aucun effet ni normalisation. Analysé quand même (écrêtage, bruit, niveau
+        // irrégulier, résonances, boue, dureté, sifflantes) pour le signaler (« ⚠ » sur la piste) ; corrigé sur demande.
         r->processed.makeCopyOf (r->raw);
-        SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » brute : aucun effet"_u8 + (t.plugins.empty() ? "" : " (sauf ses plugins)"));
+        {
+            log::ScopedTimer at (kMod, "analyse de la piste brute « "_u8 + t.name + " »"_u8);
+            const auto problems = dsp::analyzeTrackProblems (raw, p.sampleRate, ctx.key, t.isVoice());
+            r->problemsFound = problems.found;
+            r->problemsReport = "Piste brute analysée, jouée telle quelle — "_u8
+                                + (problems.found.isEmpty() ? juce::String ("aucun défaut notable"_u8) : problems.found.joinIntoString (" ; "));
+        }
+        SV_LOG_INFO (kMod, "Piste « "_u8 + t.name + " » brute : aucun effet"_u8 + (t.plugins.empty() ? "" : " (sauf ses plugins)") + " — " + r->problemsReport);
         applyTrackPlugins (p, t, *r);
         return r;
     }
@@ -296,6 +306,7 @@ std::shared_ptr<TrackRender> renderTrack (const project::Project& p, const proje
             // voix déjà traitée : elles gardent la variante du style telle quelle.
             log::ScopedTimer at (kMod, "mesure de la prise « "_u8 + t.name + " »"_u8);
             const auto problems = dsp::analyzeTrackProblems (raw, p.sampleRate, ctx.key, t.isVoice());
+            r->problemsFound = problems.found;
             r->fitNotes = dsp::fitStyleToMeasurement (params, problems, ctx.tempo.bpm);
             const auto measured = "Mesuré sur la prise : "_u8 + (problems.found.isEmpty() ? juce::String ("aucun défaut notable"_u8) : problems.found.joinIntoString (" ; "));
             r->problemsReport = r->problemsReport.isEmpty() ? measured : r->problemsReport + "\n" + measured;

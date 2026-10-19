@@ -46,6 +46,7 @@ struct TrackRender
     style::VocalParams paramsUsed;  // réglages de la chaîne (style ajusté à la mesure, avant les cases réglées à la main)
     int paramsStyle = -1;           // style (entier) dont paramsUsed découle, -1 = non renseigné
     juce::StringArray fitNotes;     // ingénieur du son : ce qui a été réglé d'après la mesure, lisible
+    juce::StringArray problemsFound; // défauts constatés sur le son brut (liste) : alertes « ⚠ » d'une piste brute
     juce::StringArray pluginNotes;  // inserts VST3 appliqués (ou erreurs)
     juce::String aiNote;            // édition IA : nettoyage DeepFilterNet (appliqué, cache, ou raison de l'absence)
     float processingLagMs = 0.0f;   // décalage temporel traité / brut (corrélation des enveloppes) ; doit rester ~0

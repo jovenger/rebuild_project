@@ -188,9 +188,13 @@ irrégulier, résonances, boue, dureté) et le résultat affiché dans son panne
 **Corrections automatiques, pas des avertissements** : l'ingénieur du son **corrige** d'abord — écrêtage de la source
 réparé (dé-écrêtage), montées en flèche rabaissées (niveleur), piste plus forte que la voix principale ramenée en place
 (orchestre), gamme adaptée à la voix — et le panneau « Piste » liste ce qui a été fait (« Corrigé automatiquement : … »).
-Seul ce qui **demande une action de l'utilisateur** reste signalé (une seule ligne courte « ⚠ … » dans l'en-tête, texte
-complet au survol, détail dans « À faire : … » du panneau) : source écrêtée sur une piste écoutée en « Brut », piste qui
-sature encore après traitement, lecture en retard sur le calcul. Chaque piste traitée finit sous −1 dBTP (limiteur de
+Seul ce qui **demande une décision** reste signalé : un petit bouton **« ⚠ » orange** apparaît dans l'en-tête de la
+piste (rien sinon) ; un clic ouvre une bulle avec chaque problème et, quand le programme sait le corriger, un bouton
+**« Corriger : … »** (piste brute avec défauts mesurés → correction automatique ; prise écrêtée sur une piste dont le
+nettoyage est coupé → activer le nettoyage ; piste plus forte que la voix principale → baisser son volume de la
+valeur mesurée ; sature après traitement sur une piste brute → limiteur). Sans correction possible (traitement décalé),
+la bulle le dit. Les en-têtes ne contiennent plus de phrases : une ligne courte (type, brut / style, nombre de prises),
+le détail en info-bulle. Chaque piste traitée finit sous −1 dBTP (limiteur de
 sécurité, transparent tant que rien ne dépasse).
 
 **Gamme (case à cocher à côté de la tonalité, barre du haut)** : cochée, l'autotune tire les notes vers la gamme de la

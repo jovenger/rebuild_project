@@ -136,7 +136,17 @@ public:
 
     std::shared_ptr<const render::TrackRender> renderFor (int trackId) const;
     juce::String trackStatus (int trackId) const;
-    /** Alertes de l'ingénieur du son sur le rendu actuel : sature, monte en flèche, plus fort que la voix principale. */
+    /** Problème signalé sur une piste (« ⚠ » de l'en-tête) et, quand le programme sait le corriger, la correction à
+        appliquer (fix vide = à faire soi-même, ex. baisser le gain du micro pour la prochaine prise). */
+    struct TrackIssue
+    {
+        juce::String text;
+        juce::String fixLabel;                 // libellé du bouton « Corriger : … »
+        std::function<void (Session&)> fix;    // vide : pas de correction automatique possible
+        bool fixable() const { return fix != nullptr; }
+    };
+    std::vector<TrackIssue> trackIssues (int trackId) const;
+    /** Alertes de l'ingénieur du son sur le rendu actuel, en une ligne (textes de trackIssues). */
     juce::String trackWarnings (int trackId) const;
     /** Ce que l'ingénieur du son a corrigé tout seul sur le rendu actuel (montées rabaissées, écrêtage réparé, gamme adaptée…). */
     juce::String trackCorrections (int trackId) const;

@@ -37,6 +37,8 @@ private:
     juce::Label name, info;
     RecArmButton arm;
     juce::TextButton mute { "M" }, solo { "S" }, raw { "Brut" }, remove { "X" }, more { "..." };   // « ⋯ » : menu de la piste
+    juce::TextButton warn;   // « ⚠ » orange, visible seulement s'il y a un problème : clic = bulle (texte + « Corriger » si possible)
+    void showIssues();
     juce::Slider volume, pan;
     LevelMeter meter;
     float meterLevel = 0.0f;
