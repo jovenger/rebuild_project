@@ -234,6 +234,10 @@ function enceinte.batir()
   if not camp().est_fonde() then
     return refuser("camp_absent")
   end
+  -- La bascule (19/10) : sur un camp adopté (celui de JoVenGer), le socle ne bâtit rien.
+  if camp().est_adopte and camp().est_adopte() then
+    return refuser("camp_adopte")
+  end
   if d.niveau >= enceinte.niveau_maximal then
     return refuser("niveau_maximal")
   end

@@ -115,3 +115,17 @@
 
 ## Essais au banc (`essais/lua/essai_camp.lua`)
 Géométrie (rotation et décalage) ; fondation et positions des objets ; double fondation refusée ; objet refusé par le jeu noté sans bloquer ; agrandissement par niveau et niveau maximal ; redressement ne reposant que les manquants ; levée ; places réservées et libérées ; écriture puis relecture ; plan cohérent (noms uniques, sortes connues, niveaux valides).
+
+## Le camp adopté (la bascule, demande du pair, 19/10/2026)
+- `camp.adopter(position, cap, carte)` : la reprise du camp de la partie de JoVenGer. Le camp est fondé à son ancre et
+  dans son sens, sur sa carte (sinon celle lue), SANS aucun objet posé : ses tentes, son feu, sa cabane et ses postes
+  sont à JoVenGer. `camp.est_adopte()` le dit.
+- Un camp adopté ne pose ni ne repose jamais rien du plan (fondation, agrandissement, redressement, entrée en partie) ;
+  ses places du plan sont vides (`places_libres` rend une liste vide : aucun banc ni lit du socle) ; l'enceinte ne s'y
+  bâtit pas (`camp_adopte`). Les postes de travail rendus fonctionnels par Scriptorium restent posés et reposés. Levé, il
+  redevient un camp ordinaire.
+- Pour la prise : elle relit l'ancre de l'ancien camp (entités cachées qui survivent au retrait de l'ancien mod) et
+  appelle `camp.adopter` si le socle n'a pas de camp. Les lits et sièges viennent de Scriptorium : `camp.place_pour`
+  n'accepte qu'une place du plan du socle, donc Scriptorium mène ses hommes à ses propres meubles par ses tâches
+  (`hommes.tenir`), et l'interrupteur `un_lit_par_homme` est éteint.
+- Non vérifié en jeu (à voir à la répétition de la bascule, sur une copie de sa partie).

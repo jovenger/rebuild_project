@@ -277,6 +277,10 @@ end
 
 -- Dresse tous les emplacements jusqu'au niveau courant. Rend (posés, manquants).
 local function dresser(d)
+  -- La bascule (demande du pair, 19/10) : un camp adopté n'a aucun objet du plan (ses meubles sont ceux de JoVenGer).
+  if d.adopte then
+    return 0, 0
+  end
   local poses, manquants = 0, 0
   for _, e in ipairs(camp.plan) do
     if e.niveau <= d.niveau then
@@ -328,6 +332,42 @@ function camp.fonder(position, cap)
   jeu().journal("Camp : fondé, niveau 1, " .. poses .. " objet(s) posé(s), " .. manquants .. " manquant(s)")
   annoncer("ui_scriptorium_camp_dresse")
   return true
+end
+
+-- La bascule (demande du pair, 19/10) : la reprise du camp de la partie de JoVenGer. Le camp est fondé à son ancre
+-- (position, cap) et sur sa carte (« carte », sinon celle lue), SANS aucun objet posé : ses tentes, son feu, sa cabane et
+-- ses postes sont à JoVenGer. Un camp adopté ne pose ni ne repose jamais rien du plan (redressement, agrandissement,
+-- entrée en partie) ; ses places du plan sont vides (aucun meuble : Scriptorium donne les siennes) ; l'enceinte ne s'y
+-- bâtit pas. Les postes de travail rendus fonctionnels par Scriptorium restent posés et reposés. Rend vrai, ou faux et
+-- la raison.
+function camp.adopter(position, cap, carte)
+  local d = donnees()
+  if d.fonde then
+    return refuser("deja_fonde")
+  end
+  if not position_valide(position) then
+    return refuser("position_invalide", tostring(position))
+  end
+  if carte ~= nil and (type(carte) ~= "string" or carte == "") then
+    return refuser("carte_invalide", tostring(carte))
+  end
+  d.fonde = true
+  d.adopte = true
+  d.ancre = { x = position.x, y = position.y, z = position.z, cap = normaliser_cap(cap or 0) }
+  d.carte = carte or (jeu().carte_courante and (jeu().carte_courante())) or nil
+  d.niveau = 1
+  d.proprietaire = camp.proprietaire
+  d.objets = {}
+  d.places = {}
+  enregistrer()
+  jeu().journal(string.format("Camp : adopté à (%.1f, %.1f), cap %d, sur %s : aucun objet posé", position.x, position.y,
+                              math.floor(d.ancre.cap + 0.5), tostring(d.carte)))
+  return true
+end
+
+-- Le camp est-il adopté (la reprise du camp de JoVenGer) ?
+function camp.est_adopte()
+  return donnees().adopte == true
 end
 
 function camp.agrandir()
@@ -393,7 +433,7 @@ function camp.redresser()
     return 0, 0
   end
   local reposes, manquants = 0, 0
-  for _, e in ipairs(camp.plan) do
+  for _, e in ipairs(d.adopte and {} or camp.plan) do
     if e.niveau <= d.niveau then
       local objet = d.objets[e.nom]
       local present = objet and objet.identifiant and jeu().objet_existe(objet.identifiant)
@@ -550,6 +590,7 @@ function camp.lever()
     d.postes[nom] = nil
   end
   d.fonde = false
+  d.adopte = nil
   d.niveau = 0
   d.places = {}
   d.ancre = { x = 0, y = 0, z = 0, cap = 0 }
@@ -619,7 +660,7 @@ end
 function camp.places_libres(sorte, pour)
   local d = donnees()
   local libres = {}
-  if not d.fonde then
+  if not d.fonde or d.adopte then
     return libres
   end
   for _, e in ipairs(camp.plan) do
