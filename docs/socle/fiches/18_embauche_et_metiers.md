@@ -219,6 +219,15 @@ Comportement :
   là-bas par le secours). Le lieu (signature de l'ordre) est ce lit, le but sa position (ou « position » si donnée) ;
   l'ordre est celui des lits (11, par le WUID de l'objet), comme pour une place déclarée. Vaut aussi pour nos hommes
   par `hommes.tenir`. Le socle ne réserve pas ce lit : Scriptorium le retire de ce qu'il donne aux hommes.
+- Les sorties de métier à cheval (demande du pair, 20/10/2026 ; règle de JoVenGer du 16/10 : qui sort du camp part et
+  revient à cheval) : `{ activite = "suivre", vers = <point>, a_cheval = true, lieu = "sortie_<id>", fin = … }` par
+  `hommes.tenir` ou `tenir_un_personnage`. Un homme seul ou un mené est la tête de sa propre colonne (un « lieu » par
+  sortant ; un mené est toujours seul), sans chef, son cheval passager monté (ordre 20 vers le point). La tête
+  s'arrête à quelque 6,5 m de son point (vu le 17/10, fiche 17). La tenue changée (la tâche au point), l'ordre suivant
+  le fait descendre ; le cheval est retiré une fois l'homme descendu, à plus de `cheval_retrait_m` de lui ou au
+  `cheval_retrait_battements`-ième battement, jamais sous son cavalier. Corrigé ce jour : le cheval d'un mené était
+  retiré à chaque battement et refait (sa fiche n'était pas trouvée). En sortie, ni gardien ni secours (ni le passage
+  « dehors », propre aux missions) ; au-delà de ~450 m d'Henry, le jeu ne fait plus vivre un personnage (fiche 17).
 - `hommes.lacher_un_personnage(personnage, regle)` ; sans plus aucune tenue, il n'est plus mené (il attend).
 - `hommes.personnel_mene()` : la liste des personnages menés.
 - Au battement : tenues échues, personnage disparu oublié, ordre redonné ; pas de secours (fait pour nos hommes au camp).

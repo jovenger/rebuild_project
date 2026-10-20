@@ -3147,7 +3147,9 @@ local function porteur(cle, d)
     end
     return { personnage = personnage, nom = "Directeur" }, dir.en_sortie_a_cheval() == true
   end
-  local f = d.liste[cle]
+  -- Un mené aussi (demande du pair, 20/10 : les sorties de métier à cheval) : sans sa fiche, son cheval était retiré à
+  -- chaque battement et refait à l'ordre suivant.
+  local f = fiche_de(d, cle)
   return f, f ~= nil and en_sortie_a_cheval(f)
 end
 

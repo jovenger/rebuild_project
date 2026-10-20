@@ -2744,6 +2744,52 @@ local function journal_contient(morceau)
   return false
 end
 
+essai("sortie de métier à cheval (demande du pair, 20/10) : un homme seul et un mené, chacun sa colonne vers son point ; le cheval du mené gardé pendant la sortie, retiré après", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local perso = hommes.fiche(id).personnage
+  FauxJeu.personnages_existants["bucheron"] = true
+  FauxJeu.positions[perso] = { x = 110, y = 0, z = 0 }        -- hors du camp (V73 f 2 c)
+  FauxJeu.positions["bucheron"] = { x = 120, y = 0, z = 0 }
+  hommes.battre()
+  FauxJeu.manquees, FauxJeu.chevaux, FauxJeu.chevaux_retires, FauxJeu.journal_lignes = {}, {}, {}, {}
+  local point_a, point_b = { x = 300, y = 40, z = 0 }, { x = -250, y = 90, z = 0 }
+  verifier(hommes.tenir(id, "travail", { activite = "suivre", vers = point_a, a_cheval = true, lieu = "sortie_1", fin = "liberation" }),
+           "l'homme seul sort")
+  verifier(hommes.tenir_un_personnage("bucheron", "travail", { activite = "suivre", vers = point_b, a_cheval = true,
+                                                               lieu = "sortie_2", fin = "liberation" }), "le mené sort")
+  -- Chacun est la tête de sa colonne, sans chef, à cheval, vers son propre point.
+  for _, c in ipairs({ { id, perso, point_a }, { "mene_bucheron", "bucheron", point_b } }) do
+    local a = hommes.activite_de(c[1], 10)
+    egal(a.chef, nil, c[2] .. " : sans chef")
+    egal(a.suivi and a.suivi.mode, "cheval", c[2] .. " : à cheval")
+    egal(a.suivi and a.suivi.role, "mener", c[2] .. " : il mène")
+    verifier(a.suivi and a.suivi.vers == true, c[2] .. " : vers un point")
+    verifier(a.position and a.position.x == c[3].x and a.position.y == c[3].y, c[2] .. " : son propre point")
+    local m = hommes.montures[c[1]]
+    verifier(m and m.cheval and FauxJeu.chevaux[m.cheval], c[2] .. " : son cheval passager")
+  end
+  -- Pendant la sortie, le cheval du mené reste (avant : porteur ne trouvait pas sa fiche et le retirait).
+  local cheval_du_mene = hommes.montures["mene_bucheron"].cheval
+  hommes.battre()
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval_du_mene] ~= nil, "le cheval du mené est gardé pendant la sortie")
+  egal(#FauxJeu.chevaux_retires, 0, "aucun cheval retiré pendant les sorties")
+  -- Arrivé : Scriptorium passe à la tâche (un geste au point) ; encore en selle, le cheval attend ; descendu et éloigné
+  -- (ou au deuxième battement), il est retiré.
+  FauxJeu.chevaux_montes = { [cheval_du_mene] = true }
+  verifier(hommes.tenir_un_personnage("bucheron", "travail", { activite = "geste", geste = "Loot", position = point_b,
+                                                               fin = "liberation" }), "la tâche au point")
+  hommes.battre()
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval_du_mene] ~= nil, "encore en selle : jamais retiré sous son cavalier")
+  FauxJeu.chevaux_montes = nil
+  hommes.battre()
+  verifier(FauxJeu.chevaux[cheval_du_mene] == nil, "descendu : le cheval du mené est retiré")
+  hommes.lacher_un_personnage("bucheron", "travail")
+  hommes.lacher(id, "travail")
+end)
+
 essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le premier mène monté, les autres se rangent montés ; la monte manquée, le plafond, le retrait après la sortie", function()
   preparer(5000, 100, 10)
   local ids, perso = {}, {}
