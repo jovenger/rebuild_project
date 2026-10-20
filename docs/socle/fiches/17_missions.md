@@ -175,6 +175,7 @@ le chemin du retour, entre à cheval et descend.
   que Scriptorium enveloppe, les bains par exemple) : un combattant debout, valide, libre, à moins de `fouille_rayon_m`
   du corps. Un fouilleur qui n'atteint pas son corps en `fouille_marche_max_h` le laisse. Services :
   `bataille.lancer_la_fouille(id)`, `bataille.fouille(id)` (les corps, les vus, les fouilleurs), `bataille.vider_la_fouille(id)`
+  `bataille.compter_comme_fouille(id, corps)` (demande du pair, 20/10) : un corps pris par le pillage de Scriptorium compte comme fouillé ; plus personne n'y est envoyé, et son fouilleur est lâché (il reprend sa journée) ; faux pour un corps hors de la fouille ou déjà compté.
   (les fouilleurs lâchés, la fouille close : le portage des corps, les sentinelles) ; accroche `bataille.fouille_finie(id,
   fouille)`. Les corps restent `duree_des_corps`, retirés hors de la vue d'Henry. À reprendre plus tard : un vrai geste
   de fouille du jeu (pour l'instant, l'homme se tient au corps).

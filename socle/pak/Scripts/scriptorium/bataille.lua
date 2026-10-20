@@ -1075,6 +1075,26 @@ function bataille.vider_la_fouille(id)
   return true
 end
 
+-- Demande du pair (20/10 : son pillage prend parfois un corps de notre fouille) : compter ce corps comme fouillé ;
+-- plus personne n'y est envoyé, et le fouilleur qui y allait est lâché (il reprend ce que dit la règle d'en dessous).
+-- Vrai si le corps est compté ; faux s'il n'est pas de cette fouille, ou déjà compté.
+function bataille.compter_comme_fouille(id, corps)
+  local b = donnees().bandes[id]
+  if not b or not b.fouille or not contient(b.fouille.a_fouiller, corps) or contient(b.fouille.vus, corps) then
+    return false
+  end
+  table.insert(b.fouille.vus, corps)
+  for h, a in pairs(b.fouille.fouilleurs) do
+    if a.corps == corps then
+      b.fouille.fouilleurs[h] = nil
+      if hommes().fiche(h) then hommes().lacher(h, "fouille") end
+    end
+  end
+  enregistrer()
+  jeu().journal("Bataille : corps « " .. tostring(corps) .. " » de « " .. id .. " » compté comme fouillé (Scriptorium)")
+  return true
+end
+
 -- Un battement de la fouille : les fouilleurs arrivés s'y tiennent, puis passent au suivant ; un corps pas atteint à
 -- temps est laissé ; les corps libres reçoivent le fouilleur le plus proche. Rend vrai si quelque chose a changé.
 local function avancer_la_fouille(b, heure)
