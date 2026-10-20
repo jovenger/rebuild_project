@@ -2411,7 +2411,12 @@ function hommes.activite_de(id, heure)
     end
     local ecart = tonumber(hommes.reglages.ecart_entre_hommes) or 0
     local colonne, rangee = (rang - 1) % 4, math.floor((rang - 1) / 4)
-    return camp().point(p.x + (colonne - 1.5) * ecart, p.y - rangee * ecart, p.cap)
+    -- Vu sur une copie de la partie de JoVenGer le 20/10 (au lever, 17 hommes autour du feu) : les rangs avançaient vers
+    -- -y, donc à travers le feu (au point « feu », face au sud) : places inatteignables, hommes téléportés. Les rangs se
+    -- placent désormais derrière le premier, à l'opposé du regard (« cap »), les colonnes de côté.
+    local r = math.rad(p.cap or 0)
+    local cote, recul = (colonne - 1.5) * ecart, rangee * ecart
+    return camp().point(p.x + cote * math.cos(r) - recul * math.sin(r), p.y - cote * math.sin(r) - recul * math.cos(r), p.cap)
   end
   -- La veillée est le temps libre : chacun y fait ce que lui dictent sa fatigue et ses envies (fiche 11) ; « le feu »
   -- garde la veillée ordinaire.

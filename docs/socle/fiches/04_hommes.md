@@ -28,6 +28,9 @@
 - Vu en V72 c : trois hommes à l'exercice exactement au même point (le point d'activité est unique). Désormais, autour
   d'un point d'activité (exercice, corvée, entraînement, dés, et le feu quand il n'y a plus de siège), chacun a sa place,
   en rangs de quatre, à `hommes.reglages.ecart_entre_hommes` mètres (1,2 par défaut, réglable), selon son rang au camp.
+  Les rangs se placent derrière le premier, à l'opposé du regard du point (son « cap »), les colonnes de côté (vu sur
+  une copie de la partie de JoVenGer le 20/10 : au lever, les rangs avançaient à travers le feu, places inatteignables,
+  hommes téléportés par le secours ; essai : 17 hommes au lever, aucune place à moins de 2 m du feu).
 - La liaison ne fait jamais naître ni ne pose deux personnages à moins d'un mètre : si la place est prise (un homme ou
   Henry), elle cherche à côté, sur deux cercles de 1,2 et 2,4 m ; sinon elle refuse.
 

@@ -1568,6 +1568,27 @@ essai("hommes : à l'exercice, chacun sa place, jamais deux au même point", fun
   verifier(#vus >= 2, "au moins deux hommes à l'exercice à 10 h (" .. #vus .. ")")
 end)
 
+essai("hommes (vu sur une copie de la partie de JoVenGer le 20/10) : au lever, 17 hommes autour du feu, aucune place dans le feu", function()
+  preparer(50000, 10, 10)
+  local interrupteur = Scriptorium.noyau.interrupteurs.un_lit_par_homme
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  for _ = 1, 17 do
+    hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 1 })
+  end
+  local feu = camp.position_de("feu_central")
+  local vus = 0
+  for _, id in ipairs(hommes.liste()) do
+    local a = hommes.activite_de(id, 6)
+    if a and a.activite == "lever" and a.position then
+      vus = vus + 1
+      local ecart = math.sqrt((a.position.x - feu.x) ^ 2 + (a.position.y - feu.y) ^ 2)
+      verifier(ecart >= 2, "place à " .. string.format("%.1f", ecart) .. " m du feu (au moins 2 m)")
+    end
+  end
+  verifier(vus >= 12, "au moins 12 hommes au lever (" .. vus .. ", les autres de garde)")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = interrupteur
+end)
+
 essai("vie du camp (fiche 15) : une place se prend par son objet du jeu, un point se rejoint en marchant", function()
   preparer(5000, 100, 12.5)
   for _ = 1, 6 do
