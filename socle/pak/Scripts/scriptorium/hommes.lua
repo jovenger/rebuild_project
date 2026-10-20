@@ -2248,6 +2248,12 @@ function hommes.activite_de(id, heure)
   if tenue then
     resultat.regle, resultat.activite, resultat.lieu = regle, tenue.activite, tenue.lieu
     resultat.position, resultat.cap, resultat.fin = tenue.position, tenue.cap, tenue.fin
+    -- Vu sur une copie de la partie de JoVenGer le 20/10 (sonde du pair) : le même geste au même lieu, son point déplacé
+    -- de 54 m, gardait la même signature : aucun ordre redonné, l'homme restait à genoux. Le point d'une tenue entre
+    -- dans la signature de l'ordre (au mètre) ; les signatures propres (rassemblement, suivre) la remplacent plus bas.
+    if type(tenue.position) == "table" and tonumber(tenue.position.x) and tonumber(tenue.position.y) then
+      resultat.signature = string.format("%.0f,%.0f", tenue.position.x, tenue.position.y)
+    end
     resultat.ne_pas_rhabiller = tenue.ne_pas_rhabiller
     -- V73 d 2 : une ronde suit son chemin, en boucle ou en aller-retour, depuis son point de départ s'il est donné.
     resultat.chemin, resultat.aller_retour, resultat.depart = tenue.chemin, tenue.aller_retour, tenue.depart

@@ -152,7 +152,7 @@ garde la ronde, ses durées et le décor ; le socle fournit le geste tenu et la 
 - `hommes.tenir(id, regle, { activite = "geste", lieu, geste, position, cap, fin })` : l'homme marche au point, se
   tourne selon le cap, puis tient le geste (`UnstanceAction` par son nom, lu par l'arbre : ordre 22 ; le jeu emploie
   aussi le nom en variable, `AI/special/so_injured.xml`) jusqu'au changement d'ordre. Le nom du geste entre dans la
-  signature de l'ordre : un autre geste redonne l'ordre. Refus `geste_invalide`.
+  signature de l'ordre : un autre geste redonne l'ordre ; un autre point aussi (au mètre, pour toute tenue à point fixe : vu sur une copie le 20/10, sonde du pair, le même geste déplacé de 54 m gardait sa signature et l'homme restait à genoux ; il se relève puis marche). Refus `geste_invalide`.
 - Au banc ; à voir en jeu avec un geste du jeu (`repairFenceHammer`, le marteau des clôtures).
 - **Vu en jeu le 17/10, le geste tenu** : avec `repairFenceHammer` (posture alignée dans
   `Libs/Tables/ai/NPCStateUnstanceDatabase.xml` : elle exige un objet d'ancrage), l'homme reste figé au point ; avec

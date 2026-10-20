@@ -2390,7 +2390,8 @@ essai("rassemblement (fiche 15, V73 e) : l'allure, les valeurs refusées, sans c
   local a = hommes.activite_de(id, 10)
   egal(a.regard, nil, "sans centre : aucun regard")
   egal(a.allure, nil, "sans centre : aucune allure")
-  egal(a.signature, nil, "sans centre : aucune place")
+  -- La signature porte le point de la tenue (20/10) ; une place sur l'arc s'écrirait « rang/nombre ».
+  verifier(a.signature == nil or not string.find(a.signature, "/", 1, true), "sans centre : aucune place sur l'arc")
   hommes.lacher(id, "rassemblement")
   FauxJeu.ordres = {}
   hommes.tenir(id, "garde", { activite = "garde", lieu = "porte", position = camp.point(0, 12, 0), fin = "liberation" })
@@ -3533,6 +3534,38 @@ essai("gardien (fiche 15, V73 g) : sous le sol deux regards de suite, repêché 
   hommes.garder()
   verifier(journal_contient("immortel : non (effet refusé)"), "l'immortalité refusée, dite")
   FauxJeu.refuser_les_effets = nil
+end)
+
+essai("geste tenu (sonde du pair, 20/10) : le même geste au même lieu, son point déplacé de 54 m : l'ordre est redonné, avec le temps de marche (il se relève)", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local p = hommes.fiche(id).personnage
+  local pres = camp.point(2, -6, 0)
+  FauxJeu.positions[p] = { x = pres.x + 1, y = pres.y, z = 0 }
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "portage", position = pres, fin = "liberation" })
+  hommes.battre()
+  -- Il tient son geste à genoux ; la même tenue est reposée, le point au centre du camp, à 54 m.
+  local loin = { x = pres.x + 54, y = pres.y, z = pres.z }
+  FauxJeu.ordres = {}
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "portage", position = loin, fin = "liberation" })
+  hommes.battre()
+  local o = nil
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.identifiant == p and ordre.activite == "geste" then o = ordre end
+  end
+  verifier(o ~= nil, "le nouvel ordre est donné")
+  verifier(o and o.position and math.abs(o.position.x - loin.x) < 0.01, "vers le nouveau point")
+  verifier(o and (o.marche_ms or 0) > 0, "avec son temps de marche : il se relève d'abord")
+  -- Le même point reposé : pas de nouvel ordre.
+  FauxJeu.ordres = {}
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "portage", position = loin, fin = "liberation" })
+  hommes.battre()
+  local encore = 0
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.identifiant == p and ordre.activite == "geste" then encore = encore + 1 end
+  end
+  egal(encore, 0, "le même point : pas d'ordre redonné")
+  hommes.lacher(id, "travail")
 end)
 
 essai("marche longue (vu sur une copie le 20/10 : 64 m, arrêté à 31 m) : l'ordre porte le temps de marche jusqu'au but, borné", function()
