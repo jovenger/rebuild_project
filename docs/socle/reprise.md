@@ -689,6 +689,15 @@ aucune sonde dans l'arbre.
     proposé au pair (`bataille.compter_comme_fouille`) pour qu'un corps pris par son « Loot » ne soit pas revisité.
   - INSTALLÉ pour tous les jours (d'office) : socle adec9ee, Scriptorium 067c8106 ; retour arrière :
     `Scriptorium_securite\20261020_141125_658071_seance_du_socle`.
+  - Puis INSTALLÉ (« garder » du pair, 15 h 09) : socle e4f2b3f (compter_comme_fouille ; fouille vidée par la charrette,
+    vue en jeu), Scriptorium e0d1316d ; retour arrière `Scriptorium_securite\20261020_144641_007394_seance_du_socle`.
+  - Séance sur copie (20/10, 15 h 16, dccf77c, « remise » : non gardée) : vu juste : un homme assis se relève et marche
+    (61 à 70 m, par la porte) ; 4 corps sur 6 portés au dépôt. Défauts trouvés et corrigés ensuite, au banc seulement
+    (non vus en jeu) : le secours punissait les détours (2f2b2c8 : un homme qui marche n'est jamais bloqué ; borne
+    secours_detour_max_s ; pas de pose sous les yeux d'Henry là où il disparaît) ; deux porteurs causaient au lieu de
+    porter (3a7dd26 : une parole non urgente attend l'arrivée) ; le même geste déplacé ne redonnait aucun ordre
+    (1f355fa : le point d'une tenue entre dans la signature). À installer à la prochaine séance : 1f355fa (contient
+    372a00f, dccf77c, 2f2b2c8, 3a7dd26).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
