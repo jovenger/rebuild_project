@@ -2042,7 +2042,8 @@ def verifier_la_vie_du_camp():
               r'</StanceElement>\s*</SuppressFailure>\s*</IfCondition>\s*'
               r'(?:<Expression expressions="\$scriptorium_sonde_releve = \$scriptorium_sonde_releve \+ 1" />\s*)?'
               r'(?:<Expression expressions="\$marche_faite = 0" />|<SuppressFailure>)')
-    for numero in ("22", "21"):
+    # Les branches 10 (s'asseoir) et 11 (se coucher) aussi (vu sur une copie le 20/10, séance J ; accord du pair).
+    for numero in ("22", "21", "10", "11"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         if len(corps) != 2 or not re.search(releve, corps[1].split("$scriptorium_activite ==", 1)[0]):
             erreur("vie du camp : la branche %s doit se relever d'abord, seulement s'il faut marcher" % numero)
@@ -2082,7 +2083,7 @@ def verifier_la_vie_du_camp():
                       r'<Parallel successMode="Any" failureMode="Any">\s*<UrgencyDecorator Urgency="\$urgence_relever">\s*'
                       r'<WaitAction />\s*</UrgencyDecorator>')
     # Demande du pair (20/10, séance J : les premières montes ratées depuis le lit ou un banc) : aussi les branches 19 et 20.
-    for numero in ("9", "12", "13", "19", "20", "21", "22", "24"):
+    for numero in ("9", "10", "11", "12", "13", "19", "20", "21", "22", "24"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
         if not re.search(sortie_urgente, corps):

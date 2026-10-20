@@ -170,6 +170,21 @@
                              la marche finit quand l'homme est à moins de $place_seuil de l'objet (écart LU par la liaison) ou quand
                              le Move réussit ; le délai, à la mesure de la distance, n'est qu'un garde-fou : la marche est rejouée ;
                              jamais de posture lancée de loin. -->
+                        <!-- Vu sur une copie de la partie de JoVenGer le 20/10 (séance J : sorti d'un geste, l'homme ne partait pas vers sa
+                             place ; accord du pair) : il se relève d'abord, sous l'urgence du cerveau, seulement s'il doit marcher
+                             (0 à sa place : il ne se relève pas pour se rasseoir). -->
+                        <IfCondition condition="$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">
+                          <SuppressFailure>
+                            <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                              <Parallel successMode="Any" failureMode="Any">
+                                <UrgencyDecorator Urgency="$urgence_relever">
+                                  <WaitAction />
+                                </UrgencyDecorator>
+                                <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Parallel>
+                            </StanceElement>
+                          </SuppressFailure>
+                        </IfCondition>
                         <Expression expressions="$marche_faite = 0" />
                         <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
@@ -244,6 +259,21 @@
                              la marche finit quand l'homme est à moins de $place_seuil de l'objet (écart LU par la liaison) ou quand
                              le Move réussit ; le délai, à la mesure de la distance, n'est qu'un garde-fou : la marche est rejouée ;
                              jamais de posture lancée de loin. -->
+                        <!-- Vu sur une copie de la partie de JoVenGer le 20/10 (séance J : sorti d'un geste, l'homme ne partait pas vers sa
+                             place ; accord du pair) : il se relève d'abord, sous l'urgence du cerveau, seulement s'il doit marcher
+                             (0 à sa place : il ne se relève pas pour se rasseoir). -->
+                        <IfCondition condition="$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">
+                          <SuppressFailure>
+                            <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                              <Parallel successMode="Any" failureMode="Any">
+                                <UrgencyDecorator Urgency="$urgence_relever">
+                                  <WaitAction />
+                                </UrgencyDecorator>
+                                <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Parallel>
+                            </StanceElement>
+                          </SuppressFailure>
+                        </IfCondition>
                         <Expression expressions="$marche_faite = 0" />
                         <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
