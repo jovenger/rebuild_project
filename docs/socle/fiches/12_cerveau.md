@@ -315,6 +315,14 @@
   jouer la sortie d'une posture), `relance_tours` (pouls figé, comportement en marche), `file_tours` (lancé, jamais
   commencé), `marche_delai_ms` (une marche abandonnée), et les distances d'arrêt en centimètres, avec leur écart :
   marche (`marche_arret_cm`, `marche_ecart_cm`), siège, lit.
+- **La marche longue** (vu sur une copie de la partie de JoVenGer le 20/10, sondes du pair : envoyé à 64 m, un homme
+  s'arrêtait à 31 m et jouait son geste sur place) : le délai d'une marche est `marche_delai_ms` plus le temps de marche
+  jusqu'au but, à `hommes.reglages.marche_approche_m_par_s` (1, prudent : 1,4 m/s mesuré), borné à
+  `marche_approche_max_ms` ; les hommes le calculent (`hommes.temps_de_marche_ms`), la liaison l'écrit à chaque ordre
+  (`scriptorium_marche_approche_ms`, 0 sinon), l'arbre l'ajoute. Dans chaque branche bornée par ce délai (siège, lit,
+  poste, ronde, geste, poste de travail), une marche expirée est rejouée tant que l'homme n'est pas arrivé et que
+  l'ordre n'a pas changé ; l'action ne vient qu'après ; le geste ne se joue qu'arrivé. La marche simple (branche 9)
+  reprenait déjà d'elle-même. Contrôlé au banc ; non vu en jeu.
 - **L'écriture** : `liaison.regler_le_cerveau(identifiant, valeurs)` écrit chaque valeur dans la variable de cerveau
   `scriptorium_cerveau_<nom>`. Le battement des hommes l'appelle pour chaque homme et pour le Directeur quand leur
   personnage est nouveau ou quand les valeurs ont changé (signature des valeurs) : à la naissance, au premier battement

@@ -281,9 +281,10 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
-function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi)
+function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi, marche_ms)
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
-                              place = place, sorte = sorte, regard = regard, allure = allure, chef = chef, suivi = suivi })
+                              place = place, sorte = sorte, regard = regard, allure = allure, chef = chef, suivi = suivi,
+                              marche_ms = marche_ms })
 end
 -- Fiche 15, V73 f 2 a : un cheval né (son identifiant), ou retiré.
 -- V73 f 2 b : un cheval né existe et a sa place ; « refuser_les_chevaux » : aucune naissance ; les chevaux retirés.

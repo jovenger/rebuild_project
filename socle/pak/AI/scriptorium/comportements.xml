@@ -6,6 +6,7 @@
       <Variable name="garde_ms" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="sortie_ms" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="delai_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="marche_faite" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="garde" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="sortie" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="delai" type="_string" values="" isPersistent="0" form="single" />
@@ -70,6 +71,7 @@
             <Expression expressions="$sortie_ms = ($scriptorium_cerveau_sortie_ms &gt; 0 ? $scriptorium_cerveau_sortie_ms : 2000)" />
             <Expression expressions="$sortie = concat($sortie_ms, &apos;ms&apos;)" />
             <Expression expressions="$delai_ms = ($scriptorium_cerveau_marche_delai_ms &gt; 0 ? $scriptorium_cerveau_marche_delai_ms : 30000)" />
+            <Expression expressions="$delai_ms = $delai_ms + ($scriptorium_marche_approche_ms &gt; 0 ? $scriptorium_marche_approche_ms : 0)" />
             <Expression expressions="$delai = concat($delai_ms, &apos;ms&apos;)" />
             <Expression expressions="$marche_arret = ($scriptorium_cerveau_marche_arret_cm &gt; 0 ? $scriptorium_cerveau_marche_arret_cm : 200) * 0.01" />
             <Expression expressions="$marche_ecart = ($scriptorium_cerveau_marche_ecart_cm &gt; 0 ? $scriptorium_cerveau_marche_ecart_cm : 50) * 0.01" />
@@ -145,6 +147,10 @@
                     <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
                     <Parallel successMode="Any" failureMode="Any">
                       <Sequence>
+                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                        <Expression expressions="$marche_faite = 0" />
+                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
@@ -152,8 +158,10 @@
                               <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                            <Expression expressions="$marche_faite = 1" />
                           </Sequence>
                         </SuppressFailure>
+                        </While>
                         <SuppressFailure>
                           <Turn target="$scriptorium_essai_siege" align="true" />
                         </SuppressFailure>
@@ -202,6 +210,10 @@
                   <Sequence>
                     <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
                     <Parallel successMode="Any" failureMode="Any">
+                      <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                           tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                      <Expression expressions="$marche_faite = 0" />
+                      <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                       <SuppressFailure>
                         <Sequence>
                           <Parallel successMode="Any" failureMode="Any">
@@ -209,8 +221,10 @@
                             <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                           </Parallel>
                           <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                          <Expression expressions="$marche_faite = 1" />
                         </Sequence>
                       </SuppressFailure>
+                      </While>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
                           <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
@@ -267,6 +281,10 @@
                         <IfCondition condition="$scriptorium_allure == 1" failOnCondition="false">
                           <Expression expressions="$allure = $enum:movementSpeed.run" />
                         </IfCondition>
+                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                        <Expression expressions="$marche_faite = 0" />
+                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
@@ -274,8 +292,10 @@
                               <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                            <Expression expressions="$marche_faite = 1" />
                           </Sequence>
                         </SuppressFailure>
+                        </While>
                         <SuppressFailure>
                           <Sequence>
                             <Turn target="$scriptorium_regard" align="false" />
@@ -341,6 +361,10 @@
                       </SuppressFailure>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
+                          <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                               tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                          <Expression expressions="$marche_faite = 0" />
+                          <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                           <SuppressFailure>
                             <Sequence>
                               <Parallel successMode="Any" failureMode="Any">
@@ -348,8 +372,10 @@
                                 <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                               </Parallel>
                               <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                              <Expression expressions="$marche_faite = 1" />
                             </Sequence>
                           </SuppressFailure>
+                          </While>
                           <Expression expressions="$ronde_pause = concat($sortie_ms, &apos;ms&apos;)" />
                           <SuppressFailure>
                             <ExecuteLua code="pcall(function() Scriptorium.jeu.au_point_de_ronde(entity, data) end)" />
@@ -988,6 +1014,10 @@
                   <Sequence>
                     <Parallel successMode="Any" failureMode="Any">
                       <Sequence>
+                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                        <Expression expressions="$marche_faite = 0" />
+                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
@@ -995,8 +1025,10 @@
                               <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                            <Expression expressions="$marche_faite = 1" />
                           </Sequence>
                         </SuppressFailure>
+                        </While>
                         <SuppressFailure>
                           <Turn target="$scriptorium_regard" align="true" />
                         </SuppressFailure>
@@ -1011,7 +1043,9 @@
                         </Sequence>
                       </While>
                     </Parallel>
-                    <IfCondition condition="$scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                    <!-- Vu sur une copie le 20/10 : une marche abandonnée jouait le geste en route (à 31 m d'un but à
+                         64 m) ; le geste ne se joue qu'arrivé ; sinon la boucle reprend la marche au tour suivant. -->
+                    <IfCondition condition="$scriptorium_essai_numero == $numero_tenu &amp; $marche_faite == 1" failOnCondition="false">
                       <Sequence>
                         <Expression expressions="$geste_assis = 0" />
                         <Expression expressions="$geste_ancre = 0" />
@@ -1082,6 +1116,10 @@
                   <Sequence>
                     <Expression expressions="$scriptorium_au_poste = $scriptorium_au_poste + 1" />
                     <Parallel successMode="Any" failureMode="Any">
+                      <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                           tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                      <Expression expressions="$marche_faite = 0" />
+                      <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                       <SuppressFailure>
                         <Sequence>
                           <Parallel successMode="Any" failureMode="Any">
@@ -1089,8 +1127,10 @@
                             <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                           </Parallel>
                           <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                          <Expression expressions="$marche_faite = 1" />
                         </Sequence>
                       </SuppressFailure>
+                      </While>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
                           <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />

@@ -31,6 +31,12 @@ hommes.reglages = {
   -- 2 km, puis posés là-bas par le secours. Un lit nommé à plus de « lit_nomme_max_m » du centre du camp (camp fondé)
   -- est refusé.
   lit_nomme_max_m = 100,
+  -- Vu sur une copie de la partie de JoVenGer le 20/10 (sondes du pair : un homme envoyé à 64 m s'arrêtait à 31 m et
+  -- jouait son geste sur place) : la marche était abandonnée au bout de « marche_delai_ms », quelle que soit la
+  -- distance. Le temps de la marche qui reste, à « marche_approche_m_par_s » (prudent : 1,4 m/s mesuré), borné à
+  -- « marche_approche_max_ms », s'ajoute désormais à ce délai (écrit par la liaison, ajouté par l'arbre).
+  marche_approche_m_par_s = 1,
+  marche_approche_max_ms = 600000,
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -2711,6 +2717,17 @@ local function but_de(a)
   return a.position, nil, nil
 end
 
+-- Le temps de marche jusqu'au but (millisecondes, entier), pour le délai de la marche dans l'arbre ; 0 sans but ou sans
+-- position lisible.
+function hommes.temps_de_marche_ms(personnage, but)
+  local vitesse = tonumber(hommes.reglages.marche_approche_m_par_s) or 0
+  local ecart = but and personnage and jeu().ecart_au_but(personnage, but)
+  if not ecart or vitesse <= 0 then
+    return 0
+  end
+  return math.floor(math.min(tonumber(hommes.reglages.marche_approche_max_ms) or 0, 1000 * ecart / vitesse))
+end
+
 -- Suivre (fiche 15, V73 f 1) : le rattrapage d'un suiveur, pour les hommes et pour le Directeur (la règle de Scriptorium,
 -- « LOIN 60, ARRIERE 4 »). À plus de « suivi_loin_m » de son chef (« henry » ou un personnage), il est posé
 -- « suivi_derriere_m » derrière Henry, jamais sous ses yeux, jamais en combat ni en conversation ; il ne compte pas dans
@@ -3380,7 +3397,8 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       jeu().journal("Hommes : « " .. f.nom .. " » affronte « " .. tostring(a.cible) .. " » (" .. (a.arme and "à l'arme" or "à mains nues")
                     .. ", jusqu'à " .. tostring(a.jusqu_a) .. ") : " .. tostring(jeu().ordonner_l_attaque(a.cible, f.personnage, { arme = a.arme })))
     else
-      jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi)
+      jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi,
+                     hommes.temps_de_marche_ms(f.personnage, position))
     end
     hommes.ordre_donne_en_saut(id)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».

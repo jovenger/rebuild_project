@@ -3492,6 +3492,24 @@ essai("gardien (fiche 15, V73 g) : sous le sol deux regards de suite, repêché 
   FauxJeu.refuser_les_effets = nil
 end)
 
+essai("marche longue (vu sur une copie le 20/10 : 64 m, arrêté à 31 m) : l'ordre porte le temps de marche jusqu'au but, borné", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  local but = camp.point(0, -6, 0)
+  FauxJeu.positions[f.personnage] = { x = but.x + 64, y = but.y, z = 0 }
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "fouille", position = but, fin = "liberation" }),
+           "le geste au loin")
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  local attendu = math.floor(1000 * 64 / hommes.reglages.marche_approche_m_par_s)
+  verifier(o and o.marche_ms and math.abs(o.marche_ms - attendu) <= 1000, "64 m : " .. tostring(o and o.marche_ms) .. " ms, environ " .. attendu)
+  egal(hommes.temps_de_marche_ms(f.personnage, nil), 0, "sans but : 0")
+  FauxJeu.positions[f.personnage] = { x = but.x + 5000, y = but.y, z = 0 }
+  egal(hommes.temps_de_marche_ms(f.personnage, but), hommes.reglages.marche_approche_max_ms, "borné")
+  hommes.lacher(id, "travail")
+end)
+
 essai("gardien (mesuré sur une copie le 20/10) : arrêté à 2,7 m de son point, la distance d'arrêt de la marche du jeu, il n'est pas figé", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

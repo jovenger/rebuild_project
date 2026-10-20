@@ -3313,9 +3313,15 @@ end
 -- V73 f 2 b : { mode = "cheval", cheval, role = "mener", formation } : il monte et mène la formation (ordre 18) ;
 -- { mode = "cheval", cheval, role = "formation" } : il monte et se range dans la formation de son chef (ordre 19) ; un
 -- cheval introuvable : le même rôle à pied (ordres 15, 16).
-function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi)
+function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi, marche_ms)
   local entite = entite_nommee(identifiant)
   local ligne
+  -- Vu sur une copie le 20/10 (une marche de 64 m abandonnée à 31 m) : le temps de la marche jusqu'au but (calculé par
+  -- les hommes), ajouté par l'arbre au délai de la marche ; 0 pour tout autre ordre.
+  local this_lu, this = pcall(function() return entite.this end)
+  if entite and this_lu and type(this) == "table" then
+    pcall(XGenAIModule.SetBrainVariable, this.id, "scriptorium_marche_approche_ms", math.floor(tonumber(marche_ms) or 0))
+  end
   liaison.regards[identifiant] = nil
   liaison.buts[identifiant] = nil
   liaison.chefs[identifiant] = nil

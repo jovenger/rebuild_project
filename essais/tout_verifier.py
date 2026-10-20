@@ -1814,7 +1814,8 @@ def verifier_la_vie_du_camp():
     motif = (r'destinationSpecification="\$scriptorium_essai_point"[^>]*stopWithinDistance="\$ronde_arret" '
              r'stopDistanceVariation="\$ronde_ecart"[^>]*/>[\s\S]*?'
              r'<Expression expressions="\$scriptorium_essai_arrive = \$scriptorium_essai_arrive \+ 1" />\s*'
-             r'</Sequence>\s*</SuppressFailure>\s*<Expression expressions="\$ronde_pause = concat\(\$sortie_ms, &apos;ms&apos;\)" />\s*'
+             r'<Expression expressions="\$marche_faite = 1" />\s*'
+             r'</Sequence>\s*</SuppressFailure>\s*</While>\s*<Expression expressions="\$ronde_pause = concat\(\$sortie_ms, &apos;ms&apos;\)" />\s*'
              r'<SuppressFailure>\s*' + re.escape(appel) + r'\s*</SuppressFailure>\s*<SuppressFailure>\s*' + tourne
              + r'\s*</SuppressFailure>\s*<Wait duration="\$ronde_pause" ')
     if len(branche) != 2 or not re.search(motif, branche[1]):
@@ -1987,6 +1988,25 @@ def verifier_la_vie_du_camp():
                "vers scriptorium_essai_point), la monte bornée, la monte manquée comptée et finie à pied vers le point")
     if comportements.count(manquee) != 4:
         erreur("vie du camp : les branches 17, 18, 19 et 20 comptent chacune la monte manquée")
+    # Vu sur une copie le 20/10 (sondes du pair : un homme envoyé à 64 m s'arrêtait à 31 m et jouait son geste sur place) :
+    # le délai de la marche s'allonge du temps de marche jusqu'au but (écrit par la liaison) ; toute marche bornée par ce
+    # délai est rejouée tant que l'homme n'est pas arrivé, dans chaque branche, et l'action ne vient qu'après ; le geste
+    # ne se joue qu'arrivé.
+    delai_marche = re.search(r'<Expression expressions="\$delai_ms = \(\$scriptorium_cerveau_marche_delai_ms[^>]*/>\s*'
+                             r'<Expression expressions="\$delai_ms = \$delai_ms \+ \(\$scriptorium_marche_approche_ms &gt; 0 \? '
+                             r'\$scriptorium_marche_approche_ms : 0\)" />\s*<Expression expressions="\$delai = concat', comportements)
+    bornees = len(re.findall(r'<Wait duration="\$delai"', comportements))
+    rejouees = len(re.findall(r'<Expression expressions="\$marche_faite = 0" />\s*<While doFail="false" propagateChildFail="false" '
+                              r'condition="\$marche_faite == 0 &amp; \$scriptorium_essai_numero == \$numero_tenu">\s*<SuppressFailure>\s*'
+                              r'<Sequence>\s*<Parallel successMode="Any" failureMode="Any">\s*<Move [^>]*/>\s*<Wait duration="\$delai"[^>]*/>\s*'
+                              r'</Parallel>\s*<Expression expressions="\$scriptorium_essai_\w+ = \$scriptorium_essai_\w+ \+ 1" />\s*'
+                              r'<Expression expressions="\$marche_faite = 1" />', comportements))
+    if (not delai_marche or '"scriptorium_marche_approche_ms", math.floor(tonumber(marche_ms) or 0)' not in liaison
+            or bornees != rejouees + 1
+            or '$scriptorium_essai_numero == $numero_tenu &amp; $marche_faite == 1' not in comportements):
+        erreur("vie du camp : le délai de la marche doit s'allonger du temps de marche (liaison, puis arbre), chaque marche "
+               "bornée (sauf la marche simple, qui reprend d'elle-même) être rejouée jusqu'à l'arrivée (%d sur %d), et le "
+               "geste ne se jouer qu'arrivé" % (rejouees, bornees))
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '
