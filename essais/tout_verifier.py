@@ -2019,7 +2019,8 @@ def verifier_la_vie_du_camp():
     bornees = len(re.findall(r'<Wait duration="\$delai"', comportements))
     rejouees = len(re.findall(r'<Expression expressions="\$marche_faite = 0" />\s*<While doFail="false" propagateChildFail="false" '
                               r'condition="\$marche_faite == 0 &amp; \$scriptorium_essai_numero == \$numero_tenu">\s*<SuppressFailure>\s*'
-                              r'<Sequence>\s*<Parallel successMode="Any" failureMode="Any">\s*<Move [^>]*/>\s*<Wait duration="\$delai"[^>]*/>\s*'
+                              r'<Sequence>\s*(?:<Expression expressions="\$scriptorium_sonde_marche = \$scriptorium_sonde_marche \+ 1" />\s*)?'
+                              r'<Parallel successMode="Any" failureMode="Any">\s*<Move [^>]*/>\s*<Wait duration="\$delai"[^>]*/>\s*'
                               r'</Parallel>\s*<Expression expressions="\$scriptorium_essai_\w+ = \$scriptorium_essai_\w+ \+ 1" />\s*'
                               r'<Expression expressions="\$marche_faite = 1" />', comportements))
     if (not delai_marche or '"scriptorium_marche_approche_ms", math.floor(tonumber(marche_ms) or 0)' not in liaison
@@ -2038,6 +2039,7 @@ def verifier_la_vie_du_camp():
               r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
               r'<Parallel successMode="Any" failureMode="Any">\s*<WaitAction />\s*<Wait duration="\$sortie"[^>]*/>\s*</Parallel>\s*'
               r'</StanceElement>\s*</SuppressFailure>\s*</IfCondition>\s*'
+              r'(?:<Expression expressions="\$scriptorium_sonde_releve = \$scriptorium_sonde_releve \+ 1" />\s*)?'
               r'(?:<Expression expressions="\$marche_faite = 0" />|<SuppressFailure>)')
     for numero in ("22", "21"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)

@@ -1036,6 +1036,10 @@
                 </IfCondition>
                 <IfCondition condition="$scriptorium_activite == 22 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
                   <Sequence>
+                    <!-- Sonde (demande du pair, 20/10 : le départ depuis un geste à genoux prend environ 7 s dans cette
+                         branche) : trois compteurs, sans effet sur le comportement : l'entrée, la fin du « se relever »,
+                         chaque lancement de la marche. -->
+                    <Expression expressions="$scriptorium_sonde_entree = $scriptorium_sonde_entree + 1" />
                     <Parallel successMode="Any" failureMode="Any">
                       <Sequence>
                         <!-- Demande du pair (20/10, vu sur une copie : assis par son geste, l'homme ne partait qu'à la relance du
@@ -1051,12 +1055,14 @@
                             </StanceElement>
                           </SuppressFailure>
                         </IfCondition>
+                        <Expression expressions="$scriptorium_sonde_releve = $scriptorium_sonde_releve + 1" />
                         <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
                              tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
                         <Expression expressions="$marche_faite = 0" />
                         <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
+                            <Expression expressions="$scriptorium_sonde_marche = $scriptorium_sonde_marche + 1" />
                             <Parallel successMode="Any" failureMode="Any">
                               <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.0" pathFindParams="" additionalMoveParams="" />
                               <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
