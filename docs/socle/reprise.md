@@ -560,7 +560,7 @@ aucune sonde dans l'arbre.
   - reste chez le pair : la garde de nuit (CampPatrollers vide : sa nuit prenait ses gardes dans la garde de jour de
     l'ancien mod, absente dans notre monde ; les hommes sans lit restent « sommeil sans but »).
   - fin de séance : JoVenGer a choisi (question du pair) de GARDER ce socle pour tous les jours : sa version est
-    désormais 29ad4f6 (pak du 19/10, 20:09) ; retour arrière : Scriptorium_securite61019_193225_498548_seance_du_socle.
+    désormais 29ad4f6 (pak du 19/10, 20:09) ; retour arrière : Scriptorium_securite\20261019_193225_498548_seance_du_socle.
     Vérifié : Partie 1 identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse.
 - **Vérification complète de SA sauvegarde (19/10 au soir, accord direct de JoVenGer, copie de playline1utosave1912 dans
   playline2, jamais sauvée, rangée jeu ouvert ; rien installé : vers_partie_d_essai.ps1 -SansInstallation)** :
@@ -587,7 +587,7 @@ aucune sonde dans l'arbre.
     tente vide (la 6 : 16 lits pour 10 dormeurs) et le nom d'un dormeur à travers la toile ; la ronde de nuit tourne ;
   - non vu : le lever du matin (jeu fermé avant le saut du pair).
   - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 19/10, 23 h 06) : socle ce77192 + Scriptorium 37416824 ;
-    séance « gardée » ; retour arrière : Scriptorium_securite61019_230515_819024_seance_du_socle. Vérifié : Partie 1
+    séance « gardée » ; retour arrière : Scriptorium_securite\20261019_230515_819024_seance_du_socle. Vérifié : Partie 1
     identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse.
 - **Vérification de l'installation des lits (19/10 vers 23 h 15, demande de JoVenGer, accord direct, copie, jamais
   sauvée, remis par le pair)** : la nuit juste (16 lits déclarés, 10 dormeurs chacun le sien, couchés, 0 erreur) ; le
@@ -596,7 +596,7 @@ aucune sonde dans l'arbre.
   repartait toujours du début ; corrigé au banc, fiche 13, non installé) ; chez le pair : l'oscillation de Bohuslav
   (une file d'achat de Scriptorium).
   - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 19/10, 23 h 31) : socle e0550ec (la file d'habillage) ;
-    séance « gardée » ; retour arrière : Scriptorium_securite61019_233035_871440_seance_du_socle. Vérifié : Partie 1
+    séance « gardée » ; retour arrière : Scriptorium_securite\20261019_233035_871440_seance_du_socle. Vérifié : Partie 1
     identique, « Continuer » sur playline1utosave1912, veilleur en marche, verrou qui refuse. Reste à voir en jeu :
     le colonel habillé après un chargement, et son geste à la marmite (séance de sonde proposée par le pair).
 - **Séance de sonde du matin (19/10 vers 23 h 40, accord direct de JoVenGer, copie, jamais sauvée ; la garde du pair
@@ -620,7 +620,7 @@ aucune sonde dans l'arbre.
   métier dans la cabane, la garde composée par l'énergie, la forge de Kunrát. À installer : socle b9564e9 (avec 8c5b6ea,
   87b9c14, d50c70a), Scriptorium du pair 63ee0241, sur l'accord de JoVenGer.
   - INSTALLÉ pour tous les jours (accord direct de JoVenGer, 20/10, 1 h 25) : socle b9564e9, Scriptorium 63ee0241 ;
-    retour arrière : Scriptorium_securite61020_012413_521706_seance_du_socle. Puis, sur sa demande : tout enregistré
+    retour arrière : `Scriptorium_securite\20261020_012413_521706_seance_du_socle`. Puis, sur sa demande : tout enregistré
     et l'ordinateur éteint par le pair.
 - **Pour la prochaine session** : rien d'ouvert chez nous. À voir en jeu un jour : le lever du matin avec les lits ; la
   posture en T du colonel au geste de la marmite (non revue) ; l'idée de rendre la cabane obstacle de navigation (pair,
@@ -633,6 +633,16 @@ aucune sonde dans l'arbre.
     ajouté (chacun le sien, à la place de l'objet ; sans siège, au feu).
   - « tous en relève » (décision de JoVenGer transmise par le pair, choix recommandé pris d'office) : interrupteur éteint,
     aucun lit réservé à l'embauche ; un lit réservé est rendu une fois (fiche 18).
+  - Séance de preuve (20/10, 9 h 30 à 9 h 50, copie playline2, jamais sauvée ; d'office) : socle e99eaad + Scriptorium
+    093546e2 ; 0 erreur, 0 refus ; rondins en cercle aux 4 feux, hommes assis à la veillée ; le colonel n'est plus figé
+    à la marmite ; lits partagés en relève sans collision ; figés relancés par le gardien. Restes chez le pair : son
+    pugilat (« scripto_prendre_epee ») pris et lâché contre notre repas, ses temps libres qui tiennent les hommes à
+    midi, la tour de guet, les sorties de métier à pied (à cheval, consigne du 16/10). Fermé sans sauver, playline1
+    intact.
+  - INSTALLÉ pour tous les jours (d'office, consigne du 20/10) : socle e99eaad, Scriptorium 093546e2 ; retour arrière :
+    `Scriptorium_securite\20261020_095256_783460_seance_du_socle`.
+  - Sommeil d'un mené sur un lit nommé (demande du pair, le personnel debout la nuit) : `{ activite = "sommeil", lit =
+    "<entité>" }` par `tenir_un_personnage`, règle `sommeil` (fiche 18) ; essai (vérifié qu'il échoue sans) ; non installé.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

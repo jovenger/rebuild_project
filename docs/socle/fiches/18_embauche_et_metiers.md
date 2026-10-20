@@ -211,6 +211,12 @@ Comportement :
   point, suivre, à cheval…) ; la fiche du mené naît à sa première tenue, dans `d.menes` (jamais dans `d.ordre`) ; un
   personnage de la Compagnie est refusé (`deja_de_la_compagnie`), un personnage absent aussi (`personnage_introuvable`).
   Sans « fin », la tenue tombe au prochain changement de tranche, comme pour nos hommes : Scriptorium donne « fin ».
+- Le sommeil sur un lit nommé (demande du pair, 20/10/2026 : à 23 h, les 17 gens du personnel avaient chacun un lit
+  chez Scriptorium mais restaient debout) : `{ activite = "sommeil", lit = "<nom d'entité>", fin = … }`, règle
+  `sommeil` ; le lit, déclaré ou non, doit exister (`jeu().objet_existe`), sinon refus `lit_invalide` ; « lit » hors du
+  sommeil : `lit_invalide`. Le lieu (signature de l'ordre) est ce lit, le but sa position (ou « position » si donnée) ;
+  l'ordre est celui des lits (11, par le WUID de l'objet), comme pour une place déclarée. Vaut aussi pour nos hommes
+  par `hommes.tenir`. Le socle ne réserve pas ce lit : Scriptorium le retire de ce qu'il donne aux hommes.
 - `hommes.lacher_un_personnage(personnage, regle)` ; sans plus aucune tenue, il n'est plus mené (il attend).
 - `hommes.personnel_mene()` : la liste des personnages menés.
 - Au battement : tenues échues, personnage disparu oublié, ordre redonné ; pas de secours (fait pour nos hommes au camp).

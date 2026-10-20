@@ -2428,6 +2428,29 @@ essai("secours (vu sur une copie de la partie de JoVenGer le 20/10) : un personn
   hommes.lacher_un_personnage("chasseur", "travail")
 end)
 
+essai("sommeil d'un mené sur un lit nommé (demande du pair, 20/10) : couché par l'objet du jeu, même non déclaré ; refus sinon", function()
+  preparer(5000, 100, 10)
+  FauxJeu.personnages_existants["jardinier"] = true
+  FauxJeu.objets_existants["lit_haut_43"] = true
+  FauxJeu.positions_des_objets = FauxJeu.positions_des_objets or {}
+  FauxJeu.positions_des_objets["lit_haut_43"] = { x = 12, y = 34, z = 0 }
+  FauxJeu.ordres = {}
+  verifier(hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "sommeil", lit = "lit_haut_43", fin = "liberation" }),
+           "tenue posée")
+  local dernier = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(dernier and dernier.identifiant, "jardinier", "un ordre au mené")
+  egal(dernier and dernier.place, "lit_haut_43", "l'objet du lit nommé")
+  egal(dernier and dernier.sorte, "lit", "couché (ordre de lit)")
+  egal(dernier and dernier.lieu, "lit_haut_43", "le lieu est le lit")
+  egal(dernier and dernier.position and dernier.position.x, 12, "le but est la position du lit")
+  local _, r1 = hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "sommeil", lit = "absent", fin = "liberation" })
+  egal(r1, "lit_invalide", "un lit introuvable est refusé")
+  local _, r2 = hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "geste", geste = "Loot", lit = "lit_haut_43",
+                                                                     position = { x = 1, y = 2, z = 0 }, fin = "liberation" })
+  egal(r2, "lit_invalide", "un lit hors du sommeil est refusé")
+  hommes.lacher_un_personnage("jardinier", "sommeil")
+end)
+
 essai("secours (fiche 15, V73 e) : jamais sous les yeux d'Henry ; il détourne le regard, le secours pose ; sans lecture, il pose", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

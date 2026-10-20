@@ -2232,6 +2232,11 @@ function hommes.activite_de(id, heure)
     -- V73 d 2 : une ronde suit son chemin, en boucle ou en aller-retour, depuis son point de départ s'il est donné.
     resultat.chemin, resultat.aller_retour, resultat.depart = tenue.chemin, tenue.aller_retour, tenue.depart
     resultat.pauses = tenue.pauses
+    -- Demande du pair (20/10) : le sommeil sur un lit nommé ; le lieu (la signature de l'ordre) est ce lit.
+    if tenue.lit then
+      resultat.lieu, resultat.lit = tenue.lit, tenue.lit
+      resultat.position = tenue.position or jeu().position_d_un_objet(tenue.lit)
+    end
     -- Fiche 18, 5 c : le geste tenu : son nom (dans le lieu, donc dans la signature de l'ordre) et le point regardé,
     -- à 5 m devant lui selon le cap.
     if tenue.geste then
@@ -2680,6 +2685,10 @@ local function but_de(a)
       return a.position, objet, "poste"
     end
     return a.position, nil, nil
+  end
+  -- Demande du pair (20/10) : un lit nommé, déclaré ou non : l'objet du jeu de ce nom (ordre 11).
+  if a.lit then
+    return a.position, a.lit, "lit"
   end
   local sorte = a.lieu and camp().sorte_de(a.lieu)
   if sorte and camp().sortes_places[sorte] then
@@ -3941,7 +3950,7 @@ local function memes_tenues(a, b)
     and a.formation == b.formation and a.cheval == b.cheval and a.a_cheval == b.a_cheval
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
     and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste and a.partage == b.partage
-    and a.siege == b.siege and a.assis == b.assis and a.arme_tiree == b.arme_tiree
+    and a.siege == b.siege and a.assis == b.assis and a.arme_tiree == b.arme_tiree and a.lit == b.lit
     and a.cible == b.cible and a.mains_nues == b.mains_nues and a.jusqu_a == b.jusqu_a
 end
 
@@ -4066,6 +4075,16 @@ function hommes.tenir(id, regle, quoi)
       return refuser("geste_invalide", "objet introuvable : " .. quoi.siege)
     end
   end
+  -- Demande du pair (20/10 : le personnel de Scriptorium restait debout la nuit, son lit réservé chez Scriptorium) : le
+  -- sommeil sur un lit donné par son nom d'entité (« lit »), déclaré ou non ; l'homme s'y couche par son WUID (ordre 11).
+  if quoi.lit ~= nil then
+    if quoi.activite ~= "sommeil" or type(quoi.lit) ~= "string" or quoi.lit == "" then
+      return refuser("lit_invalide", tostring(quoi.lit))
+    end
+    if not jeu().objet_existe(quoi.lit) then
+      return refuser("lit_invalide", "objet introuvable : " .. quoi.lit)
+    end
+  end
   -- La bascule (demande du pair, 18/10 : duels, pugilat, conspiration de Scriptorium) : affronter un personnage précis
   -- (« henry » compris), à l'arme ou à mains nues, jusqu'à ce qu'il soit assommé ou mort ; jamais une bataille.
   if quoi.activite == "affronter" then
@@ -4105,6 +4124,7 @@ function hommes.tenir(id, regle, quoi)
                   siege = (quoi.activite == "geste") and quoi.siege or nil,
                   assis = (quoi.activite == "geste") and quoi.assis or nil,
                   arme_tiree = (quoi.activite == "geste" and quoi.arme_tiree == true) or nil,
+                  lit = (quoi.activite == "sommeil") and quoi.lit or nil,
                   cible = (quoi.activite == "affronter") and quoi.cible or nil,
                   mains_nues = (quoi.activite == "affronter" and quoi.arme == false) or nil,
                   jusqu_a = (quoi.activite == "affronter") and (quoi.jusqu_a or "assomme") or nil,
