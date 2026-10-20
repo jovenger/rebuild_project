@@ -2016,11 +2016,24 @@ def verifier_la_vie_du_camp():
     releve = (r'<IfCondition condition="\$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">\s*<SuppressFailure>\s*'
               r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
               r'<Parallel successMode="Any" failureMode="Any">\s*<WaitAction />\s*<Wait duration="\$sortie"[^>]*/>\s*</Parallel>\s*'
-              r'</StanceElement>\s*</SuppressFailure>\s*</IfCondition>\s*<Expression expressions="\$marche_faite = 0" />')
+              r'</StanceElement>\s*</SuppressFailure>\s*</IfCondition>\s*'
+              r'(?:<Expression expressions="\$marche_faite = 0" />|<SuppressFailure>)')
     for numero in ("22", "21"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         if len(corps) != 2 or not re.search(releve, corps[1].split("$scriptorium_activite ==", 1)[0]):
             erreur("vie du camp : la branche %s doit se relever d'abord, seulement s'il faut marcher" % numero)
+    # Vu sur une copie le 20/10 (les hommes debout sur leur lit) : vers un objet (siège 10, lit 11, poste de travail 21),
+    # le Move ne réussit pas ; une seule marche bornée par le délai d'avant ($delai_place), puis la posture sur l'objet,
+    # jamais une marche rejouée ; la posture couchée suit la marche vers le lit.
+    for numero in ("10", "11", "21"):
+        corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
+        corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
+        if '<Wait duration="$delai_place"' not in corps or "marche_faite" in corps or '<Wait duration="$delai"' in corps:
+            erreur("vie du camp : la branche %s (une place) doit marcher une fois, bornée par $delai_place, puis prendre la "
+                   "posture, sans marche rejouée" % numero)
+        if numero == "11" and not re.search(r'<Wait duration="\$delai_place"[\s\S]*?<StanceElement smartObject="\$scriptorium_essai_siege" '
+                                            r'stance="lying"', corps):
+            erreur("vie du camp : la branche 11 doit prendre la posture couchée après la marche vers le lit")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '

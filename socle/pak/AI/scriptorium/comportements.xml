@@ -10,6 +10,8 @@
       <Variable name="garde" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="sortie" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="delai" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="delai_place_ms" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="delai_place" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="marche_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="marche_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="siege_arret" type="_float" values="" isPersistent="0" form="single" />
@@ -73,6 +75,11 @@
             <Expression expressions="$delai_ms = ($scriptorium_cerveau_marche_delai_ms &gt; 0 ? $scriptorium_cerveau_marche_delai_ms : 30000)" />
             <Expression expressions="$delai_ms = $delai_ms + ($scriptorium_marche_approche_ms &gt; 0 ? $scriptorium_marche_approche_ms : 0)" />
             <Expression expressions="$delai = concat($delai_ms, &apos;ms&apos;)" />
+            <!-- Vu sur une copie le 20/10 : vers un objet (lit, siège, poste de travail), le Move ne réussit pas, même sur
+                 l'objet ; c'est le délai qui fait passer à la posture, qui finit l'approche sur l'objet. Ce délai reste
+                 celui d'avant (sans le temps de marche) : un homme ne reste pas debout sur son lit. -->
+            <Expression expressions="$delai_place_ms = ($scriptorium_cerveau_marche_delai_ms &gt; 0 ? $scriptorium_cerveau_marche_delai_ms : 30000)" />
+            <Expression expressions="$delai_place = concat($delai_place_ms, &apos;ms&apos;)" />
             <Expression expressions="$marche_arret = ($scriptorium_cerveau_marche_arret_cm &gt; 0 ? $scriptorium_cerveau_marche_arret_cm : 200) * 0.01" />
             <Expression expressions="$marche_ecart = ($scriptorium_cerveau_marche_ecart_cm &gt; 0 ? $scriptorium_cerveau_marche_ecart_cm : 50) * 0.01" />
             <Expression expressions="$siege_arret = ($scriptorium_cerveau_siege_arret_cm &gt; 0 ? $scriptorium_cerveau_siege_arret_cm : 10) * 0.01" />
@@ -147,21 +154,15 @@
                     <Expression expressions="$scriptorium_essai_assis = $scriptorium_essai_assis + 1" />
                     <Parallel successMode="Any" failureMode="Any">
                       <Sequence>
-                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
-                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
-                        <Expression expressions="$marche_faite = 0" />
-                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
                               <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$siege_arret" stopDistanceVariation="$siege_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
-                              <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                              <Wait duration="$delai_place" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
-                            <Expression expressions="$marche_faite = 1" />
                           </Sequence>
                         </SuppressFailure>
-                        </While>
                         <SuppressFailure>
                           <Turn target="$scriptorium_essai_siege" align="true" />
                         </SuppressFailure>
@@ -211,21 +212,15 @@
                     <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
                     <Parallel successMode="Any" failureMode="Any">
                       <Sequence>
-                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
-                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
-                        <Expression expressions="$marche_faite = 0" />
-                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
                               <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$lit_arret" stopDistanceVariation="$lit_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
-                              <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                              <Wait duration="$delai_place" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
-                            <Expression expressions="$marche_faite = 1" />
                           </Sequence>
                         </SuppressFailure>
-                        </While>
                       </Sequence>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
@@ -1145,21 +1140,15 @@
                             </StanceElement>
                           </SuppressFailure>
                         </IfCondition>
-                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
-                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
-                        <Expression expressions="$marche_faite = 0" />
-                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
                         <SuppressFailure>
                           <Sequence>
                             <Parallel successMode="Any" failureMode="Any">
                               <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.0" pathFindParams="" additionalMoveParams="" />
-                              <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                              <Wait duration="$delai_place" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
                             </Parallel>
                             <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
-                            <Expression expressions="$marche_faite = 1" />
                           </Sequence>
                         </SuppressFailure>
-                        </While>
                       </Sequence>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>

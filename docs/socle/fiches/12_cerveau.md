@@ -319,10 +319,13 @@
   s'arrêtait à 31 m et jouait son geste sur place) : le délai d'une marche est `marche_delai_ms` plus le temps de marche
   jusqu'au but, à `hommes.reglages.marche_approche_m_par_s` (1, prudent : 1,4 m/s mesuré), borné à
   `marche_approche_max_ms` ; les hommes le calculent (`hommes.temps_de_marche_ms`), la liaison l'écrit à chaque ordre
-  (`scriptorium_marche_approche_ms`, 0 sinon), l'arbre l'ajoute. Dans chaque branche bornée par ce délai (siège, lit,
-  poste, ronde, geste, poste de travail), une marche expirée est rejouée tant que l'homme n'est pas arrivé et que
-  l'ordre n'a pas changé ; l'action ne vient qu'après ; le geste ne se joue qu'arrivé. La marche simple (branche 9)
-  reprenait déjà d'elle-même. Contrôlé au banc ; non vu en jeu.
+  (`scriptorium_marche_approche_ms`, 0 sinon), l'arbre l'ajoute. Dans les branches à point (poste, ronde, geste), une
+  marche expirée est rejouée tant que l'homme n'est pas arrivé et que l'ordre n'a pas changé ; l'action ne vient
+  qu'après ; le geste ne se joue qu'arrivé. La marche simple (branche 9) reprenait déjà d'elle-même.
+- **Les places (siège 10, lit 11, poste de travail 21) n'y sont pas soumises** (vu sur une copie le 20/10 : avec la marche
+  rejouée, les hommes restaient debout sur leur lit) : vers un objet, le Move ne réussit pas, même sur l'objet ; une
+  seule marche, bornée par le délai d'avant (`$delai_place`, `marche_delai_ms` seul), puis la posture sur l'objet, qui
+  finit l'approche : elle se prend toujours au but. Contrôlé au banc ; non vu en jeu.
 - **Se relever d'abord** (demande du pair, 20/10 : assis par son geste, l'homme ne partait qu'à la relance du gardien,
   environ 26 s) : les branches du geste (22) et du poste de travail (21) commencent, comme la marche, le poste et la
   ronde, par la posture debout (le temps `sortie_ms`), seulement si le temps de marche écrit est positif. À moins de
