@@ -717,6 +717,24 @@ aucune sonde dans l'arbre.
     21 (poste de travail) ne sert pas dans sa partie. À revoir sans saut d'horloge : 5 sortants « essai 1 sur 3 : cheval
     retiré » dans le même battement juste après un saut de 6 h à 10 h, puis partis au second essai (non vu sans saut,
     rien corrigé).
+  - Séance J sur copie (20/10, 18 h 51, socle 336610e, la journée entière de 4 h 50 à 22 h 45, remise ; deux
+    sauvegardes automatiques du jeu faites sur la copie, rangées). Relevés et corrections au banc seulement (non
+    installées, non vues en jeu), chacune avec l'accord du pair :
+    - 75dd935 : le gardien ne juge un homme que sur l'ordre reçu (20 faux figés sur 39 : chargement, lever, place changée
+      par Scriptorium ; il passait devant le battement, relançait deux fois puis laissait au secours).
+    - d2b02a2 : les gestes du Directeur (directeur.activite peut rendre un geste à un point, joué comme pour un homme ;
+      chaque ordre du Directeur porte le temps de marche).
+    - dd17a9d : les paroles du personnel mené (dire_une_replique_du_personnage, conversation_du_personnage).
+    - a66cbf0 : le tir à la cible (tenue « tir », branche 24 d'après prepadeni.xml et archery.xml ; carquois réel, règle
+      de JoVenGer du 26/09 ; deux fermantes du jeu admises au contrôle d'absence, 38, revue).
+    - 29ed6c4 : les montes depuis le lit ou un banc (branches 19 et 20 sous l'urgence ; les 5 premières montes ratées
+      partaient d'un homme couché ou assis).
+    - 299ddf4 : jamais de cheval né sous les yeux d'Henry (7 sur 21) : l'homme part à pied, le cheval naît hors de vue ;
+      au journal, « hors de la vue d'Henry » remplace « vu d'Henry : oui/non ».
+    - 457cb10 : se relever avant d'aller s'asseoir ou se coucher (branches 10 et 11 ; 19 vrais figés, presque tous sortis
+      d'un geste de Scriptorium). À mesurer en J2 : la sortie de eating_standing et scripto_getMash en rapide puis en
+      instantanée (urgence_relever = 3).
+    - À installer à la prochaine séance (J2) : 457cb10.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
