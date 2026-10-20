@@ -656,6 +656,16 @@ aucune sonde dans l'arbre.
       (un homme « sans but » à 4 h 50) : une tente des hommes de plus (4 lits) suffirait.
   - INSTALLÉ pour tous les jours (d'office, consigne du 20/10) : socle bbbf563, Scriptorium 1d4d5705 ; retour arrière :
     `Scriptorium_securite\20261020_101103_974149_seance_du_socle`.
+  - Sorties à cheval (règle de JoVenGer du 16/10 : qui sort du camp part et revient à cheval ; mécanique chez nous,
+    décision chez le pair) : forme `suivre` + `vers` + `a_cheval` (fiche 18) ; corrigés : le cheval d'un mené retiré
+    à chaque battement (d55f173), un mené lâché en selle garde son cheval jusqu'à sa descente (1b8b820, non vu en jeu).
+    Séance du 20/10 (11 h 40 à 12 h 50, copie, jamais sauvée ; d'office) : vu juste : aller et retour à cheval des deux
+    bûcherons et du porteur d'eau, départ du coursier vers le marché ; une monte manquée rattrapée ; chevaux retirés
+    après la descente ; 0 erreur, 0 refus. Reste : deux chevaux nés sous les yeux d'Henry (aucune place cachée libre ;
+    chez nous, plus tard) ; le retour du coursier non vu ; au lever, 5 hommes téléportés vers le feu (le foyer #26 sur
+    leur chemin : le pair déplacera le point du lever).
+  - INSTALLÉ pour tous les jours (d'office) : socle 1b8b820, Scriptorium 1d62c129 ; retour arrière :
+    `Scriptorium_securite\20261020_114003_726730_seance_du_socle`.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
