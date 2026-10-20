@@ -625,6 +625,12 @@ aucune sonde dans l'arbre.
 - **Pour la prochaine session** : rien d'ouvert chez nous. À voir en jeu un jour : le lever du matin avec les lits ; la
   posture en T du colonel au geste de la marmite (non revue) ; l'idée de rendre la cabane obstacle de navigation (pair,
   plus tard).
+- **20/10, reprise du travail (consigne de JoVenGer, confirmée directement par question à cocher : prendre d'office l'option
+  recommandée pour les séances sur copie et l'installation, avec mise de côté et retour arrière ; interdits sans lui :
+  charger sa partie, éteindre l'ordinateur, toucher sa bourse, enlever ses tentes)** :
+  - sièges déclarés (demande du pair, les bancs au repas) : rien à changer chez nous ; le repas et la veillée prennent
+    déjà un siège déclaré (`place_pour(id, "siege")` → `places_libres("siege", "hommes")`, sur un camp adopté) ; essai
+    ajouté (chacun le sien, à la place de l'objet ; sans siège, au feu).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

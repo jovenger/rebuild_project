@@ -3733,6 +3733,50 @@ essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, l
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("repas et veillée (demande du pair, 20/10) : sur un camp adopté, les hommes s'assoient aux sièges déclarés par Scriptorium, chacun le sien ; sans siège, au feu", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local ids = {}
+    for i = 1, 4 do
+      ids[i] = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    end
+    for _, id in ipairs(ids) do
+      local a = hommes.activite_de(id, 12.5)
+      if a.activite == "repas" then egal(a.lieu, "feu_central", "sans siège déclaré : au feu") end
+    end
+    local bancs = { "ScriptoEditeur_28_4_so", "ScriptoEditeur_28_5_so", "ScriptoEditeur_29_4_so" }
+    verifier(camp.declarer_les_places({ { nom = bancs[1], sorte = "siege" }, { nom = bancs[2], sorte = "siege" },
+                                        { nom = bancs[3], sorte = "siege" }, { nom = "lit_x", sorte = "lit" } }), "déclarés")
+    FauxJeu.positions_des_objets = { [bancs[1]] = { x = 3, y = 1, z = 0 }, [bancs[2]] = { x = 4, y = 1, z = 0 },
+                                     [bancs[3]] = { x = 5, y = 1, z = 0 } }
+    for _, h in ipairs({ 12.5, 20 }) do
+      local vus, assis = {}, 0
+      for _, id in ipairs(ids) do
+        local a = hommes.activite_de(id, h)
+        if a.activite == "repas" or a.activite == "veillee" then
+          if a.lieu ~= "feu_central" then
+            egal(camp.sorte_de(a.lieu), "siege", h .. " h : un siège déclaré (" .. tostring(a.lieu) .. ")")
+            verifier(not vus[a.lieu], h .. " h : chacun le sien")
+            verifier(a.position and a.position.y == 1, h .. " h : à la place de l'objet")
+            vus[a.lieu], assis = true, assis + 1
+          end
+        end
+      end
+      verifier(assis >= 1 and assis <= 3, h .. " h : des hommes assis aux sièges déclarés (" .. assis .. ")")
+    end
+    egal(#camp.places_libres("siege"), 3, "les sièges libres, dans l'ordre déclaré")
+    egal(camp.capacite().sieges, 3, "comptés")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  FauxJeu.positions_des_objets = nil
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 -- ---------------------------------------------------------------- fiche 19, grappe 3 : les décisions des hommes remplaçables
 
 essai("décisions des hommes (fiche 19) : le choix de l'équipement (A5, A22, A23) ; munitions de Scriptorium ; faux, impossible ; boiteux, celui du socle", function()
