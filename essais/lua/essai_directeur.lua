@@ -383,3 +383,35 @@ essai("directeur (5 c) : à l'entrée en partie, ses objets donnés reportés ; 
   directeur.battre()
   egal(#FauxJeu.equipements, 1, "un objet manque : recréés")
 end)
+
+essai("directeur (demande du pair, 20/10) : un geste rendu par directeur.activite est joué comme pour un homme : donné avec son point, son siège et son regard, puis tenu ; changé (point ou geste), il est redonné", function()
+  preparer(0, 10)
+  local d_origine = directeur.activite
+  local rendu = { activite = "geste", lieu = "scriptorium", geste = "scribe", position = { x = 12, y = 8, z = 0 }, cap = 90,
+                  siege = "sa_table", assis = true }
+  directeur.activite = function() return rendu end
+  local fait, erreur = pcall(function()
+    local qui = directeur.personnage()
+    FauxJeu.ordres, FauxJeu.gestes, FauxJeu.options_des_gestes = {}, {}, {}
+    egal(directeur.battre().ordres, 1, "un ordre")
+    local o = FauxJeu.ordres[#FauxJeu.ordres]
+    egal(o.activite, "geste", "l'activité du geste")
+    egal(o.lieu, "scriptorium/scribe@sa_table", "le geste et son siège dans le lieu")
+    egal(o.position.x, 12, "à son point")
+    verifier(o.regard and math.abs(o.regard.x - 17) < 0.01, "le regard selon le cap, à 5 m")
+    verifier(o.marche_ms ~= nil, "le temps de marche donné à l'arbre")
+    egal(FauxJeu.gestes[qui], "scribe", "le geste donné au cerveau")
+    egal(FauxJeu.options_des_gestes[qui].assis, true, "assis")
+    egal(FauxJeu.options_des_gestes[qui].ancre, "sa_table", "ancré sur son siège")
+    egal(directeur.battre().ordres, 0, "tenu : pas d'ordre redonné")
+    rendu = { activite = "geste", lieu = "scriptorium", geste = "scribe", position = { x = 40, y = 8, z = 0 } }
+    egal(directeur.battre().ordres, 1, "le point change : redonné")
+    egal(FauxJeu.ordres[#FauxJeu.ordres].position.x, 40, "au nouveau point")
+    rendu = { activite = "geste", lieu = "scriptorium", geste = "marteler", position = { x = 40, y = 8, z = 0 } }
+    egal(directeur.battre().ordres, 1, "le geste change : redonné")
+    egal(FauxJeu.gestes[qui], "marteler", "le nouveau geste")
+    egal(directeur.battre().ordres, 0, "puis tenu")
+  end)
+  directeur.activite = d_origine
+  verifier(fait, tostring(erreur))
+end)

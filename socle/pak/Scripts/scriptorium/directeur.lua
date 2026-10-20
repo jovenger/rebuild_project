@@ -362,7 +362,21 @@ function directeur.battre()
     Scriptorium.hommes.preparer_la_monture_du_directeur(jeu().heure_du_jeu())
   end
   local a = Scriptorium.avis(directeur, "activite", jeu().heure_du_jeu())
+  -- Demande du pair (20/10, la chaîne des tâches du Directeur de Scriptorium) : un geste à un point (« geste », « position »,
+  -- « cap » ou « regard », « siege », « assis », « arme_tiree ») joué comme pour un homme : sa forme (le geste dans le
+  -- lieu), son point dans la signature, le geste donné avant l'ordre.
+  if a and a.geste and Scriptorium.hommes then
+    local g = {}
+    for cle, valeur in pairs(a) do
+      g[cle] = valeur
+    end
+    a = Scriptorium.hommes.forme_du_geste(g, g)
+    if not a.signature and type(a.position) == "table" and tonumber(a.position.x) and tonumber(a.position.y) then
+      a.signature = string.format("%.0f,%.0f", a.position.x, a.position.y)
+    end
+  end
   local resume = a and (a.activite .. (a.suivi and ("/" .. tostring(a.suivi.mode) .. "/" .. tostring(a.suivi.cheval)) or "")
+                        .. (a.geste and ("@" .. tostring(a.lieu)) or "")
                         .. (a.signature and ("#" .. a.signature) or ""))
   if a and d.derniere_activite ~= resume then
     -- Fiche 15, V73 a : son lit se prend par l'objet du jeu ; le coffre et le feu s'abordent à l'écart, jamais dessus
@@ -370,7 +384,17 @@ function directeur.battre()
     local sorte = camp().sorte_de(a.lieu)
     local objet = sorte and camp().sortes_places[sorte] and camp().objet_du_jeu_de(a.lieu) or nil
     local position = objet and a.position or camp().abord_de(a.lieu) or a.position
-    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, a.regard, nil, a.chef, a.suivi)
+    if a.geste and jeu().donner_le_geste then
+      local assis = a.assis
+      if assis == nil and a.siege then
+        assis = camp().sorte_de(a.siege) == "siege"
+      end
+      jeu().donner_le_geste(d.personnage, a.geste, { ancre = a.siege and Scriptorium.hommes.objet_d_ancrage(a.siege) or nil,
+                                                    assis = assis == true, arme = a.arme_tiree == true })
+    end
+    -- Comme pour un homme (fiche 12) : le temps de la marche jusqu'au but, pour le délai de l'arbre et le « se relever ».
+    jeu().ordonner(d.personnage, a.activite, position, a.lieu, objet, objet and sorte or nil, a.regard, nil, a.chef, a.suivi,
+                   Scriptorium.hommes and Scriptorium.hommes.temps_de_marche_ms(d.personnage, position) or 0)
     if Scriptorium.hommes then
       Scriptorium.hommes.ordre_donne_en_saut("directeur")
     end

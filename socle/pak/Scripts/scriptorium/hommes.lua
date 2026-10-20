@@ -2305,18 +2305,7 @@ function hommes.activite_de(id, heure)
     -- Fiche 18, 5 c : le geste tenu : son nom (dans le lieu, donc dans la signature de l'ordre) et le point regardé,
     -- à 5 m devant lui selon le cap.
     if tenue.geste then
-      resultat.geste = tenue.geste
-      resultat.lieu = (tenue.lieu or "geste") .. "/" .. tenue.geste .. (tenue.siege and ("@" .. tenue.siege) or "")
-        .. (tenue.arme_tiree and "/arme" or "")
-      -- Demande du pair (18/10) : le geste ancré sur un objet (« siege »), assis s'il est assis ; l'arme à la main.
-      resultat.siege, resultat.assis, resultat.arme_tiree = tenue.siege, tenue.assis, tenue.arme_tiree
-      if tenue.siege and not tenue.position then
-        resultat.position = jeu().position_d_un_objet(hommes.objet_d_ancrage(tenue.siege))
-      end
-      if tenue.cap and tenue.position then
-        local r = math.rad(tenue.cap)
-        resultat.regard = { x = tenue.position.x + 5 * math.sin(r), y = tenue.position.y + 5 * math.cos(r), z = tenue.position.z }
-      end
+      hommes.forme_du_geste(tenue, resultat)
     end
     -- La bascule (l'affrontement, 18/10) : la cible, l'arme, la fin ; le lieu nomme la cible (la signature de l'ordre).
     if tenue.activite == "affronter" then
@@ -4078,6 +4067,24 @@ end
 -- de travail, un objet du camp, sinon le nom tel quel (une entité du jeu).
 function hommes.objet_d_ancrage(siege)
   return camp().objet_du_jeu_de(siege) or camp().objet_du_poste(siege) or camp().objet_de(siege) or siege
+end
+
+-- Fiche 18, 5 c : la forme d'un geste tenu (d'un homme, ou du Directeur, demande du pair du 20/10) : son nom (dans le
+-- lieu, donc dans la signature de l'ordre) et le point regardé, à 5 m devant lui selon le cap. Demande du pair (18/10) :
+-- le geste ancré sur un objet (« siege »), assis s'il est assis ; l'arme à la main. Rend « resultat ».
+function hommes.forme_du_geste(source, resultat)
+  resultat.geste = source.geste
+  resultat.lieu = (source.lieu or "geste") .. "/" .. source.geste .. (source.siege and ("@" .. source.siege) or "")
+    .. (source.arme_tiree and "/arme" or "")
+  resultat.siege, resultat.assis, resultat.arme_tiree = source.siege, source.assis, source.arme_tiree
+  if source.siege and not source.position then
+    resultat.position = jeu().position_d_un_objet(hommes.objet_d_ancrage(source.siege))
+  end
+  if source.cap and source.position then
+    local r = math.rad(source.cap)
+    resultat.regard = { x = source.position.x + 5 * math.sin(r), y = source.position.y + 5 * math.cos(r), z = source.position.z }
+  end
+  return resultat
 end
 
 -- Service pour le guichet et pour les morceaux du socle : tenir un homme par une règle (au catalogue, hommes.priorites).

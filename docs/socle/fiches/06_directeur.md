@@ -69,3 +69,14 @@ Installation et refus ; journée du Directeur ; menu complet, disponibilités et
 - Désormais, sur un camp adopté, `directeur.activite` prend la place que Scriptorium déclare à la place de celle du plan
   (`camp.declarer_les_places`, champ `remplace`, fiche 03) ; sans remplaçant, il reste à sa place d'installation
   (`directeur.installer(position, cap)`). Essai (vérifié qu'il échoue sans). Non vérifié en jeu.
+
+## Les gestes du Directeur (demande du pair, 20/10/2026)
+- La chaîne des tâches du Directeur de Scriptorium (tournée des feux, exercice, briefing, bureau, repas…) passe par la
+  décision remplaçable `directeur.activite(heure)`. Elle peut rendre un geste à un point, de la même forme que la tenue
+  d'un homme : `{ activite = "geste", lieu = …, geste = …, position, cap ou regard, siege, assis, arme_tiree }`.
+- `directeur.battre` le joue comme pour un homme (fiche 18, 5 c ; `hommes.forme_du_geste`, commune) : le geste et son
+  siège dans le lieu, le point dans la signature (au mètre), le regard à 5 m selon le cap, le geste donné au cerveau
+  (`donner_le_geste` : ancre, assis, arme) avant l'ordre ; changé (point ou geste), il est redonné.
+- Comme pour un homme (fiche 12), chaque ordre du Directeur porte désormais le temps de la marche jusqu'au but : délai
+  de l'arbre allongé, et « se relever » (sous l'urgence du cerveau) quand il faut marcher.
+- Au banc : `essai_directeur.lua` (vérifié en échec sans). Non vu en jeu.
