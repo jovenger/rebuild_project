@@ -2081,11 +2081,21 @@ def verifier_la_vie_du_camp():
     sortie_urgente = (r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
                       r'<Parallel successMode="Any" failureMode="Any">\s*<UrgencyDecorator Urgency="\$urgence_relever">\s*'
                       r'<WaitAction />\s*</UrgencyDecorator>')
-    for numero in ("9", "12", "13", "21", "22", "24"):
+    # Demande du pair (20/10, séance J : les premières montes ratées depuis le lit ou un banc) : aussi les branches 19 et 20.
+    for numero in ("9", "12", "13", "19", "20", "21", "22", "24"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
         if not re.search(sortie_urgente, corps):
             erreur("vie du camp : la branche %s doit sortir de sa posture sous l'urgence $urgence_relever" % numero)
+    # Même demande (les montes ratées) : dans les branches 19 et 20, la monte et son délai ne commencent qu'une fois la
+    # sortie de posture finie (le « se relever » fermé avant la posture « horse » et avant le délai de monte).
+    for numero in ("19", "20"):
+        corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
+        corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
+        fin_du_relever = corps.find("</StanceElement>")
+        if (corps.find('stance="standing"') < 0 or fin_du_relever < 0 or corps.find('stance="horse"') < fin_du_relever
+                or corps.find('Wait duration="$monte_delai"') < fin_du_relever):
+            erreur("vie du camp : la branche %s doit se relever avant la monte et avant le délai de monte" % numero)
     # Demande du pair (20/10, séance J) : le tir à la cible (branche 24), la pile de tir sur cible fixe du jeu
     # (AI/quests/prepadeni/prepadeni.xml, bandit_shootOnTargetWithNotification ; le contexte du concours de tir,
     # AI/quests/archery/archery.xml) : tourné vers la cible, l'arc du jeu d'armes secondaire en main gauche, la cible posée,

@@ -1602,6 +1602,11 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
    (10 000 ms, `hommes.cerveau`, au catalogue) ; l'attente ne finit pas si « en selle » a bougé ; pas en selle au bout
    du délai, la posture est quittée et l'homme suit à pied (jamais figé à côté de son cheval). Au changement d'ordre,
    la posture finit : le jeu joue la descente.
+   **Monter depuis le lit ou un banc** (vu sur une copie de la partie de JoVenGer le 20/10, séance J : les 5 premières
+   montes ratées partaient toutes d'un homme couché ou assis ; celles d'un homme debout réussissaient) : les branches 19
+   et 20 gardaient l'ancien « se relever » (sortie à vitesse normale) ; la monte et son délai partaient pendant que
+   l'homme sortait encore du lit. Elles se relèvent désormais sous l'urgence du cerveau, comme les autres branches ; le
+   banc contrôle la forme et que la monte et son délai ne commencent qu'après le « se relever ». Non vu en jeu.
 3. **Les commandes d'essai** : `essai_cheval` (un cheval né à 5 m du premier homme, sous un angle tiré au hasard ; né
    derrière une barrière : `essai_retirer_cheval`, puis la commande redonnée tire un autre angle) ; `essai_escorte_a_cheval` (le premier
    homme suit Henry sur ce cheval) ; `essai_fin_escorte` (il descend, il reprend sa tranche) ; `essai_retirer_cheval`.

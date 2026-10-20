@@ -753,7 +753,9 @@
                       <SuppressFailure>
                         <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                           <Parallel successMode="Any" failureMode="Any">
-                            <WaitAction />
+                            <UrgencyDecorator Urgency="$urgence_relever">
+                              <WaitAction />
+                            </UrgencyDecorator>
                             <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                           </Parallel>
                         </StanceElement>
@@ -923,7 +925,9 @@
                       <SuppressFailure>
                         <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                           <Parallel successMode="Any" failureMode="Any">
-                            <WaitAction />
+                            <UrgencyDecorator Urgency="$urgence_relever">
+                              <WaitAction />
+                            </UrgencyDecorator>
                             <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                           </Parallel>
                         </StanceElement>
