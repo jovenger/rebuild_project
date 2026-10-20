@@ -2433,7 +2433,11 @@ essai("sommeil d'un mené sur un lit nommé (demande du pair, 20/10) : couché p
   FauxJeu.personnages_existants["jardinier"] = true
   FauxJeu.objets_existants["lit_haut_43"] = true
   FauxJeu.positions_des_objets = FauxJeu.positions_des_objets or {}
-  FauxJeu.positions_des_objets["lit_haut_43"] = { x = 12, y = 34, z = 0 }
+  local pres = camp.point(3, 4, 0)
+  FauxJeu.positions_des_objets["lit_haut_43"] = { x = pres.x, y = pres.y, z = 0 }
+  local loin = camp.point(0, 2000, 0)
+  FauxJeu.objets_existants["place_au_loin"] = true
+  FauxJeu.positions_des_objets["place_au_loin"] = { x = loin.x, y = loin.y, z = 0 }
   FauxJeu.ordres = {}
   verifier(hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "sommeil", lit = "lit_haut_43", fin = "liberation" }),
            "tenue posée")
@@ -2442,7 +2446,10 @@ essai("sommeil d'un mené sur un lit nommé (demande du pair, 20/10) : couché p
   egal(dernier and dernier.place, "lit_haut_43", "l'objet du lit nommé")
   egal(dernier and dernier.sorte, "lit", "couché (ordre de lit)")
   egal(dernier and dernier.lieu, "lit_haut_43", "le lieu est le lit")
-  egal(dernier and dernier.position and dernier.position.x, 12, "le but est la position du lit")
+  egal(dernier and dernier.position and dernier.position.x, pres.x, "le but est la position du lit")
+  local _, r0 = hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "sommeil", lit = "place_au_loin", fin = "liberation" })
+  egal(r0, "lit_invalide", "un lit à 2 km du camp est refusé (vu sur une copie le 20/10)")
+  egal(FauxJeu.ordres[#FauxJeu.ordres].place, "lit_haut_43", "la tenue d'avant reste")
   local _, r1 = hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "sommeil", lit = "absent", fin = "liberation" })
   egal(r1, "lit_invalide", "un lit introuvable est refusé")
   local _, r2 = hommes.tenir_un_personnage("jardinier", "sommeil", { activite = "geste", geste = "Loot", lit = "lit_haut_43",

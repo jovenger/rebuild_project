@@ -27,6 +27,10 @@ hommes.reglages = {
   secours_loin_m = 150,
   secours_loin_camp_m = 50,
   secours_vue_cos = 0.5,
+  -- Vu sur une copie de la partie de JoVenGer le 20/10 : trois gens du personnel envoyés dormir sur des objets à plus de
+  -- 2 km, puis posés là-bas par le secours. Un lit nommé à plus de « lit_nomme_max_m » du centre du camp (camp fondé)
+  -- est refusé.
+  lit_nomme_max_m = 100,
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -4083,6 +4087,12 @@ function hommes.tenir(id, regle, quoi)
     end
     if not jeu().objet_existe(quoi.lit) then
       return refuser("lit_invalide", "objet introuvable : " .. quoi.lit)
+    end
+    local centre, la = camp().point(0, 0, 0), jeu().position_d_un_objet(quoi.lit)
+    local max = tonumber(hommes.reglages.lit_nomme_max_m) or 0
+    if centre and la and max > 0 and math.sqrt((la.x - centre.x) ^ 2 + (la.y - centre.y) ^ 2) > max then
+      return refuser("lit_invalide", string.format("%s à %.0f m du camp", quoi.lit,
+        math.sqrt((la.x - centre.x) ^ 2 + (la.y - centre.y) ^ 2)))
     end
   end
   -- La bascule (demande du pair, 18/10 : duels, pugilat, conspiration de Scriptorium) : affronter un personnage précis

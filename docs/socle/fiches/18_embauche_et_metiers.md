@@ -214,7 +214,9 @@ Comportement :
 - Le sommeil sur un lit nommé (demande du pair, 20/10/2026 : à 23 h, les 17 gens du personnel avaient chacun un lit
   chez Scriptorium mais restaient debout) : `{ activite = "sommeil", lit = "<nom d'entité>", fin = … }`, règle
   `sommeil` ; le lit, déclaré ou non, doit exister (`jeu().objet_existe`), sinon refus `lit_invalide` ; « lit » hors du
-  sommeil : `lit_invalide`. Le lieu (signature de l'ordre) est ce lit, le but sa position (ou « position » si donnée) ;
+  sommeil : `lit_invalide` ; un lit à plus de `hommes.reglages.lit_nomme_max_m` (100 m) du centre du camp fondé :
+  `lit_invalide` (vu sur une copie le 20/10 : trois gens envoyés dormir sur des objets à plus de 2 km, puis posés
+  là-bas par le secours). Le lieu (signature de l'ordre) est ce lit, le but sa position (ou « position » si donnée) ;
   l'ordre est celui des lits (11, par le WUID de l'objet), comme pour une place déclarée. Vaut aussi pour nos hommes
   par `hommes.tenir`. Le socle ne réserve pas ce lit : Scriptorium le retire de ce qu'il donne aux hommes.
 - `hommes.lacher_un_personnage(personnage, regle)` ; sans plus aucune tenue, il n'est plus mené (il attend).
