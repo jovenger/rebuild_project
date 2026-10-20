@@ -744,7 +744,7 @@ aucune sonde dans l'arbre.
 
 ## 6 nonies. Où reprendre (pause du 20/10/2026 au soir, demandée par JoVenGer : PC éteint)
 - Installé pour tous les jours (« garder » d'office après J2) : socle 457cb10 + Scriptorium fd7e1961 ; retour arrière
-  `Scriptorium_securite61020_201702_763534_seance_du_socle`. playline1 intacte (146 fichiers, 19/10 16:59:16).
+  `Scriptorium_securite\20261020_201702_763534_seance_du_socle`. playline1 intacte (146 fichiers, 19/10 16:59:16).
 - J2 vue juste (le pair) : lever sans faux figé, départs à cheval depuis le lit du premier coup et hors de vue, tir
   (l'arc levé), crieurs, gestes du Directeur (feux), veillée assise, nuit couchée sans doublon.
 - En cours, rien corrigé :
