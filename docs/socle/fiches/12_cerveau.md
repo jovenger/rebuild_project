@@ -323,6 +323,12 @@
   poste, ronde, geste, poste de travail), une marche expirée est rejouée tant que l'homme n'est pas arrivé et que
   l'ordre n'a pas changé ; l'action ne vient qu'après ; le geste ne se joue qu'arrivé. La marche simple (branche 9)
   reprenait déjà d'elle-même. Contrôlé au banc ; non vu en jeu.
+- **Se relever d'abord** (demande du pair, 20/10 : assis par son geste, l'homme ne partait qu'à la relance du gardien,
+  environ 26 s) : les branches du geste (22) et du poste de travail (21) commencent, comme la marche, le poste et la
+  ronde, par la posture debout (le temps `sortie_ms`), seulement si le temps de marche écrit est positif. À moins de
+  `hommes.reglages.marche_sur_place_m` (1,5 m) de son but, ce temps est 0 : assis à sa place (ordre reposé, relance,
+  rechargement, geste ancré sur un siège), il ne se relève pas pour se rasseoir. Le banc refuse aussi une marche
+  rejouée enfant direct d'un Parallel (elle le ferait finir aussitôt). Non vu en jeu.
 - **L'écriture** : `liaison.regler_le_cerveau(identifiant, valeurs)` écrit chaque valeur dans la variable de cerveau
   `scriptorium_cerveau_<nom>`. Le battement des hommes l'appelle pour chaque homme et pour le Directeur quand leur
   personnage est nouveau ou quand les valeurs ont changé (signature des valeurs) : à la naissance, au premier battement

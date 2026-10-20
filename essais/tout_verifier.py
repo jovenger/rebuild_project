@@ -2007,6 +2007,20 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : le délai de la marche doit s'allonger du temps de marche (liaison, puis arbre), chaque marche "
                "bornée (sauf la marche simple, qui reprend d'elle-même) être rejouée jusqu'à l'arrivée (%d sur %d), et le "
                "geste ne se jouer qu'arrivé" % (rejouees, bornees))
+    # Une marche rejouée ne doit jamais être enfant direct d'un Parallel (l'expression qui la précède le ferait finir
+    # aussitôt) ; les branches du geste (22) et du poste de travail (21) se relèvent d'abord, seulement s'il faut marcher
+    # (demande du pair, 20/10 : assis par son geste, l'homme ne partait qu'à la relance du gardien).
+    sans_commentaires = re.sub(r"<!--[\s\S]*?-->", "", comportements)
+    if re.search(r'<Parallel successMode="Any" failureMode="Any">\s*<Expression expressions="\$marche_faite = 0" />', sans_commentaires):
+        erreur("vie du camp : une marche rejouée est enfant direct d'un Parallel (le Parallel finirait aussitôt)")
+    releve = (r'<IfCondition condition="\$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">\s*<SuppressFailure>\s*'
+              r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
+              r'<Parallel successMode="Any" failureMode="Any">\s*<WaitAction />\s*<Wait duration="\$sortie"[^>]*/>\s*</Parallel>\s*'
+              r'</StanceElement>\s*</SuppressFailure>\s*</IfCondition>\s*<Expression expressions="\$marche_faite = 0" />')
+    for numero in ("22", "21"):
+        corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
+        if len(corps) != 2 or not re.search(releve, corps[1].split("$scriptorium_activite ==", 1)[0]):
+            erreur("vie du camp : la branche %s doit se relever d'abord, seulement s'il faut marcher" % numero)
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '

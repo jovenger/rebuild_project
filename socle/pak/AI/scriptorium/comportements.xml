@@ -210,21 +210,23 @@
                   <Sequence>
                     <Expression expressions="$scriptorium_essai_couche = $scriptorium_essai_couche + 1" />
                     <Parallel successMode="Any" failureMode="Any">
-                      <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
-                           tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
-                      <Expression expressions="$marche_faite = 0" />
-                      <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
-                      <SuppressFailure>
-                        <Sequence>
-                          <Parallel successMode="Any" failureMode="Any">
-                            <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$lit_arret" stopDistanceVariation="$lit_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
-                            <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
-                          </Parallel>
-                          <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
-                          <Expression expressions="$marche_faite = 1" />
-                        </Sequence>
-                      </SuppressFailure>
-                      </While>
+                      <Sequence>
+                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                        <Expression expressions="$marche_faite = 0" />
+                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
+                        <SuppressFailure>
+                          <Sequence>
+                            <Parallel successMode="Any" failureMode="Any">
+                              <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$lit_arret" stopDistanceVariation="$lit_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                              <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                            </Parallel>
+                            <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                            <Expression expressions="$marche_faite = 1" />
+                          </Sequence>
+                        </SuppressFailure>
+                        </While>
+                      </Sequence>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
                           <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
@@ -1014,6 +1016,19 @@
                   <Sequence>
                     <Parallel successMode="Any" failureMode="Any">
                       <Sequence>
+                        <!-- Demande du pair (20/10, vu sur une copie : assis par son geste, l'homme ne partait qu'à la relance du
+                             gardien) : il se relève d'abord, comme pour la marche, le poste et la ronde ; seulement s'il doit marcher
+                             (temps de marche écrit par la liaison ; 0 à sa place : il ne se relève pas pour se rasseoir). -->
+                        <IfCondition condition="$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">
+                          <SuppressFailure>
+                            <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                              <Parallel successMode="Any" failureMode="Any">
+                                <WaitAction />
+                                <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Parallel>
+                            </StanceElement>
+                          </SuppressFailure>
+                        </IfCondition>
                         <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
                              tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
                         <Expression expressions="$marche_faite = 0" />
@@ -1116,21 +1131,36 @@
                   <Sequence>
                     <Expression expressions="$scriptorium_au_poste = $scriptorium_au_poste + 1" />
                     <Parallel successMode="Any" failureMode="Any">
-                      <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
-                           tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
-                      <Expression expressions="$marche_faite = 0" />
-                      <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
-                      <SuppressFailure>
-                        <Sequence>
-                          <Parallel successMode="Any" failureMode="Any">
-                            <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.0" pathFindParams="" additionalMoveParams="" />
-                            <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
-                          </Parallel>
-                          <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
-                          <Expression expressions="$marche_faite = 1" />
-                        </Sequence>
-                      </SuppressFailure>
-                      </While>
+                      <Sequence>
+                        <!-- Demande du pair (20/10, vu sur une copie : assis par son geste, l'homme ne partait qu'à la relance du
+                             gardien) : il se relève d'abord, comme pour la marche, le poste et la ronde ; seulement s'il doit marcher
+                             (temps de marche écrit par la liaison ; 0 à sa place : il ne se relève pas pour se rasseoir). -->
+                        <IfCondition condition="$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">
+                          <SuppressFailure>
+                            <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                              <Parallel successMode="Any" failureMode="Any">
+                                <WaitAction />
+                                <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                              </Parallel>
+                            </StanceElement>
+                          </SuppressFailure>
+                        </IfCondition>
+                        <!-- Vu sur une copie le 20/10 : une marche expirée laissait l'action se jouer en route ; elle est rejouée
+                             tant que l'homme n'est pas arrivé (ordre inchangé), l'action ne vient qu'après. -->
+                        <Expression expressions="$marche_faite = 0" />
+                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
+                        <SuppressFailure>
+                          <Sequence>
+                            <Parallel successMode="Any" failureMode="Any">
+                              <Move destinationSpecification="$scriptorium_essai_siege" destinationSpecification2="" destinationSpecification3="" speed="Walk" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.0" pathFindParams="" additionalMoveParams="" />
+                              <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                            </Parallel>
+                            <Expression expressions="$scriptorium_essai_approche = $scriptorium_essai_approche + 1" />
+                            <Expression expressions="$marche_faite = 1" />
+                          </Sequence>
+                        </SuppressFailure>
+                        </While>
+                      </Sequence>
                       <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
                         <Sequence>
                           <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />

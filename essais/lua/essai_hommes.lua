@@ -3505,6 +3505,11 @@ essai("marche longue (vu sur une copie le 20/10 : 64 m, arrêté à 31 m) : l'or
   local attendu = math.floor(1000 * 64 / hommes.reglages.marche_approche_m_par_s)
   verifier(o and o.marche_ms and math.abs(o.marche_ms - attendu) <= 1000, "64 m : " .. tostring(o and o.marche_ms) .. " ms, environ " .. attendu)
   egal(hommes.temps_de_marche_ms(f.personnage, nil), 0, "sans but : 0")
+  -- Assis à sa place (0,8 m de l'objet), le même ordre reposé : pas de marche, donc il ne se relève pas (demande du pair).
+  FauxJeu.positions[f.personnage] = { x = but.x + 0.8, y = but.y, z = 0 }
+  egal(hommes.temps_de_marche_ms(f.personnage, but), 0, "à sa place : temps de marche nul (il ne se relève pas)")
+  FauxJeu.positions[f.personnage] = { x = but.x + 3, y = but.y, z = 0 }
+  verifier(hommes.temps_de_marche_ms(f.personnage, but) > 0, "à 3 m : il doit marcher (il se relève)")
   FauxJeu.positions[f.personnage] = { x = but.x + 5000, y = but.y, z = 0 }
   egal(hommes.temps_de_marche_ms(f.personnage, but), hommes.reglages.marche_approche_max_ms, "borné")
   hommes.lacher(id, "travail")

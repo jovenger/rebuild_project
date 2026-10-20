@@ -37,6 +37,9 @@ hommes.reglages = {
   -- « marche_approche_max_ms », s'ajoute désormais à ce délai (écrit par la liaison, ajouté par l'arbre).
   marche_approche_m_par_s = 1,
   marche_approche_max_ms = 600000,
+  -- Demande du pair (20/10, sa condition de réalisme) : à moins de « marche_sur_place_m » de son but (assis à sa place,
+  -- ordre reposé, relance, rechargement), pas de marche : temps 0, et l'arbre ne le fait pas se relever.
+  marche_sur_place_m = 1.5,
   ration = 2,                 -- vivres par homme et par jour (choix de JoVenGer, 14/10)
   heure_lever = 5,            -- aube : contrats finis, désertions
   heure_repas = 7,            -- repas du matin : rations et soins
@@ -2722,7 +2725,7 @@ end
 function hommes.temps_de_marche_ms(personnage, but)
   local vitesse = tonumber(hommes.reglages.marche_approche_m_par_s) or 0
   local ecart = but and personnage and jeu().ecart_au_but(personnage, but)
-  if not ecart or vitesse <= 0 then
+  if not ecart or vitesse <= 0 or ecart <= (tonumber(hommes.reglages.marche_sur_place_m) or 0) then
     return 0
   end
   return math.floor(math.min(tonumber(hommes.reglages.marche_approche_max_ms) or 0, 1000 * ecart / vitesse))
