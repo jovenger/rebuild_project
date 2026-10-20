@@ -247,3 +247,10 @@ Comportement :
   `un_lit_par_homme` éteint (la prise l'éteint), aucun lit n'est réservé à l'embauche (il dort à une place libre par
   `place_pour`, comme les autres) ; un lit encore réservé à un homme (embauché avant) est rendu une fois au battement, avec
   une ligne au journal. Interrupteur allumé, rien ne change. Essai (vérifié qu'il échoue sans).
+- **Le lit de la nuit** (vu sur une copie le 20/10 : deux hommes sur le même lit, trois fois ; la liste des lits libres
+  ne savait pas qui dormait déjà où, et la déclaration de Scriptorium, raccourcie entre deux ordres, faisait glisser les
+  rangs) : un lit donné au sommeil est GARDÉ pour cet homme jusqu'à son lever (`hommes.lits_de_nuit`, en mémoire) ;
+  redemandé, il garde le même ; la liste des lits libres passée à `camp.place_pour` écarte les lits gardés par les autres ;
+  le rang par défaut ne compte que les hommes sans lit ni lit de la nuit ; un lit gardé qui disparaît de la déclaration
+  est rendu. Le choix reste à `camp.place_pour` (Scriptorium), la réservation est au socle (accord du pair). Essai
+  (vérifié qu'il échoue sans) ; non vu en jeu.

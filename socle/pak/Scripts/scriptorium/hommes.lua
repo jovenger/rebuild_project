@@ -2073,12 +2073,28 @@ Scriptorium.remplacable(hommes, "gardes", function(rendu) return type(rendu) == 
 
 -- La bascule (demande du pair, 18/10) : le rang de l'homme pour une place (camp.place_pour) : son rang dans la
 -- compagnie pour un siège ; parmi les hommes sans lit à eux pour un lit. Rend nil s'il n'en a pas.
+-- Les lits gardés pour la nuit (vu sur une copie de la partie de JoVenGer le 20/10 : deux hommes sur le même lit ; la
+-- liste des lits libres ne savait pas qui dormait déjà où, et une déclaration raccourcie entre deux ordres faisait glisser
+-- les rangs) : un lit donné au sommeil reste à cet homme jusqu'à son lever ; les autres ne le reçoivent pas. Le choix
+-- reste à camp.place_pour (Scriptorium) ; la réservation est ici. En mémoire seulement : refait au rechargement.
+hommes.lits_de_nuit = hommes.lits_de_nuit or {}
+
+-- Le lit gardé pour la nuit de cet homme, s'il est encore un lit du camp ; sinon il est rendu.
+local function lit_de_nuit(id)
+  local lit = hommes.lits_de_nuit[id]
+  if lit and camp().sorte_de(lit) ~= "lit" then
+    hommes.lits_de_nuit[id] = nil
+    lit = nil
+  end
+  return lit
+end
+
 function hommes.rang_pour_une_place(id, sorte)
   local d = donnees()
   local rang = 0
   for _, autre in ipairs(d.ordre) do
     local f = d.liste[autre]
-    if sorte ~= "lit" or (f and not f.lit) then
+    if sorte ~= "lit" or (f and not f.lit and (autre == id or not hommes.lits_de_nuit[autre])) then
       rang = rang + 1
     end
     if autre == id then
@@ -2092,6 +2108,21 @@ end
 -- à un autre (vu en jeu le 19/10 : sur un camp sans Directeur, un homme dormait dans le lit du Directeur).
 local function place_pour(id, sorte)
   local libres = Scriptorium.avis(camp(), "places_libres", sorte, "hommes")
+  if sorte == "lit" then
+    local d, gardes = donnees(), {}
+    for autre, lit in pairs(hommes.lits_de_nuit) do
+      if autre ~= id and (d.liste[autre] or (d.menes and d.menes[autre])) then
+        gardes[lit] = true
+      end
+    end
+    local restants = {}
+    for _, lit in ipairs(libres) do
+      if not gardes[lit] then
+        table.insert(restants, lit)
+      end
+    end
+    libres = restants
+  end
   if #libres == 0 then
     return nil
   end
@@ -2455,7 +2486,7 @@ function hommes.activite_de(id, heure)
   resultat.activite = activite
   if activite == "sommeil" then
     -- La bascule (18/10) : un homme sans lit à lui (sommeil en relève, « un_lit_par_homme » éteint) dort à une place libre.
-    local lit = f.lit or place_pour(id, "lit")
+    local lit = f.lit or lit_de_nuit(id) or place_pour(id, "lit")
     resultat.lieu = lit
     resultat.position = lit and camp().position_de(lit) or nil
   elseif activite == "entrainement" or activite == "des" then
@@ -3351,6 +3382,11 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   end
   preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
   local a = Scriptorium.avis(hommes, "activite_de", id, heure)
+  if a and a.activite == "sommeil" and a.lieu and camp().sorte_de(a.lieu) == "lit" and not f.lit then
+    hommes.lits_de_nuit[id] = a.lieu
+  elseif a and a.activite ~= "sommeil" then
+    hommes.lits_de_nuit[id] = nil
+  end
   -- Fiche 20 : une parole demandée : jouée (au plus une fois), puis oubliée ; elle attend en combat, en bataille, au lit.
   local parole = hommes.paroles[id]
   if parole then

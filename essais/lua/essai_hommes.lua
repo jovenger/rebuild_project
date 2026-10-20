@@ -3957,6 +3957,62 @@ essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, l
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("lits de la nuit (vu sur une copie le 20/10 : deux hommes sur le même lit) : un lit donné reste à son dormeur ; la liste des lits libres qui change entre deux ordres ne fait jamais de doublon ; rendu au lever", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local gardes_de_nuit = hommes.reglages.postes_garde_nuit
+  hommes.reglages.postes_garde_nuit = 0   -- tous dorment : seuls les lits comptent ici
+  local ok, erreur = pcall(function()
+    local lits = { "ScriptoEditeur_61_1_so", "ScriptoEditeur_62_1_so", "ScriptoEditeur_63_1_so", "ScriptoEditeur_64_1_so",
+                   "ScriptoEditeur_65_1_so", "ScriptoEditeur_66_1_so", "ScriptoEditeur_67_1_so", "ScriptoEditeur_68_1_so" }
+    local places = {}
+    for _, nom in ipairs(lits) do table.insert(places, { nom = nom, sorte = "lit" }) end
+    verifier(camp.declarer_les_places(places), "huit lits déclarés")
+    -- Les deux premiers lits sont pris par quelqu'un d'autre pendant le premier coucher (le personnel de Scriptorium).
+    verifier(camp.reserver(lits[1], "personnel_1") and camp.reserver(lits[2], "personnel_2"), "deux lits pris")
+    local ids = {}
+    for i = 1, 6 do ids[i] = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 }) end
+    -- Les trois derniers sont retenus ailleurs (une tâche) : ils se coucheront plus tard.
+    for i = 4, 6 do
+      hommes.tenir(ids[i], "travail", { activite = "geste", geste = "Loot", lieu = "ailleurs", position = camp.point(0, -6, 0),
+                                        fin = "liberation" })
+    end
+    FauxJeu.heure = 23
+    hommes.battre()
+    local lit_de, vus = {}, {}
+    for i = 1, 3 do
+      local a = hommes.activite_de(ids[i], 23)
+      if a.activite == "sommeil" and a.lieu then lit_de[ids[i]] = a.lieu end
+    end
+    -- La liste change : les deux lits pris sont rendus ; puis les trois autres vont dormir.
+    camp.liberer(lits[1])
+    camp.liberer(lits[2])
+    for i = 4, 6 do hommes.lacher(ids[i], "travail") end
+    hommes.battre()
+    for _, id in ipairs(ids) do
+      local a = hommes.activite_de(id, 23)
+      if a.activite == "sommeil" and a.lieu then
+        verifier(not vus[a.lieu], "jamais deux hommes sur " .. a.lieu)
+        vus[a.lieu] = true
+        if lit_de[id] then egal(a.lieu, lit_de[id], "il garde son lit de la nuit") end
+      end
+    end
+    -- Au lever : le lit de la nuit est rendu.
+    FauxJeu.heure = 24 + 8
+    hommes.battre()
+    for _, id in ipairs(ids) do
+      egal((hommes.lits_de_nuit or {})[id], nil, "rendu au lever")
+    end
+  end)
+  hommes.reglages.postes_garde_nuit = gardes_de_nuit
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("lits (décision de JoVenGer, 20/10 : tous en relève) : interrupteur éteint, aucun lit réservé à l'embauche, un lit déjà réservé est rendu une fois ; allumé, rien ne change", function()
   preparer(5000, 100, 10)
   local allume = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
