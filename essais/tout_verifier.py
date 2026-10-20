@@ -2037,7 +2037,8 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : une marche rejouée est enfant direct d'un Parallel (le Parallel finirait aussitôt)")
     releve = (r'<IfCondition condition="\$scriptorium_marche_approche_ms &gt; 0" failOnCondition="false">\s*<SuppressFailure>\s*'
               r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
-              r'<Parallel successMode="Any" failureMode="Any">\s*<WaitAction />\s*<Wait duration="\$sortie"[^>]*/>\s*</Parallel>\s*'
+              r'<Parallel successMode="Any" failureMode="Any">\s*<UrgencyDecorator Urgency="\$urgence_relever">\s*<WaitAction />\s*'
+              r'</UrgencyDecorator>\s*<Wait duration="\$sortie"[^>]*/>\s*</Parallel>\s*'
               r'</StanceElement>\s*</SuppressFailure>\s*</IfCondition>\s*'
               r'(?:<Expression expressions="\$scriptorium_sonde_releve = \$scriptorium_sonde_releve \+ 1" />\s*)?'
               r'(?:<Expression expressions="\$marche_faite = 0" />|<SuppressFailure>)')
@@ -2074,6 +2075,27 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : le seuil d'arrivée à une place ($place_seuil) doit être lu au cerveau (place_arrivee_cm)")
     if "function liaison.pres_de_la_place(entite, donnees)" not in liaison or "liaison.places_visees[nom_de_l_homme] = objet" not in liaison:
         erreur("vie du camp : la liaison doit retenir la place visée et mesurer l'arrivée (liaison.pres_de_la_place)")
+    # Demande du pair (20/10, sonde : depuis un geste à genoux, le premier pas attendait la fin normale du geste) : la sortie
+    # de posture des branches 9, 12, 13, 21 et 22 se fait sous l'urgence lue au cerveau (la voie du jeu, UrgencyDecorator
+    # autour du WaitAction, AI/npc/basic/switch/interrupt_attack.xml) ; 1 lente, 2 rapide (défaut), 3 instantanée.
+    sortie_urgente = (r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
+                      r'<Parallel successMode="Any" failureMode="Any">\s*<UrgencyDecorator Urgency="\$urgence_relever">\s*'
+                      r'<WaitAction />\s*</UrgencyDecorator>')
+    for numero in ("9", "12", "13", "21", "22"):
+        corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
+        corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
+        if not re.search(sortie_urgente, corps):
+            erreur("vie du camp : la branche %s doit sortir de sa posture sous l'urgence $urgence_relever" % numero)
+    urgence = re.search(r'<Expression expressions="\$urgence_code = \(\$scriptorium_cerveau_urgence_relever &gt; 0 \? '
+                        r'\$scriptorium_cerveau_urgence_relever : 2\)" />\s*'
+                        r'<Expression expressions="\$urgence_relever = \$enum:urgency\.fast" />\s*'
+                        r'<IfCondition condition="\$urgence_code == 1" failOnCondition="false">\s*'
+                        r'<Expression expressions="\$urgence_relever = \$enum:urgency\.slow" />\s*</IfCondition>\s*'
+                        r'<IfCondition condition="\$urgence_code == 3" failOnCondition="false">\s*'
+                        r'<Expression expressions="\$urgence_relever = \$enum:urgency\.instant" />\s*</IfCondition>', sans_commentaires)
+    if not urgence or '<Variable name="urgence_relever" type="enum:urgency"' not in comportements:
+        erreur("vie du camp : l'urgence du relever doit être lue au cerveau (urgence_relever : 1 lente, 2 rapide par défaut, "
+               "3 instantanée)")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '

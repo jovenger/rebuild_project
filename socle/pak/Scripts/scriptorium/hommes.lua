@@ -249,6 +249,10 @@ hommes.cerveau = {
   -- l'arrivée se LIT (la liaison mesure l'écart à l'objet visé) : à moins de « place_arrivee_cm » de l'objet (son centre,
   -- que l'homme ne peut pas toujours approcher à « siege_arret_cm »), la posture vient aussitôt.
   place_arrivee_cm = 150,
+  -- Demande du pair (20/10, sonde : depuis un geste à genoux, le premier pas attendait la fin normale du geste) : la
+  -- sortie de posture avant une marche se fait sous une urgence (la voie du jeu : UrgencyDecorator autour du WaitAction,
+  -- AI/npc/basic/switch/interrupt_attack.xml) : 1 lente (slow), 2 rapide (fast), 3 instantanée (instant).
+  urgence_relever = 2,
   -- Le factionnaire (fiche 15, V73 d 1, réponses a et a de JoVenGer du 16/10) : l'arrêt au poste, court comme celui du
   -- siège ; le jour, un geste « regarder autour » toutes les « poste_geste_ms », plus ou moins « poste_geste_ecart_ms »
   -- tirés au hasard par le jeu (les gardes ne bougent pas tous ensemble).

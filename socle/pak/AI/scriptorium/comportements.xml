@@ -11,6 +11,8 @@
       <Variable name="sortie" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="delai" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="place_seuil" type="_float" values="" isPersistent="0" form="single" />
+      <Variable name="urgence_code" type="_int" values="" isPersistent="0" form="single" />
+      <Variable name="urgence_relever" type="enum:urgency" values="$enum:urgency.fast" isPersistent="0" form="single" />
       <Variable name="marche_arret" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="marche_ecart" type="_float" values="" isPersistent="0" form="single" />
       <Variable name="siege_arret" type="_float" values="" isPersistent="0" form="single" />
@@ -75,6 +77,16 @@
             <Expression expressions="$delai_ms = $delai_ms + ($scriptorium_marche_approche_ms &gt; 0 ? $scriptorium_marche_approche_ms : 0)" />
             <Expression expressions="$delai = concat($delai_ms, &apos;ms&apos;)" />
             <Expression expressions="$place_seuil = ($scriptorium_cerveau_place_arrivee_cm &gt; 0 ? $scriptorium_cerveau_place_arrivee_cm : 150) * 0.01" />
+            <!-- Demande du pair (20/10) : l'urgence de la sortie de posture, lue au cerveau (1 lente, 2 rapide, 3 instantanée),
+                 comme le jeu fait avec $urgency (AI/battles/battleGateController.xml). -->
+            <Expression expressions="$urgence_code = ($scriptorium_cerveau_urgence_relever &gt; 0 ? $scriptorium_cerveau_urgence_relever : 2)" />
+            <Expression expressions="$urgence_relever = $enum:urgency.fast" />
+            <IfCondition condition="$urgence_code == 1" failOnCondition="false">
+              <Expression expressions="$urgence_relever = $enum:urgency.slow" />
+            </IfCondition>
+            <IfCondition condition="$urgence_code == 3" failOnCondition="false">
+              <Expression expressions="$urgence_relever = $enum:urgency.instant" />
+            </IfCondition>
             <Expression expressions="$marche_arret = ($scriptorium_cerveau_marche_arret_cm &gt; 0 ? $scriptorium_cerveau_marche_arret_cm : 200) * 0.01" />
             <Expression expressions="$marche_ecart = ($scriptorium_cerveau_marche_ecart_cm &gt; 0 ? $scriptorium_cerveau_marche_ecart_cm : 50) * 0.01" />
             <Expression expressions="$siege_arret = ($scriptorium_cerveau_siege_arret_cm &gt; 0 ? $scriptorium_cerveau_siege_arret_cm : 10) * 0.01" />
@@ -122,7 +134,9 @@
                       <SuppressFailure>
                         <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                           <Parallel successMode="Any" failureMode="Any">
-                            <WaitAction />
+                            <UrgencyDecorator Urgency="$urgence_relever">
+<WaitAction />
+</UrgencyDecorator>
                             <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                           </Parallel>
                         </StanceElement>
@@ -296,7 +310,9 @@
                         <SuppressFailure>
                           <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                             <Parallel successMode="Any" failureMode="Any">
-                              <WaitAction />
+                              <UrgencyDecorator Urgency="$urgence_relever">
+<WaitAction />
+</UrgencyDecorator>
                               <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                             </Parallel>
                           </StanceElement>
@@ -378,7 +394,9 @@
                       <SuppressFailure>
                         <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                           <Parallel successMode="Any" failureMode="Any">
-                            <WaitAction />
+                            <UrgencyDecorator Urgency="$urgence_relever">
+<WaitAction />
+</UrgencyDecorator>
                             <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                           </Parallel>
                         </StanceElement>
@@ -1049,7 +1067,9 @@
                           <SuppressFailure>
                             <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                               <Parallel successMode="Any" failureMode="Any">
-                                <WaitAction />
+                                <UrgencyDecorator Urgency="$urgence_relever">
+<WaitAction />
+</UrgencyDecorator>
                                 <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                               </Parallel>
                             </StanceElement>
@@ -1167,7 +1187,9 @@
                           <SuppressFailure>
                             <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
                               <Parallel successMode="Any" failureMode="Any">
-                                <WaitAction />
+                                <UrgencyDecorator Urgency="$urgence_relever">
+<WaitAction />
+</UrgencyDecorator>
                                 <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                               </Parallel>
                             </StanceElement>

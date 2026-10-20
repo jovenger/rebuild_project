@@ -336,6 +336,13 @@
   `hommes.reglages.marche_sur_place_m` (1,5 m) de son but, ce temps est 0 : assis à sa place (ordre reposé, relance,
   rechargement, geste ancré sur un siège), il ne se relève pas pour se rasseoir. Le banc refuse aussi une marche
   rejouée enfant direct d'un Parallel (elle le ferait finir aussitôt). Non vu en jeu.
+- **Urgence du relever** (demande du pair, 20/10, d'après les sondes : depuis un geste à genoux, le premier pas
+  attendait 4 à 5,5 s la fin normale du geste) : dans les branches 9, 12, 13, 21 et 22, l'attente de fin de posture du
+  « se relever » est sous `UrgencyDecorator Urgency="$urgence_relever"` (la voie du jeu pour sortir d'une action,
+  AI/npc/basic/switch/interrupt_attack.xml ; urgence de type `enum:urgency`, AI/battles/battleGateController.xml).
+  La valeur vient du cerveau : `hommes.cerveau.urgence_relever` (1 lente, 2 rapide par défaut, 3 instantanée), écrite
+  dans `scriptorium_cerveau_urgence_relever`, réglable par le programme Scriptorium. Contrôlé au banc (forme exacte
+  dans les 5 branches, lecture au cerveau, rapide par défaut ; en échec sur e41be67). Non vu en jeu.
 - **L'écriture** : `liaison.regler_le_cerveau(identifiant, valeurs)` écrit chaque valeur dans la variable de cerveau
   `scriptorium_cerveau_<nom>`. Le battement des hommes l'appelle pour chaque homme et pour le Directeur quand leur
   personnage est nouveau ou quand les valeurs ont changé (signature des valeurs) : à la naissance, au premier battement
