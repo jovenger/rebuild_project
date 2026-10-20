@@ -27,6 +27,9 @@
       <Variable name="geste_ecart" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="poste_geste" type="_string" values="" isPersistent="0" form="single" />
       <Variable name="geste_nom" type="_string" values="" isPersistent="0" form="single" />
+      <Variable name="tir_main_gauche" type="_wuid" values="" isPersistent="0" form="single" />
+      <Variable name="tir_main_droite" type="_wuid" values="" isPersistent="0" form="single" />
+      <Variable name="tir_automate" type="_bool" values="" isPersistent="0" form="single" />
       <Variable name="geste_assis" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="geste_ancre" type="_int" values="" isPersistent="0" form="single" />
       <Variable name="geste_arme" type="_bool" values="" isPersistent="0" form="single" />
@@ -1260,6 +1263,99 @@
                         <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
                       </Sequence>
                     </While>
+                  </Sequence>
+                </IfCondition>
+                <!-- Demande du pair (20/10, séance J : le tir à la cible de Scriptorium, aucun équivalent chez nous) : la pile de tir sur
+                     cible fixe du jeu (AI/quests/prepadeni/prepadeni.xml, bandit_shootOnTargetWithNotification ; le contexte du concours
+                     de tir, AI/quests/archery/archery.xml, bandits_shooting) : marcher au poste, se tourner vers la cible, l'arc mis en
+                     main (jeu d'armes secondaire), la cible posée (InstantSetTarget), le tir par l'automate ; fin dès que l'ordre change. -->
+                <IfCondition condition="$scriptorium_activite == 24 &amp; $scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                  <Sequence>
+                    <Parallel successMode="Any" failureMode="Any">
+                      <Sequence>
+                        <SuppressFailure>
+                          <StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">
+                            <Parallel successMode="Any" failureMode="Any">
+                              <UrgencyDecorator Urgency="$urgence_relever">
+                                <WaitAction />
+                              </UrgencyDecorator>
+                              <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                            </Parallel>
+                          </StanceElement>
+                        </SuppressFailure>
+                        <Expression expressions="$allure = $enum:movementSpeed.walk" />
+                        <IfCondition condition="$scriptorium_allure == 1" failOnCondition="false">
+                          <Expression expressions="$allure = $enum:movementSpeed.run" />
+                        </IfCondition>
+                        <Expression expressions="$marche_faite = 0" />
+                        <While doFail="false" propagateChildFail="false" condition="$marche_faite == 0 &amp; $scriptorium_essai_numero == $numero_tenu">
+                          <SuppressFailure>
+                            <Sequence>
+                              <Parallel successMode="Any" failureMode="Any">
+                                <Move destinationSpecification="$scriptorium_essai_point" destinationSpecification2="" destinationSpecification3="" speed="$allure" stopWithinDistance="$poste_arret" stopDistanceVariation="$poste_ecart" successDistance="0.000000" rayCasteFlee="false" changeNPCState="true" additionalParams="" pathFindingParams="" staminaPolicy="" pathInfo="" AnimationToPlay="" AnimationContext="" />
+                                <Wait duration="$delai" timeType="GameTime" doFail="true" variation="" skipInLOD="false" />
+                              </Parallel>
+                              <Expression expressions="$scriptorium_essai_arrive = $scriptorium_essai_arrive + 1" />
+                              <Expression expressions="$marche_faite = 1" />
+                            </Sequence>
+                          </SuppressFailure>
+                        </While>
+                        <SuppressFailure>
+                          <Sequence>
+                            <Turn target="$scriptorium_essai_cible" align="false" />
+                            <Expression expressions="$scriptorium_en_poste = $scriptorium_en_poste + 1" />
+                          </Sequence>
+                        </SuppressFailure>
+                      </Sequence>
+                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                          <Sequence>
+                            <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                            <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                            <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                            <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                            <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Sequence>
+                        </While>
+                    </Parallel>
+                    <IfCondition condition="$scriptorium_essai_numero == $numero_tenu" failOnCondition="false">
+                      <Parallel successMode="Any" failureMode="Any">
+                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                          <Sequence>
+                            <SuppressFailure>
+                              <HandContentElement hand="Left" item="$tir_main_gauche" allowAny="false" allowHomeSlotAutoReturn="false" decisionLabel="Label1" useDecision="false" enabled="true" saveVersion="2">
+                                <Search canSkip="1">
+                                  <GetWeaponsFromWeaponSet WeaponSet="Secondary" LeftHand="$tir_main_gauche" RightHand="$tir_main_droite" UseTorchWhenAppropriate="false" />
+                                </Search>
+                                <Exec canSkip="1">
+                                  <Sequence>
+                                    <InstantSetTarget Target="$scriptorium_essai_cible" />
+                                    <Expression expressions="$tir_automate = true" />
+                                    <EntityContextElement context="combat_missileAttackerIgnoreTrajectoryCollision" enabled="true">
+                                      <MeleeOffenseAutomationDecorator active="$tir_automate">
+                                        <Sequence>
+                                          <WaitAction />
+                                          <Wait duration="&apos;-1&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                                        </Sequence>
+                                      </MeleeOffenseAutomationDecorator>
+                                    </EntityContextElement>
+                                  </Sequence>
+                                </Exec>
+                              </HandContentElement>
+                            </SuppressFailure>
+                            <Wait duration="$sortie" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Sequence>
+                        </While>
+                        <While doFail="false" propagateChildFail="false" condition="$scriptorium_essai_numero == $numero_tenu">
+                          <Sequence>
+                            <Expression expressions="$scriptorium_vie_pouls = $scriptorium_vie_pouls + 1" />
+                            <Expression expressions="$garde_ms = ($scriptorium_cerveau_garde_ms &gt; 0 ? $scriptorium_cerveau_garde_ms : 500)" />
+                            <Expression expressions="$garde_ms = ($garde_ms &gt;= 100 ? $garde_ms : 100)" />
+                            <Expression expressions="$garde = concat($garde_ms, &apos;ms&apos;)" />
+                            <Wait duration="$garde" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+                          </Sequence>
+                        </While>
+                      </Parallel>
+                    </IfCondition>
                   </Sequence>
                 </IfCondition>
               </Sequence>

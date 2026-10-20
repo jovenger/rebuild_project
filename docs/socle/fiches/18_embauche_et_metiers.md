@@ -254,3 +254,26 @@ Comportement :
   le rang par défaut ne compte que les hommes sans lit ni lit de la nuit ; un lit gardé qui disparaît de la déclaration
   est rendu. Le choix reste à `camp.place_pour` (Scriptorium), la réservation est au socle (accord du pair). Essai
   (vérifié qu'il échoue sans) ; non vu en jeu.
+
+## Le tir à la cible (demande du pair, 20/10/2026, séance J)
+- Scriptorium (mode 26, tir_a_la_cible) envoie un chasseur ou un archer au poste de tir, à 7–25 m d'une cible posée dans
+  l'Aménagement ; le socle n'avait aucun équivalent (le chasseur restait à son établi).
+- `hommes.tenir(id, regle, { activite = "tir", position = <poste>, cible = <nom de l'entité visée>, fin })` (et
+  `hommes.tenir_un_personnage` pour un mené). La cible est le point de visée que Scriptorium pose au cœur de la cible
+  (une entité nommée : son WUID est lu par la liaison). Refus `tir_invalide` : sans poste, sans cible, cible introuvable.
+- L'ordre : la cible donnée à la liaison avant l'ordre (`donner_la_cible_du_tir`), la cible dans le lieu (la signature :
+  une autre cible redonne l'ordre), le regard sur la cible ; la liaison pose le poste, le WUID de la cible
+  (`scriptorium_essai_cible`) et l'activité 24.
+- Branche 24 de l'arbre, d'après la pile de tir sur cible fixe du jeu (AI/quests/prepadeni/prepadeni.xml,
+  bandit_shootOnTargetWithNotification ; le contexte du concours de tir, AI/quests/archery/archery.xml,
+  bandits_shooting) : se relever (sous l'urgence du cerveau), marcher au poste (marche rejouée), se tourner vers la
+  cible ; puis, tant que l'ordre tient : l'arc mis en main gauche (HandContentElement, jeu d'armes secondaire par
+  GetWeaponsFromWeaponSet), la cible posée (InstantSetTarget), l'automate de tir (MeleeOffenseAutomationDecorator autour
+  de WaitAction) dans le contexte combat_missileAttackerIgnoreTrajectoryCollision. Fin dès que l'ordre change (une
+  alerte est une règle plus forte : nouvel ordre).
+- Pas de munitions sans fin : chaque flèche tirée est prise au carquois (munitions complétées au lever et au
+  rechargement).
+- Contrôle d'absence : la valeur de l'automate passe par une variable (`$tir_automate`) ; deux balises fermantes du jeu
+  (EntityContextElement, MeleeOffenseAutomationDecorator) ajoutées aux formes admises (38, revue).
+- Au banc : essai_hommes (refus, ordre, cible, regard, tenu, cible changée, lâché) et contrôles de la branche 24 et de
+  la liaison (vérifiés en échec sans). Non vu en jeu.

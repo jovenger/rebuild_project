@@ -2314,6 +2314,12 @@ function hommes.activite_de(id, heure)
       resultat.position = (tenue.cible == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(tenue.cible)
       return resultat
     end
+    -- Le tir à la cible (demande du pair, 20/10) : la cible nommée dans le lieu (la signature de l'ordre), le regard sur elle.
+    if tenue.activite == "tir" then
+      resultat.cible = tenue.cible
+      resultat.lieu = (tenue.lieu or "tir") .. "/" .. tostring(tenue.cible)
+      resultat.regard = jeu().position_d_un_objet(tenue.cible)
+    end
     -- Fiche 18, 5 c, tranche 4 : la station prise par Henry : l'homme cède la place et attend à côté.
     local station = tenue.partage and hommes.stations[tenue.partage]
     if station and station.prise then
@@ -3418,6 +3424,10 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     end
     jeu().donner_le_geste(f.personnage, a.geste, { ancre = ancre, assis = assis == true, arme = a.arme_tiree == true })
   end
+  -- Le tir à la cible (demande du pair, 20/10) : la cible donnée avant l'ordre.
+  if a and a.activite == "tir" and jeu().donner_la_cible_du_tir then
+    jeu().donner_la_cible_du_tir(f.personnage, a.cible)
+  end
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = resume_de(a)
   if f.derniere_activite ~= resume then
@@ -4229,6 +4239,18 @@ function hommes.tenir(id, regle, quoi)
       return refuser("affrontement_invalide", "cible absente ou morte : " .. quoi.cible)
     end
   end
+  -- Demande du pair (20/10, séance J : le tir à la cible de Scriptorium) : au poste de tir (« position »), l'arc en main,
+  -- tirant sur le point de visée (« cible » : le nom de son entité, que Scriptorium pose au cœur de la cible).
+  if quoi.activite == "tir" then
+    local p = quoi.position
+    if type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" or type(p.z) ~= "number"
+        or type(quoi.cible) ~= "string" or quoi.cible == "" then
+      return refuser("tir_invalide", tostring(quoi.cible))
+    end
+    if not jeu().objet_existe(quoi.cible) then
+      return refuser("tir_invalide", "cible introuvable : " .. quoi.cible)
+    end
+  end
   -- Fiche 18, 5 c, tranche 4 : la station partagée avec Henry, une station surveillée.
   if quoi.partage ~= nil and not (type(quoi.partage) == "string" and hommes.stations[quoi.partage]) then
     return refuser("station_inconnue", tostring(quoi.partage))
@@ -4258,7 +4280,7 @@ function hommes.tenir(id, regle, quoi)
                   assis = (quoi.activite == "geste") and quoi.assis or nil,
                   arme_tiree = (quoi.activite == "geste" and quoi.arme_tiree == true) or nil,
                   lit = (quoi.activite == "sommeil") and quoi.lit or nil,
-                  cible = (quoi.activite == "affronter") and quoi.cible or nil,
+                  cible = (quoi.activite == "affronter" or quoi.activite == "tir") and quoi.cible or nil,
                   mains_nues = (quoi.activite == "affronter" and quoi.arme == false) or nil,
                   jusqu_a = (quoi.activite == "affronter") and (quoi.jusqu_a or "assomme") or nil,
                   partage = quoi.partage,

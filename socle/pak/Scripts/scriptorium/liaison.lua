@@ -3339,6 +3339,23 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
     local ordre = sorte and liaison.ordres_des_places[sorte]
     if objet and ordre then
       ligne = donner_la_place(entite, objet, tostring(lieu), ordre)
+    elseif activite == "tir" and liaison.cibles_du_tir[identifiant] and entite_nommee(liaison.cibles_du_tir[identifiant]) then
+      -- Le tir à la cible (ordre 24) : le poste (le point) et le point de visée (son WUID), lus par l'arbre.
+      local nom_cible = liaison.cibles_du_tir[identifiant]
+      local this_lu, this = pcall(function() return entite.this end)
+      local wuid_lu, wuid = pcall(function() return XGenAIModule.GetMyWUID(entite_nommee(nom_cible)) end)
+      local point = liaison.au_sol(position)
+      if this_lu and type(this) == "table" and wuid_lu and point then
+        local cible_posee = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
+        local point_pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_point", point) end)
+        if point_pose then
+          liaison.buts[identifiant] = point
+        end
+        ligne = string.format("tir, poste (%.1f, %.1f), cible « %s » %s ; ", point.x, point.y, nom_cible,
+          cible_posee and "posée" or "refusée") .. poser_l_activite(entite, 24)
+      else
+        ligne = "tir : cible « " .. nom_cible .. " » sans WUID (" .. tostring(wuid) .. ")"
+      end
     elseif activite == "attendre" then
       -- Fiche 15, V73 b 3 : la journée du socle coupée, l'homme qu'aucune règle ne tient attend où il est (activité 0).
       ligne = "attendre sur place ; " .. poser_l_activite(entite, 0)
@@ -3687,6 +3704,13 @@ liaison.gestes_tenus = liaison.gestes_tenus or {}
 -- s'asseoir dessus d'abord, arme = vrai pour tenir l'arme à la main } ; l'arme est rangée quand l'ordre change (le
 -- décorateur du jeu prend fin avec le geste).
 liaison.options_des_gestes = liaison.options_des_gestes or {}
+
+-- Demande du pair (20/10) : le tir à la cible (ordre 24) : le nom de l'entité visée, par homme, lu par liaison.ordonner.
+liaison.cibles_du_tir = liaison.cibles_du_tir or {}
+
+function liaison.donner_la_cible_du_tir(identifiant, cible)
+  liaison.cibles_du_tir[identifiant] = cible
+end
 
 function liaison.donner_le_geste(identifiant, geste, options)
   liaison.gestes_tenus[identifiant] = geste

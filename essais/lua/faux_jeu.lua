@@ -281,6 +281,12 @@ function faux.renvoyer_homme(identifiant)
   table.insert(faux.personnages_renvoyes, identifiant)
   faux.personnages_existants[identifiant] = nil
 end
+-- Le tir à la cible : la cible donnée avant l'ordre.
+function faux.donner_la_cible_du_tir(identifiant, cible)
+  faux.cibles_du_tir = faux.cibles_du_tir or {}
+  faux.cibles_du_tir[identifiant] = cible
+end
+
 function faux.ordonner(identifiant, activite, position, lieu, place, sorte, regard, allure, chef, suivi, marche_ms)
   table.insert(faux.ordres, { identifiant = identifiant, activite = activite, position = position, lieu = lieu,
                               place = place, sorte = sorte, regard = regard, allure = allure, chef = chef, suivi = suivi,

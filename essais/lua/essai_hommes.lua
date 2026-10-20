@@ -4626,3 +4626,37 @@ essai("poste partagé (5 c, tranche 4) : Henry prend la station, l'homme cède e
   hommes.partager_avec_henry("forge_du_village", false)
   hommes.stations = {}
 end)
+
+essai("tir à la cible (demande du pair, 20/10) : au poste, la cible nommée donnée avant l'ordre, regard sur elle ; tenu ; la cible change : redonné ; refus sans poste ni cible", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  local p = hommes.fiche(id).personnage
+  FauxJeu.objets_existants["scriptorium_visee_1"] = true
+  FauxJeu.objets_existants["scriptorium_visee_2"] = true
+  FauxJeu.positions_des_objets = FauxJeu.positions_des_objets or {}
+  FauxJeu.positions_des_objets["scriptorium_visee_1"] = { x = 20, y = 0, z = 1 }
+  FauxJeu.positions_des_objets["scriptorium_visee_2"] = { x = 0, y = 20, z = 1 }
+  local poste = { x = 5, y = 0, z = 0 }
+  local ok, raison = hommes.tenir(id, "travail", { activite = "tir", position = poste, fin = "liberation" })
+  verifier(not ok and raison == "tir_invalide", "sans cible : refusé")
+  ok, raison = hommes.tenir(id, "travail", { activite = "tir", position = poste, cible = "rien", fin = "liberation" })
+  verifier(not ok and raison == "tir_invalide", "cible introuvable : refusé")
+  ok, raison = hommes.tenir(id, "travail", { activite = "tir", cible = "scriptorium_visee_1", fin = "liberation" })
+  verifier(not ok and raison == "tir_invalide", "sans poste : refusé")
+  FauxJeu.ordres, FauxJeu.cibles_du_tir = {}, {}
+  verifier(hommes.tenir(id, "travail", { activite = "tir", position = poste, cible = "scriptorium_visee_1", fin = "liberation" }), "tenu")
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(o.activite, "tir", "l'ordre de tir")
+  egal(o.position.x, 5, "au poste")
+  egal(o.lieu, "tir/scriptorium_visee_1", "la cible dans le lieu")
+  egal(o.regard and o.regard.x, 20, "tourné vers la cible")
+  egal(FauxJeu.cibles_du_tir[p], "scriptorium_visee_1", "la cible donnée à la liaison")
+  local n = #FauxJeu.ordres
+  hommes.battre()
+  egal(#FauxJeu.ordres, n, "tenu : pas d'ordre redonné")
+  verifier(hommes.tenir(id, "travail", { activite = "tir", position = poste, cible = "scriptorium_visee_2", fin = "liberation" }), "autre cible")
+  egal(#FauxJeu.ordres, n + 1, "la cible change : redonné")
+  egal(FauxJeu.cibles_du_tir[p], "scriptorium_visee_2", "la nouvelle cible")
+  verifier(hommes.lacher(id, "travail"), "lâché")
+  verifier(FauxJeu.ordres[#FauxJeu.ordres].activite ~= "tir", "lâché : il reprend sa journée")
+end)

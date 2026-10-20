@@ -1377,7 +1377,7 @@ JEU = r"G:\SteamLibrary\steamapps\common\KingdomComeDeliverance2"
 FAMILLES_DU_JEU = [(os.path.join("Data", "Tables.pak"), "Libs/Tables/"), (os.path.join("Data", "Scripts.pak"), "AI/")]
 
 
-FORMES_ADMISES_AU_PLUS = 36   # 18/10 : 36 avec <skald_characters version="1"> et sa fermante (la table des personnages nommés ; revue) ; 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue) ; 34 avec </ProcessMessage> (les branches 'dialogMailbox', fiche 21 ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
+FORMES_ADMISES_AU_PLUS = 38   # 20/10 : 38 avec </EntityContextElement> et </MeleeOffenseAutomationDecorator> (les fermantes des nœuds de tir du jeu, la branche 24 du tir à la cible ; revue) ; 18/10 : 36 avec <skald_characters version="1"> et sa fermante (la table des personnages nommés ; revue) ; 33 (la balise fermante </WeaponAutomationDecorator>, forme du jeu ; revue) ; 34 avec </ProcessMessage> (les branches 'dialogMailbox', fiche 21 ; revue). Au-delà, le banc échoue : revoir la liste, puis relever cette borne en connaissance
 # (15/10 : 19 avec l'arbre qui s'assoit : Then, Else, IfElseCondition, StanceElement ; 21 avec CombatMoveDecorator ; 25 avec les balises fermantes de la chaîne de combat et SuppressFailure ; 26 avec MeleeOffenseAutomationDecorator ; 27 avec EntityContext ; revues)
 # (16/10, V73 d 1 : 32 avec « <Else canSkip="1"> », la branche « sinon » de IsNightTimeOfDay, telle quelle dans
 # AI/events/randomEventsBehaviors.xml du jeu ; revue)
@@ -2081,11 +2081,31 @@ def verifier_la_vie_du_camp():
     sortie_urgente = (r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
                       r'<Parallel successMode="Any" failureMode="Any">\s*<UrgencyDecorator Urgency="\$urgence_relever">\s*'
                       r'<WaitAction />\s*</UrgencyDecorator>')
-    for numero in ("9", "12", "13", "21", "22"):
+    for numero in ("9", "12", "13", "21", "22", "24"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
         if not re.search(sortie_urgente, corps):
             erreur("vie du camp : la branche %s doit sortir de sa posture sous l'urgence $urgence_relever" % numero)
+    # Demande du pair (20/10, séance J) : le tir à la cible (branche 24), la pile de tir sur cible fixe du jeu
+    # (AI/quests/prepadeni/prepadeni.xml, bandit_shootOnTargetWithNotification ; le contexte du concours de tir,
+    # AI/quests/archery/archery.xml) : tourné vers la cible, l'arc du jeu d'armes secondaire en main gauche, la cible posée,
+    # l'automate de tir autour de WaitAction, tant que l'ordre tient ; la liaison pose l'activité 24 pour « tir ».
+    tir = sans_commentaires.split("$scriptorium_activite == 24 &amp;", 1)
+    tir = tir[1].split("$scriptorium_activite ==", 1)[0] if len(tir) == 2 else ""
+    pile_de_tir = (r'<While doFail="false" propagateChildFail="false" condition="\$scriptorium_essai_numero == \$numero_tenu">\s*'
+                   r'<Sequence>\s*<SuppressFailure>\s*<HandContentElement hand="Left" item="\$tir_main_gauche"[^>]*>\s*'
+                   r'<Search canSkip="1">\s*<GetWeaponsFromWeaponSet WeaponSet="Secondary" LeftHand="\$tir_main_gauche" '
+                   r'RightHand="\$tir_main_droite"[^>]*/>\s*</Search>\s*<Exec canSkip="1">\s*<Sequence>\s*'
+                   r'<InstantSetTarget Target="\$scriptorium_essai_cible" />\s*<Expression expressions="\$tir_automate = true" />\s*'
+                   r'<EntityContextElement context="combat_missileAttackerIgnoreTrajectoryCollision" enabled="true">\s*'
+                   r'<MeleeOffenseAutomationDecorator active="\$tir_automate">\s*<Sequence>\s*<WaitAction />')
+    if (not re.search(pile_de_tir, tir) or '<Turn target="$scriptorium_essai_cible" align="false" />' not in tir
+            or 'destinationSpecification="$scriptorium_essai_point"' not in tir):
+        erreur("vie du camp : la branche 24 doit marcher au poste, se tourner vers la cible et tirer par la pile du jeu")
+    liaison_texte = lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua"))
+    if not re.search(r'elseif activite == "tir" and liaison\.cibles_du_tir\[identifiant\][\s\S]{0,1200}?'
+                     r'"scriptorium_essai_cible", wuid[\s\S]{0,800}?poser_l_activite\(entite, 24\)', liaison_texte):
+        erreur("vie du camp : la liaison doit poser la cible du tir (son WUID) puis l'activité 24")
     urgence = re.search(r'<Expression expressions="\$urgence_code = \(\$scriptorium_cerveau_urgence_relever &gt; 0 \? '
                         r'\$scriptorium_cerveau_urgence_relever : 2\)" />\s*'
                         r'<Expression expressions="\$urgence_relever = \$enum:urgency\.fast" />\s*'
