@@ -932,6 +932,29 @@ def verifier_ames():
     lua.execute("System = { LogAlways = function() end }")
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
+    # Vu sur une copie de la partie de JoVenGer le 20/10 : une bande de six n'en faisait vivre qu'un (la règle de l'âme
+    # unique refusait les ennemis qui partagent l'âme de leur sorte). Les âmes de bande sont partagées, celles des
+    # réserves restent uniques.
+    probleme = lua.eval("""(function()
+        local l = Scriptorium.liaison_reelle
+        local n = 0
+        for sorte, ame in pairs(l.ames_ennemies) do
+          n = n + 1
+          if l.ame_a_porteur_unique(ame) then return "âme de bande « " .. sorte .. " » tenue pour unique" end
+        end
+        if n == 0 then return "aucune âme de bande" end
+        for reserve, r in pairs(l.reserves_d_ames) do
+          for palier, taille in ipairs(r.paliers) do
+            for numero = 1, taille do
+              local ame = l.ame_de(reserve, palier, numero)
+              if not l.ame_a_porteur_unique(ame) then return "âme " .. tostring(ame) .. " de « " .. reserve .. " » non unique" end
+            end
+          end
+        end
+        return nil
+    end)()""")
+    if probleme:
+        erreur("âmes : " + probleme)
     lignes = lua.eval("""(function()
         local l = Scriptorium.liaison_reelle
         local lignes = {}

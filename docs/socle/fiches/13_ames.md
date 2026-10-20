@@ -616,7 +616,12 @@
 - La liaison refuse toute naissance sur une âme de nos réserves (`5c7a5c7a-…`) déjà portée par un personnage vivant
   (relevé au moteur : les PNJ dont `guidSharedSoulId` est cette âme) : raison `ame_deja_portee`, une ligne au journal.
   Les âmes du jeu n'y sont pas soumises (des brigands du jeu en partagent une, voulu).
-- Non vérifié en jeu.
+- Ni nos quatre âmes de bande (`liaison.ames_ennemies`, une par sorte, partagée par tous les ennemis de la sorte) :
+  `liaison.ame_a_porteur_unique(ame)` les écarte. Vu sur une copie de la partie de JoVenGer le 20/10 : sans cela, une
+  bande de six déserteurs n'en faisait vivre qu'un (cinq « naissance refusée »), et ce depuis le 18/10 pour toute
+  bande (raid, camp de mission, convoi). Contrôlé au banc (2 quinquies) : âmes de bande partagées, âmes des réserves
+  uniques.
+- Vu en jeu le 20/10 : le refus marche (il a refusé, à tort, les ennemis).
 
 ## Les 31 compagnons nommés (demande du pair, liste validée par JoVenGer le 18/10/2026)
 - Source : Scriptorium `docs/socle/COMPAGNONS.md` (nom, surnom, arme, prix ; le prix est payé au coffre par Scriptorium).

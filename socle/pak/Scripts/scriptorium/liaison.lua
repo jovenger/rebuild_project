@@ -448,10 +448,25 @@ local function porteur_vivant_de(ame)
   return nil
 end
 
+-- Une âme de nos réserves qui ne se porte qu'une fois. Vu sur une copie de la partie de JoVenGer le 20/10 : nos âmes
+-- de bande (liaison.ames_ennemies, une par sorte) ont le même préfixe, mais tous les ennemis d'une sorte la partagent ;
+-- refusées par la règle, une bande de six n'en faisait vivre qu'un. Elles en sont exemptées.
+function liaison.ame_a_porteur_unique(ame)
+  if type(ame) ~= "string" or ame:sub(1, #liaison.prefixe_de_nos_ames) ~= liaison.prefixe_de_nos_ames then
+    return false
+  end
+  for _, partagee in pairs(liaison.ames_ennemies or {}) do
+    if string.lower(partagee) == string.lower(ame) then
+      return false
+    end
+  end
+  return true
+end
+
 -- « brut » : sans la copie des propriétés de la classe (sonde V71 a2 seulement, fiche 13).
 local function faire_naitre(classe, nom, position, cap, proprietes, brut)
   local ame = type(proprietes) == "table" and proprietes.guidSharedSoulId
-  if classe == "NPC" and type(ame) == "string" and ame:sub(1, #liaison.prefixe_de_nos_ames) == liaison.prefixe_de_nos_ames then
+  if classe == "NPC" and liaison.ame_a_porteur_unique(ame) then
     local porteur = porteur_vivant_de(ame)
     if porteur then
       liaison.journal("Naissance refusée pour « " .. tostring(nom) .. " » : l'âme " .. ame .. " est déjà portée par « "
