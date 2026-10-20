@@ -666,6 +666,12 @@ aucune sonde dans l'arbre.
     leur chemin : le pair déplacera le point du lever).
   - INSTALLÉ pour tous les jours (d'office) : socle 1b8b820, Scriptorium 1d62c129 ; retour arrière :
     `Scriptorium_securite\20261020_114003_726730_seance_du_socle`.
+  - Lever (séance courte, 20/10, copie, jamais sauvée) : le point du lever déplacé chez le pair (78a5c99e) : 4 hommes
+    téléportés au lieu de 5, arrêtés au feu de camp #23 entre les tentes et le foyer ; deuxième essai par le placement,
+    approche arrêtée (règle anti-boucle). Cause : les objets de l'Aménagement hors du maillage de navigation. Piste du
+    pair (sonde à faire) : Properties.AI.bUsedAsDynamicObstacle (déclaré seulement par RigidBodyEx.lua dans
+    Scripts.pak) sur une classe à lui, et les variables du moteur wh_ai_ObstaclesAddToCollisionAvoidance,
+    ai_EnableORCA, ai_AdjustPathsAroundDynamicObstacles (chaînes de WHGame.dll). Rien chez nous.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
