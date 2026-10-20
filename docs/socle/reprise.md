@@ -672,6 +672,15 @@ aucune sonde dans l'arbre.
     pair (sonde à faire) : Properties.AI.bUsedAsDynamicObstacle (déclaré seulement par RigidBodyEx.lua dans
     Scripts.pak) sur une classe à lui, et les variables du moteur wh_ai_ObstaclesAddToCollisionAvoidance,
     ai_EnableORCA, ai_AdjustPathsAroundDynamicObstacles (chaînes de WHGame.dll). Rien chez nous.
+    Sonde du pair (copie) : les quatre variables déjà à 1 ; #23 et #26 marqués obstacles : 6 téléportés (pire) ; le
+    pair arrête (trois essais). Notre essai (copie, d'office) : sans aucune relance du gardien
+    (`hommes.fige_relances_max = 0` par le fichier, retiré après) : 5 téléportés, autant qu'avec : les relances ne sont
+    pas en cause ; nous arrêtons aussi. Reste la navigation : le feu de camp #23, posé entre les tentes et le foyer, à
+    déplacer dans l'Aménagement (le pair le dit à JoVenGer).
+  - Réglages par fichier corrigés (bc130f6, vu en jeu sur la copie le 20/10) : le fichier ne touche qu'aux valeurs
+    qu'il nomme ; avant, poser une seule valeur remettait tout le catalogue et effaçait six coupures de Scriptorium.
+  - INSTALLÉ pour tous les jours (d'office) : socle bc130f6, Scriptorium 78a5c99e ; retour arrière :
+    `Scriptorium_securite61020_132037_061740_seance_du_socle`.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
