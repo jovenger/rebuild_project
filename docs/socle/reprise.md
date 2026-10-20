@@ -698,6 +698,12 @@ aucune sonde dans l'arbre.
     porter (3a7dd26 : une parole non urgente attend l'arrivée) ; le même geste déplacé ne redonnait aucun ordre
     (1f355fa : le point d'une tenue entre dans la signature). À installer à la prochaine séance : 1f355fa (contient
     372a00f, dccf77c, 2f2b2c8, 3a7dd26).
+  - Séances sur copie suivantes (20/10, 15 h 43 et 16 h 12, remises) : la marche rejouée empêchait la posture vers un
+    objet (lit, siège, poste de travail : le Move n'y réussit jamais) ; corrigé par l'arrivée LUE (ec3fd9c,
+    liaison.pres_de_la_place, seuil place_arrivee_cm) ; vu : 8 hommes sur 10 couchés près d'Henry (la mesure par la tête
+    ne vaut rien loin d'Henry). Doublons de lits (la liste qui change entre deux ordres) : lit de la nuit gardé (90beb30,
+    non vu). Départ depuis Loot à genoux : environ 7 s dans la branche 22, arbre non bloqué (sonde du pair) ; compteurs
+    de sonde ajoutés (191604f) pour trouver l'étape lente. À installer à la prochaine séance : 90beb30.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
