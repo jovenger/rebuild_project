@@ -3022,17 +3022,45 @@ essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin d
   local p2 = FauxJeu.chevaux[hommes.montures[ids[1]].cheval]
   verifier(p2.x <= ici.x and p2.y <= ici.y, "l'eau et la pente refusées")
   verifier(p2.x <= ici.x - 3, "un angle hors de la vue d'Henry préféré")
-  verifier(journal_contient("vu d'Henry : non"), "hors de vue au journal")
+  verifier(journal_contient("hors de la vue d'Henry"), "hors de vue au journal")
   hommes.lacher(ids[1], "escorte")
   for _ = 1, 2 do hommes.battre() end
-  -- Toutes les places vues d'Henry : le cheval naît quand même (mieux qu'un refus).
+  -- Vu sur une copie le 20/10 (séance J) : toutes les places vues d'Henry : pas de cheval, l'homme part à pied, sans essai
+  -- manqué ; une place hors de vue au battement suivant : le cheval y naît ; une place à plus de saut_vue_m : pas vue.
   FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.position_joueur = { x = 90, y = 0, z = 0 }
   FauxJeu.positions[perso[1]] = { x = 100, y = 0, z = 0 }
+  local nes_avant = 0
+  for _ in pairs(FauxJeu.chevaux) do nes_avant = nes_avant + 1 end
   hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
-  verifier(hommes.montures[ids[1]].cheval ~= nil, "tout vu d'Henry : le cheval naît quand même")
-  verifier(journal_contient("vu d'Henry : oui"), "vu au journal")
+  local nes = 0
+  for _ in pairs(FauxJeu.chevaux) do nes = nes + 1 end
+  egal(nes, nes_avant, "tout vu d'Henry : aucun cheval né")
+  egal(hommes.montures[ids[1]].cheval, nil, "pas de cheval")
+  egal(hommes.montures[ids[1]].essais, 0, "pas d'essai manqué")
+  verifier(not journal_contient("vu d'Henry : oui"), "jamais de naissance vue")
+  egal(lignes_contenant("attendu : Henry regarde"), 1, "une ligne au journal")
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  verifier(o.identifiant == perso[1] and o.activite == "suivre" and not (o.suivi and o.suivi.cheval), "il part à pied vers son but")
+  hommes.battre()
+  egal(lignes_contenant("attendu : Henry regarde"), 1, "toujours une seule ligne")
+  egal(hommes.montures[ids[1]].cheval, nil, "toujours vu : toujours pas de cheval")
+  FauxJeu.vue_d_henry = function(p) return p.y > 0 end
+  hommes.battre()
+  local c = hommes.montures[ids[1]].cheval
+  verifier(c ~= nil, "une place hors de vue : le cheval naît")
+  verifier(FauxJeu.chevaux[c].y <= 0, "à une place hors de vue")
+  local monte = FauxJeu.ordres[#FauxJeu.ordres]
+  verifier(monte.suivi and monte.suivi.cheval == c, "l'ordre redonné : il monte")
   hommes.lacher(ids[1], "escorte")
   for _ = 1, 2 do hommes.battre() end
+  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.position_joueur = { x = 100 + r.saut_vue_m + 50, y = 0, z = 0 }
+  hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  verifier(hommes.montures[ids[1]].cheval ~= nil, "Henry à plus de saut_vue_m : pas vu, le cheval naît")
+  hommes.lacher(ids[1], "escorte")
+  for _ = 1, 2 do hommes.battre() end
+  FauxJeu.position_joueur = nil
   FauxJeu.vue_d_henry, FauxJeu.sol_du_cheval = nil, nil
   -- Des refus francs, un seul motif possible à chaque fois : tout encombré (l'eau), tout en pente, et, le cercle de
   -- l'enceinte rétréci, seul le sol contre un meuble du camp libre.

@@ -1853,6 +1853,15 @@ Directeur (`essai_directeur`) ; `essai_escorte` : le Directeur suit Henry, les t
 3. **Le délai de monte** : (a) allongé du temps de la marche jusqu'au cheval (Recommandé) ; (b) inchangé.
    **Prise : (a).**
 
+**Jamais de naissance vue** (vu sur une copie de la partie de JoVenGer le 20/10, séance J : 7 chevaux nés sur 21 sous
+les yeux d'Henry ; quand il regardait l'homme, les places à 5 m autour de lui étaient toutes dans son regard, et la
+première vue était prise ; accord du pair, option recommandée) : toutes les places bonnes vues, aucun cheval à ce
+battement ; l'homme part à pied vers son but (la sortie sans cheval : la liaison le fait marcher) ; le cheval naît au
+premier battement où une place n'est plus vue, et l'ordre redonné le fait monter. Une place à plus de `saut_vue_m`
+d'Henry n'est pas vue (comme pour le secours et le grand saut). Ni essai manqué, ni refus compté ; une ligne au
+journal (« cheval … attendu : Henry regarde »), une fois par attente. Au journal d'une naissance : « hors de la vue
+d'Henry » (l'ancien « vu d'Henry : oui/non » n'existe plus). Essai (vérifié en échec sans). Non vu en jeu.
+
 ### Mesuré en V73 f 2 c (17/10) : le cheval né hors des meubles, acquis
 - c65f206, `playline3` (473), sans `-devmode`, secours coupé puis remis ; trois hommes au camp.
 - **Ce que le jeu laisse lire** : « Sol : rayon lisible, eau illisible (pas de `ent_water`) ». La pente et l'encombrement

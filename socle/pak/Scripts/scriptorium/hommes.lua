@@ -3092,8 +3092,10 @@ local function compter_un_essai(f, m)
   end
 end
 
--- La place du cheval (V73 f 2 c) : voir les réglages « cheval_* ». Rend (place, refus par raison, vue d'Henry), ou
--- (nil, refus par raison).
+-- La place du cheval (V73 f 2 c) : voir les réglages « cheval_* ». Rend (place, refus par raison), ou (nil, refus par
+-- raison, vrai si des places bonnes étaient toutes vues d'Henry). Vu sur une copie de la partie de JoVenGer le 20/10
+-- (séance J, 7 chevaux nés sur 21 sous ses yeux : toutes les places bonnes vues, la première vue était prise) : jamais
+-- de naissance vue ; une place à plus de « saut_vue_m » d'Henry n'est pas vue (comme pour le secours et le grand saut).
 local function place_du_cheval(id, ici)
   local r = hommes.reglages
   local function ecart(a, b)
@@ -3124,7 +3126,8 @@ local function place_du_cheval(id, ici)
       end
     end
   end
-  local refus, vue = {}, nil
+  local henry = jeu().position_du_joueur()
+  local refus, vue = {}, false
   for _ = 1, r.cheval_places_essayees do
     local angle = Scriptorium.tirer(hommes.hasard_des_chevaux) * 2 * math.pi
     local p = { x = base.x + r.cheval_distance_m * math.cos(angle), y = base.y + r.cheval_distance_m * math.sin(angle),
@@ -3153,16 +3156,14 @@ local function place_du_cheval(id, ici)
     end
     if raison then
       refus[raison] = (refus[raison] or 0) + 1
-    elseif jeu().henry_voit(p, r.secours_vue_cos) ~= true then
-      return p, refus, false
+    elseif jeu().henry_voit(p, r.secours_vue_cos) ~= true
+        or (henry and ecart(p, henry) > r.saut_vue_m) then
+      return p, refus
     else
-      vue = vue or p
+      vue = true
     end
   end
-  if vue then
-    return vue, refus, true
-  end
-  return nil, refus
+  return nil, refus, vue
 end
 
 local function dire_les_refus(refus)
@@ -3201,6 +3202,16 @@ local function preparer_la_monture(id, f, heure, en_sortie)
     hommes.hasard_des_chevaux = Scriptorium.hasard_depuis(5171)
   end
   local place, refus, vu = place_du_cheval(id, ici)
+  -- Toutes les places bonnes vues d'Henry : pas de cheval à ce battement ; l'homme part à pied vers son but (la sortie
+  -- sans cheval) ; le cheval naît au premier battement où une place n'est plus vue. Ni essai manqué, ni refus compté.
+  if not place and vu then
+    if not m.attend_la_vue then
+      m.attend_la_vue = true
+      jeu().journal("Hommes : cheval de « " .. f.nom .. " » attendu : Henry regarde (il part à pied)")
+    end
+    return
+  end
+  m.attend_la_vue = nil
   -- Un nom par essai : le cheval né de nouveau change la signature de l'ordre ; et par grand saut (V73 f 3 b).
   local cheval = place and jeu().faire_venir_cheval(id .. "_" .. (m.essais + 1) .. (m.sauts and ("_saut" .. m.sauts) or ""),
                                                     place)
@@ -3208,7 +3219,7 @@ local function preparer_la_monture(id, f, heure, en_sortie)
     m.cheval = cheval
     m.manquees = jeu().montes_manquees(f.personnage)
     jeu().journal("Hommes : « " .. f.nom .. " » part à cheval sur « " .. cheval .. " » (essai " .. (m.essais + 1)
-                  .. " ; places refusées : " .. dire_les_refus(refus) .. " ; vu d'Henry : " .. (vu and "oui" or "non") .. ")")
+                  .. " ; places refusées : " .. dire_les_refus(refus) .. " ; hors de la vue d'Henry)")
   else
     jeu().journal("Hommes : pas de cheval pour « " .. f.nom .. " » (naissance refusée, essai " .. (m.essais + 1)
                   .. " ; places refusées : " .. dire_les_refus(refus or {}) .. ")")
