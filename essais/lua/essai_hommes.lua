@@ -4326,6 +4326,37 @@ end)
 
 -- ---------------------------------------------------------------- fiche 20 : les paroles
 
+essai("paroles (choix du pair, 20/10 : un porteur ne cause pas en route) : en marche vers son but, une parole attend ; arrivé, elle se dit ; urgente, elle passe", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local p = hommes.fiche(id).personnage
+  local but = camp.point(0, -6, 0)
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "depot", position = but, fin = "liberation" })
+  local function parole_ordonnee()
+    for _, o in ipairs(FauxJeu.ordres) do
+      if o.identifiant == p and o.activite == "parole" then return true end
+    end
+    return false
+  end
+  FauxJeu.positions[p] = { x = but.x + 30, y = but.y, z = 0 }
+  FauxJeu.ordres = {}
+  verifier(hommes.dire_une_replique(id, { metarole = "GOSSIP" }), "demandée")
+  hommes.battre()
+  verifier(not parole_ordonnee(), "à 30 m de son but : la parole attend")
+  FauxJeu.positions[p] = { x = but.x + 1, y = but.y, z = 0 }
+  hommes.battre()
+  verifier(parole_ordonnee(), "arrivé : la parole se dit")
+  FauxJeu.variables_du_cerveau = FauxJeu.variables_du_cerveau or {}
+  FauxJeu.variables_du_cerveau[p] = { scriptorium_parole_jouee = 1 }
+  hommes.battre()
+  -- Urgente (l'alerte) : elle passe même en route.
+  FauxJeu.positions[p] = { x = but.x + 30, y = but.y, z = 0 }
+  FauxJeu.ordres = {}
+  verifier(hommes.dire_une_replique(id, { metarole = "GOSSIP", urgente = true }), "urgente demandée")
+  verifier(parole_ordonnee(), "urgente : dite en route")
+  hommes.lacher(id, "travail")
+end)
+
 essai("paroles (fiche 20) : une réplique jouée une fois puis oubliée ; une conversation avec son partenaire ; jamais au lit ni en combat ; oubliée après l'attente", function()
   preparer(5000, 100, 10)
   local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

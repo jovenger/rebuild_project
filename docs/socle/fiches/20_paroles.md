@@ -18,6 +18,12 @@ Comportement :
 - **Jamais en combat, en bataille ni au lit** : la décision remplaçable `hommes.peut_parler(id, parole)` (par défaut :
   ni occupé en combat, ni tenu par la bataille, ni au sommeil) ; sinon la demande attend. Une demande qui attend plus de
   `parole_attente_max_h` heures du jeu est oubliée (une ligne au journal).
+- **Pas en route** (choix du pair, 20/10, vu sur une copie : deux porteurs tenaient une conversation au lieu de porter
+  leur corps) : une parole non urgente attend que l'homme soit arrivé à son but (à moins de
+  `hommes.reglages.secours_arrivee_m`) ; la ronde et la suite, qui n'arrivent jamais, n'attendent pas ; une parole
+  urgente (l'alerte) passe toujours. Essai (vérifié qu'il échoue sans) ; non vu en jeu.
+- La parole n'est pas une tenue : elle remplace l'activité le temps d'être dite, puis l'homme reprend ce que dit sa
+  tenue la plus forte, qui n'a pas bougé.
 - Une demande n'est pas gardée au registre (une parole n'a de sens que sur le moment).
 - Réponses prises d'office : une seule demande à la fois par homme ; la conversation se joue depuis l'initiateur seul (le
   jeu y fait entrer le partenaire).

@@ -4350,7 +4350,19 @@ function hommes.peut_parler(id, parole, activite)
   if parole and parole.urgente then
     return not (activite and activite.activite == "sommeil")
   end
-  return not (activite and (activite.regle == "bataille" or activite.activite == "sommeil"))
+  if activite and (activite.regle == "bataille" or activite.activite == "sommeil") then
+    return false
+  end
+  -- Choix du pair (20/10, vu sur une copie : deux porteurs tenaient une conversation au lieu de porter leur corps) : on
+  -- ne s'arrête pas pour causer en route ; une parole non urgente attend que l'homme soit arrivé à son but (à moins de
+  -- « secours_arrivee_m »). La ronde et la suite, qui n'arrivent jamais, n'attendent pas.
+  if activite and activite.position and activite.activite ~= "ronde" and activite.activite ~= "suivre" then
+    local reste = jeu().ecart_au_but(f.personnage, activite.position)
+    if reste and reste > hommes.reglages.secours_arrivee_m then
+      return false
+    end
+  end
+  return true
 end
 Scriptorium.remplacable(hommes, "peut_parler", function(rendu) return type(rendu) == "boolean" end)
 
