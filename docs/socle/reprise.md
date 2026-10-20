@@ -631,6 +631,8 @@ aucune sonde dans l'arbre.
   - sièges déclarés (demande du pair, les bancs au repas) : rien à changer chez nous ; le repas et la veillée prennent
     déjà un siège déclaré (`place_pour(id, "siege")` → `places_libres("siege", "hommes")`, sur un camp adopté) ; essai
     ajouté (chacun le sien, à la place de l'objet ; sans siège, au feu).
+  - « tous en relève » (décision de JoVenGer transmise par le pair, choix recommandé pris d'office) : interrupteur éteint,
+    aucun lit réservé à l'embauche ; un lit réservé est rendu une fois (fiche 18).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes

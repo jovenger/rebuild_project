@@ -226,3 +226,7 @@ Comportement :
   contre le mur ouest pendant des heures) : `hommes.mener_le_personnel` donne désormais le secours (téléportation du jeu,
   jamais sous les yeux d'Henry). Et sans aucun homme dans la Compagnie, le personnel est encore mené (il ne l'était plus).
   Essai (vérifié qu'il échoue sans). Non vérifié en jeu.
+- **Tous en relève** (décision de JoVenGer, 20/10, transmise par le pair, choix recommandé pris d'office) : interrupteur
+  `un_lit_par_homme` éteint (la prise l'éteint), aucun lit n'est réservé à l'embauche (il dort à une place libre par
+  `place_pour`, comme les autres) ; un lit encore réservé à un homme (embauché avant) est rendu une fois au battement, avec
+  une ligne au journal. Interrupteur allumé, rien ne change. Essai (vérifié qu'il échoue sans).

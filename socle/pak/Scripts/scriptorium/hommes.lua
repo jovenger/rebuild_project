@@ -949,6 +949,29 @@ local function liberer_place(f)
   f.lit = nil
 end
 
+-- Interrupteur « un_lit_par_homme » éteint (décision de JoVenGer, 20/10 : tous en relève) : un lit encore réservé à un
+-- homme (embauché avant) est rendu, une fois, avec une ligne au journal. Rend le nombre de lits rendus.
+local function rendre_les_lits_reserves(d)
+  if Scriptorium.actif("un_lit_par_homme") then
+    return 0
+  end
+  local rendus = 0
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if f and f.lit then
+      local nom = f.lit
+      liberer_place(f)
+      f.derniere_activite = nil
+      rendus = rendus + 1
+      jeu().journal("Hommes : « " .. f.nom .. " » rend son lit réservé « " .. nom .. " » : tous en relève")
+    end
+  end
+  if rendus > 0 then
+    enregistrer()
+  end
+  return rendus
+end
+
 -- Une place déclarée par Scriptorium a été retirée (camp.declarer_les_places l'a omise : l'objet n'est plus là) :
 -- l'homme qui l'avait pour lit n'en a plus ; il dormira à une place libre (place_pour). Rend son identifiant, ou nil.
 function hommes.lit_retire(nom)
@@ -1621,7 +1644,9 @@ function hommes.embaucher(contrat)
     blessure = 0,
     impayes = 0,
     personnage = nil,
-    lit = lits[1],
+    -- Décision de JoVenGer (20/10, transmise par le pair, choix recommandé) : interrupteur éteint, tous en relève, aucun
+    -- lit réservé à l'embauche (il dort à une place libre, comme les autres).
+    lit = Scriptorium.actif("un_lit_par_homme") and lits[1] or nil,
     derniere_activite = nil,
     engage = heure,
     retenue = 0,
@@ -3852,6 +3877,7 @@ function hommes.battre()
       end
     end
   end
+  rendre_les_lits_reserves(d)
   for _, id in ipairs(d.ordre) do
     ordonner_un_homme(d, id, heure, rapport, false)
   end

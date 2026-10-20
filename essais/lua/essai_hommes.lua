@@ -3733,6 +3733,40 @@ essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, l
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("lits (décision de JoVenGer, 20/10 : tous en relève) : interrupteur éteint, aucun lit réservé à l'embauche, un lit déjà réservé est rendu une fois ; allumé, rien ne change", function()
+  preparer(5000, 100, 10)
+  local allume = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  verifier(hommes.fiche(allume).lit ~= nil, "interrupteur allumé : un lit réservé à l'embauche")
+  hommes.battre()
+  verifier(hommes.fiche(allume).lit ~= nil, "allumé : le lit reste réservé")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local id = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    egal(hommes.fiche(id).lit, nil, "éteint : aucun lit réservé à l'embauche")
+    local lit = hommes.fiche(allume).lit
+    hommes.battre()
+    egal(hommes.fiche(allume).lit, nil, "éteint : le lit réservé avant est rendu")
+    egal(camp.occupant_de(lit), nil, "et libéré au camp")
+    local n = 0
+    for _, l in ipairs(FauxJeu.journal_lignes) do
+      if string.find(l, "rend son lit réservé", 1, true) then n = n + 1 end
+    end
+    egal(n, 1, "une ligne au journal")
+    hommes.battre()
+    n = 0
+    for _, l in ipairs(FauxJeu.journal_lignes) do
+      if string.find(l, "rend son lit réservé", 1, true) then n = n + 1 end
+    end
+    egal(n, 1, "une seule fois")
+    local a = hommes.activite_de(allume, 23)
+    if a.activite == "sommeil" then
+      verifier(a.lieu and camp.sorte_de(a.lieu) == "lit", "il dort à une place libre")
+    end
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("repas et veillée (demande du pair, 20/10) : sur un camp adopté, les hommes s'assoient aux sièges déclarés par Scriptorium, chacun le sien ; sans siège, au feu", function()
   depart()
   FauxJeu.heure = 10
