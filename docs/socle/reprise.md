@@ -680,7 +680,7 @@ aucune sonde dans l'arbre.
   - Réglages par fichier corrigés (bc130f6, vu en jeu sur la copie le 20/10) : le fichier ne touche qu'aux valeurs
     qu'il nomme ; avant, poser une seule valeur remettait tout le catalogue et effaçait six coupures de Scriptorium.
   - INSTALLÉ pour tous les jours (d'office) : socle bc130f6, Scriptorium 78a5c99e ; retour arrière :
-    `Scriptorium_securite61020_132037_061740_seance_du_socle`.
+    `Scriptorium_securite\20261020_132037_061740_seance_du_socle`.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
