@@ -2547,6 +2547,12 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 ## Règles en données (catalogue de `reglages.lua`)
 - `hommes.reglages` : `secours_delai_s` (30), `secours_progres_m` (1), `secours_arrivee_m` (2), `secours_max` (2) ;
   `camp.reglages.ecart_d_abord` (2,4 m).
+- Règle de JoVenGer (20/10, vu sur une copie : un porteur passant par la porte, donc s'éloignant d'abord du dépôt
+  hors du camp, était posé d'office) : un homme qui marche n'est jamais bloqué. Il l'est s'il ne s'est ni rapproché ni
+  déplacé de `secours_progres_m` pendant `secours_delai_s` ; celui qui marche sans jamais mieux s'approcher pendant
+  `secours_detour_max_s` (180) l'est aussi (il tourne en rond). La pose attend tant qu'Henry regarde l'endroit où il
+  réapparaîtrait ou celui où il disparaîtrait (à moins de `saut_vue_m`). Essai (vérifié qu'il échoue sans) ; non vu
+  en jeu.
 - Une table nouvelle `hommes.priorites` (nom de règle → rang), dans le catalogue (V73 b 3).
 - V73 b : `hommes.cerveau.relances_max` (3) et `relances_fenetre_ms` (60 000) ; `hommes.reglages.tenue_max_h` (24) et
   `journee_du_socle` (vrai).

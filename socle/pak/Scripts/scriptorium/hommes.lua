@@ -20,6 +20,11 @@ hommes.reglages = {
   secours_arrivee_m = 3,
   secours_max = 2,
   secours_assis_m = 1.5,
+  -- Règle de JoVenGer (20/10, vu sur une copie : un porteur passant par la porte du camp, donc s'éloignant d'abord de son
+  -- but, était posé d'office) : un homme qui marche n'est jamais bloqué ; il l'est seulement s'il ne s'est ni rapproché
+  -- ni déplacé de « secours_progres_m » ; et celui qui marche sans jamais s'approcher mieux de son but pendant
+  -- « secours_detour_max_s » (il tourne en rond) l'est aussi.
+  secours_detour_max_s = 180,
   -- Fiche 15, V73 e (réponse 1 a de JoVenGer du 16/10, revue avec le pair le 17/10) : un homme à plus de « secours_loin_m »
   -- d'un but qui est au camp (à moins de « secours_loin_camp_m » de son centre) est secouru sans attendre le délai ; une
   -- sortie n'y est jamais soumise. Aucun secours ne pose un homme sous les yeux d'Henry : le cosinus entre son regard et
@@ -2856,12 +2861,26 @@ local function secourir(id, f, a, rapport)
     s.reste, s.bloque_s = nil, 0
     return
   end
-  if s.reste and s.reste - reste < hommes.reglages.secours_progres_m then
-    s.bloque_s = s.bloque_s + Scriptorium.cadence_du_battement_ms / 1000
-  else
+  local pas_s = Scriptorium.cadence_du_battement_ms / 1000
+  local progres = hommes.reglages.secours_progres_m
+  local ici = jeu().position_du_personnage(f.personnage)
+  local bouge = ici and s.ici and math.sqrt((ici.x - s.ici.x) ^ 2 + (ici.y - s.ici.y) ^ 2) or nil
+  if not s.reste or s.reste - reste >= progres then
     s.bloque_s = 0
+  elseif bouge and bouge >= progres then
+    -- Il marche sans se rapprocher (un détour, la porte du camp) : pas bloqué ; le temps du détour est compté.
+    s.bloque_s = 0
+    s.detour_s = (s.detour_s or 0) + pas_s
+  else
+    s.bloque_s = s.bloque_s + pas_s
   end
-  s.reste = reste
+  if s.meilleur == nil or reste < s.meilleur - progres then
+    s.meilleur, s.detour_s = reste, 0
+  end
+  if (s.detour_s or 0) >= (tonumber(hommes.reglages.secours_detour_max_s) or math.huge) then
+    s.bloque_s = math.max(s.bloque_s, hommes.reglages.secours_delai_s)
+  end
+  s.reste, s.ici = reste, ici
   -- Trop loin d'un but au camp (V73 e, réponse 1 a du 16/10 revue avec le pair) : le secours n'attend pas le délai ; une
   -- sortie (un but à plus de « secours_loin_camp_m » du centre du camp) n'y est jamais soumise.
   local loin = tonumber(hommes.reglages.secours_loin_m) or 0
@@ -2886,8 +2905,13 @@ local function secourir(id, f, a, rapport)
   local _, objet = but_de(a)
   local ou = (not de_ronde and objet) and camp().abord_de(a.lieu) or but
   -- Jamais sous les yeux d'Henry (V73 e, relecture du pair : la règle de Scriptorium) : il regarde à moins de 60° de
-  -- l'endroit, le secours attend le battement suivant ; sans lecture, il pose.
-  if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true then
+  -- l'endroit, le secours attend le battement suivant ; sans lecture, il pose. Ni là où il réapparaît, ni là où il
+  -- disparaît (règle de JoVenGer, 20/10).
+  -- (au-delà de « saut_vue_m », un homme ne se voit plus, comme pour le grand saut).
+  local henry = jeu().position_du_joueur()
+  local ici_vu = ici and henry and math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2) <= hommes.reglages.saut_vue_m
+    and jeu().henry_voit(ici, hommes.reglages.secours_vue_cos) == true
+  if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true or ici_vu then
     if not s.vu_par_henry then
       s.vu_par_henry = true
       jeu().journal("Hommes : « " .. f.nom .. " » à secourir, mais Henry regarde l'endroit : le secours attend")

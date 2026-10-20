@@ -2449,6 +2449,49 @@ essai("secours (vu sur une copie de la partie de JoVenGer le 20/10) : un personn
   hommes.lacher_un_personnage("chasseur", "travail")
 end)
 
+essai("secours (règle de JoVenGer, 20/10) : un homme qui marche n'est jamais bloqué, même en s'éloignant (la porte) ; immobile, il l'est ; tourner en rond a sa borne ; ni sous les yeux d'Henry là où il disparaît", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  local but = camp.point(0, -6, 0)
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "depot", position = but, fin = "liberation" })
+  FauxJeu.secours = {}
+  local pas = Scriptorium.cadence_du_battement_ms / 1000
+  local battements = math.ceil(hommes.reglages.secours_delai_s / pas) + 2
+  -- Il s'éloigne du but en marchant (vers la porte), 2 m par battement : jamais posé.
+  for k = 1, battements do
+    FauxJeu.positions[f.personnage] = { x = but.x + 20 + 2 * k, y = but.y, z = 0 }
+    hommes.battre()
+  end
+  egal(#FauxJeu.secours, 0, "en marche, même en s'éloignant : pas de secours")
+  -- Il s'arrête : bloqué au bout du délai.
+  for _ = 1, battements do hommes.battre() end
+  egal(#FauxJeu.secours, 1, "immobile : secouru")
+  -- Il tourne en rond (il bouge sans jamais s'approcher mieux) : bloqué au bout de « secours_detour_max_s ».
+  hommes.lacher(id, "travail")
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "depot2", position = but, fin = "liberation" })
+  FauxJeu.secours = {}
+  local tours = math.ceil(hommes.reglages.secours_detour_max_s / pas) + 2
+  for k = 1, tours do
+    FauxJeu.positions[f.personnage] = { x = but.x + 30, y = but.y + ((k % 2 == 0) and 2 or -2), z = 0 }
+    hommes.battre()
+  end
+  verifier(#FauxJeu.secours >= 1, "en rond au-delà de la borne : secouru")
+  -- Henry regarde l'endroit où il est (pas celui où il irait) : le secours attend.
+  hommes.lacher(id, "travail")
+  hommes.tenir(id, "travail", { activite = "geste", geste = "Loot", lieu = "depot3", position = but, fin = "liberation" })
+  FauxJeu.secours = {}
+  local ici = { x = but.x + 40, y = but.y, z = 0 }
+  FauxJeu.positions[f.personnage] = ici
+  FauxJeu.vue_d_henry = function(point) return point and math.abs(point.x - ici.x) < 0.01 and math.abs(point.y - ici.y) < 0.01 end
+  for _ = 1, battements do hommes.battre() end
+  egal(#FauxJeu.secours, 0, "Henry regarde l'endroit où il disparaîtrait : pas de secours")
+  FauxJeu.vue_d_henry = nil
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "Henry détourne le regard : posé")
+  hommes.lacher(id, "travail")
+end)
+
 essai("sommeil d'un mené sur un lit nommé (demande du pair, 20/10) : couché par l'objet du jeu, même non déclaré ; refus sinon", function()
   preparer(5000, 100, 10)
   FauxJeu.personnages_existants["jardinier"] = true
