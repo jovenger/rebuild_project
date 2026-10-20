@@ -2501,6 +2501,12 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
    `fige_regards_entre` (2) regards (8 s), `fige_par_regard` (6) au plus par regard. **Utile** si l'homme a fait plus de
    `fige_utile_m` (1,5) au regard suivant. Au journal : chaque relance, chaque relance utile, et « toujours figé après
    2 relances : laissé au secours ». Les compteurs (relances, utiles, repêchages) sont lus par `essai_hommes_voir`.
+   **Jugé sur l'ordre reçu** (vu sur une copie de la partie de JoVenGer le 20/10, à chaque chargement puis au lever :
+   les 10 hommes « figés », relancés deux fois puis laissés au secours) : le gardien jugeait l'ancien ordre quand
+   l'activité venait de changer (lits déclarés par Scriptorium après le rechargement, lever d'un homme resté couché toute
+   la nuit), avant que le battement donne le nouvel ordre ; il passait devant lui. Désormais un homme dont l'activité
+   ne correspond pas à son dernier ordre (même signature que l'ordre : activité, lieu, signature propre) attend le
+   battement ; il n'est jugé qu'à partir de l'ordre reçu.
 
 ### Règles en données (catalogue)
 - `hommes.reglages` : `gardien_cadence_ms` 4000, `gardien_sous_sol_m` 5, `gardien_sous_sol_regards` 2,

@@ -3606,6 +3606,52 @@ essai("gardien (mesuré sur une copie le 20/10) : arrêté à 2,7 m de son point
   egal(#FauxJeu.reveilles, 0, "personne réveillé")
 end)
 
+essai("gardien (vu sur une copie le 20/10, à chaque chargement) : un homme sans ordre encore reçu attend le battement, il n'est pas figé", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  local a = hommes.activite_de(id, 10)
+  verifier(a and a.position, "une activité avec un but")
+  FauxJeu.reveilles = {}
+  FauxJeu.positions[f.personnage] = { x = a.position.x + 30, y = a.position.y, z = 0 }
+  hommes.relancer()
+  local ordres = #FauxJeu.ordres
+  for _ = 1, 5 do hommes.garder() end
+  egal(#FauxJeu.ordres, ordres, "aucune relance avant le premier ordre")
+  egal(#FauxJeu.reveilles, 0, "personne réveillé")
+  verifier(not journal_contient("figé à 30.0 m"), "rien de dit")
+  hommes.battre()
+  egal(#FauxJeu.ordres, ordres + 1, "le battement donne l'ordre")
+  for _ = 1, 3 do hommes.garder() end
+  egal(#FauxJeu.ordres, ordres + 2, "ensuite, figé : relancé")
+end)
+
+essai("gardien (vu sur une copie le 20/10, au lever) : couché, son activité change sans ordre encore reçu : il attend le battement, il n'est pas figé", function()
+  preparer(5000, 100, 23)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  local nuit = hommes.activite_de(id, 23)
+  verifier(nuit and nuit.activite == "sommeil" and nuit.position, "couché, avec un lit")
+  FauxJeu.positions[f.personnage] = { x = nuit.position.x, y = nuit.position.y, z = 0 }
+  for _ = 1, 4 do hommes.garder() end
+  FauxJeu.heure = 24 + 9
+  local jour = hommes.activite_de(id, FauxJeu.heure)
+  verifier(jour and jour.position and jour.activite ~= "sommeil", "le jour, une autre activité avec un but")
+  verifier(math.sqrt((jour.position.x - nuit.position.x) ^ 2 + (jour.position.y - nuit.position.y) ^ 2) > 3,
+           "son but du jour est loin de son lit")
+  FauxJeu.reveilles = {}
+  local ordres = #FauxJeu.ordres
+  for _ = 1, 4 do hommes.garder() end
+  egal(#FauxJeu.ordres, ordres, "aucune relance avant l'ordre du jour")
+  egal(#FauxJeu.reveilles, 0, "personne réveillé")
+  hommes.battre()
+  egal(#FauxJeu.ordres, ordres + 1, "le battement donne l'ordre du jour")
+  for _ = 1, 3 do hommes.garder() end
+  egal(#FauxJeu.ordres, ordres + 2, "ensuite, figé : relancé")
+end)
+
 essai("gardien (fiche 15, V73 g) : figé loin de son but, relancé (réveil, ordre redonné), deux fois au plus et pas deux en 8 s ; la relance utile ; ni suite, ni bataille, ni combat ; tant par regard", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

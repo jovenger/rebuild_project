@@ -3375,6 +3375,11 @@ end
 -- au battement, le secours de l'homme bloqué. « sans_secours » : l'ordre redonné sur-le-champ par l'arbitre, hors
 -- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel). « a_la_pose » :
 -- l'ordre donné quand la tenue est posée (la ronde part alors de son point de départ, fiche 15, V73 d 2).
+-- La signature d'un ordre : l'activité, le lieu, la signature propre (la place d'un rassemblement, le point d'une tenue).
+local function resume_de(a)
+  return a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
+end
+
 local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   local f = fiche_de(d, id)
   if not f or not f.personnage then
@@ -3425,7 +3430,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     jeu().donner_le_geste(f.personnage, a.geste, { ancre = ancre, assis = assis == true, arme = a.arme_tiree == true })
   end
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
-  local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
+  local resume = resume_de(a)
   if f.derniere_activite ~= resume then
     -- Vu en jeu le 19/10 : l'attaque d'un affrontement ne finit qu'à la chute de la cible ; à la fin de la tenue (ou
     -- pour toute autre activité), elle est levée avant le nouvel ordre, sinon Henry reste en combat.
@@ -3866,8 +3871,11 @@ function hommes.garder()
       end
       local but = a and a.position
       -- La fouille (fiche 17, vu en jeu le 17/10 : un fouilleur arrivé au corps pris pour figé) a sa propre borne.
+      -- Vu sur une copie de la partie de JoVenGer le 20/10 (au chargement et au lever, 10 hommes « figés », relancés deux
+      -- fois puis laissés au secours) : un homme dont l'activité a changé sans qu'il ait encore reçu l'ordre (aucun ordre
+      -- depuis le rechargement, lever d'un homme couché) attend le battement ; il est jugé sur l'ordre reçu.
       local exclu = not but or a.activite == "suivre" or a.activite == "bataille" or a.activite == "ronde"
-        or a.activite == "fouille"
+        or a.activite == "fouille" or f.derniere_activite ~= resume_de(a)
         or jeu().occupation_de(f.personnage) ~= nil
       if not exclu and bouge and bouge < r.fige_bouge_m and v.regards > r.fige_ordre_regards then
         local ecart = jeu().ecart_au_but(f.personnage, but)
