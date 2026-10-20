@@ -13,6 +13,12 @@ Comportement :
 - `hommes.conversation(id, partenaire, { alias | metarole })` : `Function_speech_schedulerPolylog_initiator`,
   l'initiateur et son partenaire (un autre homme de la Compagnie).
 - `hommes.dialogue_force(id, alias)` : `Function_speech_dialogInitiator`, un dialogue du jeu vers Henry.
+- **Le personnel mené** (demande du pair, 20/10, séance J : « réplique pour un inconnu », le forgeron qui crie sa
+  marchandise, les dames du camp en conversation) : `hommes.dire_une_replique_du_personnage(personnage, quoi)` et
+  `hommes.conversation_du_personnage(personnage, partenaire, quoi)`, par le nom de l'entité ; le partenaire est un
+  mené ou un homme de la Compagnie (trouvé par son personnage). Mêmes règles que pour un homme (jouée une fois, pas en
+  route, jamais au lit ni en combat). Refus : `pas_mene` (ni mené ni de la Compagnie : sans notre cerveau, il ne peut
+  rien dire par nous), `partenaire_invalide`. Essai (vérifié qu'il échoue sans) ; non vu en jeu.
 - La demande devient l'activité « parole » (ordre 23) : l'arbre la joue une fois, compte une parole jouée, et l'homme
   reprend sa journée au battement suivant. Une demande nouvelle remplace la précédente.
 - **Jamais en combat, en bataille ni au lit** : la décision remplaçable `hommes.peut_parler(id, parole)` (par défaut :

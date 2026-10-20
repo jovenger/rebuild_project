@@ -4492,6 +4492,37 @@ essai("paroles (choix du pair, 20/10 : un porteur ne cause pas en route) : en ma
   hommes.lacher(id, "travail")
 end)
 
+essai("paroles du personnel mené (demande du pair, 20/10) : une réplique et une conversation par le nom de l'entité ; jouée puis oubliée ; un inconnu refusé", function()
+  preparer(5000, 100, 10)
+  FauxJeu.personnages_existants["forgeron_x"] = true
+  FauxJeu.personnages_existants["dame_1"] = true
+  verifier(hommes.tenir_un_personnage("forgeron_x", "travail", { activite = "garde", lieu = "forge", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "forgeron mené")
+  verifier(hommes.tenir_un_personnage("dame_1", "travail", { activite = "garde", lieu = "bains", position = { x = 8, y = 4, z = 0 }, fin = "liberation" }), "dame menée")
+  FauxJeu.positions["forgeron_x"] = { x = 3, y = 4, z = 0 }
+  FauxJeu.positions["dame_1"] = { x = 8, y = 4, z = 0 }
+  local ok, raison = hommes.dire_une_replique_du_personnage("inconnu", { metarole = "GOSSIP" })
+  verifier(not ok and raison == "pas_mene", "un personnage ni mené ni de la Compagnie : refusé")
+  FauxJeu.ordres, FauxJeu.paroles = {}, {}
+  verifier(hommes.dire_une_replique_du_personnage("forgeron_x", { metarole = "NPC_VYVOLAVANI_NA_TRHU" }), "réplique demandée")
+  local vu = false
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == "forgeron_x" and o.activite == "parole" then vu = true end
+  end
+  verifier(vu, "l'ordre de parole donné au mené")
+  egal(FauxJeu.paroles["forgeron_x"] and FauxJeu.paroles["forgeron_x"].sorte, 1, "une réplique")
+  egal(FauxJeu.paroles["forgeron_x"] and FauxJeu.paroles["forgeron_x"].metarole, "NPC_VYVOLAVANI_NA_TRHU", "son metarole")
+  FauxJeu.variables_du_cerveau = FauxJeu.variables_du_cerveau or {}
+  FauxJeu.variables_du_cerveau["forgeron_x"] = { scriptorium_parole_jouee = 1 }
+  hommes.battre()
+  egal(hommes.parole_de("mene_forgeron_x"), nil, "jouée : oubliée")
+  verifier(lignes_contenant("« forgeron_x » a dit « NPC_VYVOLAVANI_NA_TRHU »") >= 1, "dite au journal")
+  local ok2, raison2 = hommes.conversation_du_personnage("dame_1", "personne", { alias = "scr_cv_dame_camp_1" })
+  verifier(not ok2 and raison2 == "partenaire_invalide", "partenaire inconnu : refusé")
+  verifier(hommes.conversation_du_personnage("dame_1", "forgeron_x", { alias = "scr_cv_dame_camp_1" }), "conversation demandée")
+  egal(FauxJeu.paroles["dame_1"] and FauxJeu.paroles["dame_1"].sorte, 2, "une conversation")
+  egal(FauxJeu.paroles["dame_1"] and FauxJeu.paroles["dame_1"].partenaire, "forgeron_x", "avec le forgeron")
+end)
+
 essai("paroles (fiche 20) : une réplique jouée une fois puis oubliée ; une conversation avec son partenaire ; jamais au lit ni en combat ; oubliée après l'attente", function()
   preparer(5000, 100, 10)
   local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

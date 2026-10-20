@@ -3399,7 +3399,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       hommes.paroles[id] = nil
       parole = nil
     elseif Scriptorium.avis(hommes, "peut_parler", id, hommes.parole_de(id), a) then
-      local partenaire = parole.partenaire and d.liste[parole.partenaire]
+      local partenaire = parole.partenaire and fiche_de(d, parole.partenaire)
       a = { activite = "parole", lieu = "parole_" .. parole.numero, regle = "parole", parole = parole,
             partenaire = partenaire and partenaire.personnage or nil }
       parole.ordonnee = true
@@ -4408,7 +4408,7 @@ hommes.sortes_de_paroles = { replique = 1, conversation = 2, dialogue = 3, repli
 -- tenu par la bataille, ni au sommeil. Une parole « urgente » (l'alerte du guetteur ; vu en jeu le 18/10 : sinon elle
 -- attendait la fin du combat) se dit même tenu par la bataille, jamais en plein combat ni au sommeil.
 function hommes.peut_parler(id, parole, activite)
-  local f = donnees().liste[id]
+  local f = fiche_de(donnees(), id)
   if not f or not f.personnage or jeu().occupation_de(f.personnage) == "combat" then
     return false
   end
@@ -4433,7 +4433,7 @@ Scriptorium.remplacable(hommes, "peut_parler", function(rendu) return type(rendu
 
 local function demander_la_parole(id, parole)
   local d = donnees()
-  local f = d.liste[id]
+  local f = fiche_de(d, id)
   if not f then
     return refuser("homme_inconnu", tostring(id))
   end
@@ -4464,7 +4464,7 @@ end
 -- Fiche 20 : une conversation à deux, depuis l'initiateur, avec son partenaire (un autre homme de la Compagnie).
 function hommes.conversation(id, partenaire, quoi)
   quoi = quoi or {}
-  local p = donnees().liste[partenaire]
+  local p = fiche_de(donnees(), partenaire)
   if not p or partenaire == id then
     return refuser("partenaire_invalide", tostring(partenaire))
   end
@@ -4477,6 +4477,46 @@ function hommes.dialogue_force(id, alias)
     return demander_la_parole(id, { sorte = "dialogue", alias = alias.alias, metarole = alias.metarole })
   end
   return demander_la_parole(id, { sorte = "dialogue", alias = alias })
+end
+
+-- Demande du pair (20/10, la séance J : « réplique pour un inconnu », le forgeron qui crie sa marchandise, les dames du
+-- camp en conversation) : les paroles du personnel mené, par le nom de son entité. Un homme de la Compagnie est trouvé
+-- par son personnage ; un personnage ni mené ni de la Compagnie est refusé (pas_mene : sans notre cerveau, il ne peut
+-- rien dire par nous).
+local function id_du_personnage(d, personnage)
+  if type(personnage) ~= "string" then
+    return nil
+  end
+  if d.menes and d.menes["mene_" .. personnage] then
+    return "mene_" .. personnage
+  end
+  for _, id in ipairs(d.ordre) do
+    if d.liste[id].personnage == personnage then
+      return id
+    end
+  end
+  return nil
+end
+
+function hommes.dire_une_replique_du_personnage(personnage, quoi)
+  local id = id_du_personnage(donnees(), personnage)
+  if not id then
+    return refuser("pas_mene", tostring(personnage))
+  end
+  return hommes.dire_une_replique(id, quoi)
+end
+
+function hommes.conversation_du_personnage(personnage, partenaire, quoi)
+  local d = donnees()
+  local id = id_du_personnage(d, personnage)
+  if not id then
+    return refuser("pas_mene", tostring(personnage))
+  end
+  local autre = id_du_personnage(d, partenaire)
+  if not autre then
+    return refuser("partenaire_invalide", tostring(partenaire))
+  end
+  return hommes.conversation(id, autre, quoi)
 end
 
 -- La parole qui se joue (ou attend) pour cet homme : une copie, ou nil.
