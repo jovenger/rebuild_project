@@ -3104,6 +3104,7 @@ local function preparer_la_monture(id, f, heure, en_sortie)
     hommes.montures[id] = m
   end
   m.hors_sortie = 0
+  m.personnage, m.nom = f.personnage, f.nom
   if m.abandon or m.saut or (m.cheval and jeu().objet_existe(m.cheval)) or m.refus_a == heure then
     return
   end
@@ -3252,25 +3253,28 @@ local function veiller_aux_montures(d)
       end
     else
       m.hors_sortie = (m.hors_sortie or 0) + 1
-      local retirer = not f or not f.personnage or not m.cheval
+      -- Demande du pair (20/10) : un mené lâché (sa fiche oubliée) en pleine sortie garde son cheval jusqu'à ce qu'il en
+      -- soit descendu, comme nos hommes : son personnage et son nom sont gardés avec sa monture.
+      local cavalier = (f and f.personnage) or m.personnage
+      local nom = (f and f.nom) or m.nom or tostring(id)
+      local retirer = not cavalier or not m.cheval
         or m.hors_sortie >= hommes.reglages.cheval_retrait_battements
       if not retirer then
-        local ici = jeu().position_du_personnage(f.personnage)
+        local ici = jeu().position_du_personnage(cavalier)
         local la = jeu().position_du_personnage(m.cheval)
         retirer = not ici or not la
           or math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) > hommes.reglages.cheval_retrait_m
       end
       -- V73 f 3 b (vu en séance ; la règle du pair : jamais un cheval retiré sous son cavalier) : encore en selle (lu),
       -- le cheval attend le battement suivant.
-      if retirer and m.cheval and f and f.personnage and jeu().cheval_monte(m.cheval) == true then
+      if retirer and m.cheval and cavalier and jeu().cheval_monte(m.cheval) == true then
         retirer = false
-        jeu().journal("Hommes : cheval « " .. m.cheval .. " » encore monté par « " .. tostring(f.nom) .. " » : retiré plus tard")
+        jeu().journal("Hommes : cheval « " .. m.cheval .. " » encore monté par « " .. nom .. " » : retiré plus tard")
       end
       if retirer then
         if m.cheval then
           jeu().retirer_cheval(m.cheval)
-          jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré, la sortie de « " .. (f and f.nom or tostring(id))
-                        .. " » finie")
+          jeu().journal("Hommes : cheval « " .. m.cheval .. " » retiré, la sortie de « " .. nom .. " » finie")
         end
         hommes.montures[id] = nil
       end

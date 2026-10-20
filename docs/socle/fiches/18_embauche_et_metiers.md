@@ -225,7 +225,7 @@ Comportement :
   sortant ; un mené est toujours seul), sans chef, son cheval passager monté (ordre 20 vers le point). La tête
   s'arrête à quelque 6,5 m de son point (vu le 17/10, fiche 17). La tenue changée (la tâche au point), l'ordre suivant
   le fait descendre ; le cheval est retiré une fois l'homme descendu, à plus de `cheval_retrait_m` de lui ou au
-  `cheval_retrait_battements`-ième battement, jamais sous son cavalier. Corrigé ce jour : le cheval d'un mené était
+  `cheval_retrait_battements`-ième battement, jamais sous son cavalier ; de même pour un mené lâché en pleine sortie, encore en selle (sa tâche disparue : son personnage et son nom sont gardés avec sa monture). Corrigé ce jour : le cheval d'un mené était
   retiré à chaque battement et refait (sa fiche n'était pas trouvée). En sortie, ni gardien ni secours (ni le passage
   « dehors », propre aux missions) ; au-delà de ~450 m d'Henry, le jeu ne fait plus vivre un personnage (fiche 17).
 - `hommes.lacher_un_personnage(personnage, regle)` ; sans plus aucune tenue, il n'est plus mené (il attend).

@@ -2788,6 +2788,19 @@ essai("sortie de métier à cheval (demande du pair, 20/10) : un homme seul et u
   verifier(FauxJeu.chevaux[cheval_du_mene] == nil, "descendu : le cheval du mené est retiré")
   hommes.lacher_un_personnage("bucheron", "travail")
   hommes.lacher(id, "travail")
+  -- Lâché en pleine sortie, encore en selle (sa tâche disparue : demande du pair, 20/10) : son cheval reste sous lui ;
+  -- descendu, il est retiré.
+  verifier(hommes.tenir_un_personnage("bucheron", "travail", { activite = "suivre", vers = point_b, a_cheval = true,
+                                                               lieu = "sortie_2", fin = "liberation" }), "il ressort")
+  local second = hommes.montures["mene_bucheron"].cheval
+  FauxJeu.chevaux_montes = { [second] = true }
+  hommes.lacher_un_personnage("bucheron", "travail")
+  for _ = 1, 3 do hommes.battre() end
+  verifier(FauxJeu.chevaux[second] ~= nil, "lâché en selle : son cheval reste sous lui")
+  verifier(journal_contient("encore monté par « bucheron »"), "dit au journal, avec son nom")
+  FauxJeu.chevaux_montes = nil
+  hommes.battre()
+  verifier(FauxJeu.chevaux[second] == nil, "descendu : retiré")
 end)
 
 essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le premier mène monté, les autres se rangent montés ; la monte manquée, le plafond, le retrait après la sortie", function()
