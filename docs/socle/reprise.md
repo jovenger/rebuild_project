@@ -681,6 +681,14 @@ aucune sonde dans l'arbre.
     qu'il nomme ; avant, poser une seule valeur remettait tout le catalogue et effaçait six coupures de Scriptorium.
   - INSTALLÉ pour tous les jours (d'office) : socle bc130f6, Scriptorium 78a5c99e ; retour arrière :
     `Scriptorium_securite\20261020_132037_061740_seance_du_socle`.
+  - Raid sur copie (20/10, 14 h 10 à 14 h 45, d'office) : une bande ne faisait vivre qu'UN ennemi depuis le 18/10 (la
+    règle de l'âme unique refusait les ennemis qui partagent l'âme de leur sorte) ; corrigé (adec9ee, contrôle au banc)
+    et vu : 6 ennemis au contact, alerte, femmes à l'abri, Directeur en retrait (décision du pair par
+    `directeur.activite`), victoire coûteuse, 0 mort, 2 survivants en fuite. Deux fouilles en même temps (la nôtre et
+    le pillage du pair) : notre fouille reste maîtresse, le temps libre du pair lui cède (d0c50d11, non vu) ; service
+    proposé au pair (`bataille.compter_comme_fouille`) pour qu'un corps pris par son « Loot » ne soit pas revisité.
+  - INSTALLÉ pour tous les jours (d'office) : socle adec9ee, Scriptorium 067c8106 ; retour arrière :
+    `Scriptorium_securite\20261020_141125_658071_seance_du_socle`.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
