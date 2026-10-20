@@ -322,10 +322,14 @@
   (`scriptorium_marche_approche_ms`, 0 sinon), l'arbre l'ajoute. Dans les branches à point (poste, ronde, geste), une
   marche expirée est rejouée tant que l'homme n'est pas arrivé et que l'ordre n'a pas changé ; l'action ne vient
   qu'après ; le geste ne se joue qu'arrivé. La marche simple (branche 9) reprenait déjà d'elle-même.
-- **Les places (siège 10, lit 11, poste de travail 21) n'y sont pas soumises** (vu sur une copie le 20/10 : avec la marche
-  rejouée, les hommes restaient debout sur leur lit) : vers un objet, le Move ne réussit pas, même sur l'objet ; une
-  seule marche, bornée par le délai d'avant (`$delai_place`, `marche_delai_ms` seul), puis la posture sur l'objet, qui
-  finit l'approche : elle se prend toujours au but. Contrôlé au banc ; non vu en jeu.
+- **Les places (siège 10, lit 11, poste de travail 21) : l'arrivée LUE** (vu sur une copie le 20/10 : avec la marche
+  rejouée, les hommes restaient debout sur leur lit ; vers un objet, le Move ne réussit pas, même sur l'objet ; forme
+  demandée par le pair pour JoVenGer) : la marche finit dès que l'homme est à moins de `$place_seuil`
+  (`hommes.cerveau.place_arrivee_cm`, 150 : le centre de l'objet, qu'un homme ne peut pas toujours approcher à
+  `siege_arret_cm`) de l'objet visé, écart lu toutes les 500 ms par la liaison (`liaison.pres_de_la_place`, l'objet
+  retenu par l'ordre), ou dès que le Move réussit ; la posture vient aussitôt. Le délai, à la mesure de la distance,
+  n'est qu'un garde-fou : la marche est rejouée ; jamais de posture lancée de loin, jamais debout sur son lit. Contrôlé
+  au banc (l'arrivée lue à 0,0 m ; rien à 14 m ; la structure des trois branches) ; non vu en jeu.
 - **Se relever d'abord** (demande du pair, 20/10 : assis par son geste, l'homme ne partait qu'à la relance du gardien,
   environ 26 s) : les branches du geste (22) et du poste de travail (21) commencent, comme la marche, le poste et la
   ronde, par la posture debout (le temps `sortie_ms`), seulement si le temps de marche écrit est positif. À moins de

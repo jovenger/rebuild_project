@@ -331,6 +331,27 @@ def verifier_identifiants():
     """)
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
+    # Vu sur une copie le 20/10 (debout sur leur lit) : l'arrivée à une place se lit à l'écart de l'homme à l'objet visé.
+    place = lua.eval("""(function()
+        local l = Scriptorium.liaison_reelle
+        local function entite(nom, x, y) return { GetName = function() return nom end,
+                                                  GetWorldPos = function() return { x = x, y = y, z = 0 } end } end
+        local lit = entite("lit_1", 10, 10)
+        l.places_visees = l.places_visees or {}
+        l.places_visees["homme_au_lit"] = lit
+        local d = { place_seuil = 1.5, marche_faite = 0 }
+        l.pres_de_la_place(entite("homme_au_lit", 10, 10), d)
+        if d.marche_faite ~= 1 then return "à 0,0 m du lit : arrivée non marquée" end
+        d = { place_seuil = 1.5, marche_faite = 0 }
+        l.pres_de_la_place(entite("homme_au_lit", 24, 10), d)
+        if d.marche_faite ~= 0 then return "à 14 m du lit : arrivée marquée à tort" end
+        d = { place_seuil = 1.5, marche_faite = 0 }
+        l.pres_de_la_place(entite("sans_place", 10, 10), d)
+        if d.marche_faite ~= 0 then return "sans place visée : arrivée marquée à tort" end
+        return nil
+    end)()""")
+    if place:
+        erreur("liaison : " + place)
     resultat = lua.eval("""(function()
         local l = Scriptorium.liaison_reelle
         local p = { x = 1, y = 2, z = 3 }
@@ -2002,7 +2023,7 @@ def verifier_la_vie_du_camp():
                               r'</Parallel>\s*<Expression expressions="\$scriptorium_essai_\w+ = \$scriptorium_essai_\w+ \+ 1" />\s*'
                               r'<Expression expressions="\$marche_faite = 1" />', comportements))
     if (not delai_marche or '"scriptorium_marche_approche_ms", math.floor(tonumber(marche_ms) or 0)' not in liaison
-            or bornees != rejouees + 1
+            or bornees != rejouees + 3 + 1
             or '$scriptorium_essai_numero == $numero_tenu &amp; $marche_faite == 1' not in comportements):
         erreur("vie du camp : le délai de la marche doit s'allonger du temps de marche (liaison, puis arbre), chaque marche "
                "bornée (sauf la marche simple, qui reprend d'elle-même) être rejouée jusqu'à l'arrivée (%d sur %d), et le "
@@ -2022,18 +2043,35 @@ def verifier_la_vie_du_camp():
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         if len(corps) != 2 or not re.search(releve, corps[1].split("$scriptorium_activite ==", 1)[0]):
             erreur("vie du camp : la branche %s doit se relever d'abord, seulement s'il faut marcher" % numero)
-    # Vu sur une copie le 20/10 (les hommes debout sur leur lit) : vers un objet (siège 10, lit 11, poste de travail 21),
-    # le Move ne réussit pas ; une seule marche bornée par le délai d'avant ($delai_place), puis la posture sur l'objet,
-    # jamais une marche rejouée ; la posture couchée suit la marche vers le lit.
+    # Vu sur une copie le 20/10 (les hommes debout sur leur lit ; demande du pair) : vers un objet (siège 10, lit 11, poste
+    # de travail 21), le Move ne réussit pas ; la marche finit à l'arrivée LUE (liaison.pres_de_la_place, à moins de
+    # $place_seuil, lu au cerveau) ou à la réussite du Move ; le délai n'est qu'un garde-fou (la marche est rejouée) ;
+    # la posture vient après, jamais lancée de loin ; la posture couchée suit la marche vers le lit.
+    place = (r'<Expression expressions="\$marche_faite = 0" />\s*<While doFail="false" propagateChildFail="false" '
+             r'condition="\$marche_faite == 0 &amp; \$scriptorium_essai_numero == \$numero_tenu">\s*<SuppressFailure>\s*<Sequence>\s*'
+             r'<Parallel successMode="Any" failureMode="Any">\s*<Move destinationSpecification="\$scriptorium_essai_siege"[^>]*/>\s*'
+             r'<Wait duration="\$delai"[^>]*/>\s*<While doFail="false" propagateChildFail="false" condition="\$marche_faite == 0">\s*'
+             r'<Sequence>\s*<Wait [^>]*/>\s*<SuppressFailure>\s*'
+             r'<ExecuteLua code="pcall\(function\(\) Scriptorium\.jeu\.pres_de_la_place\(entity, data\) end\)" />\s*'
+             r'</SuppressFailure>\s*</Sequence>\s*</While>\s*</Parallel>\s*'
+             r'<Expression expressions="\$scriptorium_essai_\w+ = \$scriptorium_essai_\w+ \+ 1" />\s*'
+             r'<Expression expressions="\$marche_faite = 1" />\s*</Sequence>\s*</SuppressFailure>\s*</While>')
+    places = 0
     for numero in ("10", "11", "21"):
         corps = sans_commentaires.split("$scriptorium_activite == " + numero + " &amp;", 1)
         corps = corps[1].split("$scriptorium_activite ==", 1)[0] if len(corps) == 2 else ""
-        if '<Wait duration="$delai_place"' not in corps or "marche_faite" in corps or '<Wait duration="$delai"' in corps:
-            erreur("vie du camp : la branche %s (une place) doit marcher une fois, bornée par $delai_place, puis prendre la "
-                   "posture, sans marche rejouée" % numero)
-        if numero == "11" and not re.search(r'<Wait duration="\$delai_place"[\s\S]*?<StanceElement smartObject="\$scriptorium_essai_siege" '
-                                            r'stance="lying"', corps):
+        if not re.search(place, corps):
+            erreur("vie du camp : la branche %s (une place) doit marcher jusqu'à l'arrivée lue (pres_de_la_place) ou la "
+                   "réussite du Move, le délai en garde-fou, puis prendre la posture" % numero)
+        else:
+            places += 1
+        if numero == "11" and not re.search(place + r'[\s\S]*?<StanceElement smartObject="\$scriptorium_essai_siege" stance="lying"', corps):
             erreur("vie du camp : la branche 11 doit prendre la posture couchée après la marche vers le lit")
+    if ('<Expression expressions="$place_seuil = ($scriptorium_cerveau_place_arrivee_cm &gt; 0 ? '
+            '$scriptorium_cerveau_place_arrivee_cm : 150) * 0.01" />') not in comportements:
+        erreur("vie du camp : le seuil d'arrivée à une place ($place_seuil) doit être lu au cerveau (place_arrivee_cm)")
+    if "function liaison.pres_de_la_place(entite, donnees)" not in liaison or "liaison.places_visees[nom_de_l_homme] = objet" not in liaison:
+        erreur("vie du camp : la liaison doit retenir la place visée et mesurer l'arrivée (liaison.pres_de_la_place)")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '

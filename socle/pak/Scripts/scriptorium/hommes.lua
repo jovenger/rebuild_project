@@ -245,6 +245,10 @@ hommes.cerveau = {
   siege_ecart_cm = 5,
   lit_arret_cm = 50,          -- l'approche d'un lit (posture « lying »)
   lit_ecart_cm = 5,
+  -- Vu sur une copie de la partie de JoVenGer le 20/10 (debout sur leur lit) : vers un objet, le Move ne réussit pas ;
+  -- l'arrivée se LIT (la liaison mesure l'écart à l'objet visé) : à moins de « place_arrivee_cm » de l'objet (son centre,
+  -- que l'homme ne peut pas toujours approcher à « siege_arret_cm »), la posture vient aussitôt.
+  place_arrivee_cm = 150,
   -- Le factionnaire (fiche 15, V73 d 1, réponses a et a de JoVenGer du 16/10) : l'arrêt au poste, court comme celui du
   -- siège ; le jour, un geste « regarder autour » toutes les « poste_geste_ms », plus ou moins « poste_geste_ecart_ms »
   -- tirés au hasard par le jeu (les gardes ne bougent pas tous ensemble).

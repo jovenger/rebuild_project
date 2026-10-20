@@ -3222,6 +3222,10 @@ local function donner_la_place(entite, objet, libelle, ordre)
   end
   local pose = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_siege", wuid) end)
   liaison.objet_vise = objet
+  local nom_lu, nom_de_l_homme = pcall(function() return entite:GetName() end)
+  if nom_lu then
+    liaison.places_visees[nom_de_l_homme] = objet
+  end
   -- Fiche 18, 5 c : au poste de travail (ordre 21), le geste de ce poste, lu par l'arbre (liaison.geste_du_poste).
   if ordre == 21 then
     local lu_nom, nom = pcall(function() return entite:GetName() end)
@@ -4044,6 +4048,27 @@ end
 -- joue l'arbre ; « donnees » : les variables de l'arbre. Pose le point suivant et le point regardé dans son cerveau, et
 -- écrit la pause dans « ronde_pause » (« 6000ms ») ; sans pas (homme inconnu, plus de ronde), rien : l'arbre garde sa
 -- pause par défaut. Une ligne au journal par pas ; une erreur, écrite au journal.
+-- Vu sur une copie de la partie de JoVenGer le 20/10 (debout sur leur lit) : vers un objet, le Move ne réussit pas ; la
+-- marche vers une place (siège, lit, poste de travail) finit quand l'homme est à moins de « place_seuil » (mètres, écrit
+-- par l'arbre) de l'objet visé (donné par liaison.ordonner) : appelée par l'arbre sous pcall, elle met
+-- « marche_faite » à 1. Une erreur, au journal.
+liaison.places_visees = liaison.places_visees or {}
+function liaison.pres_de_la_place(entite, donnees)
+  local fait, erreur = pcall(function()
+    local objet = liaison.places_visees[entite:GetName()]
+    local seuil = tonumber(donnees.place_seuil) or 0
+    if objet and seuil > 0 then
+      local ici, la = entite:GetWorldPos(), objet:GetWorldPos()
+      if math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) <= seuil then
+        donnees.marche_faite = 1
+      end
+    end
+  end)
+  if not fait then
+    liaison.journal("Place : erreur : " .. tostring(erreur))
+  end
+end
+
 function liaison.au_point_de_ronde(entite, donnees)
   local fait, erreur = pcall(function()
     local nom = entite:GetName()
