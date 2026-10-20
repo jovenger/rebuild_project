@@ -704,6 +704,19 @@ aucune sonde dans l'arbre.
     ne vaut rien loin d'Henry). Doublons de lits (la liste qui change entre deux ordres) : lit de la nuit gardé (90beb30,
     non vu). Départ depuis Loot à genoux : environ 7 s dans la branche 22, arbre non bloqué (sonde du pair) ; compteurs
     de sonde ajoutés (191604f) pour trouver l'étape lente. À installer à la prochaine séance : 90beb30.
+  - Séance sur copie (20/10, 16 h 34, e41be67, remise) : vu juste : la nuit, 10 hommes couchés chacun dans son lit,
+    0 doublon ; repas de midi, 6 assis à leur place, 0 doublon ; personnel à 0,0 m de son lit. Sonde du départ depuis
+    Loot : relève 2,5 s, puis 4 à 5,5 s avant le premier pas (le WaitAction attendait la fin normale du geste). Corrigé
+    par l'urgence du relever (336610e : UrgencyDecorator sous $urgence_relever, valeur de hommes.cerveau, rapide par
+    défaut ; fiche 12).
+  - Séance sur copie (20/10, 16 h 48, 336610e) puis INSTALLÉ pour tous les jours (« garder » d'office du pair, consigne
+    de JoVenGer) : socle 336610e, Scriptorium 0e35a4a9 ; retour arrière
+    `Scriptorium_securite\20261020_164827_733945_seance_du_socle`. Vu juste : le lever à 5 h, les 10 hommes à leur point
+    (1,8 à 2,5 m), aucun secours ni figé ; le relever en rapide : premier pas 3 à 4 s après le changement de but (2 s de
+    battement, relève 0,5 s, puis le Move), contre 8,9 à 11 s avant ; instantané non essayé (rapide suffit). La branche
+    21 (poste de travail) ne sert pas dans sa partie. À revoir sans saut d'horloge : 5 sortants « essai 1 sur 3 : cheval
+    retiré » dans le même battement juste après un saut de 6 h à 10 h, puis partis au second essai (non vu sans saut,
+    rien corrigé).
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
