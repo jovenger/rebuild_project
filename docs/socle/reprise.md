@@ -742,6 +742,27 @@ aucune sonde dans l'arbre.
 - Protocole de fenêtre : « fenêtre ouverte » au pair à chaque fin de séance, « fenêtre rendue » avant de relancer.
 - Liste de JoVenGer : `a_verifier_par_jovenger.md`.
 
+## 6 nonies. Où reprendre (pause du 20/10/2026 au soir, demandée par JoVenGer : PC éteint)
+- Installé pour tous les jours (« garder » d'office après J2) : socle 457cb10 + Scriptorium fd7e1961 ; retour arrière
+  `Scriptorium_securite61020_201702_763534_seance_du_socle`. playline1 intacte (146 fichiers, 19/10 16:59:16).
+- J2 vue juste (le pair) : lever sans faux figé, départs à cheval depuis le lit du premier coup et hors de vue, tir
+  (l'arc levé), crieurs, gestes du Directeur (feux), veillée assise, nuit couchée sans doublon.
+- En cours, rien corrigé :
+  - **16 vrais figés vers un geste de Scriptorium** (journal J2 : 0 faux ; 14 vers la branche 22, venant de l'exercice
+    ×4 (Jindřich), de scripto_getMash ×6, de waiting_armsCrossed ou prendre_epee ×3, ronde, corvée, camper_snooze ;
+    2 vers un siège depuis getMash ; 1 vers l'entraînement). Hypothèse : certains gestes et l'exercice ne se coupent pas
+    à l'urgence rapide.
+  - **À lire en J3** : à un « Gardien : … figé … relancé (1 sur 2) » vers un geste, les sondes de la branche 22
+    (`scriptorium_sonde_entree`, `_releve`, `_marche` par `Scriptorium.jeu.lire_le_cerveau`), deux fois à 2 s :
+    entrée sans relève = sortie de l'ancien geste ; relève sans marche = le Move ne part pas ; marche sans avancer = le
+    chemin. Et la mesure du pair : départs depuis eating_standing et getMash en rapide puis en instantanée
+    (`Scriptorium.hommes.cerveau.urgence_relever = 3`). Décider sur la mesure.
+  - **La mort hors bataille, à provoquer en J3** : aucune détection trouvée dans le code (seule la bataille lit
+    personnage_mort) ; un homme tué hors bataille resterait dans la Compagnie. Si c'est confirmé : l'ajouter au battement.
+  - **Les déclencheurs du jour** (pour aller plus vite, dans des copies) : `docs/socle/declencheurs.md` (mission, camp,
+    convoi, désertion, mort, renvoi, blessure ; jamais lancés).
+- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J.log, kcd_seance_J2.log.
+
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
 3. dialogue du Directeur et Gestion du camp à l'écran ; 4. quête de fond ; 5. voix et icônes ; 6. essais en jeu restants ;
