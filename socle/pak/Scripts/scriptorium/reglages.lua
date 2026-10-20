@@ -266,6 +266,8 @@ end
 -- ---------------------------------------------------------------- application
 
 local etat = { signature = nil, actif = false, generation = 0 }
+-- Ce que le fichier a posé : par chemin, { posee, avant } (la valeur posée, et celle d'avant le fichier).
+local poses = {}
 
 local function noter_le_refus(refus, chemin, valeur, raison)
   table.insert(refus, { chemin = chemin, valeur = valeur, raison = raison })
@@ -290,14 +292,36 @@ local function morceaux_a_prevenir()
   return liste
 end
 
--- Remet les valeurs validées puis pose celles du fichier. Rend le nombre de valeurs changées et la liste des refus.
+-- Pose les valeurs du fichier. Rend le nombre de valeurs changées et la liste des refus.
+-- Vu sur une copie de la partie de JoVenGer le 20/10 : le fichier remettait d'abord tout le catalogue aux valeurs
+-- validées, et effaçait ainsi ce que Scriptorium avait réglé en cours de partie (six valeurs pour une seule posée).
+-- Désormais, le fichier ne touche qu'aux valeurs qu'il nomme ; une valeur qu'il ne nomme plus reprend celle d'avant
+-- lui, sauf si quelqu'un l'a changée depuis (elle est alors laissée).
 function reglages.poser_les_valeurs(donnees, moment)
   local avant = {}
   for i, fiche in ipairs(releve.liste) do
     avant[i] = fiche.parent[fiche.cle]
   end
-  remettre_les_valeurs_validees()
+  -- La valeur d'avant le fichier, pour un chemin qu'il pose ou qu'il refuse.
+  local function valeur_d_avant(fiche)
+    local p = poses[fiche.chemin]
+    return p and p.avant or fiche.parent[fiche.cle]
+  end
+  local nommes = {}
+  for _, feuille in ipairs(feuilles_du_fichier(donnees or {}, "", 1, {})) do
+    nommes[feuille.chemin] = true
+  end
+  for chemin, p in pairs(poses) do
+    local fiche = releve.par_chemin[chemin]
+    if not nommes[chemin] then
+      if fiche and fiche.parent[fiche.cle] == p.posee then
+        fiche.parent[fiche.cle] = p.avant
+      end
+      poses[chemin] = nil
+    end
+  end
   local refus, du_fichier = {}, {}
+  local avant_le_fichier = {}
   local feuilles = feuilles_du_fichier(donnees or {}, "", 1, {})
   table.sort(feuilles, function(a, b) return a.chemin < b.chemin end)
   for _, feuille in ipairs(feuilles) do
@@ -306,8 +330,11 @@ function reglages.poser_les_valeurs(donnees, moment)
       noter_le_refus(refus, feuille.chemin, feuille.valeur, raison_d_un_chemin_inconnu(feuille.chemin))
     else
       local raison = raison_de_refuser(fiche, feuille.valeur)
+      avant_le_fichier[fiche] = valeur_d_avant(fiche)
       if raison then
         noter_le_refus(refus, feuille.chemin, feuille.valeur, raison)
+        fiche.parent[fiche.cle] = avant_le_fichier[fiche]
+        poses[fiche.chemin] = nil
       else
         fiche.parent[fiche.cle] = feuille.valeur
         du_fichier[fiche] = true
@@ -323,7 +350,7 @@ function reglages.poser_les_valeurs(donnees, moment)
         for _, membre in ipairs({ fiche, autre }) do
           if du_fichier[membre] then
             noter_le_refus(refus, membre.chemin, membre.parent[membre.cle], "min_au_dessus_du_max")
-            membre.parent[membre.cle] = membre.validee
+            membre.parent[membre.cle] = avant_le_fichier[membre]
             du_fichier[membre] = nil
           end
         end
@@ -338,11 +365,18 @@ function reglages.poser_les_valeurs(donnees, moment)
         for _, fiche in ipairs(releve.liste) do
           if fiche.entree == entree and entree.forme[fiche.cle] and du_fichier[fiche] then
             noter_le_refus(refus, fiche.chemin, fiche.parent[fiche.cle], raison)
-            fiche.parent[fiche.cle] = fiche.validee
+            fiche.parent[fiche.cle] = avant_le_fichier[fiche]
             du_fichier[fiche] = nil
           end
         end
       end
+    end
+  end
+  for fiche in pairs(avant_le_fichier) do
+    if du_fichier[fiche] then
+      poses[fiche.chemin] = { posee = fiche.parent[fiche.cle], avant = avant_le_fichier[fiche] }
+    else
+      poses[fiche.chemin] = nil
     end
   end
   local changes = 0
@@ -429,6 +463,7 @@ end
 -- Pour les essais : les valeurs validées remises, le fichier oublié, la veille arrêtée.
 function reglages.remettre_a_zero()
   remettre_les_valeurs_validees()
+  poses = {}
   etat.signature = nil
   etat.actif = false
   for _, nom in ipairs(morceaux_a_prevenir()) do

@@ -61,6 +61,34 @@ essai("réglages : une valeur posée, puis retirée du fichier, puis le fichier 
   egal(hommes.reglages.ration, 2, "tout revient")
 end)
 
+essai("réglages (vu sur une copie le 20/10) : le fichier ne touche qu'aux valeurs qu'il nomme ; ce que Scriptorium a réglé en partie reste", function()
+  depart_avec_caractere()
+  poser(nil)
+  -- Scriptorium a réglé deux valeurs en cours de partie (par son propre chemin, pas par le fichier).
+  hommes.reglages.postes_garde_jour, hommes.reglages.ration = 0, 5
+  local r = poser({ hommes = { fige_relances_max = 0 } })
+  egal(r.changes, 1, "une seule valeur changée")
+  egal(hommes.reglages.fige_relances_max, 0, "la valeur du fichier posée")
+  egal(hommes.reglages.postes_garde_jour, 0, "la garde de Scriptorium reste")
+  egal(hommes.reglages.ration, 5, "la ration de Scriptorium reste")
+  -- Retirée du fichier : elle reprend sa valeur d'avant le fichier ; le reste ne bouge pas.
+  r = poser({})
+  egal(hommes.reglages.fige_relances_max, 2, "retirée : la valeur d'avant le fichier")
+  egal(hommes.reglages.postes_garde_jour, 0, "la garde de Scriptorium reste encore")
+  -- Une valeur du fichier changée ensuite par Scriptorium : retirée du fichier, elle est laissée telle quelle.
+  poser({ hommes = { fige_relances_max = 1 } })
+  hommes.reglages.fige_relances_max = 4
+  poser({})
+  egal(hommes.reglages.fige_relances_max, 4, "changée depuis par Scriptorium : laissée")
+  -- Une valeur refusée par le fichier ne touche à rien non plus.
+  hommes.reglages.ration = 6
+  poser({ hommes = { ration = -1 } })
+  egal(hommes.reglages.ration, 6, "refusée : la valeur en place reste")
+  hommes.reglages.postes_garde_jour, hommes.reglages.ration = reglages.valeur_validee("hommes.postes_garde_jour"),
+    reglages.valeur_validee("hommes.ration")
+  hommes.reglages.fige_relances_max = reglages.valeur_validee("hommes.fige_relances_max")
+end)
+
 essai("réglages : listes à nom, désignées par le nom", function()
   depart_avec_caractere()
   local r = poser({ issues = { victoire = { blesses = 0.1 } }, fautes = { rixe = { poids = 5.5 } } })
