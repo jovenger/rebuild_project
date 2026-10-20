@@ -642,7 +642,20 @@ aucune sonde dans l'arbre.
   - INSTALLÉ pour tous les jours (d'office, consigne du 20/10) : socle e99eaad, Scriptorium 093546e2 ; retour arrière :
     `Scriptorium_securite\20261020_095256_783460_seance_du_socle`.
   - Sommeil d'un mené sur un lit nommé (demande du pair, le personnel debout la nuit) : `{ activite = "sommeil", lit =
-    "<entité>" }` par `tenir_un_personnage`, règle `sommeil` (fiche 18) ; essai (vérifié qu'il échoue sans) ; non installé.
+    "<entité>" }` par `tenir_un_personnage`, règle `sommeil` (fiche 18) ; essai (vérifié qu'il échoue sans).
+  - Séance regroupée (20/10, 10 h 10 à 11 h 30, copie playline2, jamais sauvée, quatre passages ; d'office) :
+    - vu juste : le personnel couché chacun dans son lit réservé (les 4 femmes des bains et le coursier dans des lits
+      d'hommes libres, faute de tente « femmes ») ; repas de midi assis aux bancs ; veillée sur les rondins ; tour de
+      guet tenue par un archer engagé dans la copie (équipé à son lever, flèches comprises) ;
+    - corrigé chez nous : lit nommé à plus de 100 m du camp refusé (8ba1040 : trois gens envoyés à 2 km, cause chez le
+      pair) ; rangs autour d'un point derrière le premier, plus à travers le feu (46ec2e8) ; gardien : figé au-delà
+      de 3 m, la marche du jeu s'arrêtant à 2,2-2,5 m (bbbf563, mesuré par les sondes du pair ; non revu en jeu) ;
+    - reste (pair, plus tard) : au lever, des hommes bloqués par les objets du camp de Scriptorium, absents du maillage
+      de navigation (feu #23, rondins, foyer #26), posés par le secours hors de la vue d'Henry ;
+    - à dire à JoVenGer : avec 16 hommes (17 dans la copie) en relève plus le personnel dans des lits d'hommes, il manque des lits la nuit
+      (un homme « sans but » à 4 h 50) : une tente des hommes de plus (4 lits) suffirait.
+  - INSTALLÉ pour tous les jours (d'office, consigne du 20/10) : socle bbbf563, Scriptorium 1d4d5705 ; retour arrière :
+    `Scriptorium_securite\20261020_101103_974149_seance_du_socle`.
 - Reste à voir en jeu : le remplacement d'une pièce à la forge ; un homme au bain (déshabillé, puis rhabillé) ; les hommes
   libres au travail (forge, armurier, fouille, portage, chantiers).
 - Caméra du dialogue : PAS un défaut (vu par JoVenGer le 18/10) : quand l'homme parle, c'est lui qu'on voit ; mes
