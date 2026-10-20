@@ -157,7 +157,9 @@ hommes.reglages = {
   gardien_sous_sol_regards = 2,
   gardien_immortel_ms = 15000,
   gardien_repeches_max = 3,
-  fige_but_m = 2.5,
+  -- Mesuré sur une copie de la partie de JoVenGer le 20/10 (sondes du pair) : la marche du jeu s'arrête à 2,2-2,5 m de
+  -- son point ; à 2,5, un homme arrivé était encore jugé figé et relancé. Aligné sur « secours_arrivee_m » (3).
+  fige_but_m = 3,
   fige_bouge_m = 0.5,
   fige_utile_m = 1.5,
   fige_relances_max = 2,

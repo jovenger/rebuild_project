@@ -3433,6 +3433,21 @@ essai("gardien (fiche 15, V73 g) : sous le sol deux regards de suite, repêché 
   FauxJeu.refuser_les_effets = nil
 end)
 
+essai("gardien (mesuré sur une copie le 20/10) : arrêté à 2,7 m de son point, la distance d'arrêt de la marche du jeu, il n'est pas figé", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  local a = hommes.activite_de(id, 10)
+  verifier(a and a.position, "une activité avec un but")
+  FauxJeu.reveilles = {}
+  FauxJeu.positions[f.personnage] = { x = a.position.x, y = a.position.y + 2.7, z = 0 }
+  local ordres = #FauxJeu.ordres
+  for _ = 1, 5 do hommes.garder() end
+  egal(#FauxJeu.ordres, ordres, "aucune relance")
+  egal(#FauxJeu.reveilles, 0, "personne réveillé")
+end)
+
 essai("gardien (fiche 15, V73 g) : figé loin de son but, relancé (réveil, ordre redonné), deux fois au plus et pas deux en 8 s ; la relance utile ; ni suite, ni bataille, ni combat ; tant par regard", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

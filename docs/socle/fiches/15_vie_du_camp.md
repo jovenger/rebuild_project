@@ -2493,7 +2493,7 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
    puis une ligne « laissé ».
 3. **Figé** (la définition de Scriptorium) : il a un but (la position de son activité), n'est ni en combat ni en
    conversation, ni en suite (« suivre » : le rattrapage) ni en bataille (un archer qui tire depuis sa place ne déclare
-   pas de cible) ; il est à plus de `fige_but_m` (2,5) de son but et a bougé de moins de `fige_bouge_m` (0,5) depuis le
+   pas de cible) ; il est à plus de `fige_but_m` (3 ; 2,5 jusqu'au 20/10 : la marche du jeu s'arrête à 2,2-2,5 m de son point, mesuré ce jour-là) de son but et a bougé de moins de `fige_bouge_m` (0,5) depuis le
    regard précédent ; son ordre a au moins `fige_ordre_regards` (2) regards (il a eu le temps de partir).
 4. **La relance** : le personnage réveillé (`Activate` et `AI.AutoDisable` à 0, comme à la naissance), puis son ordre
    redonné avec un nouveau numéro : la garde de l'arbre coupe l'action en cours et relit l'activité (c'est « remplacer
@@ -2504,7 +2504,7 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 
 ### Règles en données (catalogue)
 - `hommes.reglages` : `gardien_cadence_ms` 4000, `gardien_sous_sol_m` 5, `gardien_sous_sol_regards` 2,
-  `gardien_immortel_ms` 15 000, `gardien_repeches_max` 3, `fige_but_m` 2,5, `fige_bouge_m` 0,5, `fige_utile_m` 1,5,
+  `gardien_immortel_ms` 15 000, `gardien_repeches_max` 3, `fige_but_m` 3, `fige_bouge_m` 0,5, `fige_utile_m` 1,5,
   `fige_relances_max` 2, `fige_regards_entre` 2, `fige_par_regard` 6, `fige_ordre_regards` 2.
 
 ### Au banc (fait)
