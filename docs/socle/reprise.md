@@ -792,6 +792,14 @@ aucune sonde dans l'arbre.
   déclaration des places, tournée du soir vide, colonel parti à cheval hors du camp, réglé avec
   `hommes.etendue_du_camp()` qui rend (centre, rayon)) : vu juste ; gardé pour tous les jours : socle 17561a9 +
   Scriptorium 0b5d6400 ; retour arrière `Scriptorium_securite61021_163948_817892_seance_du_socle`.
+- J25 à J29 (le camp qui tourne seul, 30 embauches d'un coup, relevés du journal toutes les 10 minutes) ; commits :
+  17561a9 puis ff70204 (embauchés jamais venus : reprise au battement, 33 places au feu), 9ce0348 (ordre sans but :
+  activité 0 ; ronde à vide arrêtée), e54d043 (un assommé n'est ni figé ni bloqué), 455a71e et 35d2b48 (dormir au sol
+  près du feu, décision de JoVenGer : posture QuestHunterInjuryIdleLie, jouée sans objet, vue couchée en jeu ; un nom
+  réglable par le fichier), 9a845d1 (hommes.sieges_occupes), 61c1ebb (le siège de l'homme gardé pendant le repas et la
+  veillée). Leçon : « tient le geste » au journal ne prouve que l'ordre posé, pas la posture jouée (fiche 15).
+- Gardé pour tous les jours après J29 : socle 61c1ebb + Scriptorium 340a9c26 ; retour arrière
+  `Scriptorium_securite61021_172541_788513_seance_du_socle`.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire

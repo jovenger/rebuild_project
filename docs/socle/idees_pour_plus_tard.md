@@ -45,3 +45,9 @@
   avant et après les affrontements : un écart déjà présent dans la copie autosave1914, pas une perte en séance.
 - Idée : après le second passage, faire suivre à la liste de l'homme le sac réel (oublier les pièces introuvables), pour
   ne plus les redemander à chaque rhabillage. À trancher avant d'y toucher : rien ne se perd en jeu aujourd'hui.
+
+## La rafale de refus à l'arrivée d'un coup de trente hommes (vu en J29, le 21/10)
+- Juste après trente embauches d'un coup, une rafale de 120 refus « place_prise » pour les dames, puis plus aucun : les
+  nouveaux hommes n'ont pas de siège gardé (`hommes.sieges_du_moment`) avant leur premier ordre ; leurs sièges glissent
+  le temps qu'ils reçoivent tous leur ordre. Se règle seul ; idée : garder aussi le siège calculé à la première
+  `activite_de`, ou ordonner les nouveaux venus dans le même battement que leur venue.
