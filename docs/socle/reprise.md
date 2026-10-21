@@ -785,6 +785,9 @@ aucune sonde dans l'arbre.
 - J21 (décisions de JoVenGer de midi, chez Scriptorium : garnison du Directeur au tiers, deux gardes des bains sous
   25 hommes, prime du contrat d'Henry dans le partage 40/60) : vu juste par le pair ; gardé pour tous les jours :
   socle 17561a9 + Scriptorium 1b74decd ; retour arrière `Scriptorium_securite61021_120151_274126_seance_du_socle`.
+- J22 et J23 (vérifications restantes du pair ; J22 : expédition 4 contre 4 puis 3 contre 4, rien d'anormal côté socle) :
+  gardé pour tous les jours : socle 17561a9 + Scriptorium 5bc3c579 ; retour arrière
+  `Scriptorium_securite61021_121136_661933_seance_du_socle`.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
