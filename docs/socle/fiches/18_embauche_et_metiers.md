@@ -320,3 +320,14 @@ Comportement :
   « place_prise » de `hommes.tenir`, qui l'emploie désormais : un siège qu'elle dit libre n'est pas refusé pour cette
   raison. Une `activite_de` par homme : une fois par tour, pas une fois par siège.
 - Essai (vérifié en échec sans) ; non vu en jeu.
+
+## Le siège de l'homme gardé pendant le repas et la veillée (vu sur une copie le 21/10, J28)
+- Vu : avec `sieges_occupes`, encore 829 refus « place_prise » en dix minutes. Hanuš de Talmberk reçoit l'ordre de veillée
+  sur ScriptoEditeur_24_8_so ; dès qu'une lavandière tient 25_10, le socle le dit sur 25_6 : son siège a glissé. La règle
+  par défaut prend `libres[rang]` : un siège pris ou rendu par une dame décale les sièges de tous les hommes qui suivent ;
+  la table lue par Scriptorium en début de tour devient fausse à la dame suivante.
+- Désormais, comme les lits de la nuit : le siège donné à un homme pour le repas ou la veillée lui reste
+  (`hommes.sieges_du_moment`, en mémoire) tant que dure l'activité et que le siège est encore déclaré ; les autres hommes
+  ne le reçoivent pas. Une dame ne fait plus glisser personne : `sieges_occupes` reste juste pendant tout le tour.
+- Essai (vérifié en échec sans : le siège de l'homme glisse de 24_6 à 24_8 quand la dame prend 24_4, comme en jeu) ;
+  non vu en jeu.

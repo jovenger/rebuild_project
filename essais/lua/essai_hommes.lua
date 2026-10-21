@@ -4394,6 +4394,46 @@ essai("lit du personnel (question du pair, 21/10, J15 et J16) : un lit déclaré
   Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
 end)
 
+essai("siège gardé (vu sur une copie le 21/10, J28 : 829 refus place_prise) : un siège pris par une dame ne fait plus glisser le siège d'un homme au repas ; sieges_occupes reste juste", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local premier = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local second = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local bancs = { "ScriptoEditeur_24_4_so", "ScriptoEditeur_24_6_so", "ScriptoEditeur_24_8_so", "ScriptoEditeur_24_10_so" }
+    local places = {}
+    FauxJeu.positions_des_objets = {}
+    for i, b in ipairs(bancs) do
+      table.insert(places, { nom = b, sorte = "siege" })
+      FauxJeu.positions_des_objets[b] = { x = i, y = 1, z = 0 }
+    end
+    verifier(camp.declarer_les_places(places), "quatre sièges déclarés")
+    FauxJeu.personnages_existants["ScriptoBain_1"] = true
+    -- Le premier homme est tenu ailleurs : le premier siège reste libre ; le second s'assoit au repas, l'ordre donné.
+    verifier(hommes.tenir(premier, "travail", { activite = "attendre", fin = "liberation" }), "le premier tenu ailleurs")
+    FauxJeu.heure = 12.5
+    hommes.battre()
+    local avant = hommes.activite_de(second, 12.5).lieu
+    verifier(avant and camp.sorte_de(avant) == "siege", "le second a un siège (" .. tostring(avant) .. ")")
+    local libre = nil
+    for _, b in ipairs(bancs) do
+      if b ~= avant and not hommes.sieges_occupes(12.5)[b] then libre = libre or b end
+    end
+    verifier(libre, "un siège libre pour la dame")
+    verifier(hommes.tenir_un_personnage("ScriptoBain_1", "loisir", { activite = "assise", lieu = libre, fin = "liberation" }),
+             "la dame tient un siège libre")
+    egal(hommes.activite_de(second, 12.5).lieu, avant, "le siège du second n'a pas glissé")
+    egal(hommes.sieges_occupes(12.5)[avant], hommes.fiche(second).nom, "sieges_occupes le dit toujours là")
+    hommes.lacher_un_personnage("ScriptoBain_1", "loisir")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("siège du personnel (demande du pair, 21/10, J15) : un siège tenu par un mené assis n'est pas offert aux hommes ; un siège déjà pris par un homme est refusé au mené (place_prise)", function()
   depart()
   FauxJeu.heure = 10

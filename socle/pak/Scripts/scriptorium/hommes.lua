@@ -2232,12 +2232,35 @@ local function sieges_du_personnel(d, sauf)
   return tenus
 end
 
+-- Vu sur une copie de la partie de JoVenGer le 21/10 (J28 : 829 refus « place_prise » en dix minutes ; la règle par
+-- défaut prend libres[rang], un siège pris ou rendu par une dame faisait glisser les sièges des hommes) : comme les lits
+-- de la nuit, le siège donné à un homme pour le repas ou la veillée lui reste tant que dure l'activité ; les autres ne
+-- le reçoivent pas. En mémoire seulement : id -> nom du siège.
+hommes.sieges_du_moment = hommes.sieges_du_moment or {}
+
+-- Le siège gardé de cet homme, s'il est encore un siège du camp et qu'aucun mené ne le tient ; sinon il est rendu.
+local function siege_du_moment(d, id)
+  local siege = hommes.sieges_du_moment[id]
+  if siege and (camp().sorte_de(siege) ~= "siege" or sieges_du_personnel(d, id)[siege]) then
+    hommes.sieges_du_moment[id] = nil
+    siege = nil
+  end
+  return siege
+end
+
 local function place_pour(id, sorte)
   local libres = Scriptorium.avis(camp(), "places_libres", sorte, "hommes")
   if sorte == "siege" then
-    local tenus, restants = sieges_du_personnel(donnees(), id), {}
+    local d = donnees()
+    local tenus, restants = sieges_du_personnel(d, id), {}
+    local gardes = {}
+    for autre, siege in pairs(hommes.sieges_du_moment) do
+      if autre ~= id and d.liste[autre] then
+        gardes[siege] = true
+      end
+    end
     for _, place in ipairs(libres) do
-      if not tenus[place] then
+      if not tenus[place] and not gardes[place] then
         table.insert(restants, place)
       end
     end
@@ -2637,7 +2660,7 @@ function hommes.activite_de(id, heure)
     resultat.lieu = (activite == "des") and "des" or "exercice"
     resultat.position = place_autour(p)
   elseif activite == "repas" or activite == "veillee" then
-    local siege = place_pour(id, "siege")
+    local siege = siege_du_moment(d, id) or place_pour(id, "siege")
     if siege then
       resultat.lieu = siege
       resultat.position = camp().position_de(siege)
@@ -3698,6 +3721,12 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     hommes.lits_de_nuit[id] = a.lieu
   elseif a and a.activite ~= "sommeil" and a.activite ~= "repos" then
     hommes.lits_de_nuit[id] = nil
+  end
+  -- Le siège du repas ou de la veillée (vu le 21/10, J28) : gardé tant que dure l'activité.
+  if a and (a.activite == "repas" or a.activite == "veillee") and a.lieu and camp().sorte_de(a.lieu) == "siege" then
+    hommes.sieges_du_moment[id] = a.lieu
+  elseif a and a.activite ~= "repas" and a.activite ~= "veillee" then
+    hommes.sieges_du_moment[id] = nil
   end
   -- Le sommeil au sol (décision de JoVenGer du 21/10) : sa place gardée pour la nuit, et comptée pour le colonel.
   if a and a.au_sol then
