@@ -763,6 +763,23 @@ aucune sonde dans l'arbre.
     convoi, désertion, mort, renvoi, blessure ; jamais lancés).
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J.log, kcd_seance_J2.log.
 
+## 6 decies. Où reprendre (21/10/2026, vers midi, après J18)
+- Installé pour tous les jours (« garder » après J18, demandé par JoVenGer via le pair) : socle def2eae + Scriptorium
+  aee2a75b ; retour arrière `Scriptorium_securite61021_054840_948806_seance_du_socle`. playline1 intacte
+  (146 fichiers, 19/10 16:59:16), playline0 intacte (178).
+- Commits du 21/10 (depuis 0040dde) : 621abf3 blessure visible et étendue du camp ; 38a8bc9 fouille d'un corps disparu ;
+  7b270a7 service `hommes.poser` ; 9731a8a cavalier au bord du camp ; a9b1cc9 interlocuteur visé ; d1b5bd4 paroles du
+  Directeur ; da57e83 cadre de visée ; 1b7b90c provocations des pillards ; a6838f7 siège du personnel ; 09d847d
+  « Rentrez tous au camp » ; def2eae essai du lit du personnel (sans code).
+- Vu juste en jeu (le pair, J11 à J18) : dialogue lié à l'homme visé, cadre de visée, provocations, dames assises,
+  « Rentrez tous au camp » (réplique 44, escorte lâchée, chacun à sa place), coucher des dames sans boucle (la boucle
+  venait de la prise de Scriptorium, corrigée chez lui en aee2a75b).
+- Abandonné à la demande du pair : « Où en es-tu ? » (le statut existe sous « Discutons un peu ») ; rustine gardée dans le
+  brouillon de la session, hors dépôt.
+- À regarder si on le demande : au chargement, « relance de « camp » en erreur : registre : case inconnue :
+  v_ScriptoBesoins » (déjà en J16, J17, J18).
+- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
+
 ## 7. Ce qui reste à faire
 Voir `docs/socle/plan_d_action.md` : 1. comportement des personnages (priorité) ; 2. nos âmes et personnages ;
 3. dialogue du Directeur et Gestion du camp à l'écran ; 4. quête de fond ; 5. voix et icônes ; 6. essais en jeu restants ;
