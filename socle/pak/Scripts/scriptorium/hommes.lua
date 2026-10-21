@@ -214,6 +214,9 @@ hommes.reglages = {
   partage_attente_m = 2.5,
   palier_par_defaut = 1,      -- palier d'embauche quand le contrat n'en donne pas : 1 recrue, 2 confirmé, 3 vétéran
   plafond = 80,               -- fiche 18, 5 a : la compagnie au plus (le chiffre de JoVenGer du 28/09)
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J26 : 30 embauches d'un coup, 13 jamais venus, « aucune place
+  -- libre à côté » du feu) : au battement, au plus tant d'hommes sans personnage sont refaits (0 : jamais, comme avant).
+  venues_par_battement = 3,
   -- L'arbitre (fiche 15, V73 b 3) : une tenue « jusqu'à libération » (bataille, patrouille) tombe par sûreté au bout de
   -- tant d'heures du jeu, notée au journal (réponse 2 a de JoVenGer) ; la journée du socle tient l'homme qu'aucune règle
   -- ne tient (réponse 3 a) : à faux, il attend où il est (Scriptorium la coupera à la bascule).
@@ -4133,6 +4136,32 @@ function hommes.lancer_le_gardien()
   return true
 end
 
+-- Vu sur une copie de la partie de JoVenGer le 21/10 (J26) : un homme dont la venue a été refusée (« place prise … et
+-- aucune place libre à côté » : trente embauches nées au feu dans le même instant) restait sans personnage jusqu'au
+-- chargement suivant (hommes.redresser). Au battement, sur la carte du camp, au plus « venues_par_battement » d'entre
+-- eux sont refaits, dans l'ordre du camp ; ni un homme dehors (sa mission le fait rentrer), ni un admis.
+local function refaire_les_absents(d)
+  local limite = tonumber(hommes.reglages.venues_par_battement) or 0
+  if limite <= 0 or not camp().est_fonde() or (camp().sur_sa_carte ~= nil and not camp().sur_sa_carte()) then
+    return 0
+  end
+  local refaits = 0
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    if refaits >= limite then
+      break
+    end
+    if f and f.personnage == nil and not f.dehors and not f.admis then
+      refaits = refaits + 1
+      if faire_venir(d, f, false) then
+        jeu().journal("Hommes : « " .. f.nom .. " » vient enfin (sa venue avait été refusée)")
+        enregistrer()
+      end
+    end
+  end
+  return refaits
+end
+
 function hommes.battre()
   local d = donnees()
   local heure = jeu().heure_du_jeu()
@@ -4191,6 +4220,8 @@ function hommes.battre()
   if rapport.changements > 0 then
     verifier_rangs(d, rapport)
   end
+  -- Même vue (J26) : les hommes restés sans personnage (la venue refusée) sont refaits ici, pas seulement au chargement.
+  refaire_les_absents(d)
   -- Les tenues tombent à leur fin ; une tenue « jusqu'à libération » tombe par sûreté au bout de « tenue_max_h »
   -- (réponse 2 a de JoVenGer, V73 b), notée au journal : sa règle l'avait oubliée (fiche 15, V73 b 3).
   for _, id in ipairs(d.ordre) do

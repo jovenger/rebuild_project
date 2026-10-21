@@ -4257,6 +4257,35 @@ essai("lits (décision de JoVenGer, 20/10 : tous en relève) : interrupteur éte
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("venue refusée (vu sur une copie le 21/10, J26 : 13 embauchés jamais venus) : l'homme sans personnage est refait au battement, au plus « venues_par_battement » à la fois ; jamais un homme dehors", function()
+  preparer(20000, 100, 10)
+  -- Comme en jeu (décision de JoVenGer du 20/10) : aucun lit à soi.
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  FauxJeu.refuser_personnage = true
+  local ids = {}
+  for i = 1, 5 do
+    local id = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    verifier(id, "embauché " .. i)
+    table.insert(ids, id)
+  end
+  local function presents()
+    local n = 0
+    for _, id in ipairs(ids) do
+      if hommes.fiche(id).personnage then n = n + 1 end
+    end
+    return n
+  end
+  egal(presents(), 0, "venues refusées : aucun personnage")
+  verifier(hommes.mettre_dehors(ids[5], "mission"), "le cinquième part en mission")
+  FauxJeu.refuser_personnage = false
+  hommes.battre()
+  egal(presents(), 3, "un battement : trois refaits")
+  hommes.battre()
+  egal(presents(), 4, "le battement suivant : le quatrième ; l'homme dehors, jamais")
+  verifier(hommes.fiche(ids[5]).personnage == nil, "l'homme en mission reste sans personnage")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+end)
+
 essai("lit du personnel (question du pair, 21/10, J15 et J16) : un lit déclaré que tient un mené au sommeil n'est pas offert aux hommes ; lâché, il l'est de nouveau", function()
   depart()
   FauxJeu.heure = 10

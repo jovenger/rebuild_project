@@ -299,3 +299,14 @@ Comportement :
 - Limite : avec l'interrupteur `un_lit_par_homme` allumé, un lit attribué à un homme (`f.lit`) reste le sien ; en jeu
   l'interrupteur est éteint (décision de JoVenGer du 20/10).
 - Essai (vérifié en échec sans) ; non vu en jeu.
+
+## Les embauchés jamais venus (vu sur une copie de la partie de JoVenGer le 21/10, J26)
+- Vu : trente embauches d'un coup par Scriptorium ; 17 nés, 13 jamais venus (« Venue impossible : place prise : un
+  personnage à moins de 1 m, et aucune place libre à côté », puis « il reste sur le registre »), 25 minutes plus tard
+  toujours absents. Tout embauché naît au feu ; la liaison n'y essayait que 17 places (le point, 8 à 1,2 m, 8 à 2,4 m),
+  et un homme sans personnage n'était refait qu'au chargement (`hommes.redresser`).
+- Désormais : au battement, sur la carte du camp, au plus `hommes.reglages.venues_par_battement` (3, réglable ; 0 :
+  jamais) hommes sans personnage sont refaits, dans l'ordre du camp, au journal « vient enfin » ; jamais un homme dehors
+  (sa mission le fait rentrer) ni un admis. La recherche de place a un troisième anneau de seize points à 3,6 m
+  (33 places).
+- Essai de la reprise (vérifié en échec sans) ; l'anneau dépend du moteur, non éprouvé au banc ; non vu en jeu.

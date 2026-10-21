@@ -413,9 +413,12 @@ local function place_libre(position)
   if not place_prise(position) then
     return position
   end
-  for _, rayon in ipairs({ 1.2, 2.4 }) do
-    for k = 0, 7 do
-      local angle = k * math.pi / 4
+  -- Vu le 21/10 (J26 : trente embauches nées au feu dans le même instant, 17 places essayées, 13 refusés) : trois
+  -- anneaux, le dernier de seize points (33 places).
+  for _, anneau in ipairs({ { 1.2, 8 }, { 2.4, 8 }, { 3.6, 16 } }) do
+    local rayon, points = anneau[1], anneau[2]
+    for k = 0, points - 1 do
+      local angle = k * 2 * math.pi / points
       local voisine = liaison.au_sol({ x = position.x + rayon * math.cos(angle), y = position.y + rayon * math.sin(angle),
                                        z = position.z })
       if not place_prise(voisine) then
