@@ -277,3 +277,13 @@ Comportement :
   (EntityContextElement, MeleeOffenseAutomationDecorator) ajoutées aux formes admises (38, revue).
 - Au banc : essai_hommes (refus, ordre, cible, regard, tenu, cible changée, lâché) et contrôles de la branche 24 et de
   la liaison (vérifiés en échec sans). Non vu en jeu.
+
+## Le siège du personnel assis (demande du pair, 21/10, J15)
+- Vu : quatre dames des bains tenues « assise » sur des rondins déclarés par Scriptorium ; l'une restait debout à côté du
+  sien pendant que les hommes déjeunaient sur les rondins voisins. Un siège déclaré (sorte « siege ») que tient un mené
+  (le lieu de sa tenue la plus forte) n'est plus offert aux hommes (`place_pour`). Un mené tenu sur un siège qu'un homme
+  occupe déjà (son activité du moment y est) est refusé : `place_prise`. Le siège revient aux hommes quand le mené est
+  lâché.
+- La forme pour Scriptorium : `hommes.tenir_un_personnage(nom, "loisir", { activite = "assise", lieu = <siège déclaré>,
+  fin = … })` (ordre 10, la posture assise du jeu sur l'objet ; pas de geste à nommer).
+- Essai (vérifié en échec sans) ; non vu en jeu.

@@ -2131,8 +2131,33 @@ end
 
 -- La place de l'homme (décision remplaçable camp.place_pour), parmi les places libres de la sorte, sans celles réservées
 -- à un autre (vu en jeu le 19/10 : sur un camp sans Directeur, un homme dormait dans le lit du Directeur).
+-- Demande du pair (21/10, J15 : quatre dames des bains tenues « assise » sur des rondins déclarés, une debout à côté du
+-- sien pendant que les hommes déjeunaient sur les rondins voisins) : les sièges que tient le personnel mené (le lieu de
+-- sa tenue la plus forte, une place déclarée de sorte « siege »), sauf pour lui-même.
+local function sieges_du_personnel(d, sauf)
+  local tenus = {}
+  for cle, f in pairs(d.menes or {}) do
+    if cle ~= sauf and f.tenues then
+      local _, t = tenue_la_plus_forte(f)
+      if t and t.lieu and camp().sorte_de(t.lieu) == "siege" then
+        tenus[t.lieu] = cle
+      end
+    end
+  end
+  return tenus
+end
+
 local function place_pour(id, sorte)
   local libres = Scriptorium.avis(camp(), "places_libres", sorte, "hommes")
+  if sorte == "siege" then
+    local tenus, restants = sieges_du_personnel(donnees(), id), {}
+    for _, place in ipairs(libres) do
+      if not tenus[place] then
+        table.insert(restants, place)
+      end
+    end
+    libres = restants
+  end
   if sorte == "lit" then
     local d, gardes = donnees(), {}
     for autre, lit in pairs(hommes.lits_de_nuit) do
@@ -4464,6 +4489,15 @@ function hommes.tenir(id, regle, quoi)
     end
     if not jeu().objet_existe(quoi.cible) then
       return refuser("tir_invalide", "cible introuvable : " .. quoi.cible)
+    end
+  end
+  -- Même demande (J15) : un mené tenu sur un siège déclaré qu'un homme de la Compagnie occupe déjà : refusé.
+  if f.mene and type(quoi.lieu) == "string" and camp().sorte_de(quoi.lieu) == "siege" then
+    for _, autre in ipairs(d.ordre) do
+      local a = Scriptorium.avis(hommes, "activite_de", autre, heure)
+      if a and a.lieu == quoi.lieu then
+        return refuser("place_prise", quoi.lieu .. " : " .. tostring(d.liste[autre].nom))
+      end
     end
   end
   -- Fiche 18, 5 c, tranche 4 : la station partagée avec Henry, une station surveillée.

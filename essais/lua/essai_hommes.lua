@@ -4257,6 +4257,44 @@ essai("lits (décision de JoVenGer, 20/10 : tous en relève) : interrupteur éte
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("siège du personnel (demande du pair, 21/10, J15) : un siège tenu par un mené assis n'est pas offert aux hommes ; un siège déjà pris par un homme est refusé au mené (place_prise)", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local id = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local bancs = { "ScriptoEditeur_24_4_so", "ScriptoEditeur_24_6_so" }
+    verifier(camp.declarer_les_places({ { nom = bancs[1], sorte = "siege" }, { nom = bancs[2], sorte = "siege" } }), "deux sièges déclarés")
+    FauxJeu.positions_des_objets = { [bancs[1]] = { x = 3, y = 1, z = 0 }, [bancs[2]] = { x = 4, y = 1, z = 0 } }
+    FauxJeu.personnages_existants["ScriptoBain_1"] = true
+    FauxJeu.personnages_existants["ScriptoBain_2"] = true
+    local premier = hommes.activite_de(id, 12.5)
+    verifier(premier.activite == "repas" and premier.lieu, "l'homme a un siège au repas")
+    local libre = (premier.lieu == bancs[1]) and bancs[2] or bancs[1]
+    -- Le siège déjà pris par l'homme : refusé au mené.
+    FauxJeu.heure = 12.5
+    local ok2, raison = hommes.tenir_un_personnage("ScriptoBain_2", "loisir", { activite = "assise", lieu = premier.lieu, fin = "liberation" })
+    verifier(not ok2 and raison == "place_prise", "un siège pris par un homme : refusé (" .. tostring(raison) .. ")")
+    -- L'autre siège, tenu par une dame : jamais offert à l'homme, même s'il change de place.
+    verifier(hommes.tenir_un_personnage("ScriptoBain_1", "loisir", { activite = "assise", lieu = libre, fin = "liberation" }), "la dame tient l'autre siège")
+    for _ = 1, 3 do
+      local a = hommes.activite_de(id, 12.5)
+      verifier(a.lieu ~= libre, "le siège de la dame n'est pas offert à l'homme")
+    end
+    local id2 = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local a2 = hommes.activite_de(id2, 12.5)
+    verifier(a2.lieu ~= libre and a2.lieu ~= premier.lieu, "un second homme ne prend pas le siège de la dame (" .. tostring(a2.lieu) .. ")")
+    hommes.lacher_un_personnage("ScriptoBain_1", "loisir")
+    local a3 = hommes.activite_de(id2, 12.5)
+    egal(a3.lieu, libre, "la dame partie : le siège revient aux hommes")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("repas et veillée (demande du pair, 20/10) : sur un camp adopté, les hommes s'assoient aux sièges déclarés par Scriptorium, chacun le sien ; sans siège, au feu", function()
   depart()
   FauxJeu.heure = 10
