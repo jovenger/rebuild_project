@@ -217,6 +217,13 @@ hommes.reglages = {
   -- Vu sur une copie de la partie de JoVenGer le 21/10 (J26 : 30 embauches d'un coup, 13 jamais venus, « aucune place
   -- libre à côté » du feu) : au battement, au plus tant d'hommes sans personnage sont refaits (0 : jamais, comme avant).
   venues_par_battement = 3,
+  -- Décision de JoVenGer (21/10, « Dormir au sol au feu ») : faute de lit libre, la posture couchée jouée à terre près du
+  -- feu (une posture du jeu par son nom ; « » : pas de repli), l'écart entre deux dormeurs et le recul du premier rang
+  -- (mètres) ; le blessé sans lit aussi.
+  sommeil_sol_geste = "lyingInjured",
+  sommeil_sol_ecart_m = 2,
+  sommeil_sol_recul_m = 3,
+  sommeil_sol_blesses = true,
   -- L'arbitre (fiche 15, V73 b 3) : une tenue « jusqu'à libération » (bataille, patrouille) tombe par sûreté au bout de
   -- tant d'heures du jeu, notée au journal (réponse 2 a de JoVenGer) ; la journée du socle tient l'homme qu'aucune règle
   -- ne tient (réponse 3 a) : à faux, il attend où il est (Scriptorium la coupera à la bascule).
@@ -2117,6 +2124,79 @@ local function lit_de_nuit(id)
   return lit
 end
 
+-- Décision de JoVenGer (21/10, transmise par le pair : « Dormir au sol au feu », fiche 15) : faute de lit libre, l'homme
+-- dort à terre près du feu. Sa place au sol est gardée toute la nuit (la même à chaque ordre ; il ne la quitte pas pour
+-- un lit libéré) : id -> { rang, point }. En mémoire seulement.
+hommes.sols_de_nuit = hommes.sols_de_nuit or {}
+
+-- La place au sol de cet homme : la sienne s'il en a une ; sinon la première libre, en rangs de quatre derrière le feu,
+-- à l'opposé de son regard. Rend (point, rang), ou nil (sans camp, ou le repli éteint).
+local function place_au_sol(d, id)
+  local geste = hommes.reglages.sommeil_sol_geste
+  if type(geste) ~= "string" or geste == "" then
+    return nil
+  end
+  local garde = hommes.sols_de_nuit[id]
+  if garde then
+    return garde.point, garde.rang
+  end
+  local pris = {}
+  for autre, s in pairs(hommes.sols_de_nuit) do
+    if autre ~= id and d.liste[autre] then
+      pris[s.rang] = true
+    end
+  end
+  local rang = 1
+  while pris[rang] do
+    rang = rang + 1
+  end
+  local p = hommes.points.feu
+  local ecart = tonumber(hommes.reglages.sommeil_sol_ecart_m) or 2
+  local colonne, rangee = (rang - 1) % 4, math.floor((rang - 1) / 4)
+  local r = math.rad(p.cap or 0)
+  local cote, recul = (colonne - 1.5) * ecart, (tonumber(hommes.reglages.sommeil_sol_recul_m) or 3) + rangee * ecart
+  local point = camp().point(p.x + cote * math.cos(r) - recul * math.sin(r), p.y - cote * math.sin(r) - recul * math.cos(r),
+                             p.cap)
+  if not point then
+    return nil
+  end
+  return point, rang
+end
+
+-- Le repli au sol dans le résultat de activite_de (l'activité reste la sienne : sommeil, ou repos du blessé). Rend vrai
+-- s'il est posé.
+local function dormir_au_sol(d, id, resultat)
+  local point, rang = place_au_sol(d, id)
+  if not point then
+    return false
+  end
+  local geste = hommes.reglages.sommeil_sol_geste
+  resultat.lieu, resultat.position, resultat.au_sol, resultat.sol_rang, resultat.geste = "sol_feu", point, true, rang, geste
+  resultat.signature = string.format("%s:%d:%d", geste, math.floor(point.x + 0.5), math.floor(point.y + 0.5))
+  return true
+end
+
+-- Le plus grand nombre de dormeurs au sol de la nuit en cours, gardé au registre.
+local function compter_les_dormeurs_au_sol(d)
+  local n = 0
+  for autre in pairs(hommes.sols_de_nuit) do
+    if d.liste[autre] then
+      n = n + 1
+    end
+  end
+  if n > (d.sol_max_nuit or 0) then
+    d.sol_max_nuit = n
+    enregistrer()
+  end
+end
+
+-- Pour le colonel de Scriptorium (il dit chaque matin combien de lits manquent) : le plus grand nombre d'hommes couchés au
+-- sol la nuit passée (arrêté à l'aube), puis celui de la nuit en cours.
+function hommes.lits_manquants()
+  local d = donnees()
+  return d.lits_manquants or 0, d.sol_max_nuit or 0
+end
+
 function hommes.rang_pour_une_place(id, sorte)
   local d = donnees()
   local rang = 0
@@ -2320,9 +2400,12 @@ function hommes.activite_de(id, heure)
   -- bataille, les blessés vont aux bains ») : la tenue « bains », un ordre exprès, passe devant les soins.
   if f.blessure > 0 and soins and (not rang or soins < rang or (soins == rang and regle ~= "bains")) then
     resultat.regle, resultat.activite = "soins", "repos"
-    local lit = f.lit or lit_de_nuit(id) or place_pour(id, "lit")
+    local lit = f.lit or lit_de_nuit(id) or (not hommes.sols_de_nuit[id] and place_pour(id, "lit")) or nil
     resultat.lieu = lit
     resultat.position = lit and camp().position_de(lit) or nil
+    if not lit and hommes.reglages.sommeil_sol_blesses == true then
+      dormir_au_sol(d, id, resultat)
+    end
     return resultat
   end
   -- Le tour de garde ne prend que des hommes libres pour la garde (aucune tenue aussi forte) : il passe donc devant
@@ -2539,10 +2622,14 @@ function hommes.activite_de(id, heure)
   end
   resultat.activite = activite
   if activite == "sommeil" then
-    -- La bascule (18/10) : un homme sans lit à lui (sommeil en relève, « un_lit_par_homme » éteint) dort à une place libre.
-    local lit = f.lit or lit_de_nuit(id) or place_pour(id, "lit")
+    -- La bascule (18/10) : un homme sans lit à lui (sommeil en relève, « un_lit_par_homme » éteint) dort à une place libre ;
+    -- faute de place libre, au sol près du feu (décision de JoVenGer du 21/10), gardé jusqu'au lever.
+    local lit = f.lit or lit_de_nuit(id) or (not hommes.sols_de_nuit[id] and place_pour(id, "lit")) or nil
     resultat.lieu = lit
     resultat.position = lit and camp().position_de(lit) or nil
+    if not lit then
+      dormir_au_sol(d, id, resultat)
+    end
   elseif activite == "entrainement" or activite == "des" then
     local p = hommes.points[(activite == "des") and "des" or "exercice"]
     resultat.lieu = (activite == "des") and "des" or "exercice"
@@ -2663,6 +2750,10 @@ local function repas_du_jour(d, rapport, moment)
 end
 
 local function aube_du_jour(d, heure, rapport)
+  -- Le compte de la nuit au sol, arrêté pour le colonel (décision de JoVenGer du 21/10) ; les places au sol rendues.
+  d.lits_manquants, d.sol_max_nuit = d.sol_max_nuit or 0, 0
+  hommes.sols_de_nuit = {}
+  enregistrer()
   local partants = {}
   for _, id in ipairs(d.ordre) do
     local f = d.liste[id]
@@ -3606,6 +3697,13 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   elseif a and a.activite ~= "sommeil" and a.activite ~= "repos" then
     hommes.lits_de_nuit[id] = nil
   end
+  -- Le sommeil au sol (décision de JoVenGer du 21/10) : sa place gardée pour la nuit, et comptée pour le colonel.
+  if a and a.au_sol then
+    hommes.sols_de_nuit[id] = { rang = a.sol_rang, point = a.position }
+    compter_les_dormeurs_au_sol(d)
+  elseif a and a.activite ~= "sommeil" and a.activite ~= "repos" then
+    hommes.sols_de_nuit[id] = nil
+  end
   -- Fiche 20 : une parole demandée : jouée (au plus une fois), puis oubliée ; elle attend en combat, en bataille, au lit.
   local parole = hommes.paroles[id]
   if parole then
@@ -3693,8 +3791,9 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
       jeu().journal("Hommes : « " .. f.nom .. " » affronte « " .. tostring(a.cible) .. " » (" .. (a.arme and "à l'arme" or "à mains nues")
                     .. ", jusqu'à " .. tostring(a.jusqu_a) .. ") : " .. tostring(jeu().ordonner_l_attaque(a.cible, f.personnage, { arme = a.arme })))
     else
-      jeu().ordonner(f.personnage, a.activite, position, a.lieu, objet, sorte, a.regard, a.allure, a.chef, a.suivi,
-                     hommes.temps_de_marche_ms(f.personnage, position))
+      -- Le sommeil au sol se joue comme un geste tenu à son point (ordre 22) ; l'activité reste « sommeil ».
+      jeu().ordonner(f.personnage, a.au_sol and "geste" or a.activite, position, a.lieu, objet, sorte, a.regard, a.allure,
+                     a.chef, a.suivi, hommes.temps_de_marche_ms(f.personnage, position))
     end
     hommes.ordre_donne_en_saut(id)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».

@@ -4161,7 +4161,8 @@ essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, l
       local a = hommes.activite_de(id, 23)
       if a.activite == "sommeil" then
         table.insert(dormeurs, id)
-        egal(a.lieu, nil, "sans lit déclaré, sans but")
+        -- Décision de JoVenGer du 21/10 (« Dormir au sol au feu ») : sans lit libre, au sol près du feu.
+        egal(a.lieu, "sol_feu", "sans lit déclaré : au sol près du feu")
       end
     end
     verifier(#dormeurs >= 4, "au moins quatre dormeurs (" .. #dormeurs .. ")")
@@ -4171,7 +4172,7 @@ essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, l
     local vus, au_lit = {}, 0
     for _, id in ipairs(dormeurs) do
       local lieu = hommes.activite_de(id, 23).lieu
-      if lieu then
+      if lieu and lieu ~= "sol_feu" then
         egal(camp.sorte_de(lieu), "lit", "un lit déclaré (" .. tostring(lieu) .. ")")
         verifier(not vus[lieu], "chacun le sien (" .. lieu .. ")")
         vus[lieu], au_lit = true, au_lit + 1
@@ -4279,6 +4280,57 @@ essai("lits (décision de JoVenGer, 20/10 : tous en relève) : interrupteur éte
   end)
   Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
   verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
+essai("dormir au sol près du feu (décision de JoVenGer du 21/10) : faute de lit libre, sommeil au sol, la posture du réglage jouée comme un geste, la même place toute la nuit ; compté pour le colonel ; repli éteint : sans but", function()
+  preparer(50000, 100, 10)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local libres = #Scriptorium.avis(camp, "places_libres", "lit", "hommes")
+  local ids = {}
+  for _ = 1, libres + 4 do
+    table.insert(ids, (hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })))
+  end
+  FauxJeu.heure = 23
+  hommes.battre()
+  local au_sol = {}
+  for _, id in ipairs(ids) do
+    local a = hommes.activite_de(id, 23)
+    if a and a.au_sol then table.insert(au_sol, id) end
+  end
+  verifier(#au_sol >= 1, "faute de lit libre, au moins un homme au sol (" .. libres .. " lits libres)")
+  local s = au_sol[1]
+  local a = hommes.activite_de(s, 23)
+  egal(a.activite, "sommeil", "l'activité reste le sommeil")
+  egal(a.lieu, "sol_feu", "le lieu")
+  egal(a.geste, "lyingInjured", "la posture du réglage")
+  verifier(a.position ~= nil, "un point")
+  local b = hommes.activite_de(s, 23)
+  verifier(b.position.x == a.position.x and b.position.y == a.position.y, "la même place à l'appel suivant")
+  local o = nil
+  for _, ordre in ipairs(FauxJeu.ordres) do
+    if ordre.identifiant == hommes.fiche(s).personnage then o = ordre end
+  end
+  egal(o and o.activite, "geste", "joué comme un geste tenu")
+  local _, cette_nuit = hommes.lits_manquants()
+  egal(cette_nuit, #au_sol, "compté pour le colonel")
+  -- Deux dormeurs au sol n'ont jamais la même place.
+  if #au_sol >= 2 then
+    local c = hommes.activite_de(au_sol[2], 23)
+    verifier(c.position.x ~= a.position.x or c.position.y ~= a.position.y, "deux places au sol distinctes")
+  end
+  -- À l'aube, le compte de la nuit est arrêté.
+  FauxJeu.heure = 24 + hommes.reglages.heure_lever + 0.5
+  hommes.battre()
+  local derniere, nouvelle = hommes.lits_manquants()
+  egal(derniere, #au_sol, "la nuit passée, arrêtée à l'aube")
+  egal(nouvelle, 0, "la nouvelle nuit repart de zéro")
+  -- Le repli éteint : sans but, comme avant.
+  hommes.reglages.sommeil_sol_geste = ""
+  FauxJeu.heure = 47
+  local e = hommes.activite_de(s, 47)
+  verifier(not (e and e.au_sol), "repli éteint : pas au sol")
+  hommes.reglages.sommeil_sol_geste = "lyingInjured"
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
 end)
 
 essai("venue refusée (vu sur une copie le 21/10, J26 : 13 embauchés jamais venus) : l'homme sans personnage est refait au battement, au plus « venues_par_battement » à la fois ; jamais un homme dehors", function()

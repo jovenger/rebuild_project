@@ -2674,3 +2674,26 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 - Désormais : un homme assommé (`jeu().personnage_inconscient`) n'est jamais jugé figé par le gardien ni bloqué par le
   secours ; le compte du secours repart de zéro quand il se relève.
 - Essai (vérifié en échec sans : deux relances et un secours, comme en jeu) ; non vu en jeu.
+
+## Dormir au sol près du feu (décision de JoVenGer du 21/10, transmise par le pair : « Dormir au sol au feu »)
+- Vu (J26) : 16 lits pour 33 hommes ; faute de lit libre, l'ordre de sommeil partait sans but, l'homme restait debout.
+- Décision : faute de lit libre, l'homme dort à terre près d'un feu du camp ; rien n'est posé d'office (les tentes et les
+  couchages restent à JoVenGer) ; le colonel de Scriptorium dit chaque matin combien de lits manquent.
+- Ce que le jeu permet (lu dans les paks, lecture seule) : son sommeil passe par un objet lit (étiquettes
+  `liePlaceGround`, `liePlaceBed`… de `Animations/Mannequin/ADB/kcd_sleeping_tags.xml`) ; un couchage au sol est lui-même
+  un objet lit. Sans objet, il reste une posture couchée jouée à un point : `lyingInjured` (`AI/special/so_injured.xml`,
+  l'arbre `use_injured_ground`), à éprouver en jeu ; autre posture connue, assise : `camper_snooze`.
+- Le socle :
+  - l'activité reste « sommeil » (jamais de parole, lever à l'aube, lu comme sommeil par Scriptorium), avec
+    `au_sol`, le lieu `sol_feu`, la posture `hommes.reglages.sommeil_sol_geste` (« lyingInjured ») jouée comme un geste
+    tenu (ordre 22) à un point derrière le feu, à l'opposé de son regard : rangs de quatre, `sommeil_sol_ecart_m` (2) entre
+    deux dormeurs, le premier rang à `sommeil_sol_recul_m` (3) du feu ;
+  - la place au sol est gardée toute la nuit (`hommes.sols_de_nuit`, en mémoire) : la même à chaque ordre (pas de
+    relève-recouche), et l'homme ne la quitte pas pour un lit libéré avant le lever ;
+  - le blessé sans lit (soins) se couche de même, si `sommeil_sol_blesses` est vrai (vrai par défaut) ;
+  - `hommes.lits_manquants()` rend le plus grand nombre de dormeurs au sol de la nuit passée (arrêté à l'aube), puis
+    celui de la nuit en cours ; gardé au registre ;
+  - une posture vide (`sommeil_sol_geste = ""`) éteint le repli : l'ordre part sans but, il attend où il est (activité 0).
+- Essai (vérifié en échec sans) ; l'épreuve « nuit » du 19/10, qui attendait « sans lit déclaré, sans but », dit
+  désormais « au sol près du feu ». À voir en J27 : « tient le geste « lyingInjured » », l'homme couché, et son lever à
+  l'aube (la sortie d'un geste tenu, `urgence_relever`).
