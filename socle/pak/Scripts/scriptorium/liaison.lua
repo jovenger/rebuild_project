@@ -3878,7 +3878,9 @@ liaison.dernier_vise = nil
 liaison.interlocuteur_en_cours = nil
 
 function liaison.noter_le_vise(identifiant)
-  liaison.dernier_vise = { nom = identifiant, quand = liaison.maintenant() }
+  -- Jamais d'erreur ici : elle ôterait « Parler » de l'invite (vu au banc : sans horloge, l'action n'était plus ajoutée).
+  local lu, quand = pcall(liaison.maintenant)
+  liaison.dernier_vise = { nom = identifiant, quand = lu and quand or nil }
 end
 
 function liaison.interlocuteur_du_dialogue(choix, nom_du_role)
@@ -4048,6 +4050,27 @@ local function peut_parler(entite)
   return ok and oui == true
 end
 
+-- Demande du pair (21/10, J12 ; règle de JoVenGer du 7/10 et du 8/10) : dans le cadre de visée d'un homme parlable, les
+-- lignes du programme Scriptorium (le grade, puis le moral, la fatigue, la santé) : sa fonction
+-- scriptorium.progression.ligne_du_grade(entité, actions), s'il l'a, appelée après nos actions (jamais pour un homme
+-- mort, assommé ou en combat : peut_parler) ; Scriptorium décide du contenu. Une erreur : au journal, une fois.
+liaison.cadre_en_erreur = false
+
+function liaison.cadre_de_scriptorium(entite, sortie)
+  local programme = rawget(_G, "scriptorium")
+  local progression = type(programme) == "table" and programme.progression
+  local ligne = type(progression) == "table" and progression.ligne_du_grade
+  if type(ligne) ~= "function" then
+    return false
+  end
+  local ok, erreur = pcall(ligne, entite, sortie)
+  if not ok and not liaison.cadre_en_erreur then
+    liaison.cadre_en_erreur = true
+    liaison.journal("Parole : lignes du cadre de Scriptorium en erreur : " .. tostring(erreur))
+  end
+  return ok
+end
+
 function liaison.rendre_parlable(identifiant, oui)
   local entite = entite_nommee(identifiant)
   if not entite then
@@ -4087,11 +4110,17 @@ function liaison.rendre_parlable(identifiant, oui)
       if premier_seul and #sortie > 0 then
         return
       end
+      local deja = false
       for _, a in ipairs(sortie) do
-        if a.action == "talk" then return end
+        if a.action == "talk" then deja = true end
       end
-      AddInteractorAction(sortie, premier_seul, Action():hint("@ui_hud_talk"):action("talk"):uiOrder(0)
-        :func(function() quand_on_parle(identifiant) end):interaction(inr_talk):enabled(true))
+      if not deja then
+        AddInteractorAction(sortie, premier_seul, Action():hint("@ui_hud_talk"):action("talk"):uiOrder(0)
+          :func(function() quand_on_parle(identifiant) end):interaction(inr_talk):enabled(true))
+      end
+      if not premier_seul then
+        liaison.cadre_de_scriptorium(soi, sortie)
+      end
     end)
     if not ok and not soi.scriptorium_parole_en_erreur then
       soi.scriptorium_parole_en_erreur = true

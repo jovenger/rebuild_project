@@ -86,3 +86,12 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
   `liaison.vise_recent_s` (15 s), c'est lui, gardé pour les choix suivants ; sinon le rôle du jeu. Au journal, quand
   ils diffèrent : « interlocuteur lié = … (visé ; rôle du jeu : …) ».
 - Épreuve Lua de la liaison au banc (vérifiée en échec sans) ; non vu en jeu.
+
+## Les lignes du cadre de visée (demande du pair, 21/10, J12 ; règle de JoVenGer du 7/10 et du 8/10)
+- En visant un homme parlable, le cadre montre, après « Parler », les lignes du programme Scriptorium : son grade (le
+  colonel en premier), puis le moral, la fatigue et la santé en barres. Le socle appelle, après ses actions, la fonction
+  de Scriptorium `scriptorium.progression.ligne_du_grade(entité, actions)` si elle existe (`liaison.cadre_de_scriptorium`),
+  jamais pour la première action seule, ni pour un homme mort, assommé ou en combat ; Scriptorium décide du contenu. Une
+  erreur : au journal, une fois. Vaut pour tout personnage rendu parlable (hommes et personnel mené).
+- La note de l'homme visé ne peut plus jeter d'erreur (elle ôtait « Parler » de l'invite, vu au banc sans horloge).
+- Épreuve Lua de la liaison au banc (vérifiée en échec sans) ; non vu en jeu.

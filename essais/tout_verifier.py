@@ -603,6 +603,49 @@ def verifier_identifiants():
         if XGenAIModule.variables.scriptorium_activite ~= 0 then
           return "un homme sorti de la Compagnie garde sa ronde (activité " .. tostring(XGenAIModule.variables.scriptorium_activite) .. ")"
         end
+        -- Le cadre de visée (demande du pair, 21/10, J12) : après nos actions, les lignes du programme Scriptorium
+        -- (scriptorium.progression.ligne_du_grade), jamais pour la première action seule, ni en combat.
+        local appel = nil
+        local programme_d_origine = rawget(_G, "scriptorium")
+        local action_d_origine, ajout_d_origine, talk_d_origine = Action, AddInteractorAction, inr_talk
+        local en_combat = false
+        local function chaine()
+          local a = {}
+          local function soi_meme(self) return self end
+          for _, nom in ipairs({ "hint", "action", "uiOrder", "func", "interaction", "enabled" }) do a[nom] = soi_meme end
+          return a
+        end
+        Action = function() local a = chaine() ; a.action = function(self, n) self.nom_action = n ; return self end ; return a end
+        AddInteractorAction = function(liste, premier, action) table.insert(liste, { action = action.nom_action }) end
+        inr_talk = 1
+        rawset(_G, "scriptorium", { progression = { ligne_du_grade = function(e, liste)
+          appel = { e = e }
+          table.insert(liste, { action = "grade" })
+        end } })
+        local parleur = { actor = { IsDead = function() return false end, IsUnconscious = function() return false end },
+                          soul = { IsInCombatMode = function() return en_combat end } }
+        parleur.GetActions = function() return {} end
+        function parleur:GetName() return "scriptorium_parleur" end
+        System.entites["scriptorium_parleur"] = parleur
+        l.rendre_parlable("scriptorium_parleur", true)
+        local actions = parleur:GetActions(nil, false)
+        local vues = {}
+        for _, a in ipairs(actions or {}) do vues[a.action] = true end
+        if not (appel and appel.e == parleur and vues.talk and vues.grade) then
+          local dits = {}
+          for k in pairs(vues) do table.insert(dits, k) end
+          return "cadre : les lignes de Scriptorium ne sont pas ajoutées après « Parler » (vues : " .. table.concat(dits, ",")
+            .. " ; appel : " .. tostring(appel) .. " ; parlable : " .. tostring(rawget(parleur, "scriptorium_parlable"))
+            .. " ; journal : " .. tostring(lignes[#lignes]) .. ")"
+        end
+        appel = nil
+        parleur:GetActions(nil, true)
+        if appel then return "cadre : appelé pour la première action seule" end
+        en_combat = true
+        parleur:GetActions(nil, false)
+        if appel then return "cadre : appelé en combat" end
+        rawset(_G, "scriptorium", programme_d_origine)
+        Action, AddInteractorAction, inr_talk = action_d_origine, ajout_d_origine, talk_d_origine
         -- Le dialogue (vu sur une copie le 21/10, J11) : l'interlocuteur est l'homme visé à l'ouverture, pas le rôle du jeu ;
         -- gardé pour les choix suivants ; visé trop tôt, ou jamais : le rôle du jeu.
         local maintenant_d_origine = l.maintenant
