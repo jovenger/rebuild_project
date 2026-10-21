@@ -4101,6 +4101,14 @@ function liaison.au_point_de_ronde(entite, donnees)
       return
     end
     local pas, raison = liaison.pas_de_ronde(nom)
+    if not pas and raison == "homme inconnu" then
+      -- Vu sur une copie de la partie de JoVenGer le 21/10 (J3) : un homme sorti de la Compagnie dont le personnage
+      -- reste dans le monde (un personnage admis, ou retiré vivant) tournait encore sa ronde, une ligne à chaque point :
+      -- elle s'arrête (activité 0, il attend où il est), une fois.
+      liaison.journal("Ronde de " .. tostring(nom) .. " : aucun pas (homme inconnu) : la ronde s'arrête ; "
+        .. poser_l_activite(entite, 0))
+      return
+    end
     if not pas then
       liaison.journal("Ronde de " .. tostring(nom) .. " : aucun pas (" .. tostring(raison) .. ")")
       return

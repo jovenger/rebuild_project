@@ -2620,3 +2620,10 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   `AI/animal/basic/switch/animal_getPointOutsideLabelFromBuffer.xml`, `AI/situation/helpers/helpers.xml`,
   `AI/quests/prepadeni/prepadeni.xml`, `AI/quests/stealthMiseZaJindru/stealthMiseZaJindru.xml` ; socle :
   `noyau.lua` (la cadence du battement), `patrouilles.lua`, `hommes.lua` (`secourir`, `memes_tenues`, `tenir`).
+
+## La ronde d'un homme sorti de la Compagnie (vu sur une copie de la partie de JoVenGer le 21/10, J3)
+- Un homme sorti de la Compagnie dont le personnage reste dans le monde (un personnage admis rendu à Scriptorium, ou,
+  en essai, un homme retiré « mort » vivant) tournait encore sa ronde : l'arbre demandait chaque pas, la liaison
+  répondait « aucun pas (homme inconnu) », une ligne à chaque point. Désormais, à cette réponse, la liaison pose
+  l'activité 0 (il attend où il est) : la ronde s'arrête, une ligne au journal. Contrôle au banc (épreuve Lua de la
+  liaison, vérifiée en échec sans). Non vu en jeu.

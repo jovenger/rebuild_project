@@ -600,6 +600,9 @@ def verifier_identifiants():
           return "un homme sans ronde a reçu un pas"
         end
         if not string.find(lignes[#lignes], "aucun pas (homme inconnu)", 1, true) then return "sans pas, rien n'est dit" end
+        if XGenAIModule.variables.scriptorium_activite ~= 0 then
+          return "un homme sorti de la Compagnie garde sa ronde (activité " .. tostring(XGenAIModule.variables.scriptorium_activite) .. ")"
+        end
         l.accrocher_la_ronde(function() error("panne") end)
         l.au_point_de_ronde(rondier, donnees)
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une erreur de la ronde n'est pas écrite" end
