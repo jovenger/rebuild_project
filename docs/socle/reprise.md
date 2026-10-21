@@ -782,6 +782,9 @@ aucune sonde dans l'arbre.
   aucune relance en erreur).
 - Installé pour tous les jours depuis J20 (« garder » demandé au pair) : socle 17561a9 + Scriptorium ecacd021 ; retour
   arrière `Scriptorium_securite61021_101018_035599_seance_du_socle`. playline1 et playline0 intactes.
+- J21 (décisions de JoVenGer de midi, chez Scriptorium : garnison du Directeur au tiers, deux gardes des bains sous
+  25 hommes, prime du contrat d'Henry dans le partage 40/60) : vu juste par le pair ; gardé pour tous les jours :
+  socle 17561a9 + Scriptorium 1b74decd ; retour arrière `Scriptorium_securite61021_120151_274126_seance_du_socle`.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
