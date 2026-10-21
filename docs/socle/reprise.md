@@ -788,6 +788,10 @@ aucune sonde dans l'arbre.
 - J22 et J23 (vérifications restantes du pair ; J22 : expédition 4 contre 4 puis 3 contre 4, rien d'anormal côté socle) :
   gardé pour tous les jours : socle 17561a9 + Scriptorium 5bc3c579 ; retour arrière
   `Scriptorium_securite61021_121136_661933_seance_du_socle`.
+- J24 (l'inspection du colonel, matin et soir, chez Scriptorium ; trois défauts corrigés chez lui : mesure avant la
+  déclaration des places, tournée du soir vide, colonel parti à cheval hors du camp, réglé avec
+  `hommes.etendue_du_camp()` qui rend (centre, rayon)) : vu juste ; gardé pour tous les jours : socle 17561a9 +
+  Scriptorium 0b5d6400 ; retour arrière `Scriptorium_securite61021_163948_817892_seance_du_socle`.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
