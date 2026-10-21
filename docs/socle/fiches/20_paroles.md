@@ -28,6 +28,11 @@ Comportement :
   leur corps) : une parole non urgente attend que l'homme soit arrivé à son but (à moins de
   `hommes.reglages.secours_arrivee_m`) ; la ronde et la suite, qui n'arrivent jamais, n'attendent pas ; une parole
   urgente (l'alerte) passe toujours. Essai (vérifié qu'il échoue sans) ; non vu en jeu.
+- **Jamais devant une règle plus forte que celle de Scriptorium** (vu sur une copie de la partie de JoVenGer le 21/10,
+  J3 : une parole coupait neuf fois la colonne d'une mission ; décision de JoVenGer par le pair) : une parole non
+  urgente attend tant que l'homme est tenu par une règle de rang plus petit que `hommes.reglages.parole_rang_min` (3,
+  le rang de la règle de Scriptorium : bataille, mission, escorte, rassemblement) ; les conversations du camp tenues
+  par Scriptorium passent. Une parole urgente passe toujours. Essai (vérifié en échec sans) ; non vu en jeu.
 - La parole n'est pas une tenue : elle remplace l'activité le temps d'être dite, puis l'homme reprend ce que dit sa
   tenue la plus forte, qui n'a pas bougé.
 - Une demande n'est pas gardée au registre (une parole n'a de sens que sur le moment).

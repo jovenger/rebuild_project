@@ -4546,6 +4546,33 @@ essai("paroles (choix du pair, 20/10 : un porteur ne cause pas en route) : en ma
   hommes.lacher(id, "travail")
 end)
 
+essai("paroles (vu sur une copie le 21/10, J3) : une parole non urgente attend tant qu'une règle plus forte que celle de Scriptorium tient l'homme (mission) ; à rang égal ou plus faible, elle passe", function()
+  preparer(5000, 100, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  hommes.battre()
+  local p = hommes.fiche(a).personnage
+  verifier(hommes.tenir(a, "mission", { activite = "suivre", lieu = "mission_1", fin = "liberation" }), "tenu par une mission")
+  FauxJeu.ordres = {}
+  verifier(hommes.dire_une_replique(a, { metarole = "GOSSIP" }), "demandée")
+  local vu = false
+  for _, o in ipairs(FauxJeu.ordres) do
+    if o.identifiant == p and o.activite == "parole" then vu = true end
+  end
+  verifier(not vu, "en mission : la parole attend")
+  egal(Scriptorium.avis(hommes, "peut_parler", a, hommes.parole_de(a), hommes.activite_de(a, FauxJeu.heure)), false, "pas maintenant")
+  hommes.lacher(a, "mission")
+  local a2 = Scriptorium.avis(hommes, "activite_de", a, FauxJeu.heure)
+  if a2 and a2.position then
+    FauxJeu.positions[p] = { x = a2.position.x, y = a2.position.y, z = 0 }
+  end
+  verifier(hommes.tenir(a, "travail", { activite = "geste", lieu = "forge", geste = "eating_standing", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "tenu par une règle plus faible")
+  FauxJeu.positions[p] = { x = 3, y = 4, z = 0 }
+  egal(Scriptorium.avis(hommes, "peut_parler", a, hommes.parole_de(a), hommes.activite_de(a, FauxJeu.heure)), true, "règle plus faible : elle passe")
+  verifier(hommes.dire_une_replique(a, { metarole = "GOSSIP", urgente = true }), "urgente")
+  verifier(hommes.tenir(a, "mission", { activite = "suivre", lieu = "mission_1", fin = "liberation" }), "de nouveau en mission")
+  egal(Scriptorium.avis(hommes, "peut_parler", a, hommes.parole_de(a), hommes.activite_de(a, FauxJeu.heure)), true, "urgente : elle passe en mission")
+end)
+
 essai("paroles du personnel mené (demande du pair, 20/10) : une réplique et une conversation par le nom de l'entité ; jouée puis oubliée ; un inconnu refusé", function()
   preparer(5000, 100, 10)
   FauxJeu.personnages_existants["forgeron_x"] = true

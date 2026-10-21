@@ -187,6 +187,10 @@ hommes.reglages = {
   semaines_max = 52,
   -- Fiche 20 : une demande de parole qui attend plus de tant d'heures du jeu (en combat, au lit) est oubliée.
   parole_attente_max_h = 2,
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J3 : une parole coupait neuf fois la colonne d'une mission) :
+  -- une parole non urgente attend tant que l'homme est tenu par une règle plus forte (rang plus petit) que celle-ci ;
+  -- 3, le rang de la règle de Scriptorium (décision de JoVenGer par le pair) : ses conversations du camp restent.
+  parole_rang_min = 3,
   -- Fiche 18, 5 c, tranche 4 : le poste partagé avec Henry : la station rendue après « partage_delai_s » secondes au
   -- moins (Henry peut de nouveau lancer un mini-jeu), ou quand Henry s'en éloigne de plus de « partage_loin_m » ; l'homme
   -- attend à « partage_attente_m » de la station.
@@ -4453,6 +4457,10 @@ function hommes.peut_parler(id, parole, activite)
   end
   if parole and parole.urgente then
     return not (activite and activite.activite == "sommeil")
+  end
+  local rang = activite and activite.regle and hommes.priorites[activite.regle]
+  if rang and rang < (tonumber(hommes.reglages.parole_rang_min) or 0) then
+    return false
   end
   if activite and (activite.regle == "bataille" or activite.activite == "sommeil") then
     return false
