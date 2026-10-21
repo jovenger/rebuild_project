@@ -429,6 +429,13 @@ end
 function faux.occupation_de(identifiant)
   return faux.occupations and faux.occupations[identifiant] or nil
 end
+-- Un cheval posé (et son cavalier en selle avec lui).
+function faux.poser_le_cheval(identifiant, position)
+  if not faux.chevaux or not faux.chevaux[identifiant] then return false, "cheval introuvable" end
+  faux.chevaux[identifiant] = { x = position.x, y = position.y, z = position.z }
+  faux.chevaux_poses = (faux.chevaux_poses or 0) + 1
+  return true, "posé"
+end
 function faux.poser_en_secours(identifiant, position)
   faux.secours = faux.secours or {}
   table.insert(faux.secours, { identifiant = identifiant, position = position })

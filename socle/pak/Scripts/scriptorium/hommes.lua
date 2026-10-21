@@ -4754,6 +4754,51 @@ function hommes.conversation_du_personnage(personnage, partenaire, quoi)
   return hommes.conversation(id, autre, quoi)
 end
 
+-- Demande du pair (21/10, J6 : l'expédition de Scriptorium avançait ses hommes hors de vue par SetWorldPos ; un homme en
+-- selle ne bougeait pas) : poser un homme à un point, hors de la vue d'Henry ; son cheval de sortie avec lui (en selle,
+-- le cavalier suit sa monture ; à pied, le cheval posé près du point, l'homme par la téléportation du jeu, l'ordre 10 du
+-- secours) ; son ordre est redonné au battement suivant. « qui » : l'identifiant d'un homme, ou le nom d'entité d'un
+-- homme ou d'un mené. Rend vrai, ou faux et la raison.
+function hommes.poser(qui, point)
+  local d = donnees()
+  local id = (d.liste[qui] and qui) or (d.menes and d.menes[qui] and qui) or id_du_personnage(d, qui)
+  local f = id and fiche_de(d, id)
+  if not f then
+    return refuser("homme_inconnu", tostring(qui))
+  end
+  if type(point) ~= "table" or type(point.x) ~= "number" or type(point.y) ~= "number" or type(point.z) ~= "number" then
+    return refuser("point_invalide", tostring(qui))
+  end
+  local ici = f.personnage and jeu().position_du_personnage(f.personnage)
+  if not ici then
+    return refuser("personnage_introuvable", f.nom)
+  end
+  if sous_les_yeux_d_henry(ici) or sous_les_yeux_d_henry(point) then
+    return refuser("vu_d_henry", f.nom)
+  end
+  local m = hommes.montures[id]
+  local cheval = m and m.cheval
+  local en_selle = cheval ~= nil and jeu().cheval_monte(cheval) == true
+  local ligne
+  if cheval and en_selle then
+    local ok, dit = jeu().poser_le_cheval(cheval, point)
+    if not ok then
+      return refuser("pose_refusee", f.nom .. " : " .. tostring(dit))
+    end
+    ligne = "en selle, avec « " .. cheval .. " » : " .. tostring(dit)
+  else
+    if cheval then
+      local la = { x = point.x + hommes.reglages.cheval_distance_m, y = point.y, z = point.z }
+      jeu().poser_le_cheval(cheval, la)
+    end
+    ligne = tostring(jeu().poser_en_secours(f.personnage, point)) .. (cheval and (" ; « " .. cheval .. " » près de lui") or "")
+  end
+  f.derniere_activite = nil
+  hommes.suivi[id] = nil
+  jeu().journal(string.format("Hommes : « %s » posé en (%.1f, %.1f) : %s", f.nom, point.x, point.y, ligne))
+  return true
+end
+
 -- La parole qui se joue (ou attend) pour cet homme : une copie, ou nil.
 function hommes.parole_de(id)
   local p = hommes.paroles[id]

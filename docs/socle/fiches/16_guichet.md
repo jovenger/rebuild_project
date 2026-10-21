@@ -35,3 +35,13 @@ la règle de JoVenGer du 17/10 (la plus juste pour la réalité du camp gagne, l
 - La liste de ce que Scriptorium attend (missions, embauche, métiers) est arrivée du pair le 17/10 : elle se traite aux
   étapes 4 et 5 (sources : `NOTE_POUR_LE_SOCLE.md` parties 6 et 7, `NOTE_METIERS.md`, `CONTRAT_DU_SOCLE.md`, en lecture
   seule, sans en reprendre aucun nom).
+
+## Poser un homme (demande du pair, 21/10, J6)
+- `hommes.poser(qui, point)` : « qui » est l'identifiant d'un homme, ou le nom d'entité d'un homme ou d'un mené ; le
+  point est un point du monde. Jamais sous les yeux d'Henry (ni d'où il part, ni où il arrive). En selle sur son cheval
+  de sortie : le cheval est posé au point (`liaison.poser_le_cheval`), le cavalier avec lui ; à pied : l'homme par la
+  téléportation du jeu (l'ordre 10 du secours), son cheval de sortie posé près du point. Son ordre est redonné au
+  battement suivant. Rend vrai, ou faux et la raison (`homme_inconnu`, `point_invalide`, `personnage_introuvable`,
+  `vu_d_henry`, `pose_refusee`). C'est la seule voie de l'expédition de Scriptorium pour avancer un homme hors de vue
+  (vu en J6 : un homme en selle ne bougeait pas par un SetWorldPos sur l'homme seul).
+- Essai (vérifié en échec sans) ; non vu en jeu : que le cavalier suive bien son cheval posé.

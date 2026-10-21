@@ -2021,6 +2021,18 @@ function liaison.amener_le_cheval_d_henry(distance)
                              pose and "oui" or tostring(erreur))
 end
 
+-- Demande du pair (21/10, J6) : poser un cheval de sortie (et son cavalier, attaché à lui) à un point, au sol. Rend
+-- (vrai, ligne) ou (faux, raison).
+function liaison.poser_le_cheval(identifiant, position)
+  local cheval = entite_nommee(identifiant)
+  if not cheval then
+    return false, "cheval introuvable"
+  end
+  local ou = liaison.au_sol(position)
+  local pose, erreur = pcall(function() cheval:SetWorldPos(ou) end)
+  return pose, pose and string.format("posé en (%.1f, %.1f)", ou.x, ou.y) or tostring(erreur)
+end
+
 -- Fiche 15, V73 f 2 b : le compte des montes manquées que tient le cerveau de l'homme (l'arbre l'augmente quand le délai
 -- de la monte passe sans qu'il soit en selle) ; nil s'il est illisible.
 function liaison.montes_manquees(identifiant)

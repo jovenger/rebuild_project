@@ -4677,6 +4677,45 @@ essai("paroles (vu sur une copie le 21/10, J3) : une parole non urgente attend t
   egal(Scriptorium.avis(hommes, "peut_parler", a, hommes.parole_de(a), hommes.activite_de(a, FauxJeu.heure)), true, "urgente : elle passe en mission")
 end)
 
+essai("poser un homme (demande du pair, 21/10, J6) : à pied par la téléportation du jeu ; en selle avec son cheval ; par son nom ; jamais sous les yeux d'Henry ; refus", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local p = hommes.fiche(id).personnage
+  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  hommes.battre()
+  FauxJeu.vue_d_henry = function() return false end
+  local ok, raison = hommes.poser("inconnu", { x = 1, y = 1, z = 0 })
+  verifier(not ok and raison == "homme_inconnu", "un inconnu refusé")
+  ok, raison = hommes.poser(id, { x = 1 })
+  verifier(not ok and raison == "point_invalide", "un point boiteux refusé")
+  FauxJeu.secours = {}
+  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  verifier(hommes.poser(id, { x = 500, y = 0, z = 0 }), "posé à pied")
+  egal(#FauxJeu.secours, 1, "par la téléportation du jeu")
+  egal(FauxJeu.secours[1] and FauxJeu.secours[1].position.x, 500, "au point")
+  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  verifier(hommes.poser(p, { x = 600, y = 0, z = 0 }), "par le nom de son personnage")
+  -- En selle : le cheval posé, le cavalier avec lui ; jamais l'homme seul.
+  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  FauxJeu.chevaux = {}
+  verifier(hommes.tenir(id, "mission", { activite = "suivre", lieu = "m", vers = { x = 900, y = 0, z = 0 }, a_cheval = true, fin = "liberation" }), "une colonne à cheval")
+  local c = hommes.montures[id] and hommes.montures[id].cheval
+  verifier(c ~= nil, "son cheval")
+  FauxJeu.chevaux_montes = { [c] = true }
+  FauxJeu.secours = {}
+  FauxJeu.positions[p] = { x = 100, y = 0, z = 0 }
+  verifier(hommes.poser(id, { x = 700, y = 0, z = 0 }), "posé en selle")
+  egal(FauxJeu.chevaux[c].x, 700, "son cheval posé au point")
+  egal(#FauxJeu.secours, 0, "jamais l'homme seul")
+  -- Sous les yeux d'Henry : refusé.
+  FauxJeu.vue_d_henry = function() return true end
+  FauxJeu.position_joueur = { x = 650, y = 0, z = 0 }
+  ok, raison = hommes.poser(id, { x = 720, y = 0, z = 0 })
+  verifier(not ok and raison == "vu_d_henry", "sous les yeux d'Henry : refusé")
+  FauxJeu.vue_d_henry, FauxJeu.position_joueur, FauxJeu.chevaux_montes = nil, nil, nil
+  hommes.lacher(id, "mission")
+end)
+
 essai("paroles du personnel mené (demande du pair, 20/10) : une réplique et une conversation par le nom de l'entité ; jouée puis oubliée ; un inconnu refusé", function()
   preparer(5000, 100, 10)
   FauxJeu.personnages_existants["forgeron_x"] = true
