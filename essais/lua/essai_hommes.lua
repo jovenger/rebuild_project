@@ -4415,6 +4415,11 @@ essai("siège du personnel (demande du pair, 21/10, J15) : un siège tenu par un
     FauxJeu.heure = 12.5
     local ok2, raison = hommes.tenir_un_personnage("ScriptoBain_2", "loisir", { activite = "assise", lieu = premier.lieu, fin = "liberation" })
     verifier(not ok2 and raison == "place_prise", "un siège pris par un homme : refusé (" .. tostring(raison) .. ")")
+    -- Demande du pair (21/10, J27) : les sièges occupés, lisibles avant de tirer celui d'une dame ; le même test que le
+    -- refus (le siège dit libre est accordé juste après).
+    local occupes = hommes.sieges_occupes(12.5)
+    egal(occupes[premier.lieu], hommes.fiche(id).nom, "le siège de l'homme, à son nom")
+    egal(occupes[libre], nil, "l'autre siège, libre")
     -- L'autre siège, tenu par une dame : jamais offert à l'homme, même s'il change de place.
     verifier(hommes.tenir_un_personnage("ScriptoBain_1", "loisir", { activite = "assise", lieu = libre, fin = "liberation" }), "la dame tient l'autre siège")
     for _ = 1, 3 do

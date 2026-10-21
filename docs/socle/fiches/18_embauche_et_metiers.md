@@ -310,3 +310,13 @@ Comportement :
   (sa mission le fait rentrer) ni un admis. La recherche de place a un troisième anneau de seize points à 3,6 m
   (33 places).
 - Essai de la reprise (vérifié en échec sans) ; l'anneau dépend du moteur, non éprouvé au banc ; non vu en jeu.
+
+## Les sièges occupés, lisibles par Scriptorium (demande du pair, 21/10, J27)
+- Vu : la prise de Scriptorium tirait pour les dames des bains des sièges qu'un homme occupait déjà ; refusés
+  « place_prise » (30 fois chacun en J27, puis 9 fois sur les suivants avec sa réserve refaite depuis les réservations,
+  qui ne voit pas un homme en train de s'asseoir).
+- `hommes.sieges_occupes(heure)` : { [nom de la place] = nom de l'homme } pour les sièges déclarés où un homme de la
+  Compagnie est assis ou va s'asseoir maintenant (le lieu de son activité du moment). C'est le test même du refus
+  « place_prise » de `hommes.tenir`, qui l'emploie désormais : un siège qu'elle dit libre n'est pas refusé pour cette
+  raison. Une `activite_de` par homme : une fois par tour, pas une fois par siège.
+- Essai (vérifié en échec sans) ; non vu en jeu.

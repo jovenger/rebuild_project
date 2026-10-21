@@ -4489,6 +4489,23 @@ end
 -- « allure » (« course » ou « marche ») ; sans centre, il reste une marche au point. Suivre (V73 f 2 b) accepte
 -- « a_cheval » (un booléen) : une sortie à cheval, un cheval passager par homme ; ou « comme_henry » (V73 f 2 d) : à
 -- cheval tant qu'Henry l'est. Rend vrai, ou (faux, raison).
+-- Demande du pair (21/10, J27 : les dames des bains tiraient des sièges qu'un homme occupait, refusés « place_prise »
+-- en boucle) : les sièges déclarés où un homme de la Compagnie est assis ou va s'asseoir maintenant (le lieu de son
+-- activité du moment) : { [nom de la place] = nom de l'homme }. C'est le test même du refus « place_prise » de
+-- hommes.tenir. Une activite_de par homme : à appeler une fois par tour, pas une fois par siège.
+function hommes.sieges_occupes(heure)
+  local d = donnees()
+  heure = heure or jeu().heure_du_jeu()
+  local occupes = {}
+  for _, autre in ipairs(d.ordre) do
+    local a = Scriptorium.avis(hommes, "activite_de", autre, heure)
+    if a and type(a.lieu) == "string" and not occupes[a.lieu] and camp().sorte_de(a.lieu) == "siege" then
+      occupes[a.lieu] = d.liste[autre].nom
+    end
+  end
+  return occupes
+end
+
 function hommes.tenir(id, regle, quoi)
   local d = donnees()
   local f = fiche_de(d, id)
@@ -4632,11 +4649,9 @@ function hommes.tenir(id, regle, quoi)
   end
   -- Même demande (J15) : un mené tenu sur un siège déclaré qu'un homme de la Compagnie occupe déjà : refusé.
   if f.mene and type(quoi.lieu) == "string" and camp().sorte_de(quoi.lieu) == "siege" then
-    for _, autre in ipairs(d.ordre) do
-      local a = Scriptorium.avis(hommes, "activite_de", autre, heure)
-      if a and a.lieu == quoi.lieu then
-        return refuser("place_prise", quoi.lieu .. " : " .. tostring(d.liste[autre].nom))
-      end
+    local qui = hommes.sieges_occupes(heure)[quoi.lieu]
+    if qui then
+      return refuser("place_prise", quoi.lieu .. " : " .. tostring(qui))
     end
   end
   -- Fiche 18, 5 c, tranche 4 : la station partagée avec Henry, une station surveillée.
