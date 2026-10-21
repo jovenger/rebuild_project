@@ -3445,16 +3445,22 @@ local function garder_le_cavalier(f, m)
   if not ici then
     return
   end
-  if dans_le_camp_reel(ici) then
-    laisser_le_cheval(f, m, "au bord du camp")
-    return
-  end
   local t = nil
   if f.tenues then
     local _
     _, t = tenue_la_plus_forte(f)
   end
   local vers = t and t.vers
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J7 : Jan, posé au bord du camp, son but à 1,9 km, descendait) :
+  -- seul un cavalier dont le but est DANS le camp réel (un retour ; l'escorte d'Henry dans le camp) y laisse son cheval.
+  local but = vers
+  if not but and t and t.activite == "suivre" and (t.chef == nil or t.chef == "henry") then
+    but = jeu().position_du_joueur()
+  end
+  if dans_le_camp_reel(ici) and but and dans_le_camp_reel(but) then
+    laisser_le_cheval(f, m, "au bord du camp")
+    return
+  end
   if not vers then
     m.arret = nil
     return

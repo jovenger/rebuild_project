@@ -3067,9 +3067,15 @@ essai("colonne à cheval (21/10, J4) : arrêtée loin de son but, le cavalier la
   hommes.battre()
   verifier(FauxJeu.chevaux[c1] == nil and hommes.chevaux_laisses[c1] == nil, "descendu et éloigné : le cheval laissé retiré")
   verifier(m.cheval ~= nil and m.cheval ~= c1, "un autre cheval né dehors")
-  -- Revenu au bord du camp réel, en selle : il laisse son cheval, sans essai, et finit à pied.
+  -- Vu sur une copie le 21/10 (J7) : dans le camp réel mais son but dehors (il part) : il reste en selle.
   local c2 = m.cheval
   FauxJeu.chevaux_montes = { [c2] = true }
+  FauxJeu.positions[p] = { x = 5, y = 5, z = 0 }
+  hommes.battre()
+  verifier(m.cheval == c2 and not journal_contient("au bord du camp"), "qui part reste en selle")
+  -- Le retour (son but dans le camp), revenu au bord du camp réel, en selle : il laisse son cheval, sans essai, et finit
+  -- à pied.
+  verifier(hommes.tenir(id, "mission", { activite = "suivre", lieu = "m", vers = { x = 0, y = 10, z = 0 }, a_cheval = true, fin = "liberation" }), "le retour : son but dans le camp")
   FauxJeu.positions[p] = { x = 5, y = 5, z = 0 }
   hommes.battre()
   verifier(journal_contient("au bord du camp"), "au bord du camp, dit au journal")

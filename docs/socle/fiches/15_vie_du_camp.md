@@ -2645,6 +2645,8 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   son cheval (« Gardien : colonne de … arrêtée à cheval à … m de son but ») : une monte manquée ; il repart à pied ; un
   autre cheval naît dehors une fois qu'il est descendu du premier ; au-delà de `monte_essais_max`, il finit à pied.
 - **Au bord du camp réel** : un cavalier en sortie qui y arrive (le retour) laisse son cheval, sans essai, et finit à pied.
+  Seulement si son but est DANS le camp réel (le point de sa colonne, ou Henry qu'il escorte) : vu sur une copie le
+  21/10 (J7), Jan posé au bord du camp au départ, son but à 1,9 km, descendait ; un cavalier qui part reste en selle.
 - Un cheval laissé (`hommes.chevaux_laisses`) est retiré quand son cavalier en est descendu et s'en est éloigné de plus
   de `cheval_retrait_m`, jamais sous les yeux d'Henry (ou son cavalier disparu).
 - Essais : la place du cheval (refaite), la troupe à cheval, la colonne arrêtée et le bord du camp, les sorties (5 d) ;
