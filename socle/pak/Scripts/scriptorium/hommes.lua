@@ -2029,7 +2029,7 @@ function hommes.libre_pour(id, regle)
     return false
   end
   local soins = rang_de("soins")
-  if f.blessure > 0 and soins and soins <= rang then
+  if f.blessure > 0 and soins and soins <= rang and regle ~= "bains" then
     return false
   end
   for autre in pairs(f.tenues or {}) do
@@ -2267,8 +2267,9 @@ function hommes.activite_de(id, heure)
   -- Vu sur une copie de la partie de JoVenGer le 21/10 (J3 : un blessé tenu toute la soirée par Scriptorium, jamais au
   -- repos) : les soins passent devant une tenue de même rang, comme dans hommes.libre_pour ; seules les règles plus
   -- fortes (bataille, mission, escorte, rassemblement) passent devant. Sans lit à lui (tous en relève), il se couche à
-  -- son lit de la nuit ou à une place libre, gardée comme celle du sommeil.
-  if f.blessure > 0 and soins and (not rang or soins <= rang) then
+  -- son lit de la nuit ou à une place libre, gardée comme celle du sommeil. Décision de JoVenGer du 26/09 (« hors
+  -- bataille, les blessés vont aux bains ») : la tenue « bains », un ordre exprès, passe devant les soins.
+  if f.blessure > 0 and soins and (not rang or soins < rang or (soins == rang and regle ~= "bains")) then
     resultat.regle, resultat.activite = "soins", "repos"
     local lit = f.lit or lit_de_nuit(id) or place_pour(id, "lit")
     resultat.lieu = lit

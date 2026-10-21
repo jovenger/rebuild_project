@@ -465,15 +465,25 @@ essai("hommes : soins, plus vite avec un barbier", function()
   egal(rapport.gueris, 1, "compté")
 end)
 
-essai("soins (vu sur une copie le 21/10, J3) : un blessé va au repos devant une tenue de même rang ; une règle plus forte passe devant", function()
+essai("soins (vu sur une copie le 21/10, J3) : un blessé va au repos devant une tenue de même rang (la règle de Scriptorium), sauf les bains ; une règle plus forte passe devant", function()
   preparer(100, 100, 10)
   local a = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
-  verifier(hommes.tenir(a, "bains", { activite = "geste", lieu = "bains", geste = "eating_standing", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "tenu au même rang que les soins")
-  verifier(hommes.blesser(a, 3), "blessé")
-  local r = hommes.activite_de(a, 10)
-  egal(r.activite, "repos", "au repos devant une tenue de même rang")
-  verifier(r.position ~= nil, "à un lit")
-  hommes.lacher(a, "bains")
+  local avant = hommes.priorites.scriptorium
+  hommes.priorites.scriptorium = hommes.priorites.soins
+  local fait, erreur = pcall(function()
+    verifier(hommes.tenir(a, "scriptorium", { activite = "geste", lieu = "scriptorium", geste = "eating_standing", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "tenu au même rang que les soins")
+    verifier(hommes.blesser(a, 3), "blessé")
+    local r = hommes.activite_de(a, 10)
+    egal(r.activite, "repos", "au repos devant une tenue de même rang")
+    verifier(r.position ~= nil, "à un lit")
+    verifier(hommes.libre_pour(a, "scriptorium") == false, "pas libre pour la règle de Scriptorium")
+    verifier(hommes.tenir(a, "bains", { activite = "geste", lieu = "bains", geste = "eating_standing", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "envoyé au bain")
+    egal(hommes.activite_de(a, 10).regle, "bains", "les bains passent devant les soins (décision du 26/09)")
+    hommes.lacher(a, "bains")
+    hommes.lacher(a, "scriptorium")
+  end)
+  hommes.priorites.scriptorium = avant
+  verifier(fait, tostring(erreur))
   verifier(hommes.tenir(a, "travail", { activite = "geste", lieu = "forge", geste = "eating_standing", position = { x = 3, y = 4, z = 0 }, fin = "liberation" }), "tenu par une règle plus faible")
   egal(hommes.activite_de(a, 10).activite, "repos", "au repos devant une règle plus faible")
   verifier(hommes.tenir(a, "mission", { activite = "suivre", lieu = "m", fin = "liberation" }), "tenu par une mission")
@@ -632,12 +642,12 @@ essai("arbitre : à rang égal, la première tenue garde l'homme, même reposée
   FauxJeu.heure = 10.4
   hommes.tenir(id, "sommeil", { activite = "sommeil", lieu = "lit_essai", position = point_d_essai(6, 5), fin = 12 })
   egal(hommes.qui_tient(id), "sommeil", "reposée, elle n'est pas rajeunie")
-  -- Blessé : les soins (rang 3) passent devant ; vu sur une copie le 21/10 (J3, demande de JoVenGer par le pair) : une
-  -- tenue de même rang (« bains », ou la règle de Scriptorium) ne passe plus devant les soins, comme dans libre_pour.
+  -- Blessé : les soins (rang 3) passent devant ; une tenue « bains » (rang 3, un ordre exprès : décision de JoVenGer du
+  -- 26/09, « hors bataille, les blessés vont aux bains ») passe devant les soins.
   hommes.blesser(id, 2)
   egal(hommes.qui_tient(id), "soins", "blessé : les soins")
   hommes.tenir(id, "bains", { activite = "bain", lieu = "bains_essai", position = point_d_essai(), fin = 12 })
-  egal(hommes.qui_tient(id), "soins", "à rang égal, les soins passent devant la tenue posée")
+  egal(hommes.qui_tient(id), "bains", "à rang égal, la tenue posée bat la règle calculée")
   hommes.tenir(id, "bataille", { activite = "bataille", lieu = "rang_avant", position = point_d_essai(), fin = "liberation" })
   egal(hommes.qui_tient(id), "bataille", "la bataille passe devant tout")
 end)

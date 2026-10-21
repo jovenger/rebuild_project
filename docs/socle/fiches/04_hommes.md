@@ -58,7 +58,9 @@ Embauche (prime, paillasse, nom d'époque, message) et ses refus ; solde hebdoma
 - Un blessé tenu par Scriptorium (règle de même rang que les soins, 3) n'allait jamais au repos : `activite_de`
   comparait au sens strict (`soins < rang`) quand `libre_pour` comparait au sens large. Désormais les soins passent devant
   toute tenue de même rang ou plus faible (`soins <= rang`) ; seules les règles plus fortes (bataille, mission, escorte,
-  rassemblement) passent devant. Conséquence : une tenue « bains » (rang 3) ne passe plus devant les soins.
+  rassemblement) passent devant ; et la tenue « bains », un ordre exprès (décision de JoVenGer du 26/09 : « hors
+  bataille, les blessés vont aux bains » ; la dame des bains les soigne, ensuite ils se reposent), aussi dans
+  `libre_pour`.
 - Sans lit à lui (tous en relève), le blessé se couche à son lit de la nuit ou à une place libre, gardée comme celle du
   sommeil (`hommes.lits_de_nuit`).
 - Essais (vérifiés en échec sans) ; non vu en jeu.
