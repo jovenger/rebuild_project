@@ -2081,7 +2081,7 @@ def verifier_la_vie_du_camp():
         erreur("vie du camp : la liaison doit retenir la place visée et mesurer l'arrivée (liaison.pres_de_la_place)")
     # Demande du pair (20/10, sonde : depuis un geste à genoux, le premier pas attendait la fin normale du geste) : la sortie
     # de posture des branches 9, 12, 13, 21 et 22 se fait sous l'urgence lue au cerveau (la voie du jeu, UrgencyDecorator
-    # autour du WaitAction, AI/npc/basic/switch/interrupt_attack.xml) ; 1 lente, 2 rapide (défaut), 3 instantanée.
+    # autour du WaitAction, AI/npc/basic/switch/interrupt_attack.xml) ; 1 lente, 2 rapide, 3 instantanée (défaut depuis le 21/10, mesuré en J3 et J4).
     sortie_urgente = (r'<StanceElement smartObject="" stance="standing" allowAny="false" enabled="true">\s*'
                       r'<Parallel successMode="Any" failureMode="Any">\s*<UrgencyDecorator Urgency="\$urgence_relever">\s*'
                       r'<WaitAction />\s*</UrgencyDecorator>')
@@ -2121,15 +2121,15 @@ def verifier_la_vie_du_camp():
                      r'"scriptorium_essai_cible", wuid[\s\S]{0,800}?poser_l_activite\(entite, 24\)', liaison_texte):
         erreur("vie du camp : la liaison doit poser la cible du tir (son WUID) puis l'activité 24")
     urgence = re.search(r'<Expression expressions="\$urgence_code = \(\$scriptorium_cerveau_urgence_relever &gt; 0 \? '
-                        r'\$scriptorium_cerveau_urgence_relever : 2\)" />\s*'
+                        r'\$scriptorium_cerveau_urgence_relever : 3\)" />\s*'
                         r'<Expression expressions="\$urgence_relever = \$enum:urgency\.fast" />\s*'
                         r'<IfCondition condition="\$urgence_code == 1" failOnCondition="false">\s*'
                         r'<Expression expressions="\$urgence_relever = \$enum:urgency\.slow" />\s*</IfCondition>\s*'
                         r'<IfCondition condition="\$urgence_code == 3" failOnCondition="false">\s*'
                         r'<Expression expressions="\$urgence_relever = \$enum:urgency\.instant" />\s*</IfCondition>', sans_commentaires)
     if not urgence or '<Variable name="urgence_relever" type="enum:urgency"' not in comportements:
-        erreur("vie du camp : l'urgence du relever doit être lue au cerveau (urgence_relever : 1 lente, 2 rapide par défaut, "
-               "3 instantanée)")
+        erreur("vie du camp : l'urgence du relever doit être lue au cerveau (urgence_relever : 1 lente, 2 rapide, "
+               "3 instantanée par défaut)")
     # Fiche 15, V73 f 2 c : l'homme marche jusqu'à son cheval ; la liaison écrit la marche, l'arbre l'ajoute au délai.
     approche = re.search(r'<Expression expressions="\$monte_delai_ms = \(\$scriptorium_cerveau_monte_delai_ms[^>]*/>\s*'
                          r'<Expression expressions="\$monte_delai_ms = \$monte_delai_ms \+ \(\$scriptorium_monte_approche_ms &gt; 0 \? '

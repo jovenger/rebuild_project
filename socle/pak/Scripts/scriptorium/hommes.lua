@@ -255,8 +255,10 @@ hommes.cerveau = {
   place_arrivee_cm = 150,
   -- Demande du pair (20/10, sonde : depuis un geste à genoux, le premier pas attendait la fin normale du geste) : la
   -- sortie de posture avant une marche se fait sous une urgence (la voie du jeu : UrgencyDecorator autour du WaitAction,
-  -- AI/npc/basic/switch/interrupt_attack.xml) : 1 lente (slow), 2 rapide (fast), 3 instantanée (instant).
-  urgence_relever = 2,
+  -- AI/npc/basic/switch/interrupt_attack.xml) : 1 lente (slow), 2 rapide (fast), 3 instantanée (instant). Mesuré sur
+  -- une copie de la partie de JoVenGer le 21/10 (J3 en rapide : des hommes retenus par l'action de leur geste ; J4 en
+  -- instantanée, même copie, même heure : aucun figé) : 3 par défaut (décision de JoVenGer par le pair).
+  urgence_relever = 3,
   -- Le factionnaire (fiche 15, V73 d 1, réponses a et a de JoVenGer du 16/10) : l'arrêt au poste, court comme celui du
   -- siège ; le jour, un geste « regarder autour » toutes les « poste_geste_ms », plus ou moins « poste_geste_ecart_ms »
   -- tirés au hasard par le jeu (les gardes ne bougent pas tous ensemble).

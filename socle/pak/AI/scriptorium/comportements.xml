@@ -82,7 +82,7 @@
             <Expression expressions="$place_seuil = ($scriptorium_cerveau_place_arrivee_cm &gt; 0 ? $scriptorium_cerveau_place_arrivee_cm : 150) * 0.01" />
             <!-- Demande du pair (20/10) : l'urgence de la sortie de posture, lue au cerveau (1 lente, 2 rapide, 3 instantanée),
                  comme le jeu fait avec $urgency (AI/battles/battleGateController.xml). -->
-            <Expression expressions="$urgence_code = ($scriptorium_cerveau_urgence_relever &gt; 0 ? $scriptorium_cerveau_urgence_relever : 2)" />
+            <Expression expressions="$urgence_code = ($scriptorium_cerveau_urgence_relever &gt; 0 ? $scriptorium_cerveau_urgence_relever : 3)" />
             <Expression expressions="$urgence_relever = $enum:urgency.fast" />
             <IfCondition condition="$urgence_code == 1" failOnCondition="false">
               <Expression expressions="$urgence_relever = $enum:urgency.slow" />

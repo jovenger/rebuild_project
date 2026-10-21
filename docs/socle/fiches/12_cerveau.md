@@ -343,6 +343,10 @@
   La valeur vient du cerveau : `hommes.cerveau.urgence_relever` (1 lente, 2 rapide par défaut, 3 instantanée), écrite
   dans `scriptorium_cerveau_urgence_relever`, réglable par le programme Scriptorium. Contrôlé au banc (forme exacte
   dans les 5 branches, lecture au cerveau, rapide par défaut ; en échec sur e41be67). Non vu en jeu.
+- **Instantanée par défaut** (mesuré sur une copie de la partie de JoVenGer le 21/10 : J3 en rapide, des hommes retenus
+  par l'action de leur geste, les sondes de la branche 22 montrant l'entrée sans la relève ; J4 en instantanée, même
+  copie, même heure : aucun figé ; décision de JoVenGer par le pair) : `hommes.cerveau.urgence_relever = 3` et le
+  défaut de l'arbre à 3. Contrôlé au banc (en échec sans). À revoir en J5 sans rien poser à la main.
 - **Partout où l'on part** (vu sur une copie de la partie de JoVenGer le 20/10, séance J, accord du pair) : les montes
   (branches 19 et 20, 29ed6c4) et les places (branches 10 s'asseoir, 11 se coucher : 19 vrais figés relevés, presque
   tous sortis d'un geste de Scriptorium vers un siège ou un lit) se relèvent aussi sous l'urgence ; 10 et 11 seulement
