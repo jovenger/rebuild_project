@@ -46,6 +46,11 @@
   <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_p1_22</Cell><Cell>À vos ordres. Je rentre au camp.</Cell><Cell>À vos ordres. Je rentre au camp.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_p1_23</Cell><Cell>Mais j'y suis déjà, chef.</Cell><Cell>Mais j'y suis déjà, chef.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_invite</Cell><Cell>Rentrez tous au camp.</Cell><Cell>Rentrez tous au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_henry</Cell><Cell>Tout le monde rentre au camp.</Cell><Cell>Tout le monde rentre au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_p1_44</Cell><Cell>À vos ordres, chef. On rentre tous.</Cell><Cell>À vos ordres, chef. On rentre tous.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_p1_45</Cell><Cell>Personne d'autre ne vous suit, chef.</Cell><Cell>Personne d'autre ne vous suit, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_invite</Cell><Cell>Reste en position ici, tiens la ligne.</Cell><Cell>Reste en position ici, tiens la ligne.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_henry</Cell><Cell>Reste en position ici, tiens la ligne.</Cell><Cell>Reste en position ici, tiens la ligne.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_p1_17</Cell><Cell>Personne ne passera, chef. Je ne bouge pas d'ici.</Cell><Cell>Personne ne passera, chef. Je ne bouge pas d'ici.</Cell></Row>

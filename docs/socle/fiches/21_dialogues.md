@@ -95,3 +95,12 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
   erreur : au journal, une fois. Vaut pour tout personnage rendu parlable (hommes et personnel mené).
 - La note de l'homme visé ne peut plus jeter d'erreur (elle ôtait « Parler » de l'invite, vu au banc sans horloge).
 - Épreuve Lua de la liaison au banc (vérifiée en échec sans) ; non vu en jeu.
+
+## « Rentrez tous au camp » (demande du pair, 21/10 ; demande de JoVenGer du 24/09)
+- Dans l'arbre « homme », sous « J'ai un ordre pour toi », le choix `rentrez_tous` : Henry « Rentrez tous au camp. »
+  (« Tout le monde rentre au camp. ») ; une place de réponse : code 44 « À vos ordres, chef. On rentre tous. », code 45
+  « Personne d'autre ne vous suit, chef. » ; puis retour au menu, comme « Rentre au camp ».
+- Le choix arrive à `hommes.reponse_du_dialogue("homme", "rentrez_tous", id)`, que Scriptorium remplace : il lâche
+  l'escorte de chaque homme qui la tient et rend 44, ou 45 s'il n'y en avait aucun. Sans Scriptorium : aucune réplique.
+- Données seulement (`socle/dialogues/arbres.json`, fichiers écrits par `outils/dialogues.py`, à jour au banc) ; non vu
+  en jeu.

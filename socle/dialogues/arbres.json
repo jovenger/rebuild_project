@@ -50,6 +50,9 @@
           {"nom": "rentre_au_camp", "invite": "Rentre au camp.", "henry": "Rentre au camp.", "repliques": [
             {"place": 1, "code": 22, "texte": "À vos ordres. Je rentre au camp."},
             {"place": 1, "code": 23, "texte": "Mais j'y suis déjà, chef."}], "fin": "menu"},
+          {"nom": "rentrez_tous", "invite": "Rentrez tous au camp.", "henry": "Tout le monde rentre au camp.", "repliques": [
+            {"place": 1, "code": 44, "texte": "À vos ordres, chef. On rentre tous."},
+            {"place": 1, "code": 45, "texte": "Personne d'autre ne vous suit, chef."}], "fin": "menu"},
           {"nom": "tiens_la_ligne", "invite": "Reste en position ici, tiens la ligne.",
            "henry": "Reste en position ici, tiens la ligne.", "repliques": [
             {"place": 1, "code": 17, "texte": "Personne ne passera, chef. Je ne bouge pas d'ici."}], "fin": "menu"},
