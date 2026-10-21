@@ -935,6 +935,30 @@ essai("fouille (demande du pair, 20/10) : un corps compté par Scriptorium n'est
   Scriptorium.en_partie = false
 end)
 
+essai("fouille (vu sur une copie le 21/10, J5) : un corps disparu (un assommé pris pour prisonnier par Scriptorium) est sauté ; son fouilleur est lâché aussitôt ; personne n'y est renvoyé", function()
+  local ids, id = bataille_gagnee({ "homme_d_armes", "homme_d_armes", "homme_d_armes" })
+  local f = bataille.fouille(id)
+  local h, corps = next(f.fouilleurs)
+  verifier(h ~= nil, "un fouilleur parti")
+  FauxJeu.positions[corps] = nil
+  bataille.battre()
+  local g = bataille.fouille(id)
+  verifier(not (g and g.fouilleurs[h] == corps), "son fouilleur n'y va plus")
+  local dit = false
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "disparu : sauté", 1, true) then dit = true end
+  end
+  verifier(dit, "dit au journal")
+  for _ = 1, 3 do
+    bataille.battre()
+    local k = bataille.fouille(id)
+    for _, c in pairs(k and k.fouilleurs or {}) do
+      verifier(c ~= corps, "personne renvoyé au corps disparu")
+    end
+  end
+  Scriptorium.en_partie = false
+end)
+
 -- ---------------------------------------------------------------- fiche 19, grappe 2 : les décisions du combat remplaçables
 
 essai("décisions du combat (fiche 19) : la cible de nos hommes (A2, A38), l'ennemi valable (A29), le combattant figé (A13)", function()

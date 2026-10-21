@@ -1118,6 +1118,12 @@ local function avancer_la_fouille(b, heure)
     local fini = false
     if not fiche or hommes().qui_tient(h) ~= "fouille" then
       fini = true   -- pris par plus fort (une bataille, les soins) : le corps redevient libre
+    elseif not la then
+      -- Vu sur une copie de la partie de JoVenGer le 21/10 (J5 : un pillard assommé pris pour prisonnier par Scriptorium,
+      -- son entité retirée) : un corps disparu est sauté ; son fouilleur est lâché aussitôt, jamais envoyé vers rien.
+      table.insert(f.vus, a.corps)
+      jeu().journal("Bataille : corps « " .. a.corps .. " » disparu : sauté, « " .. tostring(fiche.nom) .. " » lâché")
+      fini = true
     elseif ici and la and math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) <= r.fouille_pres_m then
       a.arrive = a.arrive or heure
       if heure >= a.arrive + r.fouille_duree_h then

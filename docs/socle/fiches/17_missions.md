@@ -214,3 +214,7 @@ le chemin du retour, entre à cheval et descend.
 - La colonne qui renaît sur le chemin du camp (même séance : Jan Kladivo debout et raide, 3,7 m en l'air) : chacun
   renaît au sol de sa place (le terrain lu au point, `jeu().altitude_du_terrain`), non à la hauteur du centre du camp.
   Essai (vérifié en échec sans) ; non vu en jeu.
+- **Un corps disparu est sauté** (vu sur une copie de la partie de JoVenGer le 21/10, J5 : un pillard assommé pris pour
+  prisonnier par Scriptorium, règle de JoVenGer du 1er/10, son entité retirée) : le fouilleur qui allait vers un corps
+  dont l'entité n'existe plus est lâché aussitôt, le corps compté comme vu (« corps … disparu : sauté ») ; un corps
+  disparu n'était déjà donné à personne. Essai (vérifié en échec sans) ; non vu en jeu.
