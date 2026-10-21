@@ -256,6 +256,27 @@ local function sauver_et_recharger(retoucher)
   return liste
 end
 
+essai("registre (question du pair, 21/10, J12 à J19) : une case reprise de la sauvegarde pas encore déclarée n'arrête pas le chargement ; servie et réécrite à sa déclaration", function()
+  depart()
+  local registre = Scriptorium.registre
+  local ancien = Scriptorium.noyau.reglages.registre_intervalle_s
+  Scriptorium.noyau.reglages.registre_intervalle_s = 0
+  local ok, erreur = pcall(function()
+    Scriptorium.entrer_en_partie()
+    registre.declarer_case("essai_connue", 1, function() return { n = 0 } end)
+    FauxJeu.depuis_la_sauvegarde = { { nom = "v_tardive", chaine = registre.serialiser({ version = 1, donnees = { n = 7 } }) } }
+    registre.invalider()
+    local lu, raison = pcall(registre.lire, "essai_connue")
+    verifier(lu, "le chargement va au bout (" .. tostring(raison) .. ")")
+    registre.declarer_case("v_tardive", 1, function() return { n = 0 } end)
+    egal(registre.lire("v_tardive").n, 7, "déclarée ensuite : la valeur reprise servie")
+    local ecrite = FauxJeu.registre_jetons.cases["v_tardive"]
+    verifier(ecrite and registre.deserialiser(ecrite).donnees.n == 7, "réécrite dans les jetons à sa déclaration")
+  end)
+  Scriptorium.noyau.reglages.registre_intervalle_s = ancien
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("registre (fiche 01, le second canal, demande du pair, 18/10) : ce qui n'est pas écrit voyage dans la sauvegarde et revient au rechargement ; rien en attente : rien de doublé ; une case rangée plus ancienne que la case lue : ignorée ; une case jamais écrite : reprise", function()
   depart()
   local registre = Scriptorium.registre

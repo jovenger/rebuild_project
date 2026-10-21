@@ -102,3 +102,14 @@ attente rangée(s) ») ; rechargement : l'`OnLoad` passe avant le chargement du 
 camp redressé (14 objets). Puis une sauvegarde sans rien en attente : rien rangé, rien repris, rien doublé. Le cas
 « plus ancienne que la case lue » : au banc seulement.
 
+
+## Une case reprise de la sauvegarde pas encore déclarée (question du pair, 21/10, J12 à J19)
+- Vu à chaque chargement : « Registre : 1 case(s) reprise(s) de la sauvegarde : v_ScriptoBesoins », puis « Socle :
+  relance de « camp » en erreur : registre : case inconnue : v_ScriptoBesoins ». La case est une valeur de Scriptorium,
+  déclarée à son premier usage. Le chargement du registre réécrivait les cases reprises par `registre.enregistrer` sur la
+  première, inconnue : l'erreur remontait dans la relance du morceau qui chargeait le registre (le camp), arrêtée net :
+  ni décors reposés, ni camp redressé au chargement.
+- Désormais : seules les cases reprises déjà déclarées sont réécrites au chargement ; une case pas encore déclarée est
+  servie depuis le contenu repris à sa déclaration (`registre.declarer_case`), puis réécrite dans les jetons. Rien à
+  changer chez Scriptorium.
+- Essai (vérifié en échec sans : la même erreur) ; non vu en jeu.

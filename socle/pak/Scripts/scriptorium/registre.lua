@@ -22,6 +22,10 @@ local cases, ordre, charge, contenu_stocke, dernier_rapport
 -- Fiche 01, l'écriture par case : les noms de l'index lu, l'index écrit, les cases marquées, la dernière chaîne écrite de
 -- chaque case (le détecteur), et la migration de l'ancien flux à faire.
 local noms_stockes, index_ecrit, marquees, dernieres_chaines, migration_a_faire, sans_nom_dit
+-- Question du pair (21/10, J12 à J19 : « relance de « camp » en erreur : registre : case inconnue : v_ScriptoBesoins » à
+-- chaque chargement) : les cases reprises de la sauvegarde qui ne sont pas encore déclarées (une case de Scriptorium,
+-- déclarée à son premier usage) ; réécrites dans les jetons à leur déclaration.
+local reprises_a_declarer = {}
 
 local function jeu()
   return Scriptorium.jeu
@@ -196,6 +200,10 @@ function registre.declarer_case(nom, version, par_defaut, migrations, options)
     -- Déclarée après le chargement : on la sert tout de suite depuis le contenu lu.
     local rapport = { chargees = 0, neuves = 0, migrees = 0, abimees = 0 }
     charger_case(case, contenu_stocke and contenu_stocke[nom], rapport)
+    if reprises_a_declarer[nom] then
+      reprises_a_declarer[nom] = nil
+      registre.enregistrer(nom)
+    end
   end
   return case
 end
@@ -306,10 +314,21 @@ function registre.charger(chaine)
   end
   charge = true
   dernier_rapport = rapport
-  -- Les cases reprises de la sauvegarde sont réécrites dans les jetons (tout de suite, ou à la fin de l'intervalle).
-  if #reprises > 0 then
-    for _, nom in ipairs(reprises) do marquees[nom] = true end
-    registre.enregistrer(reprises[1])
+  -- Les cases reprises de la sauvegarde sont réécrites dans les jetons (tout de suite, ou à la fin de l'intervalle) ;
+  -- une case pas encore déclarée l'est à sa déclaration (avant : « case inconnue » arrêtait la relance du morceau qui
+  -- chargeait le registre, le camp : ni décors reposés, ni camp redressé).
+  reprises_a_declarer = {}
+  local premiere = nil
+  for _, nom in ipairs(reprises) do
+    if cases[nom] then
+      marquees[nom] = true
+      premiere = premiere or nom
+    else
+      reprises_a_declarer[nom] = true
+    end
+  end
+  if premiere then
+    registre.enregistrer(premiere)
   end
   if rapport.source == "illisible" or rapport.abimees > 0 then
     annoncer("ui_scriptorium_registre_remis_a_neuf")
