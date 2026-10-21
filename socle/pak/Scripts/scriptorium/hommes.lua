@@ -2956,6 +2956,13 @@ local function secourir(id, f, a, rapport)
     s.reste, s.bloque_s = nil, 0
     return
   end
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J26 : Wenzel Vlk assommé à l'exercice, son geste suivant à
+  -- 28 m, « figé », relancé deux fois puis téléporté) : un homme assommé ne marche pas ; il n'est jamais jugé bloqué, son
+  -- compte repart de zéro quand il se relève.
+  if jeu().personnage_inconscient and jeu().personnage_inconscient(f.personnage) == true then
+    s.reste, s.bloque_s = nil, 0
+    return
+  end
   local pas_s = Scriptorium.cadence_du_battement_ms / 1000
   local progres = hommes.reglages.secours_progres_m
   local ici = jeu().position_du_personnage(f.personnage)
@@ -4084,6 +4091,8 @@ function hommes.garder()
       local exclu = not but or a.activite == "suivre" or a.activite == "bataille" or a.activite == "ronde"
         or a.activite == "fouille" or f.derniere_activite ~= resume_de(a)
         or jeu().occupation_de(f.personnage) ~= nil
+        -- Même vue (J26) : un homme assommé n'est pas figé.
+        or (jeu().personnage_inconscient and jeu().personnage_inconscient(f.personnage) == true)
       if not exclu and bouge and bouge < r.fige_bouge_m and v.regards > r.fige_ordre_regards then
         local ecart = jeu().ecart_au_but(f.personnage, but)
         if ecart and ecart > r.fige_but_m then

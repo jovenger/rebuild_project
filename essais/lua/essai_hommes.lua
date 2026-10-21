@@ -3769,6 +3769,30 @@ essai("gardien (mesuré sur une copie le 20/10) : arrêté à 2,7 m de son point
   egal(#FauxJeu.reveilles, 0, "personne réveillé")
 end)
 
+essai("gardien et secours (vu sur une copie le 21/10, J26 : Wenzel Vlk assommé à l'exercice, relancé puis téléporté) : un homme assommé n'est ni figé ni bloqué ; relevé, il l'est de nouveau", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  hommes.battre()
+  local a = hommes.activite_de(id, 10)
+  verifier(a and a.position, "une activité avec un but")
+  FauxJeu.reveilles, FauxJeu.secours = {}, {}
+  FauxJeu.positions[f.personnage] = { x = a.position.x + 30, y = a.position.y, z = 0 }
+  FauxJeu.inconscients = { [f.personnage] = true }
+  local ordres = #FauxJeu.ordres
+  for _ = 1, 4 do
+    hommes.garder()
+    hommes.garder()
+    hommes.battre()
+  end
+  egal(#FauxJeu.reveilles, 0, "assommé : jamais relancé")
+  egal(#FauxJeu.secours, 0, "assommé : jamais posé au secours")
+  verifier(not journal_contient("figé à 30.0 m"), "rien de dit")
+  FauxJeu.inconscients = nil
+  for _ = 1, 3 do hommes.garder() end
+  verifier(#FauxJeu.reveilles > 0, "relevé et toujours sur place : relancé")
+end)
+
 essai("gardien (vu sur une copie le 20/10, à chaque chargement) : un homme sans ordre encore reçu attend le battement, il n'est pas figé", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

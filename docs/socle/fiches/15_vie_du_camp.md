@@ -2665,3 +2665,12 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 - Reste à trancher (JoVenGer) : où dort un homme quand aucun lit n'est libre (plus de lits déclarés par Scriptorium, ou
   un repli au sol près du feu).
 - Épreuves de la liaison au banc (vérifiées en échec sans) ; non vu en jeu.
+
+## Un homme assommé n'est ni figé ni bloqué (vu sur une copie de la partie de JoVenGer le 21/10, J26)
+- Vu : à l'exercice, Wenzel Vlk et Havel le Borgne s'affrontent « jusqu'à assommé » ; Wenzel à terre, la prise de
+  Scriptorium lui pose son geste suivant à 28 m ; le gardien le dit « figé à 27,6 m », le relance deux fois, puis le
+  secours le fait téléporter par le jeu. Même chose pour Zdeněk le Taciturne, Jan le Borgne, Václav Vlk (8 « laissé au
+  secours » en dix minutes).
+- Désormais : un homme assommé (`jeu().personnage_inconscient`) n'est jamais jugé figé par le gardien ni bloqué par le
+  secours ; le compte du secours repart de zéro quand il se relève.
+- Essai (vérifié en échec sans : deux relances et un secours, comme en jeu) ; non vu en jeu.
