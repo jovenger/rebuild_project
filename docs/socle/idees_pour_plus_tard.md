@@ -38,3 +38,10 @@
 ## D. Par où commencer, à mon avis
 - D'abord A (1 à 5) : sans ça, rien ne se voit en jeu.
 - Puis, dans l'ordre : 6 (contrats), 19 (chronique), 8 (discipline), 9 (histoires des hommes), 14 (pavois et traits), 10 (calendrier). Ces six-là changent la façon de jouer ; les autres enrichissent.
+
+## Les pièces « introuvables » au rhabillage (vu en J23 à J26, le 21/10)
+- Sur des hommes d'origine de la sauvegarde (Mikuláš le Rouge, Ondřej de Sázava, Jindřich de Rataje…), le rhabillage
+  dit « N introuvable(s) ou refusée(s) » : des pièces de leur liste absentes de leur sac. Le pair a mesuré le même compte
+  avant et après les affrontements : un écart déjà présent dans la copie autosave1914, pas une perte en séance.
+- Idée : après le second passage, faire suivre à la liste de l'homme le sac réel (oublier les pièces introuvables), pour
+  ne plus les redemander à chaque rhabillage. À trancher avant d'y toucher : rien ne se perd en jeu aujourd'hui.
