@@ -2264,10 +2264,15 @@ function hommes.activite_de(id, heure)
   local resultat = { activite = nil, lieu = nil, position = nil }
   local regle, tenue, rang = tenue_la_plus_forte(f)
   local soins = rang_de("soins")
-  if f.blessure > 0 and soins and (not rang or soins < rang) then
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J3 : un blessé tenu toute la soirée par Scriptorium, jamais au
+  -- repos) : les soins passent devant une tenue de même rang, comme dans hommes.libre_pour ; seules les règles plus
+  -- fortes (bataille, mission, escorte, rassemblement) passent devant. Sans lit à lui (tous en relève), il se couche à
+  -- son lit de la nuit ou à une place libre, gardée comme celle du sommeil.
+  if f.blessure > 0 and soins and (not rang or soins <= rang) then
     resultat.regle, resultat.activite = "soins", "repos"
-    resultat.lieu = f.lit
-    resultat.position = f.lit and camp().position_de(f.lit) or nil
+    local lit = f.lit or lit_de_nuit(id) or place_pour(id, "lit")
+    resultat.lieu = lit
+    resultat.position = lit and camp().position_de(lit) or nil
     return resultat
   end
   -- Le tour de garde ne prend que des hommes libres pour la garde (aucune tenue aussi forte) : il passe donc devant
@@ -3397,9 +3402,9 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   end
   preparer_la_monture(id, f, heure, en_sortie_a_cheval(f))
   local a = Scriptorium.avis(hommes, "activite_de", id, heure)
-  if a and a.activite == "sommeil" and a.lieu and camp().sorte_de(a.lieu) == "lit" and not f.lit then
+  if a and (a.activite == "sommeil" or a.activite == "repos") and a.lieu and camp().sorte_de(a.lieu) == "lit" and not f.lit then
     hommes.lits_de_nuit[id] = a.lieu
-  elseif a and a.activite ~= "sommeil" then
+  elseif a and a.activite ~= "sommeil" and a.activite ~= "repos" then
     hommes.lits_de_nuit[id] = nil
   end
   -- Fiche 20 : une parole demandée : jouée (au plus une fois), puis oubliée ; elle attend en combat, en bataille, au lit.

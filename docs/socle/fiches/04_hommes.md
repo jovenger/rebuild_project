@@ -53,3 +53,12 @@
 
 ## Essais au banc (`essais/lua/essai_hommes.lua`)
 Embauche (prime, paillasse, nom d'époque, message) et ses refus ; solde hebdomadaire avec rangs, impayés, départ après deux semaines ; rations et faim ; journée et places ; garde bornée au nombre d'hommes, rotation, blessés exclus ; ordres donnés seulement au changement ; dizainiers et capitaine ; fin de contrat et renouvellement ; soins et barbier ; désertion ; renvoi et mort dans les anciens ; écriture puis relecture ; redressement des personnages manquants.
+
+## Le blessé au repos (vu sur une copie de la partie de JoVenGer le 21/10, J3 ; demande de JoVenGer par le pair)
+- Un blessé tenu par Scriptorium (règle de même rang que les soins, 3) n'allait jamais au repos : `activite_de`
+  comparait au sens strict (`soins < rang`) quand `libre_pour` comparait au sens large. Désormais les soins passent devant
+  toute tenue de même rang ou plus faible (`soins <= rang`) ; seules les règles plus fortes (bataille, mission, escorte,
+  rassemblement) passent devant. Conséquence : une tenue « bains » (rang 3) ne passe plus devant les soins.
+- Sans lit à lui (tous en relève), le blessé se couche à son lit de la nuit ou à une place libre, gardée comme celle du
+  sommeil (`hommes.lits_de_nuit`).
+- Essais (vérifiés en échec sans) ; non vu en jeu.
