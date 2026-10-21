@@ -53,3 +53,9 @@ après la bascule, avec les dialogues de Scriptorium.
   `hommes.conversation_du_personnage`) qui le reconnaissent. Mêmes règles que pour un homme : jouée une fois par l'ordre
   « parole », puis oubliée (sa tâche lui est redonnée) ; jamais au sommeil (sauf urgente) ni en combat ; oubliée après
   `parole_attente_max_h`. Essai (vérifié en échec sans) ; non vu en jeu.
+- **Les provocations des pillards** (demande du pair, 21/10, J14 ; vu dans les journaux de J4 et J5 : neuf demandes de
+  Scriptorium, aucune dite, « pas_mene ») : `bataille.dire_une_replique(personnage, quoi)`, aussi par
+  `hommes.dire_une_replique_du_personnage` avec le nom d'entité de l'ennemi : un ennemi debout d'une bande au contact dit
+  sa réplique (alias ou metarole) par l'ordre « parole » de notre arbre ; il ne se bat pas tant qu'il la dit ; dite, ou
+  attendue plus de `bataille.reglages.parole_ennemi_max_h` (0,05 h), l'attaque lui est redonnée. Refus : `hors_bataille`
+  (alors, comme avant, « pas_mene »), `ennemi_a_terre`, `parole_invalide`. Essai (vérifié en échec sans) ; non vu en jeu.

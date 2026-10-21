@@ -959,6 +959,35 @@ essai("fouille (vu sur une copie le 21/10, J5) : un corps disparu (un assommé p
   Scriptorium.en_partie = false
 end)
 
+essai("provocation d'un pillard (demande du pair, 21/10, J14) : un ennemi debout d'une bande au contact dit une réplique, sans se battre pendant ce temps, puis l'attaque lui est redonnée ; refus hors bataille", function()
+  preparer(1000, 10, { "homme_d_armes", "homme_d_armes" })
+  local ok, raison = hommes.dire_une_replique_du_personnage("scriptorium_ennemi_inconnu", { alias = "scr_ri_pillard_menace_1" })
+  verifier(not ok and raison == "pas_mene", "hors bataille : refusé comme avant (" .. tostring(raison) .. ")")
+  local id = bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 0 })
+  bataille.battre()
+  local e1 = FauxJeu.ennemis[1].identifiant
+  FauxJeu.ordres, FauxJeu.paroles, FauxJeu.attaques = {}, {}, {}
+  ok, raison = hommes.dire_une_replique_du_personnage(e1, {})
+  verifier(not ok and raison == "parole_invalide", "sans alias : refusée")
+  verifier(hommes.dire_une_replique_du_personnage(e1, { alias = "scr_ri_pillard_menace_1" }), "la provocation demandée par son nom d'entité")
+  egal(FauxJeu.paroles[e1] and FauxJeu.paroles[e1].alias, "scr_ri_pillard_menace_1", "la réplique donnée")
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite, "parole", "l'ordre de parole")
+  FauxJeu.occupations[e1] = nil
+  local function attaques_de(e)
+    local n = 0
+    for _, a in ipairs(FauxJeu.attaques) do if a.attaquant == e then n = n + 1 end end
+    return n
+  end
+
+  bataille.battre()
+  egal(attaques_de(e1), 0, "pendant qu'il parle : pas d'attaque")
+  FauxJeu.variables_du_cerveau = FauxJeu.variables_du_cerveau or {}
+  FauxJeu.variables_du_cerveau[e1] = { scriptorium_parole_jouee = 1 }
+  bataille.battre()
+  egal(attaques_de(e1), 1, "dite : l'attaque lui est redonnée")
+  Scriptorium.en_partie = false
+end)
+
 -- ---------------------------------------------------------------- fiche 19, grappe 2 : les décisions du combat remplaçables
 
 essai("décisions du combat (fiche 19) : la cible de nos hommes (A2, A38), l'ennemi valable (A29), le combattant figé (A13)", function()

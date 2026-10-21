@@ -4740,6 +4740,17 @@ local function id_du_personnage(d, personnage)
 end
 
 function hommes.dire_une_replique_du_personnage(personnage, quoi)
+  -- Un ennemi d'une bataille en cours (demande du pair, 21/10, J14 : les provocations des pillards).
+  local bat = Scriptorium.bataille
+  if bat and bat.dire_une_replique and type(personnage) == "string" and not id_du_personnage(donnees(), personnage) then
+    local dir_ = Scriptorium.directeur
+    if not (dir_ and dir_.personnage and dir_.personnage() == personnage) then
+      local ok, raison = bat.dire_une_replique(personnage, quoi)
+      if ok or raison ~= "hors_bataille" then
+        return ok, raison
+      end
+    end
+  end
   -- Le Directeur (vu sur une copie le 21/10, J11 : « réplique refusée pour Scriptorium_Directeur : pas_mene »).
   local dir = Scriptorium.directeur
   if dir and personnage ~= nil and dir.personnage and dir.personnage() == personnage then

@@ -53,6 +53,9 @@ bataille.reglages = {
   -- l'autre, depuis « poste_stagnation_h » heures du jeu, et Henry à plus de « poste_sur_place_m » du lieu (il n'y est
   -- pas), la bande postée est tranchée par passes.
   poste_stagnation_h = 0.5,
+  -- Une provocation d'un ennemi (bataille.dire_une_replique) qui ne se dit pas en tant d'heures du jeu est oubliée :
+  -- l'attaque lui est redonnée.
+  parole_ennemi_max_h = 0.05,
   poste_sur_place_m = 80,
   -- L'issue tranchée (règle scellée de JoVenGer « bataille_au_loin », 24/09 : « laisser le jeu en décider selon la
   -- puissance de chacun », « rien n'est écrit d'avance ») : chaque homme tombé l'est mort avec cette chance, blessé
@@ -600,22 +603,76 @@ local function lancer_l_attaque_de_la_bande(b)
   end
   local donnes, k = 0, 0
   for _, e in ipairs(b.personnages) do
+    -- Une provocation en cours (bataille.dire_une_replique) : pas d'attaque tant qu'elle se dit ; dite, ou trop
+    -- attendue (« parole_ennemi_max_h »), l'attaque lui est redonnée.
+    local parle = b.paroles and b.paroles[e]
+    local reprendre = false
+    if parle then
+      local lus = jeu().lire_le_cerveau(e, { "scriptorium_parole_jouee" }) or {}
+      if (tonumber(lus.scriptorium_parole_jouee) or 0) > parle.jouees_avant
+          or jeu().heure_du_jeu() > parle.depuis + bataille.reglages.parole_ennemi_max_h then
+        b.paroles[e] = nil
+        reprendre = true
+      end
+    end
     local actuelle = b.cibles_de_la_bande[e]
     local tombee = not vivantes[actuelle]
     local nouvelle = debout(e) and Scriptorium.avis(bataille, "cible_de_la_bande", b.id, e, cibles, actuelle, k + 1)
     local changee = nouvelle and nouvelle ~= actuelle
-    if debout(e) and ((changee and (not tombee or jeu().occupation_de(e) ~= "combat"))
+    if parle and not reprendre then
+      -- il parle : rien
+    elseif debout(e) and (reprendre or (changee and (not tombee or jeu().occupation_de(e) ~= "combat"))
         or a_relancer(b, e, e, actuelle)) then
       if changee then
         k = k + 1
         b.cibles_de_la_bande[e] = nouvelle
       end
-      jeu().journal("Bataille : « " .. e .. " » attaque « " .. b.cibles_de_la_bande[e] .. " » : "
+      b.cibles_de_la_bande[e] = b.cibles_de_la_bande[e] or nouvelle
+      jeu().journal("Bataille : « " .. e .. " » attaque « " .. tostring(b.cibles_de_la_bande[e]) .. " » : "
                     .. tostring(jeu().ordonner_l_attaque(b.cibles_de_la_bande[e], e)))
       donnes = donnes + 1
     end
   end
   return donnes
+end
+
+-- Demande du pair (21/10, J14 ; vu dans les journaux de J4 et J5 : neuf provocations de Scriptorium, aucune dite,
+-- « pas_mene ») : un ennemi debout d'une bande au contact, par son nom d'entité, dit une réplique (alias ou metarole),
+-- par l'ordre « parole » de notre arbre, comme un homme ; il ne se bat pas tant qu'il la dit, puis l'attaque lui est
+-- redonnée. Refus : hors_bataille, ennemi_a_terre, parole_invalide. Rend vrai, ou faux et la raison.
+function bataille.dire_une_replique(personnage, quoi)
+  quoi = quoi or {}
+  local d = donnees()
+  local b = nil
+  for _, candidate in pairs(d.bandes) do
+    if candidate.etat == "au_contact" and type(candidate.personnages) == "table" and contient(candidate.personnages, personnage) then
+      b = candidate
+    end
+  end
+  if not b then
+    return refuser("hors_bataille", tostring(personnage))
+  end
+  if not debout(personnage) then
+    return refuser("ennemi_a_terre", tostring(personnage))
+  end
+  local function valable(n)
+    return n == nil or (type(n) == "string" and n ~= "" and string.match(n, "^[%w_]+$") ~= nil)
+  end
+  if not valable(quoi.alias) or not valable(quoi.metarole) or (quoi.alias == nil and quoi.metarole == nil) then
+    return refuser("parole_invalide", tostring(quoi.alias or quoi.metarole))
+  end
+  local lus = jeu().lire_le_cerveau(personnage, { "scriptorium_parole_jouee" }) or {}
+  b.paroles = b.paroles or {}
+  b.paroles[personnage] = { jouees_avant = tonumber(lus.scriptorium_parole_jouee) or 0, depuis = jeu().heure_du_jeu() }
+  local sortes = hommes() and hommes().sortes_de_paroles or {}
+  if jeu().donner_la_parole then
+    jeu().donner_la_parole(personnage, quoi.regard_henry and sortes.replique_vers_henry or sortes.replique, quoi.alias,
+                           quoi.metarole, nil)
+  end
+  local ligne = jeu().ordonner(personnage, "parole", nil, "parole_ennemi")
+  jeu().journal("Bataille : « " .. personnage .. " » dit « " .. tostring(quoi.alias or quoi.metarole) .. " » : "
+                .. tostring(ligne))
+  return true
 end
 
 -- Diagnostic : une ligne par combattant (les nôtres, puis la bande).
