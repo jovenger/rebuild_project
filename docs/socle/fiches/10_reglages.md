@@ -51,3 +51,11 @@
 
 ## Essais au banc (`essais/lua/essai_reglages.lua`)
 Sans fichier, les valeurs validées ; une valeur posée puis retirée ; fichier effacé ; le fichier ne touche qu'aux valeurs qu'il nomme (les réglages de Scriptorium en partie restent) ; section, nom et texte inconnus ; listes à nom ; signe, parts, heures, entiers, paires min et max ; refus partiel ; fichier inchangé sans effet ; fichier illisible ; message au joueur en partie seulement ; enceinte : rayon et pans acceptés, cercle ouvert refusé, rayon dans le camp refusé, plan refait, reposée si bâtie ; relance à l'entrée en partie.
+
+## Un nom réglable (vu le 21/10, J27 : la posture du sommeil au sol ne se changeait pas par le fichier)
+- Une entrée du catalogue peut déclarer `noms = { cle = true }` (comme `taux` et `parts`) : ces valeurs, des noms
+  (lettres, chiffres, « _ », au plus `reglages.nom_longueur_maximale` caractères), se règlent par le fichier ; refus
+  `pas_un_nom` pour un nom mal formé ou un nombre à sa place. Les textes et les clés de textes ne sont jamais réglables.
+- Déclaré : `hommes.sommeil_sol_geste`. `outils/regler.py` accepte `hommes.sommeil_sol_geste=woundedLying` (guillemets
+  facultatifs) et l'écrit entre guillemets.
+- Essai (vérifié en échec sans) ; non vu en jeu par le fichier.

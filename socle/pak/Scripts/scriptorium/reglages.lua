@@ -23,7 +23,7 @@ reglages.catalogue = {
   { section = "camp", morceau = "camp", table = "reglages", taux = { fonder_devant = true } },
   { section = "meubles", morceau = "camp", table = "objets_du_jeu" },
   { section = "postes_du_jeu", morceau = "camp", table = "genres_de_postes" },
-  { section = "hommes", morceau = "hommes", table = "reglages", taux = { secours_progres_m = true, secours_arrivee_m = true, secours_assis_m = true, regard_m = true,
+  { section = "hommes", morceau = "hommes", table = "reglages", noms = { sommeil_sol_geste = true }, taux = { secours_progres_m = true, secours_arrivee_m = true, secours_assis_m = true, regard_m = true,
     rassemblement_rayon_m = true, secours_loin_m = true, secours_loin_camp_m = true, secours_vue_cos = true,
     suivi_loin_m = true, suivi_derriere_m = true, cheval_distance_m = true, cheval_retrait_m = true,
     cheval_hors_camp_m = true, cheval_ecart_meuble_m = true, cheval_ecart_cheval_m = true, cheval_pente_max = true,
@@ -118,6 +118,8 @@ end
 -- Chaque valeur réglable : { parent, cle, chemin, valeur validée, entree du catalogue }. Relevées une fois, au
 -- chargement du socle, avant toute application du fichier.
 local releve = { liste = {}, par_chemin = {} }
+-- Un nom réglable (une posture du jeu, un modèle…) : au plus tant de caractères.
+reglages.nom_longueur_maximale = 80
 
 local function relever_les_nombres(entree, t, chemin, profondeur)
   if profondeur > reglages.profondeur_maximale then
@@ -131,7 +133,11 @@ local function relever_les_nombres(entree, t, chemin, profondeur)
   end
   for cle, valeur in pairs(t) do
     if type(cle) == "string" then
-      if type(valeur) == "number" then
+      -- Vu le 21/10 (J27 : la posture du sommeil au sol, un nom, ne se réglait pas) : un nom (lettres, chiffres, « _ ») est
+      -- réglable lui aussi, s'il est déclaré dans « noms » de son entrée du catalogue (comme « taux » et « parts ») ; les
+      -- textes et les clés de textes ne le sont jamais.
+      if type(valeur) == "number"
+          or (type(valeur) == "string" and entree.noms and entree.noms[cle] and string.match(valeur, "^[%w_]*$") ~= nil) then
         local fiche = { parent = t, cle = cle, chemin = chemin .. "." .. cle, validee = valeur, entree = entree }
         table.insert(releve.liste, fiche)
         releve.par_chemin[fiche.chemin] = fiche
@@ -242,6 +248,12 @@ end
 
 -- La raison de refuser une valeur, ou nil si elle est acceptable.
 local function raison_de_refuser(fiche, valeur)
+  if type(fiche.validee) == "string" then
+    if type(valeur) ~= "string" or #valeur > reglages.nom_longueur_maximale or string.match(valeur, "^[%w_]*$") == nil then
+      return "pas_un_nom"
+    end
+    return nil
+  end
   if type(valeur) ~= "number" or valeur ~= valeur or valeur == math.huge or valeur == -math.huge then
     return "pas_un_nombre"
   end

@@ -121,6 +121,23 @@ essai("réglages : sections, noms et textes inconnus refusés, le reste s'appliq
   verifier(lignes_avec("« chemins.ronde_proche.points » = 1 (pas_reglable)") == 1, "les points d'un chemin ne se règlent pas")
 end)
 
+essai("réglages (vu le 21/10, J27) : un nom déclaré dans « noms » se règle (la posture du sommeil au sol) ; un nom mal formé ou un nombre à sa place est refusé ; une clé de texte, jamais", function()
+  depart_avec_caractere()
+  local valide = hommes.reglages.sommeil_sol_geste
+  egal(valide, "QuestHunterInjuryIdleLie", "la posture validée")
+  local r = poser({ hommes = { sommeil_sol_geste = "woundedLying" } })
+  egal(r.changes, 1, "le nom passe")
+  egal(hommes.reglages.sommeil_sol_geste, "woundedLying", "posé")
+  r = poser({ hommes = { sommeil_sol_geste = "deux mots" } })
+  egal(r.refuses, 1, "un nom mal formé : refusé")
+  verifier(lignes_avec("(pas_un_nom)") >= 1, "dit : pas un nom")
+  r = poser({ hommes = { sommeil_sol_geste = 3 } })
+  egal(r.refuses, 1, "un nombre à la place d'un nom : refusé")
+  egal(hommes.reglages.sommeil_sol_geste, valide, "retiré du fichier : la valeur validée revient")
+  r = poser({ issues = { victoire = { cle = "ui_autre" } } })
+  egal(r.refuses, 1, "une clé de texte ne se règle pas, même par un nom")
+end)
+
 essai("réglages : signe, parts, heures, entiers, taux", function()
   depart_avec_caractere()
   local r = poser({

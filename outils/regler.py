@@ -31,6 +31,7 @@ NOM_DU_FICHIER = "reglages.lua"
 sys.path.insert(0, os.path.join(RACINE, "noyau"))
 import installer  # noqa: E402
 
+MOTIF_VALEUR_NOM = re.compile(r"^[A-Za-z0-9_]*$")
 MOTIF_CHARGEMENT = re.compile(r'Script\.ReloadScript\("Scripts/scriptorium/([a-z_]+\.lua)"\)')
 MOTIF_NOM = re.compile(r"^[a-z_][a-z0-9_]*$")
 # Ni la liaison (elle parle au moteur), ni le poste d'essai : le reste du socle suffit à éprouver une valeur.
@@ -108,6 +109,9 @@ def lire_le_fichier(chemin):
 
 
 def texte_du_nombre(valeur):
+    # Un nom réglable (vu le 21/10, J27 : la posture du sommeil au sol) : lettres, chiffres et « _ » seulement.
+    if isinstance(valeur, str) and MOTIF_VALEUR_NOM.match(valeur):
+        return '"%s"' % valeur
     if isinstance(valeur, bool) or not isinstance(valeur, (int, float)):
         raise ValueError("pas un nombre : %r" % (valeur,))
     if isinstance(valeur, float) and valeur.is_integer():
@@ -143,7 +147,12 @@ def lire_la_valeur(texte):
     try:
         return float(texte)
     except ValueError:
-        refuser("pas un nombre : %s" % texte)
+        pass
+    # Un nom, entre guillemets ou non (hommes.sommeil_sol_geste=woundedLying) ; le socle dit s'il l'accepte.
+    nom = texte.strip('"')
+    if MOTIF_VALEUR_NOM.match(nom):
+        return nom
+    refuser("ni un nombre ni un nom (lettres, chiffres, _) : %s" % texte)
 
 
 def morceaux_du_chemin(chemin):

@@ -219,8 +219,10 @@ hommes.reglages = {
   venues_par_battement = 3,
   -- Décision de JoVenGer (21/10, « Dormir au sol au feu ») : faute de lit libre, la posture couchée jouée à terre près du
   -- feu (une posture du jeu par son nom ; « » : pas de repli), l'écart entre deux dormeurs et le recul du premier rang
-  -- (mètres) ; le blessé sans lit aussi.
-  sommeil_sol_geste = "lyingInjured",
+  -- (mètres) ; le blessé sans lit aussi. Vu en jeu le 21/10 (J27, image du pair) : « lyingInjured » exige un objet (les
+  -- hommes restaient debout) ; « QuestHunterInjuryIdleLie », que le jeu joue sans objet (AI/quests/zranenylovci), les
+  -- couche dans l'herbe.
+  sommeil_sol_geste = "QuestHunterInjuryIdleLie",
   sommeil_sol_ecart_m = 2,
   sommeil_sol_recul_m = 3,
   sommeil_sol_blesses = true,

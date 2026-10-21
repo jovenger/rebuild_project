@@ -2697,3 +2697,9 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 - Essai (vérifié en échec sans) ; l'épreuve « nuit » du 19/10, qui attendait « sans lit déclaré, sans but », dit
   désormais « au sol près du feu ». À voir en J27 : « tient le geste « lyingInjured » », l'homme couché, et son lever à
   l'aube (la sortie d'un geste tenu, `urgence_relever`).
+- Vu en jeu le 21/10 (J27, image du pair à 22 h 35) : avec « lyingInjured », les hommes restaient DEBOUT à leur point ;
+  le journal disait « tient le geste », qui ne prouve que l'ordre posé, pas la posture jouée. « lyingInjured » n'est
+  jouée par le jeu qu'avec un objet (`locationObject="$__object.id"`). Relevé dans `Scripts.pak` des postures couchées
+  que le jeu joue SANS objet : `QuestHunterInjuryIdleLie` (AI/quests/zranenylovci), `woundedLying`, `injured_nostance`.
+  Essayée en direct à 23 h 10 (posée par le pair) : `QuestHunterInjuryIdleLie` couche les hommes dans l'herbe derrière
+  le feu, 8 s après l'ordre. C'est la valeur par défaut ; elle se règle désormais aussi par le fichier (fiche 10).

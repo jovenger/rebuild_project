@@ -4302,7 +4302,7 @@ essai("dormir au sol près du feu (décision de JoVenGer du 21/10) : faute de li
   local a = hommes.activite_de(s, 23)
   egal(a.activite, "sommeil", "l'activité reste le sommeil")
   egal(a.lieu, "sol_feu", "le lieu")
-  egal(a.geste, "lyingInjured", "la posture du réglage")
+  egal(a.geste, "QuestHunterInjuryIdleLie", "la posture du réglage (couchée sans objet, vue en jeu en J27)")
   verifier(a.position ~= nil, "un point")
   local b = hommes.activite_de(s, 23)
   verifier(b.position.x == a.position.x and b.position.y == a.position.y, "la même place à l'appel suivant")
@@ -4329,7 +4329,7 @@ essai("dormir au sol près du feu (décision de JoVenGer du 21/10) : faute de li
   FauxJeu.heure = 47
   local e = hommes.activite_de(s, 47)
   verifier(not (e and e.au_sol), "repli éteint : pas au sol")
-  hommes.reglages.sommeil_sol_geste = "lyingInjured"
+  hommes.reglages.sommeil_sol_geste = "QuestHunterInjuryIdleLie"
   Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
 end)
 
