@@ -200,3 +200,14 @@ le chemin du retour, entre à cheval et descend.
 - Lus en direct ; un lieu du même nom ajouté par Scriptorium passe devant. Au démarrage, une ligne au journal par carte.
 - Non vérifié en jeu : que chaque lieu soit loin des villages et des routes, et qu'un camp s'y dresse bien (terrain,
   quêtes en cours au même endroit).
+
+## Nos tombés au camp de bandits (vu sur une copie de la partie de JoVenGer le 21/10, J3 ; accord du pair)
+- mission_1 contre 4 brigands : nos deux engagés assommés, Henry au camp à 263 m (ni « sur place », à moins de 80 m, ni
+  enfui, à plus de 300 m). La bataille attendait la stagnation (0,5 h), puis tranchait par passes contre nos seuls
+  combattants DEBOUT : aucun ; d'où « défaite, 0 passe, 0 mort, 0 blessé », et les deux assommés restaient tenus
+  « bataille » (plus aucun ordre ensuite, au retour de la mission).
+- Désormais (`trancher_si_fige`) : nos tombés comptent comme dans `resoudre_par_le_jeu` (morts selon le jeu, assommés
+  blessés de 2 à 5 jours) et sont libérés avec les autres ; plus aucun des nôtres debout et Henry pas sur place, la
+  bataille est conclue aussitôt (défaite), sans attendre ni trancher contre personne ; une ligne au journal (« plus
+  aucun des nôtres debout, Henry pas sur place : défaite (… mort(s), … assommé(s)) »).
+- Essai (vérifié en échec sans) ; non vu en jeu.

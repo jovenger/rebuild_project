@@ -884,8 +884,10 @@ function bataille.retirer_de_la_bande(id, personnage)
 end
 
 -- Trancher une bande par passes (bataille.issue_au_loin) contre ces combattants : morts ou blessés selon
--- « part_des_morts », puis l'issue qui dit ce qui s'est passé. Rend le résultat d'« appliquer », avec les passes.
-local function trancher_par_passes(d, b, combattants, bonus)
+-- « part_des_morts », puis l'issue qui dit ce qui s'est passé. « tombes » (facultatif) : nos hommes déjà tombés dans ce
+-- combat, { morts = { id }, blesses = { { id, jours } } }, comptés avec les autres et libérés comme eux. Rend le
+-- résultat d'« appliquer », avec les passes.
+local function trancher_par_passes(d, b, combattants, bonus, tombes)
   local r = Scriptorium.avis(bataille, "issue_au_loin", combattants, b.sorte, b.effectif, bonus)
   local morts, blesses = {}, {}
   for _, id in ipairs(r.tombes) do
@@ -928,7 +930,16 @@ local function trancher_par_passes(d, b, combattants, bonus)
       end
     end
   end
-  b.combattants = combattants
+  b.combattants = {}
+  for _, id in ipairs(combattants) do table.insert(b.combattants, id) end
+  for _, id in ipairs(tombes and tombes.morts or {}) do
+    table.insert(morts, id)
+    table.insert(b.combattants, id)
+  end
+  for _, blesse in ipairs(tombes and tombes.blesses or {}) do
+    table.insert(blesses, blesse)
+    table.insert(b.combattants, blesse.id)
+  end
   local resultat = appliquer(d, b, issue, morts, blesses, r.gagne)
   resultat.passes, resultat.eux_tombes = r.passes, r.eux_tombes
   return resultat
@@ -1426,16 +1437,41 @@ local function partants_hors_de_vue(b)
 end
 
 -- Une bande postée au contact, figée (aucun tombé depuis « poste_stagnation_h ») et Henry pas sur place : tranchée par
--- passes contre nos combattants encore debout. Rend le résultat, ou nil.
+-- passes contre nos combattants encore debout ; nos tombés comptent (morts selon le jeu, assommés blessés). Vu sur une
+-- copie de la partie de JoVenGer le 21/10 (J3, mission_1 : nos deux combattants assommés, Henry au camp à 263 m) : plus
+-- aucun des nôtres debout et Henry pas sur place, la bataille est conclue aussitôt (défaite, nos tombés comptés) ; avant,
+-- elle attendait la stagnation puis tranchait contre personne (« 0 passe, 0 mort, 0 blessé ») et ne libérait pas les
+-- tombés (tenus « bataille » sans but, plus aucun ordre). Rend le résultat, ou nil.
 local function trancher_si_fige(d, b, heure)
   local r = bataille.reglages
   local leurs = 0
   for _, e in ipairs(b.personnages) do
     if debout(e) then leurs = leurs + 1 end
   end
-  local notres = {}
+  local notres, morts, assommes = {}, {}, {}
   for _, id in ipairs(b.combattants or {}) do
-    if des_notres_debout(hommes().fiche(id)) then table.insert(notres, id) end
+    local f = hommes().fiche(id)
+    if f and f.personnage and jeu().personnage_mort(f.personnage) then
+      table.insert(morts, id)
+    elseif des_notres_debout(f) then
+      table.insert(notres, id)
+    elseif f then
+      table.insert(assommes, id)
+    end
+  end
+  local function blesses_des_assommes()
+    local blesses = {}
+    for _, id in ipairs(assommes) do
+      table.insert(blesses, { id = id, jours = 2 + math.floor(tirage(d) * 4) })
+    end
+    return blesses
+  end
+  if #notres == 0 and leurs > 0 and #b.combattants > 0 and (henry_a(b) or math.huge) > r.poste_sur_place_m then
+    local resultat = appliquer(d, b, bataille.issues[4], morts, blesses_des_assommes(), false)
+    finir(d, b, resultat)
+    jeu().journal(string.format("Bataille : « %s » : plus aucun des nôtres debout, Henry pas sur place : défaite (%d mort(s), %d assommé(s))",
+      b.id, #morts, #assommes))
+    return resultat
   end
   local compte = leurs .. "/" .. #notres
   if b.compte_vu ~= compte then
@@ -1446,7 +1482,7 @@ local function trancher_si_fige(d, b, heure)
     return nil
   end
   b.effectif = leurs
-  local resultat = trancher_par_passes(d, b, notres, 1)
+  local resultat = trancher_par_passes(d, b, notres, 1, { morts = morts, blesses = blesses_des_assommes() })
   finir(d, b, resultat)
   jeu().journal(string.format("Bataille : « %s » figée sans Henry depuis %.2f h : tranchée par passes (%d passes)", b.id,
     heure - b.progres, resultat.passes))

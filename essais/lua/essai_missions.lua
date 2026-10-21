@@ -495,6 +495,55 @@ essai("missions : un combat figé au camp de bandits, Henry pas sur place, est t
   finir()
 end)
 
+-- Vu sur une copie de la partie de JoVenGer le 21/10 (J3, mission_1 : nos deux combattants assommés, Henry au camp) :
+-- la bataille se concluait « 0 passe, 0 mort, 0 blessé » et nos tombés restaient tenus « bataille », sans plus d'ordre.
+essai("missions (21/10) : plus aucun des nôtres debout, Henry pas sur place : défaite aussitôt, nos assommés blessés et libérés ; tranchée par passes, nos tombés comptent", function()
+  local ids = preparer({ "homme_d_armes", "homme_d_armes" })
+  local id = missions.dresser_un_camp("gue", "petit")
+  FauxJeu.position_joueur = { x = 0, y = 60, z = 0 }       -- à 140 m du lieu : ni sur place, ni enfui
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  egal(la_bande(id).etat, "au_contact", "au contact")
+  FauxJeu.inconscients = {}
+  for _, h in ipairs(ids) do
+    FauxJeu.inconscients[hommes.fiche(h).personnage] = true
+  end
+  FauxJeu.heure = 10.05
+  battre()
+  egal(la_bande(id).etat, "finie", "plus personne debout, Henry pas sur place : conclue sans attendre")
+  local dit = false
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "plus aucun des nôtres debout", 1, true) then dit = true end
+  end
+  verifier(dit, "dit au journal")
+  for _, h in ipairs(ids) do
+    verifier(hommes.fiche(h).blessure > 0, "l'assommé est blessé")
+    verifier(hommes.qui_tient(h) ~= "bataille", "l'assommé n'est plus tenu par la bataille")
+  end
+  finir()
+  -- Un debout, un assommé, figé : tranchée par passes ; l'assommé compte (blessé) et est libéré.
+  ids = preparer({ "homme_d_armes", "homme_d_armes" })
+  id = missions.dresser_un_camp("gue", "petit")
+  FauxJeu.position_joueur = { x = 0, y = 60, z = 0 }
+  battre()
+  for _, h in ipairs(ids) do
+    FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 180, z = 0 }
+  end
+  battre()
+  FauxJeu.inconscients = { [hommes.fiche(ids[2]).personnage] = true }
+  battre()
+  FauxJeu.heure = 11
+  battre()
+  egal(la_bande(id).etat, "finie", "figé, Henry loin : tranché par passes")
+  local f2 = hommes.fiche(ids[2])
+  verifier(f2 == nil or f2.blessure > 0, "l'assommé compte : blessé (ou mort)")
+  verifier(f2 == nil or hommes.qui_tient(ids[2]) ~= "bataille", "l'assommé libéré")
+  finir()
+end)
+
 -- Relecture du pair (17/10) : tranchée sous les yeux d'Henry, l'issue s'applique aux vrais personnages ; rien ne
 -- disparaît sous ses yeux.
 essai("missions : tranchée, l'issue s'applique aux vrais personnages ; survivants et camp retirés seulement hors de la vue d'Henry", function()
