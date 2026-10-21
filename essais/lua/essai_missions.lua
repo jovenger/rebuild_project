@@ -848,8 +848,15 @@ essai("sorties (5 d) : un cuisinier sort à cheval à un point, y reste, rentre 
     local id = missions.sortir({ hommes = ids, point = { x = 0, y = 60, z = 0 }, duree_h = 1, motif = "bois" })
     verifier(id, "partie")
     egal(#missions.camps(), 0, "aucun camp de bandits")
+    -- Vu sur une copie le 21/10 (J4) : dans le camp réel, aucun cheval : ils en sortent à pied ; dehors, le cheval naît.
     local a = hommes.activite_de(ids[1], FauxJeu.heure)
-    verifier(a.suivi and a.suivi.mode == "cheval", "à cheval")
+    verifier(not (a.suivi and a.suivi.mode == "cheval"), "dans le camp : à pied")
+    for _, h in ipairs(ids) do
+      FauxJeu.positions[hommes.fiche(h).personnage] = { x = 0, y = 40, z = 0 }
+    end
+    hommes.battre()
+    a = hommes.activite_de(ids[1], FauxJeu.heure)
+    verifier(a.suivi and a.suivi.mode == "cheval", "dehors : à cheval")
     battre()
     egal(missions.mission(id).etat, "aller", "en route")
     FauxJeu.positions[hommes.fiche(ids[1]).personnage] = { x = 0, y = 58, z = 0 }

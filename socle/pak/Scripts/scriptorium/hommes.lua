@@ -100,6 +100,13 @@ hommes.reglages = {
   -- à « monte_approche_m_par_s », au plus « monte_approche_max_ms ».
   cheval_hors_camp_m = 6,
   cheval_places_essayees = 8,
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J4 : le cheval de Jan né dans un cul-de-sac entre une tente et
+  -- une clôture du camp réel, la colonne arrêtée 1,2 h ; accord du pair, règle de JoVenGer du 16/10 : on part et rentre
+  -- à cheval depuis le bord du camp) : un chef de colonne à cheval qui n'a pas bougé de « fige_bouge_m » pendant
+  -- « colonne_arret_battements » battements, à plus de « colonne_arrivee_m » de son but, est remis à pied (une monte
+  -- manquée).
+  colonne_arret_battements = 6,
+  colonne_arrivee_m = 15,
   cheval_ecart_meuble_m = 3,
   cheval_ecart_cheval_m = 3,
   cheval_pente_max = 0.5,
@@ -3104,6 +3111,47 @@ local function compter_un_essai(f, m)
   end
 end
 
+-- L'étendue du camp réel (même séance, J4) : le cercle de l'enceinte du plan (20 m) ne dit pas le camp de Scriptorium
+-- (tentes, clôtures, lits : plus de 50 m) ; c'est le plus loin du centre parmi ce cercle, les meubles du plan, les
+-- places déclarées par Scriptorium et ses décors. Rend (centre, rayon, points des objets connus), ou nil sans camp.
+local function etendue_du_camp()
+  if not (camp().est_fonde and camp().est_fonde()) then
+    return nil
+  end
+  local centre = camp().point(0, 0, 0)
+  local enceinte = Scriptorium.enceinte
+  local loin = enceinte and enceinte.reglages and tonumber(enceinte.reglages.rayon) or 0
+  local objets = {}
+  local function compter(p)
+    if p and tonumber(p.x) and tonumber(p.y) then
+      table.insert(objets, p)
+      loin = math.max(loin, math.sqrt((p.x - centre.x) ^ 2 + (p.y - centre.y) ^ 2))
+    end
+  end
+  for _, e in ipairs(camp().plan or {}) do
+    compter((camp().point(e.x, e.y, 0)))
+  end
+  for _, e in ipairs(enceinte and enceinte.plan or {}) do
+    compter((camp().point(e.x, e.y, 0)))
+  end
+  for _, p in ipairs(camp().liste_des_places_declarees and camp().liste_des_places_declarees() or {}) do
+    compter(jeu().position_d_un_objet(p.nom))
+  end
+  for _, decor in pairs(camp().decors and camp().decors() or {}) do
+    compter(decor)
+  end
+  return centre, loin, objets
+end
+
+hommes.etendue_du_camp = etendue_du_camp
+
+-- Dans le camp réel (à moins de son étendue et « cheval_hors_camp_m ») : jamais de cheval né là, jamais à cheval là.
+local function dans_le_camp_reel(point)
+  local centre, loin = etendue_du_camp()
+  return centre ~= nil and point ~= nil
+    and math.sqrt((point.x - centre.x) ^ 2 + (point.y - centre.y) ^ 2) < loin + hommes.reglages.cheval_hors_camp_m
+end
+
 -- La place du cheval (V73 f 2 c) : voir les réglages « cheval_* ». Rend (place, refus par raison), ou (nil, refus par
 -- raison, vrai si des places bonnes étaient toutes vues d'Henry). Vu sur une copie de la partie de JoVenGer le 20/10
 -- (séance J, 7 chevaux nés sur 21 sous ses yeux : toutes les places bonnes vues, la première vue était prise) : jamais
@@ -3113,22 +3161,14 @@ local function place_du_cheval(id, ici)
   local function ecart(a, b)
     return ((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) ^ 0.5
   end
-  local enceinte = Scriptorium.enceinte
-  local centre = camp().est_fonde() and camp().point(0, 0, 0) or nil
-  local rayon = enceinte and enceinte.reglages and tonumber(enceinte.reglages.rayon) or nil
-  local base = ici
-  local objets = {}
-  if centre then
-    if rayon and ecart(ici, centre) < rayon + r.cheval_ecart_meuble_m then
-      base = camp().point(0, rayon + r.cheval_hors_camp_m, 0)
-    end
-    for _, e in ipairs(camp().plan) do
-      table.insert(objets, (camp().point(e.x, e.y, 0)))
-    end
-    for _, e in ipairs(enceinte and enceinte.plan or {}) do
-      table.insert(objets, (camp().point(e.x, e.y, 0)))
-    end
+  -- Même séance (J4) : un homme dans le camp réel n'a pas de cheval ; il en sort à pied, son cheval naît près de lui
+  -- une fois dehors (quatrième valeur rendue : vrai).
+  local centre, loin, objets = etendue_du_camp()
+  objets = objets or {}
+  if dans_le_camp_reel(ici) then
+    return nil, {}, false, true
   end
+  local base = ici
   local chevaux = {}
   for autre, m in pairs(hommes.montures) do
     if autre ~= id and m.cheval then
@@ -3145,7 +3185,7 @@ local function place_du_cheval(id, ici)
     local p = { x = base.x + r.cheval_distance_m * math.cos(angle), y = base.y + r.cheval_distance_m * math.sin(angle),
                 z = base.z }
     local raison = nil
-    if centre and rayon and ecart(p, centre) < rayon + r.cheval_ecart_meuble_m then
+    if centre and ecart(p, centre) < loin + r.cheval_hors_camp_m then
       raison = "camp"
     end
     for _, o in ipairs(objets) do
@@ -3213,7 +3253,21 @@ local function preparer_la_monture(id, f, heure, en_sortie)
   if not Scriptorium.hasard_en_ordre(hommes.hasard_des_chevaux) then
     hommes.hasard_des_chevaux = Scriptorium.hasard_depuis(5171)
   end
-  local place, refus, vu = place_du_cheval(id, ici)
+  -- Un cheval laissé (colonne arrêtée, bord du camp) encore monté : le suivant attend qu'il en soit descendu.
+  for _, laisse in pairs(hommes.chevaux_laisses) do
+    if laisse.cavalier == f.personnage and jeu().cheval_monte(laisse.cheval) == true then
+      return
+    end
+  end
+  local place, refus, vu, dans_le_camp = place_du_cheval(id, ici)
+  if dans_le_camp then
+    if not m.attend_dehors then
+      m.attend_dehors = true
+      jeu().journal("Hommes : cheval de « " .. f.nom .. " » attendu : hors du camp (il part à pied)")
+    end
+    return
+  end
+  m.attend_dehors = nil
   -- Toutes les places bonnes vues d'Henry : pas de cheval à ce battement ; l'homme part à pied vers son but (la sortie
   -- sans cheval) ; le cheval naît au premier battement où une place n'est plus vue. Ni essai manqué, ni refus compté.
   if not place and vu then
@@ -3324,7 +3378,80 @@ function hommes.ordre_donne_en_saut(cle)
   end
 end
 
+-- Les chevaux laissés (même séance, J4 : colonne arrêtée à cheval, ou cavalier revenu au bord du camp), en mémoire :
+-- cheval -> { cheval, cavalier, nom } ; chacun retiré quand son cavalier en est descendu et s'en est éloigné de plus de
+-- « cheval_retrait_m », jamais sous les yeux d'Henry (ou son cavalier disparu).
+hommes.chevaux_laisses = hommes.chevaux_laisses or {}
+
+local function laisser_le_cheval(f, m, motif)
+  hommes.chevaux_laisses[m.cheval] = { cheval = m.cheval, cavalier = f.personnage, nom = f.nom }
+  jeu().journal("Hommes : « " .. f.nom .. " » laisse « " .. m.cheval .. " » (" .. motif .. ") : à pied")
+  m.cheval, m.arret = nil, nil
+  f.derniere_activite = nil
+end
+
+local function retirer_les_chevaux_laisses()
+  for cheval, laisse in pairs(hommes.chevaux_laisses) do
+    local ici = laisse.cavalier and jeu().position_du_personnage(laisse.cavalier)
+    local la = jeu().position_du_personnage(cheval)
+    local retirer = not ici or not la
+    if not retirer and jeu().cheval_monte(cheval) ~= true then
+      retirer = math.sqrt((ici.x - la.x) ^ 2 + (ici.y - la.y) ^ 2) > hommes.reglages.cheval_retrait_m
+        and not sous_les_yeux_d_henry(la)
+    end
+    if retirer then
+      if la then
+        jeu().retirer_cheval(cheval)
+      end
+      hommes.chevaux_laisses[cheval] = nil
+      jeu().journal("Hommes : cheval laissé « " .. cheval .. " » retiré (« " .. tostring(laisse.nom) .. " » à pied)")
+    end
+  end
+end
+
+-- La garde de la colonne à cheval et le bord du camp (même séance, J4) : un cavalier en sortie dans le camp réel laisse
+-- son cheval (il rentre à pied ; aucun essai) ; un cavalier d'une colonne vers un point, arrêté depuis
+-- « colonne_arret_battements » battements loin de son but, le laisse aussi (une monte manquée) : un autre cheval naît
+-- dehors (ou, au-delà des essais, il finit à pied).
+local function garder_le_cavalier(f, m)
+  if not (m.cheval and f.personnage) or jeu().cheval_monte(m.cheval) ~= true then
+    m.arret = nil
+    return
+  end
+  local ici = jeu().position_du_personnage(f.personnage)
+  if not ici then
+    return
+  end
+  if dans_le_camp_reel(ici) then
+    laisser_le_cheval(f, m, "au bord du camp")
+    return
+  end
+  local t = nil
+  if f.tenues then
+    local _
+    _, t = tenue_la_plus_forte(f)
+  end
+  local vers = t and t.vers
+  if not vers then
+    m.arret = nil
+    return
+  end
+  local a = m.arret
+  if not (a and math.sqrt((ici.x - a.x) ^ 2 + (ici.y - a.y) ^ 2) < hommes.reglages.fige_bouge_m) then
+    m.arret = { x = ici.x, y = ici.y, compte = 0 }
+    return
+  end
+  a.compte = a.compte + 1
+  local reste = math.sqrt((ici.x - vers.x) ^ 2 + (ici.y - vers.y) ^ 2)
+  if a.compte >= hommes.reglages.colonne_arret_battements and reste > hommes.reglages.colonne_arrivee_m then
+    jeu().journal(string.format("Gardien : colonne de « %s » arrêtée à cheval à %.0f m de son but", f.nom, reste))
+    laisser_le_cheval(f, m, "colonne arrêtée")
+    compter_un_essai(f, m)
+  end
+end
+
 local function veiller_aux_montures(d)
+  retirer_les_chevaux_laisses()
   for id, m in pairs(hommes.montures) do
     local f, en_sortie = porteur(id, d)
     -- V73 f 3 b : le filet, si la minuterie du saut n'a pas tiré : un cavalier en saut a eu un battement entier pour
@@ -3347,6 +3474,7 @@ local function veiller_aux_montures(d)
       end
     end
     if f and f.personnage and en_sortie then
+      garder_le_cavalier(f, m)
       local n = jeu().montes_manquees(f.personnage)
       if m.cheval and n and m.manquees and n > m.manquees then
         jeu().retirer_cheval(m.cheval)
@@ -4855,6 +4983,7 @@ function hommes.relancer()
   hommes.suivi = {}
   hommes.en_ronde = {}
   hommes.montures = {}
+  hommes.chevaux_laisses = {}
   hommes.henry_monte, hommes.henry_pied_lectures = false, 0
   hommes.henry_derniere_position = nil
   hommes.lancer_la_veille_d_henry()

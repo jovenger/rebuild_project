@@ -2627,3 +2627,25 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   répondait « aucun pas (homme inconnu) », une ligne à chaque point. Désormais, à cette réponse, la liaison pose
   l'activité 0 (il attend où il est) : la ronde s'arrête, une ligne au journal. Contrôle au banc (épreuve Lua de la
   liaison, vérifiée en échec sans). Non vu en jeu.
+
+## Le cheval et le camp réel (vu sur une copie de la partie de JoVenGer le 21/10, J4 ; accord du pair ; règle de JoVenGer du 16/10 : on part et rentre à cheval depuis le bord du camp)
+- Vu : la colonne de mission_1 coincée 1,2 h à 51–57 m du centre ; le cheval de Jan né dans un cul-de-sac entre une
+  tente et une clôture. Cause : le socle prenait pour le camp le cercle de son enceinte (20 m) ; le camp réel de
+  Scriptorium (tentes, clôtures, lits déclarés) s'étend bien au-delà, et ses objets n'étaient pas connus des places du
+  cheval ; et le gardien exclut l'activité « suivre » : une colonne arrêtée n'était vue par personne.
+- **L'étendue du camp réel** (`hommes.etendue_du_camp`) : le plus loin du centre parmi le cercle de l'enceinte, les
+  meubles du plan, les places déclarées par Scriptorium et ses décors ; « dans le camp réel » : à moins de cette
+  étendue plus `cheval_hors_camp_m`.
+- **Jamais de cheval né dans le camp réel** : un homme dedans part à pied vers son but (une ligne, « cheval de … attendu :
+  hors du camp (il part à pied) ») ; son cheval naît près de lui (à `cheval_distance_m`), hors de la vue d'Henry, au
+  premier battement où il est dehors ; une place dans le camp réel est refusée (« camp »). Ni essai, ni refus compté.
+  Le refus « meuble » n'a plus de cas (les meubles connus fixent l'étendue).
+- **La garde de la colonne à cheval** : un cavalier d'une colonne vers un point, en selle, qui n'a pas bougé de
+  `fige_bouge_m` pendant `colonne_arret_battements` (6) battements à plus de `colonne_arrivee_m` (15) de son but, laisse
+  son cheval (« Gardien : colonne de … arrêtée à cheval à … m de son but ») : une monte manquée ; il repart à pied ; un
+  autre cheval naît dehors une fois qu'il est descendu du premier ; au-delà de `monte_essais_max`, il finit à pied.
+- **Au bord du camp réel** : un cavalier en sortie qui y arrive (le retour) laisse son cheval, sans essai, et finit à pied.
+- Un cheval laissé (`hommes.chevaux_laisses`) est retiré quand son cavalier en est descendu et s'en est éloigné de plus
+  de `cheval_retrait_m`, jamais sous les yeux d'Henry (ou son cavalier disparu).
+- Essais : la place du cheval (refaite), la troupe à cheval, la colonne arrêtée et le bord du camp, les sorties (5 d) ;
+  vérifiés en échec sans (23 erreurs). Non vu en jeu.

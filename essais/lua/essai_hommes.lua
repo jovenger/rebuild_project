@@ -2941,6 +2941,7 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   hommes.lacher(ids[3], "escorte")
   hommes.battre()
   hommes.battre()
+  FauxJeu.positions[perso[3]] = { x = 130, y = 0, z = 0 }   -- dehors (le secours du faux moteur a pu le ramener)
   FauxJeu.refuser_les_chevaux = true
   hommes.tenir(ids[3], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
   FauxJeu.refuser_les_chevaux = nil
@@ -2964,6 +2965,7 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   verifier(hommes.montures[ids[1]] == nil, "plus rien en mémoire pour lui")
   verifier(journal_contient("retiré, la sortie de"), "le retrait au journal")
   -- Au plus tard au deuxième battement hors de sortie, même l'homme resté près de son cheval.
+  FauxJeu.positions[perso[1]] = { x = 110, y = 0, z = 0 }
   hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
   local cheval_b = hommes.montures[ids[1]].cheval
   FauxJeu.positions[perso[1]] = { x = FauxJeu.chevaux[cheval_b].x, y = FauxJeu.chevaux[cheval_b].y, z = 0 }
@@ -2973,17 +2975,64 @@ essai("troupe à cheval (fiche 15, V73 f 2 b) : un cheval passager par homme, le
   hommes.battre()
   verifier(FauxJeu.chevaux[cheval_b] == nil, "deuxième battement : le cheval retiré")
   -- Un homme renvoyé : son cheval retiré au battement.
+  FauxJeu.positions[perso[1]] = { x = 110, y = 0, z = 0 }
   hommes.tenir(ids[1], "escorte", { activite = "suivre", lieu = "c", formation = "followNPC", a_cheval = true, fin = "liberation" })
   local cheval_c = hommes.montures[ids[1]].cheval
   verifier(hommes.renvoyer(ids[1]), "l'homme renvoyé")
-  hommes.battre()
-  verifier(FauxJeu.chevaux[cheval_c] == nil, "l'homme renvoyé : son cheval retiré")
+  for _ = 1, 2 do hommes.battre() end
+  verifier(FauxJeu.chevaux[cheval_c] == nil, "l'homme renvoyé : son cheval retiré (au plus tard au deuxième battement)")
   FauxJeu.manquees = nil
+end)
+
+-- Vu sur une copie de la partie de JoVenGer le 21/10 (J4 : la colonne de mission_1 coincée 1,2 h, son cheval né dans un
+-- cul-de-sac du camp réel ; accord du pair).
+essai("colonne à cheval (21/10, J4) : arrêtée loin de son but, le cavalier laisse son cheval (une monte manquée) et un autre naît dehors une fois descendu ; au bord du camp réel, il laisse son cheval sans essai et rentre à pied", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local p = hommes.fiche(id).personnage
+  local dehors = { x = 100, y = 0, z = 0 }
+  FauxJeu.positions[p] = { x = dehors.x, y = dehors.y, z = 0 }
+  hommes.battre()
+  FauxJeu.chevaux, FauxJeu.chevaux_retires = {}, {}
+  FauxJeu.positions[p] = { x = dehors.x, y = dehors.y, z = 0 }
+  verifier(hommes.tenir(id, "mission", { activite = "suivre", lieu = "m", vers = { x = 300, y = 0, z = 0 }, a_cheval = true, fin = "liberation" }), "une colonne à cheval vers un point")
+  local m = hommes.montures[id]
+  local c1 = m and m.cheval
+  verifier(c1 ~= nil, "son cheval, dehors")
+  FauxJeu.chevaux_montes = { [c1] = true }
+  for _ = 1, 8 do
+    FauxJeu.positions[p] = { x = dehors.x, y = dehors.y, z = 0 }
+    hommes.battre()
+  end
+  verifier(journal_contient("arrêtée à cheval"), "la colonne arrêtée, dite au journal")
+  egal(m.essais, 1, "une monte manquée")
+  verifier(m.cheval == nil and hommes.chevaux_laisses[c1] ~= nil, "le cheval laissé")
+  hommes.battre()
+  verifier(m.cheval == nil, "encore en selle sur le cheval laissé : pas d'autre cheval")
+  FauxJeu.chevaux_montes = nil
+  FauxJeu.positions[p] = { x = dehors.x + 10, y = dehors.y, z = 0 }
+  hommes.battre()
+  verifier(FauxJeu.chevaux[c1] == nil and hommes.chevaux_laisses[c1] == nil, "descendu et éloigné : le cheval laissé retiré")
+  verifier(m.cheval ~= nil and m.cheval ~= c1, "un autre cheval né dehors")
+  -- Revenu au bord du camp réel, en selle : il laisse son cheval, sans essai, et finit à pied.
+  local c2 = m.cheval
+  FauxJeu.chevaux_montes = { [c2] = true }
+  FauxJeu.positions[p] = { x = 5, y = 5, z = 0 }
+  hommes.battre()
+  verifier(journal_contient("au bord du camp"), "au bord du camp, dit au journal")
+  egal(m.essais, 1, "aucun essai de plus")
+  verifier(m.cheval == nil and hommes.chevaux_laisses[c2] ~= nil, "le cheval laissé au bord du camp")
+  local o = dernier_ordre_de(p)
+  verifier(o and not (o.suivi and o.suivi.cheval), "il finit à pied")
+  hommes.battre()
+  verifier(m.cheval == nil, "dans le camp réel : jamais d'autre cheval")
+  FauxJeu.chevaux_montes = nil
+  hommes.lacher(id, "mission")
 end)
 
 -- Fiche 15, V73 f 2 c : le cheval né hors des meubles (conseils du pair), sur un sol praticable, hors de la vue d'Henry
 -- de préférence ; l'approche allonge le délai de la monte.
-essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin des meubles et des autres chevaux ; le sol ; la vue d'Henry ; l'approche", function()
+essai("place du cheval (fiche 15, V73 f 2 c ; vu sur une copie le 21/10, J4) : jamais dans le camp réel (il en sort à pied, le cheval naît dehors près de lui) ; loin des autres chevaux ; le sol ; la vue d'Henry ; l'approche", function()
   preparer(5000, 100, 10)
   camp.agrandir()
   camp.agrandir()
@@ -3001,22 +3050,31 @@ essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin d
   end
   local r, rayon = hommes.reglages, Scriptorium.enceinte.reglages.rayon
   local function ecart(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
-  local objets = {}
-  for _, e in ipairs(camp.plan) do table.insert(objets, (camp.point(e.x, e.y, 0))) end
-  for _, e in ipairs(Scriptorium.enceinte.plan) do table.insert(objets, (camp.point(e.x, e.y, 0))) end
+  -- Dans le camp : aucun cheval ; une ligne par homme ; il part à pied.
+  for i = 1, 3 do
+    local m = hommes.montures[ids[i]]
+    verifier(m and m.cheval == nil, "l'homme " .. i .. " dans le camp : pas de cheval")
+    egal(m and m.essais, 0, "pas d'essai manqué")
+    local o = dernier_ordre_de(perso[i])
+    verifier(o and o.activite == "suivre" and not (o.suivi and o.suivi.cheval), "l'homme " .. i .. " part à pied")
+  end
+  egal(lignes_contenant("attendu : hors du camp"), 3, "une ligne par homme")
+  -- Dehors : le cheval naît près de lui, hors du camp réel, loin des autres chevaux.
+  for i = 1, 3 do
+    FauxJeu.positions[perso[i]] = { x = (i - 2) * 6, y = 60, z = 0 }
+  end
+  hommes.battre()
   local places = {}
   for i = 1, 3 do
     local m = hommes.montures[ids[i]]
-    verifier(m and m.cheval and FauxJeu.chevaux[m.cheval], "l'homme " .. i .. " a son cheval")
+    verifier(m and m.cheval and FauxJeu.chevaux[m.cheval], "l'homme " .. i .. " dehors a son cheval")
     local p = FauxJeu.chevaux[m.cheval]
     places[i] = p
-    verifier(ecart(p, { x = 0, y = 0 }) >= rayon + r.cheval_ecart_meuble_m, "le cheval " .. i .. " hors du camp")
-    verifier(p.y > 0, "le cheval " .. i .. " du côté de la porte")
-    local plus_pres = math.huge
-    for _, o in ipairs(objets) do plus_pres = math.min(plus_pres, ecart(p, o)) end
-    verifier(plus_pres >= r.cheval_ecart_meuble_m, "le cheval " .. i .. " à 3 m de tout meuble (" .. string.format("%.1f", plus_pres) .. " m)")
+    verifier(ecart(p, { x = 0, y = 0 }) >= rayon + r.cheval_hors_camp_m, "le cheval " .. i .. " hors du camp réel")
+    verifier(math.abs(ecart(p, FauxJeu.positions[perso[i]]) - r.cheval_distance_m) < 0.01, "à 5 m de l'homme " .. i)
     local o = dernier_ordre_de(perso[i])
-    verifier(o and o.suivi and o.suivi.approche_ms and o.suivi.approche_ms >= 20000, "l'approche de l'homme " .. i .. " comptée (" .. tostring(o and o.suivi and o.suivi.approche_ms) .. " ms)")
+    verifier(o and o.suivi and o.suivi.cheval == m.cheval and o.suivi.approche_ms and o.suivi.approche_ms >= 4000,
+      "l'homme " .. i .. " monte, l'approche comptée (" .. tostring(o and o.suivi and o.suivi.approche_ms) .. " ms)")
   end
   for i = 1, 3 do
     for j = i + 1, 3 do
@@ -3105,25 +3163,17 @@ essai("place du cheval (fiche 15, V73 f 2 c) : hors du camp côté porte, loin d
   end
   refus_seul("encombre", function() return { pente = 0, encombre = true, eau_lisible = true } end)
   refus_seul("pente", function() return { pente = 2, encombre = false, eau_lisible = true } end)
-  local rayon_avant = Scriptorium.enceinte.reglages.rayon
-  Scriptorium.enceinte.reglages.rayon = 2
-  local loin = nil
-  for _, e in ipairs(camp.plan) do
-    local o = camp.point(e.x, e.y, 0)
-    if not loin and ecart(o, { x = 0, y = 0 }) >= 9 then loin = o end
-  end
-  verifier(loin ~= nil, "un meuble à 9 m au moins du feu")
-  local d_loin = ecart(loin, { x = 0, y = 0 })
-  refus_seul("meuble", function(p) return { pente = 0, encombre = ecart(p, loin) >= 3, eau_lisible = true } end,
-    { x = loin.x * (1 + 4.5 / d_loin), y = loin.y * (1 + 4.5 / d_loin), z = 0 })
-  Scriptorium.enceinte.reglages.rayon = rayon_avant
+  -- (Le refus « meuble » n'a plus de cas : les meubles connus fixent l'étendue du camp réel, où aucun cheval ne naît.)
   r.cheval_places_essayees = essayees_avant
   -- Aucune place possible : la naissance est refusée (un essai).
   local ecart_avant = r.cheval_ecart_meuble_m
   r.cheval_ecart_meuble_m = 1000
   hommes.montures = {}
-  FauxJeu.positions[perso[2]] = { x = 0, y = 1, z = 0 }
+  FauxJeu.positions[perso[2]] = { x = 0, y = 60, z = 0 }
+  local sol_avant = FauxJeu.sol_du_cheval
+  FauxJeu.sol_du_cheval = function() return { pente = 2, encombre = false, eau_lisible = true } end
   hommes.tenir(ids[2], "escorte", { activite = "suivre", lieu = "c", a_cheval = true, fin = "liberation" })
+  FauxJeu.sol_du_cheval = sol_avant
   r.cheval_ecart_meuble_m = ecart_avant
   verifier(hommes.montures[ids[2]].cheval == nil and hommes.montures[ids[2]].essais == 1, "aucune place : naissance refusée, un essai")
   verifier(journal_contient("naissance refusée"), "le refus au journal")
@@ -3914,6 +3964,7 @@ essai("embauche (5 a) : les chevaux de la compagnie éteints, une sortie à chev
   local a = hommes.activite_de(id, 10)
   verifier(not (a.suivi and a.suivi.mode == "cheval"), "il suit à pied")
   Scriptorium.noyau.interrupteurs.chevaux_de_la_compagnie = 1
+  FauxJeu.positions[hommes.fiche(id).personnage] = { x = 110, y = 0, z = 0 }   -- dehors (le faux moteur a pu le ramener)
   hommes.battre()
   verifier(chevaux() >= 1, "rallumés : un cheval naît")
   hommes.lacher(id, "escorte")
