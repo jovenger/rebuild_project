@@ -603,6 +603,24 @@ def verifier_identifiants():
         if XGenAIModule.variables.scriptorium_activite ~= 0 then
           return "un homme sorti de la Compagnie garde sa ronde (activité " .. tostring(XGenAIModule.variables.scriptorium_activite) .. ")"
         end
+        -- Le dialogue (vu sur une copie le 21/10, J11) : l'interlocuteur est l'homme visé à l'ouverture, pas le rôle du jeu ;
+        -- gardé pour les choix suivants ; visé trop tôt, ou jamais : le rôle du jeu.
+        local maintenant_d_origine = l.maintenant
+        local horloge = 100
+        l.maintenant = function() return horloge end
+        l.noter_le_vise("scriptorium_Ondrej")
+        horloge = 103
+        if l.interlocuteur_du_dialogue("ouverture", "scriptorium_Mikulas") ~= "scriptorium_Ondrej" then
+          return "dialogue : l'homme visé n'est pas l'interlocuteur à l'ouverture"
+        end
+        horloge = 400
+        if l.interlocuteur_du_dialogue("parlons_de_toi", "scriptorium_Mikulas") ~= "scriptorium_Ondrej" then
+          return "dialogue : l'interlocuteur n'est pas gardé pour les choix suivants"
+        end
+        if l.interlocuteur_du_dialogue("ouverture", "scriptorium_Mikulas") ~= "scriptorium_Mikulas" then
+          return "dialogue : visé il y a trop longtemps, le rôle du jeu doit servir"
+        end
+        l.maintenant = maintenant_d_origine
         l.accrocher_la_ronde(function() error("panne") end)
         l.au_point_de_ronde(rondier, donnees)
         if not string.find(lignes[#lignes], "Ronde : erreur au point", 1, true) then return "une erreur de la ronde n'est pas écrite" end

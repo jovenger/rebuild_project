@@ -3869,11 +3869,33 @@ local function nom_de_l_interlocuteur(qui)
   return ok and nom or nil
 end
 
+-- Vu sur une copie de la partie de JoVenGer le 21/10 (J11 : Henry devant Ondřej, l'invite « Ondřej : Parler », mais
+-- l'interlocuteur lié par le jeu, dc[rôle], était Mikuláš, collé à lui : tous nos hommes ont le même rôle) : l'homme
+-- est celui que le joueur visait (l'invite « Parler » lue sur lui, liaison.noter_le_vise), pris à l'ouverture du dialogue
+-- s'il a été visé depuis moins de « vise_recent_s » secondes, et gardé pour les choix suivants ; sinon le rôle du jeu.
+liaison.vise_recent_s = 15
+liaison.dernier_vise = nil
+liaison.interlocuteur_en_cours = nil
+
+function liaison.noter_le_vise(identifiant)
+  liaison.dernier_vise = { nom = identifiant, quand = liaison.maintenant() }
+end
+
+function liaison.interlocuteur_du_dialogue(choix, nom_du_role)
+  if choix == "ouverture" then
+    local v = liaison.dernier_vise
+    local recent = v and v.quand and (liaison.maintenant() - v.quand) <= liaison.vise_recent_s
+    liaison.interlocuteur_en_cours = recent and v.nom or nom_du_role
+  end
+  return liaison.interlocuteur_en_cours or nom_du_role
+end
+
 function liaison.dialogue_choix(arbre, choix, qui)
   local reponse = {}
-  local nom = nil
+  local nom, nom_du_role = nil, nil
   local ok, erreur = pcall(function()
-    nom = nom_de_l_interlocuteur(qui)
+    nom_du_role = nom_de_l_interlocuteur(qui)
+    nom = liaison.interlocuteur_du_dialogue(tostring(choix), nom_du_role)
     if type(liaison.reponse_du_dialogue) == "function" then
       reponse = liaison.reponse_du_dialogue(tostring(arbre), tostring(choix), nom) or {}
     end
@@ -3893,7 +3915,8 @@ function liaison.dialogue_choix(arbre, choix, qui)
   -- Vu en jeu le 18/10 : le visage du dialogue n'était pas celui de l'homme visé ; l'interlocuteur lié par le jeu est
   -- donc écrit au journal.
   liaison.journal("Dialogue : « " .. tostring(arbre) .. "/" .. tostring(choix) .. " » : codes " .. table.concat(poses, ", ")
-                  .. (reponse.colonel and " (colonel)" or "") .. " ; interlocuteur lié = " .. tostring(nom))
+                  .. (reponse.colonel and " (colonel)" or "") .. " ; interlocuteur lié = " .. tostring(nom)
+                  .. ((nom_du_role and nom_du_role ~= nom) and (" (visé ; rôle du jeu : " .. tostring(nom_du_role) .. ")") or ""))
 end
 
 -- Pour le poste d'essai (fiche 18, 5 c, tranche 4 ; la nuit, la station ne se vise pas à l'écran) : ce que fait le jeu
@@ -4056,7 +4079,12 @@ function liaison.rendre_parlable(identifiant, oui)
     end
     local sortie = (type(origine) == "function" and origine(soi, utilisateur, premier_seul)) or {}
     local ok, erreur = pcall(function()
-      if type(sortie) ~= "table" or (premier_seul and #sortie > 0) or not peut_parler(soi) then
+      if type(sortie) ~= "table" or not peut_parler(soi) then
+        return
+      end
+      -- L'homme dont le jeu affiche les actions (l'invite) est celui que le joueur vise : noté pour le dialogue.
+      liaison.noter_le_vise(identifiant)
+      if premier_seul and #sortie > 0 then
         return
       end
       for _, a in ipairs(sortie) do

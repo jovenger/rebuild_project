@@ -76,3 +76,13 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
 - Corrigé ensuite (demande du pair) : sans fautif (réponse « Rien, chef », code 4), le sous-menu « Je pardonne /
   Sanctionne-le » n'est plus proposé : la branche revient au menu (`sans_sous_menu` dans socle/dialogues/arbres.json ;
   contrôlé au banc). Non revu en jeu.
+
+## L'interlocuteur du dialogue (vu sur une copie de la partie de JoVenGer le 21/10, J11)
+- Vu : Henry devant Ondřej (l'invite « Ondřej de Sazava : Parler »), mais l'interlocuteur lié par le jeu (`dc[rôle]`)
+  était Mikuláš, collé à lui : tous nos hommes portent le même rôle Storm (SCRIPTORIUM_SOCLE_HOMME), et le jeu en lie un
+  autre que celui visé. Toute réponse serait partie au mauvais homme.
+- Désormais l'interlocuteur est l'homme VISÉ : la liaison note l'homme dont le jeu lit les actions pour l'invite
+  (`liaison.noter_le_vise`, dans notre GetActions) ; à l'ouverture du dialogue, s'il a été visé depuis moins de
+  `liaison.vise_recent_s` (15 s), c'est lui, gardé pour les choix suivants ; sinon le rôle du jeu. Au journal, quand
+  ils diffèrent : « interlocuteur lié = … (visé ; rôle du jeu : …) ».
+- Épreuve Lua de la liaison au banc (vérifiée en échec sans) ; non vu en jeu.
