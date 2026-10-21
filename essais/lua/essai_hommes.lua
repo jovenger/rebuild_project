@@ -490,6 +490,59 @@ essai("soins (vu sur une copie le 21/10, J3) : un blessé va au repos devant une
   egal(hommes.activite_de(a, 10).activite, "suivre", "la mission passe devant les soins")
 end)
 
+local function lignes_du_journal(morceau)
+  local n = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, morceau, 1, true) then n = n + 1 end
+  end
+  return n
+end
+
+essai("santé des blessés (demande de JoVenGer par le pair, 21/10, J5) : elle suit la blessure, ramenée au plafond de ses jours, sans coup ; tenue après une régénération ; guéri, plus de plafond", function()
+  preparer(100, 100, 10)
+  local a = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  hommes.battre()
+  local p = hommes.fiche(a).personnage
+  FauxJeu.santes, FauxJeu.santes_reglees = { [p] = 100 }, 0
+  hommes.battre()
+  egal(FauxJeu.santes_reglees, 0, "valide : rien")
+  verifier(hommes.blesser(a, 3), "blessé trois jours")
+  hommes.battre()
+  egal(FauxJeu.santes[p], hommes.reglages.sante_blesse_3, "santé ramenée au plafond de trois jours")
+  egal(lignes_du_journal("santé 100 ramenée à " .. hommes.reglages.sante_blesse_3), 1, "dit au journal")
+  local reglees = FauxJeu.santes_reglees
+  hommes.battre()
+  egal(FauxJeu.santes_reglees, reglees, "déjà sous son plafond : rien")
+  FauxJeu.santes[p] = 90
+  hommes.battre()
+  egal(FauxJeu.santes[p], hommes.reglages.sante_blesse_3, "la régénération du jeu : ramenée encore")
+  egal(lignes_du_journal("ramenée à " .. hommes.reglages.sante_blesse_3), 1, "une seule ligne pour ce plafond")
+  egal(hommes.plafond_de_sante(1), hommes.reglages.sante_blesse_1, "un jour")
+  egal(hommes.plafond_de_sante(9), hommes.reglages.sante_blesse_5, "cinq jours et plus")
+  hommes.guerir(a, 3)
+  FauxJeu.santes[p] = 80
+  hommes.battre()
+  egal(FauxJeu.santes[p], 80, "guéri : plus de plafond")
+end)
+
+essai("étendue du camp réel (vu sur une copie le 21/10, J5) : gardée au registre, elle vaut avant que Scriptorium redéclare ses places", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  FauxJeu.objets_existants["lit_loin"] = true
+  FauxJeu.positions_des_objets = FauxJeu.positions_des_objets or {}
+  FauxJeu.positions_des_objets["lit_loin"] = { x = 0, y = 45, z = 0 }
+  verifier(camp.declarer_les_places({ { nom = "lit_loin", sorte = "lit" } }), "un lit déclaré à 45 m")
+  local _, loin = hommes.etendue_du_camp()
+  verifier(loin and loin >= 45, "l'étendue va jusqu'au lit (" .. tostring(loin) .. ")")
+  egal(lignes_du_journal("étendue du camp réel : 45 m (gardée)"), 1, "gardée, dit au journal")
+  -- Au chargement : les places pas encore redéclarées par Scriptorium.
+  camp.places_declarees, camp.ordre_des_places_declarees = {}, {}
+  local _, loin2 = hommes.etendue_du_camp()
+  verifier(loin2 and loin2 >= 45, "gardée au registre : elle vaut avant la déclaration (" .. tostring(loin2) .. ")")
+  egal(lignes_du_journal("étendue du camp réel"), 1, "rien de redit")
+end)
+
 essai("hommes : désertion au moral bas, à l'aube", function()
   preparer(100, 100, 10)
   local a = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })

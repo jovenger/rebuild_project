@@ -2649,3 +2649,7 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   de `cheval_retrait_m`, jamais sous les yeux d'Henry (ou son cavalier disparu).
 - Essais : la place du cheval (refaite), la troupe à cheval, la colonne arrêtée et le bord du camp, les sorties (5 d) ;
   vérifiés en échec sans (23 erreurs). Non vu en jeu.
+- **L'étendue gardée au registre** (vu sur une copie le 21/10, J5 : une mission lancée au chargement, avant que
+  Scriptorium redéclare ses places ; le premier cheval de Jan né dans le vrai camp) : la plus grande étendue déjà vue
+  est gardée au registre des hommes pour ce centre de camp (« Hommes : étendue du camp réel : … m (gardée) ») ; elle
+  vaut dès le chargement ; un autre centre (à plus de 5 m) l'oublie. Essai (vérifié en échec sans) ; non vu en jeu.

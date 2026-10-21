@@ -4442,6 +4442,17 @@ function liaison.mettre_a_terre(identifiant, reste)
   return ok, (not ok) and tostring(erreur) or nil
 end
 
+-- Demande de JoVenGer par le pair (21/10, J5) : la santé d'un blessé suit sa blessure ; la voie du jeu, sans coup ni
+-- cri : soul:SetState('health', valeur) (Data/Scripts.pak, Quests/…/haste__nastaveni_1hp_svatym.xml). Vrai si fait.
+function liaison.regler_la_sante(identifiant, sante)
+  local entite = entite_nommee(identifiant)
+  if not entite or type(entite.soul) ~= "table" then
+    return false, "personnage introuvable"
+  end
+  local ok, erreur = pcall(function() entite.soul:SetState("health", sante) end)
+  return ok, (not ok) and tostring(erreur) or nil
+end
+
 -- La santé d'un personnage (actor:GetHealth), ou nil : pour le journal du combat (diagnostic du combat figé, 17/10).
 function liaison.sante_de(identifiant)
   local entite = entite_nommee(identifiant)

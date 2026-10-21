@@ -494,6 +494,13 @@ function faux.blesser(identifiant, points)
   end
   return true
 end
+-- La santé réglée d'un blessé (soul:SetState) : le faux jeu la retient.
+function faux.regler_la_sante(identifiant, sante)
+  faux.santes = faux.santes or {}
+  faux.santes[identifiant] = sante
+  faux.santes_reglees = (faux.santes_reglees or 0) + 1
+  return true
+end
 function faux.sante_de(identifiant)
   return faux.santes and faux.santes[identifiant] or 100
 end

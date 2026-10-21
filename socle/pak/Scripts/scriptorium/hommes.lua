@@ -107,6 +107,14 @@ hommes.reglages = {
   -- manquée).
   colonne_arret_battements = 6,
   colonne_arrivee_m = 15,
+  -- Demande de JoVenGer par le pair (21/10, J5 : deux blessés renés à 100 de santé, pris pour gardes des bains par
+  -- Scriptorium qui juge un blessé à sa santé) : la santé d'un blessé suit sa blessure (les jours restent la vérité) ;
+  -- son plafond selon ses jours de soins, 1 jour, 2, 3, 4, puis 5 et plus.
+  sante_blesse_1 = 70,
+  sante_blesse_2 = 60,
+  sante_blesse_3 = 45,
+  sante_blesse_4 = 38,
+  sante_blesse_5 = 30,
   cheval_ecart_meuble_m = 3,
   cheval_ecart_cheval_m = 3,
   cheval_pente_max = 0.5,
@@ -3140,6 +3148,21 @@ local function etendue_du_camp()
   for _, decor in pairs(camp().decors and camp().decors() or {}) do
     compter(decor)
   end
+  -- Vu sur une copie de la partie de JoVenGer le 21/10 (J5 : une mission lancée avant que Scriptorium redéclare ses
+  -- places, au chargement ; le premier cheval de Jan né dans le vrai camp) : la plus grande étendue déjà vue est gardée au
+  -- registre, pour ce centre ; elle vaut dès le chargement.
+  local d = donnees()
+  local connue = d.etendue_du_camp
+  if connue and math.sqrt((connue.x - centre.x) ^ 2 + (connue.y - centre.y) ^ 2) > 5 then
+    connue = nil
+  end
+  if connue and connue.rayon > loin then
+    loin = connue.rayon
+  elseif not connue or loin > connue.rayon + 0.5 then
+    d.etendue_du_camp = { x = centre.x, y = centre.y, rayon = loin }
+    enregistrer()
+    jeu().journal(string.format("Hommes : étendue du camp réel : %.0f m (gardée)", loin))
+  end
   return centre, loin, objets
 end
 
@@ -4168,11 +4191,46 @@ function hommes.battre()
     rapport.changements = rapport.changements + 1
   end
   rapport.tenues = garder_les_tenues(d, equipe)
+  hommes.tenir_la_sante_des_blesses(d)
   d.derniere_heure = heure
   if rapport.changements > 0 or rapport.a_rhabiller > 0 then
     enregistrer()
   end
   return rapport
+end
+
+-- La santé d'un blessé suit sa blessure (demande de JoVenGer par le pair, 21/10, J5) : au-dessus de son plafond (selon
+-- ses jours de soins), elle y est ramenée, sans coup (renaissance, rentrée de mission, régénération du jeu, chargement) ;
+-- une ligne au journal à chaque nouveau plafond, en mémoire. Guéri, plus de plafond : la santé remonte d'elle-même.
+hommes.plafonds_poses = hommes.plafonds_poses or {}
+
+function hommes.plafond_de_sante(jours)
+  if type(jours) ~= "number" or jours <= 0 then
+    return nil
+  end
+  local r = hommes.reglages
+  local plafonds = { r.sante_blesse_1, r.sante_blesse_2, r.sante_blesse_3, r.sante_blesse_4, r.sante_blesse_5 }
+  return tonumber(plafonds[math.min(5, math.max(1, math.floor(jours)))])
+end
+
+function hommes.tenir_la_sante_des_blesses(d)
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    local plafond = f and f.personnage and hommes.plafond_de_sante(f.blessure)
+    if not plafond then
+      hommes.plafonds_poses[id] = nil
+    else
+      local sante = jeu().sante_de and jeu().sante_de(f.personnage)
+      if type(sante) == "number" and sante > plafond + 1 and jeu().regler_la_sante then
+        local ok = jeu().regler_la_sante(f.personnage, plafond)
+        if hommes.plafonds_poses[id] ~= plafond then
+          hommes.plafonds_poses[id] = plafond
+          jeu().journal(string.format("Hommes : « %s » blessé (%d jour(s)) : santé %.0f ramenée à %d%s", f.nom,
+            f.blessure, sante, plafond, ok and "" or " (refusé)"))
+        end
+      end
+    end
+  end
 end
 
 -- ---------------------------------------------------------------- l'arbitre : services (fiche 15, V73 b 3)

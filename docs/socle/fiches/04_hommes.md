@@ -64,3 +64,16 @@ Embauche (prime, paillasse, nom d'époque, message) et ses refus ; solde hebdoma
 - Sans lit à lui (tous en relève), le blessé se couche à son lit de la nuit ou à une place libre, gardée comme celle du
   sommeil (`hommes.lits_de_nuit`).
 - Essais (vérifiés en échec sans) ; non vu en jeu.
+
+## La blessure se voit sur l'homme (demande de JoVenGer par le pair, 21/10, J5)
+- Vu : deux blessés de la mission, renés à 100 de santé, pris pour gardes des bains par Scriptorium (qui juge un blessé
+  à sa santé). La blessure (les jours de soins) reste la seule vérité ; la santé du jeu la SUIT : au battement, un
+  blessé présent dont la santé dépasse son plafond y est ramené (`sante_blesse_1` à `sante_blesse_5` : 70, 60, 45, 38,
+  30, selon ses jours, 5 et plus), par la voie du jeu sans coup (`soul:SetState('health', v)`, la forme de
+  Data/Scripts.pak, Quests/…/haste__nastaveni_1hp_svatym.xml ; `liaison.regler_la_sante`). Cela couvre la
+  renaissance, la rentrée de mission, la régénération du jeu, le chargement ; une ligne au journal par nouveau plafond.
+- La guérison : les jours (plus vite avec un barbier), ou `hommes.guerir` appelé par Scriptorium (la dame des bains).
+  Guéri : plus de plafond, la santé remonte d'elle-même. La santé ne lève jamais la blessure (la régénération du jeu
+  l'effacerait en quelques heures).
+- Essai (vérifié en échec sans) ; non vu en jeu. À vérifier en jeu : le seuil du jeu `RPG.LowHealthThreshold`
+  (comportement d'un PNJ à santé basse), inconnu.
