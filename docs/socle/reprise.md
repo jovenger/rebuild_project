@@ -776,8 +776,10 @@ aucune sonde dans l'arbre.
   venait de la prise de Scriptorium, corrigée chez lui en aee2a75b).
 - Abandonné à la demande du pair : « Où en es-tu ? » (le statut existe sous « Discutons un peu ») ; rustine gardée dans le
   brouillon de la session, hors dépôt.
-- À regarder si on le demande : au chargement, « relance de « camp » en erreur : registre : case inconnue :
-  v_ScriptoBesoins » (déjà en J16, J17, J18).
+- « relance de « camp » en erreur : registre : case inconnue : v_ScriptoBesoins » à chaque chargement (J12 à J19) :
+  défaut du registre (une case reprise de la sauvegarde pas encore déclarée), la relance du camp était sautée ;
+  corrigé en 17561a9 (fiche 01), NON installé : à installer à la prochaine séance, puis voir la ligne disparaître.
+- J19 (ensuite) : Scriptorium ecacd021 + socle def2eae, « garder » demandé au pair.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
