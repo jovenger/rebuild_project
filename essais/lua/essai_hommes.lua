@@ -4257,6 +4257,38 @@ essai("lits (décision de JoVenGer, 20/10 : tous en relève) : interrupteur éte
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("lit du personnel (question du pair, 21/10, J15 et J16) : un lit déclaré que tient un mené au sommeil n'est pas offert aux hommes ; lâché, il l'est de nouveau", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  -- Comme en jeu (décision de JoVenGer du 20/10) : aucun lit à soi, tous en relève.
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local id, raison = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    verifier(id, "l'homme embauché (" .. tostring(raison) .. ")")
+    local lits = { "ScriptoEditeur_3_3_so", "ScriptoEditeur_3_6_so" }
+    verifier(camp.declarer_les_places({ { nom = lits[1], sorte = "lit" }, { nom = lits[2], sorte = "lit" } }), "deux lits déclarés")
+    FauxJeu.positions_des_objets = { [lits[1]] = { x = 3, y = 1, z = 0 }, [lits[2]] = { x = 4, y = 1, z = 0 } }
+    FauxJeu.objets_existants[lits[1]], FauxJeu.objets_existants[lits[2]] = true, true
+    FauxJeu.personnages_existants["ScriptoBain_baigneuse"] = true
+    FauxJeu.heure = 23
+    local premier = hommes.activite_de(id, 23)
+    verifier(premier.activite == "sommeil" and premier.lieu and camp.sorte_de(premier.lieu) == "lit", "l'homme a un lit la nuit")
+    verifier(hommes.tenir_un_personnage("ScriptoBain_baigneuse", "sommeil", { activite = "sommeil", lit = premier.lieu, fin = "liberation" }),
+             "la dame tient ce lit")
+    for _ = 1, 3 do
+      local a = hommes.activite_de(id, 23)
+      verifier(a.lieu ~= premier.lieu, "le lit de la dame n'est pas offert à l'homme (" .. tostring(a.lieu) .. ")")
+    end
+    hommes.lacher_un_personnage("ScriptoBain_baigneuse", "sommeil")
+    egal(hommes.activite_de(id, 23).lieu, premier.lieu, "lâchée : le lit est de nouveau offert")
+  end)
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+end)
+
 essai("siège du personnel (demande du pair, 21/10, J15) : un siège tenu par un mené assis n'est pas offert aux hommes ; un siège déjà pris par un homme est refusé au mené (place_prise)", function()
   depart()
   FauxJeu.heure = 10

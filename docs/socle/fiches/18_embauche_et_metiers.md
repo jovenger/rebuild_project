@@ -287,3 +287,15 @@ Comportement :
 - La forme pour Scriptorium : `hommes.tenir_un_personnage(nom, "loisir", { activite = "assise", lieu = <siège déclaré>,
   fin = … })` (ordre 10, la posture assise du jeu sur l'objet ; pas de geste à nommer).
 - Essai (vérifié en échec sans) ; non vu en jeu.
+
+## Le lit du personnel au sommeil (question du pair, 21/10, J15 et J16)
+- Vu : une dame des bains tenue « sommeil » sur un lit de l'Aménagement ; Scriptorium retirait ce lit de la déclaration
+  pour qu'il ne soit pas offert à un homme, puis le redéclarait : boucle (42 tours en J15, 22 en J16). Le lâcher
+  « n'est plus mené » (sans « tenues échues ») vient de `hommes.lacher_un_personnage`, que le socle n'appelle jamais lui-
+  même ; retirer une place ne lâche aucun mené (`camp.declarer_les_places` ne retire que le lit à soi d'un homme).
+- La réservation existe depuis le 20/10 (les lits gardés pour la nuit) : un mené tenu « sommeil » sur un lit déclaré
+  (`lit = <nom>`, sorte « lit ») le garde dès sa prise (`hommes.lits_de_nuit`) ; `place_pour` ne l'offre à aucun homme
+  tant qu'il est mené ; lâché, le lit revient aux hommes. Inutile, donc, de retirer le lit de la déclaration.
+- Limite : avec l'interrupteur `un_lit_par_homme` allumé, un lit attribué à un homme (`f.lit`) reste le sien ; en jeu
+  l'interrupteur est éteint (décision de JoVenGer du 20/10).
+- Essai (vérifié en échec sans) ; non vu en jeu.
