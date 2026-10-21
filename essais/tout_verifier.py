@@ -603,6 +603,15 @@ def verifier_identifiants():
         if XGenAIModule.variables.scriptorium_activite ~= 0 then
           return "un homme sorti de la Compagnie garde sa ronde (activité " .. tostring(XGenAIModule.variables.scriptorium_activite) .. ")"
         end
+        -- Vu sur une copie le 21/10 (J26) : un homme qui n'est plus de ronde dont l'arbre la tourne encore : elle s'arrête.
+        local accroche_d_origine = l.pas_de_ronde
+        l.accrocher_la_ronde(function() return nil, "pas de ronde" end)
+        XGenAIModule.variables = { scriptorium_activite = 13 }
+        l.au_point_de_ronde(rondier, donnees)
+        if XGenAIModule.variables.scriptorium_activite ~= 0 then
+          return "un homme qui n'est plus de ronde la tourne encore (activité " .. tostring(XGenAIModule.variables.scriptorium_activite) .. ")"
+        end
+        l.pas_de_ronde = accroche_d_origine
         -- Le cadre de visée (demande du pair, 21/10, J12) : après nos actions, les lignes du programme Scriptorium
         -- (scriptorium.progression.ligne_du_grade), jamais pour la première action seule, ni en combat.
         local appel = nil
@@ -689,6 +698,13 @@ def verifier_identifiants():
         if not string.find(lignes[#lignes], "en courant", 1, true) then return "l'ordre ne dit pas « en courant »" end
         l.ordonner("scriptorium_rondier", "garde", { x = 1, y = 1 }, "poste_1", nil, nil, { x = 2, y = 2 })
         if XGenAIModule.variables.scriptorium_allure ~= 0 then return "garde : allure " .. tostring(XGenAIModule.variables.scriptorium_allure) end
+        -- Vu sur une copie le 21/10 (J26) : un ordre sans but (un sommeil sans lit libre) arrête l'activité d'avant.
+        XGenAIModule.variables = { scriptorium_activite = 13 }
+        l.ordonner("scriptorium_rondier", "sommeil", nil, "sommeil")
+        if XGenAIModule.variables.scriptorium_activite ~= 0 then
+          return "sans but : l'activité d'avant continue (" .. tostring(XGenAIModule.variables.scriptorium_activite) .. ")"
+        end
+        if not string.find(lignes[#lignes], "sans but", 1, true) then return "l'ordre sans but n'est pas dit" end
         System.entites["scriptorium_rondier"] = nil
         l.buts["scriptorium_rondier"], l.regards["scriptorium_rondier"] = but_avant, regard_avant
         -- Suivre (fiche 15, V73 f 1) : le WUID du chef écrit avant l'ordre 14 ; un chef introuvable : une marche.

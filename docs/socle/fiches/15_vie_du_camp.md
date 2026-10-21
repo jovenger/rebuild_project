@@ -2655,3 +2655,13 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   Scriptorium redéclare ses places ; le premier cheval de Jan né dans le vrai camp) : la plus grande étendue déjà vue
   est gardée au registre des hommes pour ce centre de camp (« Hommes : étendue du camp réel : … m (gardée) ») ; elle
   vaut dès le chargement ; un autre centre (à plus de 5 m) l'oublie. Essai (vérifié en échec sans) ; non vu en jeu.
+
+## L'ordre sans but arrête l'activité d'avant (vu sur une copie de la partie de JoVenGer le 21/10, J26)
+- Vu : 33 hommes pour 16 lits ; trois hommes sortis de ronde reçoivent « sommeil (nil) : sans but » (aucun lit libre) ;
+  l'ordre sans but ne posait aucune activité : leur cerveau tournait encore la ronde (activité 13) et rappelait le pas
+  de ronde toutes les quelques secondes (680 « aucun pas (pas de ronde) » pour Havel, autant pour Kunrát).
+- Désormais : un ordre sans but pose l'activité 0 (il attend où il est) ; au point de ronde, un homme qui n'est plus de
+  ronde (quelle que soit la raison) arrête sa ronde, une fois, comme un homme inconnu.
+- Reste à trancher (JoVenGer) : où dort un homme quand aucun lit n'est libre (plus de lits déclarés par Scriptorium, ou
+  un repli au sol près du feu).
+- Épreuves de la liaison au banc (vérifiées en échec sans) ; non vu en jeu.

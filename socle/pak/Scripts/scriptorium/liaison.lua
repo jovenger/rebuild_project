@@ -3462,7 +3462,10 @@ function liaison.ordonner(identifiant, activite, position, lieu, place, sorte, r
       -- Fiche 20 : la parole, sur place (ordre 23) : l'arbre la joue une fois.
       ligne = "parole ; " .. poser_l_activite(entite, 23)
     elseif not position then
-      ligne = "sans but"
+      -- Vu sur une copie de la partie de JoVenGer le 21/10 (J26 : trois hommes sortis de ronde, sommeil sans lit libre,
+      -- « sans but » ; leur cerveau tournait encore la ronde, 680 « aucun pas » chacun) : l'activité d'avant s'arrête,
+      -- il attend où il est (activité 0).
+      ligne = "sans but ; " .. poser_l_activite(entite, 0)
     elseif activite == "ronde" then
       -- La ronde (fiche 15, V73 d 2) : le premier point posé, puis l'activité 13 ; l'arbre appelle ensuite
       -- liaison.au_point_de_ronde à chaque point.
@@ -4182,7 +4185,10 @@ function liaison.au_point_de_ronde(entite, donnees)
       return
     end
     if not pas then
-      liaison.journal("Ronde de " .. tostring(nom) .. " : aucun pas (" .. tostring(raison) .. ")")
+      -- Même vue (J26) : un homme qui n'est plus de ronde (« pas de ronde ») et dont l'arbre la tourne encore : elle
+      -- s'arrête, comme pour un homme inconnu.
+      liaison.journal("Ronde de " .. tostring(nom) .. " : aucun pas (" .. tostring(raison) .. ") : la ronde s'arrête ; "
+        .. poser_l_activite(entite, 0))
       return
     end
     local point, vers = liaison.au_sol(pas.point), liaison.au_sol(pas.regard)
