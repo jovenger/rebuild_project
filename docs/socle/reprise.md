@@ -778,8 +778,10 @@ aucune sonde dans l'arbre.
   brouillon de la session, hors dépôt.
 - « relance de « camp » en erreur : registre : case inconnue : v_ScriptoBesoins » à chaque chargement (J12 à J19) :
   défaut du registre (une case reprise de la sauvegarde pas encore déclarée), la relance du camp était sautée ;
-  corrigé en 17561a9 (fiche 01), NON installé : à installer à la prochaine séance, puis voir la ligne disparaître.
-- J19 (ensuite) : Scriptorium ecacd021 + socle def2eae, « garder » demandé au pair.
+  corrigé en 17561a9 (fiche 01), vu juste en J20 (« Camp : redressé, 0 objet(s) reposé(s), 0 manquant(s) », plus
+  aucune relance en erreur).
+- Installé pour tous les jours depuis J20 (« garder » demandé au pair) : socle 17561a9 + Scriptorium ecacd021 ; retour
+  arrière `Scriptorium_securite61021_101018_035599_seance_du_socle`. playline1 et playline0 intactes.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
