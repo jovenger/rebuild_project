@@ -349,6 +349,94 @@ function directeur.activite(heure)
 end
 Scriptorium.remplacable(directeur, "activite", function(rendu) return type(rendu) == "table" end)
 
+-- Les paroles du Directeur (vu sur une copie de la partie de JoVenGer le 21/10, J11 : « réplique refusée pour
+-- Scriptorium_Directeur : pas_mene ») : comme pour un homme (fiche 20) : une demande à la fois, jouée une fois par
+-- l'ordre « parole », puis oubliée ; jamais au sommeil ni en combat ; oubliée après « parole_attente_max_h ».
+-- « quoi » : { alias | metarole, regard_henry, urgente } ; « partenaire » (conversation) : un nom d'entité. Rend vrai, ou
+-- faux et la raison.
+directeur.parole = nil
+
+local function nom_de_parole_valable(n)
+  return n == nil or (type(n) == "string" and n ~= "" and string.match(n, "^[%w_]+$") ~= nil)
+end
+
+local function demander_la_parole(parole)
+  local d = donnees()
+  if not d.installe or not d.personnage then
+    return refuser("pas_de_directeur")
+  end
+  if not nom_de_parole_valable(parole.alias) or not nom_de_parole_valable(parole.metarole)
+      or (parole.alias == nil and parole.metarole == nil) then
+    return refuser("parole_invalide", tostring(parole.alias or parole.metarole))
+  end
+  local lus = jeu().lire_le_cerveau(d.personnage, { "scriptorium_parole_jouee" }) or {}
+  parole.jouees_avant = tonumber(lus.scriptorium_parole_jouee) or 0
+  local h = hommes()
+  parole.numero = h and h.prochaine_parole or 1
+  if h then
+    h.prochaine_parole = h.prochaine_parole + 1
+  end
+  parole.depuis = jeu().heure_du_jeu()
+  directeur.parole = parole
+  jeu().journal("Directeur : doit dire « " .. tostring(parole.alias or parole.metarole) .. " » (" .. parole.sorte .. ")")
+  directeur.battre()
+  return true
+end
+
+function directeur.dire_une_replique(quoi)
+  quoi = quoi or {}
+  return demander_la_parole({ sorte = quoi.regard_henry and "replique_vers_henry" or "replique", alias = quoi.alias,
+                              metarole = quoi.metarole, urgente = quoi.urgente == true or nil })
+end
+
+function directeur.conversation(partenaire, quoi)
+  quoi = quoi or {}
+  if type(partenaire) ~= "string" or partenaire == "" or partenaire == donnees().personnage
+      or not jeu().personnage_existe(partenaire) then
+    return refuser("partenaire_invalide", tostring(partenaire))
+  end
+  return demander_la_parole({ sorte = "conversation", alias = quoi.alias, metarole = quoi.metarole,
+                              partenaire = partenaire })
+end
+
+-- La parole en cours du Directeur, au battement : rend vrai si elle tient son ordre (jouée ou en attente de l'être).
+local function tenir_la_parole(d, a, rapport)
+  local p = directeur.parole
+  if not p then
+    return false
+  end
+  local lus = jeu().lire_le_cerveau(d.personnage, { "scriptorium_parole_jouee" }) or {}
+  local jouees = tonumber(lus.scriptorium_parole_jouee) or 0
+  local h = hommes()
+  local attente = h and tonumber(h.reglages.parole_attente_max_h) or 0
+  if p.ordonnee and jouees > p.jouees_avant then
+    jeu().journal("Directeur : a dit « " .. tostring(p.alias or p.metarole) .. " »")
+    directeur.parole = nil
+    d.derniere_activite = nil
+    return false
+  end
+  if jeu().heure_du_jeu() > p.depuis + attente then
+    jeu().journal("Directeur : n'a pas pu dire « " .. tostring(p.alias or p.metarole) .. " » : oubliée")
+    directeur.parole = nil
+    d.derniere_activite = nil
+    return false
+  end
+  if p.ordonnee then
+    return true
+  end
+  if (a and a.activite == "sommeil" and not p.urgente) or jeu().occupation_de(d.personnage) == "combat" then
+    return false
+  end
+  if jeu().donner_la_parole and h then
+    jeu().donner_la_parole(d.personnage, h.sortes_de_paroles[p.sorte], p.alias, p.metarole, p.partenaire)
+  end
+  jeu().ordonner(d.personnage, "parole", nil, "parole_" .. p.numero)
+  p.ordonnee = true
+  d.derniere_activite = "parole#" .. p.numero
+  rapport.ordres = 1
+  return true
+end
+
 function directeur.battre()
   local d = donnees()
   local rapport = { ordres = 0 }
@@ -362,6 +450,9 @@ function directeur.battre()
     Scriptorium.hommes.preparer_la_monture_du_directeur(jeu().heure_du_jeu())
   end
   local a = Scriptorium.avis(directeur, "activite", jeu().heure_du_jeu())
+  if tenir_la_parole(d, a, rapport) then
+    return rapport
+  end
   -- Demande du pair (20/10, la chaîne des tâches du Directeur de Scriptorium) : un geste à un point (« geste », « position »,
   -- « cap » ou « regard », « siege », « assis », « arme_tiree ») joué comme pour un homme : sa forme (le geste dans le
   -- lieu), son point dans la signature, le geste donné avant l'ordre.

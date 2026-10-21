@@ -4740,6 +4740,11 @@ local function id_du_personnage(d, personnage)
 end
 
 function hommes.dire_une_replique_du_personnage(personnage, quoi)
+  -- Le Directeur (vu sur une copie le 21/10, J11 : « réplique refusée pour Scriptorium_Directeur : pas_mene »).
+  local dir = Scriptorium.directeur
+  if dir and personnage ~= nil and dir.personnage and dir.personnage() == personnage then
+    return dir.dire_une_replique(quoi)
+  end
   local id = id_du_personnage(donnees(), personnage)
   if not id then
     return refuser("pas_mene", tostring(personnage))
@@ -4748,6 +4753,10 @@ function hommes.dire_une_replique_du_personnage(personnage, quoi)
 end
 
 function hommes.conversation_du_personnage(personnage, partenaire, quoi)
+  local dir = Scriptorium.directeur
+  if dir and personnage ~= nil and dir.personnage and dir.personnage() == personnage then
+    return dir.conversation(partenaire, quoi)
+  end
   local d = donnees()
   local id = id_du_personnage(d, personnage)
   if not id then

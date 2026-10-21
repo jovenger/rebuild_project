@@ -47,3 +47,9 @@ Corrigé en jeu : l'ordre de parole tombait dans « sans but » (pas de position
 dialogue vers Henry (sorte 3), essayé le 18/10 (metarole « GOSSIP ») : la demande va de bout en bout (ordre 23,
 nœud joué, « a dit »), **aucun dialogue ne s'ouvre** (même limite : pas de dialogue du jeu pour nos âmes) ; à vérifier
 après la bascule, avec les dialogues de Scriptorium.
+- **Les paroles du Directeur** (vu sur une copie de la partie de JoVenGer le 21/10, J11 : « réplique refusée pour
+  Scriptorium_Directeur : pas_mene ») : `directeur.dire_une_replique(quoi)` et `directeur.conversation(partenaire,
+  quoi)`, ou les deux services par nom d'entité (`hommes.dire_une_replique_du_personnage`,
+  `hommes.conversation_du_personnage`) qui le reconnaissent. Mêmes règles que pour un homme : jouée une fois par l'ordre
+  « parole », puis oubliée (sa tâche lui est redonnée) ; jamais au sommeil (sauf urgente) ni en combat ; oubliée après
+  `parole_attente_max_h`. Essai (vérifié en échec sans) ; non vu en jeu.

@@ -415,3 +415,27 @@ essai("directeur (demande du pair, 20/10) : un geste rendu par directeur.activit
   directeur.activite = d_origine
   verifier(fait, tostring(erreur))
 end)
+
+essai("directeur (vu sur une copie le 21/10, J11) : ses paroles, comme celles d'un homme : réplique donnée par l'ordre « parole », tenue, jouée puis oubliée ; par son nom d'entité ; refus", function()
+  preparer(0, 10)
+  local qui = directeur.personnage()
+  FauxJeu.ordres, FauxJeu.paroles = {}, {}
+  local ok, raison = directeur.dire_une_replique({})
+  verifier(not ok and raison == "parole_invalide", "sans alias ni metarole : refusée")
+  verifier(hommes.dire_une_replique_du_personnage(qui, { metarole = "GOSSIP" }), "demandée par son nom d'entité")
+  egal(FauxJeu.paroles[qui] and FauxJeu.paroles[qui].sorte, 1, "une réplique donnée")
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite, "parole", "l'ordre de parole")
+  local n = #FauxJeu.ordres
+  egal(directeur.battre().ordres, 0, "tenue : pas d'autre ordre")
+  egal(#FauxJeu.ordres, n, "rien de redonné")
+  FauxJeu.variables_du_cerveau = FauxJeu.variables_du_cerveau or {}
+  FauxJeu.variables_du_cerveau[qui] = { scriptorium_parole_jouee = 1 }
+  egal(directeur.battre().ordres, 1, "jouée : sa tâche lui est redonnée")
+  verifier(FauxJeu.ordres[#FauxJeu.ordres].activite ~= "parole", "il reprend sa tâche")
+  egal(directeur.parole, nil, "oubliée")
+  FauxJeu.personnages_existants["un_homme"] = true
+  verifier(hommes.conversation_du_personnage(qui, "un_homme", { alias = "scr_bonjour" }), "une conversation")
+  egal(FauxJeu.paroles[qui].sorte, 2, "conversation")
+  egal(FauxJeu.paroles[qui].partenaire, "un_homme", "avec son partenaire")
+  directeur.parole = nil
+end)
