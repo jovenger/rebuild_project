@@ -211,3 +211,6 @@ le chemin du retour, entre à cheval et descend.
   bataille est conclue aussitôt (défaite), sans attendre ni trancher contre personne ; une ligne au journal (« plus
   aucun des nôtres debout, Henry pas sur place : défaite (… mort(s), … assommé(s)) »).
 - Essai (vérifié en échec sans) ; non vu en jeu.
+- La colonne qui renaît sur le chemin du camp (même séance : Jan Kladivo debout et raide, 3,7 m en l'air) : chacun
+  renaît au sol de sa place (le terrain lu au point, `jeu().altitude_du_terrain`), non à la hauteur du centre du camp.
+  Essai (vérifié en échec sans) ; non vu en jeu.

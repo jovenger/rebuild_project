@@ -669,9 +669,17 @@ essai("missions (4 b) : tous hors d'état au retour : la colonne entière rentre
   battre()
   egal(missions.mission(id).etat, "dehors_retour", "personne debout : rentre au loin")
   FauxJeu.inconscients = nil
+  -- Vu sur une copie le 21/10 (J3) : chacun renaît au sol de sa place, pas à la hauteur du centre du camp.
+  FauxJeu.terrain = function() return 7 end
+  local nes_avant = #FauxJeu.personnages
   FauxJeu.heure = 13
   battre()
   egal(missions.mission(id).etat, "retour", "renaît au bord du camp")
+  verifier(#FauxJeu.personnages > nes_avant, "des personnages refaits")
+  for i = nes_avant + 1, #FauxJeu.personnages do
+    egal(FauxJeu.personnages[i].position.z, 7, "renaît au sol")
+  end
+  FauxJeu.terrain = nil
   finir()
 end)
 

@@ -952,9 +952,13 @@ local function avancer(d, m, heure)
         and jeu().henry_voit(point, Scriptorium.hommes.reglages.secours_vue_cos) == true then
       return false
     end
+    -- Vu sur une copie de la partie de JoVenGer le 21/10 (J3 : Jan Kladivo renaissait 3,7 m en l'air, debout et raide) :
+    -- chacun renaît au sol de sa place (le terrain lu au point), non à la hauteur du centre du camp.
     for i, id in ipairs(vivants) do
       if Scriptorium.hommes.est_dehors(id) then
-        Scriptorium.hommes.faire_rentrer(id, { x = point.x + (i - 1) * 2, y = point.y, z = point.z })
+        local x = point.x + (i - 1) * 2
+        local sol = jeu().altitude_du_terrain and jeu().altitude_du_terrain(x, point.y)
+        Scriptorium.hommes.faire_rentrer(id, { x = x, y = point.y, z = tonumber(sol) or point.z })
       end
     end
     m.etat = "retour"
