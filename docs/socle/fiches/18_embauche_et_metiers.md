@@ -331,3 +331,17 @@ Comportement :
   ne le reçoivent pas. Une dame ne fait plus glisser personne : `sieges_occupes` reste juste pendant tout le tour.
 - Essai (vérifié en échec sans : le siège de l'homme glisse de 24_6 à 24_8 quand la dame prend 24_4, comme en jeu) ;
   non vu en jeu.
+
+## Les dames debout à côté de leurs lits hauts (vu dans la partie de JoVenGer le 22/10 ; enquête, rien de corrigé)
+- Vu (journal, lecture seule) : les lits hauts du personnel (ScriptoEditeur_43_3 à 61_3, NormalBed, Bed_1Place_High)
+  couchent les hommes ; les quatre dames (58_3 à 61_3) arrivent à leur lit, restent debout toute la nuit. Leurs anciens
+  lits au sol (GroundBed, Bed_1Place_Low) les couchaient. Le même ordre pour tous (activité 11, WUID du lit posé).
+- Lu dans les paks : le corps féminin a tout ce qu'il faut (`wh_female_database.adb` : LieDown `liePlaceBed` des deux
+  côtés, l'attente « lying », les GetUp) ; le lit haut se couche par ses aides « left »/« right » à 1 m de chaque côté
+  (`Libs/SmartObjects.xml`), le lit bas à 0,8 m. Le plan de Scriptorium serre les quatre lits « femmes » dans une seule
+  tente carrée (57) : les aides de 59 et 60 tombent l'une sur l'autre, celles de 58 et 61 contre la paroi ; les hommes
+  ont deux lits par tente. Hypothèse : l'accès aux côtés du lit, pas le corps.
+- Preuve à faire sur une copie : une dame tenue sur un lit d'homme qui marche (54_3), le forgeron sur 58_3 ; et la
+  commande `scriptorium_essai_menes_voir` (poste) : pour chaque mené, l'écart à sa place, la place libre ou bloquée pour
+  la posture (`XGenAIModule.IsStanceAvailable`/`IsStanceBlocked`), ses compteurs (couchés : tentatives).
+- Ensuite seulement : le repli du socle (un dormeur qui ne se couche pas dans son lit se couche au sol à côté).

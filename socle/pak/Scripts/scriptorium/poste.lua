@@ -1974,6 +1974,25 @@ function poste.essai_directeur_coucher()
   return true
 end
 
+-- Demande du pair (22/10, les dames debout à côté de leurs lits hauts dans la partie de JoVenGer) : où en est chaque
+-- personnage mené sur la place de sa tenue (lit, siège) : écart, place libre ou bloquée pour la posture, compteurs.
+function poste.essai_menes_voir()
+  local hommes = Scriptorium.hommes
+  local heure = jeu().heure_du_jeu()
+  local menes = hommes.personnel_mene()
+  if #menes == 0 then
+    jeu().journal("Poste : aucun personnage mené")
+    return true
+  end
+  for _, personnage in ipairs(menes) do
+    local a = Scriptorium.avis(hommes, "activite_de", "mene_" .. personnage, heure)
+    local lieu = a and a.lieu
+    jeu().journal("Poste : mené « " .. personnage .. " » (" .. tostring(a and a.activite) .. ", " .. tostring(lieu) .. ") "
+                  .. (jeu().voir_sur_la_place and lieu and jeu().voir_sur_la_place(personnage, lieu) or "sans place"))
+  end
+  return true
+end
+
 function poste.essai_hommes_voir()
   local hommes = Scriptorium.hommes
   for _, id in ipairs(hommes.liste()) do
@@ -2776,6 +2795,7 @@ poste.commandes = {
   { nom = "scriptorium_essai_henry_lu", fonction = function() return poste.essai_henry_lu() end, aide = "La lecture d'Henry rendue au jeu (V73 f 2 d)" },
   { nom = "scriptorium_essai_cheval_d_henry", fonction = function() return poste.essai_cheval_d_henry() end, aide = "Le cheval d'Henry amené à 4 m devant lui (V73 f 2 d)" },
   { nom = "scriptorium_essai_qui_tient", fonction = function() return poste.essai_qui_tient() end, aide = "La règle qui tient chaque homme, son activité, sa fin (V73 b 3)" },
+  { nom = "scriptorium_essai_menes_voir", fonction = function() return poste.essai_menes_voir() end, aide = "Où en est chaque personnage mené sur sa place (lit, siège) : écart, libre ou bloquée pour la posture, couchés, assis" },
   { nom = "scriptorium_essai_hommes_voir", fonction = function() return poste.essai_hommes_voir() end, aide = "Où en est chaque homme et le Directeur : écart à sa place, assis, couchés, occupé, combats, âme" },
   { nom = "scriptorium_essai_lit_a_decouvert", fonction = function() return poste.essai_lit_a_decouvert() end, aide = "Un lit du camp (meuble et place du jeu) à 5 m devant Henry, sans tente" },
   { nom = "scriptorium_essai_marcheur_coucher_a_decouvert", fonction = function() return poste.essai_marcheur_coucher_a_decouvert() end, aide = "Le marcheur se couche sur le lit à découvert (ordre 11)" },
