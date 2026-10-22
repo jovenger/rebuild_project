@@ -4308,6 +4308,33 @@ essai("place refaite (prouvé en jeu le 22/10 : un lit retiré et reposé neuf s
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("place refaite, un lit de l'éditeur de Scriptorium (vu en jeu le 22/10 : il n'est pas une place du camp) : le mené qui y dort reçoit l'ordre de nouveau quand le lit est refait", function()
+  preparer(5000, 100, 23)
+  FauxJeu.personnages_existants["ScriptoArmurier_1"] = true
+  FauxJeu.objets_existants["ScriptoEditeur_54_3_so"] = true
+  FauxJeu.positions_des_objets = FauxJeu.positions_des_objets or {}
+  local pres = camp.point(3, 4, 0)
+  FauxJeu.positions_des_objets["ScriptoEditeur_54_3_so"] = { x = pres.x, y = pres.y, z = 0 }
+  egal(camp.sorte_de("ScriptoEditeur_54_3_so"), nil, "pas une place du camp")
+  verifier(hommes.tenir_un_personnage("ScriptoArmurier_1", "sommeil", { activite = "sommeil", lit = "ScriptoEditeur_54_3_so", fin = "liberation" }),
+           "couché dans le lit de l'éditeur")
+  local function ordres_de_sommeil()
+    local n = 0
+    for _, o in ipairs(FauxJeu.ordres) do
+      if o.identifiant == "ScriptoArmurier_1" and o.activite == "sommeil" then n = n + 1 end
+    end
+    return n
+  end
+  local avant = ordres_de_sommeil()
+  hommes.battre()
+  egal(ordres_de_sommeil(), avant, "rien de changé : pas d'ordre redonné")
+  FauxJeu.identites_des_objets = { ["ScriptoEditeur_54_3_so"] = "0x416DD" }
+  hommes.battre()
+  egal(ordres_de_sommeil(), avant + 1, "le lit refait : l'ordre redonné")
+  FauxJeu.identites_des_objets = nil
+  hommes.lacher_un_personnage("ScriptoArmurier_1", "sommeil")
+end)
+
 essai("lits de la nuit (vu sur une copie le 20/10 : deux hommes sur le même lit) : un lit donné reste à son dormeur ; la liste des lits libres qui change entre deux ordres ne fait jamais de doublon ; rendu au lever", function()
   depart()
   FauxJeu.heure = 10

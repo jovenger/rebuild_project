@@ -2717,3 +2717,7 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 - Essai (vérifié en échec sans : un seul ordre de sommeil au lieu de deux après le lit refait) ; la lecture du lieu
   d'avant (sortie du lit) s'arrête au premier « # ». La fonction est dans la liaison, que `outils/recharger.py` ne
   recharge pas : à voir en jeu après une installation et un rechargement de la copie.
+- Vu en jeu le 22/10 (essai du pair, lit 54 déplacé pendant que l'armurier y dormait : aucun ordre) : les lits posés par
+  l'éditeur de Scriptorium ne sont pas des places du camp (`camp.sorte_de` rend nil), la signature n'avait pas leur
+  identité. Désormais un lieu ou une ancre hors du camp, mais objet du monde (`jeu().objet_existe`), prend sa propre
+  identité. Essai d'un lit de l'éditeur (vérifié en échec sans).

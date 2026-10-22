@@ -3813,11 +3813,24 @@ local function identite_de_l_objet(nom)
   return jeu().identite_d_un_objet(nom)
 end
 
+-- L'objet du monde d'une place : celui du camp pour une place du plan ou déclarée ; sinon (vu en jeu le 22/10 : les lits
+-- posés par l'éditeur de Scriptorium ne sont pas des places du camp, camp.sorte_de rend nil) l'objet de ce nom, s'il
+-- existe dans le monde.
+local function objet_de_la_place(nom)
+  if type(nom) ~= "string" then
+    return nil
+  end
+  local objet = camp().sorte_de(nom) and camp().objet_du_jeu_de(nom) or nil
+  if not objet and jeu().objet_existe and jeu().objet_existe(nom) then
+    objet = nom
+  end
+  return objet
+end
+
 local function resume_de(a)
   local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
-  local objet = type(a.lieu) == "string" and camp().sorte_de(a.lieu) and camp().objet_du_jeu_de(a.lieu) or nil
-  local place = identite_de_l_objet(objet)
-  local ancre = a.siege and identite_de_l_objet(hommes.objet_d_ancrage(a.siege)) or nil
+  local place = identite_de_l_objet(objet_de_la_place(a.lieu))
+  local ancre = a.siege and identite_de_l_objet(hommes.objet_d_ancrage(a.siege) or objet_de_la_place(a.siege)) or nil
   if place then
     resume = resume .. "#o" .. place
   end
