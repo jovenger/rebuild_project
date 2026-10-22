@@ -234,6 +234,11 @@ hommes.reglages = {
   -- La garde de la tenue (fiche 13, après V73 b, réponses a et a de JoVenGer du 16/10) : tant d'hommes par battement, en
   -- tournant, remettent leurs propres pièces (le moteur leur ôte parfois leur tenue en pleine partie).
   tenue_garde_par_battement = 1,
+  -- Vu dans la partie de JoVenGer le 22/10 (des hommes torse nu plusieurs minutes chaque matin : un seul homme habillé par
+  -- battement, deux battements par homme) : tant d'hommes habillés par battement (1 : comme avant), et leur second
+  -- passage tant de millisecondes après (0 : au battement suivant, comme avant).
+  habillage_par_battement = 8,
+  habillage_second_passage_ms = 2000,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -1488,7 +1493,29 @@ end
 -- Rend l'identifiant de l'homme équipé ou rhabillé, ou faux.
 hommes.habillage_rang = 0
 
-local function equiper_un_homme(d)
+-- Même vue (22/10) : le second passage d'un homme, « habillage_second_passage_ms » après son rhabillage ou son équipement,
+-- par une minuterie ; jamais en bataille ni pour une autre partie ; la file du battement reste le filet.
+local function second_passage_differe(f)
+  local ms = tonumber(hommes.reglages.habillage_second_passage_ms) or 0
+  if ms <= 0 or not jeu().minuterie then
+    return
+  end
+  local generation, id = Scriptorium.generation, f.id
+  jeu().minuterie(ms, function()
+    if generation ~= Scriptorium.generation or en_bataille() then
+      return
+    end
+    local d = donnees()
+    local g = d.liste[id]
+    if g and g.equipement and g.equipement.etat == "a_completer" and g.personnage and jeu().personnage_existe(g.personnage) then
+      completer(d, g)
+      enregistrer()
+    end
+  end)
+end
+
+local function equiper_un_homme(d, faits)
+  faits = faits or {}
   if en_bataille() or #d.ordre == 0 then
     return false
   end
@@ -1506,13 +1533,17 @@ local function equiper_un_homme(d)
       local f = d.liste[id]
       local etat = f.equipement and f.equipement.etat
       -- La garde n'est lue que pour un homme qui a quelque chose à faire (elle interroge l'arbitre).
-      if etat == voulu and f.personnage and jeu().personnage_existe(f.personnage) and not garde_suspendue(id, f) then
+      if etat == voulu and not faits[id] and f.personnage and jeu().personnage_existe(f.personnage)
+          and not garde_suspendue(id, f) then
         if etat == "a_equiper" then
           equiper(d, f)
         elseif etat == "a_rhabiller" then
           rhabiller(d, f)
         else
           completer(d, f)
+        end
+        if f.equipement and f.equipement.etat == "a_completer" then
+          second_passage_differe(f)
         end
         hommes.habillage_rang = rang
         return id
@@ -1539,7 +1570,7 @@ local function garder_les_tenues(d, deja)
     vus = vus + 1
     local id = d.ordre[hommes.garde_de_la_tenue_rang]
     local f = d.liste[id]
-    if id ~= deja and f.personnage and f.equipement and f.equipement.etat == "pret" and jeu().personnage_existe(f.personnage)
+    if not (deja and deja[id]) and f.personnage and f.equipement and f.equipement.etat == "pret" and jeu().personnage_existe(f.personnage)
         and not garde_suspendue(id, f) then
       jeu().faire_porter(f.personnage, liste_portee(f))
       repasses = repasses + 1
@@ -4386,12 +4417,18 @@ function hommes.battre()
   end
   hommes.mener_le_personnel(d, heure, rapport)
   hommes.appliquer_les_pieces_au_sac(d)
-  local equipe = equiper_un_homme(d)
-  if equipe then
+  -- Vu dans la partie de JoVenGer le 22/10 : « habillage_par_battement » hommes, jamais deux fois le même.
+  local habilles = {}
+  for _ = 1, math.max(1, math.floor(tonumber(hommes.reglages.habillage_par_battement) or 1)) do
+    local equipe = equiper_un_homme(d, habilles)
+    if not equipe then
+      break
+    end
+    habilles[equipe] = true
     rapport.equipes = rapport.equipes + 1
     rapport.changements = rapport.changements + 1
   end
-  rapport.tenues = garder_les_tenues(d, equipe)
+  rapport.tenues = garder_les_tenues(d, habilles)
   hommes.tenir_la_sante_des_blesses(d)
   d.derniere_heure = heure
   if rapport.changements > 0 or rapport.a_rhabiller > 0 then

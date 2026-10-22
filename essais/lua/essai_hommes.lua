@@ -1454,8 +1454,35 @@ essai("équipement : archer, pavoisier et arbalétrier selon leur palier ; gens 
   egal(a_dans_le_sac(cuisinier, "naissance_tunique"), 1, "cuisinier : tenue de naissance gardée")
 end)
 
-essai("équipement : un homme par battement, jamais en bataille", function()
+essai("habillage (vu dans la partie de JoVenGer le 22/10 : des hommes torse nu plusieurs minutes chaque matin) : plusieurs hommes par battement, jamais deux fois le même ; leur second passage par une minuterie, deux secondes après", function()
+  preparer(2000, 10, 10)
+  local ids = {}
+  for _ = 1, 3 do
+    table.insert(ids, (hommes.embaucher({ role = "homme_d_armes", semaines = 4 })))
+  end
+  FauxJeu.minuteries = {}
+  local r = hommes.battre()
+  egal(r.equipes, 3, "les trois habillés dans le même battement")
+  for _, id in ipairs(ids) do
+    egal(hommes.fiche(id).equipement.etat, "a_completer", "chacun une fois, son second passage à venir")
+  end
+  local passages = {}
+  for _, m in ipairs(FauxJeu.minuteries) do
+    if m.ms == hommes.reglages.habillage_second_passage_ms then table.insert(passages, m) end
+  end
+  egal(#passages, 3, "trois seconds passages, deux secondes après")
+  Scriptorium.en_partie = true
+  for _, m in ipairs(passages) do m.fonction() end
+  Scriptorium.en_partie = false
+  for _, id in ipairs(ids) do
+    egal(hommes.fiche(id).equipement.etat, "pret", "habillé en deux secondes")
+  end
+end)
+
+essai("équipement : un homme par battement (réglage à 1, second passage au battement : comme avant le 22/10), jamais en bataille", function()
   preparer(200, 10, 10)
+  local par_battement, second_ms = hommes.reglages.habillage_par_battement, hommes.reglages.habillage_second_passage_ms
+  hommes.reglages.habillage_par_battement, hommes.reglages.habillage_second_passage_ms = 1, 0
   local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
   local b = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
   local bandes = Scriptorium.bataille.bandes
@@ -1473,6 +1500,7 @@ essai("équipement : un homme par battement, jamais en bataille", function()
   hommes.battre()
   hommes.battre()
   egal(hommes.fiche(b).equipement.etat, "pret", "le second ensuite")
+  hommes.reglages.habillage_par_battement, hommes.reglages.habillage_second_passage_ms = par_battement, second_ms
 end)
 
 essai("équipement : à chaque entrée en partie, chacun remet ses propres pièces, dans l'ordre ; munitions complétées", function()

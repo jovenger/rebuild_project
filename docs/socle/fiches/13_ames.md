@@ -725,3 +725,18 @@
   (lancé par Scriptorium), était torse nu : la levée de l'attaque par l'ordre 9 (fiche 14) ne compte plus de « fin de
   combat » au cerveau, et l'homme n'était plus marqué « à rhabiller ». Désormais, à la fin d'un affrontement, l'homme est
   marqué « à rhabiller (fin d'affrontement) ». Essai (vérifié qu'il échoue sans). Non vérifié en jeu.
+
+## Habiller plusieurs hommes par battement, le second passage deux secondes après (vu dans la partie de JoVenGer le 22/10)
+- Vu (journal, lecture seule) : à 6 h 20 de jeu, six hommes « a_rhabiller » ; à 6 h 36, encore quatre (dont Matěj de
+  Talmberk « a_completer ») ; JoVenGer voit des hommes torse nu plusieurs minutes réelles chaque matin. Cause : le socle
+  n'habillait qu'UN homme par battement (30 s), et chaque homme demandait deux battements (le rhabillage, puis le second
+  passage au battement suivant, V71 c) ; au lever (sortie du lit) ou au chargement (« vie du camp relancée »), la file
+  durait une minute par homme. « a_completer » ne manque de rien : c'est l'homme qui attend son second passage.
+- Désormais : au plus `hommes.reglages.habillage_par_battement` hommes par battement (8 ; 1 : comme avant), jamais deux
+  fois le même dans un battement ; le second passage de chacun part `habillage_second_passage_ms` après (2000 ;
+  0 : au battement suivant, comme avant), par une minuterie (jamais en bataille, ni d'une autre partie) ; la file du
+  battement reste le filet. Un homme est habillé en deux secondes.
+- Essai (vérifié en échec sans : un seul habillé au lieu de trois) ; les épreuves « un homme par battement » et « poste »
+  tournent désormais avec le réglage à 1 et le second passage au battement, ce qui éprouve l'ancien comportement.
+- Non mesuré en jeu : le coût d'un battement qui habille huit hommes (au banc, le moteur est simulé) ; à regarder à la
+  séance d'essai, au journal (temps du battement) ou à l'œil (saccade au lever) ; le réglage le baisse sans commit.

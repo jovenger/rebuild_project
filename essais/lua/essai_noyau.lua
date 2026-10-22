@@ -83,9 +83,13 @@ essai("poste : l'essai des hommes engage trois hommes et pose le battement", fun
   egal(effectif.presents, 3, "trois présents")
   egal(Scriptorium.coffre.solde(), 200 - 24 - 28 - 24, "primes payées")
   egal(#FauxJeu.minuteries, 1, "battement posé")
+  -- Le second passage de l'habillage (22/10) pose ses propres minuteries : ici, au battement, comme avant.
+  local second_ms = Scriptorium.hommes.reglages.habillage_second_passage_ms
+  Scriptorium.hommes.reglages.habillage_second_passage_ms = 0
   FauxJeu.tic_minuterie()
   egal(#FauxJeu.minuteries, 1, "et reposé")
   verifier(#FauxJeu.ordres >= 3, "ordres donnés aux trois")
+  Scriptorium.hommes.reglages.habillage_second_passage_ms = second_ms
   Scriptorium.arreter_le_battement()
 end)
 
