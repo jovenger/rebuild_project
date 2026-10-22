@@ -4271,6 +4271,43 @@ essai("nuit (vu sur la sauvegarde de JoVenGer le 19/10) : sur un camp adopté, l
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("place refaite (prouvé en jeu le 22/10 : un lit retiré et reposé neuf sous le même nom pendant qu'un homme y dormait) : l'ordre est redonné au battement suivant ; sans changement, pas d'ordre", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local id = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local lits = { "ScriptoEditeur_54_3_so", "ScriptoEditeur_55_3_so" }
+    verifier(camp.declarer_les_places({ { nom = lits[1], sorte = "lit" }, { nom = lits[2], sorte = "lit" } }), "lits déclarés")
+    FauxJeu.positions_des_objets = { [lits[1]] = { x = 3, y = 1, z = 0 }, [lits[2]] = { x = 4, y = 1, z = 0 } }
+    FauxJeu.objets_existants[lits[1]], FauxJeu.objets_existants[lits[2]] = true, true
+    FauxJeu.heure = 23
+    hommes.battre()
+    local a = hommes.activite_de(id, 23)
+    verifier(a.activite == "sommeil" and a.lieu, "au lit (" .. tostring(a.lieu) .. ")")
+    local personnage = hommes.fiche(id).personnage
+    local function ordres_de_sommeil()
+      local n = 0
+      for _, o in ipairs(FauxJeu.ordres) do
+        if o.identifiant == personnage and o.activite == "sommeil" then n = n + 1 end
+      end
+      return n
+    end
+    local avant = ordres_de_sommeil()
+    hommes.battre()
+    egal(ordres_de_sommeil(), avant, "rien de changé : pas d'ordre redonné")
+    FauxJeu.identites_des_objets = { [a.lieu] = "entite_refaite_77" }
+    hommes.battre()
+    egal(ordres_de_sommeil(), avant + 1, "le lit refait sous le même nom : l'ordre redonné")
+    FauxJeu.identites_des_objets = nil
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("lits de la nuit (vu sur une copie le 20/10 : deux hommes sur le même lit) : un lit donné reste à son dormeur ; la liste des lits libres qui change entre deux ordres ne fait jamais de doublon ; rendu au lever", function()
   depart()
   FauxJeu.heure = 10

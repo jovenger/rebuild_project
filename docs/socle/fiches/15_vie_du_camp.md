@@ -2703,3 +2703,17 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   que le jeu joue SANS objet : `QuestHunterInjuryIdleLie` (AI/quests/zranenylovci), `woundedLying`, `injured_nostance`.
   Essayée en direct à 23 h 10 (posée par le pair) : `QuestHunterInjuryIdleLie` couche les hommes dans l'herbe derrière
   le feu, 8 s après l'ordre. C'est la valeur par défaut ; elle se règle désormais aussi par le fichier (fiche 10).
+
+## Une place refaite redonne l'ordre (prouvé en jeu le 22/10 par le pair, images)
+- Vu : lit 54 déplacé de 30 cm par l'éditeur de Scriptorium AVANT l'ordre de sommeil : l'armurier s'y couche. Le même lit
+  remis en place PENDANT qu'il y dort : l'éditeur retire le lit et le repose neuf, même nom (ScriptoEditeur_54_3_so),
+  autre entité ; l'armurier se retrouve debout à côté, et aucun nouvel ordre ne vient. C'est ce que JoVenGer a vu chez
+  les dames (lits déplacés pendant la nuit). Ma première piste (les points d'usage restés à l'ancien endroit) était
+  fausse.
+- Cause : la signature d'un ordre était « activité@lieu » ; le nom du lit ne change pas, l'ordre n'était jamais redonné.
+- Désormais : la signature porte aussi l'identité réelle de l'objet (`jeu().identite_d_un_objet` : l'identifiant de
+  l'entité du jeu, qui change quand elle est refaite) du lieu (lit, siège, poste) et de l'ancre d'un geste ; une place
+  refaite redonne l'ordre au battement suivant.
+- Essai (vérifié en échec sans : un seul ordre de sommeil au lieu de deux après le lit refait) ; la lecture du lieu
+  d'avant (sortie du lit) s'arrête au premier « # ». La fonction est dans la liaison, que `outils/recharger.py` ne
+  recharge pas : à voir en jeu après une installation et un rechargement de la copie.

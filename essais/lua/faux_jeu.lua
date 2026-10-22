@@ -217,6 +217,11 @@ function faux.retirer_objet(identifiant)
   faux.objets_existants[identifiant] = nil
 end
 function faux.objet_existe(identifiant) return faux.objets_existants[identifiant] == true end
+-- L'identité réelle d'un objet (22/10) : par défaut son nom ; un essai la change pour un objet refait.
+function faux.identite_d_un_objet(nom)
+  if type(nom) ~= "string" then return nil end
+  return faux.identites_des_objets and faux.identites_des_objets[nom] or nom
+end
 -- Fiche 18, 5 c : un poste de travail posé (« refuser_les_postes » : aucun).
 function faux.poser_poste(nom, gabarit, position, cap, aides, geste)
   if faux.refuser_les_postes then return nil end

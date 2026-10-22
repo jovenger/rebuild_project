@@ -3803,8 +3803,28 @@ end
 -- battement (V73 b 3), ne compte pas le temps du secours (il avance d'un battement à chaque appel). « a_la_pose » :
 -- l'ordre donné quand la tenue est posée (la ronde part alors de son point de départ, fiche 15, V73 d 2).
 -- La signature d'un ordre : l'activité, le lieu, la signature propre (la place d'un rassemblement, le point d'une tenue).
+-- Prouvé en jeu le 22/10 par le pair (le lit 54 retiré et reposé neuf sous le même nom pendant que l'armurier y dormait :
+-- debout à côté, aucun ordre redonné ; de même les dames, leurs lits déplacés pendant la nuit) : la signature porte aussi
+-- l'identité réelle de l'objet du lieu (lit, siège, poste) et de l'ancre d'un geste ; une place refaite redonne l'ordre.
+local function identite_de_l_objet(nom)
+  if type(nom) ~= "string" or not jeu().identite_d_un_objet then
+    return nil
+  end
+  return jeu().identite_d_un_objet(nom)
+end
+
 local function resume_de(a)
-  return a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
+  local resume = a.activite .. "@" .. tostring(a.lieu) .. (a.signature and ("#" .. a.signature) or "")
+  local objet = type(a.lieu) == "string" and camp().sorte_de(a.lieu) and camp().objet_du_jeu_de(a.lieu) or nil
+  local place = identite_de_l_objet(objet)
+  local ancre = a.siege and identite_de_l_objet(hommes.objet_d_ancrage(a.siege)) or nil
+  if place then
+    resume = resume .. "#o" .. place
+  end
+  if ancre then
+    resume = resume .. "#a" .. ancre
+  end
+  return resume
 end
 
 local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
@@ -3929,7 +3949,7 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     end
     hommes.ordre_donne_en_saut(id)
     -- La garde de la tenue (fiche 13, proposé par le pair) : à la sortie du lit, l'homme est marqué « à rhabiller ».
-    local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@(.+)$")
+    local ancien_lieu = f.derniere_activite and string.match(f.derniere_activite, "@([^#]+)")
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
       marquer_a_rhabiller(f)
     end

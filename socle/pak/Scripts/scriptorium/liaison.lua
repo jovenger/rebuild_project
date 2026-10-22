@@ -618,6 +618,15 @@ function liaison.objet_existe(identifiant)
   return entite_nommee(identifiant) ~= nil
 end
 
+-- Prouvé en jeu le 22/10 par le pair (un lit retiré et reposé neuf sous le même nom pendant qu'un homme y dormait : il
+-- restait debout, aucun ordre redonné) : l'identité réelle d'un objet du monde par son nom, l'identifiant de son entité,
+-- qui change quand l'objet est refait ; nil s'il n'existe pas.
+function liaison.identite_d_un_objet(nom)
+  local entite = entite_nommee(nom)
+  local lu, id = pcall(function() return entite.id end)
+  return (entite and lu and id ~= nil) and tostring(id) or nil
+end
+
 -- Le registre dans la sauvegarde. Vu en jeu le 14/10 : un jeton du jeu (GameToken.SetToken / GetToken) est
 -- gardé par « Sauvegarder et quitter » et revient au rechargement (V4) ; mais il n'est pas remis à zéro quand
 -- on charge une autre sauvegarde : une sauvegarde plus ancienne héritait du camp de la précédente.
