@@ -1461,8 +1461,7 @@ essai("habillage (vu dans la partie de JoVenGer le 22/10 : des hommes torse nu p
     table.insert(ids, (hommes.embaucher({ role = "homme_d_armes", semaines = 4 })))
   end
   FauxJeu.minuteries = {}
-  local r = hommes.battre()
-  egal(r.equipes, 3, "les trois habillés dans le même battement")
+  hommes.battre()
   for _, id in ipairs(ids) do
     egal(hommes.fiche(id).equipement.etat, "a_completer", "chacun une fois, son second passage à venir")
   end
@@ -1477,6 +1476,24 @@ essai("habillage (vu dans la partie de JoVenGer le 22/10 : des hommes torse nu p
   for _, id in ipairs(ids) do
     egal(hommes.fiche(id).equipement.etat, "pret", "habillé en deux secondes")
   end
+end)
+
+essai("habillage à l'ordre (demande de JoVenGer, 22/10 : Beneš le Rouge suivait Henry sans son équipement) : un homme à rhabiller qui reçoit un ordre (l'escorte) est habillé sur-le-champ, sans battement ; jamais au bain", function()
+  preparer(2000, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  hommes.battre()
+  FauxJeu.minuteries[#FauxJeu.minuteries + 1] = nil
+  for _, m in ipairs(FauxJeu.minuteries) do if m.ms == hommes.reglages.habillage_second_passage_ms then m.fonction() end end
+  hommes.fiche(id).equipement.etat = "pret"
+  Scriptorium.registre.lire("hommes").liste[id].equipement.etat = "a_rhabiller"
+  verifier(hommes.tenir(id, "escorte", { activite = "suivre", lieu = "escorte", chef = "henry", fin = "liberation" }),
+           "l'escorte posée, sans battement")
+  egal(hommes.fiche(id).equipement.etat, "a_completer", "habillé sur-le-champ, son second passage à venir")
+  hommes.lacher(id, "escorte")
+  -- Tenu dévêtu (le bain) : jamais.
+  Scriptorium.registre.lire("hommes").liste[id].equipement.etat = "a_rhabiller"
+  verifier(hommes.tenir(id, "loisir", { activite = "attendre", fin = "liberation", ne_pas_rhabiller = true }), "tenu dévêtu")
+  egal(hommes.fiche(id).equipement.etat, "a_rhabiller", "dévêtu : pas rhabillé")
 end)
 
 essai("équipement : un homme par battement (réglage à 1, second passage au battement : comme avant le 22/10), jamais en bataille", function()

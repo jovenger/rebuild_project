@@ -237,7 +237,7 @@ hommes.reglages = {
   -- Vu dans la partie de JoVenGer le 22/10 (des hommes torse nu plusieurs minutes chaque matin : un seul homme habillé par
   -- battement, deux battements par homme) : tant d'hommes habillés par battement (1 : comme avant), et leur second
   -- passage tant de millisecondes après (0 : au battement suivant, comme avant).
-  habillage_par_battement = 8,
+  habillage_par_battement = 100,
   habillage_second_passage_ms = 2000,
 }
 
@@ -1513,6 +1513,9 @@ local function second_passage_differe(f)
     end
   end)
 end
+
+-- Les hommes habillés au moment de leur ordre depuis le début du battement (la file ne les reprend pas aussitôt).
+hommes.habilles_hors_file = hommes.habilles_hors_file or {}
 
 local function equiper_un_homme(d, faits)
   faits = faits or {}
@@ -3863,6 +3866,25 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
     if ancien_lieu and camp().sorte_de(ancien_lieu) == "lit" and not (a.lieu and camp().sorte_de(a.lieu) == "lit") then
       marquer_a_rhabiller(f)
     end
+    -- Demande de JoVenGer (22/10 : « plus aucun soldat sans équipement » ; Beneš le Rouge suivait Henry sans son
+    -- équipement) : un homme qui reçoit un nouvel ordre hors du lit (lever, escorte, ronde, chargement) et reste à
+    -- rhabiller ou à équiper est habillé tout de suite, son second passage deux secondes après, sans attendre le
+    -- battement ; jamais en bataille, ni tenu dévêtu (le bain), ni en combat ou en conversation (la file le reprendra).
+    local e = f.equipement
+    if e and (e.etat == "a_rhabiller" or e.etat == "a_equiper") and not en_bataille()
+        and not (a.lieu and camp().sorte_de(a.lieu) == "lit") and not a.ne_pas_rhabiller
+        and not jeu().occupation_de(f.personnage) then
+      if e.etat == "a_equiper" then
+        equiper(d, f)
+      else
+        rhabiller(d, f)
+      end
+      if f.equipement and f.equipement.etat == "a_completer" then
+        second_passage_differe(f)
+      end
+      -- La file du battement ne le reprend pas dans ce battement (son second passage vient après).
+      hommes.habilles_hors_file[id] = true
+    end
     f.derniere_activite = resume
     local garde = hommes.suivi[id]
     hommes.suivi[id] = { reste = nil, bloque_s = 0, secours = (garde and garde.resume == resume) and garde.secours or 0,
@@ -4334,6 +4356,7 @@ end
 
 function hommes.battre()
   local d = donnees()
+  hommes.habilles_hors_file = {}
   local heure = jeu().heure_du_jeu()
   local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0, arrets = 0,
                     a_rhabiller = 0, tenues = 0 }
@@ -4417,8 +4440,9 @@ function hommes.battre()
   end
   hommes.mener_le_personnel(d, heure, rapport)
   hommes.appliquer_les_pieces_au_sac(d)
-  -- Vu dans la partie de JoVenGer le 22/10 : « habillage_par_battement » hommes, jamais deux fois le même.
-  local habilles = {}
+  -- Vu dans la partie de JoVenGer le 22/10 : « habillage_par_battement » hommes, jamais deux fois le même, ni celui
+  -- habillé au moment de son ordre dans ce battement.
+  local habilles = hommes.habilles_hors_file
   for _ = 1, math.max(1, math.floor(tonumber(hommes.reglages.habillage_par_battement) or 1)) do
     local equipe = equiper_un_homme(d, habilles)
     if not equipe then

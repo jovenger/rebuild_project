@@ -740,3 +740,9 @@
   tournent désormais avec le réglage à 1 et le second passage au battement, ce qui éprouve l'ancien comportement.
 - Non mesuré en jeu : le coût d'un battement qui habille huit hommes (au banc, le moteur est simulé) ; à regarder à la
   séance d'essai, au journal (temps du battement) ou à l'œil (saccade au lever) ; le réglage le baisse sans commit.
+- Demande de JoVenGer (22/10, « plus aucun soldat sans équipement » ; mesuré dans la copie à 22 h 27 : 6 hommes à
+  rhabiller sur 60, dont Beneš le Rouge qui suivait Henry) : plus de plafond (`habillage_par_battement` = 100) ; et un
+  homme qui reçoit un nouvel ordre hors du lit (lever, escorte, ronde, chargement) et reste à rhabiller ou à équiper est
+  habillé sur-le-champ, son second passage deux secondes après, sans attendre le battement ; jamais en bataille, ni tenu
+  dévêtu, ni en combat ou en conversation ; la file du battement ne le reprend pas dans le même battement. Essai (vérifié
+  en échec sans) ; à voir en jeu au lever.
