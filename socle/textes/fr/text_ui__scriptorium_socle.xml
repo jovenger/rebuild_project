@@ -1,0 +1,138 @@
+<Table>
+  <Row><Cell>ui_scriptorium_socle_pret</Cell><Cell>Le socle de Scriptorium est prêt.</Cell><Cell>Le socle de Scriptorium est prêt.</Cell></Row>
+  <Row><Cell>ui_scriptorium_socle_morceau_en_panne</Cell><Cell>Un morceau du socle n'a pas démarré. Voir le journal.</Cell><Cell>Un morceau du socle n'a pas démarré. Voir le journal.</Cell></Row>
+  <Row><Cell>ui_scriptorium_registre_remis_a_neuf</Cell><Cell>Le registre du camp a été remis à neuf.</Cell><Cell>Le registre du camp a été remis à neuf.</Cell></Row>
+  <Row><Cell>ui_scriptorium_registre_mis_a_jour</Cell><Cell>Le registre du camp a été mis à jour.</Cell><Cell>Le registre du camp a été mis à jour.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_nouvelle</Cell><Cell>Essai : une nouvelle ordinaire.</Cell><Cell>Essai : une nouvelle ordinaire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_alerte</Cell><Cell>Essai : une alerte, qui passe devant.</Cell><Cell>Essai : une alerte, qui passe devant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_arrivee</Cell><Cell>Essai : un homme est arrivé au camp.</Cell><Cell>Essai : un homme est arrivé au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_arrivee_plusieurs</Cell><Cell>Essai : plusieurs hommes sont arrivés au camp.</Cell><Cell>Essai : plusieurs hommes sont arrivés au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_manque</Cell><Cell>Le coffre du camp ne peut pas payer : il manque des groschen.</Cell><Cell>Le coffre du camp ne peut pas payer : il manque des groschen.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_henry_manque</Cell><Cell>Henry n'a pas assez de groschen pour ce dépôt.</Cell><Cell>Henry n'a pas assez de groschen pour ce dépôt.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_vivres</Cell><Cell>Les vivres du camp sont épuisés.</Cell><Cell>Les vivres du camp sont épuisés.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_biere</Cell><Cell>La bière du camp est épuisée.</Cell><Cell>La bière du camp est épuisée.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_fourrage</Cell><Cell>Le fourrage du camp est épuisé.</Cell><Cell>Le fourrage du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_traits</Cell><Cell>Les flèches et les carreaux du camp sont épuisés.</Cell><Cell>Les flèches et les carreaux du camp sont épuisés.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_bois</Cell><Cell>Le bois du camp est épuisé.</Cell><Cell>Le bois du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_herbes</Cell><Cell>Les herbes du camp sont épuisées.</Cell><Cell>Les herbes du camp sont épuisées.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_fer</Cell><Cell>Le fer du camp est épuisé.</Cell><Cell>Le fer du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_cuir</Cell><Cell>Le cuir du camp est épuisé.</Cell><Cell>Le cuir du camp est épuisé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_camp_dresse</Cell><Cell>Le camp est dressé.</Cell><Cell>Le camp est dressé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_camp_agrandi</Cell><Cell>Le camp s'est agrandi.</Cell><Cell>Le camp s'est agrandi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_camp_leve</Cell><Cell>Le camp est levé.</Cell><Cell>Le camp est levé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_vous_ecoute</Cell><Cell>Il vous écoute :</Cell><Cell>Il vous écoute :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_rejoint</Cell><Cell>Un homme a rejoint la Compagnie :</Cell><Cell>Un homme a rejoint la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_pas_de_lit</Cell><Cell>Pas de paillasse libre : agrandissez le camp.</Cell><Cell>Pas de paillasse libre : agrandissez le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_solde_payee</Cell><Cell>La solde a été payée :</Cell><Cell>La solde a été payée :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_solde_impayee</Cell><Cell>La solde n'a pas pu être payée : le coffre manque de groschen.</Cell><Cell>La solde n'a pas pu être payée : le coffre manque de groschen.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_faim</Cell><Cell>Les hommes ont eu faim : les vivres manquent.</Cell><Cell>Les hommes ont eu faim : les vivres manquent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_fin_contrat</Cell><Cell>A quitté la Compagnie, son contrat fini :</Cell><Cell>A quitté la Compagnie, son contrat fini :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_solde</Cell><Cell>Est parti, sa solde impayée :</Cell><Cell>Est parti, sa solde impayée :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_moral</Cell><Cell>A déserté :</Cell><Cell>A déserté :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_parti_renvoye</Cell><Cell>A été renvoyé de la Compagnie :</Cell><Cell>A été renvoyé de la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_mort</Cell><Cell>Est tombé au service de la Compagnie :</Cell><Cell>Est tombé au service de la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_promu_dizainier</Cell><Cell>A été fait dizainier :</Cell><Cell>A été fait dizainier :</Cell></Row>
+  <Row><Cell>ui_scriptorium_hommes_capitaine</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell><Cell>Est désormais capitaine de la Compagnie :</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_alerte</Cell><Cell>Des ennemis en vue, crie</Cell><Cell>Des ennemis en vue, crie</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_alerte_qui</Cell><Cell>Alerte !</Cell><Cell>Alerte !</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_approche</Cell><Cell>Une bande approche du camp :</Cell><Cell>Une bande approche du camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_victoire</Cell><Cell>Victoire : la bande est repoussée.</Cell><Cell>Victoire : la bande est repoussée.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_victoire_couteuse</Cell><Cell>Victoire chèrement payée : la bande est repoussée, mais la Compagnie a saigné.</Cell><Cell>Victoire chèrement payée : la bande est repoussée, mais la Compagnie a saigné.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_repoussee</Cell><Cell>La bande a été repoussée, mais elle a mordu.</Cell><Cell>La bande a été repoussée, mais elle a mordu.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_defaite</Cell><Cell>Défaite : la bande a enfoncé le camp et pillé le coffre.</Cell><Cell>Défaite : la bande a enfoncé le camp et pillé le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_bataille_butin</Cell><Cell>Butin partagé, au coffre :</Cell><Cell>Butin partagé, au coffre :</Cell></Row>
+  <Row><Cell>ui_scriptorium_directeur_installe</Cell><Cell>Le Directeur a pris ses fonctions.</Cell><Cell>Le Directeur a pris ses fonctions.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_rapport</Cell><Cell>Entendre le rapport</Cell><Cell>Entendre le rapport</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_livre</Cell><Cell>Consulter le livre de comptes</Cell><Cell>Consulter le livre de comptes</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_payer</Cell><Cell>Payer la solde maintenant</Cell><Cell>Payer la solde maintenant</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_engager</Cell><Cell>Engager un homme</Cell><Cell>Engager un homme</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_renvoyer</Cell><Cell>Renvoyer un homme</Cell><Cell>Renvoyer un homme</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_capitaine</Cell><Cell>Nommer le capitaine</Cell><Cell>Nommer le capitaine</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_renouveler</Cell><Cell>Renouveler un contrat</Cell><Cell>Renouveler un contrat</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_acheter</Cell><Cell>Acheter des réserves</Cell><Cell>Acheter des réserves</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_deposer</Cell><Cell>Déposer des groschen au coffre</Cell><Cell>Déposer des groschen au coffre</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_verser</Cell><Cell>Prendre des groschen au coffre</Cell><Cell>Prendre des groschen au coffre</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_agrandir</Cell><Cell>Agrandir le camp</Cell><Cell>Agrandir le camp</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_lever</Cell><Cell>Lever le camp</Cell><Cell>Lever le camp</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_remedes</Cell><Cell>Les remèdes du camp sont épuisés.</Cell><Cell>Les remèdes du camp sont épuisés.</Cell></Row>
+  <Row><Cell>ui_scriptorium_coffre_epuise_onguents</Cell><Cell>Les onguents du camp sont épuisés.</Cell><Cell>Les onguents du camp sont épuisés.</Cell></Row>
+  <Row><Cell>ui_scriptorium_enceinte_batie</Cell><Cell>La palissade est dressée autour du camp.</Cell><Cell>La palissade est dressée autour du camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_enceinte_tours</Cell><Cell>Les tours de guet sont bâties.</Cell><Cell>Les tours de guet sont bâties.</Cell></Row>
+  <Row><Cell>ui_scriptorium_enceinte_porte_fermee</Cell><Cell>La porte du camp est fermée pour la nuit.</Cell><Cell>La porte du camp est fermée pour la nuit.</Cell></Row>
+  <Row><Cell>ui_scriptorium_enceinte_porte_barree</Cell><Cell>La porte est barrée : une bande approche.</Cell><Cell>La porte est barrée : une bande approche.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_enceinte</Cell><Cell>Bâtir la palissade</Cell><Cell>Bâtir la palissade</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_tours</Cell><Cell>Bâtir les tours de guet</Cell><Cell>Bâtir les tours de guet</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_remede</Cell><Cell>Préparer un remède</Cell><Cell>Préparer un remède</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_onguent</Cell><Cell>Préparer un onguent</Cell><Cell>Préparer un onguent</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_soigner</Cell><Cell>Soigner un blessé avec un remède</Cell><Cell>Soigner un blessé avec un remède</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_connaitre</Cell><Cell>Connaître ses hommes</Cell><Cell>Connaître ses hommes</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_faible</Cell><Cell>petit mangeur</Cell><Cell>petit mangeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_fort</Cell><Cell>gros mangeur</Cell><Cell>gros mangeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_faible</Cell><Cell>vite las</Cell><Cell>vite las</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_fort</Cell><Cell>endurant</Cell><Cell>endurant</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_faible</Cell><Cell>lent à se remettre</Cell><Cell>lent à se remettre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_fort</Cell><Cell>se remet vite</Cell><Cell>se remet vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_faible</Cell><Cell>lent à apprendre</Cell><Cell>lent à apprendre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_fort</Cell><Cell>apprend vite</Cell><Cell>apprend vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_faible</Cell><Cell>écervelé</Cell><Cell>écervelé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_fort</Cell><Cell>avisé</Cell><Cell>avisé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_faible</Cell><Cell>craintif</Cell><Cell>craintif</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_fort</Cell><Cell>hardi</Cell><Cell>hardi</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_faible</Cell><Cell>s'emporte vite</Cell><Cell>s'emporte vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_fort</Cell><Cell>garde son sang-froid</Cell><Cell>garde son sang-froid</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_faible</Cell><Cell>sobre</Cell><Cell>sobre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_fort</Cell><Cell>porté sur la boisson</Cell><Cell>porté sur la boisson</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_faible</Cell><Cell>paisible</Cell><Cell>paisible</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_fort</Cell><Cell>querelleur</Cell><Cell>querelleur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_faible</Cell><Cell>honnête</Cell><Cell>honnête</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_fort</Cell><Cell>chapardeur</Cell><Cell>chapardeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_tres_faible</Cell><Cell>mange très peu</Cell><Cell>mange très peu</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_appetit_tres_fort</Cell><Cell>mange comme quatre</Cell><Cell>mange comme quatre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_tres_faible</Cell><Cell>s'épuise vite</Cell><Cell>s'épuise vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_endurance_tres_fort</Cell><Cell>infatigable</Cell><Cell>infatigable</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_tres_faible</Cell><Cell>très lent à se remettre</Cell><Cell>très lent à se remettre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_forme_tres_fort</Cell><Cell>se remet très vite</Cell><Cell>se remet très vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_tres_faible</Cell><Cell>très lent à apprendre</Cell><Cell>très lent à apprendre</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_don_tres_fort</Cell><Cell>apprend très vite</Cell><Cell>apprend très vite</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_tres_faible</Cell><Cell>tête brûlée</Cell><Cell>tête brûlée</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_jugement_tres_fort</Cell><Cell>très avisé</Cell><Cell>très avisé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_tres_faible</Cell><Cell>couard</Cell><Cell>couard</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_courage_tres_fort</Cell><Cell>intrépide</Cell><Cell>intrépide</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_tres_faible</Cell><Cell>perd vite son sang-froid</Cell><Cell>perd vite son sang-froid</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_sang_froid_tres_fort</Cell><Cell>imperturbable</Cell><Cell>imperturbable</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_tres_faible</Cell><Cell>ne boit jamais</Cell><Cell>ne boit jamais</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_boisson_tres_fort</Cell><Cell>ivrogne</Cell><Cell>ivrogne</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_tres_faible</Cell><Cell>très paisible</Cell><Cell>très paisible</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bagarre_tres_fort</Cell><Cell>bagarreur</Cell><Cell>bagarreur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_tres_faible</Cell><Cell>d'une honnêteté sans faille</Cell><Cell>d'une honnêteté sans faille</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_vol_tres_fort</Cell><Cell>voleur</Cell><Cell>voleur</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_hors_du_commun</Cell><Cell>hors du commun</Cell><Cell>hors du commun</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_feu</Cell><Cell>aime la veillée au feu</Cell><Cell>aime la veillée au feu</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_entrainement</Cell><Cell>aime s'exercer</Cell><Cell>aime s'exercer</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_des</Cell><Cell>aime les dés</Cell><Cell>aime les dés</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_envie_sommeil</Cell><Cell>aime dormir</Cell><Cell>aime dormir</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_fatigue</Cell><Cell>fatigué</Cell><Cell>fatigué</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_epuise</Cell><Cell>épuisé</Cell><Cell>épuisé</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_bleu</Cell><Cell>bleu</Cell><Cell>bleu</Cell></Row>
+  <Row><Cell>ui_scriptorium_caractere_veteran</Cell><Cell>vétéran</Cell><Cell>vétéran</Cell></Row>
+  <Row><Cell>ui_scriptorium_reglages_mis_a_jour</Cell><Cell>Réglages du camp mis à jour :</Cell><Cell>Réglages du camp mis à jour :</Cell></Row>
+  <Row><Cell>ui_scriptorium_reglages_illisible</Cell><Cell>Le fichier de réglages est illisible : rien n'a changé.</Cell><Cell>Le fichier de réglages est illisible : rien n'a changé.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_soigner_onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell><Cell>Soigner un blessé avec un onguent</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_partie</Cell><Cell>La patrouille est partie.</Cell><Cell>La patrouille est partie.</Cell></Row>
+  <Row><Cell>ui_scriptorium_missions_partie</Cell><Cell>La colonne part en mission.</Cell><Cell>La colonne part en mission.</Cell></Row>
+  <Row><Cell>ui_scriptorium_missions_rapport</Cell><Cell>La colonne est rentrée de mission.</Cell><Cell>La colonne est rentrée de mission.</Cell></Row>
+  <Row><Cell>ui_scriptorium_missions_camp_vaincu</Cell><Cell>Le camp de bandits est vaincu.</Cell><Cell>Le camp de bandits est vaincu.</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_rien</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell><Cell>La patrouille est rentrée : rien à signaler.</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_rodeurs</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell><Cell>La patrouille a chassé des rôdeurs et rapporté du butin :</Cell></Row>
+  <Row><Cell>ui_scriptorium_patrouille_embuscade</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell><Cell>La patrouille est tombée dans une embuscade.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_patrouille</Cell><Cell>Envoyer une patrouille</Cell><Cell>Envoyer une patrouille</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_rixe</Cell><Cell>Rixe au camp :</Cell><Cell>Rixe au camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_vol</Cell><Cell>Un vol au coffre :</Cell><Cell>Un vol au coffre :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_ivresse</Cell><Cell>Ivresse au camp :</Cell><Cell>Ivresse au camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_exaction</Cell><Cell>Exaction chez les paysans :</Cell><Cell>Exaction chez les paysans :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_jugement</Cell><Cell>Jugement rendu au camp :</Cell><Cell>Jugement rendu au camp :</Cell></Row>
+  <Row><Cell>ui_scriptorium_discipline_laxisme</Cell><Cell>Une faute est restée impunie : les hommes murmurent.</Cell><Cell>Une faute est restée impunie : les hommes murmurent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_gestion_juger</Cell><Cell>Rendre justice au camp</Cell><Cell>Rendre justice au camp</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_coffre</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell><Cell>Essai : le coffre a encaissé, payé et refusé comme il faut.</Cell></Row>
+  <Row><Cell>ui_scriptorium_essai_registre</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell><Cell>Essai : le registre a été écrit puis relu.</Cell></Row>
+</Table>

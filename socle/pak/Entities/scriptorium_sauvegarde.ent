@@ -1,0 +1,5 @@
+<Entity
+	Name="scriptorium_sauvegarde"
+	Script="Scripts/Entities/scriptorium_sauvegarde.lua"
+	Invisible="1"
+/>

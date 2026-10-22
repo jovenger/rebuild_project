@@ -1,0 +1,240 @@
+<Table>
+  <Row><Cell>ui_scriptorium_dlg_homme_titre</Cell><Cell>Scriptorium, homme</Cell><Cell>Scriptorium, homme</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ouverture</Cell><Cell>Oui, chef ?</Cell><Cell>Oui, chef ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_invite</Cell><Cell>Discutons un peu.</Cell><Cell>Discutons un peu.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_henry</Cell><Cell>J'ai un moment. Discutons.</Cell><Cell>J'ai un moment. Discutons.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_reponse</Cell><Cell>Je vous écoute, chef.</Cell><Cell>Je vous écoute, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_parle_moi_de_toi_invite</Cell><Cell>Parle-moi un peu de toi.</Cell><Cell>Parle-moi un peu de toi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_parle_moi_de_toi_henry</Cell><Cell>Parle-moi un peu de toi.</Cell><Cell>Parle-moi un peu de toi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_invite</Cell><Cell>Comment se passe la vie au camp ?</Cell><Cell>Comment se passe la vie au camp ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_henry</Cell><Cell>Comment se passe la vie au camp ?</Cell><Cell>Comment se passe la vie au camp ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_reponse</Cell><Cell>Je vais vous dire.</Cell><Cell>Je vais vous dire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_p1_1</Cell><Cell>On fait aller, chef. Rien à redire.</Cell><Cell>On fait aller, chef. Rien à redire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_p2_1</Cell><Cell>Et entre nous, chef… vous n'êtes pas très aimé, ces temps-ci.</Cell><Cell>Et entre nous, chef… vous n'êtes pas très aimé, ces temps-ci.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_p1_2</Cell><Cell>Ça va bien ! Le camp me plaît.</Cell><Cell>Ça va bien ! Le camp me plaît.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_p1_3</Cell><Cell>Pas fameux. Le moral n'y est pas.</Cell><Cell>Pas fameux. Le moral n'y est pas.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_p1_4</Cell><Cell>Je suis mort de fatigue. Il me faudrait du repos.</Cell><Cell>Je suis mort de fatigue. Il me faudrait du repos.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_p1_5</Cell><Cell>J'ai le ventre creux. La soupe se fait attendre.</Cell><Cell>J'ai le ventre creux. La soupe se fait attendre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_vie_au_camp_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_choses_a_signaler_invite</Cell><Cell>Des choses à signaler sur les autres hommes ?</Cell><Cell>Des choses à signaler sur les autres hommes ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_choses_a_signaler_henry</Cell><Cell>Des choses à signaler sur les autres hommes ?</Cell><Cell>Des choses à signaler sur les autres hommes ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_choses_a_signaler_reponse</Cell><Cell>Entre nous ?</Cell><Cell>Entre nous ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_choses_a_signaler_p1_6</Cell><Cell>Il y en a un que je ne supporte plus. Un jour, ça finira mal.</Cell><Cell>Il y en a un que je ne supporte plus. Un jour, ça finira mal.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_choses_a_signaler_p1_7</Cell><Cell>Rien à signaler, chef. Les hommes s'entendent.</Cell><Cell>Rien à signaler, chef. Les hommes s'entendent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_discutons_choses_a_signaler_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_retour_aux_sujets</Cell><Cell>Laissons cela.</Cell><Cell>Laissons cela.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_invite</Cell><Cell>Parlons de toi.</Cell><Cell>Parlons de toi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_henry</Cell><Cell>Parlons de toi.</Cell><Cell>Parlons de toi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_reponse</Cell><Cell>Oui, chef ?</Cell><Cell>Oui, chef ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_invite</Cell><Cell>Va te faire soigner.</Cell><Cell>Va te faire soigner.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_henry</Cell><Cell>Va te faire soigner. C'est moi qui paie.</Cell><Cell>Va te faire soigner. C'est moi qui paie.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_reponse</Cell><Cell>À vos ordres.</Cell><Cell>À vos ordres.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_p1_8</Cell><Cell>Je vais bien, chef. Pas besoin.</Cell><Cell>Je vais bien, chef. Pas besoin.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_p1_9</Cell><Cell>Vous n'avez pas de quoi payer le barbier, chef.</Cell><Cell>Vous n'avez pas de quoi payer le barbier, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_p1_10</Cell><Cell>Merci, chef. Me voilà requinqué.</Cell><Cell>Merci, chef. Me voilà requinqué.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_parlons_de_toi_va_te_faire_soigner_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_invite</Cell><Cell>J'ai un ordre pour toi.</Cell><Cell>J'ai un ordre pour toi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_henry</Cell><Cell>J'ai un ordre pour toi.</Cell><Cell>J'ai un ordre pour toi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_reponse</Cell><Cell>Je vous écoute.</Cell><Cell>Je vous écoute.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_accompagne_moi_invite</Cell><Cell>Tu m'accompagnes.</Cell><Cell>Tu m'accompagnes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_accompagne_moi_henry</Cell><Cell>Prépare-toi. Tu m'accompagnes.</Cell><Cell>Prépare-toi. Tu m'accompagnes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_accompagne_moi_p1_20</Cell><Cell>Je prends mes affaires et je vous suis.</Cell><Cell>Je prends mes affaires et je vous suis.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_accompagne_moi_p1_21</Cell><Cell>Je suis déjà avec vous, chef.</Cell><Cell>Je suis déjà avec vous, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_accompagne_moi_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_invite</Cell><Cell>Rentre au camp.</Cell><Cell>Rentre au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_henry</Cell><Cell>Rentre au camp.</Cell><Cell>Rentre au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_p1_22</Cell><Cell>À vos ordres. Je rentre au camp.</Cell><Cell>À vos ordres. Je rentre au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_p1_23</Cell><Cell>Mais j'y suis déjà, chef.</Cell><Cell>Mais j'y suis déjà, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentre_au_camp_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_invite</Cell><Cell>Rentrez tous au camp.</Cell><Cell>Rentrez tous au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_henry</Cell><Cell>Tout le monde rentre au camp.</Cell><Cell>Tout le monde rentre au camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_p1_44</Cell><Cell>À vos ordres, chef. On rentre tous.</Cell><Cell>À vos ordres, chef. On rentre tous.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_p1_45</Cell><Cell>Personne d'autre ne vous suit, chef.</Cell><Cell>Personne d'autre ne vous suit, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rentrez_tous_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_invite</Cell><Cell>Reste en position ici, tiens la ligne.</Cell><Cell>Reste en position ici, tiens la ligne.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_henry</Cell><Cell>Reste en position ici, tiens la ligne.</Cell><Cell>Reste en position ici, tiens la ligne.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_p1_17</Cell><Cell>Personne ne passera, chef. Je ne bouge pas d'ici.</Cell><Cell>Personne ne passera, chef. Je ne bouge pas d'ici.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_tiens_la_ligne_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_reprends_ton_service_invite</Cell><Cell>Reprends ton service.</Cell><Cell>Reprends ton service.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_reprends_ton_service_henry</Cell><Cell>Reprends ton service.</Cell><Cell>Reprends ton service.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_reprends_ton_service_p1_18</Cell><Cell>Bien, chef. Je reprends mon service.</Cell><Cell>Bien, chef. Je reprends mon service.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_reprends_ton_service_p1_19</Cell><Cell>Mais je ne tenais aucune position, chef.</Cell><Cell>Mais je ne tenais aucune position, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_reprends_ton_service_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prends_la_garde_invite</Cell><Cell>Prends ce poste de garde.</Cell><Cell>Prends ce poste de garde.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prends_la_garde_henry</Cell><Cell>Prends ce poste de garde.</Cell><Cell>Prends ce poste de garde.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prends_la_garde_p1_24</Cell><Cell>Bien, chef. Je prends la garde ici.</Cell><Cell>Bien, chef. Je prends la garde ici.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prends_la_garde_p1_25</Cell><Cell>J'y suis déjà, chef. Rien ne passera.</Cell><Cell>J'y suis déjà, chef. Rien ne passera.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prends_la_garde_p1_26</Cell><Cell>Il n'y a pas de poste de garde par ici, chef.</Cell><Cell>Il n'y a pas de poste de garde par ici, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prends_la_garde_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_cette_tente_invite</Cell><Cell>Installe-toi dans cette tente.</Cell><Cell>Installe-toi dans cette tente.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_cette_tente_henry</Cell><Cell>Installe-toi dans cette tente. C'est ici que tu dormiras.</Cell><Cell>Installe-toi dans cette tente. C'est ici que tu dormiras.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_cette_tente_p1_27</Cell><Cell>Bien, chef. C'est ici que je dormirai.</Cell><Cell>Bien, chef. C'est ici que je dormirai.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_cette_tente_p1_28</Cell><Cell>Il n'y a pas de lit par ici, chef.</Cell><Cell>Il n'y a pas de lit par ici, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_cette_tente_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_ton_equipement_invite</Cell><Cell>Montre-moi ton équipement.</Cell><Cell>Montre-moi ton équipement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_ton_equipement_henry</Cell><Cell>Montre-moi ton équipement.</Cell><Cell>Montre-moi ton équipement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_ton_equipement_reponse</Cell><Cell>Voilà ce que j'ai, chef.</Cell><Cell>Voilà ce que j'ai, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_invite</Cell><Cell>Double la garde cette nuit.</Cell><Cell>Double la garde cette nuit.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_henry</Cell><Cell>Double la garde cette nuit.</Cell><Cell>Double la garde cette nuit.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_p1_31</Cell><Cell>À vos ordres, chef. Je double la garde cette nuit.</Cell><Cell>À vos ordres, chef. Je double la garde cette nuit.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_p1_32</Cell><Cell>La garde est déjà doublée cette nuit, chef.</Cell><Cell>La garde est déjà doublée cette nuit, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_p1_40</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_p1_43</Cell><Cell>C'est justement ce que je fais, chef.</Cell><Cell>C'est justement ce que je fais, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_double_la_garde_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_invite</Cell><Cell>Exercice général.</Cell><Cell>Exercice général.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_henry</Cell><Cell>Exercice général.</Cell><Cell>Exercice général.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_p1_33</Cell><Cell>À vos ordres, chef. Je rassemble les hommes pour l'exercice.</Cell><Cell>À vos ordres, chef. Je rassemble les hommes pour l'exercice.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_p1_34</Cell><Cell>Personne n'est libre pour l'exercice en ce moment, chef.</Cell><Cell>Personne n'est libre pour l'exercice en ce moment, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_p1_35</Cell><Cell>Il fait nuit, chef. Demain matin, à la première heure.</Cell><Cell>Il fait nuit, chef. Demain matin, à la première heure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_p1_40</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_p1_43</Cell><Cell>C'est justement ce que je fais, chef.</Cell><Cell>C'est justement ce que je fais, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_exercice_general_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_invite</Cell><Cell>Prépare une troupe pour une mission.</Cell><Cell>Prépare une troupe pour une mission.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_henry</Cell><Cell>Prépare une troupe pour une mission.</Cell><Cell>Prépare une troupe pour une mission.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_p1_36</Cell><Cell>À vos ordres, chef. Je choisis les meilleurs : ils seront prêts à partir.</Cell><Cell>À vos ordres, chef. Je choisis les meilleurs : ils seront prêts à partir.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_p1_37</Cell><Cell>Personne n'est en état de partir en ce moment, chef.</Cell><Cell>Personne n'est en état de partir en ce moment, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_p1_40</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_p1_43</Cell><Cell>C'est justement ce que je fais, chef.</Cell><Cell>C'est justement ce que je fais, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_prepare_une_troupe_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_invite</Cell><Cell>Rassemble les hommes.</Cell><Cell>Rassemble les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_henry</Cell><Cell>Rassemble les hommes.</Cell><Cell>Rassemble les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_p1_38</Cell><Cell>À vos ordres ! Tout le monde au feu, pour l'appel !</Cell><Cell>À vos ordres ! Tout le monde au feu, pour l'appel !</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_p1_39</Cell><Cell>Ils sont déjà rassemblés, chef.</Cell><Cell>Ils sont déjà rassemblés, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_p1_40</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell><Cell>Je suis déjà en tournée, chef. Je la termine d'abord ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_p1_43</Cell><Cell>C'est justement ce que je fais, chef.</Cell><Cell>C'est justement ce que je fais, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_rassemble_les_hommes_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_c_est_un_ordre_invite</Cell><Cell>C'est un ordre.</Cell><Cell>C'est un ordre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_c_est_un_ordre_henry</Cell><Cell>C'est un ordre.</Cell><Cell>C'est un ordre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_c_est_un_ordre_p1_41</Cell><Cell>À vos ordres, chef. Je laisse ma tournée et j'y vais.</Cell><Cell>À vos ordres, chef. Je laisse ma tournée et j'y vais.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_c_est_un_ordre_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_termine_puis_invite</Cell><Cell>Termine, puis fais ça.</Cell><Cell>Termine, puis fais ça.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_termine_puis_henry</Cell><Cell>Termine, puis fais ça.</Cell><Cell>Termine, puis fais ça.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_termine_puis_p1_42</Cell><Cell>Bien, chef. Je termine et j'y vais juste après.</Cell><Cell>Bien, chef. Je termine et j'y vais juste après.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_un_ordre_termine_puis_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_invite</Cell><Cell>Où en sont les hommes ?</Cell><Cell>Où en sont les hommes ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_henry</Cell><Cell>Où en sont les hommes ?</Cell><Cell>Où en sont les hommes ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_1</Cell><Cell>Un blessé, chef. Il est aux bains.</Cell><Cell>Un blessé, chef. Il est aux bains.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_1</Cell><Cell>Un blessé, chef. Il est aux bains.</Cell><Cell>Un blessé, chef. Il est aux bains.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_1</Cell><Cell>Un blessé, chef. Il est aux bains.</Cell><Cell>Un blessé, chef. Il est aux bains.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_2</Cell><Cell>Quelques blessés, chef. Les bains s'en occupent.</Cell><Cell>Quelques blessés, chef. Les bains s'en occupent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_3</Cell><Cell>Beaucoup de blessés, chef. Il faudra du temps.</Cell><Cell>Beaucoup de blessés, chef. Il faudra du temps.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_4</Cell><Cell>Deux ou trois traînent à l'entraînement. Je les reprends en main.</Cell><Cell>Deux ou trois traînent à l'entraînement. Je les reprends en main.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_5</Cell><Cell>Trop d'hommes négligent l'entraînement, chef.</Cell><Cell>Trop d'hommes négligent l'entraînement, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_6</Cell><Cell>Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos.</Cell><Cell>Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_7</Cell><Cell>Les hommes sont de bonne humeur, chef.</Cell><Cell>Les hommes sont de bonne humeur, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_8</Cell><Cell>Il y a de la tension entre deux hommes. Je garde un œil sur eux.</Cell><Cell>Il y a de la tension entre deux hommes. Je garde un œil sur eux.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p3_9</Cell><Cell>Les hommes sont fourbus, chef.</Cell><Cell>Les hommes sont fourbus, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_2</Cell><Cell>Quelques blessés, chef. Les bains s'en occupent.</Cell><Cell>Quelques blessés, chef. Les bains s'en occupent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_3</Cell><Cell>Beaucoup de blessés, chef. Il faudra du temps.</Cell><Cell>Beaucoup de blessés, chef. Il faudra du temps.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_4</Cell><Cell>Deux ou trois traînent à l'entraînement. Je les reprends en main.</Cell><Cell>Deux ou trois traînent à l'entraînement. Je les reprends en main.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_5</Cell><Cell>Trop d'hommes négligent l'entraînement, chef.</Cell><Cell>Trop d'hommes négligent l'entraînement, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_6</Cell><Cell>Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos.</Cell><Cell>Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_7</Cell><Cell>Les hommes sont de bonne humeur, chef.</Cell><Cell>Les hommes sont de bonne humeur, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_8</Cell><Cell>Il y a de la tension entre deux hommes. Je garde un œil sur eux.</Cell><Cell>Il y a de la tension entre deux hommes. Je garde un œil sur eux.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p2_9</Cell><Cell>Les hommes sont fourbus, chef.</Cell><Cell>Les hommes sont fourbus, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_2</Cell><Cell>Quelques blessés, chef. Les bains s'en occupent.</Cell><Cell>Quelques blessés, chef. Les bains s'en occupent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_3</Cell><Cell>Beaucoup de blessés, chef. Il faudra du temps.</Cell><Cell>Beaucoup de blessés, chef. Il faudra du temps.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_4</Cell><Cell>Deux ou trois traînent à l'entraînement. Je les reprends en main.</Cell><Cell>Deux ou trois traînent à l'entraînement. Je les reprends en main.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_5</Cell><Cell>Trop d'hommes négligent l'entraînement, chef.</Cell><Cell>Trop d'hommes négligent l'entraînement, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_6</Cell><Cell>Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos.</Cell><Cell>Le moral est bas. Les hommes ont besoin d'une victoire, ou d'un peu de repos.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_7</Cell><Cell>Les hommes sont de bonne humeur, chef.</Cell><Cell>Les hommes sont de bonne humeur, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_8</Cell><Cell>Il y a de la tension entre deux hommes. Je garde un œil sur eux.</Cell><Cell>Il y a de la tension entre deux hommes. Je garde un œil sur eux.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_9</Cell><Cell>Les hommes sont fourbus, chef.</Cell><Cell>Les hommes sont fourbus, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_10</Cell><Cell>Rien à signaler, chef. Tout est en ordre.</Cell><Cell>Rien à signaler, chef. Tout est en ordre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_invite</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_henry</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_reponse</Cell><Cell>Un duel ? Voyons voir…</Cell><Cell>Un duel ? Voyons voir…</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_11</Cell><Cell>J'accepte. Le cercle se forme hors du camp : à vous de venir.</Cell><Cell>J'accepte. Le cercle se forme hors du camp : à vous de venir.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_12</Cell><Cell>Avec plaisir. Ça fait longtemps que j'attends ça. Le cercle se forme hors du camp.</Cell><Cell>Avec plaisir. Ça fait longtemps que j'attends ça. Le cercle se forme hors du camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_13</Cell><Cell>Contre vous ? Non merci, chef. Je tiens à mes dents.</Cell><Cell>Contre vous ? Non merci, chef. Je tiens à mes dents.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_14</Cell><Cell>Pas dans mon état, chef. Une autre fois.</Cell><Cell>Pas dans mon état, chef. Une autre fois.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_15</Cell><Cell>Je tiens à peine debout. Demain, peut-être.</Cell><Cell>Je tiens à peine debout. Demain, peut-être.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_p1_16</Cell><Cell>Pas maintenant, chef : un autre duel est en cours.</Cell><Cell>Pas maintenant, chef : un autre duel est en cours.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ce_sera_tout</Cell><Cell>Ce sera tout.</Cell><Cell>Ce sera tout.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_titre</Cell><Cell>Scriptorium, directeur</Cell><Cell>Scriptorium, directeur</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_ouverture</Cell><Cell>Oui, chef ?</Cell><Cell>Oui, chef ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_invite</Cell><Cell>Comment va le camp ?</Cell><Cell>Comment va le camp ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_henry</Cell><Cell>Comment va le camp ?</Cell><Cell>Comment va le camp ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_1</Cell><Cell>Les caisses se vident, chef. Il nous faut une bonne mission, et vite.</Cell><Cell>Les caisses se vident, chef. Il nous faut une bonne mission, et vite.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p2_1</Cell><Cell>Les caisses se vident, chef. Il nous faut une bonne mission, et vite.</Cell><Cell>Les caisses se vident, chef. Il nous faut une bonne mission, et vite.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p3_1</Cell><Cell>Les caisses se vident, chef. Il nous faut une bonne mission, et vite.</Cell><Cell>Les caisses se vident, chef. Il nous faut une bonne mission, et vite.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p3_2</Cell><Cell>Les caisses tiennent.</Cell><Cell>Les caisses tiennent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p3_3</Cell><Cell>Les caisses sont pleines, chef. Les affaires vont bien.</Cell><Cell>Les caisses sont pleines, chef. Les affaires vont bien.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p3_4</Cell><Cell>Les vivres baissent. J'ai envoyé du monde à la chasse et au potager.</Cell><Cell>Les vivres baissent. J'ai envoyé du monde à la chasse et au potager.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p3_5</Cell><Cell>Les hommes sont à bout. Il faudrait les ménager.</Cell><Cell>Les hommes sont à bout. Il faudrait les ménager.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p3_6</Cell><Cell>On a vu des bandits rôder autour du camp. La garde est prévenue.</Cell><Cell>On a vu des bandits rôder autour du camp. La garde est prévenue.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p2_2</Cell><Cell>Les caisses tiennent.</Cell><Cell>Les caisses tiennent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p2_3</Cell><Cell>Les caisses sont pleines, chef. Les affaires vont bien.</Cell><Cell>Les caisses sont pleines, chef. Les affaires vont bien.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p2_4</Cell><Cell>Les vivres baissent. J'ai envoyé du monde à la chasse et au potager.</Cell><Cell>Les vivres baissent. J'ai envoyé du monde à la chasse et au potager.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p2_5</Cell><Cell>Les hommes sont à bout. Il faudrait les ménager.</Cell><Cell>Les hommes sont à bout. Il faudrait les ménager.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p2_6</Cell><Cell>On a vu des bandits rôder autour du camp. La garde est prévenue.</Cell><Cell>On a vu des bandits rôder autour du camp. La garde est prévenue.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_2</Cell><Cell>Les caisses tiennent.</Cell><Cell>Les caisses tiennent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_3</Cell><Cell>Les caisses sont pleines, chef. Les affaires vont bien.</Cell><Cell>Les caisses sont pleines, chef. Les affaires vont bien.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_4</Cell><Cell>Les vivres baissent. J'ai envoyé du monde à la chasse et au potager.</Cell><Cell>Les vivres baissent. J'ai envoyé du monde à la chasse et au potager.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_5</Cell><Cell>Les hommes sont à bout. Il faudrait les ménager.</Cell><Cell>Les hommes sont à bout. Il faudrait les ménager.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_6</Cell><Cell>On a vu des bandits rôder autour du camp. La garde est prévenue.</Cell><Cell>On a vu des bandits rôder autour du camp. La garde est prévenue.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_p1_7</Cell><Cell>Tout est calme, chef. Pourvu que ça dure.</Cell><Cell>Tout est calme, chef. Pourvu que ça dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_invite</Cell><Cell>Les missions.</Cell><Cell>Les missions.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_henry</Cell><Cell>Parlons des missions.</Cell><Cell>Parlons des missions.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_reponse</Cell><Cell>Je vous écoute, chef.</Cell><Cell>Je vous écoute, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_invite</Cell><Cell>Trouve-nous une mission.</Cell><Cell>Trouve-nous une mission.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_henry</Cell><Cell>Trouve-nous une mission.</Cell><Cell>Trouve-nous une mission.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_p1_1</Cell><Cell>J'ai repéré un camp de bandits. La troupe peut partir à l'aube.</Cell><Cell>J'ai repéré un camp de bandits. La troupe peut partir à l'aube.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_p1_2</Cell><Cell>Rien de sûr pour l'instant, chef. Je cherche.</Cell><Cell>Rien de sûr pour l'instant, chef. Je cherche.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_p1_3</Cell><Cell>Les hommes ne sont pas en état de partir, chef.</Cell><Cell>Les hommes ne sont pas en état de partir, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_p1_4</Cell><Cell>C'est jour de repos, chef. Demain.</Cell><Cell>C'est jour de repos, chef. Demain.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_mission_difficile_invite</Cell><Cell>Une mission plus difficile, mieux payée.</Cell><Cell>Une mission plus difficile, mieux payée.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_mission_difficile_henry</Cell><Cell>Une mission plus difficile, mieux payée.</Cell><Cell>Une mission plus difficile, mieux payée.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_mission_difficile_p1_5</Cell><Cell>Il y en a une. Dangereuse, mais elle rapporte. Je prépare la troupe.</Cell><Cell>Il y en a une. Dangereuse, mais elle rapporte. Je prépare la troupe.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_mission_difficile_p1_6</Cell><Cell>Rien de ce calibre en ce moment, chef.</Cell><Cell>Rien de ce calibre en ce moment, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_missions_mission_difficile_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_retour_aux_sujets</Cell><Cell>Laissons cela.</Cell><Cell>Laissons cela.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_invite</Cell><Cell>Que me conseilles-tu ?</Cell><Cell>Que me conseilles-tu ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_henry</Cell><Cell>Que me conseilles-tu ?</Cell><Cell>Que me conseilles-tu ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_p1_1</Cell><Cell>Les missions nous coûtent trop d'hommes. Je propose de les ménager quelque temps.</Cell><Cell>Les missions nous coûtent trop d'hommes. Je propose de les ménager quelque temps.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_fais_le_invite</Cell><Cell>Fais-le.</Cell><Cell>Fais-le.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_fais_le_henry</Cell><Cell>Fais-le.</Cell><Cell>Fais-le.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_fais_le_p1_5</Cell><Cell>Bien, chef. C'est fait.</Cell><Cell>Bien, chef. C'est fait.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_fais_le_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_on_continue_invite</Cell><Cell>Non, on continue comme ça.</Cell><Cell>Non, on continue comme ça.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_on_continue_henry</Cell><Cell>Non, on continue comme ça.</Cell><Cell>Non, on continue comme ça.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_on_continue_p1_6</Cell><Cell>Comme vous voudrez, chef.</Cell><Cell>Comme vous voudrez, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_on_continue_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_p1_2</Cell><Cell>Les vivres ne suivront pas. Je propose un chasseur de plus.</Cell><Cell>Les vivres ne suivront pas. Je propose un chasseur de plus.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_p1_3</Cell><Cell>Les hommes sont épuisés. Je propose une journée de repos.</Cell><Cell>Les hommes sont épuisés. Je propose une journée de repos.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_p1_4</Cell><Cell>Rien pour l'instant, chef. Tout va bien.</Cell><Cell>Rien pour l'instant, chef. Tout va bien.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_son_conseil_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_invite</Cell><Cell>Des fautes aujourd'hui ?</Cell><Cell>Des fautes aujourd'hui ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_henry</Cell><Cell>Des fautes aujourd'hui ?</Cell><Cell>Des fautes aujourd'hui ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_p1_1</Cell><Cell>Une rixe ce matin, chef.</Cell><Cell>Une rixe ce matin, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite</Cell><Cell>Je pardonne.</Cell><Cell>Je pardonne.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_henry</Cell><Cell>Je pardonne.</Cell><Cell>Je pardonne.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_p1_5</Cell><Cell>Bien, chef. Il s'en souviendra.</Cell><Cell>Bien, chef. Il s'en souviendra.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite</Cell><Cell>Sanctionne-le.</Cell><Cell>Sanctionne-le.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_sanctionne_henry</Cell><Cell>Sanctionne-le.</Cell><Cell>Sanctionne-le.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_sanctionne_p1_6</Cell><Cell>Ce sera fait, chef.</Cell><Cell>Ce sera fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_sanctionne_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_p1_2</Cell><Cell>Un vol dans le camp.</Cell><Cell>Un vol dans le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_p1_3</Cell><Cell>Un homme ivre à son poste.</Cell><Cell>Un homme ivre à son poste.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_p1_4</Cell><Cell>Rien, chef. Les hommes se tiennent bien.</Cell><Cell>Rien, chef. Les hommes se tiennent bien.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_fautes_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_invite</Cell><Cell>Le coffre.</Cell><Cell>Le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_henry</Cell><Cell>Parlons du coffre.</Cell><Cell>Parlons du coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_reponse</Cell><Cell>Oui, chef ?</Cell><Cell>Oui, chef ?</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_invite</Cell><Cell>Donne-moi de l'argent du coffre.</Cell><Cell>Donne-moi de l'argent du coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_henry</Cell><Cell>Donne-moi de l'argent du coffre.</Cell><Cell>Donne-moi de l'argent du coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_p1_1</Cell><Cell>Voilà mille gros, chef.</Cell><Cell>Voilà mille gros, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_p1_2</Cell><Cell>Le coffre est trop bas, chef.</Cell><Cell>Le coffre est trop bas, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_invite</Cell><Cell>Mets ça au coffre.</Cell><Cell>Mets ça au coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_henry</Cell><Cell>Mets ça au coffre.</Cell><Cell>Mets ça au coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_p1_3</Cell><Cell>Merci, chef. C'est au coffre.</Cell><Cell>Merci, chef. C'est au coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_p1_4</Cell><Cell>Vous n'avez pas assez sur vous, chef.</Cell><Cell>Vous n'avez pas assez sur vous, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_ce_sera_tout</Cell><Cell>Ce sera tout.</Cell><Cell>Ce sera tout.</Cell></Row>
+</Table>

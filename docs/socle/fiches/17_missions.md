@@ -1,0 +1,220 @@
+# Fiche 17 — Les missions (étape 4 du nécessaire)
+
+Sources : la note de JoVenGer (`Scriptorium/docs/socle/NOTE_POUR_LE_SOCLE.md`, partie 6, lecture seule), la liste du
+pair du 17/10 (ce que Scriptorium attend), la règle scellée « ennemis_au_contact » (les ennemis viennent attaquer,
+personne ne reste figé). Deux recherches (mods KCD2 qui posent un camp de bandits ; naissance de groupes de PNJ) : rien
+d'utilisable, seulement des demandes de mods et des guides du premier jeu. Le socle s'appuie sur ce qu'il sait déjà
+faire : ses bandes (fiche 05, âmes de la fiche 13) et les meubles du camp (fiche 03, modèles déjà vus en jeu).
+
+Découpage, une tranche à la fois, chacune vue en jeu avant la suivante :
+1. le camp de bandits à un lieu (ci-dessous) ;
+2. la mission et sa colonne (prendre, lieu, niveau selon la force, carte, à cheval aller et retour, issue calculée
+   au-delà de 300 m, rapport) ; l'accroche « une mission peut-elle partir ? » (le jour de repos de Scriptorium) ;
+3. plusieurs missions à la fois (réservation des lieux), puis les convois ;
+4. la fouille des corps (relecture du pair, 17/10) : après une bataille de mission **et après une bataille au camp** ;
+   un fouilleur va au point de chute, seuls certains hommes peuvent y aller (accroche, les bains l'enveloppent), et
+   « vider la fouille » (portage des corps, sentinelles).
+
+## Tranche 1 — Le camp de bandits à un lieu
+
+Réponses prises d'office (consigne du 17/10 : l'option recommandée, notée ici) :
+- **Un morceau `missions`** tient les lieux, les camps de bandits et (tranche 2) les missions. **Le combat reste à la
+  bataille** : les hommes d'un camp de bandits sont une bande « postée » (pas de deuxième machine à combat).
+- **Les lieux sont fournis par Scriptorium** (`missions.ajouter_un_lieu(nom, carte, position, cap)`), jamais devinés :
+  le socle n'en connaît aucun ; le poste d'essai en pose un devant Henry.
+- **Le coffre du camp est une somme** (selon la taille) ; vaincu, sa part entre au coffre de la compagnie par le partage
+  du butin de la bataille (règle de Scriptorium, enveloppable). Pas de pillage de notre camp si on perd là-bas.
+- **Rien ne naît ailleurs ni sous les yeux d'Henry** : meubles et hommes du camp naissent quand Henry est sur la carte
+  du lieu et que le lieu n'est pas dans son regard (`henry_voit`, le même seuil que le secours) à moins de
+  `naissance_vue_m` (300 m).
+- **L'alerte** : Henry ou un de nos hommes à moins de `alerte_m` (35 m) du lieu : la bande passe au contact et
+  attaque (ordre 8, relance des figés : tout ce que la bataille fait déjà). Combattants : nos hommes à moins de
+  `engagement_m` (80 m) du lieu.
+- **Henry seul** : la bataille ne finit que quand la bande est tombée ; Henry à plus de `fuite_m` (300 m) sans aucun de
+  nos combattants debout : la bande retourne à son poste avec ses survivants (rien n'est tranché).
+- **Au chargement** : meubles et hommes du camp de bandits sont retirés et refaits depuis le registre (les survivants
+  comptés au dernier battement), comme le camp (fiche 03).
+- **Après la victoire** : les corps et les meubles restent `duree_des_corps` (24 h), puis le camp est levé et le lieu
+  redevient libre.
+
+Accroches (fonctions publiques du morceau, que Scriptorium remplace en appelant l'ancienne) :
+- `missions.taille_du_camp(lieu, niveau)` rend `{ sorte, effectif, coffre }` ;
+- `missions.camp_vaincu(camp)` est appelée une fois, à la victoire (par défaut : une ligne au journal et l'annonce).
+
+Services : `ajouter_un_lieu`, `lieux_de(carte)`, `dresser_un_camp(lieu, niveau)`, `camp(id)`, `camps()`,
+`lever_un_camp(id)`, `lieu_sur_ma_carte(lieu)`.
+
+Réglages au catalogue : `missions.reglages` (section `missions`), `missions.niveaux` (section `niveaux_des_camps`),
+`missions.plan` (section `plan_des_camps`).
+
+**Vu en jeu (17/10, 1a5d03f)** : rien né sous les yeux d'Henry (à 120 m, devant lui) ; dos tourné, quatre brigands
+et les meubles nés au battement suivant ; Henry à moins de 35 m : alerte, les quatre reçoivent l'ordre 8 contre lui et
+viennent l'attaquer (atout « Envers et contre tous » à l'écran) ; abattus par l'ordre d'essai : « victoire, butin 120 »,
+« camp vaincu » une fois, l'annonce au bandeau ; puis levé. **Non vus en jeu** : la fuite d'Henry (retour au poste), un
+de nos hommes qui donne l'alerte, la réfection au chargement, la levée 24 h après (vus au banc).
+
+## Tranche 2 — La mission et sa colonne (en cours)
+
+Déroulé (le pair, 17/10) : la troupe monte à cheval au camp et sort en colonne ; **avec Henry**, elle va jusqu'au camp de
+bandits et s'y bat (tranche 1) ; **sans Henry**, hors de sa vue, elle passe « dehors » (retirée du monde, gardée au
+registre), l'issue se calcule (force de la colonne contre celle du camp), puis elle renaît hors de la vue d'Henry sur
+le chemin du retour, entre à cheval et descend.
+
+- **La colonne va à un point** : `hommes.tenir(id, regle, { activite = "suivre", vers = { x, y, z }, a_cheval = true,
+  formation })` ; sa tête mène vers le point (ordre 20 : la branche 18 vers `scriptorium_essai_point`), les autres se
+  rangent (ordre 19). Une colonne vers un point ne fait pas le grand saut derrière Henry, n'est pas refaite près de lui,
+  et le Directeur ne la prend pas.
+- **Sonde du 17/10 (b56d855)** : l'ordre 18 avec pour chef un objet du monde (le feu du camp de bandits) : la monte et la
+  formation se font (« Formation de Jan : followNPC », allure « course » à 142 m), mais **Jan n'a pas bougé** en deux
+  minutes (même position à deux relevés) : le `Move` vers une entité qui n'est pas un personnage échoue en silence.
+  D'où l'ordre 20 vers un point (le jalon invisible n'aurait pas mieux marché).
+- **Vu en jeu (17/10, 198384c)** : l'ordre 20 marche : Jan monte et mène vers le point (40 m entre deux relevés), les
+  deux autres rangés derrière lui ; arrêté à 6,7 m du point ; l'alerte engage les trois. **Deux défauts vus, corrigés** :
+  le secours jugeait « bloqué » un homme qui se battait et le reposait au point (la bataille en est exclue, comme pour le
+  gardien) ; la tenue « bataille » portait le point du camp : un ordre de marche redonné après le retrait du cheval
+  écrasait l'attaque, et le combat s'enlisait (4 brigands sur 4 debout après plusieurs minutes, trois « figé malgré 2
+  relances »). Contre une bande postée, la tenue ne porte plus de point. **Non vérifié en jeu** : le combat corrigé.
+- **La mission** (réponses prises d'office, consigne du 17/10) :
+  - `missions.prendre_une_mission({ lieu, hommes, chef, niveau })` : refus si l'accroche `missions.peut_partir(ordre)`
+    dit non (le jour de repos de Scriptorium), lieu inconnu, homme indisponible (blessé, dehors, tenu plus fort), chef
+    hors de la colonne. Le niveau, sinon donné : `missions.niveau_pour(force, lieu)` (accroche ; le plus grand niveau
+    dont la force, × `marge_de_force` 1,5, ne dépasse pas celle de la colonne, `bataille.force_de(ids)`). Le camp de
+    bandits est dressé au lieu (un lieu déjà pris : refus, la réservation viendra en tranche 3).
+  - La colonne : règle « mission » (rang 2, sous la bataille), à cheval, le chef en tête (`tete`), vers le lieu.
+  - **Loin d'Henry** (chacun à plus de `henry_loin_m` 300 m et hors de son regard) : « dehors » (`hommes.mettre_dehors` :
+    personnage et cheval retirés, ni refait, ni garde, ni défense du camp) ; au lieu à l'heure calculée (distance /
+    `vitesse_m_par_h`, 12 km/h) : `bataille.trancher_la_bande_postee` (force contre force, pertes, butin, partage) ; de
+    retour à l'heure calculée : renaissance à `retour_naissance_m` (150 m) du camp sur le chemin du lieu, hors du
+    regard d'Henry (sinon on attend), puis à cheval vers le camp.
+  - **Avec Henry** : le combat sur place (tranche 1), puis le retour à cheval.
+  - Rentrée (un homme à moins de `arrivee_m` du centre) : lâchée, chevaux retirés, l'accroche
+    `missions.rapport_de_mission(r)` une fois (issue, morts, blessés, butin). Camp levé pendant la mission : rentrés près
+    d'Henry, mission finie. Le registre garde les `gardes` (20) derniers camps levés et missions finies (trois erreurs
+    injectées attrapées).
+  - Relecture avant la séance : « sous les yeux » borné (regard et moins de `dehors_vue_m` 500 m) ; Henry illisible :
+    personne n'est retiré du monde ; le retour vise le bord du camp (`retour_m` 15 m du centre, côté du lieu ;
+    `arrivee_m` 6 m), jamais le feu au milieu des meubles. La tenue « mission » tombe par sûreté après `tenue_max_h`
+    (24 h de jeu) : bien au-delà d'une mission ordinaire. La mission n'ouvre aucune fonction locale de plus au guichet.
+  - **Non vérifié en jeu** : la mission entière (le prochain essai, regroupé avec le combat corrigé).
+  - À reprendre plus tard : l'attente de renaissance n'a pas de borne (un joueur qui fixe la route bloque le retour) ;
+    l'heure d'arrivée est comptée depuis le centre du camp, pas depuis le point où la colonne a disparu ; Henry qui
+    rejoint le lieu pendant « dehors » y trouve les brigands sans nos hommes.
+- **L'issue tranchée par passes** (règle scellée de JoVenGer « bataille_au_loin », 24/09, transmise par le pair le
+  17/10 : « laisser le jeu en décider selon la puissance de chacun », « rien n'est écrit d'avance ») : au loin, pour la
+  bataille du camp quand la règle tranche et pour l'embuscade d'une patrouille. Accroche `bataille.issue_au_loin(nous,
+  sorte, effectif, bonus)` : à chaque passe un camp perd un homme, tiré au sort avec une chance de tomber qui suit le
+  rapport des forces encore debout ; nos hommes tombent dans l'ordre de chute (rang avant, moindre jugement) ; fin quand
+  un camp n'a plus personne. Chaque tombé : mort avec `part_des_morts` (0,5), blessé sinon. Le butin : tout si la bande
+  tombe, rien sinon. L'issue dit ce qui s'est passé (victoire sans perte, avec pertes, repoussée si la moitié des leurs
+  est tombée, défaite). La force d'un homme (accroche `bataille.force_d_un_homme`, où Scriptorium mettra l'expérience) :
+  le poids du rôle, le palier (`bataille.paliers` : 1 ; 1,25 ; 1,5), l'usure, le caractère (aguerrissement, courage,
+  fatigue) et le moral ; le sang-froid y entre par le moral (réponse prise d'office : pas de second facteur). Au banc,
+  400 batailles par effectif (3 archers) : contre 2 brigands 371 victoires, 3 : 308, 4 : 233, 6 : 81, 9 : 7.
+  Henry sur place : le vrai combat du jeu, rien de calculé (les blessés y restent encore une part fixe : à reprendre).
+- **Séance du 17/10 (e22d7ca)** : la mission proche part (chef en tête, ordres 20 et 19), arrive, l'alerte engage les
+  trois ; plus d'ordre de marche ni de « bloqué » (corrections vues). Mais le combat, à 117 m d'Henry, **se fige** : Jan
+  assommé (inconscient, 4,7 de vie), les brigands intacts, plus personne en combat, positions et santés identiques à
+  plusieurs minutes d'écart, les relances bornées épuisées. **Corrigé** : une bande postée au contact sans aucun tombé
+  depuis `poste_stagnation_h` (0,5 h du jeu) et Henry à plus de `poste_sur_place_m` (80 m) est tranchée par passes.
+  Vu aussi, cause non trouvée : après la pose d'Henry à 50 m du camp de bandits (commande d'essai), l'image retournée
+  et l'interface disparue (Henry à terre ?). Séance fermée là ; **non vérifiés** : la fin de la mission proche, la
+  mission lointaine.
+- **Tranchée, l'issue s'applique aux vrais personnages** (relecture du pair, 17/10 ; « rien ne disparaît » sous les
+  yeux d'Henry) : leurs tombés tués dans le jeu (le corps reste, à fouiller) ; nos morts tués, couchés, leur corps
+  gardé puis retiré avec ceux de la bande ; nos blessés mis à terre (`liaison.mettre_a_terre`, santé portée à
+  `blesse_sante` 5 : non vérifié que le jeu les couche) ; les survivants d'une bande postée restent debout et ne sont
+  retirés que hors de la vue d'Henry ; le camp de bandits n'est levé que hors de sa vue. Un mort, partout (même au combat
+  vu dans le jeu), laisse son corps (`hommes.retirer` rend le corps). Une bande venue au camp : ses survivants s'en
+  vont aussitôt, comme avant (choix de JoVenGer du 14/10).
+- **Séance suivante (7b66ead, puis rechargée avec 67fdb96)** : le combat figé tranché par passes (« défaite, 0 mort, 3
+  blessés ») ; « défaite au lieu, retour au camp ». Deux défauts vus, corrigés : au retour, aucun ordre (le point changé
+  n'entrait pas dans la signature de la tête ; corrigé, rechargé dans le jeu ouvert : l'ordre vers le bord du camp est
+  donné) ; puis la tête, Jan, assommé au combat, ne remonte pas : la colonne l'attend. **Corrigé** : un homme hors
+  d'état (`liaison.personnage_inconscient`) est porté (mis dehors hors de la vue d'Henry, il rentre avec la colonne) ; la
+  tête passe au premier homme debout ; personne debout : la colonne entière rentre au loin. Non vérifié en jeu.
+- **Vu en jeu (17/10, a182f1d)** : les deux missions jusqu'au rapport. Proche : combat figé tranché par passes
+  (défaite, 3 blessés mis à terre), les trois portés, retour au loin, renaissance dès qu'Henry se détourne, rentrée à
+  cheval, rapport une fois, les blessés à leur lit. Lointaine : dehors (les brigands à 451 m d'Henry ont l'agent IA
+  inactif : à cette distance le jeu ne les fait plus vivre), tranchée au loin, renaissance, rentrée, rapport. La tête
+  s'arrêtait à 6,4 m de son point : `arrivee_m` porté à 10 m (68d9c96). **Non vus en jeu** : une victoire (le combat
+  vivant a chaque fois figé), la fuite des survivants d'une bande venue au camp, l'immortalité des blessés (c5ae51f).
+- **Le combat vivant figé, la cause** (relecture du pair, 17/10 : trois fois figé, la règle anti-boucle demande la
+  cause). Lue dans le code, puis vue en jeu (64cc36c ; séance de diagnostic, trois des nôtres contre trois brigands,
+  Henry à 30 m, journal du combat toutes les 2 s) : **un assommé comptait comme vivant** des deux côtés (les brigands
+  restaient sur un des nôtres à terre, les nôtres sur un brigand à terre, et le combat ne pouvait pas finir : il fallait
+  zéro ennemi « vivant ») ; **une nouvelle cible après une victime usait le crédit de relances** d'un figé. Corrigé :
+  « debout » = ni mort ni assommé, pour les cibles, pour la fin du combat (nos assommés sont nos blessés) et pour le
+  filet. Vu : Mikuláš assommé, le brigand qui le visait passe aussitôt sur Jan ; les deux camps se blessent ; nos trois
+  hommes assommés, les brigands visent Henry, puis la fin par le jeu, sans filet : « défaite, 0 mort, 3 blessés » ; les
+  survivants reçoivent l'ordre de fuite, en courant ; l'un, très blessé, se rend devant Henry (le jeu). Nos recrues ont un
+  niveau de combat de 0,3, les brigands 0,4 : leur avantage est normal, pas un défaut. Soupçon 3 du pair (l'ordre 8 ne
+  frappe pas) : non, les deux camps frappent.
+- **Tranche 3, plusieurs missions** (a05a3d5) : un lieu pris n'est donné à aucune autre (accroche
+  `missions.lieu_reserve`, que Scriptorium enveloppe pour ses missions en parallèle) ; `missions.choisir_un_lieu(carte)`.
+  Les personnages d'un camp de bandits connus de Scriptorium : `personnages_du_camp`, `ajouter_un_personnage`,
+  `retirer_un_personnage`. Le partage du butin en accroche (`bataille.partager_le_butin`) : des parts absurdes refusées,
+  tout reste au coffre (quatre erreurs injectées attrapées).
+- **Tranche 4, les convois** (réponses prises d'office) : les routes viennent de Scriptorium
+  (`missions.ajouter_une_route(nom, carte, points)`), jamais devinées ; `missions.lancer_un_convoi(route, niveau)` (un
+  seul par route ; la taille par l'accroche « taille du camp ») ; c'est une bande postée dont le point avance à pied
+  (`convoi_m_par_h`, 4 km/h) tant qu'elle n'est pas au combat (`bataille.deplacer_la_bande` : ses hommes y marchent) ;
+  elle n'existe dans le monde qu'à moins de `poste_vue_m` d'Henry (plus loin, retirée hors de sa vue, elle avance par le
+  calcul) ; au bout de sa route, arrivée (retirée hors de sa vue) ; vaincue, l'accroche « camp vaincu ». La mission
+  contre un convoi : `prendre_une_mission({ convoi, hommes })` (refus si la colonne n'est pas plus rapide) ; la colonne
+  le vise où il est ; dehors, l'heure de la prise se calcule contre sa marche ; arrivé avant : « échappé ».
+  **Vu en jeu (17/10, 1ca45e1)** : un premier convoi « arrivé » au premier battement : les vitesses étaient comptées
+  comme du temps réel, or une heure du jeu dure environ 4,75 minutes réelles ; corrigé (colonne 900 m, convoi 400 m par
+  heure du jeu ; au banc, accélérées dix fois). Le second : né hors du regard d'Henry, ses brigands **marchent** vers le
+  point du convoi (une vingtaine de mètres en 20 s, une vingtaine de mètres derrière le point calculé), puis arrivé au
+  bout, sa bande retirée hors de la vue d'Henry. **Non vus en jeu** : une mission contre un convoi, le combat contre un
+  convoi.
+- **Tranche 5, la fouille** (la liste du pair, 17/10 ; réponses prises d'office) : après une bataille gagnée (au camp,
+  à un camp de bandits, contre un convoi), au plus `fouilleurs_max` (3) de nos hommes vont aux corps ennemis, un corps à
+  la fois chacun, s'y tiennent `fouille_duree_h` (tournés vers le corps), puis passent au suivant ; règle « fouille »
+  (rang 4, sous la bataille, l'escorte et les soins). Peuvent fouiller (accroche `bataille.peut_fouiller(id, bande)`,
+  que Scriptorium enveloppe, les bains par exemple) : un combattant debout, valide, libre, à moins de `fouille_rayon_m`
+  du corps. Un fouilleur qui n'atteint pas son corps en `fouille_marche_max_h` le laisse. Services :
+  `bataille.lancer_la_fouille(id)`, `bataille.fouille(id)` (les corps, les vus, les fouilleurs), `bataille.vider_la_fouille(id)`
+  `bataille.compter_comme_fouille(id, corps)` (demande du pair, 20/10) : un corps pris par le pillage de Scriptorium compte comme fouillé ; plus personne n'y est envoyé, et son fouilleur est lâché (il reprend sa journée) ; faux pour un corps hors de la fouille ou déjà compté.
+  (les fouilleurs lâchés, la fouille close : le portage des corps, les sentinelles) ; accroche `bataille.fouille_finie(id,
+  fouille)`. Les corps restent `duree_des_corps`, retirés hors de la vue d'Henry. À reprendre plus tard : un vrai geste
+  de fouille du jeu (pour l'instant, l'homme se tient au corps).
+  **Vu en jeu (17/10, 27fae72)** : victoire au camp, « fouille de bande_1 : 3 corps », trois fouilleurs marchent chacun
+  vers un corps, s'y tiennent (à l'image, près du corps), puis « 3 corps fouillés, 0 laissé » et l'exercice repris.
+  Corrigés (5686b2d) : la marche s'arrête à quelque 3 m de son point (seuil d'arrivée porté à 4 m) ; le gardien prenait
+  le fouilleur arrivé pour figé (la fouille exclue du gardien et du secours, comme la bataille).
+- À surveiller (bataille du camp) : la tenue « bataille » y porte la place du rang ; un ordre de rang redonné en plein
+  combat peut de même écraser l'attaque (à relire en séance).
+
+À reprendre plus tard : le lieu d'essai pris devant Henry peut tomber dans une ferme (vu : derrière un mur) ; un vrai coffre du jeu à fouiller au milieu du camp ; les bandits assis au feu ou couchés.
+
+## Les lieux du socle (demande du pair, 18/10/2026)
+- Sans lieu, les missions du Directeur répondraient « aucun lieu ». Le socle a donc ses propres lieux : neuf par carte,
+  `missions.lieux_du_socle` (liste à nom réglable, section « lieux_du_socle » : x, y, z, cap ; nom, carte, niveau).
+- Source : le jeu lui-même, jamais l'ancien mod. Centre des entités des calques de brigands de
+  `Data/Levels/<carte>/level.pak` (lecture seule ; attribut EditorLayer), calque cité en commentaire de chaque lieu :
+  camps de brigands du monde (colline de Vysoká, Mezholezy, moulin de Vrchlice, Kopanina) et lieux de brigands des
+  quêtes (repaires des « tábory lapků », embuscade du prologue, Bohuta, chevalier brigand…). Tous à plus de 150 m l'un de
+  l'autre (vérifié au banc).
+- Le niveau d'un lieu (petit, moyen, grand, selon le nombre de brigands que le jeu y met) plafonne `niveau_pour`.
+- Lus en direct ; un lieu du même nom ajouté par Scriptorium passe devant. Au démarrage, une ligne au journal par carte.
+- Non vérifié en jeu : que chaque lieu soit loin des villages et des routes, et qu'un camp s'y dresse bien (terrain,
+  quêtes en cours au même endroit).
+
+## Nos tombés au camp de bandits (vu sur une copie de la partie de JoVenGer le 21/10, J3 ; accord du pair)
+- mission_1 contre 4 brigands : nos deux engagés assommés, Henry au camp à 263 m (ni « sur place », à moins de 80 m, ni
+  enfui, à plus de 300 m). La bataille attendait la stagnation (0,5 h), puis tranchait par passes contre nos seuls
+  combattants DEBOUT : aucun ; d'où « défaite, 0 passe, 0 mort, 0 blessé », et les deux assommés restaient tenus
+  « bataille » (plus aucun ordre ensuite, au retour de la mission).
+- Désormais (`trancher_si_fige`) : nos tombés comptent comme dans `resoudre_par_le_jeu` (morts selon le jeu, assommés
+  blessés de 2 à 5 jours) et sont libérés avec les autres ; plus aucun des nôtres debout et Henry pas sur place, la
+  bataille est conclue aussitôt (défaite), sans attendre ni trancher contre personne ; une ligne au journal (« plus
+  aucun des nôtres debout, Henry pas sur place : défaite (… mort(s), … assommé(s)) »).
+- Essai (vérifié en échec sans) ; non vu en jeu.
+- La colonne qui renaît sur le chemin du camp (même séance : Jan Kladivo debout et raide, 3,7 m en l'air) : chacun
+  renaît au sol de sa place (le terrain lu au point, `jeu().altitude_du_terrain`), non à la hauteur du centre du camp.
+  Essai (vérifié en échec sans) ; non vu en jeu.
+- **Un corps disparu est sauté** (vu sur une copie de la partie de JoVenGer le 21/10, J5 : un pillard assommé pris pour
+  prisonnier par Scriptorium, règle de JoVenGer du 1er/10, son entité retirée) : le fouilleur qui allait vers un corps
+  dont l'entité n'existe plus est lâché aussitôt, le corps compté comme vu (« corps … disparu : sauté ») ; un corps
+  disparu n'était déjà donné à personne. Essai (vérifié en échec sans) ; non vu en jeu.
