@@ -1478,6 +1478,40 @@ essai("habillage (vu dans la partie de JoVenGer le 22/10 : des hommes torse nu p
   end
 end)
 
+essai("horaire de Scriptorium (demande de JoVenGer, 22/10 : 33 hommes debout à l'aube) : sommeil de COUCHER à LEVER − 0,5, lever jusqu'à LEVER ; un horaire qui ne tient pas est refusé ; sans Scriptorium, nos tranches", function()
+  preparer(2000, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local programme_d_origine = rawget(_G, "scriptorium")
+  local sauve = {}
+  for _, t in ipairs(hommes.journee) do sauve[t.nom] = { de = t.de, a = t.a } end
+  local function dit(morceau)
+    for _, ligne in ipairs(FauxJeu.journal_lignes) do
+      if string.find(ligne, morceau, 1, true) then return true end
+    end
+    return false
+  end
+  local aube_d_origine = hommes.reglages.heure_lever
+  local ok, erreur = pcall(function()
+    egal(hommes.activite_de(id, 24 * 3 + 6).activite, "lever", "sans Scriptorium : levé à 6 h (nos tranches)")
+    rawset(_G, "scriptorium", { journee = { COUCHER = 22, LEVER = 7 } })
+    hommes.battre()
+    egal(hommes.activite_de(id, 24 * 3 + 6).activite, "sommeil", "avec Scriptorium : encore au lit à 6 h")
+    egal(hommes.activite_de(id, 24 * 3 + 6.75).activite, "lever", "levé à 6 h 45")
+    egal(hommes.activite_de(id, 24 * 3 + 7.5).activite, "repas", "le repas du matin à 7 h 30")
+    verifier(dit("horaire de Scriptorium : sommeil de 22 h à 6.5 h"), "dit au journal")
+    egal(hommes.reglages.heure_lever, 7, "l'aube suit le lever de Scriptorium")
+    -- Un horaire qui ne tient pas (le lever après la fin du repas du matin) : refusé, la journée reste.
+    rawset(_G, "scriptorium", { journee = { COUCHER = 22, LEVER = 9 } })
+    hommes.battre()
+    egal(hommes.activite_de(id, 24 * 3 + 6).activite, "sommeil", "refusé : la journée d'avant reste")
+    verifier(dit("ne tient pas dans la journée"), "le refus dit au journal")
+  end)
+  rawset(_G, "scriptorium", programme_d_origine)
+  hommes.reglages.heure_lever = aube_d_origine
+  for _, t in ipairs(hommes.journee) do t.de, t.a = sauve[t.nom].de, sauve[t.nom].a end
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("habillage à l'ordre (demande de JoVenGer, 22/10 : Beneš le Rouge suivait Henry sans son équipement) : un homme à rhabiller qui reçoit un ordre (l'escorte) est habillé sur-le-champ, sans battement ; jamais au bain", function()
   preparer(2000, 10, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })

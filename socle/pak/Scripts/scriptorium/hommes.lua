@@ -238,6 +238,9 @@ hommes.reglages = {
   -- battement, deux battements par homme) : tant d'hommes habillés par battement (1 : comme avant), et leur second
   -- passage tant de millisecondes après (0 : au battement suivant, comme avant).
   habillage_par_battement = 100,
+  -- Demande de JoVenGer (22/10 : « beaucoup de monde debout » à l'aube) : la durée du lever (heures) avant le LEVER de
+  -- Scriptorium.
+  lever_duree_h = 0.5,
   habillage_second_passage_ms = 2000,
 }
 
@@ -2018,6 +2021,70 @@ end
 
 function hommes.verifier_journee()
   return Scriptorium.journee_valable(hommes.journee)
+end
+
+-- Demande de JoVenGer (22/10, transmise par le pair : à 5 h 58, 33 hommes debout au feu ; Scriptorium dit au lit jusqu'à
+-- 7 h) : l'horaire est celui de Scriptorium quand il le donne (scriptorium.journee.COUCHER et LEVER) : sommeil de COUCHER
+-- à LEVER moins « lever_duree_h », lever jusqu'à LEVER ; la veillée finit au coucher, le repas du matin commence au lever.
+-- Sinon, nos tranches (réglables). Une journée qui ne tiendrait plus (Scriptorium.journee_valable) n'est pas posée, une
+-- ligne au journal. Rend vrai si la journée a changé.
+local horaire_refuse = nil
+function hommes.suivre_l_horaire_de_scriptorium()
+  local programme = rawget(_G, "scriptorium")
+  local j = type(programme) == "table" and type(programme.journee) == "table" and programme.journee or nil
+  local h_coucher, h_lever = j and tonumber(j["COUCHER"]), j and tonumber(j["LEVER"])
+  if not h_coucher or not h_lever then
+    return false
+  end
+  local duree = tonumber(hommes.reglages.lever_duree_h) or 0
+  -- L'aube du socle (contrats, désertions) suit le lever de Scriptorium (accord de JoVenGer, 22/10).
+  if hommes.reglages.heure_lever ~= h_lever and h_lever > 0 and h_lever < 24 then
+    hommes.reglages.heure_lever = h_lever
+    jeu().journal("Hommes : l'aube suit le lever de Scriptorium : " .. h_lever .. " h")
+  end
+  local voulu = { sommeil = { de = h_coucher, a = h_lever - duree }, lever = { de = h_lever - duree, a = h_lever },
+                  veillee = { a = h_coucher }, repas_du_matin = { de = h_lever } }
+  local par_nom, avant, change = {}, {}, false
+  for _, t in ipairs(hommes.journee) do
+    par_nom[t.nom] = t
+  end
+  for nom, bornes in pairs(voulu) do
+    local t = par_nom[nom]
+    if not t then
+      return false
+    end
+    avant[nom] = { de = t.de, a = t.a }
+    for cle, valeur in pairs(bornes) do
+      if t[cle] ~= valeur then
+        change = true
+      end
+    end
+  end
+  if not change then
+    return false
+  end
+  for nom, bornes in pairs(voulu) do
+    for cle, valeur in pairs(bornes) do
+      par_nom[nom][cle] = valeur
+    end
+  end
+  local ok, raison = hommes.verifier_journee()
+  if not ok then
+    for nom, b in pairs(avant) do
+      par_nom[nom].de, par_nom[nom].a = b.de, b.a
+    end
+    local cle = h_coucher .. "/" .. h_lever
+    if horaire_refuse ~= cle then
+      horaire_refuse = cle
+      jeu().journal("Hommes : l'horaire de Scriptorium (coucher " .. h_coucher .. " h, lever " .. h_lever .. " h) ne tient pas dans "
+                    .. "la journée (" .. tostring(raison) .. ") : la nôtre reste")
+    end
+    return false
+  end
+  horaire_refuse = nil
+  jeu().journal("Hommes : horaire de Scriptorium : sommeil de " .. h_coucher .. " h à " .. (h_lever - duree) .. " h, lever jusqu'à "
+                .. h_lever .. " h")
+  return true
 end
 
 -- ---------------------------------------------------------------- l'arbitre des ordres (fiche 15, V73 b 3)
@@ -4357,6 +4424,7 @@ end
 function hommes.battre()
   local d = donnees()
   hommes.habilles_hors_file = {}
+  hommes.suivre_l_horaire_de_scriptorium()
   local heure = jeu().heure_du_jeu()
   local rapport = { aubes = 0, repas = 0, paies = 0, ordres = 0, equipes = 0, changements = 0, cerveaux = 0, arrets = 0,
                     a_rhabiller = 0, tenues = 0 }

@@ -45,3 +45,14 @@ la règle de JoVenGer du 17/10 (la plus juste pour la réalité du camp gagne, l
   `vu_d_henry`, `pose_refusee`). C'est la seule voie de l'expédition de Scriptorium pour avancer un homme hors de vue
   (vu en J6 : un homme en selle ne bougeait pas par un SetWorldPos sur l'homme seul).
 - Essai (vérifié en échec sans) ; non vu en jeu : que le cavalier suive bien son cheval posé.
+
+## L'horaire de Scriptorium (demande de JoVenGer du 22/10, transmise par le pair)
+- Vu (copie de sa partie, 5 h 58) : sommeil 0, « lever » 33 (debout au feu central) ; notre journée disait « sommeil 22 → 5,
+  lever 5 → 7 », Scriptorium dit au lit jusqu'à 7 h (`scriptorium.journee.COUCHER` = 22, `LEVER` = 7) : deux heures
+  debout dans le noir. C'est Scriptorium qui décide de l'horaire.
+- Désormais, au battement (`hommes.suivre_l_horaire_de_scriptorium`) : quand Scriptorium donne COUCHER et LEVER, le
+  sommeil va de COUCHER à LEVER moins `hommes.reglages.lever_duree_h` (0,5), le lever jusqu'à LEVER ; la veillée finit au
+  coucher, le repas du matin commence au lever ; l'aube du socle (`heure_lever` : contrats, désertions) suit LEVER. Une
+  journée qui ne tiendrait plus (`Scriptorium.journee_valable`) n'est pas posée, une ligne au journal. Sans Scriptorium,
+  nos tranches (réglables).
+- Essai (vérifié en échec sans : levé à 6 h au lieu d'au lit) ; à voir en jeu au lever de 6 h 30.
