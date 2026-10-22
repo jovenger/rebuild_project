@@ -765,7 +765,7 @@ aucune sonde dans l'arbre.
 
 ## 6 decies. Où reprendre (21/10/2026, vers midi, après J18)
 - Installé pour tous les jours (« garder » après J18, demandé par JoVenGer via le pair) : socle def2eae + Scriptorium
-  aee2a75b ; retour arrière `Scriptorium_securite61021_054840_948806_seance_du_socle`. playline1 intacte
+  aee2a75b ; retour arrière `Scriptorium_securite\20261021_054840_948806_seance_du_socle`. playline1 intacte
   (146 fichiers, 19/10 16:59:16), playline0 intacte (178).
 - Commits du 21/10 (depuis 0040dde) : 621abf3 blessure visible et étendue du camp ; 38a8bc9 fouille d'un corps disparu ;
   7b270a7 service `hommes.poser` ; 9731a8a cavalier au bord du camp ; a9b1cc9 interlocuteur visé ; d1b5bd4 paroles du
@@ -781,17 +781,17 @@ aucune sonde dans l'arbre.
   corrigé en 17561a9 (fiche 01), vu juste en J20 (« Camp : redressé, 0 objet(s) reposé(s), 0 manquant(s) », plus
   aucune relance en erreur).
 - Installé pour tous les jours depuis J20 (« garder » demandé au pair) : socle 17561a9 + Scriptorium ecacd021 ; retour
-  arrière `Scriptorium_securite61021_101018_035599_seance_du_socle`. playline1 et playline0 intactes.
+  arrière `Scriptorium_securite\20261021_101018_035599_seance_du_socle`. playline1 et playline0 intactes.
 - J21 (décisions de JoVenGer de midi, chez Scriptorium : garnison du Directeur au tiers, deux gardes des bains sous
   25 hommes, prime du contrat d'Henry dans le partage 40/60) : vu juste par le pair ; gardé pour tous les jours :
-  socle 17561a9 + Scriptorium 1b74decd ; retour arrière `Scriptorium_securite61021_120151_274126_seance_du_socle`.
+  socle 17561a9 + Scriptorium 1b74decd ; retour arrière `Scriptorium_securite\20261021_120151_274126_seance_du_socle`.
 - J22 et J23 (vérifications restantes du pair ; J22 : expédition 4 contre 4 puis 3 contre 4, rien d'anormal côté socle) :
   gardé pour tous les jours : socle 17561a9 + Scriptorium 5bc3c579 ; retour arrière
-  `Scriptorium_securite61021_121136_661933_seance_du_socle`.
+  `Scriptorium_securite\20261021_121136_661933_seance_du_socle`.
 - J24 (l'inspection du colonel, matin et soir, chez Scriptorium ; trois défauts corrigés chez lui : mesure avant la
   déclaration des places, tournée du soir vide, colonel parti à cheval hors du camp, réglé avec
   `hommes.etendue_du_camp()` qui rend (centre, rayon)) : vu juste ; gardé pour tous les jours : socle 17561a9 +
-  Scriptorium 0b5d6400 ; retour arrière `Scriptorium_securite61021_163948_817892_seance_du_socle`.
+  Scriptorium 0b5d6400 ; retour arrière `Scriptorium_securite\20261021_163948_817892_seance_du_socle`.
 - J25 à J29 (le camp qui tourne seul, 30 embauches d'un coup, relevés du journal toutes les 10 minutes) ; commits :
   17561a9 puis ff70204 (embauchés jamais venus : reprise au battement, 33 places au feu), 9ce0348 (ordre sans but :
   activité 0 ; ronde à vide arrêtée), e54d043 (un assommé n'est ni figé ni bloqué), 455a71e et 35d2b48 (dormir au sol
@@ -799,7 +799,13 @@ aucune sonde dans l'arbre.
   réglable par le fichier), 9a845d1 (hommes.sieges_occupes), 61c1ebb (le siège de l'homme gardé pendant le repas et la
   veillée). Leçon : « tient le geste » au journal ne prouve que l'ordre posé, pas la posture jouée (fiche 15).
 - Gardé pour tous les jours après J29 : socle 61c1ebb + Scriptorium 340a9c26 ; retour arrière
-  `Scriptorium_securite61021_172541_788513_seance_du_socle`.
+  `Scriptorium_securite\20261021_172541_788513_seance_du_socle`.
+- J30 (22/10, sur une copie de la dernière sauvegarde de JoVenGer, `playline1\exit.whs` copiée en `playline2`, lue
+  seulement ; la référence gardée dans `essais_du_socle_rangees\playline2\2026-10-22_204800_exit.whs`) : a234ff6
+  (habillage sur-le-champ, sans plafond), aecda38 (horaire de Scriptorium : COUCHER et LEVER), 2173c31 puis 59ed853 (un lit
+  refait, même de l'éditeur, redonne l'ordre) ; tous vus justes. Gardé pour tous les jours : socle 59ed853 + Scriptorium
+  20d32bc1 ; retour arrière `Scriptorium_securite\20261022_205534_463729_seance_du_socle`. Le fichier de réglages est
+  vide (les valeurs d'essai portées par le code).
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
