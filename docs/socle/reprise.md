@@ -806,6 +806,9 @@ aucune sonde dans l'arbre.
   refait, même de l'éditeur, redonne l'ordre) ; tous vus justes. Gardé pour tous les jours : socle 59ed853 + Scriptorium
   20d32bc1 ; retour arrière `Scriptorium_securite\20261022_205534_463729_seance_du_socle`. Le fichier de réglages est
   vide (les valeurs d'essai portées par le code).
+- J31 (24/10, même copie de `playline1\exit.whs`, socle 59ed853 sans changement) : essais de Scriptorium seulement
+  (réembauche du Directeur, achat de vivres du coursier, alerte d'argent juste) ; gardé : socle 59ed853 + Scriptorium
+  4d4128b1 ; retour arrière `Scriptorium_securite\20261024_182034_187562_seance_du_socle`.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
