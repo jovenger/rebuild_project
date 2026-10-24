@@ -2721,3 +2721,17 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   l'éditeur de Scriptorium ne sont pas des places du camp (`camp.sorte_de` rend nil), la signature n'avait pas leur
   identité. Désormais un lieu ou une ancre hors du camp, mais objet du monde (`jeu().objet_existe`), prend sa propre
   identité. Essai d'un lit de l'éditeur (vérifié en échec sans).
+
+## Les rafales de « figés » aux changements de la journée (vu en J32, le 24/10, mesuré par le pair)
+- Vu : 38 lignes du gardien vers 13 h 18 (fin du repas : corvée et exercice), 13 vers 14 h 47, presque rien ailleurs ; à
+  15 h, aucun homme immobile loin de son but : des hommes pas encore partis au changement, pas des hommes bloqués ; et
+  des hommes très loin d'Henry jugés figés (Oldřich Vlk à 2 214 m), là où leur agent dort.
+- Cause : au changement d'activité, toute la compagnie reçoit son ordre dans le même battement (35 marches lancées d'un
+  coup) ; le gardien les juge figés après 2 regards (8 s) depuis leur ordre.
+- Désormais : les ordres de la journée sont échelonnés, au plus `hommes.reglages.ordres_par_seconde` (4) par seconde,
+  les autres par minuterie dans les secondes suivantes (les tenues de Scriptorium, la bataille, l'escorte et les
+  relances restent immédiates) ; la grâce du gardien depuis l'ordre de l'homme passe à 5 regards (20 s,
+  `fige_ordre_regards`) ; un homme à plus de `gardien_rayon_m` (300 m) d'Henry n'est pas jugé figé.
+- Essai (vérifié en échec sans : six ordres d'un coup au lieu d'un) ; au banc, l'horloge réelle ne bouge pas : les
+  épreuves anciennes tournent avec `ordres_par_seconde = 0` et une grâce de 2 regards (`depart()`), la nouvelle épreuve
+  pose les valeurs du jeu. À voir en jeu à la transition de 18 h.

@@ -3872,6 +3872,62 @@ essai("gardien et secours (vu sur une copie le 21/10, J26 : Wenzel Vlk assommé 
   verifier(#FauxJeu.reveilles > 0, "relevé et toujours sur place : relancé")
 end)
 
+essai("rafales de figés (vu en J32, le 24/10) : les ordres de la journée échelonnés, quatre par seconde, les autres par minuterie ; la grâce du gardien, 5 regards depuis l'ordre ; loin d'Henry, pas de figé", function()
+  preparer(20000, 100, 12.5)
+  hommes.reglages.ordres_par_seconde = 4
+  hommes.reglages.fige_ordre_regards = 5
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local ids = {}
+    for _ = 1, 7 do table.insert(ids, (hommes.embaucher({ role = "archer", semaines = 4, prime = 0 }))) end
+    FauxJeu.temps = 1000
+    hommes.battre()
+    -- Le changement de la journée : de nouveaux ordres pour les sept.
+    FauxJeu.heure = 13.5
+    FauxJeu.temps = 1100
+    local avant = #FauxJeu.ordres
+    FauxJeu.minuteries = {}
+    hommes.battre()
+    local tout_de_suite = #FauxJeu.ordres - avant
+    egal(tout_de_suite, 1, "un seul ordre tout de suite, au même instant")
+    local differes = 0
+    for _, m in ipairs(FauxJeu.minuteries) do
+      if m.ms > 0 and m.ms <= 2000 then differes = differes + 1 end
+    end
+    verifier(differes >= 4, "les autres dans les secondes suivantes (" .. differes .. ")")
+    hommes.battre()
+    egal(#FauxJeu.ordres - avant, 1, "un battement de plus : pas d'ordre en double")
+    Scriptorium.en_partie = true
+    for _, m in ipairs(FauxJeu.minuteries) do if m.ms > 0 and m.ms <= 2000 then m.fonction() end end
+    Scriptorium.en_partie = false
+    egal(#FauxJeu.ordres - avant, 1 + differes, "puis tous ordonnés, chacun une fois")
+    -- La grâce : immobile loin de son but, il n'est pas relancé avant 5 regards depuis son ordre.
+    local id = ids[1]
+    local f = hommes.fiche(id)
+    local a = hommes.activite_de(id, 13.5)
+    FauxJeu.reveilles = {}
+    FauxJeu.positions[f.personnage] = { x = a.position.x + 30, y = a.position.y, z = 0 }
+    FauxJeu.position_joueur = { x = a.position.x, y = a.position.y, z = 0 }
+    for _ = 1, 4 do hommes.garder() end
+    egal(#FauxJeu.reveilles, 0, "dans la grâce : pas relancé")
+    for _ = 1, 3 do hommes.garder() end
+    verifier(#FauxJeu.reveilles >= 1, "après la grâce : relancé")
+    -- Loin d'Henry (au-delà de gardien_rayon_m) : jamais jugé figé.
+    local g = hommes.fiche(ids[2])
+    local b = hommes.activite_de(ids[2], 13.5)
+    FauxJeu.reveilles = {}
+    FauxJeu.positions[g.personnage] = { x = b.position.x + 30, y = b.position.y, z = 0 }
+    FauxJeu.position_joueur = { x = b.position.x + 2000, y = b.position.y, z = 0 }
+    hommes.gardien.vus = {}
+    for _ = 1, 10 do hommes.garder() end
+    local reveille = false
+    for _, r in ipairs(FauxJeu.reveilles) do if r.identifiant == g.personnage or r == g.personnage then reveille = true end end
+    verifier(not reveille, "à 2 000 m d'Henry : pas relancé")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("gardien (vu sur une copie le 20/10, à chaque chargement) : un homme sans ordre encore reçu attend le battement, il n'est pas figé", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

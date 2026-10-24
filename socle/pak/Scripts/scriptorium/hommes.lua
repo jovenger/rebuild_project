@@ -194,7 +194,11 @@ hommes.reglages = {
   fige_relances_max = 2,
   fige_regards_entre = 2,
   fige_par_regard = 6,
-  fige_ordre_regards = 2,
+  -- Vu en J32 (24/10) : 35 marches lancées d'un coup au changement de la journée, des hommes pas encore partis jugés
+  -- figés au bout de 8 s : la grâce depuis l'ordre de l'homme passe à 5 regards (20 s).
+  fige_ordre_regards = 5,
+  -- Même vue : au-delà de tant de mètres d'Henry (là où l'agent du personnage dort), un homme n'est pas jugé figé.
+  gardien_rayon_m = 300,
   allure_perdu_m = 13,
   allure_rang_m = 6,
   anciens_gardes = 50,
@@ -241,6 +245,9 @@ hommes.reglages = {
   -- Demande de JoVenGer (22/10 : « beaucoup de monde debout » à l'aube) : la durée du lever (heures) avant le LEVER de
   -- Scriptorium.
   lever_duree_h = 0.5,
+  -- Vu en J32 (24/10) : au changement de la journée, toute la compagnie recevait son ordre dans le même battement ; au
+  -- plus tant de nouveaux ordres de la journée par seconde, les autres dans les secondes suivantes (0 : tous d'un coup).
+  ordres_par_seconde = 4,
   habillage_second_passage_ms = 2000,
 }
 
@@ -3840,7 +3847,25 @@ local function resume_de(a)
   return resume
 end
 
-local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
+-- Vu en J32 (24/10, mesuré par le pair : 38 « figés » à la fin du repas, des hommes pas encore partis) : les nouveaux
+-- ordres de la journée sont échelonnés, « ordres_par_seconde » par seconde ; rend le délai (secondes) du prochain
+-- créneau, 0 tout de suite. En mémoire : le prochain créneau libre, et les hommes dont l'ordre attend (id -> heure réelle
+-- prévue).
+hommes.prochain_creneau = nil
+hommes.ordres_differes = hommes.ordres_differes or {}
+
+local function creneau_d_ordre()
+  local par_seconde = tonumber(hommes.reglages.ordres_par_seconde) or 0
+  local t = jeu().maintenant and jeu().maintenant()
+  if par_seconde <= 0 or type(t) ~= "number" then
+    return 0
+  end
+  local prochain = math.max(hommes.prochain_creneau or t, t)
+  hommes.prochain_creneau = prochain + 1 / par_seconde
+  return prochain - t
+end
+
+local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose, echelonne)
   local f = fiche_de(d, id)
   if not f or not f.personnage then
     return
@@ -3908,6 +3933,29 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose)
   end
   -- La place d'un rassemblement (V73 e) entre dans la signature : une place qui change redonne l'ordre.
   local resume = resume_de(a)
+  -- Vu en J32 (24/10) : un nouvel ordre de la journée attend son créneau (une seule attente par homme ; une attente
+  -- perdue, au-delà de cinq secondes de retard, est reprise).
+  if f.derniere_activite ~= resume and a.regle == "journee" and not sans_secours and not a_la_pose and not echelonne then
+    local t = jeu().maintenant and jeu().maintenant()
+    local attend = hommes.ordres_differes[id]
+    if attend and type(t) == "number" and t <= attend + 5 then
+      return
+    end
+    local delai = creneau_d_ordre()
+    if delai > 0 and jeu().minuterie then
+      hommes.ordres_differes[id] = (type(t) == "number" and t or 0) + delai
+      local generation = Scriptorium.generation
+      jeu().minuterie(math.floor(delai * 1000 + 0.5), function()
+        hommes.ordres_differes[id] = nil
+        if generation ~= Scriptorium.generation then
+          return
+        end
+        ordonner_un_homme(donnees(), id, jeu().heure_du_jeu(), nil, false, false, true)
+      end)
+      return
+    end
+  end
+  hommes.ordres_differes[id] = nil
   if f.derniere_activite ~= resume then
     -- Vu en jeu le 19/10 : l'attaque d'un affrontement ne finit qu'à la chute de la cible ; à la fin de la tenue (ou
     -- pour toute autre activité), elle est levée avant le nouvel ordre, sinon Henry reste en combat.
@@ -4374,6 +4422,8 @@ function hommes.garder()
       local exclu = not but or a.activite == "suivre" or a.activite == "bataille" or a.activite == "ronde"
         or a.activite == "fouille" or f.derniere_activite ~= resume_de(a)
         or jeu().occupation_de(f.personnage) ~= nil
+        -- Vu en J32 (24/10) : loin d'Henry, l'agent du personnage dort ; il n'est pas jugé figé.
+        or (henry ~= nil and math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2) > (tonumber(r.gardien_rayon_m) or math.huge))
         -- Même vue (J26) : un homme assommé n'est pas figé.
         or (jeu().personnage_inconscient and jeu().personnage_inconscient(f.personnage) == true)
       if not exclu and bouge and bouge < r.fige_bouge_m and v.regards > r.fige_ordre_regards then
@@ -5490,6 +5540,7 @@ end
 -- suivant, et les personnages manquants reviennent. Rend (revenus, manquants).
 function hommes.relancer()
   local d = donnees()
+  hommes.ordres_differes, hommes.prochain_creneau = {}, nil
   hommes.suivi = {}
   hommes.en_ronde = {}
   hommes.montures = {}

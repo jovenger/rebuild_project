@@ -46,6 +46,12 @@ function depart()
   allumer_les_interrupteurs()
   FauxJeu.chargement = false
   if Scriptorium.hommes then
+    -- Vu en J32 (24/10) : les ordres de la journée sont échelonnés en jeu (4 par seconde) ; au banc, l'horloge réelle ne
+    -- bouge pas : les épreuves les veulent tout de suite, sauf celle de l'échelonnement, qui pose le réglage.
+    Scriptorium.hommes.reglages.ordres_par_seconde = 0
+    -- De même, les épreuves du gardien comptent sur une grâce de 2 regards (20 s, 5 regards, en jeu depuis J32).
+    Scriptorium.hommes.reglages.fige_ordre_regards = 2
+    Scriptorium.hommes.ordres_differes, Scriptorium.hommes.prochain_creneau = {}, nil
     Scriptorium.hommes.suivi = {}
     Scriptorium.hommes.cerveaux_regles = {}
     Scriptorium.hommes.arrets_vus = {}
