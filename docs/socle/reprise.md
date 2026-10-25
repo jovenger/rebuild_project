@@ -874,8 +874,21 @@ aucune sonde dans l'arbre.
   l'image : annulé (0d88ef8). Recherche faite une fois : pas de forme simple du jeu pour cadrer l'interlocuteur pendant
   le choix (`CustomCamera` d'éditeur seulement) ; **le cadrage reste tel quel**. Gardé pour tous les jours (le pair) :
   socle 14b962d + Scriptorium 3779c99b. Le dépôt a en plus df08ae2 (journal seulement).
+- J38 (25/10, verrou `20261025_174235_492650_seance_du_socle` ; une grande passe déclenchée par le pair, plusieurs
+  copies neuves de `playline1\exit.whs` du 25/10 10:31:59, toujours fermées sans sauver) : défauts vus par la veille et
+  corrigés une fois chacun.
+  - Chez Scriptorium (rien à changer au socle) : le second « lever le camp » n'arrivait pas à `camp.lever` (mon lever,
+    lancé par le poste, a levé 14 objets) ; la troupe chez elle (passe par `hommes.mettre_dehors` / `faire_rentrer`) ;
+    le briefing contre la cabane (points repoussés à 3 m) ; les hommes en sortie couchés la nuit par le chef de nuit
+    de la prise ; les figés à 30,0 m (le point d'arrivée de la troupe reposé à chaque pas) ; l'arrivée à pied de loin
+    (gardée par le rapprochement de 50 m de la prise ; piste : l'agent loin d'Henry dort).
+  - Chez moi : 67345ce (un personnage fait venir est réveillé et reçoit de nouveau son ordre 4 s après ; vu : 32
+    « venu : réveillé, son ordre redonné ») ; b77f9b7 (la place visée retirée avec le camp n'est plus lue ; vu : camp
+    levé puis remonté, 0 « Place : erreur », 0 erreur Lua ; la ligne « oublié » pas encore vue, le cas ne s'est pas
+    présenté).
+  - **Gardé pour tous les jours : socle b77f9b7 + Scriptorium 29c8b8c7.**
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
-  kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b.
+  kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b ; kcd_seance_J38a.log, J38b à J38d.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
