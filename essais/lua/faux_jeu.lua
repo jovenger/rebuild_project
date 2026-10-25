@@ -706,6 +706,23 @@ function faux.retirer_un_objet(personnage, objet)
   end
   return false
 end
+-- Comme la liaison : la première copie (celle que trouve FindItem) est gardée, « nombre » autres retirées.
+function faux.retirer_les_copies(personnage, objet, nombre)
+  local inventaire = faux.inventaires[personnage] or {}
+  local premiere = nil
+  for i, o in ipairs(inventaire) do
+    if o.objet == objet then premiere = premiere or i end
+  end
+  local retirees = 0
+  for i = #inventaire, 1, -1 do
+    if retirees >= (nombre or 0) then break end
+    if inventaire[i].objet == objet and i ~= premiere then
+      table.remove(inventaire, i)
+      retirees = retirees + 1
+    end
+  end
+  return retirees
+end
 function faux.equiper_homme(personnage, ordre)
   if not faux.personnages_existants[personnage] then return "personnage introuvable" end
   table.insert(faux.equipements, { personnage = personnage, ordre = ordre })

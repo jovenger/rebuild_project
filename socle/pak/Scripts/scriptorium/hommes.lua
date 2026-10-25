@@ -1341,17 +1341,19 @@ end
 -- Vu en jeu le 25/10 (le colonel nu, 23 pièces de sa tenue au lieu de 10) : deux pièces de la même classe trompent le
 -- jeu (FindItem prend l'une ou l'autre : la forge détruisait la copie portée). Les copies au-delà du nombre voulu sont
 -- retirées, avant de faire porter. Rend le nombre de pièces retirées.
+-- Vu ensuite (25/10, socle 961689d : le colonel nu après le retrait, ses pièces au sac ; refaites porter plus tard, il
+-- était vêtu) : la copie que le jeu trouve est gardée, les autres détruites par leur identifiant (liaison) ; et l'homme
+-- remet encore ses pièces au battement suivant (« a_rhabiller »).
 local function retirer_les_doublons(f, voulues)
   local retirees = 0
   for objet, n in pairs(voulues) do
     local a = jeu().compter_objet(f.personnage, objet)
-    while a > n and jeu().retirer_un_objet(f.personnage, objet) do
-      a = a - 1
-      retirees = retirees + 1
+    if a > n then
+      retirees = retirees + jeu().retirer_les_copies(f.personnage, objet, a - n)
     end
   end
   if retirees > 0 then
-    jeu().journal("Hommes : « " .. f.nom .. " », " .. retirees .. " pièce(s) en double retirée(s)")
+    jeu().journal("Hommes : « " .. f.nom .. " », " .. retirees .. " pièce(s) en double retirée(s) ; il remettra ses pièces au battement suivant")
   end
   return retirees
 end
@@ -1367,6 +1369,7 @@ local function equiper(d, f)
     end
   end
   local munition = jeu().munition_de(e.armes)
+  local doublons = 0
   -- Un personnage refait retrouve les pièces qu'on lui avait données, avec leur dernier état connu (V71 c ; « ce qu'il
   -- a acheté est à lui », règle de JoVenGer dans Scriptorium).
   local a_recreer = {}
@@ -1389,7 +1392,7 @@ local function equiper(d, f)
   -- usure) : seules celles qui manquent sont créées, les copies en trop retirées avant de porter.
   if e.naissance_retiree then
     local voulues = pieces_voulues(f, a_creer)
-    retirer_les_doublons(f, voulues)
+    doublons = retirer_les_doublons(f, voulues)
     local manque, manquantes = {}, {}
     for _, objet in ipairs(a_creer) do
       if manque[objet] == nil then
@@ -1435,6 +1438,9 @@ local function equiper(d, f)
     e.anciennes = nil
   end
   jeu().journal("Hommes : « " .. f.nom .. " » équipé (" .. tostring(e.tenue) .. ", " .. tostring(e.armes) .. ") : " .. tostring(compte))
+  if doublons > 0 then
+    e.etat = "a_rhabiller"
+  end
 end
 
 -- À chaque entrée en partie, l'homme remet ses propres pièces, dans l'ordre (réponse a de JoVenGer, 15/10) : le jeu ne
@@ -1476,12 +1482,13 @@ local function rhabiller(d, f)
   local e = f.equipement
   -- Demande de JoVenGer (25/10) : les doublons d'avant la correction (sa vraie partie en a) retirés au rhabillage,
   -- sans attendre un rééquipement.
+  local doublons = 0
   if e.tenue and e.armes and e.naissance_retiree then
     local objets = jeu().pieces_de(e.tenue) or {}
     for _, objet in ipairs(jeu().pieces_de(e.armes) or {}) do
       table.insert(objets, objet)
     end
-    retirer_les_doublons(f, pieces_voulues(f, objets))
+    doublons = retirer_les_doublons(f, pieces_voulues(f, objets))
   end
   local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
   e.etat = "a_completer"
@@ -1517,6 +1524,9 @@ local function rhabiller(d, f)
   end
   jeu().journal("Hommes : « " .. f.nom .. " » a remis ses affaires (" .. tostring(portes) .. " pièce(s)"
     .. (#introuvables > 0 and (", " .. #introuvables .. " introuvable(s) ou refusée(s)") or "") .. ")")
+  if doublons > 0 then
+    e.etat = "a_rhabiller"
+  end
 end
 
 -- La garde de la tenue (fiche 13) : marque un homme équipé « à rhabiller » ; le battement lui fera remettre ses pièces,

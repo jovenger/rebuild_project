@@ -1752,6 +1752,35 @@ function liaison.retirer_un_objet(personnage, objet)
   return liaison.compter_objet(personnage, objet) < avant
 end
 
+-- Vu en jeu le 25/10 (le colonel nu après le retrait de ses doublons par retirer_un_objet, ses pièces au sac mais non
+-- portées) : FindItem rend une copie, peut-être la portée ; la détruire puis refaire porter « la même » laissait l'homme
+-- nu. Ici, la copie que rend FindItem (celle que faire_porter remettra) est gardée ; « nombre » autres copies de cette
+-- classe sont détruites par leur identifiant. Rend le nombre de copies détruites.
+function liaison.retirer_les_copies(personnage, objet, nombre)
+  local entite = porteur(personnage)
+  if not entite or (nombre or 0) <= 0 then
+    return 0
+  end
+  local gardee = trouver(entite, personnage, objet)
+  local ok, liste = pcall(function() return entite.inventory:GetInventoryTable() end)
+  local classe_voulue = string.lower(objet)
+  local retirees = 0
+  for _, id in pairs((ok and type(liste) == "table") and liste or {}) do
+    if retirees >= nombre then
+      break
+    end
+    local lu, piece = pcall(function() return ItemManager.GetItem(id) end)
+    if id ~= gardee and lu and type(piece) == "table" and string.lower(tostring(piece.class)) == classe_voulue then
+      local avant = liaison.compter_objet(personnage, objet)
+      pcall(function() entite.inventory:DeleteItem(id, 1) end)
+      if liaison.compter_objet(personnage, objet) < avant then
+        retirees = retirees + 1
+      end
+    end
+  end
+  return retirees
+end
+
 -- Équipe un homme : sa tenue de naissance retirée d'abord (tout son sac, sauf la bourse), puis chaque pièce créée,
 -- ses munitions, puis ce qu'il porte, dans l'ordre. Rend une ligne pour le journal.
 function liaison.equiper_homme(personnage, ordre)

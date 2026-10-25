@@ -1152,6 +1152,13 @@ essai("équipement (demande de JoVenGer, 25/10) : les doublons d'avant la correc
     if string.find(l, "3 pièce(s) en double retirée(s)", 1, true) then retire = true end
   end
   verifier(retire, "les trois doublons retirés, au journal")
+  -- Vu ensuite (25/10, socle 961689d : nu après le retrait, vêtu à une remise plus tard) : il remet ses pièces au
+  -- battement suivant, une fois.
+  local d = Scriptorium.registre.lire("hommes")
+  egal(d.liste[id].equipement.etat, "a_rhabiller", "à rhabiller encore au battement suivant")
+  hommes.battre()
+  verifier(d.liste[id].equipement.etat ~= "a_rhabiller", "remis une fois, sans boucle (" .. tostring(d.liste[id].equipement.etat) .. ")")
+  egal(a_dans_le_sac(id, corps), 1, "toujours un seul torse")
 end)
 
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.

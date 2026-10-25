@@ -758,3 +758,10 @@
   aussi à chaque rhabillage (chargement, garde de la tenue), avant de faire porter, sans attendre un rééquipement ; le
   nombre voulu de chaque pièce : une par mention dans sa tenue et ses armes, plus ses pièces données de la même classe.
   Essai (vérifié en échec sans).
+- Vu ensuite (25/10, socle 961689d, le pair à l'image) : le colonel était nu juste après le retrait de ses 13 doublons,
+  ses pièces au sac, non portées, malgré « a remis ses affaires (13) » et le second passage ; une remise faite plus tard
+  par le pair (`faire_porter`, 13 portées) l'a vêtu. Hypothèse (non vérifiée) : la copie détruite était la portée, et
+  celle refaite porter aussitôt n'était pas la bonne ou pas encore prête. Deux changements à la fois (demande du pair :
+  « va au radical ») : la liaison garde la copie que trouve le jeu et détruit les autres par leur identifiant
+  (`retirer_les_copies`) ; et l'homme dont des doublons ont été retirés remet encore ses pièces au battement suivant
+  (« a_rhabiller », une fois). Essai (vérifié en échec sans) ; à voir à l'image au chargement de la copie de 10 h 31.
