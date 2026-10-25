@@ -887,8 +887,20 @@ aucune sonde dans l'arbre.
     levé puis remonté, 0 « Place : erreur », 0 erreur Lua ; la ligne « oublié » pas encore vue, le cas ne s'est pas
     présenté).
   - **Gardé pour tous les jours : socle b77f9b7 + Scriptorium 29c8b8c7.**
+- J39 (25/10, verrou `20261025_210027_492943_seance_du_socle` ; copies neuves de `playline1\exit.whs`, fermées sans
+  sauver) : JoVenGer voyait des hommes se déshabiller d'un coup. Les pièces disparaissaient du SAC (pas seulement
+  ôtées). Trace des retraits posée (ea438de : chaque retrait par la liaison au journal, avec ses appelants). Prouvé par
+  le pair : 5 min sans saut, 0 perte ; après un saut d'horloge de +12 h, 4 pertes, 0 « Retrait », aucun appel de
+  Scriptorium : c'est le moteur qui ôte des pièces quand l'horloge saute la nuit (le sommeil et l'attente de JoVenGer
+  aussi). Corrigé en d517914 (décision de JoVenGer) : après tout saut de plus d'1 h, toute la tenue de chaque homme
+  vérifiée à +30 s, +2 min, +5 min, les pièces disparues recréées ; **vu juste** (saut de 12,1 h : 21 hommes
+  recomplétés à +30 s, 0 ensuite, 0 dévêtu). Chez Scriptorium (7d421d48) : les corps des morts hors bataille ramassés
+  et revendus (le socle les rend à l'appelant par `hommes.retirer(id, "mort")`), l'expérience. Contrôle de démarrage
+  bon. **Gardé pour tous les jours : socle d517914 + Scriptorium 7d421d48** (retour arrière
+  `Scriptorium_securite\20261025_210027_492943_seance_du_socle`). Le pair n'emploie plus de saut d'horloge en séance.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
-  kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b ; kcd_seance_J38a.log, J38b à J38d.
+  kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b ; kcd_seance_J38a.log, J38b à J38d ;
+  kcd_seance_J39a.log, J39b à J39d.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
