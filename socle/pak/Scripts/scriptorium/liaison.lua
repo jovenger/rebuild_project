@@ -3971,8 +3971,27 @@ function liaison.interlocuteur_du_dialogue(choix, nom_du_role)
   return liaison.interlocuteur_en_cours or nom_du_role
 end
 
-function liaison.dialogue_choix(arbre, choix, qui)
+-- Vu en J35 et J36 (25/10, le pair à l'image) : dans le dialogue du colonel, le menu et les catégories montraient un
+-- autre visage que la réplique, alors que le rôle du jeu était bien le colonel. À l'ouverture, chaque rôle du contexte
+-- du dialogue (dc) et l'acteur que le jeu y a lié sont écrits au journal, pour voir qui dit quoi.
+local function roles_du_dialogue(contexte)
+  local lignes = {}
+  local lu = pcall(function()
+    for role, valeur in pairs(contexte) do
+      if type(role) == "string" then
+        table.insert(lignes, role .. " = " .. tostring(nom_de_l_interlocuteur(valeur)))
+      end
+    end
+  end)
+  table.sort(lignes)
+  return lu and table.concat(lignes, " ; ") or "illisible"
+end
+
+function liaison.dialogue_choix(arbre, choix, qui, contexte)
   local reponse = {}
+  if choix == "ouverture" and type(contexte) == "table" then
+    liaison.journal("Dialogue : « " .. tostring(arbre) .. " », rôles liés : " .. roles_du_dialogue(contexte))
+  end
   local nom, nom_du_role = nil, nil
   local ok, erreur = pcall(function()
     nom_du_role = nom_de_l_interlocuteur(qui)

@@ -97,7 +97,7 @@ def condition_d_entree(element):
 
 def appel(arbre, choix, role):
     return ("if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then "
-            "Scriptorium.jeu.dialogue_choix('%s', '%s', dc['%s']) end" % (arbre, choix, role))
+            "Scriptorium.jeu.dialogue_choix('%s', '%s', dc['%s'], dc) end" % (arbre, choix, role))
 
 
 class Ecrivain:

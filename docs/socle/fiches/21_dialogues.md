@@ -131,3 +131,12 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
   16 806 emplois dans Data/Scripts.pak Quests/, par exemple albik_o_leku.xml, seq6 vers dec6 écrite sous seq5) : 0,63
   Mo. Les catégories à une place (le conseil, les fautes) ne changent pas.
 - Essai Lua (vérifié en échec sans) ; fichiers écrits par l'outil, XML bien formé ; **non vu en jeu**.
+
+## Le visage du dialogue du colonel (J35, J36 ; diagnostic)
+- Vu par le pair à l'image : dans le dialogue du colonel, le menu et les catégories (« Oui, chef ? », « Je vous écoute,
+  chef. ») montraient un visage à casque à crête et chaperon rouge, la réplique 51 bien celui de Havel ; le journal
+  disait le rôle du jeu lié à Havel (sans « visé »). Le Directeur était à 20,8 m. Nos fichiers ne donnent au Directeur que
+  son propre rôle (règle Storm sur son âme `scriptorium_directeur`, hors des réserves des hommes).
+- Diagnostic seulement : l'ExitScript passe aussi le contexte du dialogue (`dc`), et à l'ouverture la liaison écrit au
+  journal chaque rôle et l'acteur que le jeu y a lié (« Dialogue : « homme », rôles liés : … »). À lire une fois en jeu ;
+  aucune correction avant.

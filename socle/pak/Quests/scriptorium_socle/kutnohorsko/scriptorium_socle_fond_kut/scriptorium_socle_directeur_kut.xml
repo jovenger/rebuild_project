@@ -6,7 +6,7 @@
       <Dialogue TechnicalStatus="Enabled" AllowFarewell="false" AllowGreeting="false">
         <Decision Name="scriptorium_socle_directeur_kut_entree" Autoselect="true" Priority="General" DesignName="entree">
           <Sequences>
-            <Sequence Name="scriptorium_socle_directeur_kut_ouverture" DesignName="ouverture" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'ouverture', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+            <Sequence Name="scriptorium_socle_directeur_kut_ouverture" DesignName="ouverture" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'ouverture', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
               <Elements>
                 <Response Role="HENRY" />
                 <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
@@ -18,7 +18,7 @@
               </Elements>
               <Decision Name="scriptorium_socle_directeur_kut_menu" Priority="General" DesignName="menu">
                 <Sequences>
-                  <Sequence Name="scriptorium_socle_directeur_kut_comment_va_le_camp_1" DesignName="comment_va_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'comment_va_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_comment_va_le_camp_1" DesignName="comment_va_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'comment_va_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_invite" Text="Comment va le camp ?" />
                     <Elements>
                       <Response Role="HENRY">
@@ -4529,7 +4529,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_les_missions_523" DesignName="les_missions" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_missions', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_les_missions_523" DesignName="les_missions" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_missions', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_missions_invite" Text="Les missions." />
                     <Elements>
                       <Response Role="HENRY">
@@ -4547,7 +4547,7 @@
                     </Elements>
                     <Decision Name="scriptorium_socle_directeur_kut_les_missions_menu_524" Priority="General" DesignName="les_missions">
                       <Sequences>
-                        <Sequence Name="scriptorium_socle_directeur_kut_trouve_une_mission_525" DesignName="trouve_une_mission" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'trouve_une_mission', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_trouve_une_mission_525" DesignName="trouve_une_mission" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'trouve_une_mission', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_missions_trouve_une_mission_invite" Text="Trouve-nous une mission." />
                           <Elements>
                             <Response Role="HENRY">
@@ -4612,7 +4612,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_mission_difficile_532" DesignName="mission_difficile" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mission_difficile', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_mission_difficile_532" DesignName="mission_difficile" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mission_difficile', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_missions_mission_difficile_invite" Text="Une mission plus difficile, mieux payée." />
                           <Elements>
                             <Response Role="HENRY">
@@ -4666,7 +4666,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_son_conseil_538" DesignName="son_conseil" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'son_conseil', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_son_conseil_538" DesignName="son_conseil" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'son_conseil', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_invite" Text="Que me conseilles-tu ?" />
                     <Elements>
                       <Response Role="HENRY">
@@ -4689,7 +4689,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_son_conseil_menu_541" Priority="General" DesignName="son_conseil">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_542" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_542" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_fais_le_invite" Text="Fais-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4724,7 +4724,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_546" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_546" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_on_continue_invite" Text="Non, on continue comme ça." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4779,7 +4779,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_son_conseil_menu_552" Priority="General" DesignName="son_conseil">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_553" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_553" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_fais_le_invite" Text="Fais-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4814,7 +4814,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_557" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_557" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_on_continue_invite" Text="Non, on continue comme ça." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4869,7 +4869,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_son_conseil_menu_563" Priority="General" DesignName="son_conseil">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_564" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_564" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_fais_le_invite" Text="Fais-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4904,7 +4904,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_568" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_568" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_on_continue_invite" Text="Non, on continue comme ça." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4959,7 +4959,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_son_conseil_menu_574" Priority="General" DesignName="son_conseil">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_575" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_575" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_fais_le_invite" Text="Fais-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -4994,7 +4994,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_579" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_579" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_on_continue_invite" Text="Non, on continue comme ça." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5049,7 +5049,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_son_conseil_menu_585" Priority="General" DesignName="son_conseil">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_586" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_fais_le_586" DesignName="fais_le" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'fais_le', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_fais_le_invite" Text="Fais-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5084,7 +5084,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_590" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_on_continue_590" DesignName="on_continue" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'on_continue', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_on_continue_invite" Text="Non, on continue comme ça." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5131,7 +5131,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_les_fautes_595" DesignName="les_fautes" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_fautes', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_les_fautes_595" DesignName="les_fautes" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_fautes', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_invite" Text="Des fautes aujourd'hui ?" />
                     <Elements>
                       <Response Role="HENRY">
@@ -5154,7 +5154,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_598" Priority="General" DesignName="les_fautes">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_599" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_599" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite" Text="Je pardonne." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5189,7 +5189,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_603" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_603" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite" Text="Sanctionne-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5244,7 +5244,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_609" Priority="General" DesignName="les_fautes">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_610" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_610" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite" Text="Je pardonne." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5279,7 +5279,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_614" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_614" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite" Text="Sanctionne-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5334,7 +5334,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_620" Priority="General" DesignName="les_fautes">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_621" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_621" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite" Text="Je pardonne." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5369,7 +5369,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_625" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_625" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite" Text="Sanctionne-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5434,7 +5434,7 @@
                           </Elements>
                           <Decision Name="scriptorium_socle_directeur_kut_les_fautes_menu_632" Priority="General" DesignName="les_fautes">
                             <Sequences>
-                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_633" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_je_pardonne_633" DesignName="je_pardonne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'je_pardonne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_je_pardonne_invite" Text="Je pardonne." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5469,7 +5469,7 @@
                                   </Sequences>
                                 </Decision>
                               </Sequence>
-                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_637" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                              <Sequence Name="scriptorium_socle_directeur_kut_sanctionne_637" DesignName="sanctionne" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'sanctionne', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_sanctionne_invite" Text="Sanctionne-le." />
                                 <Elements>
                                   <Response Role="HENRY">
@@ -5516,7 +5516,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_le_coffre_642" DesignName="le_coffre" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_le_coffre_642" DesignName="le_coffre" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_invite" Text="Le coffre." />
                     <Elements>
                       <Response Role="HENRY">
@@ -5534,7 +5534,7 @@
                     </Elements>
                     <Decision Name="scriptorium_socle_directeur_kut_le_coffre_menu_643" Priority="General" DesignName="le_coffre">
                       <Sequences>
-                        <Sequence Name="scriptorium_socle_directeur_kut_donne_de_l_argent_644" DesignName="donne_de_l_argent" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'donne_de_l_argent', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_donne_de_l_argent_644" DesignName="donne_de_l_argent" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'donne_de_l_argent', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_donne_de_l_argent_invite" Text="Donne-moi de l'argent du coffre." />
                           <Elements>
                             <Response Role="HENRY">
@@ -5579,7 +5579,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_mets_au_coffre_649" DesignName="mets_au_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mets_au_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_mets_au_coffre_649" DesignName="mets_au_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mets_au_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_invite" Text="Mets ça au coffre." />
                           <Elements>
                             <Response Role="HENRY">
@@ -5633,7 +5633,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_les_grandes_mesures_655" DesignName="les_grandes_mesures" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_grandes_mesures', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_les_grandes_mesures_655" DesignName="les_grandes_mesures" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_grandes_mesures', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_invite" Text="Les grandes mesures." />
                     <Elements>
                       <Response Role="HENRY">
@@ -5667,7 +5667,7 @@
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660" Priority="General" DesignName="les_grandes_mesures">
                                   <Sequences>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_declare_l_alerte_661" DesignName="declare_l_alerte" EntryCondition="gvar('scriptorium_dialogue_si_sans_alerte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'declare_l_alerte', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_declare_l_alerte_661" DesignName="declare_l_alerte" EntryCondition="gvar('scriptorium_dialogue_si_sans_alerte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'declare_l_alerte', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_invite" Text="Déclare l'alerte rouge." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -5712,7 +5712,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_leve_l_alerte_666" DesignName="leve_l_alerte" EntryCondition="gvar('scriptorium_dialogue_si_alerte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'leve_l_alerte', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_leve_l_alerte_666" DesignName="leve_l_alerte" EntryCondition="gvar('scriptorium_dialogue_si_alerte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'leve_l_alerte', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_invite" Text="Lève l'alerte rouge." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -5757,7 +5757,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_forge_671" DesignName="mesure_forge" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_forge', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_forge_671" DesignName="mesure_forge" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_forge', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_invite" Text="Nourris la forge." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -5812,7 +5812,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_tenir_677" DesignName="mesure_tenir" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_tenir', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_tenir_677" DesignName="mesure_tenir" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_tenir', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_invite" Text="Tiens le camp serré." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -5867,7 +5867,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_entrainement_683" DesignName="mesure_entrainement" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_entrainement', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_entrainement_683" DesignName="mesure_entrainement" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_entrainement', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_invite" Text="Durcis l'entraînement." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -5922,7 +5922,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_coffre_689" DesignName="mesure_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_coffre_689" DesignName="mesure_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_invite" Text="Remplis le coffre." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -5977,7 +5977,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_menager_695" DesignName="mesure_menager" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_menager', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_menager_695" DesignName="mesure_menager" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_menager', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_invite" Text="Ménage les hommes." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -6032,7 +6032,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_souffler_701" DesignName="mesure_souffler" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_souffler', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_souffler_701" DesignName="mesure_souffler" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_souffler', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_invite" Text="Laisse souffler les hommes." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -6087,7 +6087,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_depenses_707" DesignName="mesure_depenses" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_depenses', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_mesure_depenses_707" DesignName="mesure_depenses" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_depenses', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_invite" Text="Serre les dépenses." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -6142,7 +6142,7 @@
                                         </Sequences>
                                       </Decision>
                                     </Sequence>
-                                    <Sequence Name="scriptorium_socle_directeur_kut_reviens_a_l_ordinaire_713" DesignName="reviens_a_l_ordinaire" EntryCondition="gvar('scriptorium_dialogue_si_mesure') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'reviens_a_l_ordinaire', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                    <Sequence Name="scriptorium_socle_directeur_kut_reviens_a_l_ordinaire_713" DesignName="reviens_a_l_ordinaire" EntryCondition="gvar('scriptorium_dialogue_si_mesure') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'reviens_a_l_ordinaire', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_invite" Text="Reviens à l'ordinaire." />
                                       <Elements>
                                         <Response Role="HENRY">
@@ -7068,7 +7068,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_kut_le_camp_et_la_troupe_816" DesignName="le_camp_et_la_troupe" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_camp_et_la_troupe', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_kut_le_camp_et_la_troupe_816" DesignName="le_camp_et_la_troupe" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_camp_et_la_troupe', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_invite" Text="Le camp et la troupe." />
                     <Elements>
                       <Response Role="HENRY">
@@ -7086,7 +7086,7 @@
                     </Elements>
                     <Decision Name="scriptorium_socle_directeur_kut_le_camp_et_la_troupe_menu_817" Priority="General" DesignName="le_camp_et_la_troupe">
                       <Sequences>
-                        <Sequence Name="scriptorium_socle_directeur_kut_leve_le_camp_818" DesignName="leve_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'leve_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_leve_le_camp_818" DesignName="leve_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'leve_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_invite" Text="Lève le camp." />
                           <Elements>
                             <Response Role="HENRY">
@@ -7141,7 +7141,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_monte_le_camp_824" DesignName="monte_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'monte_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_monte_le_camp_824" DesignName="monte_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'monte_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_invite" Text="Montons le camp ici." />
                           <Elements>
                             <Response Role="HENRY">
@@ -7206,7 +7206,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_appelle_tous_831" DesignName="appelle_tous" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_chez_elle') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'appelle_tous', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_appelle_tous_831" DesignName="appelle_tous" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_chez_elle') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'appelle_tous', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_invite" Text="Appelle tous les hommes." />
                           <Elements>
                             <Response Role="HENRY">
@@ -7261,7 +7261,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_appelle_la_moitie_837" DesignName="appelle_la_moitie" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_chez_elle') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'appelle_la_moitie', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_appelle_la_moitie_837" DesignName="appelle_la_moitie" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_chez_elle') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'appelle_la_moitie', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_invite" Text="Appelle la moitié, les meilleurs." />
                           <Elements>
                             <Response Role="HENRY">
@@ -7316,7 +7316,7 @@
                             </Sequences>
                           </Decision>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_directeur_kut_renvoie_chez_eux_843" DesignName="renvoie_chez_eux" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_appelee') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'renvoie_chez_eux', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                        <Sequence Name="scriptorium_socle_directeur_kut_renvoie_chez_eux_843" DesignName="renvoie_chez_eux" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_appelee') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'renvoie_chez_eux', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_invite" Text="Renvoie les hommes chez eux." />
                           <Elements>
                             <Response Role="HENRY">
