@@ -862,8 +862,15 @@ aucune sonde dans l'arbre.
   `Scriptorium_securite\20261025_152001_413323_seance_du_socle`). **Ouvert, petit** : dans le dialogue du colonel, la
   caméra montrait le visage du Directeur alors que le rôle du jeu était bien Havel (journal : interlocuteur lié, sans
   « visé ») ; à voir une fois : où était le Directeur, et si son âme porte aussi le rôle des hommes.
+- J36 (25/10, copie neuve ; verrou `20261025_163700_238644_seance_du_socle` ; socle 14b962d inchangé + Scriptorium
+  3779c99b) : **vu juste** (le pair) : le renvoi d'un homme (`hommes.renvoyer`, 33 → 32, absent 60 s après) ; la
+  rébellion forcée du colonel (réplique 51, duel préparé, Henry absent : parti au bout du délai, succession annoncée).
+  Gardé : socle 14b962d + Scriptorium 3779c99b. Le visage : le Directeur était à 20,8 m (piste « dans le champ »
+  écartée) ; le menu montre un autre acteur que la réplique. Diagnostic poussé, non installé : df08ae2 (à l'ouverture,
+  chaque rôle du dialogue et son acteur au journal) ; **à faire** : l'installer, ouvrir une fois le dialogue du colonel,
+  lire la ligne « rôles liés ».
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
-  kcd_seance_J35.log.
+  kcd_seance_J35.log ; kcd_seance_J36.log.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
