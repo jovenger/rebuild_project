@@ -328,6 +328,10 @@ def verifier_identifiants():
           for nom, e in pairs(System.entites) do if e.id == id then System.entites[nom] = nil end end
         end
         function System.LogAlways() end
+        function System.GetEntity(id)
+          for _, e in pairs(System.entites) do if e.id == id then return e end end
+          return nil
+        end
     """)
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "noyau.lua")))
     lua.execute(lire(os.path.join(PAK, "Scripts", "scriptorium", "liaison.lua")))
@@ -348,6 +352,15 @@ def verifier_identifiants():
         d = { place_seuil = 1.5, marche_faite = 0 }
         l.pres_de_la_place(entite("sans_place", 10, 10), d)
         if d.marche_faite ~= 0 then return "sans place visée : arrivée marquée à tort" end
+        -- Vu en J38 bis (25/10) : l'objet visé retiré (camp levé) : oublié sans lire sa position (le moteur lèverait
+        -- une erreur à chaque tour).
+        local retire = { id = newproxy(), GetName = function() return "retire" end,
+                         GetWorldPos = function() error("entité détruite") end }
+        l.places_visees["homme_sans_lit"] = retire
+        d = { place_seuil = 1.5, marche_faite = 0 }
+        local ok, err = pcall(l.pres_de_la_place, entite("homme_sans_lit", 10, 10), d)
+        if not ok then return "objet retiré : erreur levée : " .. tostring(err) end
+        if l.places_visees["homme_sans_lit"] ~= nil then return "objet retiré : pas oublié" end
         return nil
     end)()""")
     if place:

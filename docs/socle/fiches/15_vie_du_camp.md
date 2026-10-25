@@ -2780,3 +2780,9 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   utile », Martin de Talmberk). Désormais, tout personnage fait venir (embauche, retour, refait au battement) est
   réveillé et reçoit de nouveau son ordre `venue_ordre_redonne_ms` après sa venue (4 s, réglable ; 0 : jamais), une
   fois, au journal « venu : réveillé, son ordre redonné ». Essai (vérifié en échec sans) ; non vu en jeu.
+- Vu en J38 bis (25/10, le pair : 305 « Place : erreur : … liaison.lua:0: [Error] Lua error » pendant que le camp était
+  levé, après « camp_demonte_places_oubliees ») : la liaison retenait l'entité de la place visée (siège, lit) ; retirée
+  avec le camp, sa position ne se lisait plus et le moteur levait une erreur à chaque tour de la marche. Désormais
+  `liaison.pres_de_la_place` vérifie d'abord que l'objet existe encore (`System.GetEntity` sur son identifiant) ; sinon
+  il est oublié, dit une fois (« Place : l'objet visé par … n'existe plus (retiré) : oublié »). Épreuve de la liaison au
+  banc (vérifiée en échec sans) ; non vu en jeu.

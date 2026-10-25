@@ -4258,9 +4258,27 @@ end
 -- par l'arbre) de l'objet visé (donné par liaison.ordonner) : appelée par l'arbre sous pcall, elle met
 -- « marche_faite » à 1. Une erreur, au journal.
 liaison.places_visees = liaison.places_visees or {}
+-- Vu en J38 bis (25/10, le pair : 305 « Place : erreur » pendant que le camp était levé) : l'objet visé avait été retiré
+-- avec le camp, et lire sa position levait une erreur du moteur à chaque tour. Un objet qui n'existe plus est oublié,
+-- dit une fois.
+local function objet_encore_la(objet)
+  local id = type(objet) == "table" and rawget(objet, "id") or nil
+  if id == nil or type(System) ~= "table" or type(System.GetEntity) ~= "function" then
+    return true
+  end
+  local lu, trouve = pcall(System.GetEntity, id)
+  return lu and trouve ~= nil
+end
+
 function liaison.pres_de_la_place(entite, donnees)
   local fait, erreur = pcall(function()
-    local objet = liaison.places_visees[entite:GetName()]
+    local nom = entite:GetName()
+    local objet = liaison.places_visees[nom]
+    if objet and not objet_encore_la(objet) then
+      liaison.places_visees[nom] = nil
+      liaison.journal("Place : l'objet visé par « " .. tostring(nom) .. " » n'existe plus (retiré) : oublié")
+      return
+    end
     local seuil = tonumber(donnees.place_seuil) or 0
     if objet and seuil > 0 then
       local ici, la = entite:GetWorldPos(), objet:GetWorldPos()
