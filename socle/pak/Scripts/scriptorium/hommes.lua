@@ -3926,7 +3926,13 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose,
   if a and (a.activite == "repas" or a.activite == "veillee") and a.lieu and camp().sorte_de(a.lieu) == "siege" then
     hommes.sieges_du_moment[id] = a.lieu
   elseif a and a.activite ~= "repas" and a.activite ~= "veillee" then
-    hommes.sieges_du_moment[id] = nil
+    -- Vu en J33 (25/10, demande de JoVenGer) : un ordre de Scriptorium en plein repas (usage, ordre de mission) lui
+    -- faisait perdre son siège ; revenu au repas, il en recevait un autre, à travers le camp. Le siège lui reste tant
+    -- que dure le repas ou la veillée de la journée, sauf s'il va dormir.
+    local tranche = tranche_de(heure_dans_le_jour(heure)).activite
+    if a.activite == "sommeil" or a.activite == "repos" or (tranche ~= "repas" and tranche ~= "veillee") then
+      hommes.sieges_du_moment[id] = nil
+    end
   end
   -- Le sommeil au sol (décision de JoVenGer du 21/10) : sa place gardée pour la nuit, et comptée pour le colonel.
   if a and a.au_sol then

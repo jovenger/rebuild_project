@@ -331,6 +331,10 @@ Comportement :
   ne le reçoivent pas. Une dame ne fait plus glisser personne : `sieges_occupes` reste juste pendant tout le tour.
 - Essai (vérifié en échec sans : le siège de l'homme glisse de 24_6 à 24_8 quand la dame prend 24_4, comme en jeu) ;
   non vu en jeu.
+- Vu en J33 (25/10, journal du repas de 7 h ; demande de JoVenGer) : un ordre de Scriptorium en plein repas (usage des
+  objets, ordre de mission) effaçait le siège gardé ; revenu au repas, l'homme recevait la première place libre, à
+  travers le camp (six changements de siège entre 7 h 14 et 7 h 37). Le siège reste gardé tant que la tranche de la
+  journée est le repas ou la veillée, sauf s'il va dormir. Essai (vérifié en échec sans).
 
 ## Les dames debout à côté de leurs lits hauts (vu dans la partie de JoVenGer le 22/10 ; enquête, rien de corrigé)
 - Vu (journal, lecture seule) : les lits hauts du personnel (ScriptoEditeur_43_3 à 61_3, NormalBed, Bed_1Place_High)

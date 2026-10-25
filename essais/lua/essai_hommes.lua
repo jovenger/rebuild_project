@@ -4692,6 +4692,50 @@ essai("siège gardé (vu sur une copie le 21/10, J28 : 829 refus place_prise) : 
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("siège repris (vu en J33, 25/10, demande de JoVenGer) : un homme tenu ailleurs en plein repas retrouve son siège ; un autre ne le reçoit pas entre-temps ; la fin du repas le rend", function()
+  depart()
+  FauxJeu.heure = 10
+  camp.adopter({ x = 0, y = 0, z = 0 }, 0, "kutnohorsko")
+  coffre.encaisser(5000, "butin")
+  coffre.ajouter_reserve("vivres", 100, "achat")
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 0
+  local ok, erreur = pcall(function()
+    local premier = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local second = hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+    local bancs = { "ScriptoEditeur_24_4_so", "ScriptoEditeur_24_6_so", "ScriptoEditeur_24_8_so", "ScriptoEditeur_24_10_so" }
+    local places = {}
+    FauxJeu.positions_des_objets = {}
+    for i, b in ipairs(bancs) do
+      table.insert(places, { nom = b, sorte = "siege" })
+      FauxJeu.positions_des_objets[b] = { x = i, y = 1, z = 0 }
+    end
+    verifier(camp.declarer_les_places(places), "quatre sièges déclarés")
+    -- Le premier tenu ailleurs : le second s'assoit le premier au repas.
+    verifier(hommes.tenir(premier, "travail", { activite = "attendre", fin = "liberation" }), "le premier tenu ailleurs")
+    FauxJeu.heure = 12.5
+    hommes.battre()
+    local siege = hommes.activite_de(second, 12.5).lieu
+    verifier(siege and camp.sorte_de(siege) == "siege", "le second a un siège (" .. tostring(siege) .. ")")
+    -- Le second tenu ailleurs (un ordre de Scriptorium en plein repas) ; le premier rendu au repas.
+    verifier(hommes.tenir(second, "travail", { activite = "attendre", fin = "liberation" }), "le second tenu ailleurs")
+    hommes.battre()
+    hommes.lacher(premier, "travail")
+    hommes.battre()
+    verifier(hommes.activite_de(premier, 12.5).lieu ~= siege, "le premier ne reçoit pas le siège du second")
+    hommes.lacher(second, "travail")
+    hommes.battre()
+    egal(hommes.activite_de(second, 12.5).lieu, siege, "le second retrouve son siège")
+    -- Le repas fini, le siège n'est plus gardé.
+    hommes.tenir(second, "travail", { activite = "attendre", fin = "liberation" })
+    FauxJeu.heure = 16
+    hommes.battre()
+    egal(hommes.sieges_du_moment[second], nil, "rendu à la fin du repas")
+    hommes.lacher(second, "travail")
+  end)
+  Scriptorium.noyau.interrupteurs.un_lit_par_homme = 1
+  verifier(ok, "sans erreur : " .. tostring(erreur))
+end)
+
 essai("siège du personnel (demande du pair, 21/10, J15) : un siège tenu par un mené assis n'est pas offert aux hommes ; un siège déjà pris par un homme est refusé au mené (place_prise)", function()
   depart()
   FauxJeu.heure = 10
