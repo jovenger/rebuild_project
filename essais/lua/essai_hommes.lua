@@ -1233,6 +1233,31 @@ essai("arme rangée (vu en J34, 25/10 : après un combat, en arme, il refusait s
   verifier(vue, "au journal")
 end)
 
+essai("venue (vu en J38 bis, 25/10 : un homme rentré ne prenait pas son premier ordre ; la relance le faisait partir) : après sa venue, il est réveillé et son ordre redonné, une fois", function()
+  preparer(200, 10, 10)
+  hommes.reglages.venue_ordre_redonne_ms = 4000
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  hommes.battre()
+  verifier(hommes.mettre_dehors(id, "chez_eux"), "mis dehors")
+  FauxJeu.minuteries = {}
+  verifier(hommes.faire_rentrer(id, { x = 5, y = 5, z = 0 }), "rentré")
+  local f = Scriptorium.registre.lire("hommes").liste[id]
+  hommes.battre()
+  verifier(f.derniere_activite ~= nil, "un premier ordre donné")
+  local venue = nil
+  for _, m in ipairs(FauxJeu.minuteries) do
+    if m.ms == 4000 then venue = m end
+  end
+  verifier(venue, "une minuterie de venue posée")
+  FauxJeu.reveilles = {}
+  venue.fonction()
+  egal(f.derniere_activite, nil, "l'ordre sera redonné")
+  egal(FauxJeu.reveilles[1], f.personnage, "réveillé")
+  hommes.battre()
+  verifier(f.derniere_activite ~= nil, "ordre redonné au battement")
+  hommes.reglages.venue_ordre_redonne_ms = 0
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)

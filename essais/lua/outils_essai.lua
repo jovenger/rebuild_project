@@ -51,6 +51,9 @@ function depart()
     Scriptorium.hommes.reglages.ordres_par_seconde = 0
     -- De même, les épreuves du gardien comptent sur une grâce de 2 regards (20 s, 5 regards, en jeu depuis J32).
     Scriptorium.hommes.reglages.fige_ordre_regards = 2
+    -- De même (J38 bis, 25/10), l'ordre redonné après la venue pose une minuterie ; les anciennes épreuves s'en passent,
+    -- celle de la venue pose le réglage.
+    Scriptorium.hommes.reglages.venue_ordre_redonne_ms = 0
     Scriptorium.hommes.ordres_differes, Scriptorium.hommes.prochain_creneau = {}, nil
     Scriptorium.hommes.suivi = {}
     Scriptorium.hommes.cerveaux_regles = {}

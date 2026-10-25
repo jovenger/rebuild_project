@@ -259,6 +259,10 @@ hommes.reglages = {
   doublons_remise_1_s = 30,
   doublons_remise_2_s = 120,
   doublons_remise_3_s = 300,
+  -- Vu en J38 bis (25/10, le pair : des hommes rentrés par hommes.faire_rentrer ne prenaient pas leur premier ordre ; la
+  -- relance du gardien, réveil puis ordre redonné, les faisait partir) : un personnage qui vient d'être fait venir est
+  -- réveillé et reçoit de nouveau son ordre « venue_ordre_redonne_ms » après sa venue, une fois (0 : jamais).
+  venue_ordre_redonne_ms = 4000,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -1049,6 +1053,18 @@ local function faire_venir(d, f, pres_d_henry, ici)
   end
   f.personnage = personnage
   f.derniere_activite = nil
+  local ms = tonumber(hommes.reglages.venue_ordre_redonne_ms) or 0
+  if ms > 0 and jeu().minuterie then
+    local generation, id = Scriptorium.generation, f.id
+    jeu().minuterie(ms, function()
+      local g = generation == Scriptorium.generation and donnees().liste[id]
+      if g and g.personnage == personnage and jeu().personnage_existe(personnage) then
+        jeu().eveiller(personnage, g.nom)
+        g.derniere_activite = nil
+        jeu().journal("Hommes : « " .. g.nom .. " » venu : réveillé, son ordre redonné")
+      end
+    end)
+  end
   -- Fiche 15, V73 d 2 bis : un personnage refait a un cerveau neuf ; s'il était de ronde, il la reprend comme après un
   -- rechargement.
   hommes.raisons_de_reprise[f.id] = hommes.raisons_de_reprise[f.id] or "rechargement"

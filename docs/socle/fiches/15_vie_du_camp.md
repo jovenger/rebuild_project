@@ -2775,3 +2775,8 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   `secours_vue_nuit_m` (15 m, réglable ; 0 : la nuit ne change rien) ; au-delà, l'endroit ne se voit plus et le secours
   pose. Essai (vérifié en échec sans). La cause du blocage lui-même (l'entrée des tentes, des lits serrés) est à voir au
   jour, à l'image, avec le pair ; non corrigée.
+- Vu en J38 bis (25/10, le pair : hommes rentrés par `hommes.faire_rentrer`) : le premier ordre donné juste après la
+  venue n'était pas pris ; la relance du gardien (réveil, puis ordre redonné) faisait partir l'homme (« repart, relance
+  utile », Martin de Talmberk). Désormais, tout personnage fait venir (embauche, retour, refait au battement) est
+  réveillé et reçoit de nouveau son ordre `venue_ordre_redonne_ms` après sa venue (4 s, réglable ; 0 : jamais), une
+  fois, au journal « venu : réveillé, son ordre redonné ». Essai (vérifié en échec sans) ; non vu en jeu.
