@@ -869,8 +869,13 @@ aucune sonde dans l'arbre.
   écartée) ; le menu montre un autre acteur que la réplique. Diagnostic poussé, non installé : df08ae2 (à l'ouverture,
   chaque rôle du dialogue et son acteur au journal) ; **à faire** : l'installer, ouvrir une fois le dialogue du colonel,
   lire la ligne « rôles liés ».
+- J37 (25/10, deux courtes vérifications ; verrou `20261025_165150_160123_seance_du_socle`) : la ligne « rôles liés » ne
+  lie que Henry et Havel ; le visage du menu était Henry. 3af06a6 (plus de réplique vide d'Henry) sans effet à
+  l'image : annulé (0d88ef8). Recherche faite une fois : pas de forme simple du jeu pour cadrer l'interlocuteur pendant
+  le choix (`CustomCamera` d'éditeur seulement) ; **le cadrage reste tel quel**. Gardé pour tous les jours (le pair) :
+  socle 14b962d + Scriptorium 3779c99b. Le dépôt a en plus df08ae2 (journal seulement).
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
-  kcd_seance_J35.log ; kcd_seance_J36.log.
+  kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
