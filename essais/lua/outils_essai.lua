@@ -54,6 +54,9 @@ function depart()
     -- De même (J38 bis, 25/10), l'ordre redonné après la venue pose une minuterie ; les anciennes épreuves s'en passent,
     -- celle de la venue pose le réglage.
     Scriptorium.hommes.reglages.venue_ordre_redonne_ms = 0
+    -- De même (J39, 25/10), la vérification des tenues après un saut d'horloge pose des minuteries ; les anciennes
+    -- épreuves avancent l'horloge à grands pas, celle du saut pose le réglage.
+    Scriptorium.hommes.reglages.saut_tenues_h = 0
     Scriptorium.hommes.ordres_differes, Scriptorium.hommes.prochain_creneau = {}, nil
     Scriptorium.hommes.suivi = {}
     Scriptorium.hommes.cerveaux_regles = {}

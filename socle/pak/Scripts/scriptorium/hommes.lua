@@ -263,6 +263,15 @@ hommes.reglages = {
   -- relance du gardien, réveil puis ordre redonné, les faisait partir) : un personnage qui vient d'être fait venir est
   -- réveillé et reçoit de nouveau son ordre « venue_ordre_redonne_ms » après sa venue, une fois (0 : jamais).
   venue_ordre_redonne_ms = 4000,
+  -- Vu en J39 (25/10, prouvé par le pair : après un saut de l'horloge la nuit, le moteur ôte des pièces du sac de nos
+  -- hommes, sans aucun retrait du socle ni de Scriptorium ; décision de JoVenGer : vérifier toute la tenue après tout
+  -- saut, sommeil et attente compris) : un saut de plus de « saut_tenues_h » heures de jeu entre deux battements fait
+  -- vérifier toutes les pièces de chaque homme à ces délais (secondes réelles ; 0 : pas de vérification), celles qui
+  -- manquent recréées par l'habillage.
+  saut_tenues_h = 1,
+  saut_verif_1_s = 30,
+  saut_verif_2_s = 120,
+  saut_verif_3_s = 300,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -1687,6 +1696,60 @@ remettre_apres_doublons = function(f)
           local portes, introuvables = jeu().faire_porter(g.personnage, liste_portee(g))
           jeu().journal("Hommes : « " .. g.nom .. " », remise après ses doublons (+" .. s .. " s) : " .. tostring(portes)
                         .. " pièce(s) portée(s), " .. #introuvables .. " introuvable(s)")
+        end
+      end)
+    end
+  end
+end
+
+-- La vérification complète après un saut d'horloge (ci-dessus, « saut_tenues_h ») : chaque homme équipé à qui manque une
+-- pièce de sa tenue ou de ses armes (absente de son sac ; jamais une pièce ôtée par Scriptorium) passe « à équiper » :
+-- l'habillage, un homme à la fois et jamais en bataille, recrée seulement celles qui manquent. Rend le nombre d'hommes.
+local function verifier_les_tenues(d)
+  local n = 0
+  for _, id in ipairs(d.ordre) do
+    local f = d.liste[id]
+    local e = f.equipement
+    if e and e.tenue and e.armes and e.naissance_retiree and f.personnage and jeu().personnage_existe(f.personnage)
+        and (e.etat == "pret" or e.etat == "a_completer" or e.etat == "a_rhabiller") then
+      local otees = {}
+      for _, objet in ipairs(e.otees or {}) do
+        otees[objet] = true
+      end
+      local manque = 0
+      for _, nom in ipairs({ e.tenue, e.armes }) do
+        for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
+          if not otees[objet] and jeu().compter_objet(f.personnage, objet) == 0 then
+            manque = manque + 1
+          end
+        end
+      end
+      if manque > 0 then
+        e.etat = "a_equiper"
+        n = n + 1
+        jeu().journal("Hommes : « " .. f.nom .. " », " .. manque .. " pièce(s) de sa tenue disparue(s) : elles seront recréées")
+      end
+    end
+  end
+  return n
+end
+
+function hommes.verifier_les_tenues_apres_un_saut()
+  if not jeu().minuterie then
+    return
+  end
+  local generation = Scriptorium.generation
+  for i = 1, 3 do
+    local s = tonumber(hommes.reglages["saut_verif_" .. i .. "_s"]) or 0
+    if s > 0 then
+      jeu().minuterie(s * 1000, function()
+        if generation ~= Scriptorium.generation or en_bataille() then
+          return
+        end
+        local n = verifier_les_tenues(donnees())
+        jeu().journal("Hommes : tenues vérifiées après le saut (+" .. s .. " s) : " .. n .. " homme(s) à recompléter")
+        if n > 0 then
+          enregistrer()
         end
       end)
     end
@@ -4732,6 +4795,13 @@ function hommes.battre()
     d.derniere_aube = jour_de(heure - hommes.reglages.heure_lever)
     d.dernier_jour_repas = jour_de(heure - hommes.reglages.heure_repas)
     rapport.changements = rapport.changements + 1
+  end
+  -- Un saut de l'horloge (sommeil, attente) : la tenue de chacun vérifiée ensuite (J39).
+  local saut_h = tonumber(hommes.reglages.saut_tenues_h) or 0
+  if saut_h > 0 and heure - d.derniere_heure > saut_h then
+    jeu().journal("Hommes : l'horloge a sauté de " .. string.format("%.1f", heure - d.derniere_heure)
+                  .. " h : les tenues seront vérifiées")
+    hommes.verifier_les_tenues_apres_un_saut()
   end
   -- Aubes passées.
   local aube = jour_de(heure - hommes.reglages.heure_lever)

@@ -777,3 +777,11 @@
   J39. Diagnostic : chaque retrait d'objet par la liaison (`retirer_un_objet`, `retirer_les_copies`, le retrait de la
   tenue de naissance) est écrit au journal avec la pile des appelants (« Retrait : … ; appelants : … »). Journal
   seulement ; à lire à la prochaine séance.
+- Prouvé ensuite par le pair (J39 bis, 25/10) : 5 min sans saut, 0 perte ; après un seul saut de +12 h, 4 pertes en
+  3 min, 0 « Retrait » du socle, aucun appel de Scriptorium sur ces hommes : c'est le moteur qui ôte des pièces du sac
+  quand l'horloge saute la nuit. Le socle recréait déjà torse, jambes et arme (le filet), pas une coiffe ou des bottes.
+  Décision de JoVenGer : après tout saut d'horloge (sommeil, attente ; plus de `saut_tenues_h` = 1 h de jeu entre deux
+  battements), toute la tenue de chaque homme est vérifiée à +30 s, +2 min et +5 min (`saut_verif_1_s` à `_3_s`) ;
+  chaque pièce absente de son sac (jamais une pièce ôtée par Scriptorium) le fait passer « à équiper », et l'habillage
+  ne recrée que celles qui manquent. Au journal : « l'horloge a sauté de … », « … pièce(s) de sa tenue disparue(s) »,
+  « tenues vérifiées après le saut ». La trace des retraits (ea438de) reste. Essai (vérifié en échec sans).

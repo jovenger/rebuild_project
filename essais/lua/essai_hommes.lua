@@ -1258,6 +1258,42 @@ essai("venue (vu en J38 bis, 25/10 : un homme rentré ne prenait pas son premier
   hommes.reglages.venue_ordre_redonne_ms = 0
 end)
 
+essai("saut d'horloge (vu en J39, 25/10 : le moteur ôte des pièces du sac après un saut la nuit ; décision de JoVenGer) : toute la tenue vérifiée ensuite, les pièces disparues recréées, une pièce ôtée par Scriptorium jamais", function()
+  preparer(200, 10, 10)
+  hommes.reglages.saut_tenues_h = 1
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  local d = Scriptorium.registre.lire("hommes")
+  local e = d.liste[id].equipement
+  egal(e.etat, "pret", "prêt")
+  local tete = e.tenue .. "_tete"
+  egal(a_dans_le_sac(id, tete), 1, "sa coiffe au sac")
+  FauxJeu.retirer_un_objet(hommes.fiche(id).personnage, tete)
+  egal(a_dans_le_sac(id, tete), 0, "la coiffe disparue (le moteur)")
+  FauxJeu.minuteries = {}
+  -- Un jour plus tard, à la même heure (la nuit, au lit, l'habillage attend le lever).
+  FauxJeu.heure = FauxJeu.heure + 24
+  hommes.battre()
+  local verifs = {}
+  for _, m in ipairs(FauxJeu.minuteries) do
+    if m.ms == 30000 or m.ms == 120000 or m.ms == 300000 then table.insert(verifs, m) end
+  end
+  egal(#verifs, 3, "trois vérifications prévues après le saut")
+  verifs[1].fonction()
+  egal(e.etat, "a_equiper", "à recompléter")
+  hommes.battre()
+  egal(a_dans_le_sac(id, tete), 1, "la coiffe recréée")
+  verifier(e.etat ~= "a_equiper", "rééquipé")
+  -- Une pièce ôtée par Scriptorium n'est pas recréée.
+  e.etat = "pret"
+  table.insert(e.otees, tete)
+  FauxJeu.retirer_un_objet(hommes.fiche(id).personnage, tete)
+  verifs[2].fonction()
+  egal(e.etat, "pret", "une pièce ôtée par Scriptorium : rien à recompléter")
+  hommes.reglages.saut_tenues_h = 0
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)
