@@ -879,6 +879,39 @@ essai("dialogues (fiche 21) : l'accroche donne la réponse d'un homme ou du Dire
   end)
 end)
 
+essai("dialogues (25/10, contrat du pair) : les conditions par nom ; par défaut le chef et le camp ; tous les noms posés, un nom absent faux ; la remplaçante de Scriptorium ; le colonel d'avant compte encore ; une réponse absurde refusée", function()
+  preparer(10000, 0, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 1, prime = 0 })
+  hommes.battre()
+  for _, m in ipairs(Scriptorium.morceaux) do
+    if m.nom == "hommes" and m.demarrage then m.demarrage() end
+  end
+  local perso = hommes.fiche(a).personnage
+  local c = FauxJeu.reponse_du_dialogue("homme", "ouverture", perso).conditions
+  for _, nom in ipairs(hommes.conditions_du_dialogue_noms) do
+    verifier(c[nom] ~= nil, "condition posée : " .. nom)
+  end
+  egal(c.camp_monte, Scriptorium.camp.est_fonde() == true, "camp monté selon le camp")
+  egal(c.camp_leve, not c.camp_monte, "camp levé : l'inverse")
+  verifier(c.sans_alerte and not c.alerte and not c.mesure and not c.troupe_chez_elle, "le socle seul : ni alerte, ni mesure, ni troupe")
+  avec_remplacement(hommes, "conditions_du_dialogue", function(arbre, id)
+    if arbre == "directeur" then return { alerte = true, mesure = true, inconnue = true } end
+    return { colonel = true }
+  end, function()
+    local d = FauxJeu.reponse_du_dialogue("directeur", "les_grandes_mesures", "inconnu").conditions
+    verifier(d.alerte and d.mesure, "alerte et mesure de Scriptorium")
+    egal(d.sans_alerte, false, "un nom absent : faux")
+    egal(d.inconnue, nil, "un nom inconnu n'est pas posé")
+    verifier(FauxJeu.reponse_du_dialogue("homme", "ouverture", perso).colonel, "colonel par les conditions")
+  end)
+  avec_remplacement(hommes, "reponse_du_dialogue", function() return { codes = {}, colonel = true } end, function()
+    verifier(FauxJeu.reponse_du_dialogue("homme", "ouverture", perso).conditions.colonel, "le colonel dit par la réponse compte")
+  end)
+  avec_remplacement(hommes, "conditions_du_dialogue", function() return { alerte = "oui" } end, function()
+    egal(FauxJeu.reponse_du_dialogue("homme", "ouverture", perso).conditions.alerte, false, "une valeur absurde : la décision du socle")
+  end)
+end)
+
 essai("hommes (la bascule, 18/10) : l'accroche « après l'équipement » reçoit ce qui est donné (tenue, armes, munitions)", function()
   preparer(10000, 0, 10)
   local recus = {}

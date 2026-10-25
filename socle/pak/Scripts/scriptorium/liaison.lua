@@ -3910,6 +3910,10 @@ liaison.variables_du_dialogue = { "scriptorium_dialogue_code_1", "scriptorium_di
                                   "scriptorium_dialogue_code_3" }
 liaison.variable_du_colonel = "scriptorium_dialogue_colonel"
 
+function liaison.variable_de_condition(nom)
+  return "scriptorium_dialogue_si_" .. nom
+end
+
 function liaison.accrocher_le_dialogue(fonction)
   liaison.reponse_du_dialogue = fonction
 end
@@ -3969,10 +3973,24 @@ function liaison.dialogue_choix(arbre, choix, qui)
     table.insert(poses, tostring(code))
   end
   pcall(function() Variables.SetGlobal(liaison.variable_du_colonel, reponse.colonel and 1 or 0) end)
+  -- Les conditions par nom (25/10, contrat du pair) : une variable globale par nom, « scriptorium_dialogue_si_<nom> »,
+  -- lue par les EntryCondition des catégories et des choix (outils/dialogues.py) ; « colonel » garde la sienne.
+  local vraies = {}
+  for nom, valeur in pairs(type(reponse.conditions) == "table" and reponse.conditions or {}) do
+    if nom ~= "colonel" and type(nom) == "string" and string.match(nom, "^[a-z_]+$") then
+      pcall(function() Variables.SetGlobal(liaison.variable_de_condition(nom), valeur == true and 1 or 0) end)
+      if valeur == true then
+        table.insert(vraies, nom)
+      end
+    end
+  end
+  table.sort(vraies)
   -- Vu en jeu le 18/10 : le visage du dialogue n'était pas celui de l'homme visé ; l'interlocuteur lié par le jeu est
   -- donc écrit au journal.
   liaison.journal("Dialogue : « " .. tostring(arbre) .. "/" .. tostring(choix) .. " » : codes " .. table.concat(poses, ", ")
-                  .. (reponse.colonel and " (colonel)" or "") .. " ; interlocuteur lié = " .. tostring(nom)
+                  .. (reponse.colonel and " (colonel)" or "")
+                  .. (#vraies > 0 and (" ; conditions : " .. table.concat(vraies, ", ")) or "")
+                  .. " ; interlocuteur lié = " .. tostring(nom)
                   .. ((nom_du_role and nom_du_role ~= nom) and (" (visé ; rôle du jeu : " .. tostring(nom_du_role) .. ")") or ""))
 end
 

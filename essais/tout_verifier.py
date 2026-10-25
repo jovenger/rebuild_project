@@ -1387,6 +1387,13 @@ def verifier_textes():
                             capture_output=True, text=True, encoding="utf-8", errors="replace")
     if a_jour.returncode != 0:
         erreur("dialogues : fichiers écrits par outils/dialogues.py pas à jour : " + " ; ".join(a_jour.stdout.split()))
+    # 25/10 (conditions par nom) : les noms que l'outil écrit dans les arbres sont ceux que les hommes tranchent.
+    noms_outil = re.search(r'^CONDITIONS = \[([^\]]*)\]', lire(os.path.join(RACINE, "outils", "dialogues.py")), re.M)
+    noms_hommes = re.search(r'hommes\.conditions_du_dialogue_noms = \{([^}]*)\}',
+                            lire(os.path.join(PAK, "Scripts", "scriptorium", "hommes.lua")))
+    if not noms_outil or not noms_hommes or (re.findall(r'"([a-z_]+)"', noms_outil.group(1))
+                                             != re.findall(r'"([a-z_]+)"', noms_hommes.group(1))):
+        erreur("dialogues : CONDITIONS de outils/dialogues.py et hommes.conditions_du_dialogue_noms diffèrent")
     # Demande du pair (19/10) : « Des fautes aujourd'hui ? » : la réponse « Rien, chef » (code 4) revient directement au
     # menu, sans le sous-menu « Je pardonne / Sanctionne-le » ; une faute rapportée (codes 1 à 3) l'ouvre.
     for chemin in fichiers(os.path.join(PAK, "Quests"), {".xml"}):

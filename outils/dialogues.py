@@ -29,6 +29,10 @@ FACTION = "scriptorium_socle_compagnie"          # outils/ames.py
 AME_DU_DIRECTEUR = "scriptorium_directeur"       # outils/ames.py
 VARIABLES = ["scriptorium_dialogue_code_1", "scriptorium_dialogue_code_2", "scriptorium_dialogue_code_3"]
 VARIABLE_DU_COLONEL = "scriptorium_dialogue_colonel"
+# Les conditions par nom (25/10, décisions de JoVenGer, contrat du pair) : celles de hommes.conditions_du_dialogue_noms
+# (essais/tout_verifier.py vérifie que les deux listes sont les mêmes) ; chacune lue dans sa variable globale, posée par
+# liaison.dialogue_choix (« colonel » garde la sienne).
+CONDITIONS = ["colonel", "camp_monte", "camp_leve", "troupe_chez_elle", "troupe_appelee", "alerte", "sans_alerte", "mesure"]
 # La base des fichiers de quêtes : celle du jeu (Quests/Final/Barbora.xml : Name="brambora").
 TETE = ('<?xml version="1.0" encoding="utf-8"?>\n<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
         'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">\n  <Skald>\n')
@@ -72,6 +76,23 @@ def reponse(t, role, cle, contenu):
     # jeu admise au contrôle d'absence (lignes des quêtes du jeu).
     return ['<Response Role="%s">' % role, "  " + texte(t, cle, contenu), "  <Commands>", "    <CameraCommand />",
             "  </Commands>", "</Response>"]
+
+
+def condition_d_entree(element):
+    """L'EntryCondition d'une catégorie ou d'un choix : « condition », un nom ou une liste de noms, tous exigés (AND, la
+    forme des conditions des quêtes du jeu, Data/Scripts.pak Quests/ : 5 256 emplois) ; None sans condition."""
+    noms = element.get("condition")
+    if noms is None:
+        return None
+    if isinstance(noms, str):
+        noms = [noms]
+    parties = []
+    for nom in noms:
+        if nom not in CONDITIONS:
+            raise SystemExit("REFUS : condition inconnue « %s »" % nom)
+        variable = VARIABLE_DU_COLONEL if nom == "colonel" else "scriptorium_dialogue_si_" + nom
+        parties.append("gvar('%s') == 1" % variable)
+    return " AND ".join(parties)
 
 
 def appel(arbre, choix, role):
@@ -152,7 +173,7 @@ class Ecrivain:
         return fin
 
     def choix(self, p, c, chemin, menu):
-        cond = "gvar('%s') == 1" % VARIABLE_DU_COLONEL if c.get("condition") == "colonel" else None
+        cond = condition_d_entree(c)
         places = self.places(c.get("repliques", []))
         nom = self.nom_unique(c["nom"])
         fin_attr = attr(EndType="Decision") if places else attr(EndType="GoTo", GoToDecision=menu)
@@ -180,9 +201,10 @@ class Ecrivain:
         self.ecrire(p + 2, "</Sequence>")
         self.ecrire(p + 1, "</Sequences>")
         self.ecrire(p, "</Decision>")
+        return nom
 
     def categorie(self, p, cat, menu):
-        cond = "gvar('%s') == 1" % VARIABLE_DU_COLONEL if cat.get("condition") == "colonel" else None
+        cond = condition_d_entree(cat)
         self.ecrire(p, "<Sequence%s>" % attr(Name=self.nom_unique(cat["categorie"]), DesignName=cat["categorie"],
                                               EntryCondition=cond, ExitScript=appel(self.arbre, cat["categorie"], self.role),
                                               EndType="Decision"))
@@ -194,12 +216,12 @@ class Ecrivain:
         places = self.places(cat.get("repliques_categorie", []))
         if places:
             # La réponse de la catégorie (le conseil, les fautes), puis son sous-menu sous chaque branche.
-            self.chaine_des_places_puis(p + 1, cat, places, menu)
+            self.chaine_des_places_puis(p + 1, cat, places, menu, partage={"nom": None})
         else:
             self.sous_menu(p + 1, cat, menu)
         self.ecrire(p, "</Sequence>")
 
-    def chaine_des_places_puis(self, p, cat, places, menu, numero=0):
+    def chaine_des_places_puis(self, p, cat, places, menu, numero=0, partage=None):
         variable = VARIABLES[numero]
         self.ecrire(p, '<Decision%s>' % attr(Name=self.nom_unique("place%d" % (numero + 1)), Autoselect="true",
                                              Priority="General", DesignName="place %d" % (numero + 1)))
@@ -211,15 +233,27 @@ class Ecrivain:
         sans_sous_menu = set(cat.get("sans_sous_menu", []))
         for r, condition in branches:
             direct = numero + 1 >= len(places) and r["code"] in sans_sous_menu
-            fin = attr(EndType="GoTo", GoToDecision=menu) if direct else attr(EndType="Decision")
+            # 25/10 (les grandes mesures, deux places : 80 branches, le fichier passait de 0,5 à 4,6 Mo) : avec plusieurs
+            # places, le sous-menu est écrit une fois, sous la première branche ; les suivantes y sautent (GoTo vers une
+            # décision d'une branche voisine : la forme du jeu, Data/Scripts.pak Quests/, 16 806 emplois, par exemple
+            # albik_o_leku.xml, seq6 vers dec6 écrite sous seq5).
+            saute = (not direct and numero + 1 >= len(places) and len(places) > 1 and partage["nom"] is not None)
+            if direct:
+                fin = attr(EndType="GoTo", GoToDecision=menu)
+            elif saute:
+                fin = attr(EndType="GoTo", GoToDecision=partage["nom"])
+            else:
+                fin = attr(EndType="Decision")
             self.ecrire(p + 2, "<Sequence%s%s>" % (attr(Name=self.nom_unique("code"), DesignName="code %d" % r["code"],
                                                         EntryCondition=condition), fin))
             cle = self.cle(cat["categorie"], "repli") if (numero == 0 and r["code"] == 0) else self.cle(cat["categorie"], "p%d" % (numero + 1), r["code"])
             self.elements(p + 3, reponse(self.t, self.role if r["texte"] else "HENRY", cle, r["texte"]))
             if numero + 1 < len(places):
-                self.chaine_des_places_puis(p + 3, cat, places, menu, numero + 1)
-            elif not direct:
-                self.sous_menu(p + 3, cat, menu)
+                self.chaine_des_places_puis(p + 3, cat, places, menu, numero + 1, partage)
+            elif not direct and not saute:
+                nom = self.sous_menu(p + 3, cat, menu)
+                if len(places) > 1:
+                    partage["nom"] = nom
             self.ecrire(p + 2, "</Sequence>")
         self.ecrire(p + 1, "</Sequences>")
         self.ecrire(p, "</Decision>")

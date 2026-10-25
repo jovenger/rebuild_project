@@ -104,3 +104,30 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
   l'escorte de chaque homme qui la tient et rend 44, ou 45 s'il n'y en avait aucun. Sans Scriptorium : aucune réplique.
 - Données seulement (`socle/dialogues/arbres.json`, fichiers écrits par `outils/dialogues.py`, à jour au banc) ; non vu
   en jeu.
+
+## Les conditions par nom, les grandes mesures, le camp et la troupe, le renvoi du colonel (25/10, décisions de JoVenGer, contrat du pair)
+- **Conditions** : `condition` d'une catégorie ou d'un choix est un nom ou une liste de noms, tous exigés. Les noms :
+  colonel, camp_monte, camp_leve, troupe_chez_elle, troupe_appelee, alerte, sans_alerte, mesure
+  (`hommes.conditions_du_dialogue_noms`, la même liste que `CONDITIONS` de l'outil, vérifié au banc). Tranchés par la
+  décision remplaçable `hommes.conditions_du_dialogue(arbre, id)` → { nom = vrai|faux }, demandée à l'ouverture et à
+  chaque choix ; Scriptorium la remplace. Par défaut : colonel (le chef du socle), camp_monte (camp fondé), camp_leve
+  (l'inverse), sans_alerte ; le reste faux. Un nom absent vaut faux, un nom inconnu n'est pas posé ; « colonel » rendu
+  par la réponse (la forme d'avant) compte encore. La liaison pose une variable globale par nom
+  (`scriptorium_dialogue_si_<nom>`, « colonel » garde `scriptorium_dialogue_colonel`), et les noms vrais au journal.
+- **Forme** : plusieurs noms joints par « AND », la forme des conditions des quêtes du jeu (Data/Scripts.pak, Quests/ :
+  5 256 emplois, par exemple `Port('…') AND !Port('…')` dans dialog_s_benem.xml) ; aucune n'y combine `gvar` : non vu en
+  jeu.
+- **Directeur** : toutes les catégories d'avant exigent camp_monte (règle de JoVenGer du 9/10 : camp levé, il ne
+  propose que « Le camp et la troupe » et « Ce sera tout »). Nouvelles catégories : « les_grandes_mesures »
+  [camp_monte] (ce qui est en vigueur aux places 1 et 2, codes 1 à 9 ; alerte, sept mesures, retour à l'ordinaire,
+  codes 10 à 13 et 20 à 24) ; « le_camp_et_la_troupe » (lever, monter, appeler tous ou la moitié, renvoyer ; chaque
+  réplique ferme la conversation, l'ordre part ensuite).
+- **Homme** : « ton_commandement » [colonel] : « Tu es renvoyé » (codes 50 à 52, la conversation fermée) ou « Rien.
+  Continue ton service » (53, retour au menu) ; deux pas avant le renvoi. Les effets (départ, rébellion, duel à mort,
+  succession) sont à Scriptorium.
+- **Taille** : deux places de réponse avant un sous-menu de dix choix donnaient 80 copies du sous-menu (le fichier du
+  Directeur passait de 0,5 à 4,6 Mo). Pour une catégorie à plusieurs places, le sous-menu est écrit une fois, sous la
+  première branche, et les autres branches y sautent (`GoTo` vers une décision d'une branche voisine, la forme du jeu :
+  16 806 emplois dans Data/Scripts.pak Quests/, par exemple albik_o_leku.xml, seq6 vers dec6 écrite sous seq5) : 0,63
+  Mo. Les catégories à une place (le conseil, les fautes) ne changent pas.
+- Essai Lua (vérifié en échec sans) ; fichiers écrits par l'outil, XML bien formé ; **non vu en jeu**.

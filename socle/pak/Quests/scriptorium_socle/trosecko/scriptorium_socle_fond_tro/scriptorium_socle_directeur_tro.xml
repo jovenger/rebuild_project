@@ -18,7 +18,7 @@
               </Elements>
               <Decision Name="scriptorium_socle_directeur_tro_menu" Priority="General" DesignName="menu">
                 <Sequences>
-                  <Sequence Name="scriptorium_socle_directeur_tro_comment_va_le_camp_1" DesignName="comment_va_le_camp" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'comment_va_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_tro_comment_va_le_camp_1" DesignName="comment_va_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'comment_va_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_menu_comment_va_le_camp_invite" Text="Comment va le camp ?" />
                     <Elements>
                       <Response Role="HENRY">
@@ -4529,7 +4529,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_tro_les_missions_523" DesignName="les_missions" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_missions', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_tro_les_missions_523" DesignName="les_missions" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_missions', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_missions_invite" Text="Les missions." />
                     <Elements>
                       <Response Role="HENRY">
@@ -4666,7 +4666,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_tro_son_conseil_538" DesignName="son_conseil" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'son_conseil', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_tro_son_conseil_538" DesignName="son_conseil" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'son_conseil', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_son_conseil_invite" Text="Que me conseilles-tu ?" />
                     <Elements>
                       <Response Role="HENRY">
@@ -5131,7 +5131,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_tro_les_fautes_595" DesignName="les_fautes" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_fautes', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_tro_les_fautes_595" DesignName="les_fautes" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_fautes', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_fautes_invite" Text="Des fautes aujourd'hui ?" />
                     <Elements>
                       <Response Role="HENRY">
@@ -5516,7 +5516,7 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_directeur_tro_le_coffre_642" DesignName="le_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_directeur_tro_le_coffre_642" DesignName="le_coffre" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_coffre_invite" Text="Le coffre." />
                     <Elements>
                       <Response Role="HENRY">
@@ -5625,6 +5625,1753 @@
                           </Decision>
                         </Sequence>
                         <Sequence Name="scriptorium_socle_directeur_tro_retour_654" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                          <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
+                          <Elements>
+                            <Response Role="HENRY" />
+                          </Elements>
+                        </Sequence>
+                      </Sequences>
+                    </Decision>
+                  </Sequence>
+                  <Sequence Name="scriptorium_socle_directeur_tro_les_grandes_mesures_655" DesignName="les_grandes_mesures" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'les_grandes_mesures', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                    <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_invite" Text="Les grandes mesures." />
+                    <Elements>
+                      <Response Role="HENRY">
+                        <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_henry" Text="Parlons des grandes mesures." />
+                        <Commands>
+                          <CameraCommand />
+                        </Commands>
+                      </Response>
+                    </Elements>
+                    <Decision Name="scriptorium_socle_directeur_tro_place1_656" Autoselect="true" Priority="General" DesignName="place 1">
+                      <Sequences>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_657" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_1" Text="L'alerte rouge est déclarée, chef. Tout le camp est sur le pied de guerre." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_658" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_659" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="Decision">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                                <Decision Name="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660" Priority="General" DesignName="les_grandes_mesures">
+                                  <Sequences>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_declare_l_alerte_661" DesignName="declare_l_alerte" EntryCondition="gvar('scriptorium_dialogue_si_sans_alerte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'declare_l_alerte', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_invite" Text="Déclare l'alerte rouge." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_henry" Text="Déclare l'alerte rouge." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_662" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_663" DesignName="code 10" EntryCondition="gvar('scriptorium_dialogue_code_1') == 10" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_p1_10" Text="Alerte rouge, chef. Je mets le camp sur le pied de guerre." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_664" DesignName="code 11" EntryCondition="gvar('scriptorium_dialogue_code_1') == 11" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_p1_11" Text="C'est déjà fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_665" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_leve_l_alerte_666" DesignName="leve_l_alerte" EntryCondition="gvar('scriptorium_dialogue_si_alerte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'leve_l_alerte', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_invite" Text="Lève l'alerte rouge." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_henry" Text="Lève l'alerte rouge." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_667" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_668" DesignName="code 12" EntryCondition="gvar('scriptorium_dialogue_code_1') == 12" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_p1_12" Text="Bien, chef. Le camp reprend son train ordinaire." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_669" DesignName="code 13" EntryCondition="gvar('scriptorium_dialogue_code_1') == 13" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_p1_13" Text="Il n'y a pas d'alerte, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_670" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_forge_671" DesignName="mesure_forge" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_forge', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_invite" Text="Nourris la forge." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_henry" Text="Nourris la forge." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_672" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_673" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_674" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_675" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_676" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_tenir_677" DesignName="mesure_tenir" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_tenir', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_invite" Text="Tiens le camp serré." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_henry" Text="Tiens le camp serré." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_678" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_679" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_680" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_681" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_682" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_entrainement_683" DesignName="mesure_entrainement" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_entrainement', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_invite" Text="Durcis l'entraînement." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_henry" Text="Durcis l'entraînement." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_684" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_685" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_686" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_687" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_688" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_coffre_689" DesignName="mesure_coffre" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_coffre', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_invite" Text="Remplis le coffre." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_henry" Text="Remplis le coffre." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_690" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_691" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_692" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_693" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_694" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_menager_695" DesignName="mesure_menager" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_menager', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_invite" Text="Ménage les hommes." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_henry" Text="Ménage les hommes." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_696" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_697" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_698" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_699" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_700" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_souffler_701" DesignName="mesure_souffler" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_souffler', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_invite" Text="Laisse souffler les hommes." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_henry" Text="Laisse souffler les hommes." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_702" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_703" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_704" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_705" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_706" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_mesure_depenses_707" DesignName="mesure_depenses" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'mesure_depenses', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_invite" Text="Serre les dépenses." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_henry" Text="Serre les dépenses." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_708" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_709" DesignName="code 20" EntryCondition="gvar('scriptorium_dialogue_code_1') == 20" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_p1_20" Text="Bien, chef. C'est en place dès maintenant." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_710" DesignName="code 21" EntryCondition="gvar('scriptorium_dialogue_code_1') == 21" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_p1_21" Text="C'est déjà ce qu'on fait, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_711" DesignName="code 22" EntryCondition="gvar('scriptorium_dialogue_code_1') == 22" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_p1_22" Text="C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_712" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_reviens_a_l_ordinaire_713" DesignName="reviens_a_l_ordinaire" EntryCondition="gvar('scriptorium_dialogue_si_mesure') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'reviens_a_l_ordinaire', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_invite" Text="Reviens à l'ordinaire." />
+                                      <Elements>
+                                        <Response Role="HENRY">
+                                          <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_henry" Text="Reviens à l'ordinaire." />
+                                          <Commands>
+                                            <CameraCommand />
+                                          </Commands>
+                                        </Response>
+                                      </Elements>
+                                      <Decision Name="scriptorium_socle_directeur_tro_place1_714" Autoselect="true" Priority="General" DesignName="place 1">
+                                        <Sequences>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_715" DesignName="code 23" EntryCondition="gvar('scriptorium_dialogue_code_1') == 23" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_p1_23" Text="Bien, chef. Plus de mesure : on fait comme d'habitude." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_716" DesignName="code 24" EntryCondition="gvar('scriptorium_dialogue_code_1') == 24" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_p1_24" Text="On y est déjà, chef." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                          <Sequence Name="scriptorium_socle_directeur_tro_code_717" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                            <Elements>
+                                              <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                                <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                                <Commands>
+                                                  <CameraCommand />
+                                                </Commands>
+                                              </Response>
+                                            </Elements>
+                                          </Sequence>
+                                        </Sequences>
+                                      </Decision>
+                                    </Sequence>
+                                    <Sequence Name="scriptorium_socle_directeur_tro_retour_718" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                      <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
+                                      <Elements>
+                                        <Response Role="HENRY" />
+                                      </Elements>
+                                    </Sequence>
+                                  </Sequences>
+                                </Decision>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_719" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_720" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_721" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_722" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_723" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_724" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_725" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_726" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_2" Text="En ce moment, on nourrit la forge." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_727" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_728" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_729" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_730" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_731" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_732" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_733" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_734" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_735" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_736" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_3" Text="En ce moment, on tient le camp serré." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_737" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_738" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_739" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_740" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_741" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_742" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_743" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_744" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_745" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_746" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_1') == 4" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_4" Text="En ce moment, on durcit l'entraînement." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_747" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_748" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_749" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_750" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_751" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_752" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_753" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_754" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_755" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_756" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_1') == 5" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_5" Text="En ce moment, on remplit le coffre." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_757" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_758" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_759" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_760" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_761" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_762" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_763" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_764" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_765" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_766" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_1') == 6" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_6" Text="En ce moment, on ménage les hommes." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_767" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_768" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_769" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_770" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_771" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_772" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_773" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_774" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_775" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_776" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_1') == 7" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_7" Text="En ce moment, on laisse souffler les hommes." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_777" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_778" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_779" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_780" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_781" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_782" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_783" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_784" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_785" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_786" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_1') == 8" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_8" Text="En ce moment, on serre les dépenses." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_787" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_788" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_789" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_790" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_791" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_792" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_793" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_794" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_795" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_796" DesignName="code 9" EntryCondition="gvar('scriptorium_dialogue_code_1') == 9" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_9" Text="Rien de particulier en ce moment, chef. On fait comme d'habitude." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_797" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_798" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_799" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_800" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_801" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_802" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_803" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_804" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_805" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_code_806" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="Decision">
+                          <Elements>
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                              <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place2_807" Autoselect="true" Priority="General" DesignName="place 2">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_808" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_2') == 2" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2" Text="En ce moment, on nourrit la forge." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_809" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_2') == 3" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3" Text="En ce moment, on tient le camp serré." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_810" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_2') == 4" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4" Text="En ce moment, on durcit l'entraînement." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_811" DesignName="code 5" EntryCondition="gvar('scriptorium_dialogue_code_2') == 5" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5" Text="En ce moment, on remplit le coffre." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_812" DesignName="code 6" EntryCondition="gvar('scriptorium_dialogue_code_2') == 6" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6" Text="En ce moment, on ménage les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_813" DesignName="code 7" EntryCondition="gvar('scriptorium_dialogue_code_2') == 7" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7" Text="En ce moment, on laisse souffler les hommes." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_814" DesignName="code 8" EntryCondition="gvar('scriptorium_dialogue_code_2') == 8" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8" Text="En ce moment, on serre les dépenses." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_815" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_les_grandes_mesures_menu_660">
+                                <Elements>
+                                  <Response Role="HENRY" />
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                      </Sequences>
+                    </Decision>
+                  </Sequence>
+                  <Sequence Name="scriptorium_socle_directeur_tro_le_camp_et_la_troupe_816" DesignName="le_camp_et_la_troupe" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'le_camp_et_la_troupe', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                    <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_invite" Text="Le camp et la troupe." />
+                    <Elements>
+                      <Response Role="HENRY">
+                        <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_henry" Text="Parlons du camp et de la troupe." />
+                        <Commands>
+                          <CameraCommand />
+                        </Commands>
+                      </Response>
+                      <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                        <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_reponse" Text="Je vous écoute, chef." />
+                        <Commands>
+                          <CameraCommand />
+                        </Commands>
+                      </Response>
+                    </Elements>
+                    <Decision Name="scriptorium_socle_directeur_tro_le_camp_et_la_troupe_menu_817" Priority="General" DesignName="le_camp_et_la_troupe">
+                      <Sequences>
+                        <Sequence Name="scriptorium_socle_directeur_tro_leve_le_camp_818" DesignName="leve_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_monte') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'leve_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_invite" Text="Lève le camp." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_henry" Text="Lève le camp." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place1_819" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_820" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_p1_1" Text="Bien, chef. On plie tout." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_821" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_p1_2" Text="Le camp est déjà levé, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_822" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_p1_3" Text="Pas maintenant, chef : il y a des ennemis tout près." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_823" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_monte_le_camp_824" DesignName="monte_le_camp" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'monte_le_camp', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_invite" Text="Montons le camp ici." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_henry" Text="Montons le camp ici." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place1_825" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_826" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_1" Text="Bien, chef. Je fais venir les hommes : on monte le camp ici." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_827" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_2" Text="Le camp est déjà monté, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_828" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_3" Text="Pas maintenant, chef : il y a des ennemis tout près." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_829" DesignName="code 4" EntryCondition="gvar('scriptorium_dialogue_code_1') == 4" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_4" Text="Il n'y a personne pour le monter, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_830" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_appelle_tous_831" DesignName="appelle_tous" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_chez_elle') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'appelle_tous', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_invite" Text="Appelle tous les hommes." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_henry" Text="Appelle tous les hommes." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place1_832" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_833" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_p1_1" Text="Bien, chef. Je les fais venir, tous." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_834" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_p1_2" Text="Ils sont déjà tous là, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_835" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_p1_3" Text="Pas maintenant, chef : il y a des ennemis tout près." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_836" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_appelle_la_moitie_837" DesignName="appelle_la_moitie" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_chez_elle') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'appelle_la_moitie', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_invite" Text="Appelle la moitié, les meilleurs." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_henry" Text="Appelle la moitié, les meilleurs." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place1_838" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_839" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_p1_1" Text="Bien, chef. Les meilleurs arrivent." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_840" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_p1_2" Text="La moitié est déjà là, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_841" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_p1_3" Text="Pas maintenant, chef : il y a des ennemis tout près." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_842" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_renvoie_chez_eux_843" DesignName="renvoie_chez_eux" EntryCondition="gvar('scriptorium_dialogue_si_camp_leve') == 1 AND gvar('scriptorium_dialogue_si_troupe_appelee') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'renvoie_chez_eux', dc['SCRIPTORIUM_SOCLE_DIRECTEUR']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_invite" Text="Renvoie les hommes chez eux." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_henry" Text="Renvoie les hommes chez eux." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_directeur_tro_place1_844" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_845" DesignName="code 1" EntryCondition="gvar('scriptorium_dialogue_code_1') == 1" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_p1_1" Text="Bien, chef. Chacun rentre chez soi." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_846" DesignName="code 2" EntryCondition="gvar('scriptorium_dialogue_code_1') == 2" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_p1_2" Text="Ils sont déjà chez eux, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_847" DesignName="code 3" EntryCondition="gvar('scriptorium_dialogue_code_1') == 3" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_p1_3" Text="Pas maintenant, chef : il y a des ennemis tout près." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_directeur_tro_code_848" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
+                                    <Text StringName="ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_directeur_tro_retour_849" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_tro_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
                             <Response Role="HENRY" />

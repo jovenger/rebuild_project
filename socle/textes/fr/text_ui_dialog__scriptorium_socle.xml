@@ -142,6 +142,19 @@
   <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_9</Cell><Cell>Les hommes sont fourbus, chef.</Cell><Cell>Les hommes sont fourbus, chef.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_p1_10</Cell><Cell>Rien à signaler, chef. Tout est en ordre.</Cell><Cell>Rien à signaler, chef. Tout est en ordre.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_menu_ou_en_sont_les_hommes_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_invite</Cell><Cell>Ton commandement.</Cell><Cell>Ton commandement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_henry</Cell><Cell>Parlons de ton commandement.</Cell><Cell>Parlons de ton commandement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_reponse</Cell><Cell>Je vous écoute, chef.</Cell><Cell>Je vous écoute, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_invite</Cell><Cell>Tu es renvoyé. Tu quittes le camp.</Cell><Cell>Tu es renvoyé. Tu quittes le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_henry</Cell><Cell>Tu es renvoyé. Tu quittes le camp.</Cell><Cell>Tu es renvoyé. Tu quittes le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_p1_50</Cell><Cell>Bien… Je prends mes affaires et je pars.</Cell><Cell>Bien… Je prends mes affaires et je pars.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_p1_51</Cell><Cell>Renvoyé ? Après tout ce que j'ai fait ? Alors en garde, et à mort !</Cell><Cell>Renvoyé ? Après tout ce que j'ai fait ? Alors en garde, et à mort !</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_p1_52</Cell><Cell>Pas maintenant, chef : l'ennemi est sur nous.</Cell><Cell>Pas maintenant, chef : l'ennemi est sur nous.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_invite</Cell><Cell>Rien. Continue ton service.</Cell><Cell>Rien. Continue ton service.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_henry</Cell><Cell>Rien. Continue ton service.</Cell><Cell>Rien. Continue ton service.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_p1_53</Cell><Cell>Bien, chef.</Cell><Cell>Bien, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_invite</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_henry</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell><Cell>Je te défie en duel. À la vraie lame, mais pas à mort.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_homme_menu_duel_reponse</Cell><Cell>Un duel ? Voyons voir…</Cell><Cell>Un duel ? Voyons voir…</Cell></Row>
@@ -236,5 +249,115 @@
   <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_p1_3</Cell><Cell>Merci, chef. C'est au coffre.</Cell><Cell>Merci, chef. C'est au coffre.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_p1_4</Cell><Cell>Vous n'avez pas assez sur vous, chef.</Cell><Cell>Vous n'avez pas assez sur vous, chef.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_directeur_le_coffre_mets_au_coffre_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_invite</Cell><Cell>Les grandes mesures.</Cell><Cell>Les grandes mesures.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_henry</Cell><Cell>Parlons des grandes mesures.</Cell><Cell>Parlons des grandes mesures.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_1</Cell><Cell>L'alerte rouge est déclarée, chef. Tout le camp est sur le pied de guerre.</Cell><Cell>L'alerte rouge est déclarée, chef. Tout le camp est sur le pied de guerre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_2</Cell><Cell>En ce moment, on nourrit la forge.</Cell><Cell>En ce moment, on nourrit la forge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_invite</Cell><Cell>Déclare l'alerte rouge.</Cell><Cell>Déclare l'alerte rouge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_henry</Cell><Cell>Déclare l'alerte rouge.</Cell><Cell>Déclare l'alerte rouge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_p1_10</Cell><Cell>Alerte rouge, chef. Je mets le camp sur le pied de guerre.</Cell><Cell>Alerte rouge, chef. Je mets le camp sur le pied de guerre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_p1_11</Cell><Cell>C'est déjà fait, chef.</Cell><Cell>C'est déjà fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_declare_l_alerte_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_invite</Cell><Cell>Lève l'alerte rouge.</Cell><Cell>Lève l'alerte rouge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_henry</Cell><Cell>Lève l'alerte rouge.</Cell><Cell>Lève l'alerte rouge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_p1_12</Cell><Cell>Bien, chef. Le camp reprend son train ordinaire.</Cell><Cell>Bien, chef. Le camp reprend son train ordinaire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_p1_13</Cell><Cell>Il n'y a pas d'alerte, chef.</Cell><Cell>Il n'y a pas d'alerte, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_leve_l_alerte_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_invite</Cell><Cell>Nourris la forge.</Cell><Cell>Nourris la forge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_henry</Cell><Cell>Nourris la forge.</Cell><Cell>Nourris la forge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_forge_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_invite</Cell><Cell>Tiens le camp serré.</Cell><Cell>Tiens le camp serré.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_henry</Cell><Cell>Tiens le camp serré.</Cell><Cell>Tiens le camp serré.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_tenir_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_invite</Cell><Cell>Durcis l'entraînement.</Cell><Cell>Durcis l'entraînement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_henry</Cell><Cell>Durcis l'entraînement.</Cell><Cell>Durcis l'entraînement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_entrainement_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_invite</Cell><Cell>Remplis le coffre.</Cell><Cell>Remplis le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_henry</Cell><Cell>Remplis le coffre.</Cell><Cell>Remplis le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_coffre_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_invite</Cell><Cell>Ménage les hommes.</Cell><Cell>Ménage les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_henry</Cell><Cell>Ménage les hommes.</Cell><Cell>Ménage les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_menager_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_invite</Cell><Cell>Laisse souffler les hommes.</Cell><Cell>Laisse souffler les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_henry</Cell><Cell>Laisse souffler les hommes.</Cell><Cell>Laisse souffler les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_souffler_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_invite</Cell><Cell>Serre les dépenses.</Cell><Cell>Serre les dépenses.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_henry</Cell><Cell>Serre les dépenses.</Cell><Cell>Serre les dépenses.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_p1_20</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell><Cell>Bien, chef. C'est en place dès maintenant.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_p1_21</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell><Cell>C'est déjà ce qu'on fait, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_p1_22</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell><Cell>C'est noté, chef. L'alerte rouge passe avant, tant qu'elle dure.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_mesure_depenses_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_invite</Cell><Cell>Reviens à l'ordinaire.</Cell><Cell>Reviens à l'ordinaire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_henry</Cell><Cell>Reviens à l'ordinaire.</Cell><Cell>Reviens à l'ordinaire.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_p1_23</Cell><Cell>Bien, chef. Plus de mesure : on fait comme d'habitude.</Cell><Cell>Bien, chef. Plus de mesure : on fait comme d'habitude.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_p1_24</Cell><Cell>On y est déjà, chef.</Cell><Cell>On y est déjà, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_reviens_a_l_ordinaire_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_3</Cell><Cell>En ce moment, on tient le camp serré.</Cell><Cell>En ce moment, on tient le camp serré.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_4</Cell><Cell>En ce moment, on durcit l'entraînement.</Cell><Cell>En ce moment, on durcit l'entraînement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_5</Cell><Cell>En ce moment, on remplit le coffre.</Cell><Cell>En ce moment, on remplit le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_6</Cell><Cell>En ce moment, on ménage les hommes.</Cell><Cell>En ce moment, on ménage les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_7</Cell><Cell>En ce moment, on laisse souffler les hommes.</Cell><Cell>En ce moment, on laisse souffler les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p2_8</Cell><Cell>En ce moment, on serre les dépenses.</Cell><Cell>En ce moment, on serre les dépenses.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_2</Cell><Cell>En ce moment, on nourrit la forge.</Cell><Cell>En ce moment, on nourrit la forge.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_3</Cell><Cell>En ce moment, on tient le camp serré.</Cell><Cell>En ce moment, on tient le camp serré.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_4</Cell><Cell>En ce moment, on durcit l'entraînement.</Cell><Cell>En ce moment, on durcit l'entraînement.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_5</Cell><Cell>En ce moment, on remplit le coffre.</Cell><Cell>En ce moment, on remplit le coffre.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_6</Cell><Cell>En ce moment, on ménage les hommes.</Cell><Cell>En ce moment, on ménage les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_7</Cell><Cell>En ce moment, on laisse souffler les hommes.</Cell><Cell>En ce moment, on laisse souffler les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_8</Cell><Cell>En ce moment, on serre les dépenses.</Cell><Cell>En ce moment, on serre les dépenses.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_p1_9</Cell><Cell>Rien de particulier en ce moment, chef. On fait comme d'habitude.</Cell><Cell>Rien de particulier en ce moment, chef. On fait comme d'habitude.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_les_grandes_mesures_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_invite</Cell><Cell>Le camp et la troupe.</Cell><Cell>Le camp et la troupe.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_henry</Cell><Cell>Parlons du camp et de la troupe.</Cell><Cell>Parlons du camp et de la troupe.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_reponse</Cell><Cell>Je vous écoute, chef.</Cell><Cell>Je vous écoute, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_invite</Cell><Cell>Lève le camp.</Cell><Cell>Lève le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_henry</Cell><Cell>Lève le camp.</Cell><Cell>Lève le camp.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_p1_1</Cell><Cell>Bien, chef. On plie tout.</Cell><Cell>Bien, chef. On plie tout.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_p1_2</Cell><Cell>Le camp est déjà levé, chef.</Cell><Cell>Le camp est déjà levé, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_p1_3</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_leve_le_camp_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_invite</Cell><Cell>Montons le camp ici.</Cell><Cell>Montons le camp ici.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_henry</Cell><Cell>Montons le camp ici.</Cell><Cell>Montons le camp ici.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_1</Cell><Cell>Bien, chef. Je fais venir les hommes : on monte le camp ici.</Cell><Cell>Bien, chef. Je fais venir les hommes : on monte le camp ici.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_2</Cell><Cell>Le camp est déjà monté, chef.</Cell><Cell>Le camp est déjà monté, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_3</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_p1_4</Cell><Cell>Il n'y a personne pour le monter, chef.</Cell><Cell>Il n'y a personne pour le monter, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_monte_le_camp_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_invite</Cell><Cell>Appelle tous les hommes.</Cell><Cell>Appelle tous les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_henry</Cell><Cell>Appelle tous les hommes.</Cell><Cell>Appelle tous les hommes.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_p1_1</Cell><Cell>Bien, chef. Je les fais venir, tous.</Cell><Cell>Bien, chef. Je les fais venir, tous.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_p1_2</Cell><Cell>Ils sont déjà tous là, chef.</Cell><Cell>Ils sont déjà tous là, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_p1_3</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_tous_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_invite</Cell><Cell>Appelle la moitié, les meilleurs.</Cell><Cell>Appelle la moitié, les meilleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_henry</Cell><Cell>Appelle la moitié, les meilleurs.</Cell><Cell>Appelle la moitié, les meilleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_p1_1</Cell><Cell>Bien, chef. Les meilleurs arrivent.</Cell><Cell>Bien, chef. Les meilleurs arrivent.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_p1_2</Cell><Cell>La moitié est déjà là, chef.</Cell><Cell>La moitié est déjà là, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_p1_3</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_appelle_la_moitie_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_invite</Cell><Cell>Renvoie les hommes chez eux.</Cell><Cell>Renvoie les hommes chez eux.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_henry</Cell><Cell>Renvoie les hommes chez eux.</Cell><Cell>Renvoie les hommes chez eux.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_p1_1</Cell><Cell>Bien, chef. Chacun rentre chez soi.</Cell><Cell>Bien, chef. Chacun rentre chez soi.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_p1_2</Cell><Cell>Ils sont déjà chez eux, chef.</Cell><Cell>Ils sont déjà chez eux, chef.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_p1_3</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell><Cell>Pas maintenant, chef : il y a des ennemis tout près.</Cell></Row>
+  <Row><Cell>ui_scriptorium_dlg_directeur_le_camp_et_la_troupe_renvoie_chez_eux_repli</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell><Cell>Pardon, chef… j'avais la tête ailleurs.</Cell></Row>
   <Row><Cell>ui_scriptorium_dlg_directeur_ce_sera_tout</Cell><Cell>Ce sera tout.</Cell><Cell>Ce sera tout.</Cell></Row>
 </Table>

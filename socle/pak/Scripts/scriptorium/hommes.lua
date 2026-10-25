@@ -829,12 +829,50 @@ Scriptorium.remplacable(hommes, "reponse_du_dialogue", function(rendu)
 end)
 
 -- Le personnage qui parle (le nom de son entité) devient l'homme, ou « directeur » ; la décision rend la réponse.
+-- Décision remplaçable (fiche 21 ; décisions de JoVenGer du 25/10, contrat du pair) : les conditions des catégories et
+-- des choix de l'arbre « arbre » pour cet interlocuteur, { nom = vrai|faux }, demandées à l'ouverture et à chaque choix
+-- comme « colonel ». Les noms sont ceux de hommes.conditions_du_dialogue_noms (outils/dialogues.py les écrit dans les
+-- arbres) ; un nom absent vaut faux. Par défaut, le socle ne sait que le chef et le camp : ni troupe, ni alerte, ni mesure.
+hommes.conditions_du_dialogue_noms = { "colonel", "camp_monte", "camp_leve", "troupe_chez_elle", "troupe_appelee",
+                                       "alerte", "sans_alerte", "mesure" }
+function hommes.conditions_du_dialogue(arbre, id)
+  local d = donnees()
+  local monte = (camp() and camp().est_fonde()) == true
+  return { colonel = (id ~= nil and id == d.capitaine), camp_monte = monte, camp_leve = not monte,
+           troupe_chez_elle = false, troupe_appelee = false, alerte = false, sans_alerte = true, mesure = false }
+end
+Scriptorium.remplacable(hommes, "conditions_du_dialogue", function(rendu)
+  if type(rendu) ~= "table" then
+    return false
+  end
+  for nom, valeur in pairs(rendu) do
+    if type(nom) ~= "string" or type(valeur) ~= "boolean" then
+      return false
+    end
+  end
+  return true
+end)
+
 function hommes.repondre_au_dialogue(arbre, choix, personnage)
   local id = personnage and hommes.homme_du_personnage(personnage) or nil
   if not id and personnage and Scriptorium.directeur and Scriptorium.directeur.personnage() == personnage then
     id = "directeur"
   end
-  return Scriptorium.avis(hommes, "reponse_du_dialogue", arbre, choix, id) or { codes = {} }
+  local reponse = Scriptorium.avis(hommes, "reponse_du_dialogue", arbre, choix, id) or { codes = {} }
+  local conditions = {}
+  for _, nom in ipairs(hommes.conditions_du_dialogue_noms) do
+    conditions[nom] = false
+  end
+  for nom, valeur in pairs(Scriptorium.avis(hommes, "conditions_du_dialogue", arbre, id) or {}) do
+    if conditions[nom] ~= nil then
+      conditions[nom] = valeur
+    end
+  end
+  -- « colonel » dit par la réponse (la forme d'avant le 25/10) compte toujours.
+  conditions.colonel = conditions.colonel or reponse.colonel == true
+  reponse.colonel = conditions.colonel
+  reponse.conditions = conditions
+  return reponse
 end
 
 -- ---------------------------------------------------------------- rangs

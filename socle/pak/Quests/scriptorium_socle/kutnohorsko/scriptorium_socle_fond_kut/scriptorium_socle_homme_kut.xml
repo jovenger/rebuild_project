@@ -13193,7 +13193,124 @@
                       </Sequences>
                     </Decision>
                   </Sequence>
-                  <Sequence Name="scriptorium_socle_homme_kut_duel_1465" DesignName="duel" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'duel', dc['SCRIPTORIUM_SOCLE_HOMME']) end" EndType="Decision">
+                  <Sequence Name="scriptorium_socle_homme_kut_ton_commandement_1465" DesignName="ton_commandement" EntryCondition="gvar('scriptorium_dialogue_colonel') == 1" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'ton_commandement', dc['SCRIPTORIUM_SOCLE_HOMME']) end" EndType="Decision">
+                    <UiPrompt StringName="ui_scriptorium_dlg_homme_ton_commandement_invite" Text="Ton commandement." />
+                    <Elements>
+                      <Response Role="HENRY">
+                        <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_henry" Text="Parlons de ton commandement." />
+                        <Commands>
+                          <CameraCommand />
+                        </Commands>
+                      </Response>
+                      <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                        <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_reponse" Text="Je vous écoute, chef." />
+                        <Commands>
+                          <CameraCommand />
+                        </Commands>
+                      </Response>
+                    </Elements>
+                    <Decision Name="scriptorium_socle_homme_kut_ton_commandement_menu_1466" Priority="General" DesignName="ton_commandement">
+                      <Sequences>
+                        <Sequence Name="scriptorium_socle_homme_kut_tu_es_renvoye_1467" DesignName="tu_es_renvoye" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'tu_es_renvoye', dc['SCRIPTORIUM_SOCLE_HOMME']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_invite" Text="Tu es renvoyé. Tu quittes le camp." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_henry" Text="Tu es renvoyé. Tu quittes le camp." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_homme_kut_place1_1468" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_homme_kut_code_1469" DesignName="code 50" EntryCondition="gvar('scriptorium_dialogue_code_1') == 50" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                                    <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_p1_50" Text="Bien… Je prends mes affaires et je pars." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_homme_kut_code_1470" DesignName="code 51" EntryCondition="gvar('scriptorium_dialogue_code_1') == 51" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                                    <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_p1_51" Text="Renvoyé ? Après tout ce que j'ai fait ? Alors en garde, et à mort !" />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_homme_kut_code_1471" DesignName="code 52" EntryCondition="gvar('scriptorium_dialogue_code_1') == 52" EndType="EndDialogue">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                                    <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_p1_52" Text="Pas maintenant, chef : l'ennemi est sur nous." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_homme_kut_code_1472" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                                    <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_tu_es_renvoye_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_homme_kut_continue_ton_service_1473" DesignName="continue_ton_service" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'continue_ton_service', dc['SCRIPTORIUM_SOCLE_HOMME']) end" EndType="Decision">
+                          <UiPrompt StringName="ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_invite" Text="Rien. Continue ton service." />
+                          <Elements>
+                            <Response Role="HENRY">
+                              <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_henry" Text="Rien. Continue ton service." />
+                              <Commands>
+                                <CameraCommand />
+                              </Commands>
+                            </Response>
+                          </Elements>
+                          <Decision Name="scriptorium_socle_homme_kut_place1_1474" Autoselect="true" Priority="General" DesignName="place 1">
+                            <Sequences>
+                              <Sequence Name="scriptorium_socle_homme_kut_code_1475" DesignName="code 53" EntryCondition="gvar('scriptorium_dialogue_code_1') == 53" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                                    <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_p1_53" Text="Bien, chef." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                              <Sequence Name="scriptorium_socle_homme_kut_code_1476" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                                <Elements>
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME">
+                                    <Text StringName="ui_scriptorium_dlg_homme_ton_commandement_continue_ton_service_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
+                                    <Commands>
+                                      <CameraCommand />
+                                    </Commands>
+                                  </Response>
+                                </Elements>
+                              </Sequence>
+                            </Sequences>
+                          </Decision>
+                        </Sequence>
+                        <Sequence Name="scriptorium_socle_homme_kut_retour_1477" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                          <UiPrompt StringName="ui_scriptorium_dlg_homme_retour_aux_sujets" Text="Laissons cela." />
+                          <Elements>
+                            <Response Role="HENRY" />
+                          </Elements>
+                        </Sequence>
+                      </Sequences>
+                    </Decision>
+                  </Sequence>
+                  <Sequence Name="scriptorium_socle_homme_kut_duel_1478" DesignName="duel" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'duel', dc['SCRIPTORIUM_SOCLE_HOMME']) end" EndType="Decision">
                     <UiPrompt StringName="ui_scriptorium_dlg_homme_menu_duel_invite" Text="Je te défie en duel. À la vraie lame, mais pas à mort." />
                     <Elements>
                       <Response Role="HENRY">
@@ -13209,9 +13326,9 @@
                         </Commands>
                       </Response>
                     </Elements>
-                    <Decision Name="scriptorium_socle_homme_kut_place1_1466" Autoselect="true" Priority="General" DesignName="place 1">
+                    <Decision Name="scriptorium_socle_homme_kut_place1_1479" Autoselect="true" Priority="General" DesignName="place 1">
                       <Sequences>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1467" DesignName="code 11" EntryCondition="gvar('scriptorium_dialogue_code_1') == 11" EndType="EndDialogue">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1480" DesignName="code 11" EntryCondition="gvar('scriptorium_dialogue_code_1') == 11" EndType="EndDialogue">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_p1_11" Text="J'accepte. Le cercle se forme hors du camp : à vous de venir." />
@@ -13221,7 +13338,7 @@
                             </Response>
                           </Elements>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1468" DesignName="code 12" EntryCondition="gvar('scriptorium_dialogue_code_1') == 12" EndType="EndDialogue">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1481" DesignName="code 12" EntryCondition="gvar('scriptorium_dialogue_code_1') == 12" EndType="EndDialogue">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_p1_12" Text="Avec plaisir. Ça fait longtemps que j'attends ça. Le cercle se forme hors du camp." />
@@ -13231,7 +13348,7 @@
                             </Response>
                           </Elements>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1469" DesignName="code 13" EntryCondition="gvar('scriptorium_dialogue_code_1') == 13" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1482" DesignName="code 13" EntryCondition="gvar('scriptorium_dialogue_code_1') == 13" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_p1_13" Text="Contre vous ? Non merci, chef. Je tiens à mes dents." />
@@ -13241,7 +13358,7 @@
                             </Response>
                           </Elements>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1470" DesignName="code 14" EntryCondition="gvar('scriptorium_dialogue_code_1') == 14" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1483" DesignName="code 14" EntryCondition="gvar('scriptorium_dialogue_code_1') == 14" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_p1_14" Text="Pas dans mon état, chef. Une autre fois." />
@@ -13251,7 +13368,7 @@
                             </Response>
                           </Elements>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1471" DesignName="code 15" EntryCondition="gvar('scriptorium_dialogue_code_1') == 15" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1484" DesignName="code 15" EntryCondition="gvar('scriptorium_dialogue_code_1') == 15" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_p1_15" Text="Je tiens à peine debout. Demain, peut-être." />
@@ -13261,7 +13378,7 @@
                             </Response>
                           </Elements>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1472" DesignName="code 16" EntryCondition="gvar('scriptorium_dialogue_code_1') == 16" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1485" DesignName="code 16" EntryCondition="gvar('scriptorium_dialogue_code_1') == 16" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_p1_16" Text="Pas maintenant, chef : un autre duel est en cours." />
@@ -13271,7 +13388,7 @@
                             </Response>
                           </Elements>
                         </Sequence>
-                        <Sequence Name="scriptorium_socle_homme_kut_code_1473" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
+                        <Sequence Name="scriptorium_socle_homme_kut_code_1486" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_1') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_kut_menu">
                           <Elements>
                             <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                               <Text StringName="ui_scriptorium_dlg_homme_menu_duel_repli" Text="Pardon, chef… j'avais la tête ailleurs." />
