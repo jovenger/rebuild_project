@@ -1128,6 +1128,32 @@ essai("équipement (vu en jeu le 25/10, le colonel nu à 23 pièces au lieu de 1
   verifier(retire, "le doublon retiré, au journal")
 end)
 
+essai("équipement (demande de JoVenGer, 25/10) : les doublons d'avant la correction sont retirés au rhabillage du chargement, sans rééquipement, et il porte une seule pièce de chaque", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  local e = hommes.fiche(id).equipement
+  egal(e.etat, "pret", "prêt")
+  local personnage = hommes.fiche(id).personnage
+  local corps, arme = e.tenue .. "_corps", FauxJeu.pieces_de(e.armes)[1]
+  FauxJeu.creer_objet(personnage, corps, 1, 1)
+  FauxJeu.creer_objet(personnage, corps, 1, 1)
+  FauxJeu.creer_objet(personnage, arme, 1, 1)
+  egal(a_dans_le_sac(id, corps), 3, "deux doublons du torse au départ")
+  local equipements = #FauxJeu.equipements
+  Scriptorium.registre.lire("hommes").liste[id].equipement.etat = "a_rhabiller"
+  hommes.battre()
+  egal(a_dans_le_sac(id, corps), 1, "un seul torse")
+  egal(a_dans_le_sac(id, arme), 1, "une seule arme")
+  egal(#FauxJeu.equipements, equipements, "aucun rééquipement")
+  local retire = false
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "3 pièce(s) en double retirée(s)", 1, true) then retire = true end
+  end
+  verifier(retire, "les trois doublons retirés, au journal")
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)

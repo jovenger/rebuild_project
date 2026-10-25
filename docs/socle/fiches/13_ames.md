@@ -754,3 +754,7 @@
   « pièce(s) en double retirée(s) ». Le préréglage du jeu (`EquipClothingPreset`), proposé par le pair, n'est pas retenu
   sans question à JoVenGer : non gardé au rechargement (V71 a3), il perd l'usure (réponse a du 15/10). Essai (vérifié en
   échec sans) ; à voir en jeu au rechargement de la copie.
+- Demande de JoVenGer (25/10 ; sa vraie partie a sans doute les mêmes doublons) : le retrait des copies en trop se fait
+  aussi à chaque rhabillage (chargement, garde de la tenue), avant de faire porter, sans attendre un rééquipement ; le
+  nombre voulu de chaque pièce : une par mention dans sa tenue et ses armes, plus ses pièces données de la même classe.
+  Essai (vérifié en échec sans).

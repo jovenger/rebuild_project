@@ -1322,6 +1322,40 @@ function hommes.ce_qu_il_porte(id)
   return f and liste_portee(f) or {}
 end
 
+-- Le nombre voulu de chaque pièce de ces objets (sa tenue, ses armes) : une par mention, plus ses pièces données de la
+-- même classe.
+local function pieces_voulues(f, objets)
+  local voulues = {}
+  for _, objet in ipairs(objets) do
+    voulues[objet] = (voulues[objet] or 0) + 1
+  end
+  for _, piece in ipairs(f.equipement.en_plus or {}) do
+    local objet = objet_de(piece)
+    if voulues[objet] then
+      voulues[objet] = voulues[objet] + 1
+    end
+  end
+  return voulues
+end
+
+-- Vu en jeu le 25/10 (le colonel nu, 23 pièces de sa tenue au lieu de 10) : deux pièces de la même classe trompent le
+-- jeu (FindItem prend l'une ou l'autre : la forge détruisait la copie portée). Les copies au-delà du nombre voulu sont
+-- retirées, avant de faire porter. Rend le nombre de pièces retirées.
+local function retirer_les_doublons(f, voulues)
+  local retirees = 0
+  for objet, n in pairs(voulues) do
+    local a = jeu().compter_objet(f.personnage, objet)
+    while a > n and jeu().retirer_un_objet(f.personnage, objet) do
+      a = a - 1
+      retirees = retirees + 1
+    end
+  end
+  if retirees > 0 then
+    jeu().journal("Hommes : « " .. f.nom .. " », " .. retirees .. " pièce(s) en double retirée(s)")
+  end
+  return retirees
+end
+
 -- Équipe l'homme : sa tenue de naissance retirée d'abord, une fois (V71 a6), puis chaque pièce créée une à une, puis
 -- portée dans l'ordre ; les pièces de l'ancien grade offertes à l'accroche « piece_otee ».
 local function equiper(d, f)
@@ -1354,32 +1388,17 @@ local function equiper(d, f)
   -- l'autre : la forge détruisait la copie portée). Sa tenue de naissance déjà retirée, il garde ses pièces (et leur
   -- usure) : seules celles qui manquent sont créées, les copies en trop retirées avant de porter.
   if e.naissance_retiree then
-    local voulues = {}
+    local voulues = pieces_voulues(f, a_creer)
+    retirer_les_doublons(f, voulues)
+    local manque, manquantes = {}, {}
     for _, objet in ipairs(a_creer) do
-      voulues[objet] = (voulues[objet] or 0) + 1
-    end
-    for _, piece in ipairs(e.en_plus or {}) do
-      local objet = objet_de(piece)
-      if voulues[objet] then
-        voulues[objet] = voulues[objet] + 1
+      if manque[objet] == nil then
+        manque[objet] = voulues[objet] - jeu().compter_objet(f.personnage, objet)
       end
-    end
-    local manquantes, retirees = {}, 0
-    for _, objet in ipairs(a_creer) do
-      local a = jeu().compter_objet(f.personnage, objet)
-      while a > voulues[objet] and jeu().retirer_un_objet(f.personnage, objet) do
-        a = a - 1
-        retirees = retirees + 1
-      end
-      if a < voulues[objet] then
+      if manque[objet] > 0 then
         table.insert(manquantes, objet)
-        voulues[objet] = voulues[objet] - 1
-      else
-        voulues[objet] = a
+        manque[objet] = manque[objet] - 1
       end
-    end
-    if retirees > 0 then
-      jeu().journal("Hommes : « " .. f.nom .. " », " .. retirees .. " pièce(s) en double retirée(s)")
     end
     a_creer = manquantes
     if munitions_donnees then
@@ -1455,6 +1474,15 @@ end
 
 local function rhabiller(d, f)
   local e = f.equipement
+  -- Demande de JoVenGer (25/10) : les doublons d'avant la correction (sa vraie partie en a) retirés au rhabillage,
+  -- sans attendre un rééquipement.
+  if e.tenue and e.armes and e.naissance_retiree then
+    local objets = jeu().pieces_de(e.tenue) or {}
+    for _, objet in ipairs(jeu().pieces_de(e.armes) or {}) do
+      table.insert(objets, objet)
+    end
+    retirer_les_doublons(f, pieces_voulues(f, objets))
+  end
   local portes, introuvables = jeu().faire_porter(f.personnage, liste_portee(f))
   e.etat = "a_completer"
   -- Le dernier état connu de chaque pièce donnée, pour la recréer telle quelle si le personnage est refait (V71 c).
