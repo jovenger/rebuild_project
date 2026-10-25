@@ -765,3 +765,8 @@
   « va au radical ») : la liaison garde la copie que trouve le jeu et détruit les autres par leur identifiant
   (`retirer_les_copies`) ; et l'homme dont des doublons ont été retirés remet encore ses pièces au battement suivant
   (« a_rhabiller », une fois). Essai (vérifié en échec sans) ; à voir à l'image au chargement de la copie de 10 h 31.
+- Vu ensuite (25/10, socle 9fbb391, le pair à l'image) : le colonel vêtu, mais Václav Vlk (3 doublons) encore nu après
+  la remise du battement suivant ; une remise faite par le pair quelques minutes plus tard (9 portées) le vêtait. Le
+  jeu n'a pas d'appel pour lire qu'une pièce est portée (relevé du 16/10) : après un retrait de doublons, ses pièces
+  sont refaites porter encore à +30 s, +2 min et +5 min (secondes réelles, `doublons_remise_1_s` à `_3_s`, réglables ;
+  remettre une pièce portée ne l'ôte pas, V71 c), au journal « remise après ses doublons ». Essai (vérifié en échec sans).

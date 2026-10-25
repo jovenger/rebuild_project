@@ -249,6 +249,12 @@ hommes.reglages = {
   -- plus tant de nouveaux ordres de la journée par seconde, les autres dans les secondes suivantes (0 : tous d'un coup).
   ordres_par_seconde = 4,
   habillage_second_passage_ms = 2000,
+  -- Vu à l'image le 25/10 (socle 9fbb391 : Václav Vlk nu après le retrait de ses doublons, malgré la remise du battement
+  -- suivant ; une remise quelques minutes plus tard le vêtait) : après un retrait de doublons, ses pièces refaites
+  -- porter encore à ces délais (secondes réelles ; 0 : pas de remise).
+  doublons_remise_1_s = 30,
+  doublons_remise_2_s = 120,
+  doublons_remise_3_s = 300,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -1344,6 +1350,7 @@ end
 -- Vu ensuite (25/10, socle 961689d : le colonel nu après le retrait, ses pièces au sac ; refaites porter plus tard, il
 -- était vêtu) : la copie que le jeu trouve est gardée, les autres détruites par leur identifiant (liaison) ; et l'homme
 -- remet encore ses pièces au battement suivant (« a_rhabiller »).
+local remettre_apres_doublons
 local function retirer_les_doublons(f, voulues)
   local retirees = 0
   for objet, n in pairs(voulues) do
@@ -1354,6 +1361,7 @@ local function retirer_les_doublons(f, voulues)
   end
   if retirees > 0 then
     jeu().journal("Hommes : « " .. f.nom .. " », " .. retirees .. " pièce(s) en double retirée(s) ; il remettra ses pièces au battement suivant")
+    remettre_apres_doublons(f)
   end
   return retirees
 end
@@ -1600,6 +1608,31 @@ local function second_passage_differe(f)
       enregistrer()
     end
   end)
+end
+
+-- Les remises après un retrait de doublons (« doublons_remise_N_s ») : ses propres pièces refaites porter, sans rien
+-- créer ni rien ôter (remettre une pièce portée ne l'ôte pas, V71 c) ; jamais en bataille, ni s'il est tenu dévêtu.
+remettre_apres_doublons = function(f)
+  if not jeu().minuterie then
+    return
+  end
+  local generation, id = Scriptorium.generation, f.id
+  for i = 1, 3 do
+    local s = tonumber(hommes.reglages["doublons_remise_" .. i .. "_s"]) or 0
+    if s > 0 then
+      jeu().minuterie(s * 1000, function()
+        if generation ~= Scriptorium.generation or en_bataille() then
+          return
+        end
+        local g = donnees().liste[id]
+        if g and g.equipement and g.personnage and jeu().personnage_existe(g.personnage) and not garde_suspendue(id, g) then
+          local portes, introuvables = jeu().faire_porter(g.personnage, liste_portee(g))
+          jeu().journal("Hommes : « " .. g.nom .. " », remise après ses doublons (+" .. s .. " s) : " .. tostring(portes)
+                        .. " pièce(s) portée(s), " .. #introuvables .. " introuvable(s)")
+        end
+      end)
+    end
+  end
 end
 
 -- Les hommes habillés au moment de leur ordre depuis le début du battement (la file ne les reprend pas aussitôt).

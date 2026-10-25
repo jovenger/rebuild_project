@@ -1159,6 +1159,21 @@ essai("équipement (demande de JoVenGer, 25/10) : les doublons d'avant la correc
   hommes.battre()
   verifier(d.liste[id].equipement.etat ~= "a_rhabiller", "remis une fois, sans boucle (" .. tostring(d.liste[id].equipement.etat) .. ")")
   egal(a_dans_le_sac(id, corps), 1, "toujours un seul torse")
+  -- Vu ensuite (25/10, socle 9fbb391 : Václav Vlk encore nu ; une remise quelques minutes plus tard le vêtait) : ses
+  -- pièces refaites porter à +30 s, +2 min et +5 min.
+  local remises = 0
+  for _, m in ipairs(FauxJeu.minuteries) do
+    if m.ms == 30000 or m.ms == 120000 or m.ms == 300000 then
+      remises = remises + 1
+      m.fonction()
+    end
+  end
+  egal(remises, 3, "trois remises prévues")
+  local vues = 0
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "remise après ses doublons", 1, true) and string.find(l, "0 introuvable(s)", 1, true) then vues = vues + 1 end
+  end
+  egal(vues, 3, "trois remises faites, au journal")
 end)
 
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
