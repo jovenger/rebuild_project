@@ -1761,6 +1761,15 @@ function liaison.ranger_au_sac(personnage, objet)
   return liaison.creer_objet(personnage, objet, etat, 1)
 end
 
+-- Vu en J39 (25/10, le pair : des pièces disparaissent du sac de nos hommes, ils se retrouvent nus) : chaque retrait
+-- d'objet par la liaison est écrit au journal, avec la pile des appelants (debug.traceback), pour savoir qui retire.
+local function tracer_un_retrait(personnage, objet, nombre)
+  local lu, texte = pcall(debug.traceback, "", 3)
+  local pile = (lu and type(texte) == "string") and string.sub(string.gsub(texte, "%s+", " "), 1, 260) or "?"
+  liaison.journal("Retrait : « " .. tostring(personnage) .. " », " .. tostring(objet) .. " × " .. tostring(nombre)
+                  .. " ; appelants :" .. pile)
+end
+
 -- Retire de son sac une pièce de cet objet. Rend vrai si le compte a baissé.
 function liaison.retirer_un_objet(personnage, objet)
   local entite = porteur(personnage)
@@ -1768,6 +1777,7 @@ function liaison.retirer_un_objet(personnage, objet)
   if not entite or avant == 0 then
     return false
   end
+  tracer_un_retrait(personnage, objet, 1)
   pcall(function() entite.inventory:DeleteItem(entite.inventory:FindItem(objet), 1) end)
   return liaison.compter_objet(personnage, objet) < avant
 end
@@ -1798,6 +1808,9 @@ function liaison.retirer_les_copies(personnage, objet, nombre)
       end
     end
   end
+  if retirees > 0 then
+    tracer_un_retrait(personnage, objet, retirees)
+  end
   return retirees
 end
 
@@ -1810,6 +1823,7 @@ function liaison.equiper_homme(personnage, ordre)
   end
   local retires = 0
   if ordre.retirer_naissance then
+    tracer_un_retrait(personnage, "tout le sac (tenue de naissance)", "?")
     local ok, liste = pcall(function() return entite.inventory:GetInventoryTable() end)
     for _, id in pairs((ok and type(liste) == "table") and liste or {}) do
       local lu, objet = pcall(function() return ItemManager.GetItem(id) end)

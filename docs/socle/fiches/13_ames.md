@@ -770,3 +770,10 @@
   jeu n'a pas d'appel pour lire qu'une pièce est portée (relevé du 16/10) : après un retrait de doublons, ses pièces
   sont refaites porter encore à +30 s, +2 min et +5 min (secondes réelles, `doublons_remise_1_s` à `_3_s`, réglables ;
   remettre une pièce portée ne l'ôte pas, V71 c), au journal « remise après ses doublons ». Essai (vérifié en échec sans).
+- Vu en J39 (25/10, JoVenGer : « des hommes marchent habillés, puis plus de vêtements ») : des pièces disparaissent du
+  SAC de nos hommes (remises après doublons : 9 portées à +30 s, puis 3 portées et 6 introuvables à +120 s pour Václav
+  Vlk, de ronde, sans aucun retrait du socle au journal entre les deux). Comparaison des séances : aucune perte en J35,
+  J36, J38a (socle 90ccd68 + Scriptorium 3779c99b) ; pertes dès J38b (même socle 90ccd68, Scriptorium 97920127) et en
+  J39. Diagnostic : chaque retrait d'objet par la liaison (`retirer_un_objet`, `retirer_les_copies`, le retrait de la
+  tenue de naissance) est écrit au journal avec la pile des appelants (« Retrait : … ; appelants : … »). Journal
+  seulement ; à lire à la prochaine séance.
