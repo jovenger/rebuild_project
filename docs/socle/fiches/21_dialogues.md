@@ -140,10 +140,10 @@ paks du jeu (lecture seule) : `Quests/Final/Barbora.xml` et ses Level, quêtes e
 - Diagnostic seulement : l'ExitScript passe aussi le contexte du dialogue (`dc`), et à l'ouverture la liaison écrit au
   journal chaque rôle et l'acteur que le jeu y a lié (« Dialogue : « homme », rôles liés : … »). À lire une fois en jeu ;
   aucune correction avant.
-- Lu en J37 (25/10) : « rôles liés : HENRY = Dude ; SCRIPTORIUM_SOCLE_HOMME = scriptorium_Havel_le_Borgne » ; le visage
-  au casque à crête était celui d'Henry (vu aussi dans le menu du Directeur) : la réplique vide d'Henry posait la caméra
-  sur lui pendant le choix. Demande de JoVenGer (« le plus réaliste ») : comme dans le jeu de base, la caméra montre
-  l'interlocuteur pendant le choix ; plus de réplique vide d'Henry à l'ouverture ; le retour au menu (« Laissons
-  cela. ») et les places sans réplique ont une réplique vide de l'interlocuteur (forme du jeu : 9 703 répliques vides
-  d'un autre rôle que le joueur dans Data/Scripts.pak Quests/). Seul « Ce sera tout » garde la sienne (il ferme le
-  dialogue). À voir à l'image une fois.
+- Lu en J37 (25/10) : « rôles liés : HENRY = Dude ; SCRIPTORIUM_SOCLE_HOMME = scriptorium_Havel_le_Borgne » ; le visage au
+  casque à crête du menu était celui d'Henry (aussi au menu du Directeur). Essayé une fois (3af06a6 : plus de réplique
+  vide d'Henry à l'ouverture, celles du retour et des places vides données à l'interlocuteur) : sans effet à l'image,
+  annulé. Cherché une fois dans le jeu de base (Data/Scripts.pak Quests/, lecture seule) : `CameraCommand Role="…"` coupe
+  vers un AUTRE rôle que celui qui parle (jamais le même) ; le seul réglage de caméra d'une décision est `CustomCamera`
+  (1 727 décisions sur 40 105), qui renvoie à une caméra faite dans l'éditeur (`CameraAsset`) : pas de forme simple à
+  reprendre. Décision du pair et de JoVenGer : le cadrage reste tel quel.
