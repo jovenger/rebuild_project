@@ -852,7 +852,18 @@ aucune sonde dans l'arbre.
     voir). (3) Installer 272a470 + 78696bb + 44ad2fd et voir : l'arme rangée après une attaque, les dialogues, le repas
     de 7 h, l'armurier. (4) Le chasseur de Scriptorium a rangé son arme pendant un geste (« range son arme (geste) ») :
     voulu ou de trop, à voir.
-- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b.
+- J35 (25/10, copie neuve de `playline1\exit.whs` du 25/10 10:31:59 ; verrou `20261025_152001_413323_seance_du_socle` ;
+  socle 14b962d + Scriptorium b0839b11 : l'Aménagement en mode fantôme, tentes comprises, sauf la cabane, la tente
+  d'Henry et la tour de guet ; le point d'entrée des tentes n'est donc plus à faire) : **vu juste, chaque point une
+  fois** (le pair) : la cabane, 2 chasses en 15 h (111 en J34) ; le coucher, 0 laissé au secours, 0 figé ; l'arme rangée
+  4 fois ; le tir, 4 archers dès 7 h 20 ; 10 assauts protégés à 8 h 30 ; les trois dialogues à l'image (grandes mesures,
+  le camp et la troupe, « Ton commandement » puis le renvoi du colonel, code 50, succession annoncée). **Gardé pour
+  tous les jours : socle 14b962d + Scriptorium b0839b11** (retour arrière
+  `Scriptorium_securite\20261025_152001_413323_seance_du_socle`). **Ouvert, petit** : dans le dialogue du colonel, la
+  caméra montrait le visage du Directeur alors que le rôle du jeu était bien Havel (journal : interlocuteur lié, sans
+  « visé ») ; à voir une fois : où était le Directeur, et si son âme porte aussi le rôle des hommes.
+- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
+  kcd_seance_J35.log.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
