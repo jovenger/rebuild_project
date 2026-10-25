@@ -1705,6 +1705,26 @@ function liaison.degainer(personnage)
   return ok and "arme sortie" or ("refusé : " .. tostring(erreur))
 end
 
+-- Vu en J34 (25/10 ; prouvé par le pair dans la copie : human:HolsterWeapon, puis l'homme est allé à son lit) : après un
+-- combat, un homme encore en arme, sans danger, refusait son lit (figé, relancé deux fois, laissé au secours). Son arme
+-- est rangée s'il l'a tirée et que son âme n'est ni en danger ni en mode de combat. Rend vrai si elle a été rangée.
+local function vrai_du_jeu(ok, valeur)
+  return ok and (valeur == true or valeur == 1)
+end
+
+function liaison.ranger_l_arme_au_repos(personnage)
+  local entite = porteur(personnage)
+  if not entite or not entite.human or not entite.soul then
+    return false
+  end
+  if not vrai_du_jeu(pcall(function() return entite.human:IsWeaponDrawn() end))
+     or vrai_du_jeu(pcall(function() return entite.soul:IsInCombatDanger() end))
+     or vrai_du_jeu(pcall(function() return entite.soul:IsInCombatMode() end)) then
+    return false
+  end
+  return (pcall(function() entite.human:HolsterWeapon() end))
+end
+
 -- L'état d'une pièce de cet objet dans son sac (V71 a3 : ItemManager.GetItem(id).health), ou nil.
 function liaison.etat_objet(personnage, objet)
   local entite = porteur(personnage)

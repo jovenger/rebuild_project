@@ -706,6 +706,13 @@ function faux.retirer_un_objet(personnage, objet)
   end
   return false
 end
+-- Comme la liaison : l'arme rangée si elle est tirée, hors danger et hors mode de combat.
+faux.armes_tirees, faux.en_danger = {}, {}
+function faux.ranger_l_arme_au_repos(personnage)
+  if not faux.armes_tirees[personnage] or faux.en_danger[personnage] then return false end
+  faux.armes_tirees[personnage] = nil
+  return true
+end
 -- Comme la liaison : la première copie (celle que trouve FindItem) est gardée, « nombre » autres retirées.
 function faux.retirer_les_copies(personnage, objet, nombre)
   local inventaire = faux.inventaires[personnage] or {}

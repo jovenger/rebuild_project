@@ -2758,3 +2758,13 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   automatismes passent par une variable ; cinq balises nues de nœuds du jeu comptées en formes, borne relevée à 43) ;
   à voir en jeu : l'arbre se charge, les deux combattent sans tomber, la fin de la tenue arrête l'assaut. La liaison
   et l'arbre ne se rechargent pas en jeu ouvert : une installation et un rechargement de la copie.
+- Vu en J34 (25/10, vers 1 h 40 de jeu, après l'attaque de brigands du camp) : 13 hommes figés en allant au lit, relancés
+  deux fois puis laissés au secours (et le secours attendait sans fin : Henry regardait le camp). Lu par le pair, sans
+  rien toucher : aucune tenue de Scriptorium, activité « sommeil », garde du camp finie ; Ondřej et Ulrich l'arme tirée
+  (`human:IsWeaponDrawn` vrai), sans danger ni mode de combat (`soul:IsInCombatDanger`, `soul:IsInCombatMode` faux).
+  Preuve faite par le pair dans la copie : `human:HolsterWeapon()` sur Ondřej, et il a marché jusqu'à 0,14 m de son lit.
+  Désormais, à chaque ordre de la vie du camp (donc aussi à la relance du gardien et après la fin d'un affrontement), un
+  homme dont l'arme est tirée hors de tout combat la range (`liaison.ranger_l_arme_au_repos`), au journal « range son
+  arme » ; jamais pour l'affrontement, le tir ni le geste armé. Recherche faite : aucun appel Lua pour ranger dans les
+  scripts du jeu (seulement `DrawWeapon`) ; `WeaponChange="unarmed"` des arbres veut dire « à mains nues », pas « ranger ».
+  Essai (vérifié en échec sans). Jakub le Long (72 m, arme rangée) : autre cause possible, à revoir.

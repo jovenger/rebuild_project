@@ -4161,6 +4161,13 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose,
                     .. ", " .. (a.amical and "assaut amical" or ("jusqu'à " .. tostring(a.jusqu_a))) .. ") : "
                     .. tostring(jeu().ordonner_l_attaque(a.cible, f.personnage, { arme = a.arme, amical = a.amical == true })))
     else
+      -- Vu en J34 (25/10 ; prouvé par le pair) : après un combat, un homme encore en arme refusait son lit. À chaque ordre
+      -- de la vie du camp (et donc à la relance du gardien, et après la fin d'un affrontement), son arme est rangée s'il
+      -- l'a tirée hors de tout combat ; jamais pour le tir ni le geste armé.
+      if a.activite ~= "tir" and not a.arme_tiree and jeu().ranger_l_arme_au_repos
+          and jeu().ranger_l_arme_au_repos(f.personnage) then
+        jeu().journal("Hommes : « " .. f.nom .. " » range son arme (" .. tostring(a.activite) .. ")")
+      end
       -- Le sommeil au sol se joue comme un geste tenu à son point (ordre 22) ; l'activité reste « sommeil ».
       jeu().ordonner(f.personnage, a.au_sol and "geste" or a.activite, position, a.lieu, objet, sorte, a.regard, a.allure,
                      a.chef, a.suivi, hommes.temps_de_marche_ms(f.personnage, position))

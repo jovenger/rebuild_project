@@ -1209,6 +1209,30 @@ essai("équipement (demande de JoVenGer, 25/10) : les doublons d'avant la correc
   egal(vues, 3, "trois remises faites, au journal")
 end)
 
+essai("arme rangée (vu en J34, 25/10 : après un combat, en arme, il refusait son lit ; prouvé par le pair) : à l'ordre de la vie du camp, l'arme tirée hors combat est rangée ; en danger, jamais", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  local d = Scriptorium.registre.lire("hommes")
+  local perso = hommes.fiche(id).personnage
+  -- En danger : l'arme reste tirée.
+  FauxJeu.armes_tirees[perso], FauxJeu.en_danger[perso] = true, true
+  d.liste[id].derniere_activite = nil
+  hommes.battre()
+  egal(FauxJeu.armes_tirees[perso], true, "en danger : arme gardée")
+  -- Hors danger : rangée au nouvel ordre, au journal.
+  FauxJeu.en_danger[perso] = nil
+  d.liste[id].derniere_activite = nil
+  hommes.battre()
+  egal(FauxJeu.armes_tirees[perso], nil, "hors danger : arme rangée")
+  local vue = false
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "« " .. hommes.fiche(id).nom .. " » range son arme (", 1, true) then vue = true end
+  end
+  verifier(vue, "au journal")
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)
