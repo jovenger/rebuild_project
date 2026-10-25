@@ -32,6 +32,10 @@ hommes.reglages = {
   secours_loin_m = 150,
   secours_loin_camp_m = 50,
   secours_vue_cos = 0.5,
+  -- Vu en J34 (25/10, la nuit : des hommes figés vers leurs lits, dans les grandes tentes de l'Aménagement, attendaient
+  -- le secours sans fin, Henry restant au camp et regardant de leur côté) : la nuit, un endroit à plus de
+  -- « secours_vue_nuit_m » d'Henry ne se voit plus (0 : la nuit ne change rien).
+  secours_vue_nuit_m = 15,
   -- Vu sur une copie de la partie de JoVenGer le 20/10 : trois gens du personnel envoyés dormir sur des objets à plus de
   -- 2 km, puis posés là-bas par le secours. Un lit nommé à plus de « lit_nomme_max_m » du centre du camp (camp fondé)
   -- est refusé.
@@ -3385,9 +3389,22 @@ local function secourir(id, f, a, rapport)
   -- disparaît (règle de JoVenGer, 20/10).
   -- (au-delà de « saut_vue_m », un homme ne se voit plus, comme pour le grand saut).
   local henry = jeu().position_du_joueur()
-  local ici_vu = ici and henry and math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2) <= hommes.reglages.saut_vue_m
-    and jeu().henry_voit(ici, hommes.reglages.secours_vue_cos) == true
-  if jeu().henry_voit(ou, hommes.reglages.secours_vue_cos) == true or ici_vu then
+  local vue_m = hommes.reglages.saut_vue_m
+  local nuit_m = tonumber(hommes.reglages.secours_vue_nuit_m) or 0
+  if nuit_m > 0 and est_nuit(heure_dans_le_jour(jeu().heure_du_jeu())) then
+    vue_m = math.min(vue_m, nuit_m)
+  end
+  local function vu(point)
+    if not point then
+      return false
+    end
+    if henry and math.sqrt((point.x - henry.x) ^ 2 + (point.y - henry.y) ^ 2) > vue_m then
+      return false
+    end
+    return jeu().henry_voit(point, hommes.reglages.secours_vue_cos) == true
+  end
+  local ici_vu = ici and henry and vu(ici)
+  if vu(ou) or ici_vu then
     if not s.vu_par_henry then
       s.vu_par_henry = true
       jeu().journal("Hommes : « " .. f.nom .. " » à secourir, mais Henry regarde l'endroit : le secours attend")

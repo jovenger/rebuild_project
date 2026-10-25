@@ -2846,6 +2846,29 @@ essai("secours (fiche 15, V73 e) : jamais sous les yeux d'Henry ; il détourne l
   egal(#FauxJeu.secours, 2, "sans lecture de la vue : posé")
 end)
 
+essai("secours (vu en J34, 25/10 : la nuit, des figés vers les lits des tentes attendaient sans fin, Henry regardant de leur côté) : la nuit, au-delà de secours_vue_nuit_m d'Henry, l'endroit ne se voit plus ; de près, le secours attend toujours", function()
+  preparer(5000, 100, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local f = hommes.fiche(id)
+  convoquer(id, { centre = camp.point(0, -6, 0) })
+  FauxJeu.heure = 23
+  verifier(Scriptorium.avis(hommes, "est_nuit", 23), "23 h est la nuit")
+  local place = hommes.activite_de(id, 23).position
+  FauxJeu.secours = {}
+  FauxJeu.vue_d_henry = function() return true end
+  -- Henry tout près de l'endroit : le secours attend, même la nuit.
+  FauxJeu.position_joueur = { x = place.x + 5, y = place.y, z = 0 }
+  FauxJeu.positions[f.personnage] = { x = place.x + 151, y = place.y, z = 0 }
+  hommes.battre()
+  hommes.battre()
+  egal(#FauxJeu.secours, 0, "de près, la nuit : il attend")
+  -- Henry à 30 m de l'endroit et à 120 m de l'homme : la nuit, il ne les voit plus.
+  FauxJeu.position_joueur = { x = place.x + 30, y = place.y + 1, z = 0 }
+  hommes.battre()
+  egal(#FauxJeu.secours, 1, "la nuit, de loin : posé")
+  FauxJeu.vue_d_henry, FauxJeu.position_joueur = nil, nil
+end)
+
 essai("rassemblement (fiche 15, V73 e) : les places du briefing d'essai, pour un à neuf hommes, à l'écart des meubles et dans la palissade", function()
   local ecart = camp.reglages.ecart_d_abord
   local rayon = Scriptorium.enceinte.reglages.rayon

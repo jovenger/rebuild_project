@@ -2768,3 +2768,10 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   arme » ; jamais pour l'affrontement, le tir ni le geste armé. Recherche faite : aucun appel Lua pour ranger dans les
   scripts du jeu (seulement `DrawWeapon`) ; `WeaponChange="unarmed"` des arbres veut dire « à mains nues », pas « ranger ».
   Essai (vérifié en échec sans). Jakub le Long (72 m, arme rangée) : autre cause possible, à revoir.
+- Vu en J34 relancée (25/10, 22 h 43 de jeu, sans attaque ni arme tirée) : 5 hommes figés vers leurs lits au sol,
+  dans les grandes tentes carrées de l'Aménagement (rangées 3 à 6 et 70 à 72, quatre lits par tente ; lu par le pair).
+  Laissés au secours, ils l'attendaient sans fin : Henry, au camp, regardait de leur côté (la vue n'était qu'un angle,
+  sans distance pour l'endroit visé). Désormais la vue a une portée : `saut_vue_m` le jour, et la nuit
+  `secours_vue_nuit_m` (15 m, réglable ; 0 : la nuit ne change rien) ; au-delà, l'endroit ne se voit plus et le secours
+  pose. Essai (vérifié en échec sans). La cause du blocage lui-même (l'entrée des tentes, des lits serrés) est à voir au
+  jour, à l'image, avec le pair ; non corrigée.
