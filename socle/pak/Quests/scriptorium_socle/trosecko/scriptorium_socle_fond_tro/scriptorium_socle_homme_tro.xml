@@ -8,7 +8,6 @@
           <Sequences>
             <Sequence Name="scriptorium_socle_homme_tro_ouverture" DesignName="ouverture" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('homme', 'ouverture', dc['SCRIPTORIUM_SOCLE_HOMME'], dc) end" EndType="Decision">
               <Elements>
-                <Response Role="HENRY" />
                 <Response Role="SCRIPTORIUM_SOCLE_HOMME">
                   <Text StringName="ui_scriptorium_dlg_homme_ouverture" Text="Oui, chef ?" />
                   <Commands>
@@ -88,7 +87,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_9" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -117,7 +116,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_13" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -146,7 +145,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_17" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -175,7 +174,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_21" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -204,7 +203,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_25" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -233,7 +232,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_29" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -296,7 +295,7 @@
                         <Sequence Name="scriptorium_socle_homme_tro_retour_35" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_homme_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                           </Elements>
                         </Sequence>
                       </Sequences>
@@ -384,7 +383,7 @@
                         <Sequence Name="scriptorium_socle_homme_tro_retour_44" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_homme_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                           </Elements>
                         </Sequence>
                       </Sequences>
@@ -1083,7 +1082,7 @@
                         <Sequence Name="scriptorium_socle_homme_tro_retour_120" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_homme_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                           </Elements>
                         </Sequence>
                       </Sequences>
@@ -1215,7 +1214,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_136" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1324,7 +1323,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_148" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1433,7 +1432,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_160" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1542,7 +1541,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_172" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1651,7 +1650,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_184" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1760,7 +1759,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_196" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1869,7 +1868,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_208" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1978,7 +1977,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_220" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2087,7 +2086,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_232" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2095,7 +2094,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_233" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_234" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -2191,7 +2190,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_244" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2314,7 +2313,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_258" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2423,7 +2422,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_270" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2532,7 +2531,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_282" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2641,7 +2640,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_294" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2750,7 +2749,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_306" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2859,7 +2858,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_318" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2968,7 +2967,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_330" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3077,7 +3076,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_342" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3186,7 +3185,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_354" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3194,7 +3193,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_355" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_356" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -3290,7 +3289,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_366" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3413,7 +3412,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_380" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3522,7 +3521,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_392" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3631,7 +3630,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_404" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3740,7 +3739,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_416" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3849,7 +3848,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_428" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3958,7 +3957,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_440" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4067,7 +4066,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_452" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4176,7 +4175,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_464" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4285,7 +4284,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_476" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4293,7 +4292,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_477" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_478" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -4389,7 +4388,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_488" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4512,7 +4511,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_502" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4621,7 +4620,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_514" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4730,7 +4729,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_526" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4839,7 +4838,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_538" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4948,7 +4947,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_550" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5057,7 +5056,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_562" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5166,7 +5165,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_574" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5275,7 +5274,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_586" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5384,7 +5383,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_598" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5392,7 +5391,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_599" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_600" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -5488,7 +5487,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_610" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5611,7 +5610,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_624" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5720,7 +5719,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_636" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5829,7 +5828,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_648" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -5938,7 +5937,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_660" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6047,7 +6046,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_672" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6156,7 +6155,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_684" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6265,7 +6264,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_696" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6374,7 +6373,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_708" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6483,7 +6482,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_720" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6491,7 +6490,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_721" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_722" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -6587,7 +6586,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_732" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6710,7 +6709,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_746" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6819,7 +6818,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_758" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6928,7 +6927,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_770" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7037,7 +7036,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_782" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7146,7 +7145,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_794" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7255,7 +7254,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_806" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7364,7 +7363,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_818" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7473,7 +7472,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_830" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7582,7 +7581,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_842" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7590,7 +7589,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_843" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_844" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -7686,7 +7685,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_854" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7809,7 +7808,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_868" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -7918,7 +7917,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_880" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8027,7 +8026,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_892" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8136,7 +8135,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_904" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8245,7 +8244,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_916" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8354,7 +8353,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_928" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8463,7 +8462,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_940" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8572,7 +8571,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_952" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8681,7 +8680,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_964" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8689,7 +8688,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_965" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_966" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -8785,7 +8784,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_976" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -8908,7 +8907,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_990" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9017,7 +9016,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1002" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9126,7 +9125,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1014" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9235,7 +9234,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1026" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9344,7 +9343,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1038" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9453,7 +9452,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1050" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9562,7 +9561,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1062" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9671,7 +9670,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1074" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9780,7 +9779,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1086" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -9788,7 +9787,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_1087" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_1088" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -9884,7 +9883,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1098" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10007,7 +10006,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1112" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10116,7 +10115,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1124" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10225,7 +10224,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1136" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10334,7 +10333,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1148" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10443,7 +10442,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1160" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10552,7 +10551,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1172" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10661,7 +10660,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1184" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10770,7 +10769,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1196" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10879,7 +10878,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1208" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -10887,7 +10886,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_1209" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_1210" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -10983,7 +10982,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1220" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11106,7 +11105,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1234" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11215,7 +11214,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1246" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11324,7 +11323,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1258" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11433,7 +11432,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1270" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11542,7 +11541,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1282" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11651,7 +11650,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1294" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11760,7 +11759,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1306" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11869,7 +11868,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1318" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11978,7 +11977,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1330" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -11986,7 +11985,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_1331" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_1332" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -12082,7 +12081,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1342" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12205,7 +12204,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1356" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12314,7 +12313,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1368" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12423,7 +12422,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1380" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12532,7 +12531,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1392" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12641,7 +12640,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1404" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12750,7 +12749,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1416" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12859,7 +12858,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1428" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -12968,7 +12967,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1440" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -13077,7 +13076,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1452" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -13085,7 +13084,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_homme_tro_code_1453" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_homme_tro_place3_1454" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -13181,7 +13180,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_homme_tro_code_1464" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -13304,7 +13303,7 @@
                         <Sequence Name="scriptorium_socle_homme_tro_retour_1477" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_homme_tro_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_homme_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_HOMME" />
                           </Elements>
                         </Sequence>
                       </Sequences>

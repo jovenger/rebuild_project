@@ -8,7 +8,6 @@
           <Sequences>
             <Sequence Name="scriptorium_socle_directeur_kut_ouverture" DesignName="ouverture" ExitScript="if Scriptorium and Scriptorium.jeu and Scriptorium.jeu.dialogue_choix then Scriptorium.jeu.dialogue_choix('directeur', 'ouverture', dc['SCRIPTORIUM_SOCLE_DIRECTEUR'], dc) end" EndType="Decision">
               <Elements>
-                <Response Role="HENRY" />
                 <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR">
                   <Text StringName="ui_scriptorium_dlg_directeur_ouverture" Text="Oui, chef ?" />
                   <Commands>
@@ -114,7 +113,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_13" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -193,7 +192,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_22" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -272,7 +271,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_31" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -351,7 +350,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_40" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -430,7 +429,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_49" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -509,7 +508,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_58" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -517,7 +516,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_59" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_60" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -583,7 +582,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_67" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -676,7 +675,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_78" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -755,7 +754,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_87" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -834,7 +833,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_96" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -913,7 +912,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_105" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -992,7 +991,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_114" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1071,7 +1070,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_123" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1079,7 +1078,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_124" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_125" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -1145,7 +1144,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_132" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1238,7 +1237,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_143" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1317,7 +1316,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_152" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1396,7 +1395,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_161" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1475,7 +1474,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_170" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1554,7 +1553,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_179" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1633,7 +1632,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_188" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1641,7 +1640,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_189" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_190" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -1707,7 +1706,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_197" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1800,7 +1799,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_208" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1879,7 +1878,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_217" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -1958,7 +1957,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_226" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2037,7 +2036,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_235" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2116,7 +2115,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_244" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2195,7 +2194,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_253" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2203,7 +2202,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_254" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_255" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -2269,7 +2268,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_262" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2362,7 +2361,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_273" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2441,7 +2440,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_282" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2520,7 +2519,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_291" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2599,7 +2598,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_300" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2678,7 +2677,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_309" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2757,7 +2756,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_318" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2765,7 +2764,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_319" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_320" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -2831,7 +2830,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_327" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -2924,7 +2923,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_338" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3003,7 +3002,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_347" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3082,7 +3081,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_356" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3161,7 +3160,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_365" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3240,7 +3239,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_374" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3319,7 +3318,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_383" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3327,7 +3326,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_384" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_385" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -3393,7 +3392,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_392" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3486,7 +3485,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_403" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3565,7 +3564,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_412" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3644,7 +3643,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_421" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3723,7 +3722,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_430" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3802,7 +3801,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_439" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3881,7 +3880,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_448" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -3889,7 +3888,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_449" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_450" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -3955,7 +3954,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_457" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4048,7 +4047,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_468" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4127,7 +4126,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_477" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4206,7 +4205,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_486" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4285,7 +4284,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_495" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4364,7 +4363,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_504" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4443,7 +4442,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_513" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4451,7 +4450,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_514" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="Decision">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                                 <Decision Name="scriptorium_socle_directeur_kut_place3_515" Autoselect="true" Priority="General" DesignName="place 3">
                                   <Sequences>
@@ -4517,7 +4516,7 @@
                                     </Sequence>
                                     <Sequence Name="scriptorium_socle_directeur_kut_code_522" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_3') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -4660,7 +4659,7 @@
                         <Sequence Name="scriptorium_socle_directeur_kut_retour_537" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                           </Elements>
                         </Sequence>
                       </Sequences>
@@ -4762,7 +4761,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_550" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -4852,7 +4851,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_561" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -4942,7 +4941,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_572" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5032,7 +5031,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_583" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5122,7 +5121,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_594" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5227,7 +5226,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_607" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5317,7 +5316,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_618" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5407,7 +5406,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_629" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5507,7 +5506,7 @@
                               <Sequence Name="scriptorium_socle_directeur_kut_retour_641" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                 <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -5627,7 +5626,7 @@
                         <Sequence Name="scriptorium_socle_directeur_kut_retour_654" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                           </Elements>
                         </Sequence>
                       </Sequences>
@@ -6190,7 +6189,7 @@
                                     <Sequence Name="scriptorium_socle_directeur_kut_retour_718" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                                       <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                                       <Elements>
-                                        <Response Role="HENRY" />
+                                        <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                       </Elements>
                                     </Sequence>
                                   </Sequences>
@@ -6258,7 +6257,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_725" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6347,7 +6346,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_735" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6436,7 +6435,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_745" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6525,7 +6524,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_755" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6614,7 +6613,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_765" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6703,7 +6702,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_775" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6792,7 +6791,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_785" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6881,7 +6880,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_795" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -6970,7 +6969,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_805" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -7059,7 +7058,7 @@
                               </Sequence>
                               <Sequence Name="scriptorium_socle_directeur_kut_code_815" DesignName="code 0" EntryCondition="gvar('scriptorium_dialogue_code_2') == 0" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_les_grandes_mesures_menu_660">
                                 <Elements>
-                                  <Response Role="HENRY" />
+                                  <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                                 </Elements>
                               </Sequence>
                             </Sequences>
@@ -7374,7 +7373,7 @@
                         <Sequence Name="scriptorium_socle_directeur_kut_retour_849" DesignName="retour" EndType="GoTo" GoToDecision="scriptorium_socle_directeur_kut_menu">
                           <UiPrompt StringName="ui_scriptorium_dlg_directeur_retour_aux_sujets" Text="Laissons cela." />
                           <Elements>
-                            <Response Role="HENRY" />
+                            <Response Role="SCRIPTORIUM_SOCLE_DIRECTEUR" />
                           </Elements>
                         </Sequence>
                       </Sequences>

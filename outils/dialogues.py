@@ -158,7 +158,7 @@ class Ecrivain:
                 self.ecrire(p + 2, "<Sequence%s>" % (attr(Name=self.nom_unique("code"), DesignName="code %d" % r["code"],
                                                           EntryCondition=condition) + fin(None)))
             cle = self.cle(chemin, "repli") if (numero == 0 and r["code"] == 0) else self.cle(chemin, "p%d" % (numero + 1), r["code"])
-            self.elements(p + 3, reponse(self.t, self.role if r["texte"] else "HENRY", cle, r["texte"]))
+            self.elements(p + 3, reponse(self.t, self.role, cle, r["texte"]))
             if not fermer and numero + 1 < len(places):
                 self.chaine_des_places(p + 3, chemin, places, fin, numero + 1)
             self.ecrire(p + 2, "</Sequence>")
@@ -197,7 +197,7 @@ class Ecrivain:
         self.ecrire(p + 2, "<Sequence%s>" % attr(Name=self.nom_unique("retour"), DesignName="retour", EndType="GoTo",
                                                   GoToDecision=menu))
         self.ecrire(p + 3, texte(self.t, self.cle("retour_aux_sujets"), self.donnees["retour_aux_sujets"]).replace("<Text", "<UiPrompt"))
-        self.elements(p + 3, reponse(self.t, "HENRY", None, None))
+        self.elements(p + 3, reponse(self.t, self.role, None, None))
         self.ecrire(p + 2, "</Sequence>")
         self.ecrire(p + 1, "</Sequences>")
         self.ecrire(p, "</Decision>")
@@ -247,7 +247,7 @@ class Ecrivain:
             self.ecrire(p + 2, "<Sequence%s%s>" % (attr(Name=self.nom_unique("code"), DesignName="code %d" % r["code"],
                                                         EntryCondition=condition), fin))
             cle = self.cle(cat["categorie"], "repli") if (numero == 0 and r["code"] == 0) else self.cle(cat["categorie"], "p%d" % (numero + 1), r["code"])
-            self.elements(p + 3, reponse(self.t, self.role if r["texte"] else "HENRY", cle, r["texte"]))
+            self.elements(p + 3, reponse(self.t, self.role, cle, r["texte"]))
             if numero + 1 < len(places):
                 self.chaine_des_places_puis(p + 3, cat, places, menu, numero + 1, partage)
             elif not direct and not saute:
@@ -269,8 +269,11 @@ class Ecrivain:
         self.ecrire(5, "<Sequences>")
         self.ecrire(6, "<Sequence%s>" % attr(Name=self.nom + "_ouverture", DesignName="ouverture",
                                               ExitScript=appel(self.arbre, "ouverture", self.role), EndType="Decision"))
-        self.elements(7, reponse(self.t, "HENRY", None, None),
-                      reponse(self.t, self.role, self.cle("ouverture"), self.d["ouverture"]))
+        # Vu à l'image en J35 à J37 (25/10) : la réplique vide d'Henry posait la caméra sur lui, et elle y restait pendant le
+        # choix ; dans le jeu de base, elle montre celui à qui Henry parle (demande de JoVenGer, « le plus réaliste ») : pas
+        # de réplique d'Henry à l'ouverture ; les répliques vides sont celles de l'interlocuteur (la forme du jeu,
+        # Data/Scripts.pak Quests/ : 9 703 répliques vides d'un autre rôle que le joueur).
+        self.elements(7, reponse(self.t, self.role, self.cle("ouverture"), self.d["ouverture"]))
         self.ecrire(7, "<Decision%s>" % attr(Name=menu, Priority="General", DesignName="menu"))
         self.ecrire(8, "<Sequences>")
         for item in self.d["menu"]:
