@@ -816,6 +816,20 @@ aucune sonde dans l'arbre.
   contre 178 avant (mesure du pair). **9f0cb37 n'est PAS gardé** : « remettre » rend socle 59ed853 + Scriptorium
   22980cad. **À faire en J33** : du lever jusqu'à 13 h 30 (le lever et la fin du repas de 13 h, les vraies épreuves de
   l'échelonnement), puis installer 9f0cb37 pour tous les jours si c'est vu juste.
+- J33 (25/10, copie de `playline1\exit.whs` du 25/10 10:31:59, empreinte A86F…BD08, référence
+  `essais_du_socle_rangees\playline2\2026-10-25_103159_exit.whs` ; la même copie rechargée cinq fois, toujours fermée
+  sans sauver) : lever de 6 h 30 juste (mesure du pair) ; au repas de 7 h, 52 chasses de la cabane d'Henry, 8 figés,
+  1 laissé au secours, et six changements de siège en plein repas (ordres de Scriptorium entre deux : usage des objets,
+  corrigé chez lui en 98be2371 ; ordre de mission, voulu). Corrigé côté socle : 686b5c6 (rééquiper au même choix ne crée
+  plus de doublons), 961689d puis 9fbb391 puis 9d69834 (doublons retirés à chaque rhabillage ; la copie que le jeu
+  trouve est gardée ; pièces refaites porter au battement suivant puis à +30 s, +2 min, +5 min), 43e8a5c (le siège du
+  repas gardé tant que dure la tranche). **Vus vêtus à l'image dès le chargement** : le colonel Havel le Borgne et
+  Václav Vlk (7 hommes avaient des doublons, 36 pièces retirées). **Non vus en jeu** : l'assaut amical (f0dbd9b),
+  l'aide de l'armurier, le siège repris au repas de 7 h. Installation laissée : socle 9d69834 + Scriptorium 98be2371 ;
+  retour arrière `Scriptorium_securite\20261025_105301_592886_seance_du_socle`. Limite notée (fiche 15) : recharger
+  `hommes` à chaud débranche Scriptorium jusqu'au vrai chargement. **À faire en J34** : le repas de 7 h (chasses de la
+  cabane, siège repris), l'assaut amical, l'armurier.
+- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
