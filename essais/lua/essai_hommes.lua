@@ -1093,6 +1093,41 @@ essai("équipement (18/10) : hommes.reequiper refait le choix au même palier, l
   hommes.choix_de_l_equipement = ancien
 end)
 
+essai("équipement (vu en jeu le 25/10, le colonel nu à 23 pièces au lieu de 10) : rééquipé au même choix, il garde ses pièces, rien n'est recréé en double, et les copies en trop sont retirées", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  local e = hommes.fiche(id).equipement
+  egal(e.etat, "pret", "prêt")
+  local tenue, armes = e.tenue, e.armes
+  local ancien = hommes.choix_de_l_equipement
+  hommes.choix_de_l_equipement = function(i)
+    if i == id then return { tenue = tenue, armes = armes, munitions = 0 } end
+  end
+  local corps = tenue .. "_corps"
+  local personnage = hommes.fiche(id).personnage
+  -- Un doublon déjà là (comme le colonel avant la correction).
+  FauxJeu.creer_objet(personnage, corps, 1, 1)
+  egal(a_dans_le_sac(id, corps), 2, "un doublon au départ")
+  for _ = 1, 2 do
+    verifier(hommes.reequiper(id), "rééquipé")
+    hommes.battre()
+    hommes.battre()
+  end
+  hommes.choix_de_l_equipement = ancien
+  for _, objet in ipairs(FauxJeu.pieces_de(tenue)) do
+    egal(a_dans_le_sac(id, objet), 1, "une seule pièce " .. objet)
+  end
+  egal(a_dans_le_sac(id, FauxJeu.pieces_de(armes)[1]), 1, "une seule arme")
+  egal(#FauxJeu.equipements[#FauxJeu.equipements].ordre.creer, 0, "rien de recréé au second rééquipement")
+  local retire = false
+  for _, l in ipairs(FauxJeu.journal_lignes) do
+    if string.find(l, "pièce(s) en double retirée(s)", 1, true) then retire = true end
+  end
+  verifier(retire, "le doublon retiré, au journal")
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)

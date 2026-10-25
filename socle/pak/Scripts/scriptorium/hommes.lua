@@ -1349,6 +1349,46 @@ local function equiper(d, f)
     e.recreer_en_plus = nil
   end
   local munitions_donnees = (munition and (e.munitions or 0) > 0) and { objet = munition, nombre = e.munitions } or nil
+  -- Vu en jeu le 25/10 (le colonel nu, 23 pièces de sa tenue au lieu de 10) : un rééquipement au même choix recréait
+  -- toutes ses pièces à côté des siennes. Deux pièces de la même classe trompent le jeu (FindItem prend l'une ou
+  -- l'autre : la forge détruisait la copie portée). Sa tenue de naissance déjà retirée, il garde ses pièces (et leur
+  -- usure) : seules celles qui manquent sont créées, les copies en trop retirées avant de porter.
+  if e.naissance_retiree then
+    local voulues = {}
+    for _, objet in ipairs(a_creer) do
+      voulues[objet] = (voulues[objet] or 0) + 1
+    end
+    for _, piece in ipairs(e.en_plus or {}) do
+      local objet = objet_de(piece)
+      if voulues[objet] then
+        voulues[objet] = voulues[objet] + 1
+      end
+    end
+    local manquantes, retirees = {}, 0
+    for _, objet in ipairs(a_creer) do
+      local a = jeu().compter_objet(f.personnage, objet)
+      while a > voulues[objet] and jeu().retirer_un_objet(f.personnage, objet) do
+        a = a - 1
+        retirees = retirees + 1
+      end
+      if a < voulues[objet] then
+        table.insert(manquantes, objet)
+        voulues[objet] = voulues[objet] - 1
+      else
+        voulues[objet] = a
+      end
+    end
+    if retirees > 0 then
+      jeu().journal("Hommes : « " .. f.nom .. " », " .. retirees .. " pièce(s) en double retirée(s)")
+    end
+    a_creer = manquantes
+    if munitions_donnees then
+      munitions_donnees.nombre = math.max(0, e.munitions - jeu().compter_objet(f.personnage, munition))
+      if munitions_donnees.nombre == 0 then
+        munitions_donnees = nil
+      end
+    end
+  end
   local compte = jeu().equiper_homme(f.personnage, {
     retirer_naissance = not e.naissance_retiree,
     creer = a_creer,

@@ -746,3 +746,11 @@
   habillé sur-le-champ, son second passage deux secondes après, sans attendre le battement ; jamais en bataille, ni tenu
   dévêtu, ni en combat ou en conversation ; la file du battement ne le reprend pas dans le même battement. Essai (vérifié
   en échec sans) ; à voir en jeu au lever.
+- Vu en jeu le 25/10 (le colonel Havel le Borgne nu, 23 pièces de sa tenue dans son sac au lieu de 10 ; la prise de
+  Scriptorium appelle `hommes.reequiper` à chaque chargement) : un rééquipement au même choix recréait toutes ses pièces
+  à côté des siennes ; deux pièces de la même classe trompent le jeu (`FindItem` prend l'une ou l'autre ; la forge
+  détruisait la copie portée). Désormais, sa tenue de naissance déjà retirée, l'homme garde ses pièces et leur usure :
+  seules celles qui manquent sont créées (munitions comprises), les copies en trop retirées avant de porter, au journal
+  « pièce(s) en double retirée(s) ». Le préréglage du jeu (`EquipClothingPreset`), proposé par le pair, n'est pas retenu
+  sans question à JoVenGer : non gardé au rechargement (V71 a3), il perd l'usure (réponse a du 15/10). Essai (vérifié en
+  échec sans) ; à voir en jeu au rechargement de la copie.
