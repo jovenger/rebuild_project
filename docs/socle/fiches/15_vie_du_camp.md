@@ -2735,3 +2735,22 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
 - Essai (vérifié en échec sans : six ordres d'un coup au lieu d'un) ; au banc, l'horloge réelle ne bouge pas : les
   épreuves anciennes tournent avec `ordres_par_seconde = 0` et une grâce de 2 regards (`depart()`), la nouvelle épreuve
   pose les valeurs du jeu. À voir en jeu à la transition de 18 h.
+
+## L'assaut amical : le combat d'entraînement du jeu (demande du pair, 25/10 : l'entraînement « ressemblait à une querelle »)
+- Vu dans la partie de JoVenGer : un « affronter » entre deux des nôtres était l'attaque ordinaire du jeu (ordre 8,
+  `callInterrupt_attack`) ; à l'exercice, quatre morts (corrigé chez Scriptorium).
+- Ce que le jeu fait (lu dans `Scripts.pak`, `AI/profession/camper/so_campFriendlyFight.xml`, le combat amical des
+  campeurs) : contextes `activity_friendlyFight` et `combat_arrangedFight` ; quatre états (`Libs/Tables/rpg/buff.xml`) :
+  `unconsciousness_protection_nonpersistent`, `visualBleeding_protection`, `bleeding_protection`, `immortality_fast_heal`
+  (immortel, la vie remonte) ; les automatismes de combat ; puis `CombatAction TargetNPC=… RelationOverride="Hostile"`.
+  Personne ne tombe : l'assaut finit au bout d'un temps.
+- Le socle : la tenue « affronter » prend `amical = true` (Scriptorium la pose pour l'exercice entre deux des nôtres) ;
+  l'ordre 12 lance notre comportement `scriptorium_assaut_amical` (même forme que le combat des campeurs), en
+  interruption comme l'attaque ; il dure tant que la variable `scriptorium_assaut_amical` vaut 1 (au plus 10 minutes de
+  jeu) ; la fin de la tenue la remet à 0 (« cesser l'attaque »). Un assaut amical ne finit jamais par un homme à terre :
+  c'est la fin de la tenue (son heure, ou Scriptorium) qui l'arrête ; mort quand même, la tenue est lâchée.
+- Essai de la tenue (vérifié en échec sans) ; le comportement (arbre, liaison, déclaration, variable du cerveau) est
+  vérifié au banc dans sa forme seulement (comportement déclaré et présent ; contrôle d'absence : les valeurs des
+  automatismes passent par une variable ; cinq balises nues de nœuds du jeu comptées en formes, borne relevée à 43) ;
+  à voir en jeu : l'arbre se charge, les deux combattent sans tomber, la fin de la tenue arrête l'assaut. La liaison
+  et l'arbre ne se rechargent pas en jeu ouvert : une installation et un rechargement de la copie.

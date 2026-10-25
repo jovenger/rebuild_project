@@ -2835,16 +2835,27 @@ function liaison.ordonner_l_attaque(cible, attaquant, options)
     tiree, refus = pcall(function() qui.human:DrawWeapon() end)
   end
   local cible_ok, erreur = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_cible", wuid) end)
-  local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", 8) end)
-  return "attaque : arme " .. (tiree and "tirée" or ("non tirée : " .. tostring(refus))) .. ", cible "
-    .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre 8 " .. tostring(ordre_ok)
+  -- Demande du pair (25/10 : l'entraînement entre deux des nôtres « ressemblait à une querelle ») : l'assaut amical,
+  -- notre comportement scriptorium_assaut_amical (le combat amical des campeurs du jeu), par l'ordre 12.
+  local amical = type(options) == "table" and options.amical == true
+  local ordre = amical and 12 or 8
+  pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_assaut_amical", amical and 1 or 0) end)
+  local ordre_ok = pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_essai_ordre", ordre) end)
+  return (amical and "assaut amical" or "attaque") .. " : arme " .. (tiree and "tirée" or ("non tirée : " .. tostring(refus)))
+    .. ", cible " .. (cible_ok and "posée" or ("refusée : " .. tostring(erreur))) .. ", ordre " .. ordre .. " " .. tostring(ordre_ok)
 end
 
 -- La fin d'un affrontement (vu en jeu le 19/10 : le duel fini, l'attaque du jeu restait posée, Henry restait en combat
 -- et la nuit de Scriptorium ne se mettait pas en place). L'ordre 9 : l'arbre lève l'attaque comme le jeu lève une
 -- réaction (callInterrupt_stopReaction, AI/npc/basic/switch/handleOnSoulRevived.xml). Rend une ligne.
 function liaison.cesser_l_attaque(attaquant)
-  return "cesser l'attaque : " .. poser_l_ordre(entite_nommee(attaquant), 9)
+  local qui = entite_nommee(attaquant)
+  -- L'assaut amical (25/10) dure tant que sa variable vaut 1.
+  local this_lu, this = pcall(function() return qui.this end)
+  if this_lu and type(this) == "table" then
+    pcall(function() XGenAIModule.SetBrainVariable(this.id, "scriptorium_assaut_amical", 0) end)
+  end
+  return "cesser l'attaque : " .. poser_l_ordre(qui, 9)
 end
 
 -- Le garde du jeu (V49) : une âme de garde de Kuttenberg faite pour être appelée par le jeu (extraGuards, cerveau

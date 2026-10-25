@@ -2581,6 +2581,7 @@ function hommes.activite_de(id, heure)
     -- La bascule (l'affrontement, 18/10) : la cible, l'arme, la fin ; le lieu nomme la cible (la signature de l'ordre).
     if tenue.activite == "affronter" then
       resultat.cible, resultat.arme, resultat.jusqu_a = tenue.cible, not tenue.mains_nues, tenue.jusqu_a
+      resultat.amical = tenue.amical
       resultat.lieu = "affronter/" .. tenue.cible
       resultat.position = (tenue.cible == "henry") and jeu().position_du_joueur() or jeu().position_du_personnage(tenue.cible)
       return resultat
@@ -4002,7 +4003,8 @@ local function ordonner_un_homme(d, id, heure, rapport, sans_secours, a_la_pose,
     if a.activite == "affronter" then
       -- L'attaque imposée à ce personnage (l'interruption d'attaque, comme la bataille), jamais une bataille.
       jeu().journal("Hommes : « " .. f.nom .. " » affronte « " .. tostring(a.cible) .. " » (" .. (a.arme and "à l'arme" or "à mains nues")
-                    .. ", jusqu'à " .. tostring(a.jusqu_a) .. ") : " .. tostring(jeu().ordonner_l_attaque(a.cible, f.personnage, { arme = a.arme })))
+                    .. ", " .. (a.amical and "assaut amical" or ("jusqu'à " .. tostring(a.jusqu_a))) .. ") : "
+                    .. tostring(jeu().ordonner_l_attaque(a.cible, f.personnage, { arme = a.arme, amical = a.amical == true })))
     else
       -- Le sommeil au sol se joue comme un geste tenu à son point (ordre 22) ; l'activité reste « sommeil ».
       jeu().ordonner(f.personnage, a.au_sol and "geste" or a.activite, position, a.lieu, objet, sorte, a.regard, a.allure,
@@ -4692,7 +4694,7 @@ local function memes_tenues(a, b)
     and (a.vers == nil) == (b.vers == nil) and (a.vers == nil or (a.vers.x == b.vers.x and a.vers.y == b.vers.y))
     and a.tete == b.tete and a.poste == b.poste and a.geste == b.geste and a.partage == b.partage
     and a.siege == b.siege and a.assis == b.assis and a.arme_tiree == b.arme_tiree and a.lit == b.lit
-    and a.cible == b.cible and a.mains_nues == b.mains_nues and a.jusqu_a == b.jusqu_a
+    and a.cible == b.cible and a.mains_nues == b.mains_nues and a.jusqu_a == b.jusqu_a and a.amical == b.amical
 end
 
 -- L'objet du jeu d'un « siege » de geste (demande du pair, 18/10) : une place du camp (son objet où s'asseoir), un poste
@@ -4871,7 +4873,8 @@ function hommes.tenir(id, regle, quoi)
   -- (« henry » compris), à l'arme ou à mains nues, jusqu'à ce qu'il soit assommé ou mort ; jamais une bataille.
   if quoi.activite == "affronter" then
     if type(quoi.cible) ~= "string" or quoi.cible == "" or (quoi.arme ~= nil and type(quoi.arme) ~= "boolean")
-        or (quoi.jusqu_a ~= nil and quoi.jusqu_a ~= "assomme" and quoi.jusqu_a ~= "mort") then
+        or (quoi.jusqu_a ~= nil and quoi.jusqu_a ~= "assomme" and quoi.jusqu_a ~= "mort")
+        or (quoi.amical ~= nil and type(quoi.amical) ~= "boolean") then
       return refuser("affrontement_invalide", tostring(quoi.cible))
     end
     if quoi.cible ~= "henry" and jeu().personnage_mort(quoi.cible) then
@@ -4928,7 +4931,9 @@ function hommes.tenir(id, regle, quoi)
                   lit = (quoi.activite == "sommeil") and quoi.lit or nil,
                   cible = (quoi.activite == "affronter" or quoi.activite == "tir") and quoi.cible or nil,
                   mains_nues = (quoi.activite == "affronter" and quoi.arme == false) or nil,
-                  jusqu_a = (quoi.activite == "affronter") and (quoi.jusqu_a or "assomme") or nil,
+                  jusqu_a = (quoi.activite == "affronter" and quoi.amical ~= true) and (quoi.jusqu_a or "assomme") or nil,
+                  -- Demande du pair (25/10) : l'assaut amical, le combat d'entraînement du jeu (personne ne tombe).
+                  amical = (quoi.activite == "affronter" and quoi.amical == true) or nil,
                   partage = quoi.partage,
                   formation = (quoi.activite == "suivre") and quoi.formation or nil,
                   cheval = (quoi.activite == "suivre" and type(quoi.cheval) == "string") and quoi.cheval or nil,

@@ -3928,6 +3928,30 @@ essai("rafales de figés (vu en J32, le 24/10) : les ordres de la journée éche
   verifier(ok, "sans erreur : " .. tostring(erreur))
 end)
 
+essai("assaut amical (demande du pair, 25/10 : l'entraînement ressemblait à une querelle) : la tenue « affronter » amicale donne l'assaut amical (ordre 12), sans « jusqu'à » ; assommé, la cible ne finit pas l'assaut ; la fin de la tenue le lève", function()
+  preparer(5000, 100, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  local b = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })
+  hommes.battre()
+  local cible = hommes.fiche(b).personnage
+  FauxJeu.attaques, FauxJeu.cessations = {}, {}
+  verifier(not hommes.tenir(a, "travail", { activite = "affronter", cible = cible, amical = "oui", fin = "liberation" }),
+           "amical doit être vrai ou faux")
+  verifier(hommes.tenir(a, "travail", { activite = "affronter", cible = cible, amical = true, fin = "liberation" }),
+           "l'assaut amical posé")
+  local derniere = FauxJeu.attaques[#FauxJeu.attaques]
+  verifier(derniere and derniere.options and derniere.options.amical == true, "l'ordre d'assaut amical donné")
+  egal(hommes.activite_de(a, 10).jusqu_a, nil, "pas de « jusqu'à »")
+  -- La cible assommée (ce que l'assaut empêche en jeu) ne finit pas l'assaut : seule la tenue le lève.
+  FauxJeu.inconscients = { [cible] = true }
+  hommes.battre()
+  verifier(hommes.activite_de(a, 10).activite == "affronter", "toujours en assaut")
+  FauxJeu.inconscients = nil
+  hommes.lacher(a, "travail")
+  hommes.battre()
+  verifier(#FauxJeu.cessations >= 1, "la fin de la tenue lève l'assaut")
+end)
+
 essai("gardien (vu sur une copie le 20/10, à chaque chargement) : un homme sans ordre encore reçu attend le battement, il n'est pas figé", function()
   preparer(5000, 100, 10)
   local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, prime = 0 })

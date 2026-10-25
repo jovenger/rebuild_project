@@ -1409,4 +1409,50 @@
     </Root>
     <ForestContainer />
   </BehaviorTree>
+  <!-- Demande du pair (25/10 : l'entrainement entre deux des notres ressemblait a une querelle) : l'assaut amical, la
+       meme forme que le combat amical des campeurs du jeu (AI/profession/camper/so_campFriendlyFight.xml) : contextes
+       du combat d'entrainement, quatre etats (pas d'assomme, pas de saignement, immortel), automatismes de combat, puis
+       l'attaque de la cible (scriptorium_essai_cible) ; tant que scriptorium_assaut_amical vaut 1, au plus 10 minutes. -->
+  <BehaviorTree name="scriptorium_assaut_amical" is_function="0">
+    <Variables>
+      <Variable name="mode_arme" type="enum:weaponChange" values="enum:weaponChange.melee" isPersistent="0" form="single" />
+      <Variable name="assaut_actif" type="_bool" values="true" isPersistent="0" form="single" />
+    </Variables>
+    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
+      <Behavior canSkip="1">
+        <Parallel successMode="Any" failureMode="Any">
+          <EntityContextElement context="activity_friendlyFight" enabled="true">
+            <EntityContextElement context="combat_arrangedFight" enabled="true">
+              <AddBuffElement Buff="&apos;f46120bf-b45f-4ec5-95c6-03d526cb40bf&apos;" enabled="true">
+                <AddBuffElement Buff="&apos;11f44a76-21e3-4e1a-9b25-4b9341d4b8ef&apos;" enabled="true">
+                  <AddBuffElement Buff="&apos;a2088337-e015-4c28-8ab2-043f6925c087&apos;" enabled="true">
+                    <AddBuffElement Buff="&apos;6cf0aa39-e09c-42fa-bf67-10f2d03991b7&apos;" enabled="true">
+                      <CombatMoveDecorator>
+                        <MeleeOffenseAutomationDecorator active="$assaut_actif">
+                          <MeleeDefenseAutomationDecorator active="$assaut_actif">
+                            <MeleeGuardAutomationDecorator GuardMode="automate" active="$assaut_actif">
+                              <WeaponAutomationDecorator WeaponChange="$mode_arme" active="$assaut_actif">
+                                <CombatFollowerDecorator ProbablisticDrivenSweetSpot="true" RPGSweetSpotArcDriver="true" active="$assaut_actif">
+                                  <CombatAction TargetNPC="$scriptorium_essai_cible" RelationOverride="Hostile" />
+                                </CombatFollowerDecorator>
+                              </WeaponAutomationDecorator>
+                            </MeleeGuardAutomationDecorator>
+                          </MeleeDefenseAutomationDecorator>
+                        </MeleeOffenseAutomationDecorator>
+                      </CombatMoveDecorator>
+                    </AddBuffElement>
+                  </AddBuffElement>
+                </AddBuffElement>
+              </AddBuffElement>
+            </EntityContextElement>
+          </EntityContextElement>
+          <While doFail="false" propagateChildFail="false" condition="$scriptorium_assaut_amical == 1">
+            <Wait duration="&apos;500ms&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+          </While>
+          <Wait duration="&apos;600s&apos;" timeType="GameTime" doFail="false" variation="" skipInLOD="false" />
+        </Parallel>
+      </Behavior>
+    </Root>
+    <ForestContainer />
+  </BehaviorTree>
 </BehaviorTrees>
