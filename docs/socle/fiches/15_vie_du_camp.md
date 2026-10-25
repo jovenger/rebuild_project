@@ -2479,6 +2479,10 @@ Comme V73 f 2 f : l'écart Directeur–Henry au pas et à la course, et le journ
   les arbres XML et les tables : ceux-là demandent toujours un lancement.
 - **Mode d'emploi** : `py -3.13 outils/recharger.py --jeu "<jeu>" hommes directeur [--marque "texte"]` pose les copies
   et leur liste dans `Mods\scriptorium_socle\recharge\` ; puis l'ordre `scriptorium_essai_recharger`.
+- **Limite vue le 25/10** (le pair, sur le colonel) : relire `hommes` redéfinit ses décisions remplaçables
+  (`choix_de_l_equipement`…) et remet `hommes.accroches` à vide ; ce que Scriptorium y avait branché une seule fois au
+  chargement n'est plus consulté jusqu'au vrai chargement suivant (le colonel rééquipé en `soldier_generic_1_09` au lieu
+  de sa tenue de capitaine). Ce qui touche Scriptorium se revoit donc après un vrai chargement, pas à chaud.
 - **Vu en jeu** (df2974e, `playline3` 473) : hommes, directeur et camp relus (« Rechargement : hommes relu (sonde 1) »,
   la ligne ajoutée à la copie), démarrages passés, sortie et entrée en partie ; au réveil, camp et hommes redressés sans
   rien refaire ; ensuite la troupe à cheval : chevaux nés, ordres donnés, la boucle d'allure branchée sur le nouveau
