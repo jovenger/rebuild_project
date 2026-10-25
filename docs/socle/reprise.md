@@ -829,7 +829,30 @@ aucune sonde dans l'arbre.
   retour arrière `Scriptorium_securite\20261025_105301_592886_seance_du_socle`. Limite notée (fiche 15) : recharger
   `hommes` à chaud débranche Scriptorium jusqu'au vrai chargement. **À faire en J34** : le repas de 7 h (chasses de la
   cabane, siège repris), l'assaut amical, l'armurier.
-- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e.
+- J34 (25/10, une journée ordinaire en temps réel, copie neuve de `playline1\exit.whs` du 25/10 10:31:59 à chaque fois ;
+  verrou `20261025_122251_862149_seance_du_socle`) : deux passages, puis pause demandée par JoVenGer (jeu fermé sans
+  sauver, playline1 intacte).
+  - Premier passage (socle 9d69834 + Scriptorium 98be2371) : vers 1 h, après l'attaque de brigands du camp, 13 hommes
+    figés au coucher, l'arme encore tirée (prouvé par le pair : `human:HolsterWeapon()`, puis l'homme va à son lit).
+    Corrigé en 78696bb (l'arme rangée au repos, à chaque ordre de la vie du camp). Pendant ce temps : 272a470 (les
+    dialogues : conditions par nom, grandes mesures, le camp et la troupe, le renvoi du colonel ; contrat du pair).
+  - Second passage (socle 78696bb, avec 272a470 ; Scriptorium 8f49a392) : pas d'attaque cette nuit-là ; des figés au
+    coucher et au lever vers les lits au sol des grandes tentes de l'Aménagement (rangées 3 à 6 et 70 à 72) : on n'y
+    entre et n'en sort que par l'avant, encombré par l'atelier du chasseur (images du pair, 8 h 20). Le secours
+    attendait sans fin (Henry au camp, tourné vers les tentes) : corrigé en 44ad2fd (portée de la vue d'Henry, 15 m la
+    nuit). Vu à 8 h 30 (pair) : l'assaut amical tient (4 en assaut, protégés) ; 2 archers à l'exercice, 0 au tir (chez
+    le pair).
+  - **Non installé pour tous les jours** : 272a470, 78696bb, 44ad2fd (le pair remet 9d69834 + Scriptorium 98be2371).
+  - **À reprendre** : (1) les lits des tentes : un point d'entrée par lit, déclaré par la prise (`camp.declarer_les_places`,
+    champ « entree »), où l'homme passe pour entrer et pour sortir, et le secours qui pose à l'entrée ; commencé puis mis
+    de côté (pas fini, rien commité) dans le brouillon de session `entree_des_tentes_debut.patch` ; l'atelier du chasseur
+    devant les tentes est à JoVenGer. (2) La cabane d'Henry (111 chasses) : les buts au bord sud viennent des gestes de
+    Scriptorium (briefing « tournamentCrowd », « bras croisés ») ; l'exercice donné entre deux « suivre » à la troupe de
+    sortie est celui de la journée du socle : à ce moment aucune tenue de sortie n'était retenue (arbitre de la prise à
+    voir). (3) Installer 272a470 + 78696bb + 44ad2fd et voir : l'arme rangée après une attaque, les dialogues, le repas
+    de 7 h, l'armurier. (4) Le chasseur de Scriptorium a rangé son arme pendant un geste (« range son arme (geste) ») :
+    voulu ou de trop, à voir.
+- Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J16.log à kcd_seance_J18.log.
 
 ## 7. Ce qui reste à faire
