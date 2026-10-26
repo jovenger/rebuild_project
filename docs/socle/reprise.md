@@ -898,6 +898,14 @@ aucune sonde dans l'arbre.
   et revendus (le socle les rend à l'appelant par `hommes.retirer(id, "mort")`), l'expérience. Contrôle de démarrage
   bon. **Gardé pour tous les jours : socle d517914 + Scriptorium 7d421d48** (retour arrière
   `Scriptorium_securite\20261025_210027_492943_seance_du_socle`). Le pair n'emploie plus de saut d'horloge en séance.
+- J42 à J44 (26/10, séances menées par le pair seul ; je n'ai touché ni au jeu ni à Mods) : 65b25d8, le réveil au
+  bout de 3 s (ordre de JoVenGer du 26/10 ; `Game.IsLoadingEngineSaveGame` ne voit pas la fin de l'écran, dit avant de
+  coder) : vu juste (camp redressé 2,9 s après l'entrée, Aménagement 6 s plus tard, 591 pièces à la bonne hauteur,
+  écran normal) ; 68c401f, la tenue vérifiée une fois à l'entrée en partie (quatre hommes restés « prêts » avec des
+  pièces perdues avant d517914) : vu juste (Mikuláš 7 pièces recréées, Jakub 4, Jindřich 4, Oldřich 3 ; plus rien ne
+  manque). **Gardé pour tous les jours : socle 68c401f + Scriptorium 1611ca82** (retour arrière, la dernière mise de
+  côté : `Scriptorium_securite\20261026_121350_109601_seance_du_socle`). Note du pair : les refus « vu_d_henry » de
+  l'expédition (environ 200 par sortie) ne sont pas des erreurs.
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
   kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b ; kcd_seance_J38a.log, J38b à J38d ;
   kcd_seance_J39a.log, J39b à J39d.
