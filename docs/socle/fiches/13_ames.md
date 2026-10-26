@@ -655,6 +655,16 @@
   dans hommes.lua, et le banc vérifie que chaque âme affiche le nom que donne le Lua, sans doublon.
 - À l'embauche, l'âme est tirée tout de suite et l'homme prend son nom ; un nom de contrat passe devant ; sans âme libre,
   l'intitulé de repli « Homme de la Compagnie », remplacé par le nom de l'âme reçue plus tard.
+- Noms neufs (décision de JoVenGer du 26/10, « noms neufs + fiche effacée », transmise par le pair ; vu sur playline2 :
+  « Oldřich Medvěd » mort, puis 200 s plus tard une recrue du même nom, sur l'âme qu'il laissait) : au tirage, une âme
+  dont le nom est porté par un homme de la Compagnie ou par un des anciens (`d.anciens`, morts et renvoyés, les
+  `anciens_gardes` derniers) passe après toutes les autres. Toutes nos âmes ont des noms distincts : la réserve des
+  combattants (240) ne s'épuise qu'au-delà de 240 noms pris. Épuisée, la recrue garde le nom de son âme suivi d'un
+  surnom de relève (`hommes.surnoms_de_releve` : « le Jeune », « le Cadet », « le Second », « le Nouveau », puis un
+  numéro), journal « plus d'âme au nom neuf » ; ce surnom n'est alors que sur le registre (au-dessus de la tête, le nom
+  de l'âme). Un nom de contrat ou une âme donnée par le contrat ne changent pas. La fiche effacée (expérience, niveau)
+  est du côté de Scriptorium ; chez nous, une recrue a toujours un identifiant neuf et un caractère neuf. Essai
+  « noms neufs (26/10) » (vérifié en échec sans le filtre). Non vérifié en jeu.
 - Le Directeur (demande du pair, 19/10 ; vu à la répétition 4 : il affichait « Soldat ») : « Le Directeur »
   (`hommes.nom_du_directeur`), sur une copie de son personnage du jeu (GUARD_08, voix et visage inchangés).
 - Pas de nom propre : les bandes (personnages génériques).

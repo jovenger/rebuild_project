@@ -1546,6 +1546,33 @@ essai("noms (18/10) : chaque homme prend le nom de son âme ; un nom de contrat 
   egal(hommes.nom_de_femme(1), "Anna la Rousse", "les noms des femmes")
 end)
 
+essai("noms neufs (26/10) : une recrue ne reprend jamais le nom d'un mort ni d'un renvoyé ; réserve épuisée, un surnom de relève", function()
+  preparer(200, 10, 10)
+  local a = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local nom_a, ame_a = hommes.fiche(a).nom, hommes.fiche(a).ame
+  verifier(hommes.retirer(a, "mort"), "mort")
+  local b = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  verifier(hommes.fiche(b).nom ~= nom_a, "pas le nom du mort : " .. hommes.fiche(b).nom)
+  verifier(hommes.fiche(b).ame ~= ame_a, "pas l'âme qu'il laissait")
+  local nom_b = hommes.fiche(b).nom
+  verifier(hommes.renvoyer(b), "renvoyé")
+  local c = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  verifier(hommes.fiche(c).nom ~= nom_a and hommes.fiche(c).nom ~= nom_b, "ni celui du mort ni celui du renvoyé")
+  -- Une réserve d'une seule âme : la relève garde le nom de l'âme, suivi d'un surnom, puis d'un autre.
+  preparer(200, 10, 10)
+  local tailles = FauxJeu.tailles_paliers.combattant
+  FauxJeu.tailles_paliers.combattant = { 1 }
+  local x = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  local nom_x = hommes.fiche(x).nom
+  verifier(hommes.retirer(x, "mort"), "mort")
+  local y = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  egal(hommes.fiche(y).nom, nom_x .. " " .. hommes.surnoms_de_releve[1], "le premier surnom de relève")
+  verifier(hommes.retirer(y, "mort"), "mort aussi")
+  local z = hommes.embaucher({ role = "homme_d_armes", semaines = 4 })
+  egal(hommes.fiche(z).nom, nom_x .. " " .. hommes.surnoms_de_releve[2], "le suivant")
+  FauxJeu.tailles_paliers.combattant = tailles
+end)
+
 essai("reprise (18/10) : la clé du relevé mène à son âme par son empreinte ; l'âme porte le nom du relevé ; clé inconnue : rien", function()
   preparer(200, 10, 10)
   FauxJeu.reprise_des_hommes = { { empreinte = hommes.empreinte_de_cle("homme_un"), nom = "Jan « le Fort »", palier = 2 },

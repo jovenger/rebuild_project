@@ -565,6 +565,9 @@ hommes.prenoms_de_femmes = {
 hommes.surnoms_de_femmes = { "la Rousse", "de Ledeč", "Vlková", "la Douce", "de Sázava", "Holubová" }
 -- Décision de JoVenGer (18/10, transmise par le pair) : l'intitulé de repli, partout où un nom manquerait.
 hommes.nom_de_repli = "Homme de la Compagnie"
+-- Décision de JoVenGer (26/10, transmise par le pair) : quand la réserve n'a plus d'âme au nom neuf, la recrue garde le
+-- nom de son âme suivi d'un de ces surnoms, puis d'un numéro.
+hommes.surnoms_de_releve = { "le Jeune", "le Cadet", "le Second", "le Nouveau" }
 -- Le nom affiché au-dessus du Directeur (demande du pair, 19/10, d'après la décision de JoVenGer du 18/10 : chaque homme
 -- son nom ; vu en jeu à la répétition 4 : il affichait « Soldat », le nom du personnage du jeu).
 hommes.nom_du_directeur = "Le Directeur"
@@ -965,10 +968,54 @@ end
 -- ensuite son niveau). Pas de jumeaux (demande du pair, 18/10) : d'abord une âme dont le visage n'est porté par personne
 -- de la Compagnie (liaison.visage_de), puis, s'il n'en reste plus, une âme libre quelconque. Rend l'identifiant de
 -- l'âme, ou nil quand toute la réserve est prise.
+-- Noms neufs (décision de JoVenGer du 26/10, transmise par le pair ; vu sur playline2 : « Oldřich Medvěd » mort, puis
+-- 200 s plus tard une recrue du même nom, sur l'âme qu'il laissait) : une âme dont le nom est porté par un homme de la
+-- Compagnie ou par un des anciens (morts, renvoyés, d.anciens) passe après toutes les autres, jumeaux compris.
+local function noms_pris(d, f)
+  local pris = {}
+  for _, id in ipairs(d.ordre) do
+    local autre = d.liste[id]
+    if autre and autre ~= f and autre.nom then
+      pris[autre.nom] = true
+    end
+  end
+  for _, a in ipairs(d.anciens or {}) do
+    if a.nom then
+      pris[a.nom] = true
+    end
+  end
+  return pris
+end
+
+-- Le nom d'une recrue tiré de son âme ; déjà porté (réserve épuisée en noms neufs), un surnom de relève s'y ajoute.
+local function nom_sans_redite(d, f, nom)
+  local pris = noms_pris(d, f)
+  if not pris[nom] then
+    return nom
+  end
+  local neuf = nil
+  for _, surnom in ipairs(hommes.surnoms_de_releve) do
+    if not pris[nom .. " " .. surnom] then
+      neuf = nom .. " " .. surnom
+      break
+    end
+  end
+  local n = 2
+  while not neuf do
+    if not pris[nom .. " " .. n] then
+      neuf = nom .. " " .. n
+    end
+    n = n + 1
+  end
+  jeu().journal("Hommes : plus d'âme au nom neuf ; « " .. nom .. " » déjà porté, la recrue s'appelle « " .. neuf .. " »")
+  return neuf
+end
+
 local function choisir_ame(d, f)
   local role = hommes.roles[f.role]
   local reserve = role and role.reserve
   local paliers = reserve and jeu().paliers_de(reserve) or {}
+  local noms = noms_pris(d, f)
   local prises, visages_pris = {}, {}
   for _, id in ipairs(d.ordre) do
     local autre = d.liste[id]
@@ -986,12 +1033,14 @@ local function choisir_ame(d, f)
     table.insert(ordre_des_paliers, voulu - ecart)
     table.insert(ordre_des_paliers, voulu + ecart)
   end
-  for _, sans_jumeau in ipairs({ true, false }) do
+  for _, passe in ipairs({ { true, true }, { true, false }, { false, true }, { false, false } }) do
+    local nom_neuf, sans_jumeau = passe[1], passe[2]
     for _, palier in ipairs(ordre_des_paliers) do
       for numero = 1, paliers[palier] or 0 do
         local ame = jeu().ame_de(reserve, palier, numero)
         local v = ame and jeu().visage_de and jeu().visage_de(ame)
-        if ame and not prises[ame] and not (sans_jumeau and v and visages_pris[v]) then
+        if ame and not prises[ame] and not (sans_jumeau and v and visages_pris[v])
+            and not (nom_neuf and noms[hommes.nom_de_l_ame(ame) or ""]) then
           return ame
         end
       end
@@ -1046,7 +1095,8 @@ local function faire_venir(d, f, pres_d_henry, ici)
     end
     -- Resté sans nom faute d'âme à l'embauche : il prend celui de l'âme qu'il reçoit enfin.
     if f.nom == hommes.nom_de_repli then
-      f.nom = hommes.nom_de_l_ame(f.ame) or hommes.nom_de_repli
+      local nom = hommes.nom_de_l_ame(f.ame)
+      f.nom = nom and nom_sans_redite(d, f, nom) or hommes.nom_de_repli
     end
     if present then
       jeu().journal("Hommes : « " .. f.nom .. " » renaît sur une âme à nous")
@@ -2025,8 +2075,14 @@ function hommes.embaucher(contrat)
   }
   -- Chaque homme son nom, celui de son âme (décision de JoVenGer, 18/10) : l'âme est tirée dès l'embauche ; un nom donné
   -- par le contrat (compagnon nommé, reprise) passe devant ; sans âme libre ni nom donné, l'intitulé de repli.
+  local ame_tiree = false
   if not f.ame and not deja_ne then
     f.ame = choisir_ame(d, f)
+    ame_tiree = f.ame ~= nil
+  end
+  if not f.nom and ame_tiree then
+    local nom = hommes.nom_de_l_ame(f.ame)
+    f.nom = nom and nom_sans_redite(d, f, nom)
   end
   f.nom = f.nom or (f.ame and hommes.nom_de_l_ame(f.ame)) or hommes.nom_de_repli
   if prime > 0 then
