@@ -14,13 +14,10 @@
         </header>
 
         <section class="config-section">
-            <h2>Configuration des clés API (Locales)</h2>
-            <div class="api-inputs">
-                <input type="password" id="api-text" placeholder="Clé API OpenAI / Anthropic (Texte)">
-                <input type="password" id="api-image" placeholder="Clé API Midjourney / Stable Diffusion (Image/3D)">
-                <input type="password" id="api-video" placeholder="Clé API Runway / SVD (Vidéo)">
-                <input type="password" id="api-audio" placeholder="Clé API Suno / MusicGen (Musique)">
-                <button id="save-keys">Enregistrer les clés (localement)</button>
+            <h2>Accès Gratuit (Simulation)</h2>
+            <div class="api-inputs" style="grid-template-columns: 1fr auto;">
+                <input type="email" id="user-email" placeholder="Entrez votre adresse email...">
+                <button id="generate-access">Générer un accès automatique</button>
             </div>
             <p id="config-status"></p>
         </section>

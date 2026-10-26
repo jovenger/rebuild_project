@@ -1,30 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- Gestion des clés API (Sauvegarde locale) ---
+    // --- Gestion de l'accès (Simulation) ---
     const keys = ['text', 'image', 'video', 'audio'];
 
-    // Charger les clés sauvegardées
-    keys.forEach(key => {
-        const saved = localStorage.getItem(`api_${key}`);
-        if(saved) document.getElementById(`api-${key}`).value = saved;
-    });
+    // Vérifier si un email est déjà enregistré
+    const savedEmail = localStorage.getItem('user_email');
+    if(savedEmail) {
+        document.getElementById('user-email').value = savedEmail;
+        document.getElementById('config-status').textContent = "Accès actif pour " + savedEmail;
+        document.getElementById('config-status').style.color = "lightgreen";
+    }
 
-    document.getElementById('save-keys').addEventListener('click', () => {
-        keys.forEach(key => {
-            const val = document.getElementById(`api-${key}`).value;
-            localStorage.setItem(`api_${key}`, val);
-        });
+    document.getElementById('generate-access').addEventListener('click', () => {
+        const email = document.getElementById('user-email').value;
         const status = document.getElementById('config-status');
-        status.textContent = "Clés sauvegardées dans le navigateur.";
+
+        if (!email || !email.includes('@')) {
+            status.textContent = "Veuillez entrer une adresse email valide.";
+            status.style.color = "red";
+            return;
+        }
+
+        // Sauvegarde de l'email
+        localStorage.setItem('user_email', email);
+
+        // Génération de clés fictives pour la simulation
+        keys.forEach(key => {
+            localStorage.setItem(`api_${key}`, `auto-gen-key-${key}-${Math.random().toString(36).substr(2, 9)}`);
+        });
+
+        status.textContent = `Accès généré avec succès pour ${email}. Les modules sont prêts.`;
         status.style.color = "lightgreen";
-        setTimeout(() => status.textContent = "", 3000);
     });
 
     // --- Fonctions utilitaires ---
     const getApiKey = (type) => {
         const key = localStorage.getItem(`api_${type}`);
         if (!key) {
-            alert(`Veuillez configurer une clé API pour le module ${type}.`);
+            alert(`Veuillez d'abord générer votre accès avec votre adresse email.`);
             return null;
         }
         return key;
