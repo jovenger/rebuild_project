@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moteur IA Unifié</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Moteur IA Unifié</h1>
+            <p>Interface centralisée nécessitant vos propres clés API pour fonctionner.</p>
+        </header>
+
+        <section class="config-section">
+            <h2>Configuration des clés API (Locales)</h2>
+            <div class="api-inputs">
+                <input type="password" id="api-text" placeholder="Clé API OpenAI / Anthropic (Texte)">
+                <input type="password" id="api-image" placeholder="Clé API Midjourney / Stable Diffusion (Image/3D)">
+                <input type="password" id="api-video" placeholder="Clé API Runway / SVD (Vidéo)">
+                <input type="password" id="api-audio" placeholder="Clé API Suno / MusicGen (Musique)">
+                <button id="save-keys">Enregistrer les clés (localement)</button>
+            </div>
+            <p id="config-status"></p>
+        </section>
+
+        <section class="workspace">
+            <div class="module">
+                <h2>Génération de Texte & Code</h2>
+                <textarea id="prompt-text" placeholder="Entrez votre prompt textuel..."></textarea>
+                <button id="btn-text">Générer Texte</button>
+                <div class="output" id="output-text"></div>
+            </div>
+
+            <div class="module">
+                <h2>Modélisation & Image</h2>
+                <textarea id="prompt-image" placeholder="Description de l'image ou du modèle..."></textarea>
+                <button id="btn-image">Générer Image</button>
+                <div class="output" id="output-image"></div>
+            </div>
+
+            <div class="module">
+                <h2>Création de Film (Visage -> Vidéo)</h2>
+                <textarea id="prompt-video" placeholder="Description de la scène vidéo..."></textarea>
+                <input type="file" id="input-face" accept="image/*">
+                <button id="btn-video">Générer Vidéo</button>
+                <div class="output" id="output-video"></div>
+            </div>
+
+            <div class="module">
+                <h2>Création Musicale Contextualisée</h2>
+                <textarea id="prompt-audio" placeholder="Décrivez le thème, l'ambiance, les paroles..."></textarea>
+                <button id="btn-audio">Générer Musique</button>
+                <div class="output" id="output-audio"></div>
+            </div>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
