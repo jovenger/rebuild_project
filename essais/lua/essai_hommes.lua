@@ -1606,8 +1606,21 @@ essai("garde de la tenue (fiche 13) : une fin de combat, ou une relance en filet
   egal(etat_de(id), "a_completer", "le second passage suivra")
   hommes.battre()
   egal(etat_de(id), "pret", "prêt de nouveau")
+  -- Demande de JoVenGer (26/10) : une simple relance, toute sa tenue au sac : ses pièces remises en silence, sans
+  -- rhabillage ni second passage.
+  local remis_avant = lignes_contenant("« " .. f.nom .. " » a remis ses affaires")
+  FauxJeu.dernier_porter = nil
   FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_fins_de_combat = 1, scriptorium_essai_rejoint = 2 }
-  egal(hommes.battre().a_rhabiller, 1, "une relance de sa vie du camp, en filet : marqué")
+  egal(hommes.battre().a_rhabiller, 0, "une relance, tenue complète : pas de rhabillage")
+  egal(lignes_contenant("à rhabiller (vie du camp relancée)"), 0, "rien de marqué")
+  egal(lignes_contenant("« " .. f.nom .. " » a remis ses affaires"), remis_avant, "pas de remise des affaires")
+  verifier(FauxJeu.dernier_porter and FauxJeu.dernier_porter.personnage == f.personnage, "ses pièces remises en silence")
+  egal(lignes_contenant("tenue complète : 1 homme(s) ont remis leurs pièces"), 1, "une ligne pour la rafale")
+  -- Une pièce manque : la relance, en filet, le rhabille comme avant.
+  local tenue = hommes.fiche(id).equipement.tenue
+  FauxJeu.retirer_un_objet(f.personnage, tenue .. "_tete")
+  FauxJeu.variables_du_cerveau[f.personnage] = { scriptorium_fins_de_combat = 1, scriptorium_essai_rejoint = 3 }
+  egal(hommes.battre().a_rhabiller, 1, "une relance, une pièce manque : marqué")
   egal(lignes_contenant("à rhabiller (vie du camp relancée)"), 1, "dit au journal")
 end)
 

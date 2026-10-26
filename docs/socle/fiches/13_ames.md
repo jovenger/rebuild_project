@@ -793,3 +793,10 @@
   `entree_verif_s` (30 s, réglable ; 0 : jamais) après la relance, jamais en bataille : chaque pièce de son préréglage
   absente du sac (sauf celles ôtées par Scriptorium) est recréée. Journal : « tenues vérifiées à l'entrée en partie
   (+30 s) : N homme(s) à recompléter ». Essai (vérifié en échec sans).
+- Demande de JoVenGer (26/10, mesuré par le pair sur une copie : Henry loin, 128 « à rhabiller (vie du camp
+  relancée) » en 4,5 min par rafales de 29 ; Henry au camp, environ une par homme et par heure de jeu ; jamais une
+  pièce manquante) : une simple relance de la vie du camp ne rhabille plus quand toute sa tenue est au sac. Le jeu ne
+  dit pas si une pièce est portée (relevé du 16/10) : près d'Henry (`gardien_rayon_m`), ses pièces sont seulement
+  remises en silence (`faire_porter`, sans danger, V71 c ; pas de second passage, ni d'accroche, ni de ligne par homme ;
+  une ligne pour la rafale) ; loin, rien (la garde en tournant et la vérification de l'entrée restent). Une pièce
+  absente du sac, ou une fin de combat : le rhabillage comme avant. Essai (vérifié en échec sans).

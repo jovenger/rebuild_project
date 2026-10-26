@@ -1708,6 +1708,24 @@ end
 -- La vérification complète après un saut d'horloge (ci-dessus, « saut_tenues_h ») : chaque homme équipé à qui manque une
 -- pièce de sa tenue ou de ses armes (absente de son sac ; jamais une pièce ôtée par Scriptorium) passe « à équiper » :
 -- l'habillage, un homme à la fois et jamais en bataille, recrée seulement celles qui manquent. Rend le nombre d'hommes.
+-- Le nombre de pièces de sa tenue et de ses armes absentes de son sac (jamais une pièce ôtée par Scriptorium).
+local function pieces_manquantes(f)
+  local e = f.equipement
+  local otees = {}
+  for _, objet in ipairs(e.otees or {}) do
+    otees[objet] = true
+  end
+  local manque = 0
+  for _, nom in ipairs({ e.tenue, e.armes }) do
+    for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
+      if not otees[objet] and jeu().compter_objet(f.personnage, objet) == 0 then
+        manque = manque + 1
+      end
+    end
+  end
+  return manque
+end
+
 local function verifier_les_tenues(d)
   local n = 0
   for _, id in ipairs(d.ordre) do
@@ -1715,18 +1733,7 @@ local function verifier_les_tenues(d)
     local e = f.equipement
     if e and e.tenue and e.armes and e.naissance_retiree and f.personnage and jeu().personnage_existe(f.personnage)
         and (e.etat == "pret" or e.etat == "a_completer" or e.etat == "a_rhabiller") then
-      local otees = {}
-      for _, objet in ipairs(e.otees or {}) do
-        otees[objet] = true
-      end
-      local manque = 0
-      for _, nom in ipairs({ e.tenue, e.armes }) do
-        for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
-          if not otees[objet] and jeu().compter_objet(f.personnage, objet) == 0 then
-            manque = manque + 1
-          end
-        end
-      end
+      local manque = pieces_manquantes(f)
       if manque > 0 then
         e.etat = "a_equiper"
         n = n + 1
@@ -3578,6 +3585,7 @@ local function surveiller_les_cerveaux(d)
     table.insert(suivis, { qui = du_directeur, nom = "Directeur" })
   end
   local nouveaux, marques = 0, 0
+  local remises_silencieuses = 0
   for _, s in ipairs(suivis) do
     local lus = jeu().lire_le_cerveau(s.qui, COMPTEURS_DU_SWITCH)
     local arrets = tonumber(lus.scriptorium_vie_arrets)
@@ -3605,10 +3613,32 @@ local function surveiller_les_cerveaux(d)
       end
       hommes.lancements_vus[s.qui] = lancements
     end
+    -- Demande de JoVenGer (26/10, mesuré par le pair : une relance par homme et par heure de jeu, par rafales de 29 loin
+    -- d'Henry, chacune suivie d'une remise et d'un second passage, sans aucune pièce manquante) : une simple relance de
+    -- la vie du camp ne rhabille plus quand toute sa tenue est au sac. Le jeu ne dit pas si une pièce est portée : près
+    -- d'Henry (« gardien_rayon_m »), ses pièces sont seulement remises, en silence (sans danger, V71 c) ; loin, rien
+    -- (la garde en tournant et la vérification de l'entrée restent). Une pièce manque, ou une fin de combat : le
+    -- rhabillage, comme avant.
+    if raison == "vie du camp relancée" and s.fiche and s.fiche.equipement and s.fiche.equipement.tenue
+        and s.fiche.equipement.armes and pieces_manquantes(s.fiche) == 0 then
+      local f = s.fiche
+      local ici, henry = jeu().position_du_personnage(f.personnage), jeu().position_du_joueur()
+      local pres = not (ici and henry) or math.sqrt((ici.x - henry.x) ^ 2 + (ici.y - henry.y) ^ 2)
+        <= (tonumber(hommes.reglages.gardien_rayon_m) or math.huge)
+      if pres and f.equipement.etat == "pret" and not en_bataille() and not garde_suspendue(f.id, f) then
+        jeu().faire_porter(f.personnage, liste_portee(f))
+        remises_silencieuses = remises_silencieuses + 1
+      end
+      raison = nil
+    end
     if raison and s.fiche and marquer_a_rhabiller(s.fiche) then
       marques = marques + 1
       jeu().journal("Hommes : « " .. s.nom .. " » à rhabiller (" .. raison .. ")")
     end
+  end
+  if remises_silencieuses > 0 then
+    jeu().journal("Hommes : vie du camp relancée, tenue complète : " .. remises_silencieuses
+                  .. " homme(s) ont remis leurs pièces, sans rhabillage")
   end
   return nouveaux, marques
 end
