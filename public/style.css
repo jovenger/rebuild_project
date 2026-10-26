@@ -1,0 +1,269 @@
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #1e1e1e;
+    color: #fff;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+#main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+header {
+    background-color: #333;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #000;
+}
+
+h1 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.controls button {
+    padding: 8px 16px;
+    margin-left: 10px;
+    background-color: #555;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.controls button:hover {
+    background-color: #666;
+}
+
+#record-btn.record {
+    background-color: #d32f2f;
+}
+#record-btn.record:hover {
+    background-color: #f44336;
+}
+#record-btn.recording {
+    background-color: #ff9800;
+    animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 1; }
+    to { opacity: 0.5; }
+}
+
+#timeline {
+    flex: 7; /* 70% de l'espace */
+    overflow-y: auto;
+    padding: 20px 20px 20px 170px; /* Espace pour le header des pistes (150 + 20) */
+    background-color: #252526;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#tracks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
+}
+
+#playhead-container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 170px;
+    right: 20px;
+    pointer-events: none; /* Laisse passer les clics vers le canvas en dessous */
+    z-index: 10;
+}
+
+#playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #f44336;
+    box-shadow: 0 0 4px #f44336;
+    left: 0; /* Animé en JS */
+    display: none;
+}
+
+#play-btn.play { background-color: #4caf50; }
+#play-btn.play:hover { background-color: #66bb6a; }
+#play-btn.playing { background-color: #388e3c; }
+
+.track {
+    display: flex;
+    position: relative;
+    background-color: #333;
+    border-radius: 8px;
+    height: 120px;
+    overflow: visible; /* On laisse dépasser le header absolute sur la gauche */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.track-header {
+    width: 150px;
+    position: absolute;
+    left: -150px;
+    height: 100%;
+    background-color: #444;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px solid #222;
+    box-sizing: border-box;
+}
+
+.track-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.mix-controls {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.mix-controls button {
+    flex: 1;
+    font-weight: bold;
+}
+
+.mix-controls button.mute.active { background-color: #f44336; }
+.mix-controls button.solo.active { background-color: #ffeb3b; color: #000; }
+
+.style-selector {
+    margin-top: 5px;
+    width: 100%;
+}
+
+.style-selector select {
+    width: 100%;
+    background-color: #222;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 3px;
+    padding: 3px;
+    font-size: 0.75rem;
+}
+
+.vol-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    font-size: 0.7rem;
+}
+.vol-control input[type=range] {
+    flex: 1;
+    height: 4px;
+}
+
+.track-controls button {
+    background-color: #555;
+    color: #fff;
+    border: none;
+    padding: 5px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-radius: 3px;
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* BLOC-NOTES IA */
+#notepad {
+    flex: 3; /* 30% de l'espace */
+    background-color: #1e1e1e;
+    border-left: 2px solid #000;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    min-width: 250px;
+}
+
+#notepad h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: #4caf50;
+}
+
+.notepad-controls {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.notepad-controls input {
+    flex: 1;
+    padding: 5px;
+    background-color: #333;
+    border: 1px solid #555;
+    color: white;
+    border-radius: 3px;
+}
+
+.notepad-controls button {
+    padding: 5px 10px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.notepad-controls button:hover {
+    background-color: #1976d2;
+}
+
+#lyrics-area {
+    flex: 1;
+    background-color: #252526;
+    color: #ddd;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 10px;
+    resize: none;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.track-controls button.active {
+    background-color: #d32f2f;
+}
+
+.track-content {
+    flex: 1;
+    position: relative;
+    background-color: #1e1e1e;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
