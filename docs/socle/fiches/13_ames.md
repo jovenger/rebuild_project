@@ -807,3 +807,8 @@
   absente du sac (sauf celles ôtées par Scriptorium) le fait passer « à équiper » (« … pièce(s) de sa tenue
   disparue(s) : elles seront recréées »), au plus une fois par homme toutes les `recreation_min_s` (180 s réelles),
   pour ne pas boucler. Essai (mutation fine vérifiée : la recréation désactivée, l'essai échoue).
+- Vu le 26/10 (le pair, relevé horodaté) : le menu « Passer le temps » du jeu n'a pas été vu comme un saut ; il
+  accélère l'horloge par petits pas (2,7 h de jeu en 45 s réelles), jamais plus d'1 h d'un battement à l'autre.
+  Désormais, plus de `saut_tenues_h` (1 h) de jeu en moins de `saut_fenetre_s` (60 s réelles, réglable), sur une
+  fenêtre glissante, compte aussi comme un saut (au rythme normal, environ 0,25 h par minute) : « l'horloge a avancé de
+  … h en … s : les tenues seront vérifiées ». Essai (mutation fine vérifiée : la fenêtre désactivée, l'essai échoue).

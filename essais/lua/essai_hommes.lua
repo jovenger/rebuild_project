@@ -1359,6 +1359,43 @@ essai("remise des affaires (vu le 26/10 : dix hommes restés à moitié nus, « 
   hommes.dernieres_recreations[id] = nil
 end)
 
+essai("horloge accélérée (vu le 26/10 : « Passer le temps » avance l'horloge par petits pas, 2,7 h en 45 s) : plus d'1 h de jeu en moins de 60 s réelles compte comme un saut ; le rythme normal, jamais", function()
+  preparer(200, 10, 10)
+  hommes.reglages.saut_tenues_h = 1
+  hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  local function lignes(texte)
+    local n = 0
+    for _, l in ipairs(FauxJeu.journal_lignes) do
+      if string.find(l, texte, 1, true) then n = n + 1 end
+    end
+    return n
+  end
+  -- Le rythme normal (environ 0,25 h par minute) : jamais.
+  for _ = 1, 20 do
+    FauxJeu.temps = FauxJeu.temps + 10
+    FauxJeu.heure = FauxJeu.heure + 0.04
+    hommes.battre()
+  end
+  egal(lignes("l'horloge a avancé de"), 0, "au rythme normal, pas de saut")
+  -- L'horloge accélérée : 0,3 h toutes les 5 s, jamais plus d'1 h d'un battement à l'autre.
+  FauxJeu.minuteries = {}
+  for _ = 1, 4 do
+    FauxJeu.temps = FauxJeu.temps + 5
+    FauxJeu.heure = FauxJeu.heure + 0.3
+    hommes.battre()
+  end
+  egal(lignes("l'horloge a sauté de"), 0, "aucun pas de plus d'1 h")
+  egal(lignes("l'horloge a avancé de"), 1, "l'horloge accélérée vue comme un saut")
+  local verifs = 0
+  for _, m in ipairs(FauxJeu.minuteries) do
+    if m.ms == 30000 or m.ms == 120000 or m.ms == 300000 then verifs = verifs + 1 end
+  end
+  egal(verifs, 3, "les trois vérifications des tenues prévues")
+  hommes.reglages.saut_tenues_h = 0
+  hommes.fenetre_de_l_horloge = nil
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)

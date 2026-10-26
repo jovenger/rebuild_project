@@ -272,6 +272,8 @@ hommes.reglages = {
   saut_verif_1_s = 30,
   saut_verif_2_s = 120,
   saut_verif_3_s = 300,
+  -- Vu le 26/10 : l'horloge accélérée (« Passer le temps ») compte aussi, sur une fenêtre de tant de secondes réelles.
+  saut_fenetre_s = 60,
   -- Vu le 26/10 (J43) : la même vérification complète, une fois, tant de secondes réelles après l'entrée en partie
   -- (0 : jamais).
   entree_verif_s = 30,
@@ -4853,10 +4855,28 @@ function hommes.battre()
   end
   -- Un saut de l'horloge (sommeil, attente) : la tenue de chacun vérifiée ensuite (J39).
   local saut_h = tonumber(hommes.reglages.saut_tenues_h) or 0
+  local t = jeu().maintenant and jeu().maintenant()
   if saut_h > 0 and heure - d.derniere_heure > saut_h then
     jeu().journal("Hommes : l'horloge a sauté de " .. string.format("%.1f", heure - d.derniere_heure)
                   .. " h : les tenues seront vérifiées")
     hommes.verifier_les_tenues_apres_un_saut()
+    hommes.fenetre_de_l_horloge = {}
+  elseif saut_h > 0 and type(t) == "number" then
+    -- Vu le 26/10 (le pair : le menu « Passer le temps » accélère l'horloge par petits pas, 2,7 h de jeu en 45 s, jamais
+    -- un saut d'un battement à l'autre) : plus de « saut_tenues_h » heures de jeu en moins de « saut_fenetre_s »
+    -- secondes réelles, sur une fenêtre glissante, compte comme un saut (au rythme normal, environ 0,25 h par minute).
+    local fenetre = hommes.fenetre_de_l_horloge or {}
+    hommes.fenetre_de_l_horloge = fenetre
+    table.insert(fenetre, { t = t, h = heure })
+    while #fenetre > 1 and t - fenetre[1].t > (tonumber(hommes.reglages.saut_fenetre_s) or 60) do
+      table.remove(fenetre, 1)
+    end
+    if heure - fenetre[1].h > saut_h then
+      jeu().journal("Hommes : l'horloge a avancé de " .. string.format("%.1f", heure - fenetre[1].h) .. " h en "
+                    .. string.format("%.0f", t - fenetre[1].t) .. " s : les tenues seront vérifiées")
+      hommes.verifier_les_tenues_apres_un_saut()
+      hommes.fenetre_de_l_horloge = { { t = t, h = heure } }
+    end
   end
   -- Aubes passées.
   local aube = jour_de(heure - hommes.reglages.heure_lever)
