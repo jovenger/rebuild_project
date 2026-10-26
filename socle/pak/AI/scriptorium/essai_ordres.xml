@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<BehaviorTrees>
+  <BehaviorTree name="onUpdate" is_function="0">
+    <Variables>
+      <Variable form="single" isPersistent="0" name="renseignement" type="information" values="" />
+      <Variable form="single" isPersistent="0" name="hote" type="_wuid" values="" />
+      <Variable form="single" isPersistent="0" name="etat_de_la_vie" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="pouls_vu" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="tours_figes" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="occupe" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="tour_ms" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="tour" type="_string" values="" />
+      <Variable form="single" isPersistent="0" name="relance_tours" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="file_tours" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="relances" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="relances_max" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="fenetre_ms" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="fenetre_max_ms" type="_int" values="" />
+      <Variable form="single" isPersistent="0" name="arret_dit" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="en_combat" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="etait_en_combat" type="_bool" values="" />
+      <Variable form="single" isPersistent="0" name="demande_de_parole" type="dialogModule:onDialogRequest" values="" />
+      <Variable form="single" isPersistent="0" name="demande_de_causerie" type="dialog:chatRequest" values="" />
+      <Variable form="single" isPersistent="0" name="arret_du_combat" type="switch:interruptData:stopReaction" values="" />
+    </Variables>
+    <Root OneTimeOnly="false" FailState="Recoverable" saveVersion="2">
+      <Behavior canSkip="1">
+        <!-- Fiche 21, vu en jeu le 18/10 : sans ces deux branches, Henry voyait "Parler" mais rien ne s'ouvrait (la
+             demande restait dans la boite 'dialogMailbox') ; avec elles, notre dialogue s'ouvre. Principe : l'interrupteur
+             du cerveau de base des villageois traite cette boite dans des branches paralleles qui ne s'arretent jamais. -->
+        <Parallel failureMode="Any" successMode="Any">
+        <Sequence>
+          <ClearInbox condition="" inbox="&apos;dialogMailbox&apos;" type="" />
+          <While condition="true" doFail="false" propagateChildFail="false">
+            <ProcessMessage inbox="&apos;dialogMailbox&apos;" variable="$demande_de_parole" timeout="&apos;-1&apos;" timeType="GameTime" Atomic="false" answerVar="" condition="" senderInfo="">
+              <Function_switch_handleDialog dialogRequest="$demande_de_parole" nodeLabel="52190001" />
+            </ProcessMessage>
+          </While>
+        </Sequence>
+        <Sequence>
+          <ClearInbox condition="" inbox="&apos;dialogMailbox&apos;" type="" />
+          <While condition="true" doFail="false" propagateChildFail="false">
+            <ProcessMessage inbox="&apos;dialogMailbox&apos;" variable="$demande_de_causerie" timeout="&apos;-1&apos;" timeType="GameTime" Atomic="false" answerVar="" condition="" senderInfo="">
+              <Function_switch_handleChat chatRequest="$demande_de_causerie" nodeLabel="52190002" />
+            </ProcessMessage>
+          </While>
+        </Sequence>
+        <While condition="true" doFail="false" propagateChildFail="false">
+          <Sequence>
+            <Expression expressions="$scriptorium_essai_vivant = $scriptorium_essai_vivant + 1" />
+            <Expression expressions="$tour_ms = ($scriptorium_cerveau_tour_ms &gt; 0 ? $scriptorium_cerveau_tour_ms : 2000)" />
+            <Expression expressions="$tour_ms = ($tour_ms &gt;= 500 ? $tour_ms : 500)" />
+            <Expression expressions="$tour = concat($tour_ms, &apos;ms&apos;)" />
+            <Expression expressions="$relance_tours = ($scriptorium_cerveau_relance_tours &gt; 0 ? $scriptorium_cerveau_relance_tours : 3)" />
+            <Expression expressions="$file_tours = ($scriptorium_cerveau_file_tours &gt; 0 ? $scriptorium_cerveau_file_tours : 30)" />
+            <Expression expressions="$relances_max = ($scriptorium_cerveau_relances_max &gt; 0 ? $scriptorium_cerveau_relances_max : 3)" />
+            <Expression expressions="$fenetre_max_ms = ($scriptorium_cerveau_relances_fenetre_ms &gt; 0 ? $scriptorium_cerveau_relances_fenetre_ms : 60000)" />
+            <Expression expressions="$fenetre_ms = $fenetre_ms + $tour_ms" />
+            <IfCondition condition="$fenetre_ms &gt;= $fenetre_max_ms" failOnCondition="false">
+              <Sequence>
+                <Expression expressions="$relances = 0" />
+                <Expression expressions="$fenetre_ms = 0" />
+                <Expression expressions="$arret_dit = false" />
+              </Sequence>
+            </IfCondition>
+            <IfCondition condition="$scriptorium_essai_ordre == 8" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Sequence>
+                    <Function_callInterrupt_attack target="$scriptorium_essai_cible" questBehavior="true" relationOverride="true" ignorePriority="true" priority="160" initiator="$enum:switch_interruptInitiator.switch" stimulusKind="$enum:crime_stimulusKind.enemy" previousReaction="$enum:crime_reactionKind.unknown" criminalFreshness="$enum:crime_criminalFreshness.unknown" defenceMode="false" escalatedFromFailedSurrender="false" freshlyAttributedCrime="false" information="$renseignement" assaultData="" nodeLabel="73110801" />
+                    <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1" />
+                  </Sequence>
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
+            <!-- Demande du pair (25/10 : l'entrainement entre deux des notres ressemblait a une querelle) : l'assaut amical,
+                 le combat amical du jeu (AI/profession/camper/so_campFriendlyFight.xml) : notre comportement
+                 scriptorium_assaut_amical, en interruption comme l'attaque (priorite 160). -->
+            <IfCondition condition="$scriptorium_essai_ordre == 12" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Sequence>
+                    <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110812" />
+                    <AddInterrupt Behavior="&apos;scriptorium_assaut_amical&apos;" Target="$this.id" Host="$hote" Priority="160" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
+                    <Expression expressions="$scriptorium_essai_combats = $scriptorium_essai_combats + 1" />
+                  </Sequence>
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
+            <!-- Vu en jeu le 19/10 : l'attaque (ordre 8, priorite 160) ne finit qu'a la chute de la cible ; un duel fini
+                 laissait Henry en combat, et la vie du camp (priorite 100) ne la remplacait jamais. L'ordre 9 la leve
+                 comme le jeu leve une reaction (switch/handleOnSoulRevived : un seul reacteur, rien d'oublie). -->
+            <IfCondition condition="$scriptorium_essai_ordre == 9" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Sequence>
+                    <Expression expressions="$arret_du_combat.reactorCount = 1&#10;$arret_du_combat.forgetCrimeInfo = false" />
+                    <Function_callInterrupt_stopReaction ignorePriority="true" stopReactionData="$arret_du_combat" nodeLabel="73110806" />
+                  </Sequence>
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
+            <!-- Vu en jeu le 19/10 : pose par la liaison (SetWorldPos) en pleine marche, un homme restait fige bras
+                 ecartes. L'ordre 10 : le secours passe par la teleportation du jeu (switch/callInterrupt_teleport). -->
+            <IfCondition condition="$scriptorium_essai_ordre == 10" failOnCondition="false">
+              <Sequence>
+                <SuppressFailure>
+                  <Function_callInterrupt_teleport positionVec3="$scriptorium_secours_point" positionWuid="" useWuidPosition="false" nodeLabel="73110808" />
+                </SuppressFailure>
+                <Expression expressions="$scriptorium_essai_ordre = 0" />
+              </Sequence>
+            </IfCondition>
+            <IfCondition condition="$etat_de_la_vie == 0 &amp; $relances &lt; $relances_max" failOnCondition="false">
+              <SuppressFailure>
+                <Sequence>
+                  <Function_crime_getMrkev mrkev="$hote" nodeLabel="73110802" />
+                  <AddInterrupt Behavior="&apos;scriptorium_vie_du_camp&apos;" Target="$this.id" Host="$hote" Priority="100" urgency="Default" Aliveness="Alive" Privileged="false" IgnorePriorityOnPreviousInterrupt="false" />
+                  <Expression expressions="$scriptorium_essai_rejoint = $scriptorium_essai_rejoint + 1" />
+                  <Expression expressions="$fenetre_ms = ($relances == 0 ? 0 : $fenetre_ms)" />
+                  <Expression expressions="$relances = $relances + 1" />
+                  <Expression expressions="$pouls_vu = $scriptorium_vie_pouls" />
+                  <Expression expressions="$tours_figes = 0" />
+                  <Expression expressions="$etat_de_la_vie = 1" />
+                </Sequence>
+              </SuppressFailure>
+            </IfCondition>
+            <IfCondition condition="$etat_de_la_vie == 0 &amp; $relances &gt;= $relances_max &amp; ~$arret_dit" failOnCondition="false">
+              <Sequence>
+                <Expression expressions="$scriptorium_vie_arrets = $scriptorium_vie_arrets + 1" />
+                <Expression expressions="$arret_dit = true" />
+                <Expression expressions="$fenetre_ms = 0" />
+              </Sequence>
+            </IfCondition>
+            <IfCondition condition="$etat_de_la_vie &gt; 0 &amp; $scriptorium_vie_pouls == $pouls_vu" failOnCondition="false">
+              <Sequence>
+                <Expression expressions="$tours_figes = $tours_figes + 1" />
+                <Expression expressions="$occupe = false" />
+                <EntityContextCheck context="crime_interruptAttack" target="" saveVersion="2">
+                  <Then canSkip="1">
+                    <Expression expressions="$occupe = true" />
+                  </Then>
+                </EntityContextCheck>
+                <EntityContextCheck context="speech_switchDialogRunning" target="" saveVersion="2">
+                  <Then canSkip="1">
+                    <Expression expressions="$occupe = true" />
+                  </Then>
+                </EntityContextCheck>
+                <IfCondition condition="$etat_de_la_vie == 2 &amp; $tours_figes &gt;= $relance_tours &amp; ~$occupe" failOnCondition="false">
+                  <Expression expressions="$etat_de_la_vie = 0" />
+                </IfCondition>
+                <IfCondition condition="$etat_de_la_vie == 1 &amp; $tours_figes &gt;= $file_tours &amp; ~$occupe" failOnCondition="false">
+                  <Expression expressions="$etat_de_la_vie = 0" />
+                </IfCondition>
+              </Sequence>
+            </IfCondition>
+            <IfCondition condition="$scriptorium_vie_pouls ~= $pouls_vu" failOnCondition="false">
+              <Sequence>
+                <Expression expressions="$pouls_vu = $scriptorium_vie_pouls" />
+                <Expression expressions="$tours_figes = 0" />
+                <Expression expressions="$etat_de_la_vie = 2" />
+              </Sequence>
+            </IfCondition>
+            <Expression expressions="$en_combat = false" />
+            <EntityContextCheck context="crime_interruptAttack" target="" saveVersion="2">
+              <Then canSkip="1">
+                <Expression expressions="$en_combat = true" />
+              </Then>
+            </EntityContextCheck>
+            <IfCondition condition="$etait_en_combat &amp; ~$en_combat" failOnCondition="false">
+              <Expression expressions="$scriptorium_fins_de_combat = $scriptorium_fins_de_combat + 1" />
+            </IfCondition>
+            <Expression expressions="$etait_en_combat = $en_combat" />
+            <Wait timeType="GameTime" duration="$tour" doFail="false" variation="" skipInLOD="false" />
+          </Sequence>
+        </While>
+        </Parallel>
+      </Behavior>
+    </Root>
+    <ForestContainer />
+  </BehaviorTree>
+</BehaviorTrees>

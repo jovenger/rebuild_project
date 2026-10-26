@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" xsi:noNamespaceSchemaLocation="../../database.xsd">
+  <SmartEntitys version="1">
+    <SmartEntityTemplate Name="so_interrupt" UpdatePriority="false" BrainId="ea3ff907-6743-4ad4-8723-2c14ac2a01f0" DatabaseId="43c857b4-032b-844f-3d1b-3cc90d5a2382">
+      <BehaviorTemplates>
+        <SmartBehaviorTemplate Name="scriptorium_vie_du_camp" MaxInstances="-1" InitialState="Enabled">
+          <TreeLocation TreeName="scriptorium_vie_du_camp" FileName="scriptorium/comportements.xml" />
+        </SmartBehaviorTemplate>
+        <SmartBehaviorTemplate Name="scriptorium_assaut_amical" MaxInstances="-1" InitialState="Enabled">
+          <TreeLocation TreeName="scriptorium_assaut_amical" FileName="scriptorium/comportements.xml" />
+        </SmartBehaviorTemplate>
+      </BehaviorTemplates>
+    </SmartEntityTemplate>
+  </SmartEntitys>
+</database>

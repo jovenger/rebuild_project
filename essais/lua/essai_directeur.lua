@@ -1,0 +1,441 @@
+-- Essais du Directeur et de la Gestion du camp (fiche 06_directeur.md).
+
+local directeur = Scriptorium.directeur
+local hommes = Scriptorium.hommes
+local camp = Scriptorium.camp
+local coffre = Scriptorium.coffre
+
+local function preparer(groschen, heure)
+  depart()
+  directeur.retirer_entrees()
+  FauxJeu.heure = heure or 10
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  if groschen and groschen > 0 then coffre.encaisser(groschen, "butin") end
+  directeur.installer()
+  Scriptorium.bandeau.remettre_a_zero()
+end
+
+local function entree(menu, action)
+  for _, e in ipairs(menu) do
+    if e.action == action then return e end
+  end
+  return nil
+end
+
+essai("directeur : installation, refus, personnage à sa tente", function()
+  depart()
+  directeur.retirer_entrees()
+  local ok, raison = directeur.installer()
+  egal(raison, "camp_absent", "sans camp")
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  Scriptorium.bandeau.remettre_a_zero()
+  verifier(directeur.installer(), "installé")
+  egal(directeur.est_installe(), true, "installé")
+  egal(camp.occupant_de("lit_directeur"), "directeur", "sa place réservée")
+  egal(#FauxJeu.directeurs, 1, "personnage demandé")
+  local p = FauxJeu.directeurs[1].position
+  verifier(math.abs(p.y - camp.position_de("lit_directeur").y) < 0.01, "à sa tente, sur son lit (place du plan, V73 c 12)")
+  ok, raison = directeur.installer()
+  egal(raison, "deja_installe", "une seule fois")
+  Scriptorium.bandeau.battre()
+  egal(FauxJeu.en_ecran, "@ui_scriptorium_directeur_installe", "annoncé")
+end)
+
+essai("directeur (la bascule, 19/10) : installé à une place donnée sur un camp adopté ; aucun lit du plan réservé ; il revient à sa place", function()
+  depart()
+  directeur.retirer_entrees()
+  camp.adopter({ x = 100, y = 200, z = 30 }, 0, "kutnohorsko")
+  local ok, raison = directeur.installer({ x = 1 }, 0)
+  egal(raison, "position_invalide", "une position boiteuse refusée")
+  verifier(directeur.installer({ x = 110, y = 205, z = 31 }, 45), "installé à sa place")
+  local p = FauxJeu.directeurs[#FauxJeu.directeurs].position
+  egal(p.x, 110, "à la place donnée")
+  egal(FauxJeu.cap_du_directeur, 45, "tourné vers son cap")
+  egal(camp.occupant_de("lit_directeur"), nil, "aucun lit du plan réservé")
+  FauxJeu.personnages_existants[directeur.personnage()] = nil
+  directeur.redresser()
+  egal(FauxJeu.directeurs[#FauxJeu.directeurs].position.x, 110, "revenu à sa place")
+end)
+
+essai("directeur (vu sur une copie de la partie de JoVenGer le 19/10) : sur un camp adopté, jamais une place du plan (la cabane) ; il prend la place qui la remplace, sinon reste à sa place ; une place « remplace » n'est jamais offerte aux hommes", function()
+  depart()
+  directeur.retirer_entrees()
+  camp.adopter({ x = 100, y = 200, z = 30 }, 0, "kutnohorsko")
+  verifier(directeur.installer({ x = 110, y = 205, z = 31 }, 45), "installé à sa place")
+  local plan_coffre = camp.position_de("coffre_camp")
+  for _, h in ipairs({ 10, 21, 23 }) do
+    local a = directeur.activite(h)
+    verifier(a.lieu ~= "coffre_camp" and a.lieu ~= "lit_directeur" and a.lieu ~= "feu_central",
+             h .. " h : aucune place du plan (" .. tostring(a.lieu) .. ")")
+    egal(a.position and a.position.x, 110, h .. " h : sans remplaçant, à sa place d'installation")
+  end
+  local ok, raison = camp.declarer_les_places({ { nom = "lit_de_sa_tente", remplace = "lit_inconnu" } })
+  egal(raison, "places_invalides", "remplacer une place inconnue : refusé")
+  ok, raison = camp.declarer_les_places({ { nom = "x", sorte = "siege", remplace = "lit_directeur" } })
+  egal(raison, "places_invalides", "une sorte qui ne colle pas : refusée")
+  verifier(camp.declarer_les_places({ { nom = "lit_de_sa_tente", remplace = "lit_directeur" },
+                                      { nom = "sa_table", remplace = "coffre_camp" },
+                                      { nom = "ScriptoEditeur_3_3_so", sorte = "lit" } }), "déclarées")
+  FauxJeu.positions_des_objets = { lit_de_sa_tente = { x = 120, y = 210, z = 30 }, sa_table = { x = 125, y = 200, z = 30 } }
+  FauxJeu.objets_existants.lit_de_sa_tente = true
+  egal(directeur.activite(23).lieu, "lit_de_sa_tente", "la nuit : le lit qui remplace le sien")
+  egal(directeur.activite(23).position.x, 120, "à son lit")
+  egal(directeur.activite(10).lieu, "sa_table", "le jour : la place qui remplace le coffre")
+  egal(camp.sorte_de("lit_de_sa_tente"), "lit", "la sorte de la place remplacée")
+  egal(#camp.places_libres("lit"), 1, "le lit du Directeur jamais offert aux hommes")
+  egal(camp.capacite().lits, 1, "ni compté")
+  egal(camp.liste_des_places_declarees()[1].remplace, "lit_directeur", "lisible")
+  verifier(plan_coffre ~= nil, "la place du plan existe bien (sinon l'essai ne prouve rien)")
+  FauxJeu.positions_des_objets = nil
+end)
+
+essai("directeur (la bascule, 19/10) : la tâche « parler » : debout au point, tourné vers Henry, devant sa journée et devant « suivre » ; levée, il reprend sa journée", function()
+  preparer(0, 10)
+  local ok, raison = directeur.parler(true, { x = 1 }, { x = 0, y = 0, z = 0 })
+  egal(raison, "position_invalide", "un point boiteux refusé")
+  directeur.suivre(true)
+  FauxJeu.ordres = {}
+  verifier(directeur.parler(true, { x = 5, y = 6, z = 0 }, { x = 5, y = 3, z = 0 }), "tenu")
+  local o = FauxJeu.ordres[#FauxJeu.ordres]
+  egal(o.activite, "garde", "un poste")
+  egal(o.position.x, 5, "à son point")
+  egal(o.regard.y, 3, "tourné vers Henry")
+  directeur.battre()
+  egal(#FauxJeu.ordres, 1, "pas d'ordre redonné tant que rien ne change")
+  verifier(directeur.parler(false), "levé")
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite, "suivre", "il reprend « suivre »")
+  directeur.suivre(false)
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite ~= "garde", true, "puis sa journée")
+end)
+
+essai("directeur : sa journée, un ordre au changement", function()
+  preparer(0, 10)
+  egal(directeur.activite(10).activite, "comptes", "le jour, aux comptes")
+  egal(directeur.activite(10).lieu, "coffre_camp", "au coffre")
+  egal(directeur.activite(21).activite, "veillee", "le soir au feu")
+  egal(directeur.activite(23).lieu, "lit_directeur", "la nuit dans sa tente")
+  egal(directeur.activite(24 + 3).activite, "sommeil", "encore la nuit")
+  FauxJeu.ordres = {}
+  egal(directeur.battre().ordres, 1, "premier ordre")
+  egal(directeur.battre().ordres, 0, "pas deux fois")
+  FauxJeu.heure = 21
+  egal(directeur.battre().ordres, 1, "le soir, nouvel ordre")
+  egal(FauxJeu.ordres[2].activite, "veillee", "veillée")
+end)
+
+essai("directeur : à l'entrée en partie, son ordre en cours lui est redonné (V56)", function()
+  preparer(0, 10)
+  FauxJeu.ordres = {}
+  egal(directeur.battre().ordres, 1, "premier ordre")
+  egal(directeur.battre().ordres, 0, "pas deux fois")
+  verifier(directeur.relancer(), "toujours là")
+  egal(directeur.battre().ordres, 1, "redonné après l'entrée en partie")
+  egal(FauxJeu.ordres[2].activite, FauxJeu.ordres[1].activite, "le même ordre")
+end)
+
+essai("directeur : sans Directeur, rien ne se fait ; actions inconnues et paramètres manquants", function()
+  depart()
+  directeur.retirer_entrees()
+  camp.fonder({ x = 0, y = 0, z = 0 }, 0)
+  local ok, raison = directeur.agir("rapport")
+  egal(raison, "pas_de_directeur", "pas de Directeur")
+  directeur.installer()
+  ok, raison = directeur.agir("danser")
+  egal(raison, "action_inconnue", "action inconnue")
+  ok, raison = directeur.agir("engager", { role = "archer" })
+  egal(raison, "parametre_manquant", "semaines manquantes")
+end)
+
+essai("directeur : le menu dit ce qui est possible et pourquoi pas", function()
+  preparer(0, 10)
+  local menu = directeur.menu()
+  egal(#menu, 12, "douze entrées de base")
+  egal(entree(menu, "rapport").disponible, true, "rapport toujours possible")
+  egal(entree(menu, "payer_la_solde").disponible, false, "personne à payer")
+  egal(entree(menu, "payer_la_solde").raison, "personne", "raison")
+  egal(entree(menu, "acheter").disponible, false, "coffre vide")
+  egal(entree(menu, "acheter").raison, "coffre_vide", "raison")
+  egal(entree(menu, "agrandir_le_camp").raison, "bois_insuffisant", "pas de bois")
+  egal(entree(menu, "engager").disponible, true, "on peut engager")
+  egal(#entree(menu, "engager").detail.roles, 8, "huit rôles (le forgeron, fiche 18, 5 c)")
+  egal(entree(menu, "deposer").raison, "henry_sans_le_sou", "Henry n'a rien")
+  for _, e in ipairs(menu) do
+    verifier(string.find(e.cle, "^ui_scriptorium_gestion_") ~= nil, "clé de texte pour " .. e.action)
+  end
+end)
+
+essai("directeur : engager, renvoyer, renouveler, nommer, payer", function()
+  preparer(500, 10)
+  coffre.ajouter_reserve("vivres", 50, "achat")
+  local ok, id = directeur.agir("engager", { role = "arbaletrier", semaines = 4 })
+  verifier(ok, "engagé")
+  egal(id, "homme_1", "identifiant")
+  egal(coffre.solde(), 500 - 28, "prime payée")
+  local ok2, id2 = directeur.agir("engager", { role = "archer", semaines = 2, prime = 0 })
+  verifier(ok2, "second")
+  ok = directeur.agir("engager", { role = "chevalier", semaines = 2 })
+  egal(ok, false, "rôle inconnu refusé")
+  verifier(directeur.agir("nommer_capitaine", { id = id }), "capitaine")
+  egal(hommes.fiche(id).rang, "capitaine", "nommé")
+  verifier(directeur.agir("renouveler", { id = id2, semaines = 3 }), "renouvelé")
+  egal(hommes.fiche(id2).contrat.semaines, 5, "cinq semaines")
+  local ok3, rapport = directeur.agir("payer_la_solde")
+  verifier(ok3, "payé")
+  egal(rapport.somme, 28 + 12, "capitaine × 2 et archer")
+  verifier(directeur.agir("renvoyer", { id = id2 }), "renvoyé")
+  egal(hommes.fiche(id2), nil, "parti")
+  ok = directeur.agir("renvoyer", { id = "homme_9" })
+  egal(ok, false, "inconnu")
+end)
+
+essai("directeur : acheter au prix juste, payé au coffre", function()
+  preparer(100, 10)
+  local ok, resultat = directeur.agir("acheter", { sorte = "vivres", quantite = 10 })
+  verifier(ok, "acheté")
+  egal(resultat.cout, 20, "dix vivres à deux groschen")
+  egal(resultat.reserve, 10, "réserve")
+  egal(coffre.solde(), 80, "coffre débité")
+  egal(coffre.livre(2)[1].motif, "achat_vivres", "ligne d'achat")
+  egal(FauxJeu.bourse_henry, 0, "jamais la bourse d'Henry")
+  local raison
+  ok, raison = directeur.agir("acheter", { sorte = "fer", quantite = 100 })
+  egal(raison, "coffre_insuffisant", "trop cher")
+  ok, raison = directeur.agir("acheter", { sorte = "or", quantite = 1 })
+  egal(raison, "sorte_inconnue", "sorte inconnue")
+  ok, raison = directeur.agir("acheter", { sorte = "fer", quantite = 1.5 })
+  egal(raison, "quantite_invalide", "quantité")
+  egal(coffre.solde(), 80, "coffre intact après les refus")
+end)
+
+essai("directeur : déposer et verser passent par le joueur", function()
+  preparer(50, 10)
+  FauxJeu.bourse_henry = 200
+  verifier(directeur.agir("deposer", { montant = 100 }), "dépôt")
+  egal(coffre.solde(), 150, "coffre")
+  egal(FauxJeu.bourse_henry, 100, "bourse")
+  verifier(directeur.agir("verser", { montant = 30 }), "versement")
+  egal(coffre.solde(), 120, "coffre")
+  egal(FauxJeu.bourse_henry, 130, "bourse")
+  local ok, raison = directeur.agir("verser", { montant = 1000 })
+  egal(raison, "coffre_insuffisant", "trop")
+end)
+
+essai("directeur : agrandir le camp coûte du bois et des groschen", function()
+  preparer(150, 10)
+  local ok, raison = directeur.agir("agrandir_le_camp")
+  egal(raison, "bois_insuffisant", "pas de bois")
+  coffre.ajouter_reserve("bois", 30, "achat")
+  verifier(directeur.agir("agrandir_le_camp"), "agrandi")
+  egal(camp.niveau(), 2, "niveau 2")
+  egal(coffre.solde(), 50, "cent groschen payés")
+  egal(coffre.reserve("bois"), 0, "trente bois pris")
+  ok, raison = directeur.agir("agrandir_le_camp")
+  egal(raison, "bois_insuffisant", "plus de bois")
+  coffre.ajouter_reserve("bois", 30, "achat")
+  ok, raison = directeur.agir("agrandir_le_camp")
+  egal(raison, "coffre_insuffisant", "plus assez de groschen")
+  egal(camp.niveau(), 2, "toujours niveau 2")
+  egal(coffre.reserve("bois"), 30, "le bois n'a pas été pris pour rien")
+end)
+
+essai("directeur : le rapport résume le camp", function()
+  preparer(300, 10)
+  coffre.ajouter_reserve("vivres", 40, "achat")
+  hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  hommes.embaucher({ role = "barbier", semaines = 4, prime = 0 })
+  hommes.blesser("homme_2", 3)
+  local ok, r = directeur.agir("rapport")
+  verifier(ok, "rapport")
+  egal(r.groschen, 300, "groschen")
+  egal(r.reserves.vivres, 40, "vivres")
+  egal(r.hommes, 2, "deux hommes")
+  egal(r.blesses, 1, "un blessé")
+  egal(r.moral_moyen, 60, "moral moyen")
+  egal(r.niveau_de_moral, "content", "content")
+  egal(r.camp_niveau, 1, "niveau du camp")
+  egal(r.bandes_en_marche, 0, "pas de bande")
+  egal(r.derniere_bataille, nil, "pas de bataille")
+  egal(r.directeur_present, true, "Directeur présent")
+  local ok2, livre = directeur.agir("livre")
+  verifier(ok2 and #livre == 2, "le livre")
+end)
+
+essai("directeur : lever le camp renvoie tout le monde ; impossible pendant une bande", function()
+  preparer(1000, 10)
+  coffre.ajouter_reserve("vivres", 40, "achat")
+  hommes.embaucher({ role = "archer", semaines = 4, prime = 0 })
+  Scriptorium.bataille.lever_une_bande({ sorte = "brigands", effectif = 2, direction = 0, delai = 3 })
+  local ok, raison = directeur.agir("lever_le_camp")
+  egal(raison, "bande_en_marche", "pas pendant une bande")
+  FauxJeu.refuser_ennemis = true
+  FauxJeu.heure = 13
+  Scriptorium.bataille.battre()
+  -- Par passes (fiche 17), l'archer a pu tomber : on compte ceux qui restent avant de lever le camp.
+  local restes = #hommes.liste()
+  local renvoyes = #FauxJeu.personnages_renvoyes
+  verifier(directeur.agir("lever_le_camp"), "levé")
+  egal(camp.est_fonde(), false, "camp levé")
+  egal(#hommes.liste(), 0, "hommes renvoyés")
+  egal(directeur.est_installe(), false, "Directeur parti")
+  egal(#FauxJeu.personnages_renvoyes - renvoyes >= restes + 1, true, "les hommes restés et le Directeur renvoyés")
+end)
+
+essai("directeur : redressement et relecture", function()
+  preparer(100, 10)
+  local chaine = FauxJeu.registre_stocke
+  depart()
+  directeur.retirer_entrees()
+  FauxJeu.heure = 10
+  FauxJeu.registre_stocke = chaine
+  egal(directeur.est_installe(), true, "installé relu")
+  egal(#FauxJeu.directeurs, 0, "le jeu neuf n'a pas le personnage")
+  verifier(directeur.redresser(), "revenu")
+  egal(#FauxJeu.directeurs, 1, "le personnage a été redemandé au jeu")
+  egal(directeur.rapport().directeur_present, true, "présent")
+end)
+
+essai("directeur : un autre morceau ajoute une entrée au menu", function()
+  preparer(100, 10)
+  directeur.ajouter_entree({
+    action = "essai_entree", cle = "ui_scriptorium_gestion_rapport", parametres = { "n" },
+    disponible = function() return true, { note = 1 } end,
+    agir = function(p) return true, p.n * 2 end,
+  })
+  local menu = directeur.menu()
+  egal(#menu, 13, "treize entrées")
+  egal(entree(menu, "essai_entree").detail.note, 1, "détail")
+  local ok, r = directeur.agir("essai_entree", { n = 21 })
+  egal(r, 42, "l'entrée agit")
+  directeur.ajouter_entree({ action = "essai_entree", cle = "ui_scriptorium_gestion_rapport", parametres = {},
+    disponible = function() return false, "non" end, agir = function() return true end })
+  egal(#directeur.menu(), 13, "remplacée, pas doublée")
+  egal(entree(directeur.menu(), "essai_entree").raison, "non", "remplacée")
+  directeur.retirer_entrees()
+end)
+
+essai("directeur : il vient sur son âme ; né sur une âme empruntée, il renaît sur la sienne (fiche 13)", function()
+  preparer(0, 10)
+  egal(FauxJeu.directeurs[1].ame, "ame_directeur_1_1", "son âme")
+  local ancien = directeur.personnage()
+  verifier(ancien, "présent")
+  Scriptorium.registre.lire("directeur").ame = nil
+  verifier(directeur.relancer(), "toujours là")
+  egal(FauxJeu.personnages_renvoyes[#FauxJeu.personnages_renvoyes], ancien, "l'ancien personnage est retiré")
+  egal(#FauxJeu.directeurs, 2, "un nouveau personnage")
+  egal(FauxJeu.directeurs[2].ame, "ame_directeur_1_1", "sur son âme")
+  verifier(directeur.relancer(), "toujours là")
+  egal(#FauxJeu.directeurs, 2, "une seule fois")
+end)
+
+essai("directeur (fiche 15) : à la veillée, à l'écart du feu ; la nuit, à son lit par l'objet du jeu", function()
+  preparer(0, 21)
+  FauxJeu.ordres = {}
+  egal(directeur.battre().ordres, 1, "ordre de veillée")
+  local o = FauxJeu.ordres[1]
+  egal(o.place, nil, "le feu n'est pas une place")
+  local feu, abord = camp.position_de("feu_central"), camp.abord_de("feu_central")
+  verifier(math.abs(o.position.x - abord.x) < 0.01 and math.abs(o.position.y - abord.y) < 0.01, "à l'abord du feu")
+  verifier(math.sqrt((o.position.x - feu.x) ^ 2 + (o.position.y - feu.y) ^ 2) > 2, "jamais dans le feu")
+  FauxJeu.heure = 23
+  egal(directeur.battre().ordres, 1, "ordre de nuit")
+  o = FauxJeu.ordres[2]
+  egal(o.sorte, "lit", "au lit")
+  egal(o.place, camp.objet_du_jeu_de("lit_directeur"), "par l'objet du jeu de son lit")
+end)
+
+essai("directeur (5 c, D67, D69) : sa tenue et ses armes données par Scriptorium, portées à chaque naissance ; refus d'objets boiteux", function()
+  preparer(1000, 10)
+  directeur.battre()
+  local perso = directeur.personnage()
+  verifier(not directeur.donner_les_objets({ "pas un objet" }), "objet boiteux : refusé")
+  verifier(not directeur.donner_les_objets("rien"), "pas une liste : refusée")
+  local CAPE = "cccccccc-1111-2222-3333-444444444444"
+  verifier(directeur.donner_les_objets({ { objet = CAPE, etat = 0.8 } }), "donnés")
+  FauxJeu.equipements = {}
+  directeur.battre()
+  local ordre = FauxJeu.equipements[1] and FauxJeu.equipements[1].ordre
+  verifier(ordre ~= nil and ordre.personnage == nil, "habillé au battement")
+  egal(FauxJeu.equipements[1] and FauxJeu.equipements[1].personnage, perso, "lui")
+  egal(ordre and ordre.recreer[1].objet, CAPE, "son objet")
+  egal(ordre and ordre.recreer[1].etat, 0.8, "avec son état")
+  verifier(ordre and ordre.retirer_naissance, "tenue de naissance retirée")
+  directeur.battre()
+  directeur.battre()
+  egal(#FauxJeu.equipements, 1, "une seule fois par personnage")
+  verifier(directeur.donner_les_objets({}), "liste vide : sa tenue de naissance")
+end)
+
+essai("directeur (5 c) : à l'entrée en partie, ses objets donnés reportés ; s'il en manque, recréés", function()
+  preparer(1000, 10)
+  directeur.battre()
+  local CAPE = "cccccccc-1111-2222-3333-444444444445"
+  directeur.donner_les_objets({ CAPE })
+  directeur.battre()
+  directeur.battre()
+  local perso = directeur.personnage()
+  FauxJeu.equipements = {}
+  FauxJeu.inventaires[perso] = { { objet = CAPE, nombre = 1 } }
+  directeur.relancer()
+  directeur.battre()
+  egal(#FauxJeu.equipements, 0, "rien ne manque : seulement reportés, rien recréé")
+  FauxJeu.inventaires[perso] = {}
+  directeur.relancer()
+  directeur.battre()
+  egal(#FauxJeu.equipements, 1, "un objet manque : recréés")
+end)
+
+essai("directeur (demande du pair, 20/10) : un geste rendu par directeur.activite est joué comme pour un homme : donné avec son point, son siège et son regard, puis tenu ; changé (point ou geste), il est redonné", function()
+  preparer(0, 10)
+  local d_origine = directeur.activite
+  local rendu = { activite = "geste", lieu = "scriptorium", geste = "scribe", position = { x = 12, y = 8, z = 0 }, cap = 90,
+                  siege = "sa_table", assis = true }
+  directeur.activite = function() return rendu end
+  local fait, erreur = pcall(function()
+    local qui = directeur.personnage()
+    FauxJeu.ordres, FauxJeu.gestes, FauxJeu.options_des_gestes = {}, {}, {}
+    egal(directeur.battre().ordres, 1, "un ordre")
+    local o = FauxJeu.ordres[#FauxJeu.ordres]
+    egal(o.activite, "geste", "l'activité du geste")
+    egal(o.lieu, "scriptorium/scribe@sa_table", "le geste et son siège dans le lieu")
+    egal(o.position.x, 12, "à son point")
+    verifier(o.regard and math.abs(o.regard.x - 17) < 0.01, "le regard selon le cap, à 5 m")
+    verifier(o.marche_ms ~= nil, "le temps de marche donné à l'arbre")
+    egal(FauxJeu.gestes[qui], "scribe", "le geste donné au cerveau")
+    egal(FauxJeu.options_des_gestes[qui].assis, true, "assis")
+    egal(FauxJeu.options_des_gestes[qui].ancre, "sa_table", "ancré sur son siège")
+    egal(directeur.battre().ordres, 0, "tenu : pas d'ordre redonné")
+    rendu = { activite = "geste", lieu = "scriptorium", geste = "scribe", position = { x = 40, y = 8, z = 0 } }
+    egal(directeur.battre().ordres, 1, "le point change : redonné")
+    egal(FauxJeu.ordres[#FauxJeu.ordres].position.x, 40, "au nouveau point")
+    rendu = { activite = "geste", lieu = "scriptorium", geste = "marteler", position = { x = 40, y = 8, z = 0 } }
+    egal(directeur.battre().ordres, 1, "le geste change : redonné")
+    egal(FauxJeu.gestes[qui], "marteler", "le nouveau geste")
+    egal(directeur.battre().ordres, 0, "puis tenu")
+  end)
+  directeur.activite = d_origine
+  verifier(fait, tostring(erreur))
+end)
+
+essai("directeur (vu sur une copie le 21/10, J11) : ses paroles, comme celles d'un homme : réplique donnée par l'ordre « parole », tenue, jouée puis oubliée ; par son nom d'entité ; refus", function()
+  preparer(0, 10)
+  local qui = directeur.personnage()
+  FauxJeu.ordres, FauxJeu.paroles = {}, {}
+  local ok, raison = directeur.dire_une_replique({})
+  verifier(not ok and raison == "parole_invalide", "sans alias ni metarole : refusée")
+  verifier(hommes.dire_une_replique_du_personnage(qui, { metarole = "GOSSIP" }), "demandée par son nom d'entité")
+  egal(FauxJeu.paroles[qui] and FauxJeu.paroles[qui].sorte, 1, "une réplique donnée")
+  egal(FauxJeu.ordres[#FauxJeu.ordres].activite, "parole", "l'ordre de parole")
+  local n = #FauxJeu.ordres
+  egal(directeur.battre().ordres, 0, "tenue : pas d'autre ordre")
+  egal(#FauxJeu.ordres, n, "rien de redonné")
+  FauxJeu.variables_du_cerveau = FauxJeu.variables_du_cerveau or {}
+  FauxJeu.variables_du_cerveau[qui] = { scriptorium_parole_jouee = 1 }
+  egal(directeur.battre().ordres, 1, "jouée : sa tâche lui est redonnée")
+  verifier(FauxJeu.ordres[#FauxJeu.ordres].activite ~= "parole", "il reprend sa tâche")
+  egal(directeur.parole, nil, "oubliée")
+  FauxJeu.personnages_existants["un_homme"] = true
+  verifier(hommes.conversation_du_personnage(qui, "un_homme", { alias = "scr_bonjour" }), "une conversation")
+  egal(FauxJeu.paroles[qui].sorte, 2, "conversation")
+  egal(FauxJeu.paroles[qui].partenaire, "un_homme", "avec son partenaire")
+  directeur.parole = nil
+end)

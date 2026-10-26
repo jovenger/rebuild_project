@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Database xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="brambora">
+  <Skald>
+    <Level Name="kutnohorsko" HibernateMode="Auto">
+      <Definitions>
+        <Definition File="kutnohorsko/scriptorium_socle_fond_kut.xml" />
+      </Definitions>
+      <Nodes>
+        <scriptorium_socle_fond_kut Name="scriptorium_socle_fond_kut" PositionX="0" PositionY="0" RequiredForOutput="kutnohorsko">
+          <Edge From="OnWake" To="eveil" />
+        </scriptorium_socle_fond_kut>
+      </Nodes>
+    </Level>
+  </Skald>
+</Database>
