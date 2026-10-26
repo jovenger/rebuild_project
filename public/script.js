@@ -14,13 +14,164 @@ const stopBtn = document.getElementById('stop-btn');
 const playBtn = document.getElementById('play-btn');
 const playhead = document.getElementById('playhead');
 
+// Éléments du bloc-notes IA
+const aiPromptInput = document.getElementById('ai-prompt');
+const aiGenerateBtn = document.getElementById('ai-generate-btn');
+const lyricsArea = document.getElementById('lyrics-area');
+
 // Zoom temporel
 const PIXELS_PER_SECOND = 50;
 
+let reverbImpulseResponse = null;
+
 // Initialiser l'audio context sur la première interaction
-function initAudioContext() {
+async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await generateReverbImpulse();
+    }
+}
+
+// Génère un buffer synthétique pour la réverbération (bruit blanc avec un decay exponentiel)
+async function generateReverbImpulse() {
+    const sampleRate = audioContext.sampleRate;
+    const length = sampleRate * 2.0; // 2 secondes de reverb max
+    const impulse = audioContext.createBuffer(2, length, sampleRate);
+    const left = impulse.getChannelData(0);
+    const right = impulse.getChannelData(1);
+
+    for (let i = 0; i < length; i++) {
+        // Décroissance exponentielle (decay)
+        const decay = Math.exp(-3.0 * (i / length));
+        left[i] = (Math.random() * 2 - 1) * decay;
+        right[i] = (Math.random() * 2 - 1) * decay;
+    }
+    reverbImpulseResponse = impulse;
+}
+
+function buildEffectsChain(trackIndex, sourceNode) {
+    const track = tracks[trackIndex];
+    track.fxNodes = {}; // Réinitialise les noeuds
+
+    // 1. Compresseur
+    const compressor = audioContext.createDynamicsCompressor();
+    track.fxNodes.compressor = compressor;
+
+    // 2. EQ (Filtre Bas, Medium, Haut)
+    const eqLow = audioContext.createBiquadFilter();
+    eqLow.type = 'lowshelf';
+    eqLow.frequency.value = 100;
+    track.fxNodes.eqLow = eqLow;
+
+    const eqMid = audioContext.createBiquadFilter();
+    eqMid.type = 'peaking';
+    eqMid.frequency.value = 2500;
+    eqMid.Q.value = 1.0;
+    track.fxNodes.eqMid = eqMid;
+
+    const eqHigh = audioContext.createBiquadFilter();
+    eqHigh.type = 'highshelf';
+    eqHigh.frequency.value = 8000;
+    track.fxNodes.eqHigh = eqHigh;
+
+    // 3. Reverb
+    const reverbNode = audioContext.createConvolver();
+    reverbNode.buffer = reverbImpulseResponse;
+    const reverbWetGain = audioContext.createGain();
+    const dryGain = audioContext.createGain();
+    dryGain.gain.value = 1.0;
+    track.fxNodes.reverbWet = reverbWetGain;
+    track.fxNodes.dryGain = dryGain;
+
+    // 4. Master de la piste (GainNode existant)
+    const gainNode = audioContext.createGain();
+    track.gainNode = gainNode;
+    gainNode.gain.value = getTrackEffectiveGain(trackIndex);
+
+    // Routage : Source -> Compresseur -> EQ -> (Split Dry / Wet) -> Master Gain
+    sourceNode.connect(compressor);
+    compressor.connect(eqLow);
+    eqLow.connect(eqMid);
+    eqMid.connect(eqHigh);
+
+    // Chemin sec (sans reverb)
+    eqHigh.connect(dryGain);
+    dryGain.connect(gainNode);
+
+    // Chemin mouillé (avec reverb)
+    eqHigh.connect(reverbNode);
+    reverbNode.connect(reverbWetGain);
+    reverbWetGain.connect(gainNode);
+
+    gainNode.connect(audioContext.destination);
+
+    // Appliquer le style actuel
+    applyTrackStyleSettings(track);
+}
+
+function setTrackStyle(trackIndex, styleValue) {
+    const track = tracks[trackIndex];
+    track.style = styleValue;
+    if (track.fxNodes && Object.keys(track.fxNodes).length > 0) {
+        applyTrackStyleSettings(track);
+    }
+}
+
+function applyTrackStyleSettings(track) {
+    if (!track.fxNodes || !track.fxNodes.compressor) return;
+
+    const { compressor, eqLow, eqMid, eqHigh, reverbWet, dryGain } = track.fxNodes;
+
+    switch (track.style) {
+        case 'brut':
+            compressor.threshold.value = 0;
+            compressor.ratio.value = 1;
+            eqLow.gain.value = 0;
+            eqMid.gain.value = 0;
+            eqHigh.gain.value = 0;
+            reverbWet.gain.value = 0;
+            dryGain.gain.value = 1.0;
+            break;
+        case 'rap_conscient':
+            // Comp légère, boost medium (clarté), peu de reverb
+            compressor.threshold.value = -15;
+            compressor.ratio.value = 3;
+            eqLow.gain.value = 2; // Punchy
+            eqMid.gain.value = 4; // Présence
+            eqHigh.gain.value = 1;
+            reverbWet.gain.value = 0.15; // Très léger
+            dryGain.gain.value = 0.9;
+            break;
+        case 'trap':
+            // Comp lourde, cut low, boost high
+            compressor.threshold.value = -24;
+            compressor.ratio.value = 6;
+            eqLow.gain.value = -4; // Coupe les basses
+            eqMid.gain.value = 2;
+            eqHigh.gain.value = 6; // Brillant (Air)
+            reverbWet.gain.value = 0.3; // Reverb moyenne
+            dryGain.gain.value = 0.8;
+            break;
+        case 'pop':
+            // Compressive, très brillant, large reverb
+            compressor.threshold.value = -20;
+            compressor.ratio.value = 4;
+            eqLow.gain.value = -2;
+            eqMid.gain.value = 1;
+            eqHigh.gain.value = 8;
+            reverbWet.gain.value = 0.6; // Beaucoup de reverb
+            dryGain.gain.value = 0.6;
+            break;
+        case 'podcast':
+            // Voix radiophonique
+            compressor.threshold.value = -18;
+            compressor.ratio.value = 3;
+            eqLow.gain.value = 4; // Proximité
+            eqMid.gain.value = -1;
+            eqHigh.gain.value = 3;
+            reverbWet.gain.value = 0; // Pas de reverb
+            dryGain.gain.value = 1.0;
+            break;
     }
 }
 
@@ -41,7 +192,9 @@ function addTrack() {
         isMuted: false,
         isSolo: false,
         volume: 1.0,
-        gainNode: null
+        gainNode: null,
+        style: 'brut',
+        fxNodes: {} // Stockera les noeuds d'effets (compresseur, eq, reverb, etc.)
     };
     tracks.push(trackObj);
 
@@ -52,6 +205,22 @@ function addTrack() {
     const headerEl = document.createElement('div');
     headerEl.className = 'track-header';
     headerEl.innerHTML = `<h3 class="track-title">${trackObj.name}</h3>`;
+
+    // Sélecteur de style
+    const styleSelector = document.createElement('div');
+    styleSelector.className = 'style-selector';
+    styleSelector.innerHTML = `
+        <select>
+            <option value="brut">Brut (Aucun effet)</option>
+            <option value="rap_conscient">Rap Conscient</option>
+            <option value="trap">Trap (Hard)</option>
+            <option value="pop">Pop (Brillant)</option>
+            <option value="podcast">Podcast (Voix Claire)</option>
+        </select>
+    `;
+    const selectEl = styleSelector.querySelector('select');
+    selectEl.onchange = (e) => setTrackStyle(trackIndex, e.target.value);
+    headerEl.appendChild(styleSelector);
 
     // Contrôles de Mix (Mute, Solo, Vol)
     const mixControls = document.createElement('div');
@@ -153,8 +322,47 @@ function deleteSelectedAudio() {
 
 // Écouter la touche "Suppr" ou "Backspace" au niveau du document
 document.addEventListener('keydown', (e) => {
+    // Éviter de supprimer si on est dans un champ de texte
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
     if (e.key === 'Delete' || e.key === 'Backspace') {
         deleteSelectedAudio();
+    }
+});
+
+// Génération IA
+aiGenerateBtn.addEventListener('click', async () => {
+    const prompt = aiPromptInput.value.trim();
+    if (!prompt) {
+        alert("Veuillez entrer un thème pour les paroles.");
+        return;
+    }
+
+    aiGenerateBtn.disabled = true;
+    aiGenerateBtn.textContent = '...';
+    lyricsArea.value = 'Génération en cours via Google Gemini...\n\n(Vérifiez que votre clé API est bien configurée dans le fichier .env)';
+
+    try {
+        const response = await fetch('/api/generate-lyrics', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prompt: prompt })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            lyricsArea.value = data.text;
+        } else {
+            lyricsArea.value = `Erreur : ${data.error}`;
+        }
+    } catch (err) {
+        lyricsArea.value = `Erreur réseau : ${err.message}`;
+    } finally {
+        aiGenerateBtn.disabled = false;
+        aiGenerateBtn.textContent = 'Générer';
     }
 });
 
@@ -368,12 +576,7 @@ function startPlayback() {
             const source = audioContext.createBufferSource();
             source.buffer = track.audioBuffer;
 
-            const gainNode = audioContext.createGain();
-            track.gainNode = gainNode;
-            gainNode.gain.value = getTrackEffectiveGain(index);
-
-            source.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+            buildEffectsChain(index, source);
 
             source.start(0);
             sourceNodes.push(source);

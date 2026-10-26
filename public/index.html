@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Studio Web</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Mini Studio Web</h1>
+            <div class="controls">
+                <button id="play-btn" class="play">Jouer (Play)</button>
+                <button id="add-track-btn">Ajouter une piste</button>
+                <button id="record-btn" class="record">Enregistrer</button>
+                <button id="stop-btn">Stop</button>
+            </div>
+        </header>
+        <div id="main-content">
+            <main id="timeline">
+                <div id="playhead-container">
+                    <div id="playhead"></div>
+                </div>
+                <div id="tracks-container">
+                    <!-- Les pistes seront ajoutées ici -->
+                </div>
+            </main>
+            <aside id="notepad">
+                <h3>Bloc-notes IA (Paroles)</h3>
+                <div class="notepad-controls">
+                    <input type="text" id="ai-prompt" placeholder="Thème (ex: Rap sur la nature)...">
+                    <button id="ai-generate-btn">Générer</button>
+                </div>
+                <textarea id="lyrics-area" placeholder="Écrivez vos paroles ici ou générez-les avec l'IA..."></textarea>
+            </aside>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
