@@ -22,6 +22,11 @@ Scriptorium.en_partie = Scriptorium.en_partie or false
 -- partie, le socle attend tant de secondes, Henry jouable, avant de relancer ses morceaux (camp redressé, hommes
 -- rhabillés, ordres redonnés ; 0 = tout de suite) ; « guet_du_chargement_s », au-delà, un chargement qui ne finit pas
 -- est noté au journal avec les positions autour d'Henry.
+-- Ordre de JoVenGer du 26/10 (« au bout de 3 secondes, une fois que le jeu est lancé, ça devrait se charger ») :
+-- « marge_du_reveil_s » après l'entrée en partie, puis le réveil dès que le jeu ne dit plus charger
+-- (Game.IsLoadingEngineSaveGame, relu chaque seconde) ; « delai_du_reveil_s » n'est plus qu'un plafond. Relevé avant :
+-- dans tous les journaux de séance (J à J39), le jeu ne dit déjà plus charger à OnLoadingComplete, avant l'entrée en
+-- partie ; le réveil vient donc d'ordinaire au bout de la marge.
 Scriptorium.noyau = Scriptorium.noyau or {}
 -- « passage_jours_max » (V73 f 3 b, la règle de Scriptorium transmise par le pair, après le 24/09) : un passage d'une
 -- carte à l'autre n'est cru que si l'horloge du monde a avancé, de tant de jours au plus, depuis la dernière écriture du
@@ -29,7 +34,7 @@ Scriptorium.noyau = Scriptorium.noyau or {}
 -- « argent_d_henry_max » (relecture du pair, 17/10) : aucun mouvement de la bourse d'Henry au-delà de ce montant.
 -- « registre_intervalle_s » (fiche 01, le pair, 17/10) : une écriture du registre au plus par tant de secondes réelles.
 Scriptorium.noyau.reglages = Scriptorium.noyau.reglages
-  or { delai_du_reveil_s = 30, guet_du_chargement_s = 10, passage_jours_max = 10, argent_d_henry_max = 1000000,
+  or { delai_du_reveil_s = 30, marge_du_reveil_s = 3, guet_du_chargement_s = 10, passage_jours_max = 10, argent_d_henry_max = 1000000,
        registre_intervalle_s = 2, registre_journal = 0 }
 
 -- La règle du passage (V73 f 3 b), accrochée à la liaison : l'horloge (heures du jeu) a avancé, de
@@ -247,16 +252,27 @@ function Scriptorium.entrer_en_partie()
   Scriptorium.battement_lance = false
   Scriptorium.lancer_le_battement()
   Scriptorium.lancer_le_guet()
-  local delai = tonumber(Scriptorium.noyau.reglages.delai_du_reveil_s) or 0
-  if delai > 0 then
+  local plafond = tonumber(Scriptorium.noyau.reglages.delai_du_reveil_s) or 0
+  local marge = math.min(math.max(tonumber(Scriptorium.noyau.reglages.marge_du_reveil_s) or 0, 0), plafond)
+  if plafond > 0 then
     Scriptorium.reveil_en_attente = true
     local generation = Scriptorium.generation
-    journal("Socle : réveil dans " .. delai .. " s, la partie d'abord prête")
-    jeu().minuterie(delai * 1000, function()
-      if generation == Scriptorium.generation then
-        Scriptorium.reveiller()
+    journal("Socle : réveil dans " .. marge .. " s (au plus " .. plafond .. " s si le jeu charge encore), la partie d'abord prête")
+    local function quand_pret(attendu_s)
+      if generation ~= Scriptorium.generation then
+        return
       end
-    end)
+      local charge = jeu().chargement_en_cours and jeu().chargement_en_cours()
+      if charge and attendu_s < plafond then
+        jeu().minuterie(1000, function() quand_pret(attendu_s + 1) end)
+        return
+      end
+      if charge then
+        journal("Socle : le jeu charge encore au bout de " .. plafond .. " s : réveil quand même")
+      end
+      Scriptorium.reveiller()
+    end
+    jeu().minuterie(marge * 1000, function() quand_pret(marge) end)
   else
     Scriptorium.reveiller()
   end

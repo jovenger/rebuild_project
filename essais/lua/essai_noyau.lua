@@ -256,12 +256,13 @@ essai("socle : le réveil attend, la partie d'abord prête ; le guetteur note un
   depart()
   Scriptorium.demarrer()
   Scriptorium.noyau.reglages.delai_du_reveil_s = 30
+  Scriptorium.noyau.reglages.marge_du_reveil_s = 3
   FauxJeu.entrer_en_partie()
   Scriptorium.bandeau.battre()
   egal(FauxJeu.en_ecran, nil, "rien d'annoncé pendant l'attente")
   egal(Scriptorium.reveil_en_attente, true, "réveil en attente")
   verifier(Scriptorium.battre().saute, "le battement ne fait rien pendant l'attente")
-  egal(lignes_avec("réveil dans 30 s"), 1, "attente notée au journal")
+  egal(lignes_avec("réveil dans 3 s (au plus 30 s"), 1, "attente notée au journal")
   -- Les minuteries tournent dans l'ordre : celles du démarrage, puis battement, guetteur et réveil.
   local reveille = false
   for _ = 1, 12 do
@@ -285,6 +286,54 @@ essai("socle : le réveil attend, la partie d'abord prête ; le guetteur note un
   egal(lignes_avec("GUET, le chargement a fini"), 1, "fin du chargement notée")
   Scriptorium.arreter_le_battement()
   FauxJeu.sortir_de_partie()
+  Scriptorium.noyau.reglages.delai_du_reveil_s, Scriptorium.noyau.reglages.marge_du_reveil_s = 0, nil
+end)
+
+essai("socle (ordre de JoVenGer du 26/10) : le réveil vient au bout de la marge (3 s), pas de 30 s ; si le jeu charge encore, il attend seconde par seconde, jamais au-delà du plafond", function()
+  depart()
+  Scriptorium.demarrer()
+  Scriptorium.noyau.reglages.delai_du_reveil_s = 30
+  Scriptorium.noyau.reglages.marge_du_reveil_s = 3
+  local function minuterie_du_reveil(ms)
+    for i = #FauxJeu.minuteries, 1, -1 do
+      if FauxJeu.minuteries[i].ms == ms then return table.remove(FauxJeu.minuteries, i) end
+    end
+  end
+  -- Le jeu ne charge plus : réveillé au bout de la marge.
+  FauxJeu.minuteries = {}
+  FauxJeu.entrer_en_partie()
+  local m = minuterie_du_reveil(3000)
+  verifier(m, "une minuterie de 3 s, pas de 30 s")
+  m.fonction()
+  egal(Scriptorium.reveil_en_attente, false, "réveillé au bout de la marge")
+  FauxJeu.sortir_de_partie()
+  -- Le jeu charge encore : il attend, puis se réveille dès la fin du chargement.
+  FauxJeu.minuteries = {}
+  FauxJeu.entrer_en_partie()
+  FauxJeu.chargement = true
+  minuterie_du_reveil(3000).fonction()
+  egal(Scriptorium.reveil_en_attente, true, "le jeu charge encore : il attend")
+  minuterie_du_reveil(1000).fonction()
+  egal(Scriptorium.reveil_en_attente, true, "toujours")
+  FauxJeu.chargement = false
+  minuterie_du_reveil(1000).fonction()
+  egal(Scriptorium.reveil_en_attente, false, "réveillé dès la fin du chargement")
+  FauxJeu.sortir_de_partie()
+  -- Le chargement ne finit pas : réveillé quand même au plafond.
+  FauxJeu.minuteries = {}
+  FauxJeu.entrer_en_partie()
+  FauxJeu.chargement = true
+  minuterie_du_reveil(3000).fonction()
+  for _ = 1, 27 do
+    local suivante = minuterie_du_reveil(1000)
+    if not suivante then break end
+    suivante.fonction()
+  end
+  egal(Scriptorium.reveil_en_attente, false, "réveillé au plafond")
+  egal(lignes_avec("réveil quand même"), 1, "dit au journal")
+  FauxJeu.chargement = false
+  FauxJeu.sortir_de_partie()
+  Scriptorium.noyau.reglages.delai_du_reveil_s, Scriptorium.noyau.reglages.marge_du_reveil_s = 0, nil
 end)
 
 -- Fiche 15, V73 f 3 b (relecture du pair) : la règle du passage de carte, l'horloge avancée de 10 jours au plus.

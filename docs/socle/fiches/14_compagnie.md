@@ -286,6 +286,15 @@
   réglable, section « socle » du catalogue) avant de relancer les morceaux (camp redressé, hommes rhabillés, ordres
   redonnés, socle annoncé prêt) ; pendant l'attente, le battement ne fait rien. Au banc, 0 s (posé par le faux jeu),
   et un essai dédié vérifie l'attente.
+- **Réveil au bout de 3 s** (ordre de JoVenGer du 26/10 : « au bout de 3 secondes, une fois que le jeu est lancé, ça
+  devrait se charger ») : le réveil vient `marge_du_reveil_s` (3 s, réglable) après l'entrée en partie
+  (OnGameplayStarted), puis dès que `Game.IsLoadingEngineSaveGame()` est faux, relu chaque seconde ;
+  `delai_du_reveil_s` (30 s) n'est plus qu'un plafond (« le jeu charge encore au bout de 30 s : réveil quand même »).
+  Relevé avant de coder (dit au pair) : dans tous les journaux de séance (J à J39), le jeu ne dit déjà plus charger à
+  OnLoadingComplete, avant l'entrée en partie, et le guet n'a jamais rien noté ; cet appel ne voit donc pas la fin de
+  l'écran de chargement, et le réveil vient d'ordinaire au bout de la marge. Aucun autre appel de ce genre dans les
+  scripts du jeu. Essai (vérifié en échec sans) ; à voir en jeu par le pair (écran, hauteur des objets posés,
+  rechargement) ; si le monde n'est pas prêt, la marge se relève par `reglages.lua`.
 - **Guetteur** : toutes les 5 s, `Game.IsLoadingEngineSaveGame()` ; vrai depuis plus de `guet_du_chargement_s` (10 s,
   réglable) : une note « Socle : GUET » au journal (depuis quand, génération, réveil en attente, heure du jeu, ce qui
   entoure Henry dans 15 m), puis une note quand le chargement finit. On ne sait pas encore si cet indice est vrai
