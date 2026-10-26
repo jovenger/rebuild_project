@@ -906,6 +906,16 @@ aucune sonde dans l'arbre.
   manque). **Gardé pour tous les jours : socle 68c401f + Scriptorium 1611ca82** (retour arrière, la dernière mise de
   côté : `Scriptorium_securite\20261026_121350_109601_seance_du_socle`). Note du pair : les refus « vu_d_henry » de
   l'expédition (environ 200 par sortie) ne sont pas des erreurs.
+- Séances du 26/10 au soir (deux copies playline2, menées par le pair seul ; je n'ai touché ni au jeu ni à Mods) :
+  c8fc679, la relance de la vie du camp sans rhabiller une tenue complète : vu juste ; 165eaae, la remise qui recrée
+  les pièces disparues : vu juste (Mikuláš 7 pièces, Jakub 4, Jindřich 4, Oldřich 3, puis aucune tenue incomplète) ;
+  e9aaddb, les noms neufs (« Oldřich Medvěd » mort puis réembauché sous le même nom ; décision de JoVenGer « noms neufs
+  + fiche effacée ») : vu juste (une recrue « Heinz de Sázava », absent des 16 anciens et de la Compagnie) ; c191c24,
+  l'horloge accélérée, non éprouvé (aucun saut d'horloge en séance, volontairement). Chez Scriptorium : la troupe en
+  assaut tenue à sa place jusqu'au retour (34752e4e ; avant, notre secours « loin d'un but au camp » la téléportait au
+  camp, l'expédition l'ayant lâchée) et la reprise sur un chemin de deux points (2016736d) : vus justes, rien chez nous.
+  **Gardé pour tous les jours : socle e9aaddb + Scriptorium 099b733c** (retour arrière, la dernière mise de côté :
+  `Scriptorium_securite\20261026_212227_477699_seance_du_socle`).
 - Journaux gardés (brouillon de la session, hors dépôt) : kcd_seance_J33.log, J33b à J33e ; kcd_seance_J34a.log, J34b ;
   kcd_seance_J35.log ; kcd_seance_J36.log ; kcd_seance_J37a.log, J37b ; kcd_seance_J38a.log, J38b à J38d ;
   kcd_seance_J39a.log, J39b à J39d.
