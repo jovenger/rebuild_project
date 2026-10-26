@@ -1294,6 +1294,34 @@ essai("saut d'horloge (vu en J39, 25/10 : le moteur ôte des pièces du sac apr�
   hommes.reglages.saut_tenues_h = 0
 end)
 
+essai("entrée en partie (vu le 26/10, J43 : quatre hommes « prêts » avec des pièces de leur tenue absentes du sac, perdues avant d517914) : toute la tenue vérifiée une fois après l'entrée, les pièces manquantes recréées", function()
+  preparer(200, 10, 10)
+  hommes.reglages.entree_verif_s = 30
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  local d = Scriptorium.registre.lire("hommes")
+  local e = d.liste[id].equipement
+  egal(e.etat, "pret", "prêt")
+  -- Une pièce que le filet du chargement ne voit pas (il ne regarde que torse, jambes et arme).
+  local corps = e.tenue .. "_tete"
+  FauxJeu.retirer_un_objet(hommes.fiche(id).personnage, corps)
+  egal(a_dans_le_sac(id, corps), 0, "sa coiffe absente du sac, gardée ainsi par la sauvegarde")
+  FauxJeu.minuteries = {}
+  hommes.relancer()
+  local verif = nil
+  for _, m in ipairs(FauxJeu.minuteries) do
+    if m.ms == 30000 then verif = m end
+  end
+  verifier(verif, "une vérification prévue 30 s après l'entrée")
+  for _ = 1, 3 do hommes.battre() end
+  verif.fonction()
+  egal(e.etat, "a_equiper", "à recompléter")
+  hommes.battre()
+  egal(a_dans_le_sac(id, corps), 1, "sa coiffe recréée")
+  hommes.reglages.entree_verif_s = 0
+end)
+
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
 local function homme_pret()
   preparer(200, 10, 10)

@@ -57,6 +57,8 @@ function depart()
     -- De même (J39, 25/10), la vérification des tenues après un saut d'horloge pose des minuteries ; les anciennes
     -- épreuves avancent l'horloge à grands pas, celle du saut pose le réglage.
     Scriptorium.hommes.reglages.saut_tenues_h = 0
+    -- De même (J43, 26/10), la vérification des tenues à l'entrée en partie pose une minuterie.
+    Scriptorium.hommes.reglages.entree_verif_s = 0
     Scriptorium.hommes.ordres_differes, Scriptorium.hommes.prochain_creneau = {}, nil
     Scriptorium.hommes.suivi = {}
     Scriptorium.hommes.cerveaux_regles = {}

@@ -272,6 +272,9 @@ hommes.reglages = {
   saut_verif_1_s = 30,
   saut_verif_2_s = 120,
   saut_verif_3_s = 300,
+  -- Vu le 26/10 (J43) : la même vérification complète, une fois, tant de secondes réelles après l'entrée en partie
+  -- (0 : jamais).
+  entree_verif_s = 30,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -1734,25 +1737,27 @@ local function verifier_les_tenues(d)
   return n
 end
 
-function hommes.verifier_les_tenues_apres_un_saut()
-  if not jeu().minuterie then
+-- La vérification complète, « s » secondes réelles plus tard (0 : jamais), jamais en bataille ; « quand » pour le journal.
+function hommes.verifier_les_tenues_plus_tard(s, quand)
+  if not jeu().minuterie or not s or s <= 0 then
     return
   end
   local generation = Scriptorium.generation
-  for i = 1, 3 do
-    local s = tonumber(hommes.reglages["saut_verif_" .. i .. "_s"]) or 0
-    if s > 0 then
-      jeu().minuterie(s * 1000, function()
-        if generation ~= Scriptorium.generation or en_bataille() then
-          return
-        end
-        local n = verifier_les_tenues(donnees())
-        jeu().journal("Hommes : tenues vérifiées après le saut (+" .. s .. " s) : " .. n .. " homme(s) à recompléter")
-        if n > 0 then
-          enregistrer()
-        end
-      end)
+  jeu().minuterie(s * 1000, function()
+    if generation ~= Scriptorium.generation or en_bataille() then
+      return
     end
+    local n = verifier_les_tenues(donnees())
+    jeu().journal("Hommes : tenues vérifiées " .. quand .. " (+" .. s .. " s) : " .. n .. " homme(s) à recompléter")
+    if n > 0 then
+      enregistrer()
+    end
+  end)
+end
+
+function hommes.verifier_les_tenues_apres_un_saut()
+  for i = 1, 3 do
+    hommes.verifier_les_tenues_plus_tard(tonumber(hommes.reglages["saut_verif_" .. i .. "_s"]) or 0, "après le saut")
   end
 end
 
@@ -5836,6 +5841,11 @@ function hommes.relancer()
       f.equipement = nil
     end
   end
+  -- Vu en jeu le 26/10 (J43, le pair : quatre hommes restés « prêts » avec des pièces de leur tenue absentes du sac,
+  -- perdues aux sauts d'horloge d'avant d517914 et gardées manquantes par la sauvegarde ; Mikuláš le Rouge torse nu) :
+  -- à l'entrée en partie, la même vérification complète qu'après un saut, une fois, « entree_verif_s » plus tard (après
+  -- le rhabillage et son second passage ; 0 : jamais).
+  hommes.verifier_les_tenues_plus_tard(tonumber(hommes.reglages.entree_verif_s) or 0, "à l'entrée en partie")
   return hommes.redresser()
 end
 

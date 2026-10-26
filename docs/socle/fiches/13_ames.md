@@ -785,3 +785,11 @@
   chaque pièce absente de son sac (jamais une pièce ôtée par Scriptorium) le fait passer « à équiper », et l'habillage
   ne recrée que celles qui manquent. Au journal : « l'horloge a sauté de … », « … pièce(s) de sa tenue disparue(s) »,
   « tenues vérifiées après le saut ». La trace des retraits (ea438de) reste. Essai (vérifié en échec sans).
+- Vu en jeu le 26/10 (J43, le pair ; ordre de JoVenGer du 25/10 : plus aucun homme à moitié nu) : quatre hommes restés
+  « prêts » avec des pièces de leur propre tenue absentes du sac (Mikuláš le Rouge 7 sur 13, torse nu ; Jakub le Long,
+  Jindřich de Rataje, Oldřich Medvěd), perdues aux sauts d'horloge d'avant d517914 et gardées manquantes par la
+  sauvegarde ; au chargement, « … introuvable(s) », puis plus rien (le filet ne voit que torse, jambes ou arme
+  entièrement absents). Désormais la même vérification complète qu'après un saut tourne une fois à l'entrée en partie,
+  `entree_verif_s` (30 s, réglable ; 0 : jamais) après la relance, jamais en bataille : chaque pièce de son préréglage
+  absente du sac (sauf celles ôtées par Scriptorium) est recréée. Journal : « tenues vérifiées à l'entrée en partie
+  (+30 s) : N homme(s) à recompléter ». Essai (vérifié en échec sans).
