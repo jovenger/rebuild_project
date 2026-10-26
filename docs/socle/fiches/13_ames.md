@@ -800,3 +800,10 @@
   remises en silence (`faire_porter`, sans danger, V71 c ; pas de second passage, ni d'accroche, ni de ligne par homme ;
   une ligne pour la rafale) ; loin, rien (la garde en tournant et la vérification de l'entrée restent). Une pièce
   absente du sac, ou une fin de combat : le rhabillage comme avant. Essai (vérifié en échec sans).
+- Vu en jeu le 26/10 vers 19 h (le pair, copie playline2, socle c8fc679 ; un saut d'horloge venu d'une manette
+  fantôme) : dix hommes restés à moitié nus (Mikuláš le Rouge 5 pièces sur 13, Jakub le Long 7 sur 11, Jindřich de
+  Rataje 5 sur 9), la remise disant « N introuvable(s) » à chaque relance ; seuls torse, jambes ou arme entièrement
+  absents faisaient recréer. Demande de JoVenGer : à la remise des affaires, toute pièce de sa tenue et de ses armes
+  absente du sac (sauf celles ôtées par Scriptorium) le fait passer « à équiper » (« … pièce(s) de sa tenue
+  disparue(s) : elles seront recréées »), au plus une fois par homme toutes les `recreation_min_s` (180 s réelles),
+  pour ne pas boucler. Essai (mutation fine vérifiée : la recréation désactivée, l'essai échoue).

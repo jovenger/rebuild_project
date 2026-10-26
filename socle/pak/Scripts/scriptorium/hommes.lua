@@ -275,6 +275,9 @@ hommes.reglages = {
   -- Vu le 26/10 (J43) : la même vérification complète, une fois, tant de secondes réelles après l'entrée en partie
   -- (0 : jamais).
   entree_verif_s = 30,
+  -- Vu le 26/10 : à la remise des affaires, les pièces de sa tenue absentes du sac recréées, au plus une fois par homme
+  -- toutes les tant de secondes réelles.
+  recreation_min_s = 180,
 }
 
 -- L'arbitre des ordres (fiche 15, V73 b 3) : le rang de chaque règle, du plus fort (1) au plus faible. Ordre validé par
@@ -1556,6 +1559,30 @@ local function ce_qui_manque(f)
   return nil
 end
 
+-- Le nombre de pièces de sa tenue et de ses armes absentes de son sac (jamais une pièce ôtée par Scriptorium).
+local function pieces_manquantes(f)
+  local e = f.equipement
+  local otees = {}
+  for _, objet in ipairs(e.otees or {}) do
+    otees[objet] = true
+  end
+  local manque = 0
+  for _, nom in ipairs({ e.tenue, e.armes }) do
+    for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
+      if not otees[objet] and jeu().compter_objet(f.personnage, objet) == 0 then
+        manque = manque + 1
+      end
+    end
+  end
+  return manque
+end
+
+-- Vu en jeu le 26/10 (le pair, copie playline2, après un saut d'horloge dû à une manette fantôme) : dix hommes restés
+-- à moitié nus, la remise disant « N introuvable(s) » à chaque relance ; seul torse, jambes ou arme entièrement absents
+-- faisaient recréer. Demande de JoVenGer : toute pièce de sa tenue absente du sac est recréée à la remise, au plus une
+-- fois par homme toutes les « recreation_min_s » secondes réelles (pour ne pas boucler). Id -> heure réelle.
+hommes.dernieres_recreations = hommes.dernieres_recreations or {}
+
 local function rhabiller(d, f)
   local e = f.equipement
   -- Demande de JoVenGer (25/10) : les doublons d'avant la correction (sa vraie partie en a) retirés au rhabillage,
@@ -1588,6 +1615,17 @@ local function rhabiller(d, f)
                     .. ") : ses préréglages seront recréés")
       e.etat = "a_equiper"
       return
+    end
+    local disparues = e.naissance_retiree and pieces_manquantes(f) or 0
+    if disparues > 0 then
+      local maintenant = jeu().maintenant and jeu().maintenant() or 0
+      local avant = hommes.dernieres_recreations[f.id]
+      if avant == nil or maintenant - avant >= (tonumber(hommes.reglages.recreation_min_s) or 0) then
+        hommes.dernieres_recreations[f.id] = maintenant
+        jeu().journal("Hommes : « " .. f.nom .. " », " .. disparues .. " pièce(s) de sa tenue disparue(s) : elles seront recréées")
+        e.etat = "a_equiper"
+        return
+      end
     end
     local munition = jeu().munition_de(e.armes)
     if munition then
@@ -1708,24 +1746,6 @@ end
 -- La vérification complète après un saut d'horloge (ci-dessus, « saut_tenues_h ») : chaque homme équipé à qui manque une
 -- pièce de sa tenue ou de ses armes (absente de son sac ; jamais une pièce ôtée par Scriptorium) passe « à équiper » :
 -- l'habillage, un homme à la fois et jamais en bataille, recrée seulement celles qui manquent. Rend le nombre d'hommes.
--- Le nombre de pièces de sa tenue et de ses armes absentes de son sac (jamais une pièce ôtée par Scriptorium).
-local function pieces_manquantes(f)
-  local e = f.equipement
-  local otees = {}
-  for _, objet in ipairs(e.otees or {}) do
-    otees[objet] = true
-  end
-  local manque = 0
-  for _, nom in ipairs({ e.tenue, e.armes }) do
-    for _, objet in ipairs(jeu().pieces_de(nom) or {}) do
-      if not otees[objet] and jeu().compter_objet(f.personnage, objet) == 0 then
-        manque = manque + 1
-      end
-    end
-  end
-  return manque
-end
-
 local function verifier_les_tenues(d)
   local n = 0
   for _, id in ipairs(d.ordre) do

@@ -1308,6 +1308,10 @@ essai("entrée en partie (vu le 26/10, J43 : quatre hommes « prêts » avec des
   FauxJeu.retirer_un_objet(hommes.fiche(id).personnage, corps)
   egal(a_dans_le_sac(id, corps), 0, "sa coiffe absente du sac, gardée ainsi par la sauvegarde")
   FauxJeu.minuteries = {}
+  -- La recréation à la remise (26/10) est tenue à l'écart ici : l'essai éprouve la vérification de l'entrée seule.
+  local min_s = hommes.reglages.recreation_min_s
+  hommes.reglages.recreation_min_s = 1e9
+  hommes.dernieres_recreations[id] = FauxJeu.maintenant()
   hommes.relancer()
   local verif = nil
   for _, m in ipairs(FauxJeu.minuteries) do
@@ -1320,6 +1324,39 @@ essai("entrée en partie (vu le 26/10, J43 : quatre hommes « prêts » avec des
   hommes.battre()
   egal(a_dans_le_sac(id, corps), 1, "sa coiffe recréée")
   hommes.reglages.entree_verif_s = 0
+  hommes.reglages.recreation_min_s = min_s
+  hommes.dernieres_recreations[id] = nil
+end)
+
+essai("remise des affaires (vu le 26/10 : dix hommes restés à moitié nus, « N introuvable(s) » à chaque relance) : les pièces de sa tenue absentes du sac recréées, au plus une fois par homme toutes les 180 s", function()
+  preparer(200, 10, 10)
+  local id = hommes.embaucher({ role = "homme_d_armes", semaines = 4, palier = 2, famille = "hache" })
+  hommes.battre()
+  hommes.battre()
+  local d = Scriptorium.registre.lire("hommes")
+  local e = d.liste[id].equipement
+  local perso = hommes.fiche(id).personnage
+  local tete = e.tenue .. "_tete"
+  hommes.dernieres_recreations[id] = nil
+  -- La coiffe disparue (le moteur, au saut) ; une relance de la vie du camp le marque.
+  FauxJeu.retirer_un_objet(perso, tete)
+  e.etat = "a_rhabiller"
+  hommes.battre()
+  egal(e.etat, "a_equiper", "à la remise, la pièce disparue : à recréer")
+  hommes.battre()
+  egal(a_dans_le_sac(id, tete), 1, "la coiffe recréée")
+  -- Perdue de nouveau aussitôt : pas de nouvelle recréation avant 180 s (pas de boucle).
+  hommes.battre()
+  FauxJeu.retirer_un_objet(perso, tete)
+  e.etat = "a_rhabiller"
+  hommes.battre()
+  verifier(e.etat ~= "a_equiper", "pas deux recréations en moins de 180 s (" .. tostring(e.etat) .. ")")
+  -- 180 s plus tard : recréée de nouveau.
+  FauxJeu.temps = FauxJeu.temps + 181
+  e.etat = "a_rhabiller"
+  hommes.battre()
+  egal(e.etat, "a_equiper", "180 s plus tard : à recréer de nouveau")
+  hommes.dernieres_recreations[id] = nil
 end)
 
 -- Un homme équipé et prêt (deux battements), et le compte de lignes du journal qui contiennent un texte.
