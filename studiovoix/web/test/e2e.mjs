@@ -87,13 +87,47 @@ function measureTake(take, sr, ref) {
 const t0 = Date.now();
 const stamp = () => `[${((Date.now() - t0) / 1000).toFixed(1)} s]`;
 const launchArgs = ['--autoplay-policy=no-user-gesture-required'];
-if (micFile) launchArgs.push('--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${micFile}`);
+if (micFile) launchArgs.push('--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream');
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: launchArgs });
 // DEVICE = appareil Playwright (ex. « Pixel 7 ») : essai de la page en affichage téléphone.
 const { devices } = require('playwright');
 const device = process.env.DEVICE ? devices[process.env.DEVICE] : null;
 if (process.env.DEVICE && !device) throw new Error('appareil inconnu : ' + process.env.DEVICE);
 const page = await (await browser.newContext({ acceptDownloads: true, ...(device || {}) })).newPage();
+// Faux micro calé sur la lecture : le faux périphérique de Chromium (--use-file-for-fake-audio-capture) lit son fichier
+// en boucle à partir d'un instant qui ne dépend pas de la page ; à la 2e prise, la musique « captée » qu'il contient
+// n'était plus calée sur la lecture (échecs intermittents : SDR 0,5 dB, builds 99 et local). Un vrai micro capte
+// toujours ce qui sort au même moment. Ici, getUserMedia rend un flux tiré de MIC_FILE, démarré exactement au début du
+// morceau (state.rec.songStartCtx) : instant 0 du fichier = instant 0 de l'instru, comme le suppose make_fake_mic.py.
+if (micFile) {
+    const micB64 = readFileSync(micFile).toString('base64');
+    await page.exposeFunction('__fakeMicWav', () => micB64);
+    await page.addInitScript(() => {
+        const md = navigator.mediaDevices;
+        if (!md) return;
+        md.getUserMedia = async () => {
+            const st = window.__studiovoix, ctx = st?.ctx;
+            if (!ctx) throw new Error('faux micro : AudioContext absent');
+            const bin = atob(await window.__fakeMicWav()), bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; ++i) bytes[i] = bin.charCodeAt(i);
+            const buf = await ctx.decodeAudioData(bytes.buffer);
+            const src = ctx.createBufferSource(), dest = ctx.createMediaStreamDestination();
+            src.buffer = buf; src.loop = true; src.connect(dest);
+            const t0 = ctx.currentTime;
+            const arm = () => {
+                const at = st.rec?.songStartCtx;
+                if (at) { src.start(Math.max(ctx.currentTime, at)); console.log(`faux micro démarré au début du morceau (${(at - t0).toFixed(3)} s après l'ouverture)`); }
+                else if (ctx.currentTime - t0 < 10) setTimeout(arm, 2);
+                else src.start();
+            };
+            arm();
+            const stream = dest.stream;
+            const stop = stream.getTracks()[0].stop.bind(stream.getTracks()[0]);
+            stream.getTracks()[0].stop = () => { try { src.stop(); } catch (_) { /* déjà arrêté */ } stop(); };
+            return stream;
+        };
+    });
+}
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(String(e)));
