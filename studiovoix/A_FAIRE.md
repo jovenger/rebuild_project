@@ -89,8 +89,20 @@ comment les automatismes doivent être faits, ordre proposé.
   successives (principale puis back).
 - Écart voulu avec le logiciel PC : back enregistré placé à −7 LU dans la page (0 dans `roleOffsetLu`, réglé par le
   style côté PC). Table dupliquée dans `web/api.cpp` (Renderer.cpp non compilé en WebAssembly) : à garder alignée.
-- À faire : sauvegarde du projet dans le navigateur (IndexedDB), plusieurs prises par piste (comping), déplacer une
-  prise sur la ligne de temps, zoom, bus voix (colle) comme le logiciel PC, export des pistes séparées.
+- Fait ensuite (retour de Yann : « couper le son de chaque piste, écouter le tout ou n'en laisser qu'une », s'inspirer du
+  fonctionnement d'un studio en ligne, sans le copier) : muet / solo en pleine lecture, pistes coupées grisées, « Écoute :
+  n piste(s) sur N », « Tout écouter », barre d'espace ; transport fixé en bas (au pouce sur téléphone) ; plusieurs
+  prises par piste (chaque REC ajoute une prise, choix dans l'en-tête) ; REC à partir de la tête de lecture ; glisser
+  une prise pour la déplacer (`sv_process_voice(…, startSec)` : grille rythmique décalée comme `Renderer` côté PC) ;
+  sauvegarde automatique IndexedDB (sons écrits une fois, réglages à chaque changement, sons orphelins effacés) et
+  reprise au chargement ; « Nouveau projet » ; export des pistes séparées. Essais : e2e démo PC + Pixel 7 avec
+  rechargement (projet identique), faux micro deux prises (piste 1 en muet pendant la 2e, solo, « Tout écouter »).
+- Constaté en essai : faux micro = même fichier de voix que la piste 1 ; piste 1 jouée pendant la 2e prise → la voix se
+  retire elle-même (SDR 6,4 dB). Artefact du test (un vrai back n'est pas identique à l'échantillon près), mais à
+  vérifier en vrai : doublage chanté très serré sur la voix principale jouée aux haut-parleurs → écouter si la voix
+  s'amincit ; sinon, casque conseillé pour les doublages.
+- À faire : comping (morceaux de plusieurs prises), zoom, rognage / fondus des prises, bus voix (colle) comme le
+  logiciel PC, versions du projet.
 
 ## Musique extérieure dans le micro (retour de Yann : « même une musique extérieure doit être masquée, que la voix »)
 

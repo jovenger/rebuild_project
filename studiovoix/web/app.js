@@ -13,6 +13,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
+    listen: $('listen'), allBtn: $('allBtn'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
 
 const state = {
@@ -23,13 +24,15 @@ const state = {
     instru: null,
     instruTrack: { volumeDb: 0, mute: false, solo: false },
     // Pistes voix : { id, name, roleId, styleId, volumeDb, mute, solo, take: { mono, sampleRate, startSec, note } | null,
-    //                 processed: { left, right, report, key } | null, status, token }
+    //                 takes: [prises de cette piste], processed: { left, right, report, key } | null, status, token }
+    //   take = prise active (une des takes) ; chaque REC sur la piste ajoute une prise, les anciennes restent.
     tracks: [], nextTrackId: 1, selectedId: 0, armedId: 0,
     balance: null, balanceDirty: true,   // gains par piste (dB) calculés par le moteur pour « Mix »
     jobs: Promise.resolve(), busy: 0,    // traitements en file (un à la fois, dans l'ordre)
     player: null,                        // lecture en cours : { mode, nodes, t0, fromSec, raf }
     playFromSec: 0,
     rec: null, workletReady: false, isolating: false,
+    restoring: false,                    // projet relu depuis le navigateur : pas de sauvegarde pendant ce temps
 };
 // ------------------------------------------------------------------ journal et état
 function setStatus(text) { ui.status.textContent = text; }
@@ -54,9 +57,11 @@ function startWorker() {
             state.styles = m.styles;
             state.roles = m.roles;
             fillRoleSelect(ui.addRole, 'manual_back');
-            if (state.tracks.length === 0) addTrack('lead', 'Voix principale');
-            renderTracks();
             setStatus('Moteur prêt. Pose une instru (piste Instru), arme une piste (●) puis REC.');
+            restoreProject().then((restored) => {
+                if (!restored && state.tracks.length === 0) addTrack('lead', 'Voix principale');
+                renderTracks();
+            });
             refreshButtons();
             return;
         }
@@ -216,12 +221,37 @@ function nextTrackName(roleId) {
 function addTrack(roleId, name) {
     const t = {
         id: state.nextTrackId++, name: name || nextTrackName(roleId), roleId, styleId: state.tracks[0]?.styleId || 'rap_conscient',
-        volumeDb: 0, mute: false, solo: false, take: null, processed: null, status: 'vide', token: 0,
+        volumeDb: 0, mute: false, solo: false, take: null, takes: [], processed: null, status: 'vide', token: 0,
     };
     state.tracks.push(t);
     if (!state.armedId) state.armedId = t.id;
     log('info', `Piste ajoutée : « ${t.name} » (${roleLabel(roleId)}, ${styleName(t.styleId)})`);
+    markDirty();
     return t;
+}
+// Nouvelle prise sur une piste : elle devient la prise active, les précédentes restent au choix (« Prise n »).
+let nextAudioId = 1;
+function addTake(t, take) {
+    take.audioId = take.audioId || `a${Date.now().toString(36)}${(nextAudioId++).toString(36)}`;
+    take.label = take.label || `Prise ${t.takes.length + 1}`;
+    t.takes.push(take);
+    t.take = take;
+    t.processed = null;
+    t.status = 'raw';
+    state.balanceDirty = true;
+    log('info', `« ${t.name} » : ${take.label} (${fmt(take.mono.length / take.sampleRate)} à ${take.startSec.toFixed(2)} s)`);
+    markDirty();
+}
+function selectTake(t, index) {
+    const take = t.takes[index];
+    if (!take || take === t.take) return;
+    t.take = take;
+    t.processed = null;
+    state.balanceDirty = true;
+    log('info', `« ${t.name} » : ${take.label} choisie`);
+    markDirty();
+    renderTracks();
+    queueProcess(t);
 }
 function findTrack(id) { return state.tracks.find((t) => t.id === id) || null; }
 function removeTrack(id) {
@@ -233,6 +263,7 @@ function removeTrack(id) {
     if (state.selectedId === id) state.selectedId = 0;
     state.balanceDirty = true;
     log('info', `Piste supprimée : « ${t.name} »`);
+    markDirty();
     renderTracks();
 }
 
@@ -248,7 +279,23 @@ function renderTracks() {
     ui.tracks.appendChild(instruRow());
     for (const t of state.tracks) ui.tracks.appendChild(trackRow(t));
     drawAllLanes();
+    refreshAudibility();
     refreshButtons();
+}
+// Pistes entendues (muet / solo) : les autres sont grisées ; indication dans la barre de transport.
+function refreshAudibility() {
+    const rows = [[0, state.instruTrack], ...state.tracks.map((t) => [t.id, t])];
+    let on = 0;
+    for (const [id, obj] of rows) {
+        const r = rowOf(id);
+        const a = audible(obj);
+        if (a && (id === 0 ? state.instru : obj.take)) ++on;
+        if (r) r.classList.toggle('off', !a);
+    }
+    const total = (state.instru ? 1 : 0) + state.tracks.filter((t) => t.take).length;
+    const anyOff = rows.some(([, o]) => !audible(o));
+    ui.listen.textContent = anyOff ? `Écoute : ${on} piste(s) sur ${total}` : 'Écoute : tout';
+    ui.allBtn.disabled = !anyOff;
 }
 function el(tag, props = {}, ...kids) {
     const e = document.createElement(tag);
@@ -261,13 +308,14 @@ function el(tag, props = {}, ...kids) {
     for (const k of kids) if (k != null) e.append(k);
     return e;
 }
+// Muet : coupe cette piste. Solo : n'écoute que les pistes en solo (une ou plusieurs). Effet immédiat, même en lecture.
 function toggles(obj, onChange) {
-    const m = el('button', { class: 'tog m' + (obj.mute ? ' on' : ''), textContent: 'M', title: 'Muet',
+    const m = el('button', { class: 'tog m' + (obj.mute ? ' on' : ''), textContent: 'M', title: 'Muet : couper le son de cette piste',
         onclick: (e) => { e.stopPropagation(); obj.mute = !obj.mute; e.target.classList.toggle('on', obj.mute); onChange(); } });
-    const s = el('button', { class: 'tog s' + (obj.solo ? ' on' : ''), textContent: 'S', title: 'Solo',
+    const s = el('button', { class: 'tog s' + (obj.solo ? ' on' : ''), textContent: 'S', title: 'Solo : n\'écouter que cette piste (et les autres en solo)',
         onclick: (e) => { e.stopPropagation(); obj.solo = !obj.solo; e.target.classList.toggle('on', obj.solo); onChange(); } });
     const v = el('input', { type: 'range', class: 'vol', min: -24, max: 12, step: 0.5, value: obj.volumeDb, title: `Volume ${obj.volumeDb} dB`,
-        oninput: (e) => { obj.volumeDb = Number(e.target.value); e.target.title = `Volume ${obj.volumeDb} dB`; liveGains(); } });
+        oninput: (e) => { obj.volumeDb = Number(e.target.value); e.target.title = `Volume ${obj.volumeDb} dB`; liveGains(); markDirty(); } });
     return [m, s, v];
 }
 function instruRow() {
@@ -287,7 +335,7 @@ function instruRow() {
         el('div', { class: 'r' }, ...toggles(state.instruTrack, onMuteSolo)),
         el('div', { class: 'tinfo', textContent: info, title: 'Jouée telle quelle, jamais modifiée' }));
     const lane = el('div', { class: 'lane' }, el('canvas'), state.instru ? null : el('div', { class: 'empty', textContent: 'Importe l\'instru (MP3, WAV…) : elle va seule sur cette piste' }));
-    lane.addEventListener('click', seekFromLane);
+    laneEvents(lane, null);
     row.append(head, lane);
     row._lane = lane;
     return row;
@@ -297,13 +345,13 @@ function trackRow(t) {
     const arm = el('button', { class: 'arm' + (t.id === state.armedId ? ' on' : ''), textContent: '●', title: 'Armer : le prochain REC enregistre sur cette piste',
         onclick: (e) => { e.stopPropagation(); state.armedId = t.id; renderTracks(); } });
     const name = el('input', { type: 'text', class: 'name', value: t.name, title: 'Nom de la piste (libre)',
-        onchange: (e) => { t.name = e.target.value.trim() || t.name; log('info', `Piste renommée : « ${t.name} »`); } });
+        onchange: (e) => { t.name = e.target.value.trim() || t.name; log('info', `Piste renommée : « ${t.name} »`); markDirty(); } });
     const role = el('select', { class: 'role', title: 'Type de piste : règle la chaîne (effets) et la place dans le mix' });
     fillRoleSelect(role, t.roleId);
-    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); queueProcess(t); });
+    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); markDirty(); queueProcess(t); });
     const style = el('select', { class: 'style', title: 'Style de mixage de cette voix' });
     fillStyleSelect(style, t.styleId);
-    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); queueProcess(t); });
+    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); queueProcess(t); });
     const file = el('input', { type: 'file', accept: 'audio/*', class: 'voiceFile', onchange: (e) => importVoice(t, e.target.files[0]) });
     const meter = el('canvas', { class: 'meter', width: 300, height: 9 });
     const badge = el('span', { class: 'badge', textContent: badgeText(t) });
@@ -315,12 +363,21 @@ function trackRow(t) {
         el('div', { class: 'r' }, role, style),
         meter,
         el('div', { class: 'r' }, ...toggles(t, onMuteSolo), el('span', { class: 'file' }, el('button', { textContent: 'Importer', title: 'Importer une voix sur cette piste' }), file)),
+        t.takes.length > 1 ? el('div', { class: 'r' }, takeSelect(t)) : null,
         info);
     const lane = el('div', { class: 'lane' }, el('canvas'), t.take ? null : el('div', { class: 'empty', textContent: 'Arme la piste (●) puis REC, ou importe une voix' }));
-    lane.addEventListener('click', seekFromLane);
+    laneEvents(lane, t);
     row.append(head, lane);
     row._lane = lane;
     return row;
+}
+function takeSelect(t) {
+    const sel = el('select', { class: 'take', title: 'Prises de cette piste : chaque REC en ajoute une, choisis celle qui joue' });
+    t.takes.forEach((k, i) => sel.appendChild(el('option', { value: String(i), textContent: `${k.label} · ${fmt(k.mono.length / k.sampleRate)}` })));
+    sel.value = String(t.takes.indexOf(t.take));
+    sel.addEventListener('change', () => selectTake(t, Number(sel.value)));
+    sel.addEventListener('click', (e) => e.stopPropagation());
+    return sel;
 }
 function badgeText(t) {
     if (t.status === 'busy') return 'traitement…';
@@ -419,12 +476,43 @@ function drawAllLanes() {
 }
 window.addEventListener('resize', () => drawAllLanes());
 
-function seekFromLane(e) {
-    const r = e.currentTarget.getBoundingClientRect();
-    const sec = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * songSeconds();
-    state.playFromSec = sec;
-    setPlayhead(sec);
-    if (state.player) play(state.player.mode, sec);
+// Ligne de temps : un clic place la tête de lecture (et le départ du prochain REC) ; glisser une prise la déplace.
+function laneEvents(lane, t) {
+    let drag = null;
+    lane.addEventListener('pointerdown', (e) => {
+        const r = lane.getBoundingClientRect(), total = songSeconds();
+        const sec = (e.clientX - r.left) / r.width * total;
+        const k = t?.take;
+        const onClip = k && sec >= k.startSec && sec <= k.startSec + k.mono.length / k.sampleRate;
+        drag = { x: e.clientX, w: r.width, total, start: k ? k.startSec : 0, moved: false, onClip, sec };
+        if (onClip) lane.setPointerCapture(e.pointerId);
+    });
+    lane.addEventListener('pointermove', (e) => {
+        if (!drag || !drag.onClip) return;
+        const dx = e.clientX - drag.x;
+        if (!drag.moved && Math.abs(dx) < 6) return;
+        drag.moved = true;
+        t.take.startSec = Math.max(0, drag.start + dx / drag.w * drag.total);
+        drawLane(lane.parentElement, t);
+    });
+    const end = (e) => {
+        if (!drag) return;
+        const d = drag; drag = null;
+        if (d.moved) {
+            log('info', `« ${t.name} » : prise déplacée de ${d.start.toFixed(2)} s à ${t.take.startSec.toFixed(2)} s`);
+            state.balanceDirty = true;
+            markDirty();
+            drawAllLanes();
+            queueProcess(t);   // grille rythmique vue depuis la nouvelle place
+            return;
+        }
+        const sec = Math.max(0, Math.min(d.total, d.sec));
+        state.playFromSec = sec;
+        setPlayhead(sec);
+        if (state.player) play(state.player.mode, sec);
+    };
+    lane.addEventListener('pointerup', end);
+    lane.addEventListener('pointercancel', () => { drag = null; });
 }
 function setPlayhead(sec) {
     ui.tracks.style.setProperty('--pos', `${(sec / songSeconds()) * 100}%`);
@@ -454,7 +542,7 @@ async function processTrack(t, token) {
     try {
         const r = await call('processVoice', {
             mono: t.take.mono.slice(), sampleRate: t.take.sampleRate, styleId: t.styleId, roleId: t.roleId,
-            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked,
+            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec,
         });
         if (token !== t.token) return;
         t.processed = { left: r.left, right: r.right, report: r.report, key };
@@ -596,6 +684,16 @@ function liveGains() {
 function onMuteSolo() {
     state.balanceDirty = true;   // une piste muette ne compte pas dans l'équilibre
     liveGains();
+    refreshAudibility();
+    markDirty();
+}
+// « Tout écouter » : retire tous les muets et solos.
+function listenAll() {
+    state.instruTrack.mute = state.instruTrack.solo = false;
+    for (const t of state.tracks) t.mute = t.solo = false;
+    renderTracks();
+    onMuteSolo();
+    setStatus('Toutes les pistes sont écoutées.');
 }
 async function startPlay(mode) {
     try {
@@ -641,8 +739,9 @@ async function loadInstruFile(file) {
 }
 async function setInstru(left, right, sampleRate, name) {
     stopPlayback();
-    state.instru = { left, right, sampleRate, seconds: left.length / sampleRate, name };
+    state.instru = { left, right, sampleRate, seconds: left.length / sampleRate, name, audioId: `i${Date.now().toString(36)}` };
     state.balanceDirty = true;
+    markDirty();
     setStatus('Analyse de l\'instru (tonalité, tempo, structure)…');
     const r = await call('analyze', { left: left.slice(), right: right.slice(), sampleRate });
     state.instru.analysis = r;
@@ -661,11 +760,11 @@ async function loadDemo() {
         await setInstru(i.left, i.right, ctx.sampleRate, 'Instru de démo');
         const v = await call('demoVoice', { sampleRate: ctx.sampleRate, bars });
         const lead = state.tracks.find((t) => t.roleId === 'lead' && !t.take) || addTrack('lead', 'Voix principale');
-        lead.take = { mono: v.left, sampleRate: ctx.sampleRate, startSec: 0, note: 'voix de démo, légèrement fausse exprès' };
+        addTake(lead, { mono: v.left, sampleRate: ctx.sampleRate, startSec: 0, note: 'voix de démo, légèrement fausse exprès' });
         let back = state.tracks.find((t) => t !== lead && !t.take);
         if (!back) back = addTrack('manual_back', 'Seconde voix');
         back.roleId = 'manual_back';
-        back.take = { mono: v.left.slice(), sampleRate: ctx.sampleRate, startSec: 0, note: 'même voix de démo, en back' };
+        addTake(back, { mono: v.left.slice(), sampleRate: ctx.sampleRate, startSec: 0, note: 'même voix de démo, en back' });
         renderTracks();
         queueProcess(lead); queueProcess(back);
         setStatus(`Démo prête : ${state.instru.analysis.key}, ${state.instru.analysis.bpm.toFixed(1)} BPM, deux pistes voix (principale + back) en traitement.`);
@@ -687,9 +786,8 @@ async function importVoice(t, file) {
         const buf = await decodeFile(file);
         t.status = 'isolating'; updateRow(t);
         const isoRes = await maybeIsolate(toMono(buf), buf.sampleRate);
-        t.take = { mono: isoRes.mono, sampleRate: buf.sampleRate, startSec: 0, note: `${file.name} · ${isoRes.note}` };
-        t.processed = null; t.status = 'raw';
-        updateRow(t);
+        addTake(t, { mono: isoRes.mono, sampleRate: buf.sampleRate, startSec: 0, note: `${file.name} · ${isoRes.note}` });
+        renderTracks();
         setStatus(`Voix importée sur « ${t.name} » : ${isoRes.note}. Traitement par son style…`);
         queueProcess(t);
     } catch (err) { t.status = 'error'; updateRow(t); setStatus('Voix illisible : ' + err.message); log('error', err.message); }
@@ -768,7 +866,6 @@ ui.recBtn.addEventListener('click', async () => {
     try {
         let t = findTrack(state.armedId);
         if (!t) { t = addTrack(state.tracks.some((x) => x.roleId === 'lead') ? ui.addRole.value : 'lead'); state.armedId = t.id; renderTracks(); }
-        if (t.take && !confirm(`La piste « ${t.name} » a déjà une prise : la remplacer ?\n(Pour garder les deux, ajoute une piste.)`)) return;
         const ctx = audioContext();
         await ensureRecorderWorklet(ctx);
         prepareIsolation();   // téléchargement / préparation du modèle pendant la prise
@@ -857,9 +954,7 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
             ? `musique captée ${rep.bleedBeforeDb.toFixed(0)} dB → retirée (${rep.bleedAfterDb.toFixed(0)} dB)`
             : 'aucune musique captée (casque)';
         const note = `${bleed} · ${isoRes.note} · décalage ${lat}, compensé`;
-        t.take = { mono, sampleRate: sr, startSec, note, report: rep, isolation: isoRes.isolated || null };
-        t.processed = null; t.status = 'raw';
-        state.balanceDirty = true;
+        addTake(t, { mono, sampleRate: sr, startSec, note });
         log('info', `Prise sur « ${t.name} » : ${rep.describe} ; début ${startSec.toFixed(3)} s ; ${isoRes.note}`);
         renderTracks();
         setStatus(`Prise enregistrée sur « ${t.name} » : voix seule, calée sur la musique (${note}). Traitement par son style…`);
@@ -940,7 +1035,170 @@ function refreshButtons() {
     ui.playBtn.disabled = !(state.instru || anyTake);
     ui.playRawBtn.disabled = !(state.instru || anyTake);
     ui.exportBtn.disabled = !(anyTake || state.instru);
+    ui.stemsBtn.disabled = !(anyTake || state.instru);
 }
+
+// Export des pistes séparées : un WAV par piste audible (traitée et équilibrée comme dans le mix), même longueur.
+ui.stemsBtn.addEventListener('click', async () => {
+    try {
+        ui.stemsBtn.disabled = true;
+        setStatus('Export des pistes séparées…');
+        await ensureBalance();
+        const sr = state.instru?.sampleRate || state.tracks.find((t) => t.take)?.take.sampleRate || audioContext().sampleRate;
+        const n = Math.ceil(songSeconds() * sr);
+        const files = [];
+        const stem = (name, left, right, startSec, gainDb) => {
+            const L = new Float32Array(n), R = new Float32Array(n), g = dbg(gainDb), o = Math.round(startSec * sr);
+            for (let i = 0; i < left.length && o + i < n; ++i) { L[o + i] = left[i] * g; R[o + i] = right[i] * g; }
+            files.push({ name, wav: encodeWav16(L, R, sr) });
+        };
+        if (state.instru && audible(state.instruTrack)) stem('00-Instru', state.instru.left, state.instru.right, 0, state.instruTrack.volumeDb);
+        state.tracks.forEach((t, i) => {
+            const a = audible(t) ? trackAudio(t, 'mix') : null;
+            if (a) stem(`${String(i + 1).padStart(2, '0')}-${t.name.replace(/[^\w\u00C0-\u017F-]+/g, '_')}`, a.left, a.right, t.take.startSec, trackGainDb(t, 'mix'));
+        });
+        for (const f of files) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([f.wav], { type: 'audio/wav' }));
+            a.download = `StudioVoix-${f.name}.wav`;
+            document.body.appendChild(a); a.click(); a.remove();
+            await new Promise((r) => setTimeout(r, 250));   // les navigateurs bloquent les rafales de téléchargements
+        }
+        log('info', `Export pistes séparées : ${files.map((f) => f.name).join(', ')}`);
+        setStatus(`${files.length} piste(s) exportée(s) séparément (WAV 16 bits, ${sr} Hz, même longueur, à poser à 0:00).`);
+    } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
+    refreshButtons();
+});
+
+ui.allBtn.addEventListener('click', listenAll);
+// Barre d'espace : lecture du mix / arrêt (sauf dans un champ de saisie).
+document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || e.repeat || /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    if (state.rec) return;
+    if (state.player) { stopPlayback(); setStatus('Lecture arrêtée.'); } else if (!ui.playBtn.disabled) startPlay('mix');
+});
+
+// ------------------------------------------------------------------ sauvegarde automatique (navigateur)
+// Le projet (instru, prises, réglages des pistes) est gardé dans IndexedDB : rien n'est perdu si la page se ferme.
+// Les sons sont écrits une seule fois (clé = audioId) ; les réglages à chaque changement (1 s après le dernier).
+const DB_NAME = 'studiovoix', DB_VERSION = 1;
+function openDb() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) { reject(new Error('IndexedDB indisponible')); return; }
+        const rq = indexedDB.open(DB_NAME, DB_VERSION);
+        rq.onupgradeneeded = () => { const db = rq.result; db.createObjectStore('meta'); db.createObjectStore('audio'); };
+        rq.onsuccess = () => resolve(rq.result);
+        rq.onerror = () => reject(rq.error || new Error('ouverture IndexedDB impossible'));
+    });
+}
+function idb(db, store, mode, fn) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, mode);
+        const out = fn(tx.objectStore(store));
+        tx.oncomplete = () => resolve(out && 'result' in out ? out.result : undefined);
+        tx.onerror = () => reject(tx.error || new Error('IndexedDB : écriture refusée'));
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB : transaction annulée (espace plein ?)'));
+    });
+}
+let saveTimer = 0, savedAudio = new Set();
+function markDirty() {
+    if (state.restoring) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveProject().catch((err) => {
+        log('warn', 'Sauvegarde automatique impossible : ' + err.message);
+        ui.saveInfo.textContent = '⚠ sauvegarde impossible';
+    }), 1000);
+}
+async function saveProject() {
+    const t0 = performance.now();
+    const db = await openDb();
+    const audio = [];
+    if (state.instru) audio.push([state.instru.audioId + 'L', state.instru.left], [state.instru.audioId + 'R', state.instru.right]);
+    for (const t of state.tracks) for (const k of t.takes) audio.push([k.audioId, k.mono]);
+    const fresh = audio.filter(([id]) => !savedAudio.has(id));
+    if (fresh.length) await idb(db, 'audio', 'readwrite', (st) => { for (const [id, data] of fresh) st.put(data, id); });
+    for (const [id] of fresh) savedAudio.add(id);
+    const meta = {
+        version: 1, savedAt: Date.now(), nextTrackId: state.nextTrackId, armedId: state.armedId,
+        instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
+        instruTrack: state.instruTrack,
+        tracks: state.tracks.map((t) => ({
+            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo,
+            active: t.takes.indexOf(t.take),
+            takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
+        })),
+    };
+    await idb(db, 'meta', 'readwrite', (st) => st.put(meta, 'project'));
+    // Sons qui ne servent plus (piste supprimée, nouvelle instru) : effacés.
+    const keep = new Set(audio.map(([id]) => id));
+    const keys = await idb(db, 'audio', 'readonly', (st) => st.getAllKeys());
+    const stale = (keys || []).filter((k) => !keep.has(k));
+    if (stale.length) { await idb(db, 'audio', 'readwrite', (st) => { for (const k of stale) st.delete(k); }); for (const k of stale) savedAudio.delete(k); }
+    db.close();
+    ui.saveInfo.textContent = `Sauvegardé ${new Date().toLocaleTimeString()}`;
+    log('info', `Projet sauvegardé dans le navigateur (${fresh.length} son(s) écrit(s), ${stale.length} effacé(s)) en ${Math.round(performance.now() - t0)} ms`);
+}
+async function restoreProject() {
+    let db;
+    try { db = await openDb(); } catch (err) { log('warn', 'Pas de sauvegarde possible : ' + err.message); ui.saveInfo.textContent = 'sauvegarde indisponible'; return false; }
+    try {
+        const meta = await idb(db, 'meta', 'readonly', (st) => st.get('project'));
+        if (!meta || meta.version !== 1 || (!meta.instru && !meta.tracks?.some((t) => t.takes.length))) return false;
+        state.restoring = true;
+        const get = (id) => idb(db, 'audio', 'readonly', (st) => st.get(id));
+        setStatus('Reprise du projet gardé dans le navigateur…');
+        state.instruTrack = { ...state.instruTrack, ...meta.instruTrack };
+        state.nextTrackId = meta.nextTrackId;
+        state.tracks = [];
+        for (const m of meta.tracks) {
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo,
+                        take: null, takes: [], processed: null, status: 'vide', token: 0 };
+            for (const k of m.takes) {
+                const mono = await get(k.audioId);
+                if (!(mono instanceof Float32Array)) { log('warn', `« ${m.name} » : ${k.label} introuvable dans la sauvegarde`); continue; }
+                t.takes.push({ ...k, mono });
+                savedAudio.add(k.audioId);
+            }
+            t.take = t.takes[m.active] || t.takes[t.takes.length - 1] || null;
+            if (t.take) t.status = 'raw';
+            state.tracks.push(t);
+        }
+        state.armedId = meta.armedId;
+        if (meta.instru) {
+            const L = await get(meta.instru.audioId + 'L'), R = await get(meta.instru.audioId + 'R');
+            if (L instanceof Float32Array && R instanceof Float32Array) {
+                await setInstru(L, R, meta.instru.sampleRate, meta.instru.name);
+                state.instru.audioId = meta.instru.audioId;
+                savedAudio.add(meta.instru.audioId + 'L'); savedAudio.add(meta.instru.audioId + 'R');
+            } else log('warn', 'Instru introuvable dans la sauvegarde');
+        }
+        renderTracks();
+        reprocessAll();
+        const n = state.tracks.filter((t) => t.take).length;
+        log('info', `Projet repris : ${meta.instru ? meta.instru.name : 'sans instru'}, ${state.tracks.length} piste(s), ${n} avec prise (sauvegarde du ${new Date(meta.savedAt).toLocaleString()})`);
+        setStatus(`Projet repris (sauvegarde du ${new Date(meta.savedAt).toLocaleString()}) : ${state.tracks.length} piste(s), retraitement des prises…`);
+        ui.saveInfo.textContent = 'Projet repris';
+        return true;
+    } catch (err) {
+        log('error', 'Reprise du projet impossible : ' + err.message);
+        return false;
+    } finally { state.restoring = false; db.close(); }
+}
+ui.newBtn.addEventListener('click', async () => {
+    if (!confirm('Nouveau projet : l\'instru et toutes les pistes du projet actuel seront effacées (exporte d\'abord si besoin). Continuer ?')) return;
+    stopPlayback();
+    state.instru = null;
+    state.instruTrack = { volumeDb: 0, mute: false, solo: false };
+    state.tracks = []; state.nextTrackId = 1; state.armedId = 0; state.selectedId = 0;
+    state.balance = null; state.balanceDirty = true; state.playFromSec = 0;
+    addTrack('lead', 'Voix principale');
+    renderTracks();
+    setPlayhead(0);
+    await saveProject().catch((err) => log('warn', err.message));
+    log('info', 'Nouveau projet');
+    setStatus('Nouveau projet : importe une instru, arme une piste (●) puis REC.');
+});
 
 drawMeter(ui.meterOut, 0, 0);
 setPlayhead(0);

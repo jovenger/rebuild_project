@@ -44,7 +44,14 @@
   .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
   /* barre de transport */
-  .transport { position: sticky; top: 0; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  /* barre de transport fixée en bas de l'écran (au pouce sur téléphone) */
+  body { padding-bottom: 76px; }
+  .transport { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(21,25,34,.97); border-top: 1px solid var(--line); padding: 8px max(10px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; box-shadow: 0 -6px 18px rgba(0,0,0,.35); }
+  #listen { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .track.off .lane { opacity: .35; }
+  .track.off .head .name, .track.off .head .tinfo { opacity: .55; }
+  .topbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #saveInfo { font-size: 12px; color: var(--muted); }
   .transport .grow { flex: 1 1 120px; min-width: 120px; }
   #time { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 15px; min-width: 92px; text-align: center; background: #0b0d12; border-radius: 7px; padding: 4px 8px; }
   canvas.meter { width: 100%; height: 9px; border-radius: 3px; display: block; background: #000; }
@@ -91,6 +98,7 @@
     .lane { min-height: 64px; }
     .panels { grid-template-columns: 1fr; }
     .transport { gap: 6px; }
+    body { padding-bottom: 118px; }
     .transport .hide-sm { display: none; }
   }
 </style>
@@ -103,15 +111,23 @@
   </header>
   <div id="status">Chargement…</div>
 
+  <div class="topbar">
+    <button id="newBtn" title="Effacer le projet actuel et repartir de zéro">Nouveau projet</button>
+    <button id="exportBtn" disabled title="Le mix complet (pistes écoutées), limiteur -1 dBTP">Exporter le mix</button>
+    <button id="stemsBtn" disabled title="Un fichier WAV par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Exporter les pistes</button>
+    <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
+  </div>
+
   <div class="transport">
-    <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●)">● REC</button>
+    <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●), à partir de la tête de lecture">● REC</button>
     <button id="stopBtn" disabled>■ Stop</button>
-    <button id="playBtn" class="primary" disabled title="Instru + toutes les pistes, chacune traitée selon son style et son type, équilibrées">▶ Mix</button>
+    <button id="playBtn" class="primary" disabled title="Instru + pistes écoutées, chacune traitée selon son style et son type, équilibrées (barre d'espace)">▶ Mix</button>
     <button id="playRawBtn" disabled title="Instru + les prises brutes (sans effet) : comparaison A/B">▶ Brut</button>
     <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
     <span id="time">0:00.0</span>
     <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
-    <button id="exportBtn" disabled>Exporter WAV</button>
+    <span id="listen">Écoute : tout</span>
+    <button id="allBtn" disabled title="Retirer tous les muets et solos">Tout écouter</button>
   </div>
 
   <div id="tracks"></div>
@@ -119,7 +135,7 @@
   <div class="add">
     <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
     <label>type <select id="addRole"></select></label>
-    <span class="info">Chaque prise a sa piste : type (principale, back, ambiance…) et style choisis piste par piste.</span>
+    <span class="info">Chaque piste : type (principale, back, ambiance…) et style à elle. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
   </div>
 
   <div class="panels">

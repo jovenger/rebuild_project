@@ -139,7 +139,21 @@ try {
         // retirées de la prise (référence = tout ce qui est joué), puis l'IA retire la radio.
         await page.selectOption('#addRole', 'manual_back');
         await page.click('#addTrackBtn');
+        // Le faux micro rejoue la même voix (même fichier, à l'échantillon près) que la piste 1 : si la piste 1 jouait
+        // pendant cette prise, elle serait dans la référence de retrait et la voix se retirerait elle-même (artefact du
+        // test : un vrai back n'est jamais identique à la voix principale). Piste 1 en muet : on vérifie aussi M.
+        await page.click('.track[data-id="1"] .tog.m');
+        const listen = await page.textContent('#listen');
+        console.log(stamp(), 'piste 1 en muet :', listen);
+        if (!/Écoute : 1 piste\(s\) sur 2/.test(listen)) throw new Error('muet sans effet sur l\'écoute : ' + listen);
         await recordTake('seconde voix (back)');
+        await page.click('.track[data-id="1"] .tog.m');
+        if ((await page.textContent('#listen')) !== 'Écoute : tout') throw new Error('muet non retiré');
+        // Solo de la piste 2 : seule elle s'entend.
+        await page.click('.track[data-id="2"] .tog.s');
+        console.log(stamp(), 'solo piste 2 :', await page.textContent('#listen'));
+        await page.click('#allBtn');
+        if ((await page.textContent('#listen')) !== 'Écoute : tout') throw new Error('« Tout écouter » sans effet');
         expected = 2;
     } else if (instru && voice) {
         await page.setInputFiles('#instruFile', instru);
@@ -181,6 +195,19 @@ try {
     const size = statSync(path).size;
     console.log(stamp(), `export ${download.suggestedFilename()} : ${size} octets ; ${await page.textContent('#status')}`);
     if (size < 1000) throw new Error('WAV exporté trop petit');
+
+    // Sauvegarde automatique : après rechargement, le projet (instru, pistes, prises, réglages) revient.
+    if (!micFile) {
+        const before = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.styleId}|${t.takes.length}`).join(';'));
+        await page.waitForFunction(() => /Sauvegardé/.test(document.getElementById('saveInfo').textContent), null, { timeout: 30000 });
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForFunction(() => window.__studiovoix?.ready && window.__studiovoix.instru && window.__studiovoix.tracks.length > 0
+                                         && window.__studiovoix.tracks.every((t) => t.take), null, { timeout: 120000 });
+        await tracksDone(expected);
+        const after = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.styleId}|${t.takes.length}`).join(';'));
+        console.log(stamp(), 'projet repris après rechargement :', after);
+        if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
+    }
 
     if (shot) { await page.screenshot({ path: shot, fullPage: true }); console.log(stamp(), 'capture :', shot); }
     const fatal = errors.filter((e) => !/favicon/i.test(e));

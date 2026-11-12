@@ -217,7 +217,7 @@ EMSCRIPTEN_KEEPALIVE void sv_set_context (int root, int minor, double bpm, doubl
 /** Traite une prise mono par le style : mesure de la prise, réglages du style ajustés à la mesure, chaîne complète.
     Résultat stéréo lisible via sv_out_left / sv_out_right / sv_out_frames. JSON : rapport (réglages, mesures, notes). */
 EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames, double sampleRate, const char* styleId,
-                                                   const char* roleId, int cleaning, int useScale)
+                                                   const char* roleId, int cleaning, int useScale, double startSec)
 {
     ensureLog();
     if (mono == nullptr || frames <= 0 || sampleRate <= 0.0)
@@ -235,7 +235,11 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     sv::Mono raw (mono, mono + frames);
     const auto problems = sv::dsp::analyzeTrackProblems (raw, sampleRate, context.key, true);
     const auto notes = sv::dsp::fitStyleToMeasurement (params, problems, context.tempo.bpm);
-    auto result = sv::dsp::processVocal (raw, sampleRate, params, context, {});
+    // Grille rythmique vue depuis le début de la prise (comme le logiciel PC : Renderer, takeCtx) : une prise posée à
+    // startSec sur le morceau voit le premier temps fort startSec plus tôt.
+    auto takeCtx = context;
+    takeCtx.tempo.firstBeatSec -= juce::jmax (0.0, startSec);
+    auto result = sv::dsp::processVocal (raw, sampleRate, params, takeCtx, {});
     lastOut = std::move (result.audio);
 
     auto* o = new juce::DynamicObject();

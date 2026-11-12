@@ -19,7 +19,7 @@ async function boot() {
         styles: engine.cwrap('sv_styles', 'string', []),
         analyze: engine.cwrap('sv_analyze_instru', 'string', ['number', 'number', 'number', 'number']),
         setContext: engine.cwrap('sv_set_context', null, ['number', 'number', 'number', 'number', 'number']),
-        processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'string', 'number', 'number']),
+        processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'string', 'number', 'number', 'number']),
         roles: engine.cwrap('sv_roles', 'string', []),
         balanceBegin: engine.cwrap('sv_balance_begin', 'string', ['number', 'number', 'number', 'number', 'string']),
         balanceAdd: engine.cwrap('sv_balance_add', 'string', ['number', 'number', 'number', 'number', 'number', 'string', 'number']),
@@ -74,10 +74,10 @@ const handlers = {
         api.setContext(root, minor ? 1 : 0, bpm, firstBeatSec, useScale ? 1 : 0);
         return {};
     },
-    processVoice({ mono, sampleRate, styleId, roleId, cleaning, useScale }) {
+    processVoice({ mono, sampleRate, styleId, roleId, cleaning, useScale, startSec }) {
         const p = push(mono);
         try {
-            const report = parse(api.processVoice(p, mono.length, sampleRate, styleId, roleId || 'lead', cleaning ? 1 : 0, useScale ? 1 : 0));
+            const report = parse(api.processVoice(p, mono.length, sampleRate, styleId, roleId || 'lead', cleaning ? 1 : 0, useScale ? 1 : 0, startSec || 0));
             const out = pullOut();
             return { report, ...out };
         } finally { api.free(p); }

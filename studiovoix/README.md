@@ -23,8 +23,15 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **Mix** : équilibre automatique des pistes selon leur type (back −7 LU sous la voix principale, ambiance −14 LU,
   doublage / harmonie / ad-libs −9 LU, instrument −4 LU), puis l'ensemble des voix par rapport à l'instru ; les faders
   s'ajoutent ; lecture en direct (vumètre par piste), export WAV limité à −1 dBTP ;
-- REC sur la piste armée : on entend l'instru et les pistes déjà enregistrées ; tout ce qui est joué est retiré de la
-  prise si le micro le capte.
+- REC sur la piste armée, à partir de la tête de lecture (clic sur la ligne de temps) : on entend l'instru et les
+  pistes déjà enregistrées ; tout ce qui est joué est retiré de la prise si le micro le capte. Chaque REC **ajoute une
+  prise** à la piste (« Prise 1, 2… », au choix dans l'en-tête) : les anciennes restent ;
+- **M** (muet) coupe une piste, **S** (solo) n'écoute que les pistes en solo : écouter le tout, retirer une ou
+  plusieurs pistes, ou n'en garder qu'une, en pleine lecture ; pistes coupées grisées, « Écoute : 2 piste(s) sur 4 »
+  et « Tout écouter » dans la barre du bas ; barre d'espace = lecture / arrêt ;
+- glisser une prise la déplace sur la ligne de temps (retraitée : grille rythmique vue depuis sa nouvelle place) ;
+- **sauvegarde automatique** dans le navigateur (instru, prises, réglages) : le projet revient à la réouverture ;
+  « Nouveau projet » pour repartir de zéro ; export du mix ou de **chaque piste séparément** (WAV de même longueur).
 
 - Étape 1 : instru (MP3, WAV…) analysée (tonalité, tempo, structure), jouée telle quelle.
 - Étape 2 : REC (compte à rebours en clics, puis l'instru) ; la prise ne garde **que la voix** : si le micro capte
