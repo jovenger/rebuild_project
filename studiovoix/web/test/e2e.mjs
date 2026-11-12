@@ -71,7 +71,11 @@ const stamp = () => `[${((Date.now() - t0) / 1000).toFixed(1)} s]`;
 const launchArgs = ['--autoplay-policy=no-user-gesture-required'];
 if (micFile) launchArgs.push('--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${micFile}`);
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: launchArgs });
-const page = await browser.newPage({ acceptDownloads: true });
+// DEVICE = appareil Playwright (ex. « Pixel 7 ») : essai de la page en affichage téléphone.
+const { devices } = require('playwright');
+const device = process.env.DEVICE ? devices[process.env.DEVICE] : null;
+if (process.env.DEVICE && !device) throw new Error('appareil inconnu : ' + process.env.DEVICE);
+const page = await (await browser.newContext({ acceptDownloads: true, ...(device || {}) })).newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -89,27 +93,31 @@ try {
     await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Moteur prêt'), null, { timeout: 60000 });
     console.log(stamp(), 'moteur prêt :', await page.textContent('#version'));
 
-    if (instru && micFile) {
-        await page.setInputFiles('#instruFile', instru);
-        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Instru analysée'), null, { timeout: 120000 });
-        console.log(stamp(), await page.textContent('#status'));
-        await page.fill('#countIn', '0');
+    const tracksDone = (n) => page.waitForFunction((n) => document.body.dataset.busy === '0'
+        && window.__studiovoix.tracks.filter((t) => t.take && t.processed).length >= n, n, { timeout: 900000 });
+    const trackInfo = (id) => page.textContent(`.track[data-id="${id}"] .tinfo`);
+
+    // Prise au micro sur la piste armée ; retourne l'id de la piste.
+    async function recordTake(label) {
+        const before = await page.evaluate(() => window.__studiovoix.armedId);
         await page.click('#recBtn');
-        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Enregistrement'), null, { timeout: 30000 });
-        console.log(stamp(), 'REC en cours…');
+        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Enregistrement'), null, { timeout: 60000 });
+        console.log(stamp(), `REC (${label}) en cours sur la piste ${before}…`);
         await page.waitForTimeout(recSeconds * 1000);
         await page.click('#stopBtn');
-        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Prise enregistrée')
-                                         || document.getElementById('status').textContent.startsWith('Prise impossible'), null, { timeout: 900000 });
+        await page.waitForFunction((id) => {
+            const st = document.getElementById('status').textContent;
+            const t = window.__studiovoix.tracks.find((x) => x.id === id);
+            return st.startsWith('Prise impossible') || (t && t.take && window.__studiovoix.rec === null);
+        }, before, { timeout: 900000 });
         const st = await page.textContent('#status');
-        const info = await page.textContent('#voiceInfo');
-        console.log(stamp(), st);
-        console.log(stamp(), info);
-        if (!st.startsWith('Prise enregistrée')) throw new Error('prise au micro en échec');
+        if (st.startsWith('Prise impossible')) throw new Error('prise au micro en échec : ' + st);
+        const info = await trackInfo(before);
+        console.log(stamp(), `piste ${before} :`, info);
         if (process.env.EXPECT_BLEED === '1' && !/retirée/.test(info)) throw new Error('musique captée non détectée / non retirée');
         if (process.env.EXPECT_ISOLATION === '1' && !/voix isolée par IA/.test(info)) throw new Error('isolation IA non appliquée');
         if (voiceRef) {
-            const take = await page.evaluate(() => ({ x: Array.from(window.__studiovoix.voice.mono), sr: window.__studiovoix.voice.sampleRate }));
+            const take = await page.evaluate((id) => { const t = window.__studiovoix.tracks.find((x) => x.id === id); return { x: Array.from(t.take.mono), sr: t.take.sampleRate }; }, before);
             const ref = readWavMono(voiceRef), mic = readWavMono(micFile);
             const m0 = measureTake(mic.x.subarray(0, Math.min(mic.x.length, Math.round(take.x.length * mic.sr / take.sr))), mic.sr, ref);
             console.log(stamp(), `micro avant traitement : SDR ${m0.sdrDb.toFixed(1)} dB, pendant les silences de la voix ${m0.quietVsVoiceDb.toFixed(1)} dB sous la voix`);
@@ -117,31 +125,61 @@ try {
             console.log(stamp(), `mesure de la prise : SDR ${m.sdrDb.toFixed(1)} dB (voix / tout le reste), pendant les silences de la voix (${m.quietSec.toFixed(1)} s) ${m.quietVsVoiceDb.toFixed(1)} dB sous la voix, gain ${m.gain.toFixed(2)}`);
             if (!(m.sdrDb >= minSdrDb)) throw new Error(`prise pas assez propre : SDR ${m.sdrDb.toFixed(1)} dB < ${minSdrDb} dB`);
         }
+        return before;
+    }
+
+    let expected = 1;
+    if (instru && micFile) {
+        await page.setInputFiles('#instruFile', instru);
+        await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
+        console.log(stamp(), 'instru :', await page.textContent('.track[data-id="0"] .tinfo'));
+        await page.fill('#countIn', '0');
+        await recordTake('voix principale');
+        // Seconde piste (back) : on entend l'instru ET la voix principale pendant la prise ; les deux doivent être
+        // retirées de la prise (référence = tout ce qui est joué), puis l'IA retire la radio.
+        await page.selectOption('#addRole', 'manual_back');
+        await page.click('#addTrackBtn');
+        await recordTake('seconde voix (back)');
+        expected = 2;
     } else if (instru && voice) {
         await page.setInputFiles('#instruFile', instru);
-        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Instru analysée'), null, { timeout: 120000 });
-        console.log(stamp(), await page.textContent('#status'));
-        await page.setInputFiles('#voiceFile', voice);
-        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Voix importée'), null, { timeout: 60000 });
+        await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
+        await page.setInputFiles('.track[data-id="1"] input.voiceFile', voice);
+        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Voix importée')
+                                         || window.__studiovoix.tracks[0]?.take, null, { timeout: 900000 });
         console.log(stamp(), await page.textContent('#status'));
     } else {
         await page.click('#demoBtn');
-        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Démo prête'), null, { timeout: 180000 });
-        console.log(stamp(), await page.textContent('#status'));
+        await page.waitForFunction(() => window.__studiovoix.tracks.length >= 2 && window.__studiovoix.tracks.every((t) => t.take), null, { timeout: 180000 });
+        expected = 2;
     }
+    await tracksDone(expected);
+    console.log(stamp(), 'pistes traitées :', await page.textContent('#status'));
 
-    await page.selectOption('#style', 'rap_conscient');
-    await page.click('#processBtn');
-    await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Voix traitée'), null, { timeout: 300000 });
-    console.log(stamp(), await page.textContent('#status'));
+    // Changement de style sur la piste 1 → retraitement de cette piste seule.
+    await page.selectOption('.track[data-id="1"] select.style', 'trap');
+    await page.waitForFunction(() => document.body.dataset.busy === '0' && window.__studiovoix.tracks[0].processed?.report.style === 'Trap', null, { timeout: 300000 });
+    const reports = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.processed).map((t) => `${t.name} : ${t.processed.report.role} / ${t.processed.report.style}`));
+    console.log(stamp(), 'traitements :', reports.join(' ; '));
+    if (expected >= 2 && !reports.some((r) => r.includes('Back'))) throw new Error('seconde piste non traitée en back');
+
+    await page.click('.track[data-id="1"] .head');
     const report = await page.textContent('#report');
-    console.log(report.split('\n').slice(0, 3).join('\n'));
+    console.log(report.split('\n').slice(0, 2).join('\n'));
     if (!report.includes('Chaîne appliquée')) throw new Error('rapport incomplet');
 
-    const [download] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#exportBtn')]);
+    await page.click('#playBtn');
+    await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Lecture du mix'), null, { timeout: 120000 });
+    const infos = await page.$$eval('.track .tinfo', (e) => e.map((x) => x.textContent));
+    console.log(stamp(), 'pistes :', infos.join(' || '));
+    if (expected >= 2 && !infos.slice(1).every((i) => /mix [+-]\d/.test(i))) throw new Error('équilibre des pistes absent');
+    await page.waitForTimeout(1500);
+    await page.click('#stopPlayBtn');
+
+    const [download] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#exportBtn')]);
     const path = await download.path();
     const size = statSync(path).size;
-    console.log(stamp(), `export ${download.suggestedFilename()} : ${size} octets`);
+    console.log(stamp(), `export ${download.suggestedFilename()} : ${size} octets ; ${await page.textContent('#status')}`);
     if (size < 1000) throw new Error('WAV exporté trop petit');
 
     if (shot) { await page.screenshot({ path: shot, fullPage: true }); console.log(stamp(), 'capture :', shot); }

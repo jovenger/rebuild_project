@@ -391,7 +391,7 @@ jobs:
           studiovoix/web/fetch-ia.sh "$RUNNER_TEMP/ia-cache"
           ls -l studiovoix/web/vendor studiovoix/web/models
 
-      - name: Essai dans Chromium (instru + voix de démonstration, style appliqué, WAV exporté)
+      - name: Essai dans Chromium (studio multipiste démo, deux prises au micro, WAV exporté)
         run: |
           cd studiovoix
           npm install --no-audit --no-fund playwright@1.56.1
@@ -399,7 +399,10 @@ jobs:
           python3 -m http.server 8765 --directory web > "$RUNNER_TEMP/http.log" 2>&1 &
           sleep 1
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_e2e.png"
-          # Prise au micro sans casque : faux micro = vraie voix (JFK, domaine public, whisper.cpp) + instru captée
+          # Même essai en affichage téléphone (en-têtes de piste au-dessus des formes d'onde).
+          DEVICE="Pixel 7" PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_tel.png"
+          # Prise au micro sans casque (deux prises : voix principale puis back sur une seconde piste) : faux micro =
+          # vraie voix (JFK, domaine public, whisper.cpp) + instru captée
           # (300 ms, -12 dB) + « radio » extérieure au niveau de la voix. La page doit retirer l'instru, compenser le
           # décalage et isoler la voix (IA) ; la prise est mesurée contre la voix seule (SDR >= 10 dB).
           curl -fsSL --retry 4 -o "$RUNNER_TEMP/jfk.wav" https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav
@@ -417,6 +420,7 @@ jobs:
           path: |
             ${{ runner.temp }}/web_e2e.png
             ${{ runner.temp }}/web_rec.png
+            ${{ runner.temp }}/web_tel.png
           if-no-files-found: ignore
 
       - name: Page prête pour GitHub Pages

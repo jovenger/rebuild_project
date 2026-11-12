@@ -19,6 +19,7 @@
 
 #include <emscripten/emscripten.h>
 
+#include <cmath>
 #include <ctime>
 #include <cwchar>
 #include <string>
@@ -74,6 +75,41 @@ namespace
         s.copyFrom (0, 0, left, frames);
         s.copyFrom (1, 0, right != nullptr ? right : left, frames);
         return s;
+    }
+
+    // Équilibre multipiste (sv_balance_*) : instru + pistes voix posées sur la grille du morceau.
+    struct BalanceTrack
+    {
+        int key = 0;
+        sv::style::Role role = sv::style::Role::Lead;
+        float volumeDb = 0.0f;   // fader de l'utilisateur
+        sv::Stereo audio;        // longueur = celle du morceau
+    };
+    struct BalanceState
+    {
+        bool open = false;
+        double sampleRate = 44100.0;
+        sv::style::Style style = sv::style::Style::Rap;
+        sv::Stereo instru;
+        std::vector<BalanceTrack> tracks;
+    } balance;
+
+    /** Place visée d'un rôle par rapport à la voix principale (LU). Même table que sv::render::roleOffsetLu
+        (Renderer.cpp, logiciel PC), non compilé dans la version web : à garder identique. */
+    float webRoleOffsetLu (sv::style::Role role)
+    {
+        using sv::style::Role;
+        switch (role)
+        {
+            case Role::Double:      return -9.0f;
+            case Role::KeywordBack: return -7.0f;
+            case Role::ManualBack:  return -7.0f;   // back enregistré : comme les backs (logiciel PC : 0, géré par le style)
+            case Role::Harmony:     return -9.0f;
+            case Role::AdLib:       return -9.0f;
+            case Role::Ambiance:    return -14.0f;
+            case Role::Instrument:  return -4.0f;
+            default:                return 0.0f;
+        }
     }
 
     void ensureLog()
@@ -181,14 +217,18 @@ EMSCRIPTEN_KEEPALIVE void sv_set_context (int root, int minor, double bpm, doubl
 /** Traite une prise mono par le style : mesure de la prise, réglages du style ajustés à la mesure, chaîne complète.
     Résultat stéréo lisible via sv_out_left / sv_out_right / sv_out_frames. JSON : rapport (réglages, mesures, notes). */
 EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames, double sampleRate, const char* styleId,
-                                                   int cleaning, int useScale)
+                                                   const char* roleId, int cleaning, int useScale)
 {
     ensureLog();
     if (mono == nullptr || frames <= 0 || sampleRate <= 0.0)
         return reply (errorJson ("Prise vide"_u8));
     sv::log::ScopedTimer timer (kMod, "traitement de la voix"_u8);
     const auto style = sv::style::styleFromId (juce::String (styleId != nullptr ? styleId : ""));
-    auto params = sv::style::makeParams (style, sv::style::Role::Lead, {}, true);
+    auto role = sv::style::roleFromId (juce::String (roleId != nullptr ? roleId : "lead"));
+    if (role == sv::style::Role::Instru)
+        role = sv::style::Role::Lead;   // une piste voix n'est jamais traitée comme l'instru
+    auto params = sv::style::makeParams (style, role, {}, true);
+    SV_LOG_INFO (kMod, "Piste : style "_u8 + sv::style::styleName (style) + ", type " + sv::style::roleName (role));
     params.clean.enabled = cleaning != 0;
     context.useScale = useScale != 0;
 
@@ -201,6 +241,8 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     auto* o = new juce::DynamicObject();
     o->setProperty ("ok", true);
     o->setProperty ("style", sv::style::styleName (style));
+    o->setProperty ("role", sv::style::roleName (role));
+    o->setProperty ("roleId", sv::style::roleId (role));
     o->setProperty ("frames", lastOut.getNumSamples());
     o->setProperty ("chain", sv::dsp::describeChain (params));
     o->setProperty ("fitNotes", notes.joinIntoString (" ; "));
@@ -309,6 +351,186 @@ EMSCRIPTEN_KEEPALIVE const char* sv_clean_take (const float* rec, int recFrames,
     SV_LOG_INFO (kMod, "Prise : décalage "_u8 + juce::String (latency * 1000.0, 1) + " ms (" + (rep.detected ? "mesuré" : "annoncé par le navigateur")
                        + "), début sur l'instru " + juce::String (startSec, 3) + " s ; " + rep.describe());
     return reply (juce::var (o));
+}
+
+/** Équilibre multipiste, en trois temps : begin (instru), add (une fois par piste voix audible), end (calcul).
+    Comme le logiciel PC (« orchestre ») : chaque piste hors voix principale est ramenée à sa place par rapport à la
+    voix principale selon son type (back -7 LU, ambiance -14 LU…), puis toutes les voix ensemble par rapport à
+    l'instru (sonie visée par le style). Le résultat donne un gain par piste (dB, fader compris) : la page l'applique
+    à la lecture et à l'export. L'instru n'est jamais modifiée. */
+EMSCRIPTEN_KEEPALIVE const char* sv_balance_begin (const float* instruL, const float* instruR, int instruFrames, double sampleRate,
+                                                   const char* styleId)
+{
+    ensureLog();
+    balance = {};
+    if (sampleRate <= 0.0)
+        return reply (errorJson ("Fréquence invalide"_u8));
+    balance.open = true;
+    balance.sampleRate = sampleRate;
+    balance.style = sv::style::styleFromId (juce::String (styleId != nullptr ? styleId : ""));
+    if (instruL != nullptr && instruFrames > 0)
+        balance.instru = stereoFrom (instruL, instruR, instruFrames);
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    return reply (juce::var (o));
+}
+
+EMSCRIPTEN_KEEPALIVE const char* sv_balance_add (int key, const float* left, const float* right, int frames, double startSec,
+                                                 const char* roleId, float volumeDb)
+{
+    ensureLog();
+    if (! balance.open)
+        return reply (errorJson ("Équilibre non commencé (sv_balance_begin)"_u8));
+    if (left == nullptr || frames <= 0)
+        return reply (errorJson ("Piste vide"_u8));
+    BalanceTrack t;
+    t.key = key;
+    t.role = sv::style::roleFromId (juce::String (roleId != nullptr ? roleId : "lead"));
+    t.volumeDb = juce::jlimit (-60.0f, 12.0f, volumeDb);
+    const int offset = juce::jmax (0, (int) std::llround (startSec * balance.sampleRate));
+    t.audio.setSize (2, offset + frames);
+    t.audio.clear();
+    t.audio.copyFrom (0, offset, left, frames);
+    t.audio.copyFrom (1, offset, right != nullptr ? right : left, frames);
+    balance.tracks.push_back (std::move (t));
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("count", (int) balance.tracks.size());
+    return reply (juce::var (o));
+}
+
+EMSCRIPTEN_KEEPALIVE const char* sv_balance_end (float vocalOverInstruLuOverride)
+{
+    ensureLog();
+    if (! balance.open)
+        return reply (errorJson ("Équilibre non commencé (sv_balance_begin)"_u8));
+    sv::log::ScopedTimer timer (kMod, "équilibre des pistes"_u8);
+    const double sr = balance.sampleRate;
+    int total = balance.instru.getNumSamples();
+    for (const auto& t : balance.tracks)
+        total = juce::jmax (total, t.audio.getNumSamples());
+    auto onGrid = [total] (const sv::Stereo& src)
+    {
+        sv::Stereo d (2, juce::jmax (1, total));
+        d.clear();
+        const int n = juce::jmin (total, src.getNumSamples());
+        if (n > 0)
+            for (int c = 0; c < 2; ++c)
+                d.copyFrom (c, 0, src, c, 0, n);
+        return d;
+    };
+
+    // Voix principale : somme des pistes « voix principale » (au moins une ; sinon la première piste sert de repère).
+    sv::Stereo lead = onGrid ({});
+    int leadCount = 0;
+    for (const auto& t : balance.tracks)
+        if (t.role == sv::style::Role::Lead)
+        {
+            const auto g = onGrid (t.audio);
+            for (int c = 0; c < 2; ++c)
+                lead.addFrom (c, 0, g, c, 0, total, sv::dbToGain (t.volumeDb));
+            ++leadCount;
+        }
+    if (leadCount == 0 && ! balance.tracks.empty())
+        lead = onGrid (balance.tracks.front().audio);
+    const double leadLufs = balance.tracks.empty() ? -120.0 : sv::loudness::integratedLufs (lead, sr);
+
+    // 1) Orchestre : gain automatique par piste (hors voix principale) selon son type.
+    juce::Array<juce::var> items;
+    std::vector<float> autoGain (balance.tracks.size(), 0.0f);
+    juce::StringArray lines;
+    for (size_t i = 0; i < balance.tracks.size(); ++i)
+    {
+        const auto& t = balance.tracks[i];
+        const double lufs = sv::loudness::integratedLufs (t.audio, sr);
+        const bool isLeadRef = t.role == sv::style::Role::Lead || (leadCount == 0 && i == 0);
+        float offset = 0.0f;
+        if (! isLeadRef && leadLufs > -90.0 && lufs > -90.0)
+        {
+            offset = webRoleOffsetLu (t.role);
+            autoGain[i] = juce::jlimit (-12.0f, 6.0f, static_cast<float> (leadLufs + offset - (lufs + t.volumeDb)));
+            lines.add (sv::style::roleName (t.role) + " #" + juce::String (t.key) + " : " + juce::String (lufs - leadLufs, 1)
+                       + " LU / voix principale, place " + juce::String (offset, 0) + " LU -> " + juce::String (autoGain[i], 1) + " dB");
+        }
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("key", t.key);
+        o->setProperty ("role", sv::style::roleName (t.role));
+        o->setProperty ("lufs", lufs);
+        o->setProperty ("placeLu", offset);
+        o->setProperty ("autoGainDb", autoGain[i]);
+        items.add (juce::var (o));
+    }
+    if (! lines.isEmpty())
+        SV_LOG_INFO (kMod, "Orchestre : "_u8 + lines.joinIntoString (" | "));
+
+    // 2) Toutes les voix ensemble par rapport à l'instru (sonie visée par le style).
+    float vocalGainDb = 0.0f;
+    float instruLufs = -120.0f;
+    if (balance.instru.getNumSamples() > 0 && ! balance.tracks.empty())
+    {
+        sv::Stereo all = onGrid ({});
+        for (size_t i = 0; i < balance.tracks.size(); ++i)
+        {
+            const auto g = onGrid (balance.tracks[i].audio);
+            for (int c = 0; c < 2; ++c)
+                all.addFrom (c, 0, g, c, 0, total, sv::dbToGain (balance.tracks[i].volumeDb + autoGain[i]));
+        }
+        sv::mix::AutoMixSettings s;
+        s.duckingDb = 0.0f;   // instru jamais modifiée
+        s.vocalOverInstruLu = std::isfinite (vocalOverInstruLuOverride) && vocalOverInstruLuOverride > -50.0f
+                                  ? vocalOverInstruLuOverride : sv::style::masterTone (balance.style).vocalOverInstruLu;
+        const auto am = sv::mix::autoMix (onGrid (balance.instru), lead, all, sr, s);
+        vocalGainDb = am.vocalGainDb;
+        instruLufs = am.instruLufs;
+        SV_LOG_INFO (kMod, "Voix / instru : gain voix "_u8 + juce::String (vocalGainDb, 1) + " dB (visée "
+                           + juce::String (s.vocalOverInstruLu, 1) + " LU)");
+    }
+    for (size_t i = 0; i < balance.tracks.size(); ++i)
+        items.getReference ((int) i).getDynamicObject()->setProperty ("gainDb", balance.tracks[i].volumeDb + autoGain[i] + vocalGainDb);
+
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("tracks", items);
+    o->setProperty ("vocalGainDb", vocalGainDb);
+    o->setProperty ("instruLufs", instruLufs);
+    o->setProperty ("leadLufs", leadLufs);
+    o->setProperty ("leadCount", leadCount);
+    o->setProperty ("report", lines.joinIntoString ("\n"));
+    balance = {};
+    return reply (juce::var (o));
+}
+
+/** Limiteur de sécurité (export) : copie de (left, right) limitée à ceilingDb dans sv_out_* ; JSON : réduction, sonie. */
+EMSCRIPTEN_KEEPALIVE const char* sv_limit (const float* left, const float* right, int frames, double sampleRate, float ceilingDb)
+{
+    ensureLog();
+    if (left == nullptr || frames <= 0 || sampleRate <= 0.0)
+        return reply (errorJson ("Mix vide"_u8));
+    lastOut = stereoFrom (left, right, frames);
+    const float gr = sv::dsp::limitStereo (lastOut, sampleRate, ceilingDb);
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("limiterGrDb", gr);
+    o->setProperty ("lufs", sv::loudness::integratedLufs (lastOut, sampleRate));
+    SV_LOG_INFO (kMod, "Export : limiteur "_u8 + juce::String (gr, 1) + " dB");
+    return reply (juce::var (o));
+}
+
+/** Types de piste voix proposés dans la page : [{"id":"lead","name":"Voix principale"},…] */
+EMSCRIPTEN_KEEPALIVE const char* sv_roles()
+{
+    ensureLog();
+    juce::Array<juce::var> list;
+    for (const auto r : sv::style::userTrackRoles())
+    {
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("id", sv::style::roleId (r));
+        o->setProperty ("name", sv::style::roleName (r));
+        o->setProperty ("label", sv::style::userTrackLabel (r));
+        o->setProperty ("placeLu", webRoleOffsetLu (r));
+        list.add (juce::var (o));
+    }
+    return reply (juce::var (list));
 }
 
 /** Démo : instru synthétique (La mineur, 100 BPM, `bars` mesures) dans sv_out_*, pour essayer sans fichier. */

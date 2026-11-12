@@ -75,6 +75,23 @@ comment les automatismes doivent être faits, ordre proposé.
 - À faire : même retrait dans le logiciel Windows (prise du moteur temps réel, référence = instru jouée) si Yann
   enregistre sans casque là aussi ; essai réel sur son PC (micro + haut-parleurs).
 
+## Studio multipiste web (demande de Yann : « comme le mode studio, plusieurs pistes, chaque prise séparée »)
+
+- Fait (build 92) : page `web/index.html` + `app.js` réécrites en studio : piste Instru en haut, pistes voix sans
+  limite (nom libre), en-tête à gauche avec vumètre, type (voix principale / back / ambiance / doublage / harmonie /
+  ad-libs / instrument), style, M / S, volume, ● armer, import ; ligne de temps commune, tête de lecture, clic = position ;
+  traitement par piste en file d'attente (type + style → `makeParams(style, rôle)` + mesure) ; moteur :
+  `sv_process_voice(…, roleId, …)`, `sv_balance_begin/add/end` (orchestre par type comme `render::roleOffsetLu`, puis
+  voix / instru), `sv_limit`, `sv_roles` ; lecture en direct par piste (gain + vumètre, limiteur de sécurité) ; REC
+  sur la piste armée avec référence de retrait = tout ce qui est joué (instru + autres pistes) ; téléphone : en-tête
+  au-dessus de la forme d'onde. Essais : node (back −7,0 LU, ambiance −14,0 LU après équilibre) ; Chromium PC et
+  téléphone (Pixel 7) : démo deux pistes, changement de style, rapport, lecture, export ; faux micro deux prises
+  successives (principale puis back).
+- Écart voulu avec le logiciel PC : back enregistré placé à −7 LU dans la page (0 dans `roleOffsetLu`, réglé par le
+  style côté PC). Table dupliquée dans `web/api.cpp` (Renderer.cpp non compilé en WebAssembly) : à garder alignée.
+- À faire : sauvegarde du projet dans le navigateur (IndexedDB), plusieurs prises par piste (comping), déplacer une
+  prise sur la ligne de temps, zoom, bus voix (colle) comme le logiciel PC, export des pistes séparées.
+
 ## Musique extérieure dans le micro (retour de Yann : « même une musique extérieure doit être masquée, que la voix »)
 
 - Fait (build 91, version web) : le retrait par référence ne traite que l'instru jouée par la page ; pour tout le

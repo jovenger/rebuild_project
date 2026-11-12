@@ -11,6 +11,21 @@ Le même moteur (analyse, chaîne vocale par style ajustée à la mesure de la p
 build, dossier `studiovoix/web/`). Tout tourne dans le navigateur (Chrome, Edge, Firefox récents) : rien n'est envoyé
 sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni annulation d'écho ni gain auto).
 
+**Studio multipiste** (PC et téléphone : sur petit écran, l'en-tête de chaque piste passe au-dessus de sa forme d'onde) :
+- piste **Instru** en haut : le fichier importé va seul sur cette piste, analysé (tonalité, tempo, structure), joué
+  tel quel, jamais modifié ;
+- en dessous, **autant de pistes voix que voulu** (« + Ajouter une piste »), chacune avec, dans son en-tête à gauche :
+  nom libre, **vumètre**, **type** (voix principale, voix back, voix d'ambiance, doublage, harmonie, ad-libs,
+  instrument), **style** de mixage (Rap conscient, Trap…), muet / solo, volume, ● pour l'armer, import d'un fichier ;
+- chaque prise reste **séparée sur sa piste** et reçoit la chaîne de **son** style réglée pour **son** type (le back et
+  l'ambiance n'ont pas les mêmes réglages que la principale) d'après la mesure de la prise ; changer le type ou le style
+  retraite cette piste seule ;
+- **Mix** : équilibre automatique des pistes selon leur type (back −7 LU sous la voix principale, ambiance −14 LU,
+  doublage / harmonie / ad-libs −9 LU, instrument −4 LU), puis l'ensemble des voix par rapport à l'instru ; les faders
+  s'ajoutent ; lecture en direct (vumètre par piste), export WAV limité à −1 dBTP ;
+- REC sur la piste armée : on entend l'instru et les pistes déjà enregistrées ; tout ce qui est joué est retiré de la
+  prise si le micro le capte.
+
 - Étape 1 : instru (MP3, WAV…) analysée (tonalité, tempo, structure), jouée telle quelle.
 - Étape 2 : REC (compte à rebours en clics, puis l'instru) ; la prise ne garde **que la voix** : si le micro capte
   l'instru (haut-parleurs, pas de casque), elle est **retirée automatiquement** de la prise (le moteur connaît
@@ -31,8 +46,8 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   se règle d'après la mesure ; le rapport affiche les valeurs effet par effet.
 - Étape 4 : écoute du mix ou du brut (A/B), vumètres, export WAV 16 bits.
 
-Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), export MP3, projets
-multipistes complets (une instru + une voix pour l'instant), installateur et bouton « Mise à jour » (la page est
+Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), export MP3, sauvegarde du
+projet, plusieurs prises par piste (une prise par piste : ajouter une piste pour en garder une autre), installateur et bouton « Mise à jour » (la page est
 toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
 (modèle + ONNX Runtime Web, versions épinglées), essai : `node web/test/e2e.mjs`. La page s'isole (COOP/COEP) par
 `web/coi-serviceworker.js` (MIT, v0.1.7) : GitHub Pages ne permet pas ces en-têtes ; rechargement unique à la première

@@ -19,7 +19,12 @@ async function boot() {
         styles: engine.cwrap('sv_styles', 'string', []),
         analyze: engine.cwrap('sv_analyze_instru', 'string', ['number', 'number', 'number', 'number']),
         setContext: engine.cwrap('sv_set_context', null, ['number', 'number', 'number', 'number', 'number']),
-        processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'number', 'number']),
+        processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'string', 'number', 'number']),
+        roles: engine.cwrap('sv_roles', 'string', []),
+        balanceBegin: engine.cwrap('sv_balance_begin', 'string', ['number', 'number', 'number', 'number', 'string']),
+        balanceAdd: engine.cwrap('sv_balance_add', 'string', ['number', 'number', 'number', 'number', 'number', 'string', 'number']),
+        balanceEnd: engine.cwrap('sv_balance_end', 'string', ['number']),
+        limit: engine.cwrap('sv_limit', 'string', ['number', 'number', 'number', 'number', 'number']),
         cleanTake: engine.cwrap('sv_clean_take', 'string', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
         demoInstru: engine.cwrap('sv_demo_instru', 'string', ['number', 'number']),
         demoVoice: engine.cwrap('sv_demo_voice', 'string', ['number', 'number']),
@@ -32,7 +37,7 @@ async function boot() {
         free: engine.cwrap('sv_free', null, ['number']),
     };
     log('info', 'Moteur prêt : ' + api.version());
-    postMessage({ type: 'ready', version: api.version(), styles: JSON.parse(api.styles()) });
+    postMessage({ type: 'ready', version: api.version(), styles: JSON.parse(api.styles()), roles: JSON.parse(api.roles()) });
 }
 
 // Copie un Float32Array dans la mémoire du moteur ; retourne le pointeur (à libérer).
@@ -69,10 +74,10 @@ const handlers = {
         api.setContext(root, minor ? 1 : 0, bpm, firstBeatSec, useScale ? 1 : 0);
         return {};
     },
-    processVoice({ mono, sampleRate, styleId, cleaning, useScale }) {
+    processVoice({ mono, sampleRate, styleId, roleId, cleaning, useScale }) {
         const p = push(mono);
         try {
-            const report = parse(api.processVoice(p, mono.length, sampleRate, styleId, cleaning ? 1 : 0, useScale ? 1 : 0));
+            const report = parse(api.processVoice(p, mono.length, sampleRate, styleId, roleId || 'lead', cleaning ? 1 : 0, useScale ? 1 : 0));
             const out = pullOut();
             return { report, ...out };
         } finally { api.free(p); }
@@ -84,6 +89,23 @@ const handlers = {
             const out = pullOut();
             return { report, left: out.left, right: null, frames: out.frames };
         } finally { api.free(pr); if (il) api.free(il); if (ir) api.free(ir); }
+    },
+    // Équilibre automatique : instru + pistes [{ key, left, right, startSec, roleId, volumeDb }] → gains par piste.
+    balance({ instruL, instruR, sampleRate, styleId, tracks, vocalOverInstruLu }) {
+        const il = push(instruL), ir = push(instruR);
+        try { parse(api.balanceBegin(il, ir, instruL ? instruL.length : 0, sampleRate, styleId || '')); }
+        finally { if (il) api.free(il); if (ir) api.free(ir); }
+        for (const t of tracks) {
+            const pl = push(t.left), pr = push(t.right);
+            try { parse(api.balanceAdd(t.key, pl, pr, t.left.length, t.startSec, t.roleId, t.volumeDb)); }
+            finally { api.free(pl); if (pr) api.free(pr); }
+        }
+        return { report: parse(api.balanceEnd(vocalOverInstruLu ?? -99)) };
+    },
+    limit({ left, right, sampleRate, ceilingDb }) {
+        const pl = push(left), pr = push(right);
+        try { const report = parse(api.limit(pl, pr, left.length, sampleRate, ceilingDb)); return { report, ...pullOut() }; }
+        finally { api.free(pl); if (pr) api.free(pr); }
     },
     demoInstru({ sampleRate, bars }) { const report = parse(api.demoInstru(sampleRate, bars)); return { report, ...pullOut() }; },
     demoVoice({ sampleRate, bars }) { const report = parse(api.demoVoice(sampleRate, bars)); return { report, ...pullOut() }; },

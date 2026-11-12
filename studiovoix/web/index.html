@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StudioVoix Web</title>
 <link rel="icon" href="data:,">
 <!-- Isolement de la page (COOP/COEP) par service worker : GitHub Pages ne permet pas ces en-têtes ; il faut l'isolement
@@ -10,43 +10,89 @@
 <script src="./coi-serviceworker.js"></script>
 <style>
   :root {
-    --bg: #0f1218; --panel: #171b24; --panel-2: #1f2430; --line: #2b3140;
-    --ink: #e8ebf2; --muted: #9aa3b5; --accent: #e94e8a; --accent-2: #7c5cff;
-    --ok: #3fb950; --warn: #e07b20; --bad: #e5484d;
+    --bg: #0d1016; --panel: #151922; --panel-2: #1c2130; --panel-3: #232a3b; --line: #2a3142;
+    --ink: #e8ebf2; --muted: #98a1b3; --accent: #e94e8a; --accent-2: #7c5cff;
+    --ok: #3fb950; --warn: #e07b20; --bad: #e5484d; --instru: #8a94a8; --voice: #3a9bff; --done: #e94e8a;
+    --head: 290px;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { background: var(--bg); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 14px; }
-  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 18px; }
-  h1 { margin: 0; font-size: 24px; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 12px 12px 40px; display: grid; gap: 10px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  h1 { margin: 0; font-size: 21px; letter-spacing: .2px; }
   h1 span { color: var(--accent); }
-  #version { color: var(--muted); font-size: 13px; }
-  #status { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; }
-  .card h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
-  .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-2); color: #fff; font-size: 12px; font-weight: 700; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); cursor: pointer; }
+  #version { color: var(--muted); font-size: 12px; }
+  #status { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
+
+  button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-3); color: var(--ink); cursor: pointer; touch-action: manipulation; }
   button:hover:not(:disabled) { border-color: var(--accent-2); }
   button:disabled { opacity: .45; cursor: default; }
   button.rec { background: #7a1f2b; border-color: #a52a3a; font-weight: 700; }
+  button.rec.on { background: #e5484d; }
   button.primary { background: linear-gradient(135deg, var(--accent-2), var(--accent)); border: none; font-weight: 600; }
-  input[type=file] { color: var(--muted); font-size: 13px; }
-  select, input[type=number] { font: inherit; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
-  label { font-size: 14px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
-  canvas.wave { width: 100%; height: 72px; border-radius: 8px; background: #12151c; display: block; }
-  canvas.meter { width: 100%; height: 10px; border-radius: 4px; display: block; }
-  .info { font-size: 13px; color: var(--muted); white-space: pre-wrap; }
-  .kv { display: flex; gap: 14px; font-size: 14px; }
-  .kv b { color: var(--ink); }
-  #report { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 12.5px; white-space: pre-wrap; background: var(--panel-2); border-radius: 8px; padding: 10px 12px; min-height: 60px; color: var(--muted); }
-  #log { font-family: Consolas, monospace; font-size: 11.5px; max-height: 160px; overflow: auto; background: #0b0d12; border-radius: 8px; padding: 8px 10px; color: var(--muted); }
+  button.tog { min-width: 30px; padding: 3px 7px; font-size: 12px; font-weight: 700; }
+  button.tog.on.m { background: #8a6d1a; border-color: #b8921f; }
+  button.tog.on.s { background: #1f6f43; border-color: #2a9a5c; }
+  button.arm { width: 28px; height: 28px; padding: 0; border-radius: 50%; font-size: 13px; color: #c55; }
+  button.arm.on { background: #e5484d; color: #fff; border-color: #ff6b6f; }
+  select, input[type=number], input[type=text] { font: inherit; font-size: 13px; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 4px 6px; min-width: 0; }
+  input[type=range] { accent-color: var(--accent-2); min-width: 0; }
+  label { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .file { position: relative; overflow: hidden; display: inline-flex; }
+  .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  /* barre de transport */
+  .transport { position: sticky; top: 0; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .transport .grow { flex: 1 1 120px; min-width: 120px; }
+  #time { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 15px; min-width: 92px; text-align: center; background: #0b0d12; border-radius: 7px; padding: 4px 8px; }
+  canvas.meter { width: 100%; height: 9px; border-radius: 3px; display: block; background: #000; }
+
+  /* pistes */
+  #tracks { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; --pos: 0%; }
+  .track { display: grid; grid-template-columns: var(--head) 1fr; border-bottom: 1px solid var(--line); min-height: 96px; }
+  .track:last-child { border-bottom: none; }
+  .track.sel .head { background: #20263a; }
+  .track.armed .head { box-shadow: inset 3px 0 0 var(--bad); }
+  .head { background: var(--panel-2); padding: 7px 9px; display: grid; gap: 5px; align-content: start; border-right: 1px solid var(--line); cursor: default; }
+  .head .r { display: flex; align-items: center; gap: 5px; min-width: 0; }
+  .head .r > select { flex: 1 1 0; }
+  .head .name { flex: 1 1 auto; font-weight: 600; background: transparent; border-color: transparent; padding: 2px 4px; }
+  .head .name:focus { border-color: var(--line); background: var(--panel); }
+  .head .vol { flex: 1 1 auto; }
+  .head .tinfo { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .head .tinfo.warn { color: var(--warn); white-space: normal; }
+  .head .badge { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--panel-3); color: var(--muted); white-space: nowrap; }
+  .head .badge.busy { color: #fff; background: var(--accent-2); }
+  .head .badge.done { color: #fff; background: #7a2a52; }
+  .head .x { padding: 2px 7px; font-size: 12px; color: var(--muted); }
+  .tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .lane { position: relative; background: #10131a; cursor: crosshair; min-height: 80px; }
+  .lane canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .lane::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #fff; opacity: .8; pointer-events: none; }
+  .lane .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #4d5568; font-size: 12.5px; pointer-events: none; text-align: center; padding: 0 8px; }
+  .add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px; background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; }
+
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
+  .card h2 { margin: 0; font-size: 14px; }
+  .info { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; }
+  #report { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 12px; white-space: pre-wrap; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; min-height: 60px; color: var(--muted); max-height: 320px; overflow: auto; }
+  #log { font-family: Consolas, monospace; font-size: 11px; max-height: 180px; overflow: auto; background: #0b0d12; border-radius: 8px; padding: 6px 8px; color: var(--muted); }
   #log .l-warn { color: var(--warn); } #log .l-error { color: var(--bad); }
   details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+
+  /* téléphone : en-tête de piste au-dessus de sa forme d'onde */
+  @media (max-width: 720px) {
+    .wrap { padding: 8px 8px 32px; }
+    .track { grid-template-columns: 1fr; }
+    .head { border-right: none; border-bottom: 1px solid var(--line); }
+    .lane { min-height: 64px; }
+    .panels { grid-template-columns: 1fr; }
+    .transport { gap: 6px; }
+    .transport .hide-sm { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -57,58 +103,40 @@
   </header>
   <div id="status">Chargement…</div>
 
-  <div class="grid">
-    <section class="card">
-      <h2><span class="num">1</span> Instru</h2>
-      <div class="row">
-        <input id="instruFile" type="file" accept="audio/*">
-        <button id="demoBtn" disabled title="Instru et voix synthétiques (La mineur, 100 BPM) pour essayer sans fichier">Essayer avec la démo</button>
-      </div>
-      <canvas id="instruWave" class="wave" width="1000" height="72"></canvas>
-      <div class="kv"><span>Tonalité <b id="keyBox">–</b></span><span>BPM <b id="bpmBox">–</b></span></div>
-      <div id="instruInfo" class="info">Pose une instru (MP3, WAV…). Elle est analysée et jouée telle quelle, jamais modifiée.</div>
-    </section>
+  <div class="transport">
+    <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●)">● REC</button>
+    <button id="stopBtn" disabled>■ Stop</button>
+    <button id="playBtn" class="primary" disabled title="Instru + toutes les pistes, chacune traitée selon son style et son type, équilibrées">▶ Mix</button>
+    <button id="playRawBtn" disabled title="Instru + les prises brutes (sans effet) : comparaison A/B">▶ Brut</button>
+    <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
+    <span id="time">0:00.0</span>
+    <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
+    <button id="exportBtn" disabled>Exporter WAV</button>
+  </div>
 
-    <section class="card">
-      <h2><span class="num">2</span> Prise de voix</h2>
-      <div class="row">
-        <button id="recBtn" class="rec" disabled>● REC</button>
-        <button id="stopBtn" disabled>Stop</button>
-        <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:56px"> mesure(s)</label>
-        <label title="Le décalage est mesuré et compensé automatiquement sur chaque prise ; ce réglage n'ajoute qu'un ajustement fin (0 = aucun)">Décalage : auto, ajustement <input id="latencyMs" type="number" min="-200" max="200" value="0" style="width:64px"> ms</label>
-      </div>
-      <div class="row">
-        <label title="Un modèle d'IA (MDX-Net, 67 Mo téléchargés une seule fois) garde uniquement la voix : musique extérieure (radio, télé, voisins), restes de l'instru, bruits sont retirés"><input id="isolateVoice" type="checkbox" checked> Isoler la voix (IA) : rien d'autre que la voix</label>
-        <span id="isolateInfo" class="info">Le modèle se télécharge au premier REC (une seule fois).</span>
-      </div>
-      <canvas id="meterIn" class="meter" width="600" height="10" title="Niveau du micro"></canvas>
-      <canvas id="voiceWave" class="wave" width="1000" height="72"></canvas>
-      <div id="voiceInfo" class="info">Seule ta voix est gardée : si le micro capte l'instru (haut-parleurs), elle est retirée automatiquement de la prise, et le décalage est mesuré puis compensé. Ou importe une voix : <input id="voiceFile" type="file" accept="audio/*"></div>
-    </section>
+  <div id="tracks"></div>
 
+  <div class="add">
+    <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
+    <label>type <select id="addRole"></select></label>
+    <span class="info">Chaque prise a sa piste : type (principale, back, ambiance…) et style choisis piste par piste.</span>
+  </div>
+
+  <div class="panels">
     <section class="card">
-      <h2><span class="num">3</span> Style</h2>
-      <div class="row">
-        <select id="style"></select>
+      <h2>Prise</h2>
+      <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 14px">
+        <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:52px"> mesure(s)</label>
+        <label title="Le décalage est mesuré et compensé automatiquement sur chaque prise ; ce réglage n'ajoute qu'un ajustement fin (0 = aucun)">Décalage auto, ajustement <input id="latencyMs" type="number" min="-200" max="200" value="0" style="width:60px"> ms</label>
+        <label title="Un modèle d'IA (MDX-Net, 67 Mo téléchargés une seule fois) garde uniquement la voix : musique extérieure (radio, télé, voisins), restes de l'instru, bruits sont retirés"><input id="isolateVoice" type="checkbox" checked> Isoler la voix (IA)</label>
         <label><input id="useScale" type="checkbox" checked> Gamme</label>
         <label><input id="cleaning" type="checkbox" checked> Nettoyage</label>
       </div>
-      <div class="row">
-        <button id="processBtn" class="primary" disabled>Appliquer le style</button>
-      </div>
-      <div id="report">La prise est mesurée (dynamique, sifflantes, boue, dureté, bruit, résonances) et les effets du style se règlent d'après cette mesure. Le style donne le caractère, la mesure donne les valeurs.</div>
+      <div id="isolateInfo" class="info">Seule la voix est gardée : l'instru captée par le micro est retirée, puis l'IA retire tout le reste (musique extérieure, bruits). Le modèle se télécharge au premier REC (une seule fois).</div>
     </section>
-
     <section class="card">
-      <h2><span class="num">4</span> Écoute et export</h2>
-      <div class="row">
-        <button id="playBtn" disabled>▶ Mix</button>
-        <button id="playRawBtn" disabled>▶ Brut (A/B)</button>
-        <button id="stopPlayBtn">■</button>
-        <button id="exportBtn" disabled>Exporter WAV</button>
-      </div>
-      <canvas id="meterOut" class="meter" width="600" height="10" title="Niveau de sortie"></canvas>
-      <div class="info">Mix auto : voix calée sur la sonie de l'instru, limiteur de sécurité −1 dBTP. L'instru reste intacte (creux sous la voix à 0).</div>
+      <h2>Piste sélectionnée</h2>
+      <div id="report">Clique sur l'en-tête d'une piste pour voir ce qui lui est appliqué : mesure de la prise, chaîne du style réglée pour son type, place dans le mix.</div>
       <details><summary>Journal du moteur</summary><div id="log"></div></details>
     </section>
   </div>
