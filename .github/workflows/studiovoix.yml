@@ -356,13 +356,10 @@ jobs:
     name: Web (WebAssembly, GitHub Pages)
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    # Publication par la branche gh-pages uniquement : l'environnement « github-pages » (source « GitHub Actions »)
+    # n'accepte que la branche main (build 87 : « Branch … is not allowed to deploy to github-pages »).
     permissions:
-      contents: write   # repli : branche gh-pages
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      contents: write   # branche gh-pages
     steps:
       - uses: actions/checkout@v5
 
@@ -413,36 +410,12 @@ jobs:
           path: studiovoix/web
           if-no-files-found: error
 
-      # GitHub Pages : le jeton de la CI ne peut pas activer Pages lui-même (build 84 : « Resource not accessible by
-      # integration »). Tant que Pages n'est pas activé dans Réglages → Pages → Source « GitHub Actions », cette
-      # étape échoue sans faire échouer le build ; dès que c'est fait, la publication suit à chaque push.
-      - uses: actions/configure-pages@v5
-        id: pages
-        if: github.event_name == 'push'
-        continue-on-error: true
-        with:
-          enablement: true
-
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name == 'push' && steps.pages.outcome == 'success'
-        with:
-          path: studiovoix/web
-
-      # Source « GitHub Actions » : publication directe. Source « branche gh-pages » : cette étape est refusée par
-      # GitHub (pas bloquant) et c'est la branche gh-pages ci-dessous qui publie. Les deux sont faites à chaque push
-      # pour que la page suive quel que soit le réglage choisi dans Réglages → Pages.
-      - name: Publication sur GitHub Pages (source « GitHub Actions »)
-        if: github.event_name == 'push' && steps.pages.outcome == 'success'
-        id: deploy
-        continue-on-error: true
-        uses: actions/deploy-pages@v4
-
-      # Branche gh-pages (source « Deploy from a branch ») : générée, écrasée à chaque build ; elle ne contient que la
-      # page et le moteur compilé.
-      - name: "Publication sur la branche gh-pages (source « Deploy from a branch »)"
+      # GitHub Pages, source « Deploy from a branch » → gh-pages / (root) (Réglages → Pages) : branche générée,
+      # écrasée à chaque build ; elle ne contient que la page et le moteur compilé. GitHub publie ensuite la page
+      # (« pages build and deployment ») sur https://jovenger.github.io/rebuild_project/.
+      - name: "Publication sur la branche gh-pages (GitHub Pages)"
         if: github.event_name == 'push'
         run: |
-          echo "configure-pages : ${{ steps.pages.outcome }} ; deploy-pages : ${{ steps.deploy.outcome }} ${{ steps.deploy.outputs.page_url }}"
           cd studiovoix/web
           touch .nojekyll
           git init -q -b gh-pages
