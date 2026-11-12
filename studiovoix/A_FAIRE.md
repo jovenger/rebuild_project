@@ -115,6 +115,17 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Mixage final « Mixer la chanson » (demande de Yann : « tout mixer à juste niveau, l'instru aussi, une chanson unique »)
+
+- Fait (build 97) : `sv_finalmix_end` (api.cpp) sur les pistes de `sv_balance_begin/add` : place par type (même calcul
+  que la lecture, `runBalance` commun), bus voix `dsp::BusGlue` (réduction mesurée, rattrapage 0 à 4 dB), `autoMix`
+  voix / instru avec creux 2,5 dB (case), `dsp::master` (couleur `masterTone` du style, cible de sonie, limiteur -1 dBTP) ;
+  page : bouton, destination, case « Faire de la place à la voix », écoute A/B, export, chanson marquée périmée à chaque
+  changement. Essais : node (Spotify -14,2 LUFS / -1,0 dBTP ; Apple -16,0 ; Fort : -10,5 au lieu de -9, limiteur
+  18,8 dB, comme le logiciel PC) ; e2e démo : -14,1 LUFS, -1,1 dBTP, export.
+- À faire : priorité réglable par piste (aujourd'hui type + fader) ; mastering par référence (morceau modèle) comme le
+  logiciel PC ; export MP3.
+
 ## Prise sur téléphone : saccades, IA trop longue, « est-ce que ça marche ? » (retour de Yann)
 
 - Fait (build 96) : l'IA n'est plus préparée pendant la prise (téléchargement 89 Mo + compilation pendant le REC = prise

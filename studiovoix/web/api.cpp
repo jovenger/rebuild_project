@@ -11,6 +11,7 @@
 #include "core/analysis/TempoDetector.h"
 #include "core/dsp/BleedRemover.h"
 #include "core/dsp/MasterChain.h"
+#include "core/dsp/Processors.h"
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/VocalChain.h"
 #include "core/mix/AutoMixer.h"
@@ -403,103 +404,241 @@ EMSCRIPTEN_KEEPALIVE const char* sv_balance_add (int key, const float* left, con
     return reply (juce::var (o));
 }
 
+} // extern "C" (le calcul commun n'est pas exporté)
+
+namespace
+{
+    /** Équilibre commun à sv_balance_end (lecture) et sv_finalmix_end (mixage final) : place de chaque piste selon son
+        type par rapport à la voix principale, puis gain de toutes les voix par rapport à l'instru. */
+    struct BalanceCalc
+    {
+        int total = 0;
+        std::vector<float> autoGain;
+        float vocalGainDb = 0.0f;
+        float instruLufs = -120.0f;
+        double leadLufs = -120.0;
+        int leadCount = 0;
+        float vocalOverInstruLu = 0.0f;
+        juce::Array<juce::var> items;
+        juce::StringArray lines;
+        sv::Stereo lead, all, instru;   // sur la grille du morceau ; all = voix avec fader + place
+    };
+
+    BalanceCalc runBalance (float vocalOverInstruLuOverride)
+    {
+        BalanceCalc bc;
+        const double sr = balance.sampleRate;
+        int total = balance.instru.getNumSamples();
+        for (const auto& t : balance.tracks)
+            total = juce::jmax (total, t.audio.getNumSamples());
+        auto onGrid = [total] (const sv::Stereo& src)
+        {
+            sv::Stereo d (2, juce::jmax (1, total));
+            d.clear();
+            const int n = juce::jmin (total, src.getNumSamples());
+            if (n > 0)
+                for (int c = 0; c < 2; ++c)
+                    d.copyFrom (c, 0, src, c, 0, n);
+            return d;
+        };
+
+        // Voix principale : somme des pistes « voix principale » (au moins une ; sinon la première piste sert de repère).
+        sv::Stereo lead = onGrid ({});
+        int leadCount = 0;
+        for (const auto& t : balance.tracks)
+            if (t.role == sv::style::Role::Lead)
+            {
+                const auto g = onGrid (t.audio);
+                for (int c = 0; c < 2; ++c)
+                    lead.addFrom (c, 0, g, c, 0, total, sv::dbToGain (t.volumeDb));
+                ++leadCount;
+            }
+        if (leadCount == 0 && ! balance.tracks.empty())
+            lead = onGrid (balance.tracks.front().audio);
+        const double leadLufs = balance.tracks.empty() ? -120.0 : sv::loudness::integratedLufs (lead, sr);
+
+        // 1) Orchestre : gain automatique par piste (hors voix principale) selon son type.
+        juce::Array<juce::var> items;
+        std::vector<float> autoGain (balance.tracks.size(), 0.0f);
+        juce::StringArray lines;
+        for (size_t i = 0; i < balance.tracks.size(); ++i)
+        {
+            const auto& t = balance.tracks[i];
+            const double lufs = sv::loudness::integratedLufs (t.audio, sr);
+            const bool isLeadRef = t.role == sv::style::Role::Lead || (leadCount == 0 && i == 0);
+            float offset = 0.0f;
+            if (! isLeadRef && leadLufs > -90.0 && lufs > -90.0)
+            {
+                offset = webRoleOffsetLu (t.role);
+                autoGain[i] = juce::jlimit (-12.0f, 6.0f, static_cast<float> (leadLufs + offset - (lufs + t.volumeDb)));
+                lines.add (sv::style::roleName (t.role) + " #" + juce::String (t.key) + " : " + juce::String (lufs - leadLufs, 1)
+                           + " LU / voix principale, place " + juce::String (offset, 0) + " LU -> " + juce::String (autoGain[i], 1) + " dB");
+            }
+            auto* o = new juce::DynamicObject();
+            o->setProperty ("key", t.key);
+            o->setProperty ("role", sv::style::roleName (t.role));
+            o->setProperty ("lufs", lufs);
+            o->setProperty ("placeLu", offset);
+            o->setProperty ("autoGainDb", autoGain[i]);
+            items.add (juce::var (o));
+        }
+        if (! lines.isEmpty())
+            SV_LOG_INFO (kMod, "Orchestre : "_u8 + lines.joinIntoString (" | "));
+
+        // 2) Toutes les voix ensemble par rapport à l'instru (sonie visée par le style).
+        float vocalGainDb = 0.0f;
+        float instruLufs = -120.0f;
+        if (balance.instru.getNumSamples() > 0 && ! balance.tracks.empty())
+        {
+            sv::Stereo all = onGrid ({});
+            for (size_t i = 0; i < balance.tracks.size(); ++i)
+            {
+                const auto g = onGrid (balance.tracks[i].audio);
+                for (int c = 0; c < 2; ++c)
+                    all.addFrom (c, 0, g, c, 0, total, sv::dbToGain (balance.tracks[i].volumeDb + autoGain[i]));
+            }
+            sv::mix::AutoMixSettings s;
+            s.duckingDb = 0.0f;   // instru jamais modifiée
+            s.vocalOverInstruLu = std::isfinite (vocalOverInstruLuOverride) && vocalOverInstruLuOverride > -50.0f
+                                      ? vocalOverInstruLuOverride : sv::style::masterTone (balance.style).vocalOverInstruLu;
+            const auto am = sv::mix::autoMix (onGrid (balance.instru), lead, all, sr, s);
+            vocalGainDb = am.vocalGainDb;
+            instruLufs = am.instruLufs;
+            SV_LOG_INFO (kMod, "Voix / instru : gain voix "_u8 + juce::String (vocalGainDb, 1) + " dB (visée "
+                               + juce::String (s.vocalOverInstruLu, 1) + " LU)");
+        }
+        bc.total = total; bc.autoGain = autoGain; bc.vocalGainDb = vocalGainDb; bc.instruLufs = instruLufs;
+        bc.leadLufs = leadLufs; bc.leadCount = leadCount; bc.items = items; bc.lines = lines; bc.lead = lead;
+        bc.instru = onGrid (balance.instru);
+        bc.all = onGrid ({});
+        for (size_t i = 0; i < balance.tracks.size(); ++i)
+        {
+            const auto g = onGrid (balance.tracks[i].audio);
+            for (int c = 0; c < 2; ++c)
+                bc.all.addFrom (c, 0, g, c, 0, total, sv::dbToGain (balance.tracks[i].volumeDb + autoGain[i]));
+        }
+        return bc;
+    }
+} // namespace
+
+extern "C"
+{
 EMSCRIPTEN_KEEPALIVE const char* sv_balance_end (float vocalOverInstruLuOverride)
 {
     ensureLog();
     if (! balance.open)
         return reply (errorJson ("Équilibre non commencé (sv_balance_begin)"_u8));
     sv::log::ScopedTimer timer (kMod, "équilibre des pistes"_u8);
-    const double sr = balance.sampleRate;
-    int total = balance.instru.getNumSamples();
-    for (const auto& t : balance.tracks)
-        total = juce::jmax (total, t.audio.getNumSamples());
-    auto onGrid = [total] (const sv::Stereo& src)
-    {
-        sv::Stereo d (2, juce::jmax (1, total));
-        d.clear();
-        const int n = juce::jmin (total, src.getNumSamples());
-        if (n > 0)
-            for (int c = 0; c < 2; ++c)
-                d.copyFrom (c, 0, src, c, 0, n);
-        return d;
-    };
-
-    // Voix principale : somme des pistes « voix principale » (au moins une ; sinon la première piste sert de repère).
-    sv::Stereo lead = onGrid ({});
-    int leadCount = 0;
-    for (const auto& t : balance.tracks)
-        if (t.role == sv::style::Role::Lead)
-        {
-            const auto g = onGrid (t.audio);
-            for (int c = 0; c < 2; ++c)
-                lead.addFrom (c, 0, g, c, 0, total, sv::dbToGain (t.volumeDb));
-            ++leadCount;
-        }
-    if (leadCount == 0 && ! balance.tracks.empty())
-        lead = onGrid (balance.tracks.front().audio);
-    const double leadLufs = balance.tracks.empty() ? -120.0 : sv::loudness::integratedLufs (lead, sr);
-
-    // 1) Orchestre : gain automatique par piste (hors voix principale) selon son type.
-    juce::Array<juce::var> items;
-    std::vector<float> autoGain (balance.tracks.size(), 0.0f);
-    juce::StringArray lines;
+    auto bc = runBalance (vocalOverInstruLuOverride);
     for (size_t i = 0; i < balance.tracks.size(); ++i)
-    {
-        const auto& t = balance.tracks[i];
-        const double lufs = sv::loudness::integratedLufs (t.audio, sr);
-        const bool isLeadRef = t.role == sv::style::Role::Lead || (leadCount == 0 && i == 0);
-        float offset = 0.0f;
-        if (! isLeadRef && leadLufs > -90.0 && lufs > -90.0)
-        {
-            offset = webRoleOffsetLu (t.role);
-            autoGain[i] = juce::jlimit (-12.0f, 6.0f, static_cast<float> (leadLufs + offset - (lufs + t.volumeDb)));
-            lines.add (sv::style::roleName (t.role) + " #" + juce::String (t.key) + " : " + juce::String (lufs - leadLufs, 1)
-                       + " LU / voix principale, place " + juce::String (offset, 0) + " LU -> " + juce::String (autoGain[i], 1) + " dB");
-        }
-        auto* o = new juce::DynamicObject();
-        o->setProperty ("key", t.key);
-        o->setProperty ("role", sv::style::roleName (t.role));
-        o->setProperty ("lufs", lufs);
-        o->setProperty ("placeLu", offset);
-        o->setProperty ("autoGainDb", autoGain[i]);
-        items.add (juce::var (o));
-    }
-    if (! lines.isEmpty())
-        SV_LOG_INFO (kMod, "Orchestre : "_u8 + lines.joinIntoString (" | "));
-
-    // 2) Toutes les voix ensemble par rapport à l'instru (sonie visée par le style).
-    float vocalGainDb = 0.0f;
-    float instruLufs = -120.0f;
-    if (balance.instru.getNumSamples() > 0 && ! balance.tracks.empty())
-    {
-        sv::Stereo all = onGrid ({});
-        for (size_t i = 0; i < balance.tracks.size(); ++i)
-        {
-            const auto g = onGrid (balance.tracks[i].audio);
-            for (int c = 0; c < 2; ++c)
-                all.addFrom (c, 0, g, c, 0, total, sv::dbToGain (balance.tracks[i].volumeDb + autoGain[i]));
-        }
-        sv::mix::AutoMixSettings s;
-        s.duckingDb = 0.0f;   // instru jamais modifiée
-        s.vocalOverInstruLu = std::isfinite (vocalOverInstruLuOverride) && vocalOverInstruLuOverride > -50.0f
-                                  ? vocalOverInstruLuOverride : sv::style::masterTone (balance.style).vocalOverInstruLu;
-        const auto am = sv::mix::autoMix (onGrid (balance.instru), lead, all, sr, s);
-        vocalGainDb = am.vocalGainDb;
-        instruLufs = am.instruLufs;
-        SV_LOG_INFO (kMod, "Voix / instru : gain voix "_u8 + juce::String (vocalGainDb, 1) + " dB (visée "
-                           + juce::String (s.vocalOverInstruLu, 1) + " LU)");
-    }
-    for (size_t i = 0; i < balance.tracks.size(); ++i)
-        items.getReference ((int) i).getDynamicObject()->setProperty ("gainDb", balance.tracks[i].volumeDb + autoGain[i] + vocalGainDb);
+        bc.items.getReference ((int) i).getDynamicObject()->setProperty ("gainDb", balance.tracks[i].volumeDb + bc.autoGain[i] + bc.vocalGainDb);
 
     auto* o = new juce::DynamicObject();
     o->setProperty ("ok", true);
-    o->setProperty ("tracks", items);
+    o->setProperty ("tracks", bc.items);
+    o->setProperty ("vocalGainDb", bc.vocalGainDb);
+    o->setProperty ("instruLufs", bc.instruLufs);
+    o->setProperty ("leadLufs", bc.leadLufs);
+    o->setProperty ("leadCount", bc.leadCount);
+    o->setProperty ("report", bc.lines.joinIntoString ("\n"));
+    balance = {};
+    return reply (juce::var (o));
+}
+
+/** Mixage final (« Mixer la chanson ») : à partir des pistes posées par sv_balance_begin / sv_balance_add.
+    1) place de chaque piste selon son type (comme sv_balance_end) ; 2) bus voix : toutes les voix passent ensemble
+    dans le compresseur « colle » (BusGlue, rattrapage = réduction moyenne, 0 à 4 dB) ; 3) voix / instru par la sonie,
+    avec un creux de l'instru sous la voix (duckingDb, vers 2,5 kHz, seulement quand la voix chante) ; 4) mastering
+    (compression de cohésion, couleur du style, limiteur, sonie de la plateforme visée). Chanson stéréo dans sv_out_*. */
+EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float duckingDb)
+{
+    ensureLog();
+    if (! balance.open)
+        return reply (errorJson ("Mixage non commencé (sv_balance_begin)"_u8));
+    if (balance.instru.getNumSamples() == 0 && balance.tracks.empty())
+        return reply (errorJson ("Rien à mixer : ni instru ni piste voix"_u8));
+    sv::log::ScopedTimer timer (kMod, "mixage final"_u8);
+    const double sr = balance.sampleRate;
+    auto bc = runBalance (-99.0f);
+
+    // 2) Bus voix : réduction mesurée sur une copie, puis passage réel avec le rattrapage.
+    float busGr = 0.0f, makeup = 0.0f;
+    if (! balance.tracks.empty())
+    {
+        sv::Stereo probe (bc.all);
+        sv::dsp::BusGlue g1;
+        g1.prepare (sr);
+        busGr = g1.process (probe);
+        makeup = juce::jlimit (0.0f, 4.0f, busGr);
+        sv::dsp::BusGlue g2;
+        g2.prepare (sr);
+        g2.setMakeupDb (makeup);
+        g2.process (bc.all);
+    }
+
+    // 3) Voix / instru + creux de l'instru sous la voix.
+    sv::mix::AutoMixSettings ms;
+    ms.duckingDb = juce::jlimit (0.0f, 6.0f, duckingDb);
+    ms.vocalOverInstruLu = sv::style::masterTone (balance.style).vocalOverInstruLu;
+    sv::Stereo mix (2, juce::jmax (1, bc.total));
+    mix.clear();
+    float vocalGainDb = 0.0f;
+    if (balance.instru.getNumSamples() > 0 && ! balance.tracks.empty())
+    {
+        const auto am = sv::mix::autoMix (bc.instru, bc.lead, bc.all, sr, ms);
+        vocalGainDb = am.vocalGainDb;
+        const auto& ins = am.duckedInstru.getNumSamples() == bc.total ? am.duckedInstru : bc.instru;
+        for (int c = 0; c < 2; ++c)
+        {
+            mix.copyFrom (c, 0, ins, c, 0, bc.total);
+            mix.addFrom (c, 0, bc.all, c, 0, bc.total, sv::dbToGain (vocalGainDb));
+        }
+    }
+    else
+        for (int c = 0; c < 2; ++c)
+        {
+            mix.copyFrom (c, 0, bc.instru, c, 0, bc.total);
+            mix.addFrom (c, 0, bc.all, c, 0, bc.total);
+        }
+
+    // 4) Mastering.
+    sv::dsp::MasterSettings mset;
+    mset.target = sv::dsp::targetFromId (juce::String (targetId != nullptr ? targetId : "spotify"));
+    const auto tone = sv::style::masterTone (balance.style);
+    mset.lowShelfDb = tone.lowShelfDb;
+    mset.highShelfDb = tone.highShelfDb;
+    sv::dsp::MasterReport mr;
+    lastOut = sv::dsp::master (mix, sr, mset, mr);
+
+    for (size_t i = 0; i < balance.tracks.size(); ++i)
+        bc.items.getReference ((int) i).getDynamicObject()->setProperty ("gainDb", balance.tracks[i].volumeDb + bc.autoGain[i] + vocalGainDb);
+    const auto ti = sv::dsp::targetInfo (mset.target);
+    SV_LOG_INFO (kMod, "Mixage final : voix "_u8 + juce::String (vocalGainDb, 1) + " dB, bus voix -" + juce::String (busGr, 1)
+                       + " dB (rattrapage +" + juce::String (makeup, 1) + "), creux instru " + juce::String (ms.duckingDb, 1)
+                       + " dB, mastering " + ti.name + " : " + juce::String (mr.inputLufs, 1) + " -> " + juce::String (mr.outputLufs, 1)
+                       + " LUFS, crête " + juce::String (mr.truePeakDb, 1) + " dBTP, limiteur " + juce::String (mr.limiterMaxGrDb, 1) + " dB");
+
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("tracks", bc.items);
     o->setProperty ("vocalGainDb", vocalGainDb);
-    o->setProperty ("instruLufs", instruLufs);
-    o->setProperty ("leadLufs", leadLufs);
-    o->setProperty ("leadCount", leadCount);
-    o->setProperty ("report", lines.joinIntoString ("\n"));
+    o->setProperty ("busGrDb", busGr);
+    o->setProperty ("busMakeupDb", makeup);
+    o->setProperty ("duckingDb", ms.duckingDb);
+    o->setProperty ("instruLufs", bc.instruLufs);
+    o->setProperty ("leadLufs", bc.leadLufs);
+    o->setProperty ("target", ti.name);
+    o->setProperty ("targetLufs", ti.lufs);
+    o->setProperty ("inputLufs", mr.inputLufs);
+    o->setProperty ("outputLufs", mr.outputLufs);
+    o->setProperty ("truePeakDb", mr.truePeakDb);
+    o->setProperty ("glueGrDb", mr.glueGrDb);
+    o->setProperty ("limiterGrDb", mr.limiterMaxGrDb);
+    o->setProperty ("lowShelfDb", tone.lowShelfDb);
+    o->setProperty ("highShelfDb", tone.highShelfDb);
+    o->setProperty ("style", sv::style::styleName (balance.style));
+    o->setProperty ("report", bc.lines.joinIntoString ("\n"));
+    o->setProperty ("frames", lastOut.getNumSamples());
     balance = {};
     return reply (juce::var (o));
 }

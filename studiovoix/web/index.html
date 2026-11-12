@@ -89,6 +89,8 @@
   #log { font-family: Consolas, monospace; font-size: 11px; max-height: 180px; overflow: auto; background: #0b0d12; border-radius: 8px; padding: 6px 8px; color: var(--muted); }
   #log .l-warn { color: var(--warn); } #log .l-error { color: var(--bad); }
   details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .mixcard { border-color: #4b3a8a; }
+  #finalInfo.stale { color: var(--warn); }
 
   /* téléphone : en-tête de piste au-dessus de sa forme d'onde */
   @media (max-width: 720px) {
@@ -118,6 +120,25 @@
     <button id="stemsBtn" disabled title="Un fichier WAV par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Exporter les pistes</button>
     <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
   </div>
+
+  <section class="card mixcard">
+    <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">
+      <button id="finalMixBtn" class="primary" disabled title="Quand tout est enregistré : chaque piste à sa place selon son type, voix soudées ensemble, voix posée sur l'instru, puis mastering. Une seule chanson, à écouter et exporter.">🎚 Mixer la chanson</button>
+      <label title="Volume final visé (standard des plateformes)">Destination <select id="finalTarget">
+        <option value="spotify" selected>Spotify / YouTube (-14 LUFS)</option>
+        <option value="apple">Apple Music (-16 LUFS)</option>
+        <option value="tiktok">TikTok / Instagram (-14 LUFS)</option>
+        <option value="fort">Fort / club (-9 LUFS)</option>
+      </select></label>
+      <label title="L'instru se creuse légèrement là où la voix chante (vers 2,5 kHz), comme au mixage, pour que la voix passe devant sans monter le volume"><input id="finalDuck" type="checkbox" checked> Faire de la place à la voix dans l'instru</label>
+    </div>
+    <div class="r" id="finalPlayRow" style="display:flex;flex-wrap:wrap;gap:8px" hidden>
+      <button id="playFinalBtn" class="primary">▶ Chanson mixée</button>
+      <button id="playBeforeBtn" title="Le même passage avant le mixage final (pistes équilibrées, instru d'origine)">▶ Avant mixage</button>
+      <button id="exportFinalBtn">Exporter la chanson mixée</button>
+    </div>
+    <div id="finalInfo" class="info">Quand tout est enregistré, « Mixer la chanson » met chaque piste à son niveau selon son type (voix principale devant, back, ambiance…), soude les voix, pose la voix sur l'instru et masterise : une seule chanson, prête à écouter et exporter.</div>
+  </section>
 
   <div class="transport">
     <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●), à partir de la tête de lecture">● REC</button>

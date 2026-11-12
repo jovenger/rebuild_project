@@ -24,6 +24,7 @@ async function boot() {
         balanceBegin: engine.cwrap('sv_balance_begin', 'string', ['number', 'number', 'number', 'number', 'string']),
         balanceAdd: engine.cwrap('sv_balance_add', 'string', ['number', 'number', 'number', 'number', 'number', 'string', 'number']),
         balanceEnd: engine.cwrap('sv_balance_end', 'string', ['number']),
+        finalMixEnd: engine.cwrap('sv_finalmix_end', 'string', ['string', 'number']),
         limit: engine.cwrap('sv_limit', 'string', ['number', 'number', 'number', 'number', 'number']),
         cleanTake: engine.cwrap('sv_clean_take', 'string', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
         demoInstru: engine.cwrap('sv_demo_instru', 'string', ['number', 'number']),
@@ -101,6 +102,19 @@ const handlers = {
             finally { api.free(pl); if (pr) api.free(pr); }
         }
         return { report: parse(api.balanceEnd(vocalOverInstruLu ?? -99)) };
+    },
+    // Mixage final : mêmes pistes que balance, puis bus voix, voix / instru avec creux, mastering → chanson stéréo.
+    finalMix({ instruL, instruR, sampleRate, styleId, tracks, targetId, duckingDb }) {
+        const il = push(instruL), ir = push(instruR);
+        try { parse(api.balanceBegin(il, ir, instruL ? instruL.length : 0, sampleRate, styleId || '')); }
+        finally { if (il) api.free(il); if (ir) api.free(ir); }
+        for (const t of tracks) {
+            const pl = push(t.left), pr = push(t.right);
+            try { parse(api.balanceAdd(t.key, pl, pr, t.left.length, t.startSec, t.roleId, t.volumeDb)); }
+            finally { api.free(pl); if (pr) api.free(pr); }
+        }
+        const report = parse(api.finalMixEnd(targetId || 'spotify', duckingDb ?? 2.5));
+        return { report, ...pullOut() };
     },
     limit({ left, right, sampleRate, ceilingDb }) {
         const pl = push(left), pr = push(right);

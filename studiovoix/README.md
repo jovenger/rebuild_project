@@ -29,7 +29,13 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **M** (muet) coupe une piste, **S** (solo) n'écoute que les pistes en solo : écouter le tout, retirer une ou
   plusieurs pistes, ou n'en garder qu'une, en pleine lecture ; pistes coupées grisées, « Écoute : 2 piste(s) sur 4 »
   et « Tout écouter » dans la barre du bas ; barre d'espace = lecture / arrêt ;
-- **l'instru n'est jamais traitée**, ni à l'écoute ni à l'export (aucun compresseur, aucun limiteur sur le mix) : si
+- **🎚 Mixer la chanson** (quand tout est enregistré) : une seule chanson mixée et masterisée, comme en studio —
+  chaque piste à sa place selon son type (voix principale devant, back -7 LU, ambiance -14 LU…, faders compris), voix
+  soudées ensemble (bus voix, compresseur « colle »), voix posées sur l'instru (sonie visée par le style) avec, si
+  coché, un creux de l'instru vers 2,5 kHz seulement quand la voix chante, puis mastering (cohésion, couleur du style,
+  limiteur, sonie de la destination : Spotify / YouTube -14, Apple -16, TikTok -14, Fort -9 LUFS) ; écoute A/B
+  « Chanson mixée » / « Avant mixage », export WAV ; signalé périmé dès qu'on change quelque chose ;
+- **l'instru n'est jamais traitée** en dehors du mixage final, ni à l'écoute ni à l'export du mix (aucun compresseur, aucun limiteur sur le mix) : si
   la somme instru + voix dépasserait 0 dBFS, seul le volume général baisse (gain pur, affiché), le son de l'instru ne
   change pas ; pendant le REC, la **forme d'onde de la voix se dessine en direct** sur la piste armée (crêtes toutes les
   ~6 ms, latence d'entrée du navigateur compensée à l'affichage) ;

@@ -215,6 +215,25 @@ try {
     console.log(stamp(), `export ${download.suggestedFilename()} : ${size} octets ; ${await page.textContent('#status')}`);
     if (size < 1000) throw new Error('WAV exporté trop petit');
 
+    // Mixage final : une seule chanson, sonie de la destination (Spotify -14 LUFS), crête sous -1 dBTP.
+    {
+        await page.click('#finalMixBtn');
+        await page.waitForFunction(() => (window.__studiovoix.finalMix && !window.__studiovoix.finalMix.stale)
+                                         || /Mixage impossible/.test(document.getElementById('status').textContent), null, { timeout: 300000 });
+        const st = await page.textContent('#status');
+        if (!st.startsWith('Chanson mixée')) throw new Error('mixage final en échec : ' + st);
+        const rep = await page.evaluate(() => window.__studiovoix.finalMix.report);
+        console.log(stamp(), `chanson mixée : ${rep.inputLufs.toFixed(1)} -> ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP, voix ${rep.vocalGainDb.toFixed(1)} dB, bus -${rep.busGrDb.toFixed(1)} dB, creux ${rep.duckingDb} dB`);
+        console.log((await page.textContent('#finalInfo')).split('\n').slice(0, 3).join('\n'));
+        if (Math.abs(rep.outputLufs - rep.targetLufs) > 1.0) throw new Error(`sonie finale ${rep.outputLufs.toFixed(1)} LUFS, visée ${rep.targetLufs}`);
+        if (rep.truePeakDb > -0.9) throw new Error(`crête finale ${rep.truePeakDb.toFixed(1)} dBTP > -1`);
+        await page.click('#stopPlayBtn');
+        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#exportFinalBtn')]);
+        const sz = statSync(await dl.path()).size;
+        console.log(stamp(), `export ${dl.suggestedFilename()} : ${sz} octets`);
+        if (sz < 1000) throw new Error('chanson mixée exportée trop petite');
+    }
+
     // Instru intacte : voix coupées, l'export doit être l'instru d'origine à l'échantillon près (aucun limiteur,
     // aucun compresseur ; seul un gain pur est permis si la somme dépassait -0,3 dBFS, ce qui n'est pas le cas ici).
     {

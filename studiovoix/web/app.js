@@ -13,7 +13,9 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
+    finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
+    playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
 
 const state = {
@@ -33,6 +35,7 @@ const state = {
     playFromSec: 0,
     rec: null, workletReady: false, isolating: false,
     restoring: false,                    // projet relu depuis le navigateur : pas de sauvegarde pendant ce temps
+    finalMix: null,                      // chanson mixée : { left, right, sampleRate, report, stale }
 };
 // ------------------------------------------------------------------ journal et état
 function setStatus(text) { ui.status.textContent = text; }
@@ -1222,7 +1225,99 @@ function refreshButtons() {
     ui.playRawBtn.disabled = !(state.instru || anyTake);
     ui.exportBtn.disabled = !(anyTake || state.instru);
     ui.stemsBtn.disabled = !(anyTake || state.instru);
+    ui.finalMixBtn.disabled = !state.ready || !(anyTake || state.instru) || !!state.rec;
 }
+
+// ------------------------------------------------------------------ mixage final (« Mixer la chanson »)
+// Quand tout est enregistré : le moteur met chaque piste à sa place selon son type, soude les voix (bus voix), pose
+// les voix sur l'instru (sonie visée par le style, creux de l'instru sous la voix si coché) puis masterise (cohésion,
+// couleur du style, limiteur, sonie de la destination). Résultat : une seule chanson stéréo.
+ui.finalMixBtn.addEventListener('click', async () => {
+    try {
+        stopPlayback();
+        ui.finalMixBtn.disabled = true;
+        setStatus('Mixage de la chanson : attente des traitements en cours…');
+        await state.jobs;
+        const list = state.tracks.filter((t) => t.take && audible(t));
+        if (!state.instru && !list.length) throw new Error('rien à mixer (ni instru ni prise)');
+        const sr = state.instru?.sampleRate || list[0].take.sampleRate;
+        const unprocessed = list.filter((t) => !t.processed).map((t) => t.name);
+        setStatus(`Mixage de la chanson : ${list.length} piste(s) voix + instru, mastering ${ui.finalTarget.selectedOptions[0].textContent}…`);
+        const t0 = performance.now();
+        const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0]?.styleId || 'rap_conscient';
+        const r = await call('finalMix', {
+            instruL: state.instru && audible(state.instruTrack) ? state.instru.left.slice() : null,
+            instruR: state.instru && audible(state.instruTrack) ? state.instru.right.slice() : null,
+            sampleRate: sr, styleId: leadStyle, targetId: ui.finalTarget.value, duckingDb: ui.finalDuck.checked ? 2.5 : 0,
+            tracks: list.map((t) => {
+                const a = trackAudio(t, 'mix');
+                return { key: t.id, left: a.left.slice(), right: a.right.slice(), startSec: t.take.startSec, roleId: t.roleId, volumeDb: t.volumeDb };
+            }),
+        });
+        const rep = r.report;
+        state.finalMix = { left: r.left, right: r.right, sampleRate: sr, report: rep, stale: false };
+        const lines = rep.tracks.map((x) => {
+            const t = findTrack(x.key);
+            return `${t ? t.name : '#' + x.key} (${roleLabel(t?.roleId)}) : ${x.placeLu ? x.placeLu + ' LU sous la principale, ' : ''}${x.gainDb >= 0 ? '+' : ''}${x.gainDb.toFixed(1)} dB`;
+        });
+        ui.finalInfo.classList.remove('stale');
+        ui.finalInfo.textContent =
+            `Chanson mixée en ${((performance.now() - t0) / 1000).toFixed(1)} s — style ${rep.style}, ${rep.target} :\n` +
+            `• Voix : ${lines.join(' · ') || 'aucune'}\n` +
+            `• Voix soudées ensemble : compression ${rep.busGrDb.toFixed(1)} dB (rattrapage +${rep.busMakeupDb.toFixed(1)} dB)\n` +
+            `• Instru : ${rep.duckingDb > 0 ? `place faite à la voix (creux jusqu'à ${rep.duckingDb.toFixed(1)} dB vers 2,5 kHz quand la voix chante)` : 'telle quelle'}\n` +
+            `• Mastering : couleur du style (graves ${rep.lowShelfDb >= 0 ? '+' : ''}${rep.lowShelfDb} dB, aigus ${rep.highShelfDb >= 0 ? '+' : ''}${rep.highShelfDb} dB), ` +
+            `${rep.inputLufs.toFixed(1)} → ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP, limiteur ${rep.limiterGrDb.toFixed(1)} dB` +
+            (unprocessed.length ? `\n⚠ Pistes sans traitement (brutes) : ${unprocessed.join(', ')}` : '');
+        ui.finalPlayRow.hidden = false;
+        log('info', `Mixage final : ${rep.inputLufs.toFixed(1)} -> ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
+        playFinal(state.playFromSec, true);
+        setStatus('Chanson mixée, lecture en cours : « ▶ Avant mixage » pour comparer, puis « Exporter la chanson mixée ».');
+    } catch (err) { setStatus('Mixage impossible : ' + err.message); log('error', 'Mixage final : ' + err.message); }
+    refreshButtons();
+});
+function playFinal(fromSec = state.playFromSec, quiet = false) {
+    const f = state.finalMix;
+    if (!f) return;
+    stopPlayback();
+    const ctx = audioContext();
+    const src = ctx.createBufferSource();
+    src.buffer = makeBuffer(f.left, f.right);
+    const outAn = ctx.createAnalyser(); outAn.fftSize = 1024;
+    src.connect(ctx.destination); src.connect(outAn);
+    const t0 = ctx.currentTime + 0.05;
+    const from = Math.min(fromSec, Math.max(0, f.left.length / f.sampleRate - 0.5));
+    src.start(t0, from);
+    const player = { mode: 'final', nodes: [{ key: -2, src }], t0, fromSec: from, raf: 0, outAn };
+    state.player = player;
+    const buf = new Float32Array(1024);
+    const tick = () => {
+        if (state.player !== player) return;
+        setPlayhead(from + ctx.currentTime - t0);
+        outAn.getFloatTimeDomainData(buf);
+        let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i]));
+        drawMeter(ui.meterOut, p, 0);
+        player.raf = requestAnimationFrame(tick);
+    };
+    player.raf = requestAnimationFrame(tick);
+    src.onended = () => { if (state.player === player) { stopPlayback(); setStatus('Fin de la chanson mixée.'); } };
+    if (!quiet) setStatus('Lecture de la chanson mixée' + (f.stale ? ' (⚠ le projet a changé depuis : re-mixe pour l\'avoir à jour)' : '') + '.');
+}
+ui.playFinalBtn.addEventListener('click', () => playFinal());
+ui.playBeforeBtn.addEventListener('click', () => startPlay('mix'));
+ui.exportFinalBtn.addEventListener('click', () => {
+    const f = state.finalMix;
+    if (!f) return;
+    const wav = encodeWav16(f.left, f.right, f.sampleRate);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+    a.download = 'StudioVoix-chanson-mixee.wav';
+    document.body.appendChild(a); a.click(); a.remove();
+    log('info', `Export de la chanson mixée : ${f.report.outputLufs.toFixed(1)} LUFS, crête ${f.report.truePeakDb.toFixed(1)} dBTP`);
+    setStatus(`Chanson mixée exportée (WAV 16 bits, ${f.sampleRate} Hz, ${f.report.outputLufs.toFixed(1)} LUFS).`);
+});
+ui.finalTarget.addEventListener('change', markDirty);
+ui.finalDuck.addEventListener('change', markDirty);
 
 // Export des pistes séparées : un WAV par piste audible (traitée et équilibrée comme dans le mix), même longueur.
 ui.stemsBtn.addEventListener('click', async () => {
@@ -1290,6 +1385,11 @@ function idb(db, store, mode, fn) {
 }
 let saveTimer = 0, savedAudio = new Set();
 function markDirty() {
+    if (state.finalMix && !state.finalMix.stale) {
+        state.finalMix.stale = true;
+        ui.finalInfo.classList.add('stale');
+        ui.finalInfo.textContent = '⚠ Le projet a changé depuis le mixage : clique « Mixer la chanson » pour le refaire. ' + ui.finalInfo.textContent;
+    }
     if (state.restoring) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveProject().catch((err) => {
