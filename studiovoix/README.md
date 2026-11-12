@@ -4,6 +4,24 @@ Logiciel d'enregistrement voix sur instru, inspiré de Samplitude, simplifié : 
 le programme la recale, la traite selon le style, puis génère doublages, harmonies, backs, ad-libs et
 ambiance sur des pistes séparées. Fonctionne entièrement en local ; l'IA (clé API) est facultative.
 
+## Version web (sans installation)
+
+Le même moteur (analyse, chaîne vocale par style ajustée à la mesure de la prise, mix auto) compilé en
+**WebAssembly** et servi comme page web : **https://jovenger.github.io/rebuild_project/** (publiée par la CI à chaque
+build, dossier `studiovoix/web/`). Tout tourne dans le navigateur (Chrome, Edge, Firefox récents) : rien n'est envoyé
+sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni annulation d'écho ni gain auto).
+
+- Étape 1 : instru (MP3, WAV…) analysée (tonalité, tempo, structure), jouée telle quelle.
+- Étape 2 : REC avec compte à rebours sur l'instru ; la prise arrive brute. Ou importer une voix.
+- Étape 3 : style, cases Gamme et Nettoyage, « Appliquer le style » : la prise est mesurée et la chaîne du style
+  se règle d'après la mesure ; le rapport affiche les valeurs effet par effet.
+- Étape 4 : écoute du mix ou du brut (A/B), vumètres, export WAV 16 bits.
+
+Pas dans la version web : VST3, outils d'IA externes (DeepFilterNet, whisper.cpp, Demucs), export MP3, projets
+multipistes complets (une instru + une voix pour l'instant), installateur et bouton « Mise à jour » (la page est
+toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), essai :
+`node web/test/e2e.mjs`.
+
 ## Récupérer le programme (Windows)
 
 **Avant le premier enregistrement : [guide du matériel](docs/GUIDE_MATERIEL.md)** (micro, casque,

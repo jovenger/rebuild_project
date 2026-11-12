@@ -3,3 +3,7 @@ build-*/
 *.log
 .vs/
 out/
+
+# Version web : sorties de compilation WebAssembly
+web/dist/
+web/build/

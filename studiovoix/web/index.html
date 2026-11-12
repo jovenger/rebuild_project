@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudioVoix Web</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #0f1218; --panel: #171b24; --panel-2: #1f2430; --line: #2b3140;
+    --ink: #e8ebf2; --muted: #9aa3b5; --accent: #e94e8a; --accent-2: #7c5cff;
+    --ok: #3fb950; --warn: #e07b20; --bad: #e5484d;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 18px; }
+  h1 { margin: 0; font-size: 24px; }
+  h1 span { color: var(--accent); }
+  #version { color: var(--muted); font-size: 13px; }
+  #status { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; }
+  .card h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-2); color: #fff; font-size: 12px; font-weight: 700; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent-2); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.rec { background: #7a1f2b; border-color: #a52a3a; font-weight: 700; }
+  button.primary { background: linear-gradient(135deg, var(--accent-2), var(--accent)); border: none; font-weight: 600; }
+  input[type=file] { color: var(--muted); font-size: 13px; }
+  select, input[type=number] { font: inherit; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+  label { font-size: 14px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  canvas.wave { width: 100%; height: 72px; border-radius: 8px; background: #12151c; display: block; }
+  canvas.meter { width: 100%; height: 10px; border-radius: 4px; display: block; }
+  .info { font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+  .kv { display: flex; gap: 14px; font-size: 14px; }
+  .kv b { color: var(--ink); }
+  #report { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 12.5px; white-space: pre-wrap; background: var(--panel-2); border-radius: 8px; padding: 10px 12px; min-height: 60px; color: var(--muted); }
+  #log { font-family: Consolas, monospace; font-size: 11.5px; max-height: 160px; overflow: auto; background: #0b0d12; border-radius: 8px; padding: 8px 10px; color: var(--muted); }
+  #log .l-warn { color: var(--warn); } #log .l-error { color: var(--bad); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Studio<span>Voix</span> Web</h1>
+    <span id="version">chargement du moteur…</span>
+  </header>
+  <div id="status">Chargement…</div>
+
+  <div class="grid">
+    <section class="card">
+      <h2><span class="num">1</span> Instru</h2>
+      <div class="row">
+        <input id="instruFile" type="file" accept="audio/*">
+        <button id="demoBtn" disabled title="Instru et voix synthétiques (La mineur, 100 BPM) pour essayer sans fichier">Essayer avec la démo</button>
+      </div>
+      <canvas id="instruWave" class="wave" width="1000" height="72"></canvas>
+      <div class="kv"><span>Tonalité <b id="keyBox">–</b></span><span>BPM <b id="bpmBox">–</b></span></div>
+      <div id="instruInfo" class="info">Pose une instru (MP3, WAV…). Elle est analysée et jouée telle quelle, jamais modifiée.</div>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">2</span> Prise de voix</h2>
+      <div class="row">
+        <button id="recBtn" class="rec" disabled>● REC</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:56px"> mesure(s)</label>
+        <label>Latence <input id="latencyMs" type="number" min="0" max="500" value="40" style="width:64px"> ms</label>
+      </div>
+      <canvas id="meterIn" class="meter" width="600" height="10" title="Niveau du micro"></canvas>
+      <canvas id="voiceWave" class="wave" width="1000" height="72"></canvas>
+      <div id="voiceInfo" class="info">Le micro enregistre sans traitement du navigateur (pas d'annulation d'écho ni de gain auto). Ou importe une voix : <input id="voiceFile" type="file" accept="audio/*"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">3</span> Style</h2>
+      <div class="row">
+        <select id="style"></select>
+        <label><input id="useScale" type="checkbox" checked> Gamme</label>
+        <label><input id="cleaning" type="checkbox" checked> Nettoyage</label>
+      </div>
+      <div class="row">
+        <button id="processBtn" class="primary" disabled>Appliquer le style</button>
+      </div>
+      <div id="report">La prise est mesurée (dynamique, sifflantes, boue, dureté, bruit, résonances) et les effets du style se règlent d'après cette mesure. Le style donne le caractère, la mesure donne les valeurs.</div>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">4</span> Écoute et export</h2>
+      <div class="row">
+        <button id="playBtn" disabled>▶ Mix</button>
+        <button id="playRawBtn" disabled>▶ Brut (A/B)</button>
+        <button id="stopPlayBtn">■</button>
+        <button id="exportBtn" disabled>Exporter WAV</button>
+      </div>
+      <canvas id="meterOut" class="meter" width="600" height="10" title="Niveau de sortie"></canvas>
+      <div class="info">Mix auto : voix calée sur la sonie de l'instru, limiteur de sécurité −1 dBTP. L'instru reste intacte (creux sous la voix à 0).</div>
+      <details><summary>Journal du moteur</summary><div id="log"></div></details>
+    </section>
+  </div>
+</div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

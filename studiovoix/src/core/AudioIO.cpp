@@ -465,6 +465,11 @@ bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate,
             break;
         case FileFormat::Mp3_320:
         {
+           #if JUCE_WASM
+            error = "Export MP3 indisponible dans le navigateur : exporte en WAV."_u8;   // pas de lame.exe ni de processus dans WebAssembly
+            SV_LOG_ERROR (kMod, error);
+            return false;
+           #else
             const auto lame = findLameExecutable();
             if (! lame.existsAsFile())
             {
@@ -478,6 +483,7 @@ bool writeFile (const juce::File& file, const Stereo& buffer, double sampleRate,
             const auto qualities = audioFormat->getQualityOptions();
             const int idx = qualities.indexOf ("320 Kb/s CBR");   // nom donné par JUCE
             options = options.withQualityOptionIndex (idx >= 0 ? idx : juce::jmax (0, qualities.size() - 1));
+           #endif
             break;
         }
     }

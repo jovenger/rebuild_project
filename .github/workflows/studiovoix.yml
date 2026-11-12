@@ -347,3 +347,74 @@ jobs:
           }
           if (-not $ok) { throw "publication de la release : échec après 4 essais" }
           gh release view $tag --repo "${{ github.repository }}" --json tagName,assets --jq '.tagName + " : " + (.assets | map(.name + " (" + (.size|tostring) + " octets)") | join(", "))'
+
+  # ---------------------------------------------------------------------------------------------
+  # Version web : moteur C++ compilé en WebAssembly (Emscripten) + page, publiée sur GitHub Pages.
+  # Même cœur DSP que les éditions Windows ; pas de VST3, pas d'outils IA externes, pas d'installateur.
+  # ---------------------------------------------------------------------------------------------
+  web:
+    name: Web (WebAssembly, GitHub Pages)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Emscripten et JUCE 9.0.4
+        run: |
+          sudo apt-get update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q emscripten
+          emcc --version | head -1
+          git clone --depth 1 --branch 9.0.4 https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/juce"
+
+      - name: Compilation WebAssembly
+        env:
+          SV_BUILD_NUMBER: ${{ github.run_number }}
+          JUCE_DIR: ${{ runner.temp }}/juce
+          SV_WASM_BUILD_DIR: ${{ runner.temp }}/wasm-build
+        run: |
+          studiovoix/web/build-wasm.sh
+          ls -l studiovoix/web/dist
+
+      - name: Essai dans Chromium (instru + voix de démonstration, style appliqué, WAV exporté)
+        run: |
+          cd studiovoix
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          python3 -m http.server 8765 --directory web > "$RUNNER_TEMP/http.log" 2>&1 &
+          sleep 1
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_e2e.png"
+
+      - name: Capture de l'essai
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-essai
+          path: ${{ runner.temp }}/web_e2e.png
+          if-no-files-found: ignore
+
+      - name: Page prête pour GitHub Pages
+        run: |
+          rm -rf studiovoix/web/build studiovoix/web/node_modules studiovoix/web/package.json studiovoix/web/package-lock.json
+          echo "build ${{ github.run_number }} ($(git rev-parse --short HEAD))" > studiovoix/web/dist/BUILD.txt
+
+      - uses: actions/configure-pages@v5
+        if: github.event_name == 'push'
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push'
+        with:
+          path: studiovoix/web
+
+      - name: Publication sur GitHub Pages
+        if: github.event_name == 'push'
+        id: deploy
+        uses: actions/deploy-pages@v4

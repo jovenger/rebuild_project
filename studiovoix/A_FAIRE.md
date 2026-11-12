@@ -61,6 +61,21 @@ comment les automatismes doivent être faits, ordre proposé.
   « Séparer » visible sur l'en-tête de l'instru ; sélection du style directement dans l'en-tête de piste ; réduire la
   barre du haut (Nouveau / Ouvrir / Sauver dans l'accueil) ; glisser-déposer d'un fichier sur une piste existante.
 
+## Version web (demande de Yann : « plus de .exe, directement sur une page web »)
+
+- Fait (build 84) : étape 1 — moteur C++ (JUCE core / events / audio_basics / audio_formats / dsp + cœur DSP, 25
+  fichiers inchangés) compilé en WebAssembly par `web/build-wasm.sh` (Emscripten 3.1, juce_core patché pour la table
+  des priorités WASM, `wcsftime` fourni) ; façade C `web/api.cpp` (styles, analyse instru, voix par style ajustée à la
+  mesure, mix auto + limiteur) ; page `web/index.html` + `app.js` (Web Audio : instru, REC avec compte à rebours,
+  style, A/B, vumètres, export WAV) ; moteur dans un Web Worker ; essai Playwright `web/test/e2e.mjs` (instru et voix
+  de démo, style appliqué, WAV exporté) ; job CI « Web » → GitHub Pages.
+- Mesuré (Chromium local) : moteur prêt en 8,5 s, analyse instru 39 s en 1,4 s, voix 28 s traitée en 4 s, WAV 6,9 Mo.
+- À faire ensuite : plusieurs pistes (doublages, backs, instruments) et timeline ; punch-in / prises multiples ;
+  « ⚠ » + Corriger ; correction automatique de l'instru à la demande ; mastering à l'export ; sauvegarde du projet
+  dans le navigateur (OPFS / IndexedDB) ; IA dans le navigateur (whisper.cpp WASM pour les paroles, DeepFilterNet via
+  onnxruntime-web ; Demucs trop lourd) ; latence micro mesurée automatiquement (boucle de calibrage) ; threads
+  (SharedArrayBuffer) si le traitement devient long ; arrêt des builds .exe si Yann le confirme.
+
 ## Édition « StudioVoix IA » (builds 52 et suivants)
 
 - Vérifier sur le PC de Yann : installation des outils (onglet IA locale), nettoyage DeepFilterNet sur une vraie prise,
