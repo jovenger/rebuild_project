@@ -387,13 +387,20 @@ jobs:
           python3 -m http.server 8765 --directory web > "$RUNNER_TEMP/http.log" 2>&1 &
           sleep 1
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_e2e.png"
+          # Prise au micro sans casque : faux micro = voix + instru captée (300 ms, -12 dB) ; la page doit retirer la
+          # musique de la prise et compenser le décalage.
+          python3 web/test/make_fake_mic.py "$RUNNER_TEMP/fakemic"
+          MIC_FILE="$RUNNER_TEMP/fakemic/mic.wav" REC_SECONDS=12 EXPECT_BLEED=1 PLAYWRIGHT_DIR="$PWD/node_modules" \
+            node web/test/e2e.mjs http://127.0.0.1:8765/index.html "$RUNNER_TEMP/fakemic/instru.wav" - "$RUNNER_TEMP/web_rec.png"
 
       - name: Capture de l'essai
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: web-essai
-          path: ${{ runner.temp }}/web_e2e.png
+          path: |
+            ${{ runner.temp }}/web_e2e.png
+            ${{ runner.temp }}/web_rec.png
           if-no-files-found: ignore
 
       - name: Page prête pour GitHub Pages

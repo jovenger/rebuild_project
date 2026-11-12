@@ -57,6 +57,7 @@ set(SV_CORE_SOURCES
     src/core/dsp/Denoiser.cpp
     src/core/dsp/Leveler.cpp
     src/core/dsp/TrackRepair.cpp
+    src/core/dsp/BleedRemover.cpp
     src/core/plugins/PluginChain.cpp
     src/core/plugins/InternalPlugins.cpp
     src/core/plugins/ChainStages.cpp

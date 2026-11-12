@@ -26,6 +26,7 @@
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/Denoiser.h"
 #include "core/dsp/Leveler.h"
+#include "core/dsp/BleedRemover.h"
 #include "core/dsp/TrackRepair.h"
 #include "core/plugins/InternalPlugins.h"
 #include "core/plugins/PluginChain.h"
@@ -1659,6 +1660,88 @@ public:
             expect (std::abs (a.reverb.preDelayMs - 53.0f) < 1.0f, "pré-délai calé sur le tempo (140 BPM → 54 ms) : "_u8 + juce::String (a.reverb.preDelayMs, 1));
             expect (std::abs (a.comp.attackMs - base.comp.attackMs) < 0.01f && std::abs (a.comp.releaseMs - base.comp.releaseMs) < 0.01f, "caractère du style conservé (attaque / relâchement)"_u8);
             expect (! notesA.isEmpty() && notesB.size() > notesA.size(), "lignes lisibles : " + notesB.joinIntoString (" ; "));
+        }
+
+        beginTest ("Repisse : instru captee par le micro retiree, decalage mesure");
+        {
+            // Prise sans casque : voix + instru sortie des haut-parleurs, captée 187 ms plus tard, assombrie par la pièce
+            // (passe-bas), avec une réflexion à 7 ms, à -10 dB.
+            MusicalKey key;
+            key.root = 9;
+            key.minor = true;
+            const auto instruSt = test::synthInstru (100.0, key, 12, kSr, true);
+            const Mono instruMono = audio::toMono (instruSt);
+            auto phrases = test::defaultPhrases (key, 100.0, 10.0f);
+            const Mono voice = test::synthVoice (phrases, kSr, 1.0);
+            const size_t n = std::min (instruMono.size(), voice.size() + static_cast<size_t> (kSr));
+            const long lag = static_cast<long> (0.187 * kSr), refl = static_cast<long> (0.007 * kSr);
+            Mono bleed (n, 0.0f);
+            float lp = 0.0f;
+            for (size_t i = 0; i < n; ++i)
+            {
+                const long j = static_cast<long> (i) - lag;
+                const float a = j >= 0 && j < static_cast<long> (instruMono.size()) ? instruMono[static_cast<size_t> (j)] : 0.0f;
+                const float b = j - refl >= 0 && j - refl < static_cast<long> (instruMono.size()) ? instruMono[static_cast<size_t> (j - refl)] : 0.0f;
+                lp += 0.35f * ((a + 0.3f * b) - lp);
+                bleed[i] = dbToGain (-10.0f) * lp;
+            }
+            Mono clean (n, 0.0f);
+            for (size_t i = 0; i < n && i < voice.size(); ++i)
+                clean[i] = voice[i];
+            Mono rec (n, 0.0f);
+            for (size_t i = 0; i < n; ++i)
+                rec[i] = clean[i] + bleed[i];
+            Mono ref (instruMono.begin(), instruMono.begin() + static_cast<long> (n));
+            const auto rep = dsp::removeBleed (rec, ref, kSr);
+            expect (rep.detected, "instru détectée dans la prise (pic "_u8 + juce::String (rep.peakRatio, 1) + ")");
+            expect (std::abs (rep.lagSec - 0.187) < 0.0015, "décalage mesuré : "_u8 + juce::String (rep.lagSec * 1000.0, 2) + " ms (attendu 187)");
+            expect (rep.reductionDb() > 12.0f, "musique retirée : "_u8 + juce::String (rep.bleedBeforeDb, 1) + " -> " + juce::String (rep.bleedAfterDb, 1) + " dB");
+            // Ce qui reste de musique, mesuré directement : écart entre la prise nettoyée et la voix seule.
+            double eDiff = 0.0, eBleed = 0.0, eVoice = 0.0, eOut = 0.0, cross = 0.0;
+            for (size_t i = 0; i < n; ++i)
+            {
+                const double dlt = rec[i] - clean[i];
+                eDiff += dlt * dlt;
+                eBleed += static_cast<double> (bleed[i]) * bleed[i];
+                eVoice += static_cast<double> (clean[i]) * clean[i];
+                eOut += static_cast<double> (rec[i]) * rec[i];
+                cross += static_cast<double> (rec[i]) * clean[i];
+            }
+            const float residualDb = static_cast<float> (10.0 * std::log10 (eDiff / std::max (1.0e-12, eBleed)));
+            const float voiceCorr = static_cast<float> (cross / std::sqrt (std::max (1.0e-12, eVoice * eOut)));
+            SV_LOG_INFO ("Tests", "Repisse : reste "_u8 + juce::String (residualDb, 1) + " dB sous la musique captée, corrélation voix "
+                                  + juce::String (voiceCorr, 3) + ", " + rep.describe());
+            expect (residualDb < -12.0f, "reste de musique : "_u8 + juce::String (residualDb, 1) + " dB sous la musique captée");
+            expect (voiceCorr > 0.95f, "voix conservée : corrélation "_u8 + juce::String (voiceCorr, 3));
+
+            // Micro et sortie sur deux horloges qui dérivent (50 ppm : micro USB, enceinte Bluetooth) : le retrait doit tenir.
+            Mono drifted (n, 0.0f);
+            for (size_t i = 0; i < n; ++i)
+            {
+                const double pos = static_cast<double> (i) * (1.0 + 50.0e-6);
+                const size_t i0 = static_cast<size_t> (pos);
+                const float fr = static_cast<float> (pos - static_cast<double> (i0));
+                const float bv = i0 + 1 < n ? bleed[i0] * (1.0f - fr) + bleed[i0 + 1] * fr : 0.0f;
+                drifted[i] = clean[i] + bv;
+            }
+            const auto rep3 = dsp::removeBleed (drifted, ref, kSr);
+            double eD = 0.0, eB = 0.0;
+            for (size_t i = 0; i < n; ++i)
+            {
+                const double dlt = drifted[i] - clean[i];
+                eD += dlt * dlt;
+                eB += static_cast<double> (bleed[i]) * bleed[i];
+            }
+            const float driftResidualDb = static_cast<float> (10.0 * std::log10 (eD / std::max (1.0e-12, eB)));
+            SV_LOG_INFO ("Tests", "Repisse avec dérive 50 ppm : reste "_u8 + juce::String (driftResidualDb, 1) + " dB ; " + rep3.describe());
+            expect (rep3.detected && driftResidualDb < -12.0f, "dérive d'horloge : reste de musique "_u8 + juce::String (driftResidualDb, 1) + " dB");
+
+            // Au casque : aucune musique dans la prise → rien n'est touché.
+            Mono dry = clean;
+            const auto rep2 = dsp::removeBleed (dry, ref, kSr);
+            expect (! rep2.detected, "voix seule : pas de musique détectée (pic "_u8 + juce::String (rep2.peakRatio, 1) + ")");
+            const bool same = std::memcmp (dry.data(), clean.data(), sizeof (float) * n) == 0;
+            expect (same, "voix seule : prise inchangée"_u8);
         }
 
         beginTest ("Niveau : voix qui monte et descend calee sur son niveau typique, pas sur le plus fort");

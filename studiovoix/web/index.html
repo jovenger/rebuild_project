@@ -72,11 +72,11 @@
         <button id="recBtn" class="rec" disabled>● REC</button>
         <button id="stopBtn" disabled>Stop</button>
         <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:56px"> mesure(s)</label>
-        <label>Latence <input id="latencyMs" type="number" min="0" max="500" value="40" style="width:64px"> ms</label>
+        <label title="Le décalage est mesuré et compensé automatiquement sur chaque prise ; ce réglage n'ajoute qu'un ajustement fin (0 = aucun)">Décalage : auto, ajustement <input id="latencyMs" type="number" min="-200" max="200" value="0" style="width:64px"> ms</label>
       </div>
       <canvas id="meterIn" class="meter" width="600" height="10" title="Niveau du micro"></canvas>
       <canvas id="voiceWave" class="wave" width="1000" height="72"></canvas>
-      <div id="voiceInfo" class="info">Le micro enregistre sans traitement du navigateur (pas d'annulation d'écho ni de gain auto). Ou importe une voix : <input id="voiceFile" type="file" accept="audio/*"></div>
+      <div id="voiceInfo" class="info">Seule ta voix est gardée : si le micro capte l'instru (haut-parleurs), elle est retirée automatiquement de la prise, et le décalage est mesuré puis compensé. Ou importe une voix : <input id="voiceFile" type="file" accept="audio/*"></div>
     </section>
 
     <section class="card">

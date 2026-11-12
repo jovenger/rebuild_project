@@ -233,69 +233,122 @@ ui.demoBtn.addEventListener('click', async () => {
 });
 
 // ------------------------------------------------------------------ prise
+// Capture micro : AudioWorklet dans le même graphe que l'instru → place de la prise connue à l'échantillon près.
+// Aucun traitement du navigateur (ni annulation d'écho, ni réduction de bruit, ni gain auto) : c'est le moteur qui
+// retire ensuite l'instru captée par le micro (haut-parleurs) et qui mesure le décalage réel (latence aller-retour).
+async function ensureRecorderWorklet(ctx) {
+    if (!state.workletReady) {
+        await ctx.audioWorklet.addModule('./recorder-worklet.js');
+        state.workletReady = true;
+    }
+}
+// Latence annoncée par le navigateur (sortie + traitement + entrée), utilisée seulement si aucune musique n'est captée
+// (casque) : sinon le décalage est mesuré sur la prise elle-même.
+function announcedLatencySec(ctx, track) {
+    const out = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+    let inp = 0;
+    try { inp = track?.getSettings?.().latency || 0; } catch (_) { /* non fourni */ }
+    return out + inp;
+}
+
 ui.recBtn.addEventListener('click', async () => {
     try {
         const ctx = audioContext();
+        await ensureRecorderWorklet(ctx);
         const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
         });
+        const track = stream.getAudioTracks()[0];
         const src = ctx.createMediaStreamSource(stream);
-        const sink = ctx.createGain(); sink.gain.value = 0; src.connect(sink).connect(ctx.destination);   // pour le vumètre d'entrée
+        const rec = new AudioWorkletNode(ctx, 'studiovoix-recorder', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+        const sink = ctx.createGain(); sink.gain.value = 0;   // le nœud doit être relié à la sortie pour tourner ; muet
+        src.connect(rec).connect(sink).connect(ctx.destination);
         startMeter(src, ui.meterIn);
-        const mime = ['audio/webm;codecs=pcm', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
-        state.recorder = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 256000 } : undefined);
-        state.recChunks = [];
-        state.recorder.ondataavailable = (e) => { if (e.data.size) state.recChunks.push(e.data); };
-        state.recorder.onstop = () => finishRecording(stream);
-        // Compte à rebours d'une mesure sur l'instru, puis départ de la prise en même temps que l'instru à 0:00.
+        const chunks = [];
+        let firstFrame = -1;
+        rec.port.onmessage = (e) => {
+            if (e.data.type === 'chunk') {
+                if (firstFrame < 0) firstFrame = e.data.frame;
+                chunks.push(e.data.data);
+            } else if (e.data.type === 'done') {
+                finishRecording({ stream, src, rec, sink, chunks, firstFrame, track });
+            }
+        };
+        // Compte à rebours AVANT l'instru (clics seuls), puis l'instru démarre à 0:00 : les clics ne sont pas dans la
+        // prise gardée (elle commence avec l'instru) et ne gênent pas le retrait de la musique.
         const bpm = state.instru?.analysis?.bpm || 100;
-        const bars = Number(ui.countIn.value || 1);
+        const bars = Number(ui.countIn.value || 0);
         const countSec = bars * 4 * 60 / bpm;
-        const t0 = ctx.currentTime + 0.1;
+        const t0 = ctx.currentTime + 0.15;
+        for (let i = 0; i < bars * 4; ++i) {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            const t = t0 + i * 60 / bpm;
+            o.frequency.value = i % 4 === 0 ? 1500 : 1000;
+            g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+            o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.06);
+        }
+        const instruStart = t0 + countSec;
         if (state.instru) {
             stopPlayback();
             const node = ctx.createBufferSource();
             node.buffer = makeBuffer(state.instru.left, state.instru.right);
             node.connect(ctx.destination);
-            node.start(t0, 0);
+            node.start(instruStart, 0);
             state.playing.push(node);
         }
-        // Clics du compte à rebours.
-        for (let i = 0; i < bars * 4; ++i) {
-            const o = ctx.createOscillator(), g = ctx.createGain();
-            o.frequency.value = i % 4 === 0 ? 1500 : 1000;
-            g.gain.setValueAtTime(0.25, t0 + i * 60 / bpm); g.gain.exponentialRampToValueAtTime(0.001, t0 + i * 60 / bpm + 0.05);
-            o.connect(g).connect(ctx.destination); o.start(t0 + i * 60 / bpm); o.stop(t0 + i * 60 / bpm + 0.06);
-        }
-        state.recStartCtxTime = t0;            // la prise est écrite dès maintenant ; sa position vaut (début réel - t0)
-        state.recorder.start(250);
-        state.recCtxStart = ctx.currentTime;   // instant du démarrage réel de l'enregistreur
-        setStatus(`Enregistrement… compte à rebours ${bars} mesure(s) à ${bpm.toFixed(0)} BPM, puis chante. Stop pour finir.`);
+        state.rec = { node: rec, instruStartSec: instruStart, sampleRate: ctx.sampleRate };
+        setStatus(bars > 0 ? `Enregistrement… ${bars} mesure(s) de clics à ${bpm.toFixed(0)} BPM, puis l'instru : chante. Stop pour finir.`
+                           : 'Enregistrement… chante. Stop pour finir.');
         ui.recBtn.disabled = true; ui.stopBtn.disabled = false;
-    } catch (err) { setStatus('Micro indisponible : ' + err.message); log('error', err.message); }
+        log('info', `REC : latence annoncée ${(announcedLatencySec(ctx, track) * 1000).toFixed(0)} ms (sortie ${((ctx.outputLatency || 0) * 1000).toFixed(0)}, traitement ${((ctx.baseLatency || 0) * 1000).toFixed(0)})`);
+    } catch (err) { setStatus('Micro indisponible : ' + err.message); log('error', err.message); ui.recBtn.disabled = false; }
 });
 ui.stopBtn.addEventListener('click', () => {
-    if (state.recorder && state.recorder.state !== 'inactive') state.recorder.stop();
+    if (state.rec?.node) state.rec.node.port.postMessage('stop');
     stopPlayback();
     ui.stopBtn.disabled = true;
 });
-async function finishRecording(stream) {
+async function finishRecording({ stream, src, rec, sink, chunks, firstFrame, track }) {
     try {
+        const ctx = audioContext();
+        const fallback = announcedLatencySec(ctx, track);
         stream.getTracks().forEach((t) => t.stop());
+        try { src.disconnect(); rec.disconnect(); sink.disconnect(); } catch (_) { /* déjà déconnecté */ }
         stopMeter(ui.meterIn);
-        const blob = new Blob(state.recChunks, { type: state.recorder.mimeType || 'audio/webm' });
-        const buf = await decodeFile(new File([blob], 'prise.webm'));
-        const mono = toMono(buf);
-        // Position de la prise sur la grille : l'enregistreur a démarré à recCtxStart, l'instru à recStartCtxTime ;
-        // on retire aussi la latence (sortie + entrée) saisie en ms.
-        const latency = Number(ui.latencyMs.value || 0) / 1000;
-        const startSec = Math.max(0, (state.recCtxStart - state.recStartCtxTime) - latency);
-        state.voice = { mono, sampleRate: buf.sampleRate, startSec, raw: true };
+        const total = chunks.reduce((n, c) => n + c.length, 0);
+        if (total === 0 || firstFrame < 0) throw new Error('aucun échantillon reçu du micro');
+        const raw = new Float32Array(total);
+        let o = 0;
+        for (const c of chunks) { raw.set(c, o); o += c.length; }
+        const sr = state.rec.sampleRate;
+        // Temps de l'instru au moment où le premier échantillon a été écrit (négatif pendant les clics).
+        const recOffsetSec = firstFrame / sr - state.rec.instruStartSec;
+        setStatus('Nettoyage de la prise (musique captée par le micro, décalage)…');
+        const r = await call('cleanTake', {
+            rec: raw, instruL: state.instru ? state.instru.left.slice() : null, instruR: state.instru ? state.instru.right.slice() : null,
+            sampleRate: sr, recOffsetSec, fallbackLatencySec: fallback,
+        }, [raw.buffer]);
+        const rep = r.report;
+        // Place sur l'instru : on coupe ce qui précède le début de l'instru (clics, attente).
+        const nudge = Number(ui.latencyMs.value || 0) / 1000;   // ajustement fin manuel (0 par défaut)
+        let startSec = rep.startSec - nudge;
+        let mono = r.left;
+        if (startSec < 0) {
+            const cut = Math.min(mono.length, Math.round(-startSec * sr));
+            mono = mono.slice(cut);
+            startSec = 0;
+        }
+        state.voice = { mono, sampleRate: sr, startSec, raw: true, take: rep };
         state.processed = null; state.mix = null;
         drawWave(ui.voiceWave, mono, '#3a9bff');
-        ui.voiceInfo.textContent = `Prise : ${fmt(buf.duration)} · ${buf.sampleRate} Hz · brute, aucun effet (position ${startSec.toFixed(2)} s)`;
-        setStatus('Prise enregistrée, brute. Choisis un style puis « Appliquer le style », ou écoute telle quelle.');
-    } catch (err) { setStatus('Prise illisible : ' + err.message); log('error', err.message); }
+        const lat = `${Math.round(rep.latencyMs)} ms ${rep.latencyMeasured ? 'mesuré sur la prise' : 'annoncé par le navigateur (rien de capté)'}`;
+        const bleed = rep.bleedDetected
+            ? `musique captée par le micro ${rep.bleedBeforeDb.toFixed(0)} dB → retirée (${rep.bleedAfterDb.toFixed(0)} dB)`
+            : 'aucune musique captée (casque)';
+        ui.voiceInfo.textContent = `Prise : ${fmt(mono.length / sr)} · voix seule, sans effet · ${bleed} · décalage ${lat}, compensé`;
+        log('info', `Prise : ${rep.describe} ; début ${startSec.toFixed(3)} s`);
+        setStatus('Prise enregistrée : voix seule, calée sur l\'instru. Écoute « Brut », ou choisis un style puis « Appliquer le style ».');
+    } catch (err) { setStatus('Prise impossible : ' + err.message); log('error', err.message); }
     ui.recBtn.disabled = false;
     refreshButtons();
 }
@@ -351,10 +404,15 @@ async function remix() {
     state.mix = { left: r.left, right: r.right, report: r.report };
     log('info', `Mix : gain voix ${r.report.vocalGainDb.toFixed(1)} dB, mix ${r.report.mixLufs.toFixed(1)} LUFS, limiteur ${r.report.limiterGrDb.toFixed(1)} dB`);
 }
+// « Mix » : instru d'origine + voix traitée (jamais la musique captée par le micro, retirée de la prise).
+// Sans style appliqué : instru + voix brute, comme « Brut ».
 ui.playBtn.addEventListener('click', () => {
-    if (state.mix) play([{ buffer: makeBuffer(state.mix.left, state.mix.right) }]);
-    else if (state.processed) play([{ buffer: makeBuffer(state.processed.left, state.processed.right), when: state.voice.startSec }]);
-    else if (state.instru) play([{ buffer: makeBuffer(state.instru.left, state.instru.right) }]);
+    if (state.mix) { play([{ buffer: makeBuffer(state.mix.left, state.mix.right) }]); return; }
+    const list = [];
+    if (state.instru) list.push({ buffer: makeBuffer(state.instru.left, state.instru.right) });
+    if (state.processed) list.push({ buffer: makeBuffer(state.processed.left, state.processed.right), when: state.voice.startSec });
+    else if (state.voice) list.push({ buffer: makeBuffer(state.voice.mono, state.voice.mono), when: state.voice.startSec });
+    if (list.length) play(list);
 });
 ui.playRawBtn.addEventListener('click', () => {
     const list = [];
@@ -395,7 +453,7 @@ function refreshButtons() {
     ui.recBtn.disabled = !state.ready;
     ui.demoBtn.disabled = !state.ready;
     ui.processBtn.disabled = !(state.ready && state.voice);
-    ui.playBtn.disabled = !(state.instru || state.processed);
+    ui.playBtn.disabled = !(state.instru || state.processed || state.voice);
     ui.playRawBtn.disabled = !(state.instru || state.voice);
     ui.exportBtn.disabled = !(state.mix || state.processed);
 }

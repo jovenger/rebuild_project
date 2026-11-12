@@ -9,6 +9,7 @@
 #include "core/analysis/KeyDetector.h"
 #include "core/analysis/StructureDetector.h"
 #include "core/analysis/TempoDetector.h"
+#include "core/dsp/BleedRemover.h"
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/ProblemAnalyzer.h"
 #include "core/dsp/VocalChain.h"
@@ -260,6 +261,53 @@ EMSCRIPTEN_KEEPALIVE const char* sv_mix (const float* instruL, const float* inst
     o->setProperty ("limiterGrDb", limiterGr);
     o->setProperty ("mixLufs", sv::loudness::integratedLufs (lastOut, sampleRate));
     SV_LOG_INFO (kMod, "Mix : gain voix "_u8 + juce::String (am.vocalGainDb, 1) + " dB, limiteur " + juce::String (limiterGr, 1) + " dB");
+    return reply (juce::var (o));
+}
+
+/** Prise micro : retire l'instru captée par le micro (si elle y est) et calcule où placer la voix sur l'instru.
+    recOffsetSec : temps de l'instru (s) au moment où rec[0] a été écrit (négatif si l'enregistrement a démarré avant
+    l'instru, compte à rebours compris). Le décalage aller-retour (sortie + entrée) est mesuré sur la musique captée ;
+    sans musique captée (casque), fallbackLatencySec (latences annoncées par le navigateur) est utilisé.
+    Voix nettoyée dans sv_out_* (mono dans les deux canaux) ; JSON : startSec = place de rec[0] sur l'instru. */
+EMSCRIPTEN_KEEPALIVE const char* sv_clean_take (const float* rec, int recFrames, const float* instruL, const float* instruR, int instruFrames,
+                                                double sampleRate, double recOffsetSec, double fallbackLatencySec)
+{
+    ensureLog();
+    if (rec == nullptr || recFrames <= 0 || sampleRate <= 0.0)
+        return reply (errorJson ("Prise vide"_u8));
+    sv::log::ScopedTimer timer (kMod, "nettoyage de la prise"_u8);
+    sv::Mono take (rec, rec + recFrames);
+    sv::dsp::BleedReport rep;
+    if (instruL != nullptr && instruFrames > 0)
+    {
+        const auto instru = sv::audio::toMono (stereoFrom (instruL, instruR, instruFrames));
+        const long off = static_cast<long> (std::llround (recOffsetSec * sampleRate));
+        sv::Mono ref (take.size(), 0.0f);
+        for (size_t i = 0; i < ref.size(); ++i)
+        {
+            const long j = static_cast<long> (i) + off;
+            if (j >= 0 && j < static_cast<long> (instru.size()))
+                ref[i] = instru[static_cast<size_t> (j)];
+        }
+        rep = sv::dsp::removeBleed (take, ref, sampleRate, -0.02, 0.8);
+    }
+    const double latency = rep.detected ? rep.lagSec : std::max (0.0, fallbackLatencySec);
+    const double startSec = recOffsetSec - latency;
+    lastOut = sv::audio::monoToStereo (take);
+
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("frames", lastOut.getNumSamples());
+    o->setProperty ("bleedDetected", rep.detected);
+    o->setProperty ("latencyMs", latency * 1000.0);
+    o->setProperty ("latencyMeasured", rep.detected);
+    o->setProperty ("bleedBeforeDb", rep.bleedBeforeDb);
+    o->setProperty ("bleedAfterDb", rep.bleedAfterDb);
+    o->setProperty ("peakRatio", rep.peakRatio);
+    o->setProperty ("startSec", startSec);
+    o->setProperty ("describe", rep.describe());
+    SV_LOG_INFO (kMod, "Prise : décalage "_u8 + juce::String (latency * 1000.0, 1) + " ms (" + (rep.detected ? "mesuré" : "annoncé par le navigateur")
+                       + "), début sur l'instru " + juce::String (startSec, 3) + " s ; " + rep.describe());
     return reply (juce::var (o));
 }
 

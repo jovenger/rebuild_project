@@ -61,6 +61,20 @@ comment les automatismes doivent être faits, ordre proposé.
   « Séparer » visible sur l'en-tête de l'instru ; sélection du style directement dans l'en-tête de piste ; réduire la
   barre du haut (Nouveau / Ouvrir / Sauver dans l'accueil) ; glisser-déposer d'un fichier sur une piste existante.
 
+## Prise sans casque (retour de Yann : « il enregistre la musique avec la voix, ça fait un décalage, 0 latence »)
+
+- Fait (build 90) : causes = le micro capte l'instru des haut-parleurs (prise = voix + musique, doublée et décalée dans
+  le mix) ; calage de la prise faux dans la page web (enregistreur MediaRecorder démarré ~100 ms avant l'instru, ignoré,
+  + 40 ms fixes). Désormais : `dsp::removeBleed` (BleedRemover.cpp) : instru retrouvée dans la prise (GCC-PHAT +
+  affinage à l'échantillon), fonction de transfert pièce + micro par tranches de 3 s (suit une dérive d'horloge),
+  soustraction + suppression résiduelle douce (plancher -14 dB) ; le décalage mesuré sert à recaler la voix. Page :
+  capture AudioWorklet (recorder-worklet.js, horodatée à l'échantillon), compte à rebours avant l'instru, latence
+  annoncée par le navigateur seulement au casque, ajustement fin manuel à 0. Tests : unitaire (décalage 187,0 ms
+  retrouvé, reste -25,6 dB, voix corrélée 0,998 ; dérive 50 ppm : -24 dB ; voix seule intacte) ; Chromium avec faux
+  micro (voix + instru captée) : musique -3 → -39 dB, décalage mesuré ; CI : web/test/make_fake_mic.py + essai REC.
+- À faire : même retrait dans le logiciel Windows (prise du moteur temps réel, référence = instru jouée) si Yann
+  enregistre sans casque là aussi ; essai réel sur son PC (micro + haut-parleurs).
+
 ## Niveau de la voix (question de Yann : « il se cale sur la voix la plus haute ? »)
 
 - Fait (build 89) : cause = calage d'entrée et de sortie sur une moyenne d'énergie (tirée vers les passages forts) et

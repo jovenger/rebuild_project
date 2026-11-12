@@ -20,6 +20,7 @@ async function boot() {
         analyze: engine.cwrap('sv_analyze_instru', 'string', ['number', 'number', 'number', 'number']),
         setContext: engine.cwrap('sv_set_context', null, ['number', 'number', 'number', 'number', 'number']),
         processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'number', 'number']),
+        cleanTake: engine.cwrap('sv_clean_take', 'string', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
         demoInstru: engine.cwrap('sv_demo_instru', 'string', ['number', 'number']),
         demoVoice: engine.cwrap('sv_demo_voice', 'string', ['number', 'number']),
         mix: engine.cwrap('sv_mix', 'string', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
@@ -75,6 +76,14 @@ const handlers = {
             const out = pullOut();
             return { report, ...out };
         } finally { api.free(p); }
+    },
+    cleanTake({ rec, instruL, instruR, sampleRate, recOffsetSec, fallbackLatencySec }) {
+        const pr = push(rec), il = push(instruL), ir = push(instruR);
+        try {
+            const report = parse(api.cleanTake(pr, rec.length, il, ir, instruL ? instruL.length : 0, sampleRate, recOffsetSec, fallbackLatencySec));
+            const out = pullOut();
+            return { report, left: out.left, right: null, frames: out.frames };
+        } finally { api.free(pr); if (il) api.free(il); if (ir) api.free(ir); }
     },
     demoInstru({ sampleRate, bars }) { const report = parse(api.demoInstru(sampleRate, bars)); return { report, ...pullOut() }; },
     demoVoice({ sampleRate, bars }) { const report = parse(api.demoVoice(sampleRate, bars)); return { report, ...pullOut() }; },

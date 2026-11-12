@@ -16,10 +16,15 @@ if (!url) {
 }
 const instru = instruArg && instruArg !== '-' ? instruArg : null;
 const voice = voiceArg && voiceArg !== '-' ? voiceArg : null;
+// Prise au micro simulée : MIC_FILE = WAV joué par le faux micro de Chromium (voix + instru « captée »). Avec une instru
+// (instruArg), la page enregistre REC_SECONDS s au micro au lieu d'importer la voix.
+const micFile = process.env.MIC_FILE || '';
+const recSeconds = Number(process.env.REC_SECONDS || 12);
 const t0 = Date.now();
 const stamp = () => `[${((Date.now() - t0) / 1000).toFixed(1)} s]`;
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined,
-                                        args: ['--autoplay-policy=no-user-gesture-required'] });
+const launchArgs = ['--autoplay-policy=no-user-gesture-required'];
+if (micFile) launchArgs.push('--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${micFile}`);
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: launchArgs });
 const page = await browser.newPage({ acceptDownloads: true });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -29,7 +34,25 @@ try {
     await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Moteur prêt'), null, { timeout: 60000 });
     console.log(stamp(), 'moteur prêt :', await page.textContent('#version'));
 
-    if (instru && voice) {
+    if (instru && micFile) {
+        await page.setInputFiles('#instruFile', instru);
+        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Instru analysée'), null, { timeout: 120000 });
+        console.log(stamp(), await page.textContent('#status'));
+        await page.fill('#countIn', '0');
+        await page.click('#recBtn');
+        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Enregistrement'), null, { timeout: 30000 });
+        console.log(stamp(), 'REC en cours…');
+        await page.waitForTimeout(recSeconds * 1000);
+        await page.click('#stopBtn');
+        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Prise enregistrée')
+                                         || document.getElementById('status').textContent.startsWith('Prise impossible'), null, { timeout: 120000 });
+        const st = await page.textContent('#status');
+        const info = await page.textContent('#voiceInfo');
+        console.log(stamp(), st);
+        console.log(stamp(), info);
+        if (!st.startsWith('Prise enregistrée')) throw new Error('prise au micro en échec');
+        if (process.env.EXPECT_BLEED === '1' && !/retirée/.test(info)) throw new Error('musique captée non détectée / non retirée');
+    } else if (instru && voice) {
         await page.setInputFiles('#instruFile', instru);
         await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Instru analysée'), null, { timeout: 120000 });
         console.log(stamp(), await page.textContent('#status'));

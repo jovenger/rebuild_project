@@ -12,7 +12,13 @@ build, dossier `studiovoix/web/`). Tout tourne dans le navigateur (Chrome, Edge,
 sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni annulation d'écho ni gain auto).
 
 - Étape 1 : instru (MP3, WAV…) analysée (tonalité, tempo, structure), jouée telle quelle.
-- Étape 2 : REC avec compte à rebours sur l'instru ; la prise arrive brute. Ou importer une voix.
+- Étape 2 : REC (compte à rebours en clics, puis l'instru) ; la prise ne garde **que la voix** : si le micro capte
+  l'instru (haut-parleurs, pas de casque), elle est **retirée automatiquement** de la prise (le moteur connaît
+  l'instru jouée : il la retrouve dans la prise, mesure comment la pièce la colore et la soustrait, puis atténue le
+  reste) ; le **décalage** (latence sortie + entrée) est **mesuré sur la prise** et compensé, la voix tombe en place
+  sur l'instru (au casque, rien n'est capté : latence annoncée par le navigateur). Capture du micro à l'échantillon
+  près dans le même moteur audio que l'instru. « Brut » = instru d'origine + voix brute ; « Mix » = instru d'origine +
+  voix traitée : jamais la musique captée par le micro. Ou importer une voix.
 - Étape 3 : style, cases Gamme et Nettoyage, « Appliquer le style » : la prise est mesurée et la chaîne du style
   se règle d'après la mesure ; le rapport affiche les valeurs effet par effet.
 - Étape 4 : écoute du mix ou du brut (A/B), vumètres, export WAV 16 bits.

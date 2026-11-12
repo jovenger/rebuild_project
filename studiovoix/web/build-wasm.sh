@@ -86,6 +86,7 @@ UNITS=(
     "$ROOT/src/core/dsp/Denoiser.cpp"
     "$ROOT/src/core/dsp/Leveler.cpp"
     "$ROOT/src/core/dsp/TrackRepair.cpp"
+    "$ROOT/src/core/dsp/BleedRemover.cpp"
     "$ROOT/src/core/dsp/MasterChain.cpp"
     "$ROOT/src/core/style/StyleProfiles.cpp"
     "$ROOT/src/core/mix/AutoMixer.cpp"
@@ -118,7 +119,7 @@ em++ -O2 "${OBJS[@]}" -o "$OUT/studiovoix.js" \
     -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME=createStudioVoix \
     -s ENVIRONMENT=web,worker -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=134217728 -s MAXIMUM_MEMORY=2147483648 \
     -s TOTAL_STACK=4194304 -s FILESYSTEM=0 \
-    -s EXPORTED_FUNCTIONS='["_sv_version","_sv_styles","_sv_analyze_instru","_sv_set_context","_sv_process_voice","_sv_mix","_sv_demo_instru","_sv_demo_voice","_sv_out_left","_sv_out_right","_sv_out_frames","_sv_out_release","_sv_alloc","_sv_free","_malloc","_free"]' \
+    -s EXPORTED_FUNCTIONS='["_sv_version","_sv_styles","_sv_analyze_instru","_sv_set_context","_sv_process_voice","_sv_mix","_sv_clean_take","_sv_demo_instru","_sv_demo_voice","_sv_out_left","_sv_out_right","_sv_out_frames","_sv_out_release","_sv_alloc","_sv_free","_malloc","_free"]' \
     -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","HEAPF32"]'
 ls -l "$OUT/studiovoix.js" "$OUT/studiovoix.wasm"
 echo "[wasm] OK"
