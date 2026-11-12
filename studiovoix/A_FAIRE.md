@@ -104,6 +104,17 @@ comment les automatismes doivent être faits, ordre proposé.
 - À faire : comping (morceaux de plusieurs prises), zoom, rognage / fondus des prises, bus voix (colle) comme le
   logiciel PC, versions du projet.
 
+## Instru étouffée au mix, forme d'onde en direct (retours de Yann)
+
+- Fait (build 95) : cause de l'instru « étouffée » = compresseur de sécurité sur la sortie à l'écoute (seuil -1 dBFS,
+  ratio 20) et limiteur -1 dBTP sur tout le mix à l'export : sur une instru déjà forte, ils l'écrasaient en continu.
+  Retirés ; si la somme dépasse -0,3 dBFS, gain pur sur le volume général (affiché dans le statut et le journal).
+  Essai : voix coupées, export = instru d'origine à 1 pas de quantification 16 bits près (3,1e-5). Forme d'onde en direct
+  pendant le REC : le worklet envoie une crête toutes les 256 échantillons, dessinée aussitôt sur la piste armée ;
+  essai : plus de 20 000 pixels dessinés après 4 s de prise.
+- À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
+  quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
+
 ## Musique extérieure dans le micro (retour de Yann : « même une musique extérieure doit être masquée, que la voix »)
 
 - Fait (build 91, version web) : le retrait par référence ne traite que l'instru jouée par la page ; pour tout le

@@ -434,7 +434,8 @@ function showReport(t) {
 }
 
 // Forme d'onde placée sur la ligne de temps commune (toute la chanson sur la largeur de la piste).
-function drawLane(row, t) {
+function drawLane(row, t, force = false) {
+    if (!force && t && state.rec && state.rec.trackId === t.id) return;   // forme d'onde en direct : ne pas l'effacer
     const canvas = row._lane.querySelector('canvas');
     const dpr = window.devicePixelRatio || 1;
     const w = Math.max(50, Math.round(row._lane.clientWidth * dpr)), h = Math.max(40, Math.round(row._lane.clientHeight * dpr));
@@ -468,6 +469,32 @@ function drawLane(row, t) {
         const hh = Math.max(1, mx * (h / 2 - 3));
         g.fillRect(px, h / 2 - hh, 1, hh * 2);
     }
+}
+// Forme d'onde en direct pendant la prise : la piste armée est vidée, puis chaque crête du micro (toutes les 256
+// échantillons, ~6 ms) est dessinée à sa place sur la ligne de temps dès qu'elle arrive.
+function liveStart(t) {
+    const row = rowOf(t.id);
+    if (!row) return;
+    drawLane(row, { ...t, take: null, processed: null }, true);   // fond + repères de mesure seulement
+    row._lane.querySelector('.empty')?.remove();
+    log('info', `Forme d'onde en direct sur « ${t.name} » (latence d'entrée annoncée ${Math.round((state.rec?.inLatency || 0) * 1000)} ms, compensée à l'affichage)`);
+}
+function livePeak(t, p) {
+    const r = state.rec;
+    if (!r || r.trackId !== t.id) return;
+    const row = rowOf(t.id);
+    const canvas = row?._lane.querySelector('canvas');
+    if (!canvas) return;
+    const sec = p.frame / r.sampleRate - r.songStartCtx + r.fromSec - r.inLatency;
+    if (sec < 0) return;   // compte à rebours : avant le début du morceau
+    const w = canvas.width, h = canvas.height, total = r.total;
+    const x = Math.min(w - 1, Math.floor(sec / total * w));
+    const dx = Math.max(1, Math.ceil(p.n / r.sampleRate / total * w));
+    const amp = Math.min(1, Math.max(Math.abs(p.min), Math.abs(p.max)) * 2.5);   // voix souvent faible : agrandie à l'écran
+    const hh = Math.max(1, amp * (h / 2 - 3));
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#e5484d';
+    g.fillRect(x, h / 2 - hh, dx, hh * 2);
 }
 function drawAllLanes() {
     const ir = rowOf(0);
@@ -623,11 +650,13 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
     stopPlayback();
     const ctx = audioContext();
     const t0 = startAt || ctx.currentTime + 0.05;
+    // Aucun traitement sur la sortie (ni compresseur ni limiteur) : l'instru sort telle qu'elle a été importée. Si la
+    // somme instru + voix dépasse le maximum, seul le volume général baisse (gain pur, sans effet sur le son).
     const master = ctx.createGain();
-    const safety = ctx.createDynamicsCompressor();   // sécurité : n'agit qu'au-dessus de -1 dBFS
-    safety.threshold.value = -1; safety.knee.value = 0; safety.ratio.value = 20; safety.attack.value = 0.002; safety.release.value = 0.1;
-    master.connect(safety).connect(ctx.destination);
-    const outAn = ctx.createAnalyser(); outAn.fftSize = 1024; safety.connect(outAn);
+    const head = headroomGain(mode, exceptId, ctx.sampleRate);
+    master.gain.value = head.gain;
+    master.connect(ctx.destination);
+    const outAn = ctx.createAnalyser(); outAn.fftSize = 1024; master.connect(outAn);
     const nodes = [];
     const addSource = (key, left, right, startSec, gainDb, meterEl) => {
         const end = startSec + left.length / ctx.sampleRate;
@@ -648,7 +677,7 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
         const a = trackAudio(t, mode);
         if (a) addSource(t.id, a.left, a.right, t.take.startSec, trackGainDb(t, mode), rowOf(t.id)?._meter);
     }
-    const player = { mode, nodes, t0, fromSec, raf: 0, outAn };
+    const player = { mode, nodes, t0, fromSec, raf: 0, outAn, headDb: head.db };
     state.player = player;
     const buf = new Float32Array(1024);
     const peakOf = (an) => { an.getFloatTimeDomainData(buf); let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i])); return p; };
@@ -670,6 +699,17 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
     };
     player.raf = requestAnimationFrame(tick);
     return player;
+}
+// Volume général : 1 (rien) tant que la somme jouée ne dépasse pas -0,3 dBFS ; sinon baisse pure de ce qu'il faut.
+function headroomGain(mode, exceptId, sr) {
+    const mix = renderPlayed(mode, exceptId, sr);
+    let peak = 0;
+    for (let i = 0; i < mix.left.length; ++i) { const a = Math.abs(mix.left[i]), b = Math.abs(mix.right[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
+    const ceil = Math.pow(10, -0.3 / 20);
+    const gain = peak > ceil ? ceil / peak : 1;
+    const db = 20 * Math.log10(gain);
+    if (gain < 1) log('info', `Volume général baissé de ${(-db).toFixed(1)} dB (crête de la somme ${(20 * Math.log10(peak)).toFixed(1)} dBFS) : aucun effet sur le son de l'instru`);
+    return { gain, db, peakDb: 20 * Math.log10(peak + 1e-12) };
 }
 // Fader / muet / solo pendant la lecture : gains mis à jour en direct.
 function liveGains() {
@@ -698,10 +738,11 @@ function listenAll() {
 async function startPlay(mode) {
     try {
         if (mode === 'mix') { setStatus('Équilibre des pistes…'); await ensureBalance(); }
-        play(mode);
-        setStatus(mode === 'mix'
-            ? 'Lecture du mix : instru d\'origine + chaque piste traitée (style et type), équilibrées.'
-            : 'Lecture brute : instru d\'origine + prises sans effet (A/B).');
+        const p = play(mode);
+        const head = p.headDb < -0.05 ? ` Volume général −${(-p.headDb).toFixed(1)} dB pour ne pas saturer (instru intacte).` : '';
+        setStatus((mode === 'mix'
+            ? 'Lecture du mix : instru d\'origine, intacte + chaque piste traitée (style et type), équilibrées.'
+            : 'Lecture brute : instru d\'origine + prises sans effet (A/B).') + head);
     } catch (err) { setStatus('Lecture impossible : ' + err.message); log('error', err.message); }
 }
 ui.playBtn.addEventListener('click', () => startPlay('mix'));
@@ -946,6 +987,8 @@ ui.recBtn.addEventListener('click', async () => {
             if (e.data.type === 'chunk') {
                 if (firstFrame < 0) firstFrame = e.data.frame;
                 chunks.push(e.data.data);
+            } else if (e.data.type === 'peak') {
+                livePeak(t, e.data);
             } else if (e.data.type === 'done') {
                 finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, track, meterEl: row?._meter });
             }
@@ -963,7 +1006,9 @@ ui.recBtn.addEventListener('click', async () => {
             o.connect(g).connect(ctx.destination); o.start(tt); o.stop(tt + 0.06);
         }
         const songStart = t0 + countSec, fromSec = state.playFromSec;
-        state.rec = { node: rec, songStartCtx: songStart, fromSec, sampleRate: ctx.sampleRate, trackId: t.id, mode: 'mix', micFallback: mic.fallback };
+        state.rec = { node: rec, songStartCtx: songStart, fromSec, sampleRate: ctx.sampleRate, trackId: t.id, mode: 'mix', micFallback: mic.fallback,
+                      inLatency: Number(track?.getSettings?.().latency) || 0, total: songSeconds() };
+        liveStart(t);
         play('mix', fromSec, { exceptId: t.id, startAt: songStart });
         setStatus((bars > 0 ? `Enregistrement sur « ${t.name} »… ${bars} mesure(s) de clics à ${bpm.toFixed(0)} BPM, puis la musique : chante.`
                             : `Enregistrement sur « ${t.name} »… chante.`) + ' Stop pour finir.');
@@ -1019,12 +1064,13 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
             ? `musique captée ${rep.bleedBeforeDb.toFixed(0)} dB → retirée (${rep.bleedAfterDb.toFixed(0)} dB)`
             : 'aucune musique captée (casque)';
         const note = `${bleed} · ${isoRes.note} · décalage ${lat}, compensé` + (info.micFallback ? ' · ⚠ micro ouvert avec les réglages du navigateur (traitement possible)' : '');
+        info.trackId = -1;   // fin de la forme d'onde en direct : la piste se redessine avec la prise nettoyée
         addTake(t, { mono, sampleRate: sr, startSec, note });
         log('info', `Prise sur « ${t.name} » : ${rep.describe} ; début ${startSec.toFixed(3)} s ; ${isoRes.note}`);
         renderTracks();
         setStatus(`Prise enregistrée sur « ${t.name} » : voix seule, calée sur la musique (${note}). Traitement par son style…`);
         queueProcess(t);
-    } catch (err) { setStatus('Prise impossible : ' + err.message); log('error', err.message); t.status = t.take ? 'raw' : 'vide'; updateRow(t); }
+    } catch (err) { if (info) info.trackId = -1; setStatus('Prise impossible : ' + err.message); log('error', err.message); t.status = t.take ? 'raw' : 'vide'; updateRow(t); }
     state.rec = null;
     ui.recBtn.classList.remove('on');
     refreshButtons();
@@ -1040,15 +1086,22 @@ ui.exportBtn.addEventListener('click', async () => {
         const sr = state.instru?.sampleRate || state.tracks.find((t) => t.take)?.take.sampleRate || audioContext().sampleRate;
         const mix = renderPlayed('mix', 0, sr);
         const n = Math.ceil(songSeconds() * sr);
-        const r = await call('limit', { left: mix.left.subarray(0, n).slice(), right: mix.right.subarray(0, n).slice(), sampleRate: sr, ceilingDb: -1 });
-        const wav = encodeWav16(r.left, r.right, sr);
+        // Pas de limiteur : l'instru reste telle quelle ; si la somme dépasse -0,3 dBFS, gain pur sur tout le mix.
+        const L = mix.left.subarray(0, n), R = mix.right.subarray(0, n);
+        let peak = 0;
+        for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
+        const ceil = Math.pow(10, -0.3 / 20), g = peak > ceil ? ceil / peak : 1;
+        if (g < 1) for (let i = 0; i < n; ++i) { L[i] *= g; R[i] *= g; }
+        const wav = encodeWav16(L, R, sr);
+        const r = { report: { lufs: NaN, limiterGrDb: 0, gainDb: 20 * Math.log10(g) } };
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
         a.download = 'StudioVoix-mix.wav';
         document.body.appendChild(a); a.click(); a.remove();
         const nTracks = state.tracks.filter((t) => t.take && audible(t)).length;
-        log('info', `Export : ${nTracks} piste(s) voix + instru, ${r.report.lufs.toFixed(1)} LUFS, limiteur ${r.report.limiterGrDb.toFixed(1)} dB`);
-        setStatus(`WAV exporté (16 bits, ${sr} Hz) : instru + ${nTracks} piste(s) voix, ${r.report.lufs.toFixed(1)} LUFS.`);
+        const gtxt = r.report.gainDb < -0.05 ? `volume général −${(-r.report.gainDb).toFixed(1)} dB pour ne pas saturer` : 'volume d\'origine';
+        log('info', `Export : ${nTracks} piste(s) voix + instru intacte (aucun limiteur), crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
+        setStatus(`WAV exporté (16 bits, ${sr} Hz) : instru intacte + ${nTracks} piste(s) voix, ${gtxt}.`);
     } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
     refreshButtons();
 });

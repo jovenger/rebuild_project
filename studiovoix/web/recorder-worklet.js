@@ -9,6 +9,8 @@ class StudioVoixRecorder extends AudioWorkletProcessor {
         this.fill = 0;
         this.chunkFrame = -1;
         this.running = true;
+        // Crêtes pour la forme d'onde en direct : une mesure toutes les 256 échantillons (~6 ms), envoyées tout de suite.
+        this.peakSize = 256; this.pMin = 0; this.pMax = 0; this.pFill = 0; this.pFrame = 0;
         this.port.onmessage = (e) => {
             if (e.data === 'stop') {
                 this.flush();
@@ -33,8 +35,15 @@ class StudioVoixRecorder extends AudioWorkletProcessor {
                 if (this.fill === 0) this.chunkFrame = currentFrame + i;
                 let s = 0;
                 for (let c = 0; c < input.length; ++c) s += input[c][i];
-                this.buf[this.fill++] = s / input.length;
+                const v = s / input.length;
+                this.buf[this.fill++] = v;
                 if (this.fill === this.size) this.flush();
+                if (this.pFill === 0) { this.pFrame = currentFrame + i; this.pMin = v; this.pMax = v; }
+                else { if (v < this.pMin) this.pMin = v; if (v > this.pMax) this.pMax = v; }
+                if (++this.pFill === this.peakSize) {
+                    this.port.postMessage({ type: 'peak', frame: this.pFrame, n: this.pFill, min: this.pMin, max: this.pMax });
+                    this.pFill = 0;
+                }
             }
         }
         return true;

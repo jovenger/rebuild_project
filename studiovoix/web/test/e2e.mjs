@@ -103,7 +103,18 @@ try {
         await page.click('#recBtn');
         await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Enregistrement'), null, { timeout: 60000 });
         console.log(stamp(), `REC (${label}) en cours sur la piste ${before}…`);
-        await page.waitForTimeout(recSeconds * 1000);
+        await page.waitForTimeout(Math.min(4000, recSeconds * 1000));
+        // Forme d'onde en direct : la piste armée se dessine pendant la prise (pixels rouges sur sa ligne de temps).
+        const live = await page.evaluate((id) => {
+            const c = document.querySelector(`.track[data-id="${id}"] .lane canvas`);
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let red = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] < 100 && d[i + 2] < 110) ++red;
+            return red;
+        }, before);
+        console.log(stamp(), `forme d'onde en direct : ${live} pixels dessinés après 4 s`);
+        if (live < 50) throw new Error('forme d\'onde en direct absente pendant la prise');
+        await page.waitForTimeout(Math.max(0, recSeconds * 1000 - 4000));
         await page.click('#stopBtn');
         await page.waitForFunction((id) => {
             const st = document.getElementById('status').textContent;
@@ -195,6 +206,31 @@ try {
     const size = statSync(path).size;
     console.log(stamp(), `export ${download.suggestedFilename()} : ${size} octets ; ${await page.textContent('#status')}`);
     if (size < 1000) throw new Error('WAV exporté trop petit');
+
+    // Instru intacte : voix coupées, l'export doit être l'instru d'origine à l'échantillon près (aucun limiteur,
+    // aucun compresseur ; seul un gain pur est permis si la somme dépassait -0,3 dBFS, ce qui n'est pas le cas ici).
+    {
+        const ids = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.take && !t.mute).map((t) => t.id));
+        for (const id of ids) await page.click(`.track[data-id="${id}"] .tog.m`);
+        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#exportBtn')]);
+        const b = readFileSync(await dl.path());
+        const ref = await page.evaluate(() => {
+            const L = window.__studiovoix.instru.left, R = window.__studiovoix.instru.right, out = [];
+            let peak = 0;
+            for (let i = 0; i < L.length; ++i) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+            for (let i = 0; i < L.length; i += 331) out.push([i, L[i], R[i]]);
+            return { pts: out, peak, n: L.length };
+        });
+        let maxErr = 0;
+        for (const [i, l, r] of ref.pts) {
+            const o = 44 + i * 4;
+            if (o + 4 > b.length) { maxErr = Infinity; break; }
+            maxErr = Math.max(maxErr, Math.abs(b.readInt16LE(o) / 32767 - Math.max(-1, Math.min(1, l))), Math.abs(b.readInt16LE(o + 2) / 32767 - Math.max(-1, Math.min(1, r))));
+        }
+        console.log(stamp(), `instru seule exportée : écart max ${maxErr.toExponential(1)} sur ${ref.pts.length} points (crête instru ${(20 * Math.log10(ref.peak)).toFixed(1)} dBFS)`);
+        if (ref.peak < Math.pow(10, -0.3 / 20) && !(maxErr <= 1.5 / 32767)) throw new Error('instru modifiée à l\'export');
+        for (const id of ids) await page.click(`.track[data-id="${id}"] .tog.m`);
+    }
 
     // Sauvegarde automatique : après rechargement, le projet (instru, pistes, prises, réglages) revient.
     if (!micFile) {

@@ -29,6 +29,10 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **M** (muet) coupe une piste, **S** (solo) n'écoute que les pistes en solo : écouter le tout, retirer une ou
   plusieurs pistes, ou n'en garder qu'une, en pleine lecture ; pistes coupées grisées, « Écoute : 2 piste(s) sur 4 »
   et « Tout écouter » dans la barre du bas ; barre d'espace = lecture / arrêt ;
+- **l'instru n'est jamais traitée**, ni à l'écoute ni à l'export (aucun compresseur, aucun limiteur sur le mix) : si
+  la somme instru + voix dépasserait 0 dBFS, seul le volume général baisse (gain pur, affiché), le son de l'instru ne
+  change pas ; pendant le REC, la **forme d'onde de la voix se dessine en direct** sur la piste armée (crêtes toutes les
+  ~6 ms, latence d'entrée du navigateur compensée à l'affichage) ;
 - glisser une prise la déplace sur la ligne de temps (retraitée : grille rythmique vue depuis sa nouvelle place) ;
 - **sauvegarde automatique** dans le navigateur (instru, prises, réglages) : le projet revient à la réouverture ;
   « Nouveau projet » pour repartir de zéro ; export du mix ou de **chaque piste séparément** (WAV de même longueur).
