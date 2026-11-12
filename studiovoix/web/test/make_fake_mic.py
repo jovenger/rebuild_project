@@ -143,6 +143,9 @@ def rms(x):
 def main():
     args = sys.argv[1:]
     voice_path = None
+    no_radio = "--no-radio" in args   # vraie voix + instru captée seulement (cas sans musique extérieure)
+    if no_radio:
+        args.remove("--no-radio")
     if "--voice" in args:
         k = args.index("--voice")
         voice_path = args[k + 1]
@@ -157,10 +160,11 @@ def main():
     v = read_voice(voice_path, n) if voice_path else voice(n)
     ext = [0.0] * n
     if voice_path:
+        write_wav(folder / "voice.wav", [v])
+    if voice_path and not no_radio:
         r = radio(n)
         k = rms([x for x in v if abs(x) > 1e-4]) / max(1e-9, rms(r))   # radio au niveau de la voix (quand elle parle)
         ext = [k * x for x in r]
-        write_wav(folder / "voice.wav", [v])
     mic = [0.0] * n
     lp = 0.0
     for i in range(n):
@@ -173,7 +177,7 @@ def main():
         if voice_path:
             write_wav(folder / "voice.wav", [x * 0.99 / peak for x in v])
     write_wav(folder / "mic.wav", [mic])
-    extra = " + radio extérieure au niveau de la voix, voice.wav = référence" if voice_path else ""
+    extra = (" + radio extérieure au niveau de la voix" if not no_radio else " sans radio") + ", voice.wav = référence" if voice_path else ""
     print(f"instru.wav et mic.wav écrits dans {folder} ({SECONDS:.0f} s, musique captée à -12 dB, décalage 300 ms{extra})")
 
 

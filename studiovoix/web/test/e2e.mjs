@@ -125,8 +125,11 @@ try {
         if (st.startsWith('Prise impossible')) throw new Error('prise au micro en échec : ' + st);
         const info = await trackInfo(before);
         console.log(stamp(), `piste ${before} :`, info);
+        const bgLine = ((await page.textContent('#log')).match(/Fond sonore de la prise[^)]*\)/) || [''])[0];
+        console.log(stamp(), bgLine);
         if (process.env.EXPECT_BLEED === '1' && !/retirée/.test(info)) throw new Error('musique captée non détectée / non retirée');
         if (process.env.EXPECT_ISOLATION === '1' && !/voix isolée par IA/.test(info)) throw new Error('isolation IA non appliquée');
+        if (process.env.EXPECT_ISOLATION === '0' && !/IA non nécessaire/.test(info)) throw new Error('IA lancée alors que la prise était déjà propre');
         if (voiceRef) {
             const take = await page.evaluate((id) => { const t = window.__studiovoix.tracks.find((x) => x.id === id); return { x: Array.from(t.take.mono), sr: t.take.sampleRate }; }, before);
             const ref = readWavMono(voiceRef), mic = readWavMono(micFile);
@@ -160,6 +163,11 @@ try {
         await recordTake('seconde voix (back)');
         await page.click('.track[data-id="1"] .tog.m');
         if ((await page.textContent('#listen')) !== 'Écoute : tout') throw new Error('muet non retiré');
+        // « Micro brut » : ce que le micro a capté avant nettoyage, pour comparer.
+        await page.click('.track[data-id="1"] button.raw');
+        await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Micro brut'), null, { timeout: 10000 });
+        console.log(stamp(), 'micro brut :', (await page.textContent('#status')).slice(0, 60));
+        await page.click('#stopPlayBtn');
         // Solo de la piste 2 : seule elle s'entend.
         await page.click('.track[data-id="2"] .tog.s');
         console.log(stamp(), 'solo piste 2 :', await page.textContent('#listen'));

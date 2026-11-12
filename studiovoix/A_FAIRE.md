@@ -115,6 +115,20 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Prise sur téléphone : saccades, IA trop longue, « est-ce que ça marche ? » (retour de Yann)
+
+- Fait (build 96) : l'IA n'est plus préparée pendant la prise (téléchargement 89 Mo + compilation pendant le REC = prise
+  qui saccade sur téléphone) ; elle n'est lancée que si la prise contient encore un son extérieur : écart voix / fond
+  (90e / 10e centile des tranches de 50 ms) < 25 dB (mesuré : radio au niveau de la voix 7,4 dB ; instru captée seule,
+  retirée, 33,3 dB) ; sinon prise prête ~2 s après Stop au lieu de ~50 s (et plus propre : SDR 25,1 dB contre 21,8) ;
+  temps restant affiché, bouton « Passer l'IA » ; « 🎙 Micro brut » par prise (ce que le micro a capté, pour comparer) ;
+  onde en direct étiquetée « micro en direct — la musique des haut-parleurs sera retirée à l'arrêt ». CI : 3e essai micro
+  sans radio (l'IA doit être sautée).
+- Non fait : retrait de la musique EN DIRECT pendant la prise (affichage voix seule pendant le REC) : demande un
+  annuleur d'écho temps réel (filtre adaptatif dans le worklet, référence = ce qui est joué) ; l'annulation d'écho du
+  navigateur passe Android en mode « appel » (instru dégradée) : écartée.
+- Le micro brut n'est pas gardé dans la sauvegarde du navigateur (taille) : bouton absent après rechargement.
+
 ## Musique extérieure dans le micro (retour de Yann : « même une musique extérieure doit être masquée, que la voix »)
 
 - Fait (build 91, version web) : le retrait par référence ne traite que l'instru jouée par la page ; pour tout le

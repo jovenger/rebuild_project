@@ -13,7 +13,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
 
 const state = {
@@ -91,9 +91,15 @@ function isoWorker() {
         if (m.type === 'log') { log(m.level, '[isolation] ' + m.msg); return; }
         if (m.type === 'progress') {
             const pct = Math.round(100 * m.done / Math.max(1, m.total));
+            let eta = '';
+            if (m.stage === 'isolate') {
+                if (m.done <= 1 || !iso.t0) iso.t0 = performance.now();
+                const el = (performance.now() - iso.t0) / 1000;
+                if (m.done > 1) { const left = Math.max(0, el / (m.done - 1) * (m.total - m.done + 1) - el); eta = ` — encore ~${fmt(left + 1)}`; }
+            }
             ui.isolateInfo.textContent = m.stage === 'download'
                 ? `Téléchargement du modèle IA (une seule fois) : ${pct} % de ${(m.total / 1e6).toFixed(0)} Mo`
-                : `Isolation de la voix : ${pct} %` + (iso.backend ? ` (${iso.backend})` : '');
+                : `Isolation de la voix (IA) : ${pct} %${eta}` + (iso.backend ? ` (${iso.backend})` : '');
             if (state.isolating) setStatus(ui.isolateInfo.textContent);
             return;
         }
@@ -108,6 +114,14 @@ function isoWorker() {
         iso.pending.clear(); iso.worker = null; iso.prep = null;
     };
     return iso.worker;
+}
+// « Passer l'IA » : arrête le calcul en cours (le modèle reste dans le cache du navigateur pour la prochaine fois).
+function cancelIsolation() {
+    if (!iso.worker) return;
+    iso.worker.terminate();
+    for (const p of iso.pending.values()) { const e = new Error('IA passée à la demande'); e.skipped = true; p.reject(e); }
+    iso.pending.clear(); iso.worker = null; iso.prep = null; iso.t0 = 0;
+    log('warn', 'Isolation IA arrêtée à la demande');
 }
 function isoCall(cmd, payload = {}, transfer = []) {
     const w = isoWorker();
@@ -158,20 +172,46 @@ async function isolateVoice(mono, sr) {
     log('info', `Isolation : ${(mono.length / sr).toFixed(1)} s en ${total.toFixed(1)} s (${r.backend}) ; énergie retirée ${removedDb.toFixed(1)} dB`);
     return { mono: out, removedDb, seconds: total, backend: r.backend };
 }
+// Fond sonore de la prise : tranches de 50 ms ; voix = 90e centile, fond = 10e centile (silences entre les phrases).
+// Un grand écart = rien d'autre que la voix (pas de musique extérieure continue) : l'IA n'est alors pas nécessaire.
+const CLEAN_GAP_DB = 25;   // mesuré : radio au niveau de la voix 7,4 dB ; instru captée seule (retirée) 33,3 dB
+function backgroundGap(mono, sr) {
+    const hop = Math.max(1, Math.round(0.05 * sr)), lv = [];
+    for (let s = 0; s + hop <= mono.length; s += hop) {
+        let e = 0;
+        for (let i = s; i < s + hop; ++i) e += mono[i] * mono[i];
+        lv.push(10 * Math.log10(e / hop + 1e-20));
+    }
+    if (lv.length < 20) return { gapDb: 0, floorDb: -200, voiceDb: -200 };
+    lv.sort((a, b) => a - b);
+    const floorDb = lv[Math.floor(lv.length * 0.1)], voiceDb = lv[Math.floor(lv.length * 0.9)];
+    return { gapDb: voiceDb - floorDb, floorDb, voiceDb };
+}
 // Applique l'isolation si la case est cochée ; en cas d'échec, garde la prise telle quelle et le dit.
 async function maybeIsolate(mono, sr) {
     if (!ui.isolateVoice.checked) return { mono, note: 'isolation IA désactivée' };
+    const bg = backgroundGap(mono, sr);
+    log('info', `Fond sonore de la prise : voix ${bg.voiceDb.toFixed(1)} dBFS, fond ${bg.floorDb.toFixed(1)} dBFS, écart ${bg.gapDb.toFixed(1)} dB (IA si < ${CLEAN_GAP_DB} dB)`);
+    if (bg.gapDb >= CLEAN_GAP_DB) {
+        ui.isolateInfo.textContent = `Prise déjà propre (fond ${bg.gapDb.toFixed(0)} dB sous la voix) : IA non nécessaire`;
+        return { mono, note: `aucun son extérieur détecté (fond ${bg.gapDb.toFixed(0)} dB sous la voix) : IA non nécessaire` };
+    }
     state.isolating = true;
-    setStatus('Isolation de la voix (IA) : seule la voix est gardée…');
+    ui.skipIsoBtn.hidden = false;
+    setStatus(`Son extérieur détecté (fond seulement ${bg.gapDb.toFixed(0)} dB sous la voix) : isolation de la voix (IA)… « Passer l'IA » pour garder la prise sans elle.`);
     try {
         const r = await isolateVoice(mono, sr);
         ui.isolateInfo.textContent = `Dernière isolation : ${r.seconds.toFixed(0)} s sur ${r.backend}`;
         return { mono: r.mono, note: `voix isolée par IA (${r.removedDb.toFixed(1)} dB d'autres sons retirés)`, isolated: r };
     } catch (err) {
+        if (err.skipped) {
+            ui.isolateInfo.textContent = 'IA passée : prise gardée avec la musique des haut-parleurs retirée, sans l\'IA';
+            return { mono, note: '⚠ IA passée à la demande (sons extérieurs non retirés)' };
+        }
         log('error', 'Isolation IA impossible : ' + err.message);
         ui.isolateInfo.textContent = 'Isolation IA impossible : ' + err.message;
         return { mono, note: `⚠ isolation IA impossible (${err.message}) : prise gardée sans elle` };
-    } finally { state.isolating = false; }
+    } finally { state.isolating = false; ui.skipIsoBtn.hidden = true; iso.t0 = 0; }
 }
 
 
@@ -363,6 +403,9 @@ function trackRow(t) {
         el('div', { class: 'r' }, role, style),
         meter,
         el('div', { class: 'r' }, ...toggles(t, onMuteSolo), el('span', { class: 'file' }, el('button', { textContent: 'Importer', title: 'Importer une voix sur cette piste' }), file)),
+        t.take?.raw ? el('div', { class: 'r' }, el('button', { class: 'raw', textContent: '🎙 Micro brut',
+            title: 'Écouter ce que le micro a vraiment capté (avant nettoyage), pour comparer avec la prise gardée',
+            onclick: (e) => { e.stopPropagation(); playRawMic(t); } })) : null,
         t.takes.length > 1 ? el('div', { class: 'r' }, takeSelect(t)) : null,
         info);
     const lane = el('div', { class: 'lane' }, el('canvas'), t.take ? null : el('div', { class: 'empty', textContent: 'Arme la piste (●) puis REC, ou importe une voix' }));
@@ -378,6 +421,24 @@ function takeSelect(t) {
     sel.addEventListener('change', () => selectTake(t, Number(sel.value)));
     sel.addEventListener('click', (e) => e.stopPropagation());
     return sel;
+}
+// Micro brut d'une prise, seul, à sa place : pour entendre ce qui a été retiré (musique captée, sons extérieurs).
+function playRawMic(t) {
+    if (!t.take?.raw) return;
+    if (state.player?.mode === 'rawmic') { stopPlayback(); setStatus('Lecture arrêtée.'); return; }
+    stopPlayback();
+    const ctx = audioContext();
+    const src = ctx.createBufferSource();
+    src.buffer = makeBuffer(t.take.raw, t.take.raw);
+    src.connect(ctx.destination);
+    const t0 = ctx.currentTime + 0.05;
+    src.start(t0);
+    const player = { mode: 'rawmic', nodes: [{ key: -1, src }], t0, fromSec: t.take.startSec, raf: 0 };
+    state.player = player;
+    const tick = () => { if (state.player !== player) return; setPlayhead(t.take.startSec + ctx.currentTime - t0); player.raf = requestAnimationFrame(tick); };
+    player.raf = requestAnimationFrame(tick);
+    src.onended = () => { if (state.player === player) { stopPlayback(); setStatus('Fin du micro brut.'); } };
+    setStatus(`Micro brut de « ${t.name} » (${t.take.label}) : ce que le micro a capté avant nettoyage. Écoute « Mix » ou mets la piste en solo pour la prise gardée.`);
 }
 function badgeText(t) {
     if (t.status === 'busy') return 'traitement…';
@@ -477,6 +538,10 @@ function liveStart(t) {
     if (!row) return;
     drawLane(row, { ...t, take: null, processed: null }, true);   // fond + repères de mesure seulement
     row._lane.querySelector('.empty')?.remove();
+    const c = row._lane.querySelector('canvas'), g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.fillStyle = 'rgba(255,255,255,.55)';
+    g.font = `${Math.round(11 * dpr)}px system-ui, sans-serif`;
+    g.fillText('● micro en direct — la musique des haut-parleurs sera retirée à l\'arrêt', 6 * dpr, 14 * dpr);
     log('info', `Forme d'onde en direct sur « ${t.name} » (latence d'entrée annoncée ${Math.round((state.rec?.inLatency || 0) * 1000)} ms, compensée à l'affichage)`);
 }
 function livePeak(t, p) {
@@ -960,7 +1025,7 @@ ui.recBtn.addEventListener('click', async () => {
         const ctx = audioContext();
         step = 'chargement de l\'enregistreur';
         await ensureRecorderWorklet(ctx);
-        prepareIsolation();   // téléchargement / préparation du modèle pendant la prise
+        // L'IA n'est PAS préparée pendant la prise (téléchargement et calcul lourds : la prise saccadait sur téléphone).
         step = 'équilibre des pistes';
         await ensureBalance();   // ce qu'on entend pendant la prise = le mix des autres pistes
         // Micro ouvert juste avant la lecture (comme avant : le faux micro des essais démarre à l'ouverture).
@@ -1039,6 +1104,7 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
         const raw = new Float32Array(total);
         let o = 0;
         for (const c of chunks) { raw.set(c, o); o += c.length; }
+        const rawMic = raw.slice();   // micro tel quel (pour comparer avec la prise nettoyée : « Micro brut »)
         const sr = info.sampleRate;
         // Temps du morceau au moment où le premier échantillon a été écrit (négatif pendant les clics).
         const recOffsetSec = firstFrame / sr - info.songStartCtx + info.fromSec;
@@ -1051,9 +1117,11 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
         const nudge = Number(ui.latencyMs.value || 0) / 1000;   // ajustement fin manuel (0 par défaut)
         let startSec = rep.startSec - nudge;
         let mono = r.left;
+        let rawCut = rawMic.subarray(0, mono.length);
         if (startSec < 0) {   // ce qui précède le début du morceau (clics, attente) est coupé
             const cut = Math.min(mono.length, Math.round(-startSec * sr));
             mono = mono.slice(cut);
+            rawCut = rawCut.subarray(cut);
             startSec = 0;
         }
         t.status = 'isolating'; updateRow(t);
@@ -1065,7 +1133,7 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
             : 'aucune musique captée (casque)';
         const note = `${bleed} · ${isoRes.note} · décalage ${lat}, compensé` + (info.micFallback ? ' · ⚠ micro ouvert avec les réglages du navigateur (traitement possible)' : '');
         info.trackId = -1;   // fin de la forme d'onde en direct : la piste se redessine avec la prise nettoyée
-        addTake(t, { mono, sampleRate: sr, startSec, note });
+        addTake(t, { mono, sampleRate: sr, startSec, note, raw: rawCut.slice() });
         log('info', `Prise sur « ${t.name} » : ${rep.describe} ; début ${startSec.toFixed(3)} s ; ${isoRes.note}`);
         renderTracks();
         setStatus(`Prise enregistrée sur « ${t.name} » : voix seule, calée sur la musique (${note}). Traitement par son style…`);
@@ -1189,6 +1257,7 @@ ui.stemsBtn.addEventListener('click', async () => {
 });
 
 ui.allBtn.addEventListener('click', listenAll);
+ui.skipIsoBtn.addEventListener('click', cancelIsolation);
 // Barre d'espace : lecture du mix / arrêt (sauf dans un champ de saisie).
 document.addEventListener('keydown', (e) => {
     if (e.code !== 'Space' || e.repeat || /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;

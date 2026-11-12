@@ -411,6 +411,11 @@ jobs:
           MIC_FILE="$RUNNER_TEMP/fakemic/mic.wav" VOICE_REF="$RUNNER_TEMP/fakemic/voice.wav" MIN_SDR_DB=10 \
           REC_SECONDS=12 EXPECT_BLEED=1 EXPECT_ISOLATION=1 PLAYWRIGHT_DIR="$PWD/node_modules" \
             node web/test/e2e.mjs http://127.0.0.1:8765/index.html "$RUNNER_TEMP/fakemic/instru.wav" - "$RUNNER_TEMP/web_rec.png"
+          # Sans musique extérieure (instru captée seule) : prise déjà propre après le retrait, l'IA doit être sautée.
+          python3 web/test/make_fake_mic.py "$RUNNER_TEMP/fakemic-clean" --voice "$RUNNER_TEMP/jfk.wav" --no-radio
+          MIC_FILE="$RUNNER_TEMP/fakemic-clean/mic.wav" VOICE_REF="$RUNNER_TEMP/fakemic-clean/voice.wav" MIN_SDR_DB=10 \
+          REC_SECONDS=12 EXPECT_BLEED=1 EXPECT_ISOLATION=0 PLAYWRIGHT_DIR="$PWD/node_modules" \
+            node web/test/e2e.mjs http://127.0.0.1:8765/index.html "$RUNNER_TEMP/fakemic-clean/instru.wav" -
 
       - name: Capture de l'essai
         if: always()
