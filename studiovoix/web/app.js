@@ -862,18 +862,78 @@ function announcedLatencySec(ctx, track) {
 
 // REC sur la piste armée. On entend l'instru et les autres pistes (mix) ; tout ce qui est joué sert de référence pour
 // le retirer de la prise si le micro le capte (haut-parleurs), puis l'IA retire le reste (musique extérieure, bruits).
+// Explication et marche à suivre pour chaque refus d'accès au micro (noms d'erreur standard de getUserMedia).
+function micErrorMessage(err) {
+    const android = /Android/i.test(navigator.userAgent), ios = /iPhone|iPad/i.test(navigator.userAgent);
+    switch (err?.name) {
+        case 'NotAllowedError':
+        case 'PermissionDeniedError':
+        case 'SecurityError':
+            return 'accès au micro refusé. Touche le cadenas (ou ⓘ) à gauche de l\'adresse > Autorisations > Micro > Autoriser, puis recharge la page.'
+                + (android ? ' Si c\'est déjà autorisé : Paramètres du téléphone > Applications > Chrome > Autorisations > Micro > Autoriser.' : '')
+                + (ios ? ' Sur iPhone : Réglages > Safari > Micro > Autoriser.' : '');
+        case 'NotFoundError':
+        case 'DevicesNotFoundError':
+            return 'aucun micro trouvé : branche un micro (ou un casque avec micro) puis réessaie.';
+        case 'NotReadableError':
+        case 'TrackStartError':
+        case 'AbortError':
+            return 'le micro est déjà utilisé par une autre application (appel, dictaphone, autre onglet, logiciel StudioVoix PC…) : ferme-la puis réessaie.';
+        case 'OverconstrainedError':
+            return 'le micro refuse les réglages demandés (' + (err.constraint || '?') + ').';
+        case 'TypeError':
+            return 'le navigateur ne donne pas accès au micro sur cette page (page non sécurisée ou navigateur trop ancien).';
+        default:
+            return (err?.name ? err.name + ' : ' : '') + (err?.message || String(err));
+    }
+}
+// Ouvre le micro sans traitement du navigateur ; si l'appareil refuse ces réglages (certains téléphones), second essai
+// avec les réglages par défaut du navigateur (annulation d'écho / réduction de bruit possibles), signalé.
+async function openMic() {
+    if (!navigator.mediaDevices?.getUserMedia) { const e = new Error('getUserMedia absent'); e.name = 'TypeError'; throw e; }
+    try {
+        if (navigator.permissions?.query) {
+            const p = await navigator.permissions.query({ name: 'microphone' }).catch(() => null);
+            if (p) log('info', `Autorisation du micro (navigateur) : ${p.state}`);
+        }
+    } catch (_) { /* information seulement */ }
+    try {
+        return { stream: await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
+        }), fallback: false };
+    } catch (err) {
+        log('error', `Micro : ${err.name || 'erreur'} : ${err.message || ''}`);
+        if (!['NotReadableError', 'OverconstrainedError', 'AbortError', 'TrackStartError'].includes(err.name)) throw err;
+        log('warn', 'Micro : second essai avec les réglages par défaut du navigateur');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        return { stream, fallback: true };
+    }
+}
+
 ui.recBtn.addEventListener('click', async () => {
+    let step = 'ouverture du micro';
+    let mic = null;
     try {
         let t = findTrack(state.armedId);
         if (!t) { t = addTrack(state.tracks.some((x) => x.roleId === 'lead') ? ui.addRole.value : 'lead'); state.armedId = t.id; renderTracks(); }
         const ctx = audioContext();
+        step = 'chargement de l\'enregistreur';
         await ensureRecorderWorklet(ctx);
         prepareIsolation();   // téléchargement / préparation du modèle pendant la prise
+        step = 'équilibre des pistes';
         await ensureBalance();   // ce qu'on entend pendant la prise = le mix des autres pistes
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
-        });
+        // Micro ouvert juste avant la lecture (comme avant : le faux micro des essais démarre à l'ouverture).
+        try { mic = await openMic(); }
+        catch (err) {
+            setStatus('Micro indisponible : ' + micErrorMessage(err));
+            log('error', `Micro indisponible (${err.name || '?'}) : ${err.message || err} ; navigateur : ${navigator.userAgent}`);
+            return;
+        }
+        const stream = mic.stream;
         const track = stream.getAudioTracks()[0];
+        log('info', `Micro ouvert : « ${track?.label || 'sans nom'} »` + (mic.fallback ? ' (réglages par défaut du navigateur : traitement possible)' : '')
+                    + ` ; réglages ${JSON.stringify(track?.getSettings?.() || {})}`);
+        step = 'branchement du micro';
         const src = ctx.createMediaStreamSource(stream);
         const rec = new AudioWorkletNode(ctx, 'studiovoix-recorder', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
         const sink = ctx.createGain(); sink.gain.value = 0;   // le nœud doit être relié à la sortie pour tourner ; muet
@@ -903,13 +963,18 @@ ui.recBtn.addEventListener('click', async () => {
             o.connect(g).connect(ctx.destination); o.start(tt); o.stop(tt + 0.06);
         }
         const songStart = t0 + countSec, fromSec = state.playFromSec;
-        state.rec = { node: rec, songStartCtx: songStart, fromSec, sampleRate: ctx.sampleRate, trackId: t.id, mode: 'mix' };
+        state.rec = { node: rec, songStartCtx: songStart, fromSec, sampleRate: ctx.sampleRate, trackId: t.id, mode: 'mix', micFallback: mic.fallback };
         play('mix', fromSec, { exceptId: t.id, startAt: songStart });
         setStatus((bars > 0 ? `Enregistrement sur « ${t.name} »… ${bars} mesure(s) de clics à ${bpm.toFixed(0)} BPM, puis la musique : chante.`
                             : `Enregistrement sur « ${t.name} »… chante.`) + ' Stop pour finir.');
         ui.recBtn.disabled = true; ui.recBtn.classList.add('on'); ui.stopBtn.disabled = false;
         log('info', `REC sur « ${t.name} » (${roleLabel(t.roleId)}) depuis ${fromSec.toFixed(2)} s ; latence annoncée ${(announcedLatencySec(ctx, track) * 1000).toFixed(0)} ms (sortie ${((ctx.outputLatency || 0) * 1000).toFixed(0)}, traitement ${((ctx.baseLatency || 0) * 1000).toFixed(0)})`);
-    } catch (err) { setStatus('Micro indisponible : ' + err.message); log('error', err.message); ui.recBtn.disabled = false; ui.recBtn.classList.remove('on'); }
+    } catch (err) {
+        mic?.stream.getTracks().forEach((x) => x.stop());
+        setStatus(`REC impossible (${step}) : ${err.message || err}`);
+        log('error', `REC impossible (${step}) : ${err.name || ''} ${err.message || err}`);
+        ui.recBtn.disabled = false; ui.recBtn.classList.remove('on');
+    }
 });
 ui.stopBtn.addEventListener('click', () => {
     if (state.rec?.node) state.rec.node.port.postMessage('stop');
@@ -953,7 +1018,7 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
         const bleed = rep.bleedDetected
             ? `musique captée ${rep.bleedBeforeDb.toFixed(0)} dB → retirée (${rep.bleedAfterDb.toFixed(0)} dB)`
             : 'aucune musique captée (casque)';
-        const note = `${bleed} · ${isoRes.note} · décalage ${lat}, compensé`;
+        const note = `${bleed} · ${isoRes.note} · décalage ${lat}, compensé` + (info.micFallback ? ' · ⚠ micro ouvert avec les réglages du navigateur (traitement possible)' : '');
         addTake(t, { mono, sampleRate: sr, startSec, note });
         log('info', `Prise sur « ${t.name} » : ${rep.describe} ; début ${startSec.toFixed(3)} s ; ${isoRes.note}`);
         renderTracks();
