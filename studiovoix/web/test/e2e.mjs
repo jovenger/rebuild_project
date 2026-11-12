@@ -25,6 +25,24 @@ const recSeconds = Number(process.env.REC_SECONDS || 12);
 const voiceRef = process.env.VOICE_REF || '';
 const minSdrDb = Number(process.env.MIN_SDR_DB || 10);
 
+// SEP_SONG = chanson avec voix (WAV) : essai de « Séparer la chanson » ; TRUTH_INSTRU = vraie instru (WAV stéréo 16 bits)
+// pour mesurer l'instru séparée ; MIN_INSTRU_SDR_DB = seuil d'échec.
+const sepSong = process.env.SEP_SONG || '';
+function readWavStereo(path) {
+    const b = readFileSync(path);
+    let o = 12, ch = 0;
+    while (o + 8 <= b.length) {
+        const id = b.toString('ascii', o, o + 4), size = b.readUInt32LE(o + 4);
+        if (id === 'fmt ') ch = b.readUInt16LE(o + 10);
+        if (id === 'data') {
+            const n = Math.floor(size / 2 / ch), l = new Float32Array(n), r = new Float32Array(n);
+            for (let i = 0; i < n; ++i) { l[i] = b.readInt16LE(o + 8 + i * 2 * ch) / 32768; r[i] = b.readInt16LE(o + 8 + (i * ch + (ch > 1 ? 1 : 0)) * 2) / 32768; }
+            return { l, r };
+        }
+        o += 8 + size + (size & 1);
+    }
+    throw new Error(path + ' : pas de données');
+}
 function readWavMono(path) {
     const b = readFileSync(path);
     if (b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WAVE') throw new Error(path + ' : pas un WAV');
@@ -143,6 +161,43 @@ try {
     }
 
     let expected = 1;
+    if (sepSong) {
+        await page.setInputFiles('#instruFile', sepSong);
+        await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
+        await page.click('#sepBtn');
+        await page.waitForFunction(() => /Chanson séparée|Séparation impossible|Séparation arrêtée/.test(document.getElementById('status').textContent), null, { timeout: 1200000 });
+        const st = await page.textContent('#status');
+        console.log(stamp(), st);
+        console.log(stamp(), (await page.textContent('#sepInfo')).replace(/\n/g, ' | '));
+        if (!st.startsWith('Chanson séparée')) throw new Error('séparation en échec');
+        const tracks = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.noFx ? 'sansFX' : 'FX'}`));
+        console.log(stamp(), 'pistes :', tracks.join(' ; '));
+        if (!tracks.some((t) => /lead\|sansFX/.test(t))) throw new Error('aucune piste de voix principale créée');
+        if (process.env.EXPECT_BACKS === '1' && !tracks.some((t) => /manual_back/.test(t))) throw new Error('aucune piste de backs créée');
+        if (process.env.EXPECT_SINGERS && tracks.filter((t) => /^Chanteur/.test(t)).length !== Number(process.env.EXPECT_SINGERS))
+            throw new Error(`nombre de chanteurs ${tracks.filter((t) => /^Chanteur/.test(t)).length} au lieu de ${process.env.EXPECT_SINGERS}`);
+        if (process.env.TRUTH_INSTRU) {
+            const truth = readWavStereo(process.env.TRUTH_INSTRU), song = readWavStereo(sepSong);
+            const got = await page.evaluate(() => ({ l: Array.from(window.__studiovoix.instru.left), r: Array.from(window.__studiovoix.instru.right) }));
+            const n = Math.min(truth.l.length, got.l.length);
+            const sdr = (ref, est) => { let a = 0, e = 0; for (const c of ['l', 'r']) for (let i = 0; i < n; ++i) { a += ref[c][i] ** 2; e += (ref[c][i] - est[c][i]) ** 2; } return 10 * Math.log10(a / Math.max(1e-20, e)); };
+            const before = sdr(truth, song), after = sdr(truth, got);
+            console.log(stamp(), `instru séparée : SDR ${after.toFixed(1)} dB (chanson brute : ${before.toFixed(1)} dB)`);
+            if (!(after >= Number(process.env.MIN_INSTRU_SDR_DB || 10))) throw new Error(`instru séparée pas assez propre : ${after.toFixed(1)} dB`);
+        }
+        // Mixage final de la chanson reconstruite, puis fin de l'essai.
+        await page.click('#finalMixBtn');
+        await page.waitForFunction(() => (window.__studiovoix.finalMix && !window.__studiovoix.finalMix.stale) || /Mixage impossible/.test(document.getElementById('status').textContent), null, { timeout: 300000 });
+        const rep = await page.evaluate(() => window.__studiovoix.finalMix?.report);
+        if (!rep) throw new Error('mixage final après séparation en échec : ' + await page.textContent('#status'));
+        console.log(stamp(), `chanson remixée : ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
+        await page.click('#stopPlayBtn');
+        if (shot) await page.screenshot({ path: shot, fullPage: true });
+        const fatal = errors.filter((e) => !/favicon/i.test(e));
+        if (fatal.length) { console.error('erreurs console :', fatal.join('\n')); process.exitCode = 1; } else console.log(stamp(), 'OK');
+        await browser.close();
+        process.exit(process.exitCode || 0);
+    }
     if (instru && micFile) {
         await page.setInputFiles('#instruFile', instru);
         await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });

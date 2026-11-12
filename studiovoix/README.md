@@ -29,6 +29,16 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **M** (muet) coupe une piste, **S** (solo) n'écoute que les pistes en solo : écouter le tout, retirer une ou
   plusieurs pistes, ou n'en garder qu'une, en pleine lecture ; pistes coupées grisées, « Écoute : 2 piste(s) sur 4 »
   et « Tout écouter » dans la barre du bas ; barre d'espace = lecture / arrêt ;
+- **✂ Séparer la chanson** : une chanson avec voix posée sur la piste Instru est découpée par l'IA (modèles MDX-Net
+  dans le navigateur) : l'**instrumental** reste sur la piste Instru (chanson − voix : là où personne ne chante, c'est
+  exactement l'original) ; la **voix principale**, les **backs** (modèle karaoké) et, en option expérimentale,
+  l'**ambiance** (réverb de la voix) vont chacun sur leur piste, avec leur type et « sans effet » (déjà produits) ; la
+  voix principale est coupée **par chanteur** quand ils chantent chacun leur tour (empreinte de voix WeSpeaker) ; deux
+  chanteurs en même temps ne se séparent pas. « ↺ Rétablir le morceau » remet l'original. Mesuré sur un faux morceau à
+  parties connues : instru 16,3 dB (chanson brute -2,4 dB), backs 10,2 dB, voix principale 17,8 dB, deux voix qui
+  alternent repérées à ~1 s près ; ambiance : presque rien extrait sur nos essais (non vérifié). Modèles téléchargés
+  une fois : 67 + 53 + 27 Mo (+ 67 Mo ambiance) ; calcul ~3 à 4 × la durée par étape sans carte graphique.
+  Bouton **FX** par piste : effets du style ou piste jouée telle quelle ;
 - **🎚 Mixer la chanson** (quand tout est enregistré) : une seule chanson mixée et masterisée, comme en studio —
   chaque piste à sa place selon son type (voix principale devant, back -7 LU, ambiance -14 LU…, faders compris), voix
   soudées ensemble (bus voix, compresseur « colle »), voix posées sur l'instru (sonie visée par le style) avec, si

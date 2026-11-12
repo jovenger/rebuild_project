@@ -20,6 +20,37 @@ export const MDX = Object.freeze({
     modelFile: 'UVR-MDX-NET-Voc_FT.onnx',
     modelBytes: 66762490,
     modelSha256: '534b2070fcc7df514b13ef660dc8cbb328679c2374d04354a5c42bb14ecce111',
+    compensate: 1.021,   // réglage UVR (model_data, empreinte 77d07b2667ddf05b9e3175941b4454a0) : sortie × compensate
+    primary: 'Vocals',
+    label: 'voix',
+});
+
+// Modèles MDX-Net utilisés par « Séparer » (même architecture et même découpe ; réglages UVR model_data_new.json, repérés
+// par l'empreinte UVR = md5 des 10 derniers Mo du fichier). primary = ce que le modèle rend ; l'autre partie = entrée − rendu.
+export const MODELS = Object.freeze({
+    voc: MDX,
+    // UVR-MDX-NET Karaoke 2 (empreinte 1d64a6d2c30f709b8c9b4ce1366d96ee) : rend tout sauf la voix principale ; appliqué
+    // aux voix seules, il rend les backs (chœurs, harmonies) ; voix principale = voix − backs.
+    kara: Object.freeze({
+        sampleRate: 44100, nFft: 5120, hop: 1024, dimF: 2048, dimT: 256, overlap: 0.25,
+        modelFile: 'UVR_MDXNET_KARA_2.onnx', modelBytes: 52786726,
+        modelSha256: 'bf32e15105a09c0f7dddd2b67346146334d6f3ecb399ed7638eba2ab07cbf5f4',
+        compensate: 1.065, primary: 'Instrumental', label: 'voix principale / backs',
+    }),
+    // Reverb HQ by FoxJoy (empreinte cd5b2989ad863f116c855db1dfe24e39) : rend la réverb / l'écho de la voix ; voix sèche
+    // = voix − réverb. Segments de 512 trames.
+    reverb: Object.freeze({
+        sampleRate: 44100, nFft: 6144, hop: 1024, dimF: 3072, dimT: 512, overlap: 0.25,
+        modelFile: 'Reverb_HQ_By_FoxJoy.onnx', modelBytes: 66780123,
+        modelSha256: '233bb5c6aaa365e568659a0a81211746fa881f8f47f82d9e864fce1f7692db80',
+        compensate: 1.035, primary: 'Reverb', label: 'voix sèche / ambiance',
+    }),
+    // WeSpeaker ResNet34 VoxCeleb (sherpa-onnx, licence Apache-2.0) : empreinte de voix (256 valeurs) pour repérer les
+    // chanteurs qui alternent (singers.js). Entrée fbank [1, T, 80] à 16 kHz.
+    spk: Object.freeze({
+        type: 'speaker', modelFile: 'wespeaker_en_voxceleb_resnet34.onnx', modelBytes: 26534365,
+        modelSha256: '5ef208a9da1453335308a6b6f4e6dfbd7e183a38b604de0a57664f45d257fe94', label: 'empreinte de voix',
+    }),
 });
 
 // ------------------------------------------------------------------ FFT

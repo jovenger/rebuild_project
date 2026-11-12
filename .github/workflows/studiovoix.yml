@@ -384,7 +384,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/ia-cache
-          key: studiovoix-ia-mdx-voc-ft-534b2070-ort-1.22.0
+          key: studiovoix-ia-voc-kara-reverb-spk-ort-1.22.0
 
       - name: IA (ONNX Runtime Web 1.22.0 + modèle voix seule)
         run: |
@@ -411,6 +411,24 @@ jobs:
           MIC_FILE="$RUNNER_TEMP/fakemic/mic.wav" VOICE_REF="$RUNNER_TEMP/fakemic/voice.wav" MIN_SDR_DB=10 \
           REC_SECONDS=12 EXPECT_BLEED=1 EXPECT_ISOLATION=1 PLAYWRIGHT_DIR="$PWD/node_modules" \
             node web/test/e2e.mjs http://127.0.0.1:8765/index.html "$RUNNER_TEMP/fakemic/instru.wav" - "$RUNNER_TEMP/web_rec.png"
+          # « Séparer la chanson » : faux morceau à parties connues (vraie musique Kevin MacLeod CC BY + vraies voix :
+          # JFK puis LibriSpeech en alternance, backs LibriSpeech) : instru mesurée contre la vraie musique (>= 10 dB),
+          # pistes voix principale (2 chanteurs) et backs créées, mixage final de la chanson reconstruite.
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q ffmpeg > /dev/null
+          SEP="$RUNNER_TEMP/sep"; mkdir -p "$SEP"
+          curl -fsSL --retry 4 -o "$SEP/music.ogg" https://raw.githubusercontent.com/librosa/data/main/audio/Kevin_MacLeod_-_Vibe_Ace.ogg
+          curl -fsSL --retry 4 -o "$SEP/b.ogg" https://raw.githubusercontent.com/librosa/data/main/audio/198-209-0000.hq.ogg
+          curl -fsSL --retry 4 -o "$SEP/c.ogg" https://raw.githubusercontent.com/librosa/data/main/audio/3436-172162-0000.ogg
+          printf '%s  %s\n' 6c23aed3dd5aa57f2b1652ecab68d15d9b82ad257f54e639eb2880ca09bc118a "$SEP/music.ogg" \
+            6a8d2c16e56dcb27b7f5fe5aa99bfd26b4722a6dabca1968eff951b456936514 "$SEP/b.ogg" \
+            780e482b52f2c8a500356babf60178ce005449cc171a8537eb3ef2961eb3e855 "$SEP/c.ogg" | sha256sum -c -
+          ffmpeg -hide_banner -loglevel error -y -ss 30 -t 20 -i "$SEP/music.ogg" -ar 44100 -ac 2 -f f32le "$SEP/music.f32"
+          ffmpeg -hide_banner -loglevel error -y -i "$RUNNER_TEMP/jfk.wav" -ar 44100 -ac 1 -f f32le "$SEP/a.f32"
+          ffmpeg -hide_banner -loglevel error -y -i "$SEP/b.ogg" -ar 44100 -ac 1 -f f32le "$SEP/b.f32"
+          ffmpeg -hide_banner -loglevel error -y -i "$SEP/c.ogg" -ar 44100 -ac 1 -f f32le "$SEP/c.f32"
+          node web/test/make_song.mjs "$SEP/music.f32" "$SEP/a.f32" "$SEP/b.f32" "$SEP/c.f32" "$SEP"
+          SEP_SONG="$SEP/song.wav" TRUTH_INSTRU="$SEP/truth_instru.wav" MIN_INSTRU_SDR_DB=10 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_sep.png"
           # Sans musique extérieure (instru captée seule) : prise déjà propre après le retrait, l'IA doit être sautée.
           python3 web/test/make_fake_mic.py "$RUNNER_TEMP/fakemic-clean" --voice "$RUNNER_TEMP/jfk.wav" --no-radio
           MIC_FILE="$RUNNER_TEMP/fakemic-clean/mic.wav" VOICE_REF="$RUNNER_TEMP/fakemic-clean/voice.wav" MIN_SDR_DB=10 \
@@ -426,6 +444,7 @@ jobs:
             ${{ runner.temp }}/web_e2e.png
             ${{ runner.temp }}/web_rec.png
             ${{ runner.temp }}/web_tel.png
+            ${{ runner.temp }}/web_sep.png
           if-no-files-found: ignore
 
       - name: Page prête pour GitHub Pages

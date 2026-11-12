@@ -90,6 +90,8 @@
   #log .l-warn { color: var(--warn); } #log .l-error { color: var(--bad); }
   details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
   .mixcard { border-color: #4b3a8a; }
+  .sepcard { border-color: #2f5f7a; }
+  button.tog.fx.on { background: #2b4f8a; border-color: #3d6cc0; }
   #finalInfo.stale { color: var(--warn); }
 
   /* téléphone : en-tête de piste au-dessus de sa forme d'onde */
@@ -120,6 +122,16 @@
     <button id="stemsBtn" disabled title="Un fichier WAV par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Exporter les pistes</button>
     <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
   </div>
+
+  <section class="card sepcard">
+    <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">
+      <button id="sepBtn" disabled title="La chanson posée sur la piste Instru est séparée par l'IA : l'instrumental reste sur la piste Instru, chaque voix repérée va sur sa propre piste">✂ Séparer la chanson</button>
+      <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
+      <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" checked> Une piste par chanteur</label>
+      <label title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox"> Ambiance (réverb) — expérimental</label>
+    </div>
+    <div id="sepInfo" class="info">Pose une chanson avec voix sur la piste Instru, puis « Séparer la chanson ». Calcul dans le navigateur : environ 3 à 4 fois la durée de la chanson par étape sans carte graphique ; modèles téléchargés une seule fois (67 + 53 + 27 Mo, + 67 Mo pour l'ambiance). Là où personne ne chante, l'instru reste exactement l'originale.</div>
+  </section>
 
   <section class="card mixcard">
     <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">

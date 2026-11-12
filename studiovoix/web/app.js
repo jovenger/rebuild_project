@@ -5,6 +5,8 @@
 // du style réglée pour ce type et d'après la mesure de la prise ; le mix équilibre les pistes entre elles selon leur
 // type (back -7 LU sous la principale, ambiance -14 LU…) puis l'ensemble des voix par rapport à l'instru.
 
+import { findSingers, keepPhrases } from './singers.js';
+
 const $ = (id) => document.getElementById(id);
 const ui = {
     status: $('status'), log: $('log'), version: $('version'), tracks: $('tracks'), report: $('report'),
@@ -14,6 +16,7 @@ const ui = {
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
+    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
@@ -375,6 +378,7 @@ function instruRow() {
         el('div', { class: 'r' },
             el('span', { class: 'file' }, el('button', { textContent: 'Importer l\'instru' }), file),
             el('button', { id: 'demoBtn', textContent: 'Démo', disabled: !state.ready, title: 'Instru et deux voix de démonstration (La mineur, 100 BPM)', onclick: loadDemo })),
+        state.instru?.original ? el('div', { class: 'r' }, el('button', { textContent: '↺ Rétablir le morceau', title: 'Remettre la chanson d\'origine (avant séparation) sur cette piste', onclick: (e) => { e.stopPropagation(); restoreOriginalSong(); } })) : null,
         el('div', { class: 'r' }, ...toggles(state.instruTrack, onMuteSolo)),
         el('div', { class: 'tinfo', textContent: info, title: 'Jouée telle quelle, jamais modifiée' }));
     const lane = el('div', { class: 'lane' }, el('canvas'), state.instru ? null : el('div', { class: 'empty', textContent: 'Importe l\'instru (MP3, WAV…) : elle va seule sur cette piste' }));
@@ -405,7 +409,10 @@ function trackRow(t) {
             el('button', { class: 'x', textContent: '✕', title: 'Supprimer la piste', onclick: (e) => { e.stopPropagation(); removeTrack(t.id); } })),
         el('div', { class: 'r' }, role, style),
         meter,
-        el('div', { class: 'r' }, ...toggles(t, onMuteSolo), el('span', { class: 'file' }, el('button', { textContent: 'Importer', title: 'Importer une voix sur cette piste' }), file)),
+        el('div', { class: 'r' }, ...toggles(t, onMuteSolo),
+            el('button', { class: 'tog fx' + (t.noFx ? '' : ' on'), textContent: 'FX', title: t.noFx ? 'Sans effet : jouée telle quelle (clique pour appliquer la chaîne du style)' : 'Effets du style appliqués (clique pour jouer la piste telle quelle)',
+                onclick: (e) => { e.stopPropagation(); t.noFx = !t.noFx; log('info', `« ${t.name} » : ${t.noFx ? 'sans effet' : 'effets du style'}`); markDirty(); renderTracks(); queueProcess(t); } }),
+            el('span', { class: 'file' }, el('button', { textContent: 'Importer', title: 'Importer une voix sur cette piste' }), file)),
         t.take?.raw ? el('div', { class: 'r' }, el('button', { class: 'raw', textContent: '🎙 Micro brut',
             title: 'Écouter ce que le micro a vraiment capté (avant nettoyage), pour comparer avec la prise gardée',
             onclick: (e) => { e.stopPropagation(); playRawMic(t); } })) : null,
@@ -446,6 +453,7 @@ function playRawMic(t) {
 function badgeText(t) {
     if (t.status === 'busy') return 'traitement…';
     if (t.status === 'isolating') return 'isolation IA…';
+    if (t.noFx && t.take) return 'sans effet';
     if (t.processed) return 'traitée';
     if (t.take) return 'brute';
     return 'vide';
@@ -621,6 +629,10 @@ function setBusy(delta) {
 }
 function queueProcess(t) {
     if (!t.take) { updateRow(t); return; }
+    if (t.noFx) {   // piste « sans effet » (voix séparée d'une chanson déjà produite) : jouée telle quelle
+        ++t.token; t.processed = null; t.status = 'raw'; state.balanceDirty = true; updateRow(t);
+        return state.jobs;
+    }
     const token = ++t.token;
     t.status = 'busy';
     state.balanceDirty = true;
@@ -1226,6 +1238,125 @@ function refreshButtons() {
     ui.exportBtn.disabled = !(anyTake || state.instru);
     ui.stemsBtn.disabled = !(anyTake || state.instru);
     ui.finalMixBtn.disabled = !state.ready || !(anyTake || state.instru) || !!state.rec;
+    ui.sepBtn.disabled = !state.ready || !state.instru || !!state.rec || state.isolating;
+}
+
+// ------------------------------------------------------------------ « Séparer » une chanson en pistes
+// Chanson avec voix posée sur la piste Instru → IA (modèles MDX-Net, isolate.js) :
+//  1) voix = modèle « voix » ; instru = chanson − voix (là où personne ne chante, l'instru est l'original : pas de trou) ;
+//  2) backs = modèle « karaoké » appliqué aux voix ; voix principale = voix − backs ;
+//  3) (expérimental) ambiance = modèle « réverb » appliqué à la voix principale ; voix sèche = voix principale − ambiance ;
+//  4) voix principale coupée par chanteur s'ils alternent (empreinte de voix, singers.js).
+// Chaque partie arrive sur sa piste avec son type, « sans effet » (déjà produite), prête pour « Mixer la chanson ».
+async function resampleStereo(L, R, fromSr, toSr) {
+    if (fromSr === toSr) return { left: L.slice(), right: R.slice() };
+    const n = Math.max(1, Math.round(L.length * toSr / fromSr));
+    const off = new OfflineAudioContext(2, n, toSr);
+    const b = off.createBuffer(2, L.length, fromSr);
+    b.copyToChannel(L, 0); b.copyToChannel(R, 1);
+    const src = off.createBufferSource(); src.buffer = b; src.connect(off.destination); src.start();
+    const out = await off.startRendering();
+    return { left: out.getChannelData(0).slice(), right: out.getChannelData(1).slice() };
+}
+const SEP_MODELS = { voc: 'voix / instru', kara: 'voix principale / backs', reverb: 'ambiance', spk: 'chanteurs' };
+async function runSepModel(key, L, R, step, steps) {
+    setStatus(`Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]}… (« Passer l'IA » pour arrêter)`);
+    const r = await isoCall('isolate', { model: key, left: L.slice(), right: R.slice(), release: key !== 'voc' });
+    iso.backend = r.backend;
+    log('info', `Séparation ${SEP_MODELS[key]} : ${r.seconds.toFixed(1)} s sur ${r.backend}`);
+    return r;
+}
+const rmsDbSt = (L, R) => { let e = 0; for (let i = 0; i < L.length; ++i) e += L[i] * L[i] + R[i] * R[i]; return 10 * Math.log10(e / Math.max(1, 2 * L.length) + 1e-20); };
+const toMonoLR = (L, R) => { const m = new Float32Array(L.length); for (let i = 0; i < m.length; ++i) m[i] = 0.5 * (L[i] + R[i]); return m; };
+async function separateSong() {
+    if (!state.instru) return;
+    const comp = { voc: 1.021, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
+    const doKara = ui.sepLeadBack.checked, doRev = ui.sepAmbiance.checked, doSing = ui.sepSingers.checked;
+    const steps = 1 + (doKara ? 1 : 0) + (doRev ? 1 : 0) + (doSing ? 1 : 0);
+    const t0 = performance.now();
+    stopPlayback();
+    ui.sepBtn.disabled = true; ui.skipIsoBtn.hidden = false; state.isolating = true;
+    try {
+        const src = state.instru, sr = src.sampleRate;
+        const song = await resampleStereo(src.left, src.right, sr, 44100);
+        // 1) voix / instru
+        const v = await runSepModel('voc', song.left, song.right, 1, steps);
+        const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);
+        const IL = song.left.map((x, i) => x - VL[i]), IR = song.right.map((x, i) => x - VR[i]);
+        let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
+        // 2) voix principale / backs
+        if (doKara) {
+            const k = await runSepModel('kara', VL, VR, ++step, steps);
+            backL = k.left.map((x) => x * comp.kara); backR = k.right.map((x) => x * comp.kara);
+            leadL = VL.map((x, i) => x - backL[i]); leadR = VR.map((x, i) => x - backR[i]);
+        }
+        // 3) ambiance (expérimental)
+        if (doRev) {
+            const rv = await runSepModel('reverb', leadL, leadR, ++step, steps);
+            ambL = rv.left.map((x) => x * comp.reverb); ambR = rv.right.map((x) => x * comp.reverb);
+            leadL = leadL.map((x, i) => x - ambL[i]); leadR = leadR.map((x, i) => x - ambR[i]);
+        }
+        // retour à la fréquence du projet
+        const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
+        const I = await back44(IL, IR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
+        const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };
+        // 4) chanteurs
+        const leadMono = fit(toMonoLR(lead.left, lead.right));
+        let parts = [{ name: 'Voix principale (séparée)', mono: leadMono }], singersNote = '';
+        if (doSing) {
+            setStatus(`Séparation, étape ${steps}/${steps} : repérage des chanteurs (empreinte de voix)…`);
+            const embed = async (feats, frames) => (await isoCall('embed', { model: 'spk', feats, frames }, [feats.buffer])).emb;
+            const res = await findSingers(leadMono, sr, embed);
+            await isoCall('release', { model: 'spk' }).catch(() => {});
+            singersNote = res.why;
+            log('info', `Chanteurs : ${res.why}`);
+            if (res.singers === 2) parts = [0, 1].map((k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono: keepPhrases(leadMono, sr, res.phrases, k) }));
+        }
+        // Pistes : l'instru séparée remplace la chanson (l'original reste gardé pour « Rétablir »).
+        const original = state.instru.original || { left: src.left, right: src.right, name: src.name };
+        state.instru.left = fit(I.left); state.instru.right = fit(I.right);
+        state.instru.original = original;
+        state.instru.name = original.name.replace(/\.[^.]+$/, '') + ' (instru séparée)';
+        state.instru.audioId = `i${Date.now().toString(36)}`;
+        const made = [];
+        const mk = (name, roleId, mono) => {
+            if (rmsDbSt(mono, mono) < -55) { log('info', `${name} : rien de repéré (sous -55 dBFS), pas de piste`); return; }
+            const t = addTrack(roleId, name);
+            t.noFx = true;
+            t.styleId = state.tracks.find((x) => x.roleId === 'lead' && x !== t)?.styleId || t.styleId;
+            addTake(t, { mono, sampleRate: sr, startSec: 0, note: 'séparée de la chanson', label: 'Séparée' });
+            made.push(`${name} (${roleLabel(roleId)})`);
+        };
+        // pistes vides laissées par défaut au démarrage : retirées pour ne pas encombrer
+        state.tracks = state.tracks.filter((t) => t.take || t.name !== 'Voix principale');
+        for (const p of parts) mk(p.name, 'lead', p.mono);
+        if (backs) mk('Backs (séparés)', 'manual_back', fit(toMonoLR(backs.left, backs.right)));
+        if (amb) mk('Ambiance (séparée)', 'ambiance', fit(toMonoLR(amb.left, amb.right)));
+        state.armedId = 0; state.balanceDirty = true;
+        markDirty();
+        renderTracks();
+        const sec = (performance.now() - t0) / 1000;
+        ui.sepInfo.textContent = `Séparée en ${fmt(sec)} : instru + ${made.length} piste(s) — ${made.join(', ') || 'aucune voix repérée'}` +
+            (singersNote ? `\nChanteurs : ${singersNote}` : '') + `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`;
+        log('info', `Séparation terminée en ${sec.toFixed(1)} s : ${made.join(', ')}`);
+        setStatus(`Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);
+    } catch (err) {
+        if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); }
+        else { setStatus('Séparation impossible : ' + err.message); log('error', 'Séparation : ' + err.message); }
+    } finally {
+        state.isolating = false; ui.skipIsoBtn.hidden = true; iso.t0 = 0;
+        refreshButtons();
+    }
+}
+ui.sepBtn.addEventListener('click', separateSong);
+function restoreOriginalSong() {
+    const o = state.instru?.original;
+    if (!o) return;
+    if (!confirm('Rétablir le morceau d\'origine sur la piste Instru ? (les pistes séparées restent ; supprime-les si besoin)')) return;
+    state.instru.left = o.left; state.instru.right = o.right; state.instru.name = o.name; state.instru.original = null;
+    state.instru.audioId = `i${Date.now().toString(36)}`;
+    state.balanceDirty = true; markDirty(); renderTracks();
+    setStatus('Morceau d\'origine rétabli sur la piste Instru.');
 }
 
 // ------------------------------------------------------------------ mixage final (« Mixer la chanson »)
@@ -1239,7 +1370,7 @@ ui.finalMixBtn.addEventListener('click', async () => {
         setStatus('Mixage de la chanson : attente des traitements en cours…');
         await state.jobs;
         // Tout doit être en place : une piste encore brute (jamais traitée, ou réglage changé) est traitée d'abord.
-        const pending = state.tracks.filter((t) => t.take && audible(t) && (!t.processed || t.status === 'busy'));
+        const pending = state.tracks.filter((t) => t.take && audible(t) && !t.noFx && (!t.processed || t.status === 'busy'));
         if (pending.length) {
             setStatus(`Mixage de la chanson : traitement d'abord de ${pending.map((t) => '« ' + t.name + ' »').join(', ')} (style et type)…`);
             for (const t of pending) if (!t.processed) queueProcess(t);
@@ -1418,7 +1549,7 @@ async function saveProject() {
         instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
         instruTrack: state.instruTrack,
         tracks: state.tracks.map((t) => ({
-            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo,
+            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx,
             active: t.takes.indexOf(t.take),
             takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
         })),
@@ -1446,7 +1577,7 @@ async function restoreProject() {
         state.nextTrackId = meta.nextTrackId;
         state.tracks = [];
         for (const m of meta.tracks) {
-            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo,
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx,
                         take: null, takes: [], processed: null, status: 'vide', token: 0 };
             for (const k of m.takes) {
                 const mono = await get(k.audioId);

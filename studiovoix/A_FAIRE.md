@@ -115,6 +115,21 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Séparer une chanson en pistes (demande de Yann : instru propre, chaque voix / back / ambiance / chanteur sur sa piste)
+
+- Fait (build 99) : `isolate.js` MODELS (voc, kara = UVR_MDXNET_KARA_2, reverb = Reverb_HQ_By_FoxJoy, spk = WeSpeaker
+  ResNet34) ; réglages UVR relevés par l'empreinte UVR (md5 des 10 derniers Mo) dans model_data_new.json ; formes
+  d'entrée vérifiées ([4,2048,256], [4,3072,512]) ; `isolate-worker.js` une session par modèle, libérée après usage ;
+  `singers.js` : phrases, fbank Kaldi 80 (comme WeSpeaker), empreinte par fenêtre de 3 s, regroupement, seuil de
+  ressemblance 0,45 ; page : « ✂ Séparer la chanson », options, pistes créées « sans effet », bouton FX par piste,
+  « Rétablir le morceau ». Essais : node sur faux morceau (instru 16,3 dB, backs 10,2, principale 17,8 ; zone sans voix =
+  original à -46,9 dB) ; chanteurs : 5 cas justes (A/B, A×2, C, A/C, B/A/B ; même voix 0,57-0,64, voix différentes
+  -0,01-0,19) ; e2e navigateur + CI (instru ≥ 10 dB, backs, 2 chanteurs, remixage).
+- Écarté : timbre MFCC par phrase pour les chanteurs (même voix coupée en deux, deux voix non séparées).
+- Non vérifié : ambiance (le modèle réverb n'a presque rien extrait sur deux réverbs de synthèse : à tester sur une vraie
+  voix réverbérée) ; chant réel (essais sur de la parole) ; licence du modèle réverb (non indiquée) et des modèles UVR
+  pour un usage commercial ; « Rétablir » perdu après rechargement (original non sauvegardé).
+
 ## Mixage final « Mixer la chanson » (demande de Yann : « tout mixer à juste niveau, l'instru aussi, une chanson unique »)
 
 - Fait (build 97) : `sv_finalmix_end` (api.cpp) sur les pistes de `sv_balance_begin/add` : place par type (même calcul
