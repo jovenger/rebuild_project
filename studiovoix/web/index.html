@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StudioVoix Web</title>
 <link rel="icon" href="data:,">
+<!-- Isolement de la page (COOP/COEP) par service worker : GitHub Pages ne permet pas ces en-têtes ; il faut l'isolement
+     pour que l'IA utilise plusieurs cœurs du processeur. Recharge la page une fois à la première visite. -->
+<script src="./coi-serviceworker.js"></script>
 <style>
   :root {
     --bg: #0f1218; --panel: #171b24; --panel-2: #1f2430; --line: #2b3140;
@@ -73,6 +76,10 @@
         <button id="stopBtn" disabled>Stop</button>
         <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:56px"> mesure(s)</label>
         <label title="Le décalage est mesuré et compensé automatiquement sur chaque prise ; ce réglage n'ajoute qu'un ajustement fin (0 = aucun)">Décalage : auto, ajustement <input id="latencyMs" type="number" min="-200" max="200" value="0" style="width:64px"> ms</label>
+      </div>
+      <div class="row">
+        <label title="Un modèle d'IA (MDX-Net, 67 Mo téléchargés une seule fois) garde uniquement la voix : musique extérieure (radio, télé, voisins), restes de l'instru, bruits sont retirés"><input id="isolateVoice" type="checkbox" checked> Isoler la voix (IA) : rien d'autre que la voix</label>
+        <span id="isolateInfo" class="info">Le modèle se télécharge au premier REC (une seule fois).</span>
       </div>
       <canvas id="meterIn" class="meter" width="600" height="10" title="Niveau du micro"></canvas>
       <canvas id="voiceWave" class="wave" width="1000" height="72"></canvas>

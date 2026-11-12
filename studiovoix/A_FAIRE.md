@@ -75,6 +75,22 @@ comment les automatismes doivent être faits, ordre proposé.
 - À faire : même retrait dans le logiciel Windows (prise du moteur temps réel, référence = instru jouée) si Yann
   enregistre sans casque là aussi ; essai réel sur son PC (micro + haut-parleurs).
 
+## Musique extérieure dans le micro (retour de Yann : « même une musique extérieure doit être masquée, que la voix »)
+
+- Fait (build 91, version web) : le retrait par référence ne traite que l'instru jouée par la page ; pour tout le
+  reste, isolation de la voix par IA après lui : `web/isolate.js` (STFT façon torch, n_fft 7680 par Bluestein,
+  segments de 256 trames, recouvrement 25 %, reprise fidèle de python-audio-separator), `web/isolate-worker.js`
+  (ONNX Runtime Web 1.22.0, WebGPU puis WASM multi-cœur, sortie WebGPU contrôlée, modèle 66,8 Mo vérifié SHA-256 et
+  gardé en Cache Storage), case « Isoler la voix (IA) » cochée par défaut, sur les prises et les voix importées,
+  modèle préparé pendant la prise ; échec = prise gardée sans isolation et signalée (⚠). CI : `web/fetch-ia.sh`
+  (cache), faux micro = vraie voix (JFK) + instru captée + « radio » inconnue ; prise mesurée contre la voix seule
+  (échec si SDR < 10 dB). Mesures node (4 fils) : musique au niveau de la voix 0 → 18 dB, à −6 dB 6 → 19,6 dB,
+  musique seule −55,7 dB, voix seule SDR 22,5 dB ; 37 s de calcul pour 11 s de prise (processeur).
+- Non vérifié : WebGPU (pas de carte graphique ici : chemin processeur seul testé) ; vraie voix chantée de Yann dans
+  sa pièce ; Firefox / Safari.
+- À faire : même isolation dans le logiciel Windows (onnxruntime natif) si Yann garde l'exe ; si trop lent sans carte
+  graphique : modèle plus léger ou traitement pendant la prise (par segments de 6 s).
+
 ## Niveau de la voix (question de Yann : « il se cale sur la voix la plus haute ? »)
 
 - Fait (build 89) : cause = calage d'entrée et de sortie sur une moyenne d'énergie (tirée vers les passages forts) et

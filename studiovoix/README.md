@@ -19,14 +19,24 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   sur l'instru (au casque, rien n'est capté : latence annoncée par le navigateur). Capture du micro à l'échantillon
   près dans le même moteur audio que l'instru. « Brut » = instru d'origine + voix brute ; « Mix » = instru d'origine +
   voix traitée : jamais la musique captée par le micro. Ou importer une voix.
+- **Isoler la voix (IA)** (case cochée par défaut) : après ce retrait, un modèle d'IA garde **uniquement la voix** de
+  la prise (et des voix importées) : musique extérieure que la page ne connaît pas (radio, télé, voisins), restes de
+  l'instru, bruits. Modèle MDX-Net « UVR-MDX-NET-Voc_FT » (licence MIT, projet Ultimate Vocal Remover) exécuté par
+  ONNX Runtime Web 1.22.0, dans le navigateur : carte graphique (WebGPU) si disponible, sinon processeur multi-cœur.
+  **Coût** : 67 Mo de modèle + 22 Mo de moteur téléchargés une seule fois (SHA-256 vérifié, gardés par le navigateur),
+  préparés pendant la première prise ; traitement sans carte graphique ≈ 3 à 4 × la durée de la prise (4 cœurs).
+  Mesuré (vraie voix + vraie musique au même niveau) : rapport voix / reste 0 → 18 dB ; musique seule −56 dB ;
+  voix seule intacte (−0,2 dB).
 - Étape 3 : style, cases Gamme et Nettoyage, « Appliquer le style » : la prise est mesurée et la chaîne du style
   se règle d'après la mesure ; le rapport affiche les valeurs effet par effet.
 - Étape 4 : écoute du mix ou du brut (A/B), vumètres, export WAV 16 bits.
 
-Pas dans la version web : VST3, outils d'IA externes (DeepFilterNet, whisper.cpp, Demucs), export MP3, projets
+Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), export MP3, projets
 multipistes complets (une instru + une voix pour l'instant), installateur et bouton « Mise à jour » (la page est
-toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), essai :
-`node web/test/e2e.mjs`.
+toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
+(modèle + ONNX Runtime Web, versions épinglées), essai : `node web/test/e2e.mjs`. La page s'isole (COOP/COEP) par
+`web/coi-serviceworker.js` (MIT, v0.1.7) : GitHub Pages ne permet pas ces en-têtes ; rechargement unique à la première
+visite.
 
 ## Récupérer le programme (Windows)
 

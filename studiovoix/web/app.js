@@ -11,6 +11,7 @@ const ui = {
     processBtn: $('processBtn'), exportBtn: $('exportBtn'), voiceWave: $('voiceWave'), voiceInfo: $('voiceInfo'),
     report: $('report'), meterIn: $('meterIn'), meterOut: $('meterOut'), latencyMs: $('latencyMs'), countIn: $('countIn'),
     keyBox: $('keyBox'), bpmBox: $('bpmBox'), voiceFile: $('voiceFile'), demoBtn: $('demoBtn'),
+    isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
 };
 
 const state = {
@@ -63,6 +64,101 @@ function call(cmd, payload, transfer = []) {
         state.worker.postMessage({ id, cmd, ...payload }, transfer);
     });
 }
+// ------------------------------------------------------------------ isolation de la voix (IA, worker séparé)
+// Retire tout ce qui n'est pas la voix (musique extérieure, restes de l'instru, bruits). Le modèle (67 Mo) n'est
+// téléchargé qu'au premier usage, puis gardé par le navigateur.
+const iso = { worker: null, pending: new Map(), nextId: 1, backend: '', prep: null };
+function isoWorker() {
+    if (iso.worker) return iso.worker;
+    iso.worker = new Worker('./isolate-worker.js', { type: 'module' });
+    iso.worker.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === 'log') { log(m.level, '[isolation] ' + m.msg); return; }
+        if (m.type === 'progress') {
+            const pct = Math.round(100 * m.done / Math.max(1, m.total));
+            ui.isolateInfo.textContent = m.stage === 'download'
+                ? `Téléchargement du modèle IA (une seule fois) : ${pct} % de ${(m.total / 1e6).toFixed(0)} Mo`
+                : `Isolation de la voix : ${pct} %` + (iso.backend ? ` (${iso.backend})` : '');
+            if (state.isolating) setStatus(ui.isolateInfo.textContent);
+            return;
+        }
+        const p = iso.pending.get(m.id);
+        if (!p) return;
+        iso.pending.delete(m.id);
+        m.ok ? p.resolve(m) : p.reject(new Error(m.error));
+    };
+    iso.worker.onerror = (e) => {
+        log('error', `[isolation] worker en échec : ${e.message || 'erreur de chargement'}`);
+        for (const p of iso.pending.values()) p.reject(new Error('isolation indisponible : ' + (e.message || 'worker en échec')));
+        iso.pending.clear(); iso.worker = null; iso.prep = null;
+    };
+    return iso.worker;
+}
+function isoCall(cmd, payload = {}, transfer = []) {
+    const w = isoWorker();
+    return new Promise((resolve, reject) => {
+        const id = iso.nextId++;
+        iso.pending.set(id, { resolve, reject });
+        w.postMessage({ id, cmd, ...payload }, transfer);
+    });
+}
+// Prépare le modèle (téléchargement + session) en tâche de fond, par exemple pendant la prise.
+function prepareIsolation() {
+    if (!ui.isolateVoice.checked) return null;
+    if (!iso.prep) {
+        iso.prep = isoCall('prepare').then((m) => {
+            iso.backend = m.backend;
+            ui.isolateInfo.textContent = `IA prête : ${m.backend}`;
+            log('info', `Isolation prête sur ${m.backend}`);
+            return m;
+        }).catch((err) => { iso.prep = null; throw err; });
+        iso.prep.catch(() => { /* signalé à l'usage */ });
+    }
+    return iso.prep;
+}
+async function resampleMono(data, fromSr, toSr) {
+    if (fromSr === toSr) return data.slice();   // copie : le résultat peut être transféré au worker (tampon détaché)
+    const n = Math.max(1, Math.round(data.length * toSr / fromSr));
+    const off = new OfflineAudioContext(1, n, toSr);
+    const b = off.createBuffer(1, data.length, fromSr);
+    b.copyToChannel(data, 0);
+    const s = off.createBufferSource(); s.buffer = b; s.connect(off.destination); s.start();
+    return (await off.startRendering()).getChannelData(0).slice();
+}
+function rmsDb(x) { let e = 0; for (let i = 0; i < x.length; ++i) e += x[i] * x[i]; return 10 * Math.log10(e / Math.max(1, x.length) + 1e-20); }
+// mono (Float32Array, sr Hz) → { mono, removedDb, seconds, backend } : voix seule, même longueur et même fréquence.
+async function isolateVoice(mono, sr) {
+    const t0 = performance.now();
+    await prepareIsolation();
+    const x = await resampleMono(mono, sr, 44100);
+    if (x.length === 0 || mono.length === 0) throw new Error('prise vide : rien à isoler');
+    const r = await isoCall('isolate', { left: x, right: x.slice() }, [x.buffer]);
+    const v = new Float32Array(r.left.length);
+    for (let i = 0; i < v.length; ++i) v[i] = 0.5 * (r.left[i] + r.right[i]);
+    let out = await resampleMono(v, 44100, sr);
+    if (out.length !== mono.length) { const o = new Float32Array(mono.length); o.set(out.subarray(0, mono.length)); out = o; }
+    if (out.length !== mono.length || out.length === 0) throw new Error(`longueur incohérente après isolation (${out.length} au lieu de ${mono.length})`);
+    const removedDb = rmsDb(mono) - rmsDb(out);
+    const total = (performance.now() - t0) / 1000;
+    log('info', `Isolation : ${(mono.length / sr).toFixed(1)} s en ${total.toFixed(1)} s (${r.backend}) ; énergie retirée ${removedDb.toFixed(1)} dB`);
+    return { mono: out, removedDb, seconds: total, backend: r.backend };
+}
+// Applique l'isolation si la case est cochée ; en cas d'échec, garde la prise telle quelle et le dit.
+async function maybeIsolate(mono, sr) {
+    if (!ui.isolateVoice.checked) return { mono, note: 'isolation IA désactivée' };
+    state.isolating = true;
+    setStatus('Isolation de la voix (IA) : seule la voix est gardée…');
+    try {
+        const r = await isolateVoice(mono, sr);
+        ui.isolateInfo.textContent = `Dernière isolation : ${r.seconds.toFixed(0)} s sur ${r.backend}`;
+        return { mono: r.mono, note: `voix isolée par IA (${r.removedDb.toFixed(1)} dB d'autres sons retirés)`, isolated: r };
+    } catch (err) {
+        log('error', 'Isolation IA impossible : ' + err.message);
+        ui.isolateInfo.textContent = 'Isolation IA impossible : ' + err.message;
+        return { mono, note: `⚠ isolation IA impossible (${err.message}) : prise gardée sans elle` };
+    } finally { state.isolating = false; }
+}
+
 function fillStyles(groups) {
     ui.style.innerHTML = '';
     for (const g of groups) {
@@ -255,6 +351,7 @@ ui.recBtn.addEventListener('click', async () => {
     try {
         const ctx = audioContext();
         await ensureRecorderWorklet(ctx);
+        prepareIsolation();   // téléchargement / préparation du modèle pendant la prise
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1, latency: 0 },
         });
@@ -338,14 +435,16 @@ async function finishRecording({ stream, src, rec, sink, chunks, firstFrame, tra
             mono = mono.slice(cut);
             startSec = 0;
         }
-        state.voice = { mono, sampleRate: sr, startSec, raw: true, take: rep };
+        const isoRes = await maybeIsolate(mono, sr);
+        mono = isoRes.mono;
+        state.voice = { mono, sampleRate: sr, startSec, raw: true, take: rep, isolation: isoRes.isolated || null };
         state.processed = null; state.mix = null;
         drawWave(ui.voiceWave, mono, '#3a9bff');
         const lat = `${Math.round(rep.latencyMs)} ms ${rep.latencyMeasured ? 'mesuré sur la prise' : 'annoncé par le navigateur (rien de capté)'}`;
         const bleed = rep.bleedDetected
             ? `musique captée par le micro ${rep.bleedBeforeDb.toFixed(0)} dB → retirée (${rep.bleedAfterDb.toFixed(0)} dB)`
             : 'aucune musique captée (casque)';
-        ui.voiceInfo.textContent = `Prise : ${fmt(mono.length / sr)} · voix seule, sans effet · ${bleed} · décalage ${lat}, compensé`;
+        ui.voiceInfo.textContent = `Prise : ${fmt(mono.length / sr)} · voix seule, sans effet · ${bleed} · ${isoRes.note} · décalage ${lat}, compensé`;
         log('info', `Prise : ${rep.describe} ; début ${startSec.toFixed(3)} s`);
         setStatus('Prise enregistrée : voix seule, calée sur l\'instru. Écoute « Brut », ou choisis un style puis « Appliquer le style ».');
     } catch (err) { setStatus('Prise impossible : ' + err.message); log('error', err.message); }
@@ -357,11 +456,12 @@ ui.voiceFile.addEventListener('change', async () => {
     if (!file) return;
     try {
         const buf = await decodeFile(file);
-        const mono = toMono(buf);
-        state.voice = { mono, sampleRate: buf.sampleRate, startSec: 0, raw: true };
+        const isoRes = await maybeIsolate(toMono(buf), buf.sampleRate);
+        const mono = isoRes.mono;
+        state.voice = { mono, sampleRate: buf.sampleRate, startSec: 0, raw: true, isolation: isoRes.isolated || null };
         state.processed = null; state.mix = null;
         drawWave(ui.voiceWave, mono, '#3a9bff');
-        ui.voiceInfo.textContent = `${file.name} : ${fmt(buf.duration)} · ${buf.sampleRate} Hz · brute, aucun effet`;
+        ui.voiceInfo.textContent = `${file.name} : ${fmt(buf.duration)} · ${buf.sampleRate} Hz · brute, aucun effet · ${isoRes.note}`;
         setStatus('Voix importée, brute. Choisis un style puis « Appliquer le style ».');
     } catch (err) { setStatus('Voix illisible : ' + err.message); }
     refreshButtons();
@@ -461,4 +561,5 @@ function refreshButtons() {
 drawMeter(ui.meterIn, 0, 0); drawMeter(ui.meterOut, 0, 0);
 drawWave(ui.instruWave, null); drawWave(ui.voiceWave, null);
 setStatus('Chargement du moteur…');
+window.__studiovoix = state;   // lecture seule par les tests de bout en bout (vérification de la prise)
 startWorker();

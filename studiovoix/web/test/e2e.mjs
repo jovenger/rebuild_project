@@ -1,7 +1,7 @@
 // Test de bout en bout de StudioVoix Web (Chromium sans écran, Playwright) :
 // page servie en local, instru et voix importées par les champs fichier, style appliqué, mix exporté en WAV.
 //   node web/test/e2e.mjs <url> <instru.wav> <voix.wav> [capture.png]
-import { statSync } from 'node:fs';
+import { statSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 // Playwright : dossier node_modules local (CI) ou global (PLAYWRIGHT_DIR = sortie de `npm root -g`).
@@ -20,6 +20,52 @@ const voice = voiceArg && voiceArg !== '-' ? voiceArg : null;
 // (instruArg), la page enregistre REC_SECONDS s au micro au lieu d'importer la voix.
 const micFile = process.env.MIC_FILE || '';
 const recSeconds = Number(process.env.REC_SECONDS || 12);
+// VOICE_REF = voix seule telle qu'elle est dans MIC_FILE (make_fake_mic.py --voice) : mesure de ce qui reste dans la
+// prise après nettoyage + isolation IA (SDR, résidus pendant les silences). MIN_SDR_DB = seuil d'échec.
+const voiceRef = process.env.VOICE_REF || '';
+const minSdrDb = Number(process.env.MIN_SDR_DB || 10);
+
+function readWavMono(path) {
+    const b = readFileSync(path);
+    if (b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WAVE') throw new Error(path + ' : pas un WAV');
+    let o = 12, sr = 0, ch = 0, bits = 0;
+    while (o + 8 <= b.length) {
+        const id = b.toString('ascii', o, o + 4), size = b.readUInt32LE(o + 4);
+        if (id === 'fmt ') { ch = b.readUInt16LE(o + 10); sr = b.readUInt32LE(o + 12); bits = b.readUInt16LE(o + 22); }
+        if (id === 'data') {
+            if (bits !== 16) throw new Error(path + ' : 16 bits attendus');
+            const n = Math.floor(size / 2 / ch), x = new Float32Array(n);
+            for (let i = 0; i < n; ++i) x[i] = b.readInt16LE(o + 8 + i * 2 * ch) / 32768;
+            return { x, sr };
+        }
+        o += 8 + size + (size & 1);
+    }
+    throw new Error(path + ' : pas de données');
+}
+// Prise (sortie de la page) comparée à la vraie voix : recalage (le faux micro boucle, départ inconnu), gain par
+// moindres carrés, puis SDR = voix / (tout le reste) et niveau du reste là où la voix se tait.
+function measureTake(take, sr, ref) {
+    const r = new Float32Array(Math.round(ref.x.length * sr / ref.sr));
+    for (let i = 0; i < r.length; ++i) { const p = i * ref.sr / sr, j = Math.floor(p), f = p - j; r[i] = (ref.x[j] || 0) + f * ((ref.x[j + 1] || 0) - (ref.x[j] || 0)); }
+    const L = r.length, at = (k) => r[((k % L) + L) % L];
+    const hop = Math.round(sr / 100), env = (x, len) => { const e = new Float64Array(Math.floor(len / hop)); for (let f = 0; f < e.length; ++f) { let s = 0; for (let i = 0; i < hop; ++i) { const v = x(f * hop + i); s += v * v; } e[f] = Math.sqrt(s / hop); } return e; };
+    const et = env((i) => take[i] || 0, take.length), er = env(at, L);
+    let best = 0, bestC = -Infinity;
+    for (let lag = 0; lag < er.length; ++lag) { let c = 0; for (let f = 0; f < et.length; ++f) c += et[f] * er[(f + lag) % er.length]; if (c > bestC) { bestC = c; best = lag; } }
+    let fine = best * hop, fineC = -Infinity;
+    for (let d = -hop * 2; d <= hop * 2; ++d) { let c = 0; const base = best * hop + d; for (let i = 0; i < take.length; i += 2) c += take[i] * at(base + i); if (c > fineC) { fineC = c; fine = base; } }
+    let tv = 0, vv = 0; for (let i = 0; i < take.length; ++i) { const v = at(fine + i); tv += take[i] * v; vv += v * v; }
+    const g = tv / Math.max(1e-12, vv);
+    let es = 0, ee = 0, quietE = 0, quietN = 0, loudE = 0, loudN = 0;
+    const thr = Math.max(...er) * 0.01;   // voix à -40 dB sous son maximum : « silence »
+    for (let i = 0; i < take.length; ++i) {
+        const s = g * at(fine + i), e = take[i] - s; es += s * s; ee += e * e;
+        const fr = Math.floor((((fine + i) % L) + L) % L / hop);
+        if ((er[fr] || 0) < thr) { quietE += take[i] * take[i]; quietN++; } else { loudE += take[i] * take[i]; loudN++; }
+    }
+    const db = (x) => 10 * Math.log10(x + 1e-20);
+    return { sdrDb: db(es) - db(ee), gain: g, quietVsVoiceDb: quietN && loudN ? db(quietE / quietN) - db(loudE / loudN) : NaN, quietSec: quietN / sr };
+}
 const t0 = Date.now();
 const stamp = () => `[${((Date.now() - t0) / 1000).toFixed(1)} s]`;
 const launchArgs = ['--autoplay-policy=no-user-gesture-required'];
@@ -31,6 +77,15 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(String(e)));
 try {
     await page.goto(url, { waitUntil: 'load' });
+    // coi-serviceworker recharge la page une fois à la première visite (isolement COOP/COEP) : attendre la page isolée.
+    for (let k = 0; k < 20; ++k) {
+        try {
+            if (await page.evaluate(() => window.crossOriginIsolated === true)) break;
+        } catch (_) { /* rechargement en cours */ }
+        await page.waitForTimeout(500);
+    }
+    await page.waitForLoadState('load');
+    console.log(stamp(), 'page isolée (multi-cœur pour l\'IA) :', await page.evaluate(() => window.crossOriginIsolated));
     await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Moteur prêt'), null, { timeout: 60000 });
     console.log(stamp(), 'moteur prêt :', await page.textContent('#version'));
 
@@ -45,13 +100,23 @@ try {
         await page.waitForTimeout(recSeconds * 1000);
         await page.click('#stopBtn');
         await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Prise enregistrée')
-                                         || document.getElementById('status').textContent.startsWith('Prise impossible'), null, { timeout: 120000 });
+                                         || document.getElementById('status').textContent.startsWith('Prise impossible'), null, { timeout: 900000 });
         const st = await page.textContent('#status');
         const info = await page.textContent('#voiceInfo');
         console.log(stamp(), st);
         console.log(stamp(), info);
         if (!st.startsWith('Prise enregistrée')) throw new Error('prise au micro en échec');
         if (process.env.EXPECT_BLEED === '1' && !/retirée/.test(info)) throw new Error('musique captée non détectée / non retirée');
+        if (process.env.EXPECT_ISOLATION === '1' && !/voix isolée par IA/.test(info)) throw new Error('isolation IA non appliquée');
+        if (voiceRef) {
+            const take = await page.evaluate(() => ({ x: Array.from(window.__studiovoix.voice.mono), sr: window.__studiovoix.voice.sampleRate }));
+            const ref = readWavMono(voiceRef), mic = readWavMono(micFile);
+            const m0 = measureTake(mic.x.subarray(0, Math.min(mic.x.length, Math.round(take.x.length * mic.sr / take.sr))), mic.sr, ref);
+            console.log(stamp(), `micro avant traitement : SDR ${m0.sdrDb.toFixed(1)} dB, pendant les silences de la voix ${m0.quietVsVoiceDb.toFixed(1)} dB sous la voix`);
+            const m = measureTake(Float32Array.from(take.x), take.sr, ref);
+            console.log(stamp(), `mesure de la prise : SDR ${m.sdrDb.toFixed(1)} dB (voix / tout le reste), pendant les silences de la voix (${m.quietSec.toFixed(1)} s) ${m.quietVsVoiceDb.toFixed(1)} dB sous la voix, gain ${m.gain.toFixed(2)}`);
+            if (!(m.sdrDb >= minSdrDb)) throw new Error(`prise pas assez propre : SDR ${m.sdrDb.toFixed(1)} dB < ${minSdrDb} dB`);
+        }
     } else if (instru && voice) {
         await page.setInputFiles('#instruFile', instru);
         await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Instru analysée'), null, { timeout: 120000 });

@@ -7,3 +7,6 @@ out/
 # Version web : sorties de compilation WebAssembly
 web/dist/
 web/build/
+# Version web : isolation IA (récupérés par web/fetch-ia.sh, versions épinglées)
+web/vendor/
+web/models/
