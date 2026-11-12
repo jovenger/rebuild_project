@@ -428,17 +428,21 @@ jobs:
         with:
           path: studiovoix/web
 
-      - name: Publication sur GitHub Pages
+      # Source « GitHub Actions » : publication directe. Source « branche gh-pages » : cette étape est refusée par
+      # GitHub (pas bloquant) et c'est la branche gh-pages ci-dessous qui publie. Les deux sont faites à chaque push
+      # pour que la page suive quel que soit le réglage choisi dans Réglages → Pages.
+      - name: Publication sur GitHub Pages (source « GitHub Actions »)
         if: github.event_name == 'push' && steps.pages.outcome == 'success'
         id: deploy
+        continue-on-error: true
         uses: actions/deploy-pages@v4
 
-      # Repli : branche gh-pages (GitHub active Pages tout seul sur cette branche pour un dépôt public). Branche
-      # générée, écrasée à chaque build : elle ne contient que la page et le moteur compilé.
-      - name: "Pages non activé par la CI : publication sur la branche gh-pages"
-        if: github.event_name == 'push' && steps.pages.outcome != 'success'
+      # Branche gh-pages (source « Deploy from a branch ») : générée, écrasée à chaque build ; elle ne contient que la
+      # page et le moteur compilé.
+      - name: "Publication sur la branche gh-pages (source « Deploy from a branch »)"
+        if: github.event_name == 'push'
         run: |
-          echo "::warning::GitHub Pages n'a pas pu être activé par la CI : publication sur la branche gh-pages. Si la page n'apparaît pas à https://jovenger.github.io/rebuild_project/, activer Réglages → Pages → Source : branche gh-pages (ou « GitHub Actions »)."
+          echo "configure-pages : ${{ steps.pages.outcome }} ; deploy-pages : ${{ steps.deploy.outcome }} ${{ steps.deploy.outputs.page_url }}"
           cd studiovoix/web
           touch .nojekyll
           git init -q -b gh-pages
