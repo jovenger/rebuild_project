@@ -61,6 +61,15 @@ comment les automatismes doivent être faits, ordre proposé.
   « Séparer » visible sur l'en-tête de l'instru ; sélection du style directement dans l'en-tête de piste ; réduire la
   barre du haut (Nouveau / Ouvrir / Sauver dans l'accueil) ; glisser-déposer d'un fichier sur une piste existante.
 
+## Niveau de la voix (question de Yann : « il se cale sur la voix la plus haute ? »)
+
+- Fait (build 89) : cause = calage d'entrée et de sortie sur une moyenne d'énergie (tirée vers les passages forts) et
+  niveleur limité à ±4 dB. Désormais `dsp::typicalLevelDb` / `gainForTypicalLevel` (médiane des tranches de voix) dans
+  la chaîne vocale ; niveleur ±2 à ±10 dB (60 % de l'écart mesuré) avec seuil relatif `gateBelowMedianDb` 12 à 18 dB ;
+  journal « Niveau d'entrée : typique … / moyenne d'énergie … ». Test : écart 20 dB → 5,7 dB, sortie calée sur sa cible.
+  L'instru (correction automatique) garde l'ancien calage (`gainForActiveRms`, mix dense : médiane ≈ moyenne).
+- À vérifier avec Yann sur sa voix : parlé fort / faible, puis chant ; ajuster le 60 % si le résultat est trop « plat ».
+
 ## Version web (demande de Yann : « plus de .exe, directement sur une page web »)
 
 - Fait (build 84) : étape 1 — moteur C++ (JUCE core / events / audio_basics / audio_formats / dsp + cœur DSP, 25

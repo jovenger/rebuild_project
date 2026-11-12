@@ -93,13 +93,16 @@ UNITS=(
     "$ROOT/web/api.cpp"
 )
 
-# Compilation en parallèle, objets mis en cache par date (recompile seulement ce qui a changé).
+# Compilation en parallèle, objets mis en cache par date. Un en-tête du projet plus récent qu'un objet force sa
+# recompilation (sinon des objets compilés avec deux versions d'une même structure de réglages se mélangent : valeurs
+# fausses, constaté au build 89 en local).
+NEWEST_HEADER="$(find "$ROOT/src" "$ROOT/web" -name '*.h' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)"
 OBJS=()
 PIDS=()
 for u in "${UNITS[@]}"; do
     o="$BUILD/obj/$(echo "$u" | sed 's#[/ ]#_#g').o"
     OBJS+=("$o")
-    if [ ! -f "$o" ] || [ "$u" -nt "$o" ] || [ "$HERE/build-wasm.sh" -nt "$o" ]; then
+    if [ ! -f "$o" ] || [ "$u" -nt "$o" ] || [ "$HERE/build-wasm.sh" -nt "$o" ] || { [ -n "$NEWEST_HEADER" ] && [ "$NEWEST_HEADER" -nt "$o" ]; }; then
         echo "[wasm] compile $(basename "$u")"
         em++ "${CXXFLAGS[@]}" -c "$u" -o "$o" &
         PIDS+=($!)

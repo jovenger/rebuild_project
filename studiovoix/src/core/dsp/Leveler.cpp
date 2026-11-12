@@ -129,7 +129,7 @@ namespace
                 if (l > gateDb)
                     above.push_back (l);
             if (above.size() >= 4)
-                gateDb = std::max (gateDb, percentile (above, 0.5f) - 12.0f);
+                gateDb = std::max (gateDb, percentile (above, 0.5f) - s.gateBelowMedianDb);
         }
         rep.rangeBeforeDb = rangeDb (st, gateDb);
         int activeFrames = 0;

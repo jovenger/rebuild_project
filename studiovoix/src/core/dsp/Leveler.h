@@ -19,6 +19,7 @@ struct LevelerSettings
     float attackMs = 250.0f;          // vitesse quand le niveau monte (on baisse)
     float releaseMs = 1200.0f;        // vitesse quand le niveau redescend (on remonte)
     float gateBelowTargetDb = 25.0f;  // en dessous de cible - gate : silence ou bruit, gain tenu (jamais amplifié)
+    float gateBelowMedianDb = 12.0f;  // en dessous de (médiane des passages - gate) : respiration, queue de note, gain tenu
     float surgeAboveDb = 9.0f;        // un passage à plus de N dB au-dessus du niveau médian « monte en flèche »
     float surgeCutDb = 12.0f;         // baisse autorisée sur ces montées (au-delà de maxCutDb)
 };

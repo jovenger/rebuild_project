@@ -333,12 +333,15 @@ juce::StringArray fitStyleToMeasurement (style::VocalParams& v, const TrackProbl
         n.add ("second compresseur retiré (prise déjà régulière)"_u8);
     }
 
-    // Niveleur : amplitude de correction selon la dynamique ; montées en flèche mesurées → baisse autorisée adaptée.
+    // Niveleur : il rapproche les passages faibles et forts d'environ 60 % de l'écart mesuré, de ±2 à ±10 dB
+    // (parlé / crié, chuchoté / chanté). Plus il agit, plus son seuil d'activité descend sous la médiane, pour que les
+    // passages faibles soient remontés, sans jamais descendre sous 18 dB (respirations et bruit restent tenus).
     if (v.leveler.enabled)
     {
-        const float range = dyn > 12.0f ? 6.0f : dyn < 6.0f ? 2.0f : 4.0f;
+        const float range = juce::jlimit (2.0f, 10.0f, std::round (dyn * 0.6f));
         v.leveler.maxBoostDb = range;
         v.leveler.maxCutDb = range;
+        v.leveler.gateBelowMedianDb = juce::jlimit (12.0f, 18.0f, range + 6.0f);
         float worstSurge = 0.0f;
         for (const auto& su : p.surges)
             worstSurge = std::max (worstSurge, su.overDb);

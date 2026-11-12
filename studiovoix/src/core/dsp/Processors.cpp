@@ -113,6 +113,38 @@ namespace
             }
         return c > 0 ? static_cast<float> (10.0 * std::log10 (e / c)) : -120.0f;
     }
+
+    // Niveau typique de la voix : médiane des tranches de 50 ms qui sont de la voix. Deux filtres : à moins de 40 dB
+    // du moment le plus fort (comme rmsActiveDb), puis à moins de 15 dB sous la médiane de ces tranches (respirations,
+    // fins de mots et bruit entre les phrases écartés). La médiane ne se laisse pas tirer par les passages forts,
+    // contrairement à la moyenne d'énergie : une prise moitié criée, moitié parlée se cale entre les deux.
+    float medianActiveDb (const Mono& x, double sr)
+    {
+        const int frame = std::max (1, static_cast<int> (sr * 0.05));
+        std::vector<float> dbs;
+        for (size_t s = 0; s + static_cast<size_t> (frame) <= x.size(); s += static_cast<size_t> (frame))
+            dbs.push_back (gainToDb (audio::rms (x.data() + s, static_cast<size_t> (frame))));
+        if (dbs.empty())
+            return gainToDb (audio::rms (x.data(), x.size()));
+        const float mx = *std::max_element (dbs.begin(), dbs.end());
+        std::vector<float> active;
+        for (float d : dbs)
+            if (d > mx - 40.0f && d > -90.0f)
+                active.push_back (d);
+        if (active.empty())
+            return -120.0f;
+        const auto median = [] (std::vector<float> v)
+        {
+            std::nth_element (v.begin(), v.begin() + static_cast<long> (v.size() / 2), v.end());
+            return v[v.size() / 2];
+        };
+        const float firstMedian = median (active);
+        std::vector<float> voiced;
+        for (float d : active)
+            if (d > firstMedian - 15.0f)
+                voiced.push_back (d);
+        return voiced.empty() ? firstMedian : median (voiced);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -715,6 +747,16 @@ Stereo placeStereo (const Mono& x, double sr, float pan, float width, float gain
 }
 
 float activeLevelDb (const Mono& x, double sr) { return rmsActiveDb (x, sr); }
+
+float typicalLevelDb (const Mono& x, double sr) { return medianActiveDb (x, sr); }
+
+float gainForTypicalLevel (const Mono& x, double sr, float targetDb)
+{
+    const float current = medianActiveDb (x, sr);
+    if (current < -90.0f)
+        return 1.0f;
+    return dbToGain (juce::jlimit (-30.0f, 30.0f, targetDb - current));
+}
 
 float gainForActiveRms (const Mono& x, double sr, float targetDb)
 {

@@ -1661,6 +1661,65 @@ public:
             expect (! notesA.isEmpty() && notesB.size() > notesA.size(), "lignes lisibles : " + notesB.joinIntoString (" ; "));
         }
 
+        beginTest ("Niveau : voix qui monte et descend calee sur son niveau typique, pas sur le plus fort");
+        {
+            // Prise parlée qui alterne : 2 s fort (-8 dB), 2 s faible (-28 dB), ×3, avec des silences entre les phrases.
+            const size_t sec = static_cast<size_t> (kSr);
+            Mono v (sec * 14, 0.0f);
+            for (int k = 0; k < 6; ++k)
+            {
+                const float lvl = k % 2 == 0 ? -8.0f : -28.0f;
+                const size_t a = sec / 2 + static_cast<size_t> (k) * (sec * 2 + sec / 4);
+                for (size_t i = 0; i < sec * 2 && a + i < v.size(); ++i)
+                {
+                    const float t = static_cast<float> (i) / static_cast<float> (kSr);
+                    const float env = 0.6f + 0.4f * std::sin (2.0f * juce::MathConstants<float>::pi * 3.0f * t);   // syllabes
+                    v[a + i] = dbToGain (lvl) * juce::MathConstants<float>::sqrt2 * env
+                               * (0.7f * std::sin (2.0f * juce::MathConstants<float>::pi * 180.0f * t) + 0.3f * std::sin (2.0f * juce::MathConstants<float>::pi * 540.0f * t));
+                }
+            }
+            const float energyDb = dsp::activeLevelDb (v, kSr), typicalDb = dsp::typicalLevelDb (v, kSr);
+            const auto segRaw = [&] (int k)
+            {
+                const size_t a = sec / 2 + static_cast<size_t> (k) * (sec * 2 + sec / 4) + sec / 2;
+                return gainToDb (audio::rms (v.data() + a, sec));
+            };
+            const float loudDb = segRaw (0), softDb = segRaw (1), midDb = 0.5f * (loudDb + softDb);
+            SV_LOG_INFO ("Tests", "Niveau : fort "_u8 + juce::String (loudDb, 1) + " dB, faible " + juce::String (softDb, 1) + " dB, moyenne d'énergie "_u8
+                                  + juce::String (energyDb, 1) + " dB, typique " + juce::String (typicalDb, 1) + " dB");
+            expect (energyDb > midDb + 3.0f, "moyenne d'énergie tirée vers le fort : "_u8 + juce::String (energyDb, 1) + " dB (milieu "
+                                                 + juce::String (midDb, 1) + ")");
+            expect (typicalDb < energyDb - 3.0f && typicalDb > softDb && typicalDb < loudDb,
+                    "niveau typique entre le fort et le faible : "_u8 + juce::String (typicalDb, 1) + " dB");
+
+            // Mesure → niveleur élargi (écart ~20 dB → ±10 dB) ; prise traitée : l'écart fort / faible se resserre nettement.
+            auto pr = dsp::analyzeTrackProblems (v, kSr, aMinor(), true);
+            auto params = style::makeParams (style::Style::RapConscient, style::Role::Lead, {}, true);
+            params.pitch.enabled = false;
+            params.reverb.send = 0.0f;
+            params.delay.send = 0.0f;
+            dsp::fitStyleToMeasurement (params, pr, 100.0);
+            expect (params.leveler.maxBoostDb >= 8.0f && params.leveler.gateBelowMedianDb >= 14.0f,
+                    "niveleur élargi : ±"_u8 + juce::String (params.leveler.maxBoostDb, 0) + " dB, seuil "_u8 + juce::String (params.leveler.gateBelowMedianDb, 0) + " dB (écart mesuré "_u8
+                        + juce::String (pr.levelRangeDb, 1) + " dB)");
+            dsp::AnalysisContext ctx;
+            ctx.tempo.bpm = 100.0;
+            const auto res = dsp::processVocal (v, kSr, params, ctx);
+            const Mono out = audio::toMono (res.audio);
+            auto segDb = [&] (const Mono& s, int k)
+            {
+                const size_t a = sec / 2 + static_cast<size_t> (k) * (sec * 2 + sec / 4) + sec / 2;
+                return gainToDb (audio::rms (s.data() + a, sec));
+            };
+            const float gapBefore = segDb (v, 2) - segDb (v, 3), gapAfter = segDb (out, 2) - segDb (out, 3);
+            SV_LOG_INFO ("Tests", "Niveau : écart fort / faible "_u8 + juce::String (gapBefore, 1) + " dB avant, " + juce::String (gapAfter, 1) + " dB après ; niveleur ±"_u8
+                                  + juce::String (params.leveler.maxBoostDb, 0) + " dB");
+            expect (gapAfter < gapBefore - 10.0f, "écart fort / faible : "_u8 + juce::String (gapBefore, 1) + " dB avant, " + juce::String (gapAfter, 1) + " dB après");
+            const float outTypical = dsp::typicalLevelDb (out, kSr);
+            expect (std::abs (outTypical - params.outputDb) < 3.0f, "sortie calée sur le niveau typique : "_u8 + juce::String (outTypical, 1) + " dB (cible "
+                                                                       + juce::String (params.outputDb, 0) + ")");
+        }
+
         beginTest ("Analyse : montee brusque signalee, correction avec niveleur");
         {
             Mono y (static_cast<size_t> (kSr) * 8);

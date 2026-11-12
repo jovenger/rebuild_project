@@ -171,6 +171,11 @@ Stereo placeStereo (const Mono& x, double sr, float pan, float width, float gain
 float gainForActiveRms (const Mono& x, double sr, float targetDb);
 /** Niveau RMS (dBFS) des passages actifs (-120 si silence). */
 float activeLevelDb (const Mono& x, double sr);
+/** Niveau typique de la voix (dBFS) : médiane des tranches de 50 ms de voix (respirations et silences écartés).
+    Contrairement à activeLevelDb (moyenne d'énergie, tirée vers les passages forts), il ne suit pas la voix la plus forte. */
+float typicalLevelDb (const Mono& x, double sr);
+/** Gain qui amène le niveau typique (médiane) à targetDb. */
+float gainForTypicalLevel (const Mono& x, double sr, float targetDb);
 
 /** Délai fractionnaire variable (doublages) : delaySamples par échantillon. */
 Mono variableDelay (const Mono& x, const std::vector<float>& delaySamples);
