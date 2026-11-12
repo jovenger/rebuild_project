@@ -435,7 +435,7 @@ jobs:
 
       # Repli : branche gh-pages (GitHub active Pages tout seul sur cette branche pour un dépôt public). Branche
       # générée, écrasée à chaque build : elle ne contient que la page et le moteur compilé.
-      - name: Pages non activé par la CI : publication sur la branche gh-pages
+      - name: "Pages non activé par la CI : publication sur la branche gh-pages"
         if: github.event_name == 'push' && steps.pages.outcome != 'success'
         run: |
           echo "::warning::GitHub Pages n'a pas pu être activé par la CI : publication sur la branche gh-pages. Si la page n'apparaît pas à https://jovenger.github.io/rebuild_project/, activer Réglages → Pages → Source : branche gh-pages (ou « GitHub Actions »)."
