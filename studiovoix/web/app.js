@@ -1238,6 +1238,13 @@ ui.finalMixBtn.addEventListener('click', async () => {
         ui.finalMixBtn.disabled = true;
         setStatus('Mixage de la chanson : attente des traitements en cours…');
         await state.jobs;
+        // Tout doit être en place : une piste encore brute (jamais traitée, ou réglage changé) est traitée d'abord.
+        const pending = state.tracks.filter((t) => t.take && audible(t) && (!t.processed || t.status === 'busy'));
+        if (pending.length) {
+            setStatus(`Mixage de la chanson : traitement d'abord de ${pending.map((t) => '« ' + t.name + ' »').join(', ')} (style et type)…`);
+            for (const t of pending) if (!t.processed) queueProcess(t);
+            await state.jobs;
+        }
         const list = state.tracks.filter((t) => t.take && audible(t));
         if (!state.instru && !list.length) throw new Error('rien à mixer (ni instru ni prise)');
         const sr = state.instru?.sampleRate || list[0].take.sampleRate;
