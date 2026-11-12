@@ -357,7 +357,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
-      contents: read
+      contents: write   # repli : branche gh-pages
       pages: write
       id-token: write
     environment:
@@ -404,17 +404,45 @@ jobs:
           rm -rf studiovoix/web/build studiovoix/web/node_modules studiovoix/web/package.json studiovoix/web/package-lock.json
           echo "build ${{ github.run_number }} ($(git rev-parse --short HEAD))" > studiovoix/web/dist/BUILD.txt
 
+      # La page web complète (moteur compilé compris) est aussi livrée en artefact : utilisable hors GitHub Pages
+      # (dézipper, servir le dossier avec n'importe quel serveur web statique).
+      - name: Page web (artefact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudioVoixWeb-build${{ github.run_number }}
+          path: studiovoix/web
+          if-no-files-found: error
+
+      # GitHub Pages : le jeton de la CI ne peut pas activer Pages lui-même (build 84 : « Resource not accessible by
+      # integration »). Tant que Pages n'est pas activé dans Réglages → Pages → Source « GitHub Actions », cette
+      # étape échoue sans faire échouer le build ; dès que c'est fait, la publication suit à chaque push.
       - uses: actions/configure-pages@v5
+        id: pages
         if: github.event_name == 'push'
+        continue-on-error: true
         with:
           enablement: true
 
       - uses: actions/upload-pages-artifact@v3
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.pages.outcome == 'success'
         with:
           path: studiovoix/web
 
       - name: Publication sur GitHub Pages
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.pages.outcome == 'success'
         id: deploy
         uses: actions/deploy-pages@v4
+
+      # Repli : branche gh-pages (GitHub active Pages tout seul sur cette branche pour un dépôt public). Branche
+      # générée, écrasée à chaque build : elle ne contient que la page et le moteur compilé.
+      - name: Pages non activé par la CI : publication sur la branche gh-pages
+        if: github.event_name == 'push' && steps.pages.outcome != 'success'
+        run: |
+          echo "::warning::GitHub Pages n'a pas pu être activé par la CI : publication sur la branche gh-pages. Si la page n'apparaît pas à https://jovenger.github.io/rebuild_project/, activer Réglages → Pages → Source : branche gh-pages (ou « GitHub Actions »)."
+          cd studiovoix/web
+          touch .nojekyll
+          git init -q -b gh-pages
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "StudioVoix Web build ${{ github.run_number }} (${{ github.sha }})"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages:gh-pages
+          echo "branche gh-pages mise à jour"
