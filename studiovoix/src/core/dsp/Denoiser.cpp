@@ -47,47 +47,57 @@ DenoiseReport spectralDenoise (Mono& x, double sr, const analysis::VoiceActivity
     const int numFrames = stft.numFrames;
     std::vector<float> power (static_cast<size_t> (kBins));
 
-    // 1) Profil de bruit : moyenne des spectres de puissance des trames inactives (sinon les 10 % les plus calmes).
+    // 1) Profil de bruit : appris seulement sur du vrai silence — trames inactives ET non voisées, et parmi elles la
+    //    pas les autres. Pourquoi : sur une prise propre (voix séparée d'un morceau, silences numériques), le
+    //    « bruit de fond » mesuré par l'activité vocale est le chant doux lui-même ; l'ancien profil (toutes les trames
+    //    inactives) apprenait donc la voix comme du bruit, et tout passage chanté 6 à 12 dB plus fort recevait un gain
+    //    qui bougeait bande par bande d'une trame à l'autre (mesuré : -38 dB de saleté au-dessus de 2 kHz à +6 dB).
     std::vector<double> noise (static_cast<size_t> (kBins), 0.0);
-    std::vector<std::pair<float, int>> frameEnergy;
-    frameEnergy.reserve (static_cast<size_t> (numFrames));
+    std::vector<std::pair<float, int>> quiet, unvoicedAll;
+    quiet.reserve (static_cast<size_t> (numFrames));
+    unvoicedAll.reserve (static_cast<size_t> (numFrames));
     auto analyse = [&] (int frameIndex)
     {
         stft.forward (x.data(), frameIndex);
         for (int k = 0; k < kBins; ++k)
             power[static_cast<size_t> (k)] = stft.power (k);
     };
-    int inactiveCount = 0;
     for (int f = 0; f < numFrames; ++f)
     {
         const double tSec = (f * kHop - kFft / 2) / sr;
         const bool inactive = tSec >= 0.0 && tSec < va.active.size() * va.frameSec && ! va.isActiveAt (tSec);
+        // Trame voisée = une note, pas du bruit (marge d'une demi-fenêtre de chaque côté : la trame de 46 ms déborde).
+        const bool sung = voiced != nullptr && (voiced->voicedAt (stft.frameTimeSec (f, sr)) || voiced->voicedAt (stft.frameTimeSec (f, sr) - 0.02)
+                                                || voiced->voicedAt (stft.frameTimeSec (f, sr) + 0.02));
         analyse (f);
         double e = 0.0;
         for (int k = 0; k < kBins; ++k)
             e += power[static_cast<size_t> (k)];
-        frameEnergy.emplace_back (static_cast<float> (e), f);
-        if (inactive)
+        if (! sung)
         {
+            unvoicedAll.emplace_back (static_cast<float> (e), f);
+            if (inactive)
+                quiet.emplace_back (static_cast<float> (e), f);
+        }
+    }
+    // Pas assez de silence : les 10 % les plus calmes des trames non chantées. S'il n'y en a pas (chant continu), pas
+    // de débruitage : mieux vaut un souffle intact qu'une voix apprise comme du bruit.
+    const bool fromSilence = quiet.size() >= 10;
+    auto& pool = fromSilence ? quiet : unvoicedAll;
+    std::sort (pool.begin(), pool.end());
+    const size_t take = fromSilence ? pool.size() : std::max<size_t> (10, pool.size() / 10);
+    int inactiveCount = 0;
+    if (pool.size() >= 10)
+        for (size_t i = 0; i < take && i < pool.size(); ++i)
+        {
+            analyse (pool[i].second);
             for (int k = 0; k < kBins; ++k)
                 noise[static_cast<size_t> (k)] += power[static_cast<size_t> (k)];
             ++inactiveCount;
         }
-    }
-    if (inactiveCount < 10)
-    {
-        // Pas assez de silence : les 10 % de trames les plus calmes servent de profil.
-        std::sort (frameEnergy.begin(), frameEnergy.end());
-        std::fill (noise.begin(), noise.end(), 0.0);
-        inactiveCount = 0;
-        for (size_t i = 0; i < std::max<size_t> (10, frameEnergy.size() / 10) && i < frameEnergy.size(); ++i)
-        {
-            analyse (frameEnergy[i].second);
-            for (int k = 0; k < kBins; ++k)
-                noise[static_cast<size_t> (k)] += power[static_cast<size_t> (k)];
-            ++inactiveCount;
-        }
-    }
+    else
+        SV_LOG_INFO (kMod, "Pas de silence sans voix pour apprendre le bruit ("_u8 + juce::String (static_cast<int> (pool.size()))
+                           + " trames) : débruitage sauté, la voix n'est pas touchée"_u8);
     rep.noiseFrames = inactiveCount;
     if (inactiveCount == 0)
         return rep;
@@ -157,7 +167,18 @@ int declip (Mono& x, float threshold)
             ++j;
         // Zone [i, j) écrêtée : interpolation cubique (Hermite) entre les points sains de part et d'autre, avec leurs pentes.
         const int len = j - i;
-        if (len >= 2 && i >= 2 && j + 1 < n && len < 4096)
+        // Un vrai écrêtage est un plateau : les échantillons restent collés à la même valeur (à 0,5 % près). Une crête
+        // simplement forte (voix qui monte, prise normalisée) dépasse le seuil mais continue de bouger : on n'y touche
+        // pas — la « reconstruire » déformait chaque crête des passages forts (mesuré : -24 dB de saleté au-dessus de
+        // 2 kHz sur un passage 18 dB au-dessus du niveau courant, rien sur les passages calmes).
+        float lo = std::abs (x[static_cast<size_t> (i)]), hi = lo;
+        for (int k = i + 1; k < j; ++k)
+        {
+            lo = std::min (lo, std::abs (x[static_cast<size_t> (k)]));
+            hi = std::max (hi, std::abs (x[static_cast<size_t> (k)]));
+        }
+        const bool plateau = hi - lo <= 0.005f * threshold;
+        if (plateau && len >= 2 && i >= 2 && j + 1 < n && len < 4096)
         {
             const float p0 = x[static_cast<size_t> (i - 1)], p1 = x[static_cast<size_t> (j)];
             const float m0 = (x[static_cast<size_t> (i - 1)] - x[static_cast<size_t> (i - 2)]) * (len + 1);

@@ -332,33 +332,29 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     sv::Mono raw (mono, mono + frames);
     const auto problems = sv::dsp::analyzeTrackProblems (raw, sampleRate, context.key, true);
     const auto notes = sv::dsp::fitStyleToMeasurement (params, problems, context.tempo.bpm);
-    // Mode « lissé » (gentle) : la voix est seulement polie, rien n'est imposé. Les effets qui changent le caractère
-    // de la voix sont éteints (autotune, saturation, recalage rythmique, écho) et les traitements de fond sont bornés
-    // à des valeurs douces (compression, niveleur, résonances, débruitage, de-esser, réverb). Les effets du style
-    // restent disponibles : ils se rallument un par un dans le tableau des effets (fxJson, appliqué après).
+    // « Voix lissée » (gentle) : un interrupteur qui s'ajoute au style, pas un mode à part. Le style reste entier dans
+    // ce qui fait son caractère (autotune, égaliseur, réverb, écho, image stéréo) ; tout ce qui peut rendre la voix
+    // rêche quand le niveau monte est ramené dans un régime doux : dynamique (compresseurs, niveleur, résonances,
+    // de-esser), nettoyage (débruitage, porte, respirations), saturation, vitesse de l'autotune, recalage rythmique.
+    // Chaque effet se règle ensuite à la main dans le tableau des effets (fxJson, appliqué après).
     if (gentle != 0)
     {
-        params.pitch.enabled = false;
-        params.sat.mix = 0.0f;
         params.timing.strength = 0.0f;
-        params.delay.send = 0.0f;
-        params.reverb.send = juce::jmin (params.reverb.send, 0.08f);
-        params.comp.ratio = juce::jmin (params.comp.ratio, 2.5f);
-        params.comp.attackMs = juce::jmax (params.comp.attackMs, 10.0f);
+        params.pitch.retuneMs = juce::jmax (params.pitch.retuneMs, 40.0f);
+        params.sat.mix = juce::jmin (params.sat.mix, 0.15f);
+        params.sat.driveDb = juce::jmin (params.sat.driveDb, 6.0f);
+        params.comp.ratio = juce::jmin (params.comp.ratio, 3.0f);
+        params.comp.attackMs = juce::jmax (params.comp.attackMs, 8.0f);
         params.comp.releaseMs = juce::jmax (params.comp.releaseMs, 120.0f);
         params.comp2.ratio = juce::jmin (params.comp2.ratio, 1.5f);
-        params.leveler.maxBoostDb = juce::jmin (params.leveler.maxBoostDb, 3.0f);
-        params.leveler.maxCutDb = juce::jmin (params.leveler.maxCutDb, 3.0f);
-        params.resonance.maxReductionDb = juce::jmin (params.resonance.maxReductionDb, 3.0f);
-        params.clean.denoiseDb = juce::jmin (params.clean.denoiseDb, 6.0f);
-        params.clean.gateRangeDb = juce::jmin (params.clean.gateRangeDb, 6.0f);
-        params.clean.breathReductionDb = juce::jmin (params.clean.breathReductionDb, 4.0f);
-        params.deEss.amount = juce::jmin (params.deEss.amount, 0.4f);
-        params.eq.lowShelfDb = juce::jlimit (-3.0f, 3.0f, params.eq.lowShelfDb);
-        params.eq.mudDb = juce::jlimit (-3.0f, 3.0f, params.eq.mudDb);
-        params.eq.presenceDb = juce::jlimit (-3.0f, 3.0f, params.eq.presenceDb);
-        params.eq.airDb = juce::jlimit (-3.0f, 3.0f, params.eq.airDb);
-        SV_LOG_INFO (kMod, "Mode lissé : autotune, saturation, recalage et écho éteints ; compression, niveleur, résonances, débruitage, de-esser et réverb bornés"_u8);
+        params.leveler.maxBoostDb = juce::jmin (params.leveler.maxBoostDb, 4.0f);
+        params.leveler.maxCutDb = juce::jmin (params.leveler.maxCutDb, 4.0f);
+        params.resonance.maxReductionDb = juce::jmin (params.resonance.maxReductionDb, 4.0f);
+        params.clean.denoiseDb = juce::jmin (params.clean.denoiseDb, 8.0f);
+        params.clean.gateRangeDb = juce::jmin (params.clean.gateRangeDb, 8.0f);
+        params.clean.breathReductionDb = juce::jmin (params.clean.breathReductionDb, 6.0f);
+        params.deEss.amount = juce::jmin (params.deEss.amount, 0.5f);
+        SV_LOG_INFO (kMod, "Voix lissée : effets du style gardés (autotune, égaliseur, réverb, écho) ; compression, niveleur, résonances, de-esser, nettoyage, saturation et recalage ramenés dans un régime doux"_u8);
     }
     // Tableau des effets : le pré-réglage (style + mesure, lissé ou non) est rendu tel quel, puis les réglages faits à
     // la main (fxJson, un objet par effet) s'appliquent par-dessus.

@@ -491,7 +491,7 @@ CleanReport clean (Mono& x, double sr, const CleanSettings& s, const analysis::P
 
     // 0) Dé-écrêtage avant tout : les bosses écrêtées sont reconstruites, le reste de la chaîne travaille sur un signal sain.
     if (s.declip)
-        report.clippedRepaired = declip (x);
+        report.clippedRepaired = declip (x, s.declipThreshold);
 
     highPass (x, sr, s.hpfHz, 4);
 

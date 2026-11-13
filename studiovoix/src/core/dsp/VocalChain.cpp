@@ -244,7 +244,13 @@ VocalResult processVocal (const Mono& raw, double sampleRate, const style::Vocal
     if (! step (0.20f)) return result;
 
     // 3) Nettoyage.
-    result.report.clean = clean (x, sampleRate, params.clean, result.track, result.va);
+    // L'écrêtage se juge à la pleine échelle de la prise d'origine : après le gain d'entrée, ce niveau a bougé d'autant
+    // (sinon tout passage fort d'une prise remontée de 10 dB passait pour « écrêté »).
+    auto cleanSettings = params.clean;
+    cleanSettings.declipThreshold = params.clean.declipThreshold * std::max (1.0e-6f, inGain);
+    result.report.clean = clean (x, sampleRate, cleanSettings, result.track, result.va);
+    if (result.report.clean.clippedRepaired > 0)
+        SV_LOG_INFO (kMod, "Dé-écrêtage : "_u8 + juce::String (result.report.clean.clippedRepaired) + " échantillons en plateau reconstruits"_u8);
     // 3 bis) Niveleur : les passages trop bas remontés, trop forts baissés (fader suivi), avant les compresseurs.
     if (params.leveler.enabled)
         result.report.leveler = autoLevel (x, sampleRate, params.leveler);

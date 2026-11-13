@@ -122,6 +122,7 @@ struct CleanSettings
     float breathReductionDb = 8.0f;   // 0 = respirations intactes
     float denoiseDb = 12.0f;          // débruitage spectral (souffle, ronflement, bruit de pièce) ; 0 = désactivé
     bool declip = true;               // reconstruction des passages écrêtés
+    float declipThreshold = 0.985f;   // niveau d'écrêtage (pleine échelle de la prise ; la chaîne voix le multiplie par son gain d'entrée)
 };
 struct CleanReport
 {

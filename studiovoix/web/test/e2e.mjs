@@ -505,8 +505,9 @@ try {
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
     }
 
-    // Effets non imposés : une piste enregistrée ou importée démarre « Lissé » (voix polie : ni autotune, ni saturation,
-    // ni écho). Son bouton passe à « Style » (tous les effets du style), puis « Brut » (aucun effet), puis « Lissé ».
+    // Effets non imposés : une piste enregistrée ou importée démarre « Lissé » (effets du style + voix lissée : dynamique
+    // et saturation bornées). Son bouton passe à « Style » (sans lissage), puis « Sans effet » ; « Voix lissée » est un
+    // interrupteur du tableau des effets qui s'ajoute au style.
     {
         const i = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && t.smooth && t.processed?.report?.fx));
         if (i >= 0) {
@@ -514,7 +515,7 @@ try {
             const btn = () => page.evaluate((k) => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[k].id}"] button.tog.fx`).click(), i);
             const settle = (src) => page.waitForFunction(([k, body]) => { const t = window.__studiovoix.tracks[k]; return t.status !== 'busy' && document.body.dataset.busy === '0' && new Function('t', 'return ' + body)(t); }, [i, src], { timeout: 120000 });
             const a = await st();
-            if (!a.gentle || a.pitch || a.sat || a.delay || !(a.comp <= 2.5001) || a.badge !== 'lissée') throw new Error('piste par défaut : devrait être « lissée » sans autotune, saturation ni écho : ' + JSON.stringify(a));
+            if (!a.gentle || !(a.comp <= 3.0001) || a.badge !== 'lissée') throw new Error('piste par défaut : devrait être « lissée » (compresseur borné à 3:1) : ' + JSON.stringify(a));
             await btn(); await settle('!t.noFx && !t.smooth && t.processed && t.processed.report.gentle === false');
             const b = await st();
             if (b.badge !== 'traitée') throw new Error('bouton Style : piste non traitée par le style : ' + JSON.stringify(b));
@@ -524,7 +525,13 @@ try {
             if (!(await page.locator('#fxMode button[data-mode="none"]').evaluate((b) => b.classList.contains('on')))) throw new Error('tableau des effets : « Sans effet » non marqué actif');
             const c = await st();
             if (c.badge !== 'sans effet') throw new Error('bouton Brut : la piste garde des effets : ' + JSON.stringify(c));
-            await page.click('#fxMode button[data-mode="smooth"]'); await settle('!t.noFx && t.smooth && t.processed && t.processed.report.gentle === true');
+            // « Style » revient sans lissage (dernier choix), puis l'interrupteur « Voix lissée » s'ajoute au style
+            await page.click('#fxMode button[data-mode="style"]'); await settle('!t.noFx && !t.smooth && t.processed && t.processed.report.gentle === false');
+            if (await page.locator('#fxSmooth').evaluate((b) => b.classList.contains('on'))) throw new Error('« Voix lissée » allumée alors que la piste est en Style sans lissage');
+            await page.click('#fxSmooth'); await settle('!t.noFx && t.smooth && t.processed && t.processed.report.gentle === true');
+            const d = await st();
+            if (!(await page.locator('#fxSmooth').evaluate((b) => b.classList.contains('on'))) || d.pitch !== b.pitch || d.delay !== b.delay || !(d.comp <= 3.0001))
+                throw new Error('« Voix lissée » : devrait garder les effets du style (autotune, écho) et borner le compresseur : ' + JSON.stringify(d));
             console.log(stamp(), `effets non imposés : par défaut « lissée » (autotune ${a.pitch ? 'allumé' : 'éteint'}, saturation ${a.sat ? 'allumée' : 'éteinte'}, écho ${a.delay ? 'allumé' : 'éteint'}, compresseur ${a.comp.toFixed(1)}:1) ; Style → autotune ${b.pitch ? 'allumé' : 'éteint'}, compresseur ${b.comp.toFixed(1)}:1 ; Brut → sans effet ; retour Lissé`);
         }
     }

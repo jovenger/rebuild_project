@@ -1,5 +1,7 @@
 #include "PitchCorrector.h"
 
+#include <algorithm>
+
 #include "PitchShifter.h"
 #include "../Log.h"
 
@@ -96,6 +98,7 @@ PitchCorrectionResult correctPitch (const Mono& input, double sampleRate, const 
     std::vector<float> ratios (nf, 1.0f);
     double absCents = 0.0;
     int counted = 0;
+    int notesInTune = 0, notesCorrected = 0, unsureFrames = 0;
 
     for (size_t i = 0; i < nf;)
     {
@@ -133,6 +136,7 @@ PitchCorrectionResult correctPitch (const Mono& input, double sampleRate, const 
 
         float currentTarget = nearestScaleMidi (base[0], params.key, params.chromatic);
         float smoothedCorr = currentTarget - base[0];
+        float maxAbsSemis = 0.0f;
         for (size_t k = 0; k < midi.size(); ++k)
         {
             const float candidate = nearestScaleMidi (base[k], params.key, params.chromatic);
@@ -140,13 +144,45 @@ PitchCorrectionResult correctPitch (const Mono& input, double sampleRate, const 
                 currentTarget = candidate;
             const float corr = currentTarget - base[k];
             smoothedCorr += (corr - smoothedCorr) * alpha;
-            const float outMidi = midi[k] + params.amount * smoothedCorr;
+            float outMidi = midi[k] + params.amount * smoothedCorr;
+            // Hauteur peu sûre : une trame qui s'écarte de plus de 4 demi-tons de ses voisines (saut d'octave de la
+            // détection, voix doublée, réverbération) n'est pas corrigée — corriger une fausse note mesurée abîme le son.
+            {
+                float near[7];
+                int c = 0;
+                for (long o = -3; o <= 3; ++o)
+                {
+                    const long idx = static_cast<long> (k) + o;
+                    if (idx >= 0 && idx < static_cast<long> (midi.size()))
+                        near[c++] = midi[static_cast<size_t> (idx)];
+                }
+                std::nth_element (near, near + c / 2, near + c);
+                if (std::abs (midi[k] - near[c / 2]) > 4.0f)
+                {
+                    outMidi = midi[k];
+                    ++unsureFrames;
+                }
+            }
             res.outputMidi[i + k] = outMidi;
             res.targetMidi[i + k] = currentTarget;
             ratios[i + k] = std::pow (2.0f, (outMidi - midi[k]) / 12.0f);
+            maxAbsSemis = std::max (maxAbsSemis, std::abs (outMidi - midi[k]));
             absCents += std::abs (outMidi - midi[k]) * 100.0;
             ++counted;
         }
+        // Note déjà juste (moins de 5 cents à corriger sur tout le passage) : on n'y touche pas du tout, le son d'origine
+        // passe tel quel (psolaShift ne traite que les passages dont le rapport s'écarte de 1).
+        if (maxAbsSemis < 0.05f)
+        {
+            for (size_t k = i; k < j; ++k)
+            {
+                ratios[k] = 1.0f;
+                res.outputMidi[k] = midi[k - i];
+            }
+            ++notesInTune;
+        }
+        else
+            ++notesCorrected;
         i = j;
     }
 
@@ -154,7 +190,9 @@ PitchCorrectionResult correctPitch (const Mono& input, double sampleRate, const 
     res.audio = psolaShift (input, sampleRate, res.track, ratios);
     SV_LOG_INFO (kMod, "Gamme " + juce::String (params.chromatic ? "chromatique" : params.key.toFrench())
                        + ", quantité "_u8 + juce::String (params.amount, 2) + ", vitesse " + juce::String (juce::roundToInt (params.retuneMs))
-                       + " ms, correction moyenne " + juce::String (res.meanAbsCorrectionCents, 1) + " cents");
+                       + " ms, correction moyenne " + juce::String (res.meanAbsCorrectionCents, 1) + " cents ; "
+                       + juce::String (notesCorrected) + " passage(s) corrigé(s), "_u8 + juce::String (notesInTune)
+                       + " déjà juste(s) laissé(s) tel(s) quel(s), "_u8 + juce::String (unsureFrames) + " trame(s) de hauteur peu sûre non corrigée(s)"_u8);
     return res;
 }
 } // namespace sv::dsp

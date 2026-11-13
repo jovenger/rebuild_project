@@ -115,6 +115,34 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## « Les voix craquent quand ça monte en niveau, même sous un effet » : cause trouvée et corrigée (Yann)
+
+- Demande : « en appuyant sur voix lissée, il faut que les voix soient vraiment lissées, très propres, pas de craquement,
+  même sous un effet » (rap conscient + lissé).
+- Mesure (nouvelle) : note d'essai parfaitement propre, par passages à +0 / +6 / +12 / +18 dB, dans la chaîne, effet par
+  effet ; saleté = énergie hors des harmoniques. Résultat avant correction, style rap conscient : -33 dB partout
+  (-25 dB au-dessus de 2 kHz), -23 dB dans les aigus sur le passage fort. Trois causes, toutes dans le moteur :
+  1. **Autotune (PSOLA)** : grains posés à l'échantillon entier, marques calées sur le maximum → gigue d'une période à
+     l'autre = bruit dans les aigus, même sur une note déjà juste ; consonnes et notes justes retraitées pour rien.
+     Corrigé : marques à position fractionnaire suivies par ressemblance de forme d'onde, grains reposés par
+     interpolation sinc 16 points, son d'origine tel quel hors correction (note juste à 5 cents près, consonnes,
+     silences), trames de hauteur douteuse non corrigées. Autotune seul : -25 dB → -78 dB en corrigeant 35 cents,
+     -92 dB sur une note juste.
+  2. **Dé-écrêtage** : jugeait « écrêté » tout ce qui dépassait 0,985 APRÈS le gain d'entrée → chaque crête d'un
+     passage fort était « reconstruite ». Corrigé : seuil ramené à la pleine échelle de la prise, et seulement sur
+     un vrai plateau. Passage à +18 dB : -23 dB → -57 dB.
+  3. **Débruitage** : sur une prise propre (voix séparée, silences numériques) le « bruit de fond » appris était le
+     chant doux lui-même → gain qui bouge bande par bande sur le chant plus fort. Corrigé : profil appris seulement
+     sur des trames inactives ET non chantées ; sans silence, débruitage sauté. Passage à +6 dB : -38 dB → < -90 dB.
+- Fait — « ✨ Voix lissée » : interrupteur qui s'ajoute au style (plus un mode à part) ; le style garde autotune,
+  égaliseur, réverb, écho ; compresseurs ≤ 3:1 (attaque ≥ 8 ms, relâche ≥ 120 ms), niveleur ≤ ±4 dB, résonances
+  ≤ 4 dB, débruitage / porte ≤ 8 dB, de-esser ≤ 50 %, saturation ≤ 15 % / 6 dB, autotune ≥ 40 ms, recalage éteint.
+- Essais : `web/test/clean.mjs` (CI) — 33 styles avec et sans voix lissée, pire saleté -63 dB (limite -55) ;
+  vraies voix (3 extraits) : apériodicité ajoutée par le style 5,4 → 3,0 dB, 1,5 → 0,9, 3,7 → 1,8 (le reste vient
+  de l'égaliseur, linéaire) ; autotune actif sur 29 à 61 % de la durée, ~11 cents ; tests natifs 1283 / 1283 ; e2e
+  démo PC.
+- Non vérifié : à l'oreille (aucune écoute possible ici) ; logiciel Windows recompilé seulement sous Linux (CLI).
+
 ## Export MP3, page rangée en 5 étapes, « Sans effet » dans les effets de la piste (demandes de Yann)
 
 - Demande : « il faut que j'arrive à le sortir au format MP3 » ; « l'organisation des boutons… c'est le fouillis, il y

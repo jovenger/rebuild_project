@@ -16,7 +16,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'), fxSmooth: $('fxSmooth'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), exportRawBtn: $('exportRawBtn'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
@@ -299,7 +299,7 @@ function addTrack(roleId, name) {
     const t = {
         id: state.nextTrackId++, name: name || nextTrackName(roleId), roleId, styleId: state.tracks[0]?.styleId || 'rap_conscient',
         volumeDb: 0, mute: false, solo: false, take: null, takes: [], processed: null, status: 'vide', token: 0,
-        smooth: true,   // nouvelle piste : voix « lissée » (polie), aucun effet de caractère imposé ; « Style » au choix
+        smooth: true,   // nouvelle piste : « voix lissée » allumée (les effets du style restent, la voix reste propre)
     };
     state.tracks.push(t);
     if (!state.armedId) state.armedId = t.id;
@@ -442,12 +442,12 @@ function trackRow(t) {
         el('div', { class: 'r' }, role, style),
         meter,
         el('div', { class: 'r' }, ...toggles(t, onMuteSolo),
-            // Effets de la piste, trois états : Brut (aucun effet) → Lissé (voix polie, rien d'imposé) → Style (tous les
-            // effets du style : autotune, saturation, compression forte…). Un clic passe à l'état suivant.
+            // Effets de la piste, un clic passe à l'état suivant : Brut (aucun effet) → Lissé (effets du style + voix
+            // lissée) → Style (effets du style tels quels).
             el('button', { class: 'tog fx' + (t.noFx ? '' : t.smooth ? ' on smooth' : ' on'), textContent: t.noFx ? 'Brut' : t.smooth ? 'Lissé' : 'Style',
                 title: t.noFx ? 'Brut : la piste est jouée telle quelle, sans aucun effet (clique : Lissé)'
-                    : t.smooth ? 'Lissé : voix seulement polie (nettoyage léger, égaliseur, compression douce, de-esser, un peu de réverb) ; ni autotune, ni saturation, ni écho. Les effets se règlent dans le tableau des effets (clique : Style)'
-                    : 'Style : tous les effets du style (autotune, saturation, compression forte, écho…) (clique : Brut)',
+                    : t.smooth ? 'Lissé : les effets du style (autotune, couleur, réverb, écho) avec la voix lissée — compression, nettoyage et saturation doux, rien de rêche quand le niveau monte (clique : Style sans lissage)'
+                    : 'Style : tous les effets du style tels quels, sans lissage (clique : Brut)',
                 onclick: (e) => { e.stopPropagation(); setFxMode(t, t.noFx ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
             el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
                 title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
@@ -732,13 +732,15 @@ ui.useScale.addEventListener('change', () => {
     reprocessAll();
 });
 
-// État des effets d'une piste : 'none' (sans effet, brut), 'smooth' (lissé) ou 'style' (tous les effets du style).
-// Même action depuis le bouton de la piste et depuis le choix « Sans effet / Lissé / Style » du tableau des effets.
+// État des effets d'une piste : 'none' (sans effet, brut), 'smooth' (effets du style + voix lissée) ou 'style' (effets
+// du style tels quels). « Voix lissée » (t.smooth) est un interrupteur qui s'ajoute au style : il est gardé quand la
+// piste repasse par « Sans effet ». Même action depuis le bouton de la piste et depuis le tableau des effets.
 const fxModeOf = (t) => (t.noFx ? 'none' : t.smooth ? 'smooth' : 'style');
 function setFxMode(t, mode) {
     if (fxModeOf(t) === mode) return;
-    t.noFx = mode === 'none'; t.smooth = mode === 'smooth';
-    log('info', `« ${t.name} » : ${mode === 'none' ? 'sans effet (brut)' : mode === 'smooth' ? 'lissé (voix polie)' : 'effets du style'}`);
+    t.noFx = mode === 'none';
+    if (mode !== 'none') t.smooth = mode === 'smooth';
+    log('info', `« ${t.name} » : ${mode === 'none' ? 'sans effet (brut)' : mode === 'smooth' ? 'effets du style, voix lissée' : 'effets du style, sans lissage'}`);
     markDirty(); renderTracks(); queueProcess(t); renderFx(true);
 }
 // ------------------------------------------------------------------ tableau des effets (piste sélectionnée)
@@ -831,14 +833,17 @@ function fxSummary(def, v) {
 function renderFx(force = false) {
     const t = findTrack(state.selectedId);
     ui.fxResetAll.disabled = !(t && t.fx && Object.keys(t.fx).length);
-    for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && fxModeOf(t) === b.dataset.mode); }
+    for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && (b.dataset.mode === 'none') === !!t.noFx); }
+    ui.fxSmooth.disabled = !t || !!t.noFx;
+    ui.fxSmooth.classList.toggle('on', !!t && !t.noFx && !!t.smooth);
+    ui.fxSmooth.textContent = t && !t.noFx && t.smooth ? '✨ Voix lissée : oui' : '✨ Voix lissée : non';
     if (!t) { ui.fxTitle.textContent = 'Effets de la piste'; ui.fxList.replaceChildren(); fxUi.trackId = 0; return; }
     ui.fxTitle.textContent = `Effets de « ${t.name} »`;
     const rep = t.processed?.report;
     const msg = !t.take ? 'Pas encore de prise sur cette piste : enregistre ou importe une voix, ses effets s\'afficheront ici.'
-        : t.noFx ? 'Cette piste est « Sans effet » : elle est jouée telle quelle (seul son volume est réglé). Choisis « Lissé » (voix polie) ou « Style » (tous les effets) ci-dessus pour lui en donner, puis règle-les ici.'
+        : t.noFx ? 'Cette piste est « Sans effet » : elle est jouée telle quelle (seul son volume est réglé). Choisis « Style » ci-dessus pour lui donner les effets de son style (avec « Voix lissée » pour une voix propre), puis règle-les ici.'
         : !rep?.fx ? 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.'
-        : `Pré-réglage : ${t.smooth ? 'lissé (voix polie : ni autotune, ni saturation, ni écho)' : 'style ' + styleName(t.styleId)}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
+        : `Pré-réglage : style ${styleName(t.styleId)}${t.smooth ? ' + voix lissée (compression, nettoyage et saturation doux)' : ''}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
     ui.fxInfo.textContent = msg;
     if (!t.take || t.noFx || !rep?.fx) { ui.fxList.replaceChildren(); fxUi.trackId = 0; fxUi.rows.clear(); return; }
     if (!force && fxUi.trackId === t.id && fxUi.rows.size) { fxRefresh(); return; }
@@ -886,7 +891,8 @@ function fxRefresh() {
         }
     }
 }
-for (const b of ui.fxMode.querySelectorAll('button')) b.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) setFxMode(t, b.dataset.mode); });
+for (const b of ui.fxMode.querySelectorAll('button')) b.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) setFxMode(t, b.dataset.mode === 'none' ? 'none' : t.smooth ? 'smooth' : 'style'); });
+ui.fxSmooth.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t && !t.noFx) setFxMode(t, t.smooth ? 'style' : 'smooth'); });
 ui.fxResetAll.addEventListener('click', () => {
     const t = findTrack(state.selectedId);
     if (!t) return;

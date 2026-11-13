@@ -40,16 +40,21 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **Tableau des effets** (sous les pistes, pour la piste sélectionnée) : chaque effet du pré-réglage avec sa case
   (nettoyage, autotune, égaliseur, compresseurs, de-esser, saturation, réverb, écho…) ; un clic ouvre ses curseurs ;
   tout changement est recalculé puis entendu pendant la lecture « ▶ Mix » ; retour au pré-réglage en un clic.
-- **Effets non imposés** : chaque piste a trois états — **Brut** (aucun effet), **Lissé** (voix seulement polie :
-  ni autotune, ni saturation, ni écho ; état de départ d'une piste enregistrée) et **Style** (tous les effets du
-  style). Chaque effet se règle ensuite dans le tableau des effets.
+- **Effets non imposés** : chaque piste est **Sans effet** (brut) ou **Style** (les effets de son style) ; le bouton
+  **✨ Voix lissée** s'ajoute au style : les effets restent (autotune, couleur, réverb, écho), la compression, le
+  nettoyage, la saturation et la vitesse de l'autotune passent en régime doux. Une piste enregistrée démarre en
+  « Style + voix lissée ». Chaque effet se règle ensuite dans le tableau des effets.
+- **Voix propre quand le niveau monte** (mesuré, essai `web/test/clean.mjs` sur les 33 styles) : une note d'essai à
+  +0 / +6 / +12 / +18 dB ressort avec moins de -55 dB de saleté hors harmoniques (pire cas -63 dB ; -23 dB avant
+  correction). Trois défauts du moteur corrigés : autotune posé à l'échantillon entier (gigue dans les aigus),
+  « dé-écrêtage » qui déformait toute crête forte, débruitage qui apprenait le chant doux comme du bruit.
 - **Couplets / refrains** : à la séparation, les couplets vont sur une piste et les refrains sur une autre (par
   chanteur s'il y en a plusieurs) ; coupes placées dans un creux de la voix.
 - **Page en 5 étapes numérotées** : 1 Pistes · 2 Séparer une chanson · 3 Effets de la piste · 4 Volumes et mixage ·
   5 Exporter ; lecture et enregistrement dans une seule barre fixe en bas ; réglages de prise, détail de la piste et
   journal repliés en bas de page.
-- **Effets de la piste : « Sans effet / Lissé / Style »** en tête du tableau des effets (trois boutons, celui qui est
-  actif est allumé) ; le bouton de la piste fait le même choix.
+- **Effets de la piste : « Sans effet / Style » + bouton « ✨ Voix lissée »** en tête du tableau des effets ; le bouton
+  de la piste fait le même choix (Brut → Lissé → Style).
 - **Export WAV ou MP3** (liste « Format », étape 5) pour les quatre exports : chanson brute, chanson « Mix », chanson
   mixée (master), chaque piste à part. MP3 320 kbit/s encodé dans le navigateur par lamejs 1.2.1 (LGPL-3.0, portage de
   LAME, fichier séparé non modifié `vendor/lame.min.js`, chargé seulement au premier export MP3).

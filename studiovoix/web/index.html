@@ -100,6 +100,8 @@
   .seg button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 12.5px; background: transparent; }
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button.on { background: var(--accent-2); color: #fff; font-weight: 700; }
+  .smoothbtn { font-size: 12.5px; padding: 5px 10px; }
+  .smoothbtn.on { background: #9b7bff; border-color: #9b7bff; color: #fff; font-weight: 700; }
   .info { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; }
   .sepprog { margin: 8px 0 4px; padding: 10px; border: 1px solid var(--accent, #7c5cff); border-radius: 8px; display: grid; gap: 6px; }
   .sepprog[hidden] { display: none; }   /* sinon display:grid l'emporte sur l'attribut hidden */
@@ -218,9 +220,10 @@
   <section id="fxPanel" class="card step fxcard">
     <div class="fxhead">
       <h2><span class="num">3</span> <span id="fxTitle">Effets de la piste</span></h2>
-      <div id="fxMode" class="seg" title="Sans effet : la piste est jouée telle quelle. Lissé : voix seulement polie. Style : tous les effets du style.">
-        <button data-mode="none" disabled>Sans effet</button><button data-mode="smooth" disabled>Lissé</button><button data-mode="style" disabled>Style</button>
+      <div id="fxMode" class="seg" title="Sans effet : la piste est jouée telle quelle. Style : les effets du style de la piste.">
+        <button data-mode="none" disabled>Sans effet</button><button data-mode="style" disabled>Style</button>
       </div>
+      <button id="fxSmooth" class="smoothbtn" disabled title="Voix lissée : s'ajoute au style. Les effets restent (autotune, couleur, réverb, écho) ; compression, nettoyage et saturation passent en régime doux pour une voix propre quand le niveau monte.">✨ Voix lissée : non</button>
       <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage">↺ Pré-réglage</button>
     </div>
     <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
