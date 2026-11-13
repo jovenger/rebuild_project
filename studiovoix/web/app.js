@@ -299,6 +299,7 @@ function addTrack(roleId, name) {
     const t = {
         id: state.nextTrackId++, name: name || nextTrackName(roleId), roleId, styleId: state.tracks[0]?.styleId || 'rap_conscient',
         volumeDb: 0, mute: false, solo: false, take: null, takes: [], processed: null, status: 'vide', token: 0,
+        smooth: true,   // nouvelle piste : voix « lissée » (polie), aucun effet de caractère imposé ; « Style » au choix
     };
     state.tracks.push(t);
     if (!state.armedId) state.armedId = t.id;
@@ -441,8 +442,15 @@ function trackRow(t) {
         el('div', { class: 'r' }, role, style),
         meter,
         el('div', { class: 'r' }, ...toggles(t, onMuteSolo),
-            el('button', { class: 'tog fx' + (t.noFx ? '' : ' on'), textContent: 'FX', title: t.noFx ? 'Sans effet : jouée telle quelle (clique pour appliquer la chaîne du style)' : 'Effets du style appliqués (clique pour jouer la piste telle quelle)',
-                onclick: (e) => { e.stopPropagation(); t.noFx = !t.noFx; log('info', `« ${t.name} » : ${t.noFx ? 'sans effet' : 'effets du style'}`); markDirty(); renderTracks(); queueProcess(t); } }),
+            // Effets de la piste, trois états : Brut (aucun effet) → Lissé (voix polie, rien d'imposé) → Style (tous les
+            // effets du style : autotune, saturation, compression forte…). Un clic passe à l'état suivant.
+            el('button', { class: 'tog fx' + (t.noFx ? '' : t.smooth ? ' on smooth' : ' on'), textContent: t.noFx ? 'Brut' : t.smooth ? 'Lissé' : 'Style',
+                title: t.noFx ? 'Brut : la piste est jouée telle quelle, sans aucun effet (clique : Lissé)'
+                    : t.smooth ? 'Lissé : voix seulement polie (nettoyage léger, égaliseur, compression douce, de-esser, un peu de réverb) ; ni autotune, ni saturation, ni écho. Les effets se règlent dans le tableau des effets (clique : Style)'
+                    : 'Style : tous les effets du style (autotune, saturation, compression forte, écho…) (clique : Brut)',
+                onclick: (e) => { e.stopPropagation();
+                    if (t.noFx) { t.noFx = false; t.smooth = true; } else if (t.smooth) t.smooth = false; else t.noFx = true;
+                    log('info', `« ${t.name} » : ${t.noFx ? 'brut, sans effet' : t.smooth ? 'lissé (voix polie)' : 'effets du style'}`); markDirty(); renderTracks(); queueProcess(t); } }),
             el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
                 title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
                 onclick: (e) => { e.stopPropagation(); t.locked = !t.locked; log('info', `« ${t.name} » : ${t.locked ? 'verrouillée (déplacement bloqué)' : 'déverrouillée (déplacement permis)'}`); markDirty(); renderTracks(); } }),
@@ -488,7 +496,7 @@ function badgeText(t) {
     if (t.status === 'busy') return 'traitement…';
     if (t.status === 'isolating') return 'isolation IA…';
     if (t.noFx && t.take) return 'sans effet';
-    if (t.processed) return 'traitée';
+    if (t.processed) return t.smooth ? 'lissée' : 'traitée';
     if (t.take) return 'brute';
     return 'vide';
 }
@@ -567,7 +575,7 @@ function drawLane(row, t, force = false) {
     if (!t) { if (state.instru) { data = state.instru.left; sr = state.instru.sampleRate; color = '#8a94a8'; } }
     else if (t.take) {
         data = t.processed ? t.processed.left : t.take.mono; sr = t.take.sampleRate; start = t.take.startSec;
-        color = t.processed ? '#e94e8a' : '#3a9bff';
+        color = t.processed ? (t.smooth ? '#9b7bff' : '#e94e8a') : '#3a9bff';   // bleu : brut ; violet : lissé ; rose : effets du style
     }
     if (!data || !data.length) return;
     const x0 = start / total * w, x1 = (start + data.length / sr) / total * w;
@@ -695,13 +703,13 @@ function queueProcess(t) {
 async function processTrack(t, token) {
     if (token !== t.token || !findTrack(t.id) || !t.take) return;   // réglage changé entre-temps : seul le dernier compte
     const fx = t.fx && Object.keys(t.fx).length ? t.fx : null;   // réglages faits à la main dans le tableau des effets
-    const key = `${t.styleId}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${fx ? JSON.stringify(fx) : ''}`;
+    const key = `${t.styleId}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${t.smooth ? 'lissé' : 'style'}|${fx ? JSON.stringify(fx) : ''}`;
     const t0 = performance.now();
     setStatus(`Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`);
     try {
         const r = await call('processVoice', {
             mono: t.take.mono.slice(), sampleRate: t.take.sampleRate, styleId: t.styleId, roleId: t.roleId,
-            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec, fx,
+            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec, fx, gentle: !!t.smooth,
         });
         if (token !== t.token) return;
         t.processed = { left: r.left, right: r.right, report: r.report, key };
@@ -820,9 +828,9 @@ function renderFx(force = false) {
     ui.fxTitle.textContent = `Effets de « ${t.name} »`;
     const rep = t.processed?.report;
     const msg = !t.take ? 'Pas encore de prise sur cette piste : enregistre ou importe une voix, ses effets s\'afficheront ici.'
-        : t.noFx ? 'Piste « sans effet » : elle est jouée telle quelle (seul son volume est réglé). Clique le bouton FX de la piste pour lui appliquer les effets du style, puis règle-les ici.'
+        : t.noFx ? 'Piste « Brut » : elle est jouée telle quelle (seul son volume est réglé). Clique son bouton « Brut » pour passer en « Lissé » (voix polie) ou « Style » (tous les effets), puis règle-les ici.'
         : !rep?.fx ? 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.'
-        : `Pré-réglage : style ${styleName(t.styleId)}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
+        : `Pré-réglage : ${t.smooth ? 'lissé (voix polie : ni autotune, ni saturation, ni écho)' : 'style ' + styleName(t.styleId)}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
     ui.fxInfo.textContent = msg;
     if (!t.take || t.noFx || !rep?.fx) { ui.fxList.replaceChildren(); fxUi.trackId = 0; fxUi.rows.clear(); return; }
     if (!force && fxUi.trackId === t.id && fxUi.rows.size) { fxRefresh(); return; }
@@ -2221,7 +2229,7 @@ async function saveProject() {
         instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
         instruTrack: state.instruTrack,
         tracks: state.tracks.map((t) => ({
-            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, locked: !!t.locked, fx: t.fx || {},
+            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, smooth: !!t.smooth, locked: !!t.locked, fx: t.fx || {},
             active: t.takes.indexOf(t.take),
             takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
         })),
@@ -2250,7 +2258,7 @@ async function restoreProject() {
         state.nextTrackId = meta.nextTrackId;
         state.tracks = [];
         for (const m of meta.tracks) {
-            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, fx: m.fx && typeof m.fx === 'object' ? m.fx : {}, locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, smooth: !!m.smooth, fx: m.fx && typeof m.fx === 'object' ? m.fx : {},   // anciens projets : effets du style, comme avant locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
                         take: null, takes: [], processed: null, status: 'vide', token: 0 };
             for (const k of m.takes) {
                 const mono = await get(k.audioId);

@@ -40,6 +40,9 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **Tableau des effets** (sous les pistes, pour la piste sélectionnée) : chaque effet du pré-réglage avec sa case
   (nettoyage, autotune, égaliseur, compresseurs, de-esser, saturation, réverb, écho…) ; un clic ouvre ses curseurs ;
   tout changement est recalculé puis entendu pendant la lecture « ▶ Mix » ; retour au pré-réglage en un clic.
+- **Effets non imposés** : chaque piste a trois états — **Brut** (aucun effet), **Lissé** (voix seulement polie :
+  ni autotune, ni saturation, ni écho ; état de départ d'une piste enregistrée) et **Style** (tous les effets du
+  style). Chaque effet se règle ensuite dans le tableau des effets.
 - **Couplets / refrains** : à la séparation, les couplets vont sur une piste et les refrains sur une autre (par
   chanteur s'il y en a plusieurs) ; coupes placées dans un creux de la voix.
 - **Exporter le brut** : la chanson complète sans effet, volumes égalisés si « ⚖ Égaliser » est actif.

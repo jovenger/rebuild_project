@@ -504,6 +504,26 @@ try {
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
     }
 
+    // Effets non imposés : une piste enregistrée ou importée démarre « Lissé » (voix polie : ni autotune, ni saturation,
+    // ni écho). Son bouton passe à « Style » (tous les effets du style), puis « Brut » (aucun effet), puis « Lissé ».
+    {
+        const i = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && t.smooth && t.processed?.report?.fx));
+        if (i >= 0) {
+            const st = () => page.evaluate((k) => { const t = window.__studiovoix.tracks[k], r = t.processed?.report; return { noFx: !!t.noFx, smooth: !!t.smooth, has: !!t.processed, gentle: r?.gentle, pitch: r?.fx?.pitch?.on, sat: r?.fx?.sat?.on, delay: r?.fx?.delay?.on, comp: r?.fx?.comp?.ratio, badge: document.querySelector(`#tracks .track[data-id="${t.id}"] .badge`)?.textContent }; }, i);
+            const btn = () => page.evaluate((k) => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[k].id}"] button.tog.fx`).click(), i);
+            const settle = (src) => page.waitForFunction(([k, body]) => { const t = window.__studiovoix.tracks[k]; return t.status !== 'busy' && document.body.dataset.busy === '0' && new Function('t', 'return ' + body)(t); }, [i, src], { timeout: 120000 });
+            const a = await st();
+            if (!a.gentle || a.pitch || a.sat || a.delay || !(a.comp <= 2.5001) || a.badge !== 'lissée') throw new Error('piste par défaut : devrait être « lissée » sans autotune, saturation ni écho : ' + JSON.stringify(a));
+            await btn(); await settle('!t.noFx && !t.smooth && t.processed && t.processed.report.gentle === false');
+            const b = await st();
+            if (b.badge !== 'traitée') throw new Error('bouton Style : piste non traitée par le style : ' + JSON.stringify(b));
+            await btn(); await settle('t.noFx && !t.processed');
+            const c = await st();
+            if (c.badge !== 'sans effet') throw new Error('bouton Brut : la piste garde des effets : ' + JSON.stringify(c));
+            await btn(); await settle('!t.noFx && t.smooth && t.processed && t.processed.report.gentle === true');
+            console.log(stamp(), `effets non imposés : par défaut « lissée » (autotune ${a.pitch ? 'allumé' : 'éteint'}, saturation ${a.sat ? 'allumée' : 'éteinte'}, écho ${a.delay ? 'allumé' : 'éteint'}, compresseur ${a.comp.toFixed(1)}:1) ; Style → autotune ${b.pitch ? 'allumé' : 'éteint'}, compresseur ${b.comp.toFixed(1)}:1 ; Brut → sans effet ; retour Lissé`);
+        }
+    }
     // Tableau des effets : pré-réglage affiché, effet éteint puis réglé à la main PENDANT la lecture « Mix » (le son de la
     // piste est remplacé sans arrêter la lecture), retour au pré-réglage.
     {
@@ -534,7 +554,7 @@ try {
             if (!off.playing) throw new Error('effets : la lecture s\'est arrêtée pendant le changement de réglage');
             // Au moins 30 dB de moins qu'avec le pré-réglage (sur une vraie prise, la fin de piste n'est pas un silence
             // numérique : -88 dB mesurés en CI, contre -40 dB avec réverb et écho).
-            if (!(off.tailDb < base.tailDb - 30)) throw new Error(`effets : réverb et écho éteints mais il reste une traîne (${off.tailDb.toFixed(1)} dB, pré-réglage ${base.tailDb.toFixed(1)} dB)`);
+            if (!(off.tailDb < base.tailDb - 30 || off.tailDb < -90)) throw new Error(`effets : réverb et écho éteints mais il reste une traîne (${off.tailDb.toFixed(1)} dB, pré-réglage ${base.tailDb.toFixed(1)} dB)`);
             // 2) réverb remise et poussée à 60 % au curseur
             await page.locator('#fxList .fxrow[data-fx="reverb"] .fxline').click();
             await page.locator('#fxList .fxrow[data-fx="reverb"] input[type=checkbox]').check();

@@ -314,7 +314,7 @@ extern "C"
     Résultat stéréo lisible via sv_out_left / sv_out_right / sv_out_frames. JSON : rapport (réglages, mesures, notes). */
 EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames, double sampleRate, const char* styleId,
                                                    const char* roleId, int cleaning, int useScale, double startSec,
-                                                   const char* fxJson)
+                                                   const char* fxJson, int gentle)
 {
     ensureLog();
     if (mono == nullptr || frames <= 0 || sampleRate <= 0.0)
@@ -332,8 +332,36 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     sv::Mono raw (mono, mono + frames);
     const auto problems = sv::dsp::analyzeTrackProblems (raw, sampleRate, context.key, true);
     const auto notes = sv::dsp::fitStyleToMeasurement (params, problems, context.tempo.bpm);
-    // Tableau des effets : le pré-réglage (style + mesure) est rendu tel quel, puis les réglages faits à la main
-    // (fxJson, un objet par effet) s'appliquent par-dessus.
+    // Mode « lissé » (gentle) : la voix est seulement polie, rien n'est imposé. Les effets qui changent le caractère
+    // de la voix sont éteints (autotune, saturation, recalage rythmique, écho) et les traitements de fond sont bornés
+    // à des valeurs douces (compression, niveleur, résonances, débruitage, de-esser, réverb). Les effets du style
+    // restent disponibles : ils se rallument un par un dans le tableau des effets (fxJson, appliqué après).
+    if (gentle != 0)
+    {
+        params.pitch.enabled = false;
+        params.sat.mix = 0.0f;
+        params.timing.strength = 0.0f;
+        params.delay.send = 0.0f;
+        params.reverb.send = juce::jmin (params.reverb.send, 0.08f);
+        params.comp.ratio = juce::jmin (params.comp.ratio, 2.5f);
+        params.comp.attackMs = juce::jmax (params.comp.attackMs, 10.0f);
+        params.comp.releaseMs = juce::jmax (params.comp.releaseMs, 120.0f);
+        params.comp2.ratio = juce::jmin (params.comp2.ratio, 1.5f);
+        params.leveler.maxBoostDb = juce::jmin (params.leveler.maxBoostDb, 3.0f);
+        params.leveler.maxCutDb = juce::jmin (params.leveler.maxCutDb, 3.0f);
+        params.resonance.maxReductionDb = juce::jmin (params.resonance.maxReductionDb, 3.0f);
+        params.clean.denoiseDb = juce::jmin (params.clean.denoiseDb, 6.0f);
+        params.clean.gateRangeDb = juce::jmin (params.clean.gateRangeDb, 6.0f);
+        params.clean.breathReductionDb = juce::jmin (params.clean.breathReductionDb, 4.0f);
+        params.deEss.amount = juce::jmin (params.deEss.amount, 0.4f);
+        params.eq.lowShelfDb = juce::jlimit (-3.0f, 3.0f, params.eq.lowShelfDb);
+        params.eq.mudDb = juce::jlimit (-3.0f, 3.0f, params.eq.mudDb);
+        params.eq.presenceDb = juce::jlimit (-3.0f, 3.0f, params.eq.presenceDb);
+        params.eq.airDb = juce::jlimit (-3.0f, 3.0f, params.eq.airDb);
+        SV_LOG_INFO (kMod, "Mode lissé : autotune, saturation, recalage et écho éteints ; compression, niveleur, résonances, débruitage, de-esser et réverb bornés"_u8);
+    }
+    // Tableau des effets : le pré-réglage (style + mesure, lissé ou non) est rendu tel quel, puis les réglages faits à
+    // la main (fxJson, un objet par effet) s'appliquent par-dessus.
     const auto preset = fxToVar (params);
     if (fxJson != nullptr && fxJson[0] != 0)
     {
@@ -360,6 +388,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     o->setProperty ("role", sv::style::roleName (role));
     o->setProperty ("roleId", sv::style::roleId (role));
     o->setProperty ("frames", lastOut.getNumSamples());
+    o->setProperty ("gentle", gentle != 0);
     o->setProperty ("chain", sv::dsp::describeChain (params));
     o->setProperty ("preset", preset);           // réglages du style ajustés à la prise, avant les réglages à la main
     o->setProperty ("fx", fxToVar (params));     // réglages réellement appliqués

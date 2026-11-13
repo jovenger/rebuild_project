@@ -19,7 +19,7 @@ async function boot() {
         styles: engine.cwrap('sv_styles', 'string', []),
         analyze: engine.cwrap('sv_analyze_instru', 'string', ['number', 'number', 'number', 'number']),
         setContext: engine.cwrap('sv_set_context', null, ['number', 'number', 'number', 'number', 'number']),
-        processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'string', 'number', 'number', 'number', 'string']),
+        processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'string', 'number', 'number', 'number', 'string', 'number']),
         roles: engine.cwrap('sv_roles', 'string', []),
         balanceBegin: engine.cwrap('sv_balance_begin', 'string', ['number', 'number', 'number', 'number', 'string']),
         balanceAdd: engine.cwrap('sv_balance_add', 'string', ['number', 'number', 'number', 'number', 'number', 'string', 'number']),
@@ -76,10 +76,11 @@ const handlers = {
         return {};
     },
     // fx : réglages faits à la main dans le tableau des effets ({ reverb: { on, send… }, … }), par-dessus le pré-réglage.
-    processVoice({ mono, sampleRate, styleId, roleId, cleaning, useScale, startSec, fx }) {
+    // gentle : mode « lissé » (voix polie, aucun effet de caractère imposé).
+    processVoice({ mono, sampleRate, styleId, roleId, cleaning, useScale, startSec, fx, gentle }) {
         const p = push(mono);
         try {
-            const report = parse(api.processVoice(p, mono.length, sampleRate, styleId, roleId || 'lead', cleaning ? 1 : 0, useScale ? 1 : 0, startSec || 0, fx ? JSON.stringify(fx) : ''));
+            const report = parse(api.processVoice(p, mono.length, sampleRate, styleId, roleId || 'lead', cleaning ? 1 : 0, useScale ? 1 : 0, startSec || 0, fx ? JSON.stringify(fx) : '', gentle ? 1 : 0));
             const out = pullOut();
             return { report, ...out };
         } finally { api.free(p); }

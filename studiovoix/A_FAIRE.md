@@ -115,6 +115,26 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## « Quand je mixe, les voix sont dans un sale état, pas lissées » : effets non imposés, mode « Lissé » (Yann)
+
+- Constat de Yann, répété : propre en brut, sale une fois mixé ; « il ne faut pas que les effets soient imposés,
+  c'est à nous de choisir les effets sur chaque piste ».
+- Mesuré sur une vraie voix (style Trap) : le pré-réglage du style est très appuyé — compresseur 4,8 à 6:1 (4 à 5 dB
+  de réduction moyenne), niveleur ±7 à ±10 dB, résonances rabaissées jusqu'à 6 dB sur 96 % des trames, débruitage
+  -8 à -14 dB, autotune 70 à 100 % (vitesse 2 ms en Trap), saturation, écho. Variations rapides de gain par rapport à
+  la voix brute : 2,1 dB efficaces (p95 4,2 dB) ; aucun effet seul ne les explique (1,9 à 2,2 dB en éteignant chacun).
+- Fait : trois états par piste, sur le bouton qui s'appelait FX — « Brut » (aucun effet) → « Lissé » (voix seulement
+  polie) → « Style » (tous les effets du style). Une piste enregistrée ou importée démarre « Lissé » ; une piste
+  séparée reste « Brut » ; les anciens projets gardent « Style ». Mode lissé (moteur, `gentle`) : autotune,
+  saturation, recalage rythmique et écho éteints ; compresseur ≤ 2,5:1 (attaque ≥ 10 ms, relâche ≥ 120 ms), second
+  compresseur ≤ 1,5:1, niveleur ≤ ±3 dB, résonances ≤ 3 dB, débruitage ≤ 6 dB, silences ≤ 6 dB, de-esser ≤ 40 %,
+  égaliseur ≤ ±3 dB, réverb ≤ 8 %. Chaque effet se rallume ou se règle dans le tableau des effets. Couleurs : bleu
+  = brut, violet = lissé, rose = style.
+- Testé e2e (PC, Pixel 7, micro + radio) : piste par défaut « lissée » (autotune, saturation, écho éteints,
+  compresseur 2,5:1) ; bouton → Style (autotune allumé, compresseur 3,5 à 6:1) → Brut (sans effet) → Lissé.
+- Non vérifié : que « Lissé » sonne propre à l'oreille de Yann (aucune écoute possible ici) ; si ça reste sale en
+  « Lissé », éteindre les effets un par un dans le tableau pour trouver lequel.
+
 ## Pistes couplets / refrains à la séparation + export de la chanson brute égalisée (demandes de Yann)
 
 - Fait — couplets / refrains : option « Couplets / refrains » (cochée) dans la carte Séparation. Les sections viennent
