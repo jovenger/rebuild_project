@@ -208,7 +208,7 @@ try {
                 done: /Chanson séparée|Séparation impossible|Séparation arrêtée/.test(document.getElementById('status').textContent),
                 shown: !document.getElementById('sepProg').hidden,
                 stop: !!document.getElementById('sepStopBtn').offsetParent,
-                pct: parseInt(document.getElementById('sepPct').textContent, 10),
+                pct: parseFloat(document.getElementById('sepPct').textContent.replace(',', '.')),
                 step: document.getElementById('sepStep').textContent,
                 time: document.getElementById('sepTime').textContent,
                 title: document.title,

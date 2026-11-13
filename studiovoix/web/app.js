@@ -1310,6 +1310,7 @@ function sepChunk(done, total) {
     const dt = now - (sepRun.cLast || now);
     sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
     Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
+    if (done === total) sepRun.label = `${sepRun.stepLabel} — finition de l'étape…`;
     if (done === 1 || done === total) log('info', `Séparation : morceau ${done}/${total} en ${(dt / 1000).toFixed(1)} s (${iso.backend || '?'})`);
     sepRender();
 }
@@ -1317,7 +1318,8 @@ function sepRender() {
     if (!state.separating) return;
     const now = performance.now();
     if (sepRun.cTotal && sepRun.cDone < sepRun.cTotal) {
-        const part = sepRun.cDur ? Math.min(0.9, (now - sepRun.cLast) / sepRun.cDur) : 0;
+        // Courbe qui ralentit sans jamais atteindre la fin du morceau : 60 % à la durée prévue, 82 % au double.
+        const part = sepRun.cDur ? 0.95 * (1 - Math.exp(-(now - sepRun.cLast) / sepRun.cDur)) : 0;
         sepRun.frac = (sepRun.cDone + part) / sepRun.cTotal;
         sepRun.label = `${sepRun.stepLabel} — morceau ${sepRun.cDone + 1}/${sepRun.cTotal} de la chanson (~${Math.max(1, Math.round(sepRun.cDur / 1000))} s par morceau${iso.backend ? ', ' + iso.backend : ''})`;
     } else if (sepRun.isModel && sepRun.cTotal === 0 && now - sepRun.last > 3000 && !/téléchargement/.test(sepRun.label)) {
@@ -1327,7 +1329,7 @@ function sepRender() {
     const el = (now - sepRun.t0) / 1000, idle = (now - sepRun.last) / 1000;
     // « bloqué ? » seulement si le morceau dure bien plus que prévu (ou 60 s sans aucune mesure).
     const slow = sepRun.cDur ? idle > Math.max(20, 2.5 * sepRun.cDur / 1000) : idle > 60;
-    const pct = Math.floor(overall * 100);
+    const pct = (Math.floor(overall * 1000) / 10).toFixed(1).replace('.', ',');   // au dixième : bouge même sur une longue chanson
     ui.sepStep.textContent = sepRun.label;
     ui.sepPct.textContent = `${pct} %`;
     ui.sepBar.value = Math.round(overall * 1000);
