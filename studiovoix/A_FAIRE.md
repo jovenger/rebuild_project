@@ -131,8 +131,11 @@ comment les automatismes doivent être faits, ordre proposé.
   (`StudioVoix-brut.wav`). Testé e2e : durée = tout le morceau, niveau du fichier = somme attendue à 0,01 dB près
   (démo, et après une séparation à 48 kHz).
 - Non vérifié : justesse des sections sur de vrais morceaux (repérage approximatif par blocs de 4 mesures ; sur
-  « fishin » : couplet 0–35 s, refrain 35–122 s, outro — non contrôlé à l'oreille) ; essai complet sur un vrai morceau
-  en cours.
+  « fishin » : couplet 0–35 s, refrain 35–122 s, outro — non contrôlé à l'oreille).
+- Essai complet sur un vrai morceau (« fishin », 2 min 13, une chanteuse, séparé par la page en 11 min 51 sur ce
+  serveur) : pistes créées « Couplets », « Refrain », « Backs » ; une seule voix repérée (juste) ; coupes à 0:35 et
+  2:01 ; « Égaliser » : couplets et refrain à -19,3 LUFS, backs à -26,3 ; « Exporter le brut » : chanson entière
+  (5 864 816 échantillons), niveau attendu ; mixage final -14,1 LUFS.
 
 ## « Crépitements et saccades seulement quand c'est mixé, à partir d'un certain niveau ; en brut c'est propre » (Yann)
 
