@@ -40,7 +40,9 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
 - **Tableau des effets** (sous les pistes, pour la piste sélectionnée) : chaque effet du pré-réglage avec sa case
   (nettoyage, autotune, égaliseur, compresseurs, de-esser, saturation, réverb, écho…) ; un clic ouvre ses curseurs ;
   tout changement est recalculé puis entendu pendant la lecture « ▶ Mix » ; retour au pré-réglage en un clic.
-- **Brut + « Égaliser »** : écoute sans aucun effet, avec seulement les volumes réglés selon le type de chaque piste.
+- **Bouton « ⚖ Égaliser »** : règle les volumes de toutes les pistes selon leur type sur le son brut, sans ajouter
+  aucun effet ; s'écoute avec « ▶ Brut ». Après une séparation, aucun effet n'est imposé : les pistes restent brutes
+  tant que le bouton FX de la piste n'est pas activé.
 - **Même niveau pour toutes les voix** : au mixage, chaque piste « voix principale » est ramenée à la même sonie (2 ou
   40 pistes), les backs entre eux aussi, 7 LU sous la voix principale ; le curseur de volume reste un réglage à la main.
 - **Cadenas 🔒 par piste** : une piste verrouillée ne peut plus être déplacée par accident (elle reste calée sur

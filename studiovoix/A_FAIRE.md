@@ -143,7 +143,13 @@ comment les automatismes doivent être faits, ordre proposé.
 
 ## Lecture brute avec volumes égalisés + saturation en lecture (retours de Yann)
 
-- Fait : case « Égaliser » à côté de « ▶ Brut » (cochée par défaut, choix gardé) : lecture des prises brutes, sans aucun
+- Changé à la demande de Yann (« pas une case à cocher : un bouton qui lance le travail ») : bouton « ⚖ Égaliser » dans la
+  barre de lecture, à côté de « ▶ Brut ». Un appui mesure toutes les pistes et règle leurs volumes selon leur type,
+  sans aucun effet ; le détail défile piste par piste dans la barre d'état, chaque piste affiche « brut égalisé
+  ±x dB », le bouton devient « ⚖ Égalisé ✓ » (« à refaire » si les pistes changent) ; second appui = volumes
+  d'origine ; état gardé avec le projet. Testé e2e PC + Pixel 7, et après une séparation à 48 kHz : pistes restées
+  « sans effet », Chanteur 1 et 2 à -21,3 LUFS, backs à -28,3 LUFS (7 LU dessous).
+- (Première version, remplacée) : case « Égaliser » à côté de « ▶ Brut » (cochée par défaut, choix gardé) : lecture des prises brutes, sans aucun
   effet, avec seulement le volume de chaque piste réglé selon son type (mêmes règles que le Mix : voix principales au
   même niveau, backs -7 LU, ambiance -14 LU, voix / instru) ; équilibre calculé sur les prises brutes
   (`ensureRawBalance`, recalculé seulement si les pistes changent) ; décochée : prises exactement comme enregistrées.

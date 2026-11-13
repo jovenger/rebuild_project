@@ -267,6 +267,21 @@ try {
         console.log(stamp(), 'pistes :', tracks.join(' ; '));
         if (!tracks.some((t) => /lead\|sansFX/.test(t))) throw new Error('aucune piste de voix principale créée');
         if (!(await page.evaluate(() => window.__studiovoix.tracks.every((t) => t.locked)))) throw new Error('pistes séparées non verrouillées d\'office');
+        // Après la séparation, aucun effet n'est imposé : les pistes restent brutes (« sans effet »). Le bouton
+        // « ⚖ Égaliser » règle seulement leurs volumes selon leur type : voix principales au même niveau, backs dessous.
+        if (await page.evaluate(() => window.__studiovoix.tracks.some((t) => t.take && (!t.noFx || t.processed)))) throw new Error('séparation : des effets ont été appliqués d\'office à une piste séparée');
+        await page.click('#levelBtn');
+        await page.waitForFunction(() => /Volumes égalisés|Égalisation impossible/.test(document.getElementById('status').textContent), null, { timeout: 120000 });
+        const eqz = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.take).map((t) => {
+            const it = window.__studiovoix.balanceRaw?.items.get(t.id), g = window.__studiovoix.balanceRaw?.gains.get(t.id);
+            return { name: t.name, role: t.roleId, before: it?.lufs, after: it ? it.lufs + g : NaN, fx: !t.noFx || !!t.processed };
+        }));
+        console.log(stamp(), 'bouton Égaliser après séparation (brut, sans effet) :', eqz.map((x) => `${x.name} ${x.before?.toFixed(1)} → ${x.after.toFixed(1)} LUFS`).join(' ; '));
+        const eqLead = eqz.filter((x) => x.role === 'lead').map((x) => x.after), eqBack = eqz.filter((x) => x.role === 'manual_back').map((x) => x.after);
+        if (!eqLead.length || eqLead.some((v) => !Number.isFinite(v))) throw new Error('égaliser après séparation : pas de volume calculé');
+        if (Math.max(...eqLead) - Math.min(...eqLead) > 0.3) throw new Error('égaliser après séparation : voix principales pas au même niveau');
+        if (eqBack.length && Math.abs(eqLead[0] - eqBack[0] - 7) > 1) throw new Error('égaliser après séparation : backs mal placés');
+        if (eqz.some((x) => x.fx)) throw new Error('égaliser après séparation : un effet a été appliqué');
         if (process.env.EXPECT_BACKS === '1' && !tracks.some((t) => /manual_back/.test(t))) throw new Error('aucune piste de backs créée');
         if (process.env.EXPECT_SINGERS && tracks.filter((t) => /^Chanteur/.test(t)).length !== Number(process.env.EXPECT_SINGERS))
             throw new Error(`nombre de chanteurs ${tracks.filter((t) => /^Chanteur/.test(t)).length} au lieu de ${process.env.EXPECT_SINGERS}`);
@@ -509,24 +524,33 @@ try {
             await page.click('#stopPlayBtn');
         }
     }
-    // Lecture brute avec « Égaliser » : seuls les volumes changent (gain par piste = équilibre calculé sur les prises
-    // brutes) ; décoché pendant la lecture : retour aux volumes d'origine.
+    // Bouton « ⚖ Égaliser » : un appui lance l'égalisation des volumes sur le son brut (aucun effet) ; « ▶ Brut » joue
+    // alors chaque piste avec le gain calculé ; un second appui rend les volumes d'origine.
     if (await page.evaluate(() => window.__studiovoix.tracks.some((t) => t.take))) {
-        await page.check('#rawLevel');
+        if (await page.evaluate(() => !!window.__studiovoix.rawLevelOn)) throw new Error('égaliser : actif sans avoir été demandé');
+        const procBefore = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.noFx ? 'sansFX' : 'FX'}:${t.processed ? t.processed.left.length : 0}`).join(','));
+        await page.click('#levelBtn');
+        // Fin du travail = compte rendu dans la barre d'état (le détail piste par piste défile avant).
+        await page.waitForFunction(() => /Volumes égalisés|Égalisation impossible/.test(document.getElementById('status').textContent), null, { timeout: 60000 });
+        if (!(await page.evaluate(() => window.__studiovoix.rawLevelOn && window.__studiovoix.balanceRaw?.gains?.size >= 1))) throw new Error('égaliser : pas de volumes calculés : ' + await page.textContent('#status'));
+        if (!/Égalisé ✓/.test(await page.textContent('#levelBtn'))) throw new Error('égaliser : le bouton ne montre pas que c\'est fait');
+        if (!(await page.locator('#tracks .tinfo').allTextContents()).some((x) => /brut égalisé/.test(x))) throw new Error('égaliser : réglage non affiché sur les pistes');
+        const procAfter = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.noFx ? 'sansFX' : 'FX'}:${t.processed ? t.processed.left.length : 0}`).join(','));
+        if (procAfter !== procBefore) throw new Error(`égaliser : les effets des pistes ont changé (${procBefore} → ${procAfter})`);
         await page.click('#playRawBtn');
-        await page.waitForFunction(() => window.__studiovoix.player?.mode === 'raw' && window.__studiovoix.balanceRaw?.gains?.size >= 1, null, { timeout: 60000 });
+        await page.waitForFunction(() => window.__studiovoix.player?.mode === 'raw', null, { timeout: 60000 });
         const read = () => page.evaluate(() => window.__studiovoix.player.nodes.filter((n) => n.key).map((n) => {
             const t = window.__studiovoix.tracks.find((x) => x.id === n.key);
             return { name: t.name, gainDb: 20 * Math.log10(n.gain.gain.value + 1e-12), want: (window.__studiovoix.balanceRaw.gains.get(t.id) ?? 0) + t.volumeDb, fader: t.volumeDb, lufs: window.__studiovoix.balanceRaw.items.get(t.id)?.lufs };
         }));
         const on = await read();
         if (!on.length || on.some((x) => Math.abs(x.gainDb - x.want) > 0.1)) throw new Error('brut égalisé : gain de piste différent de l\'équilibre brut : ' + JSON.stringify(on));
-        console.log(stamp(), 'brut égalisé :', on.map((x) => `${x.name} ${x.lufs.toFixed(1)} LUFS → gain ${x.gainDb.toFixed(1)} dB`).join(' ; '));
-        await page.uncheck('#rawLevel');
+        console.log(stamp(), 'bouton Égaliser → brut égalisé :', on.map((x) => `${x.name} ${x.lufs.toFixed(1)} LUFS → volume ${x.gainDb.toFixed(1)} dB`).join(' ; '));
+        await page.click('#levelBtn');   // second appui : volumes d'origine, pendant la lecture
+        await page.waitForFunction(() => !window.__studiovoix.rawLevelOn, null, { timeout: 10000 });
         await page.waitForTimeout(400);
         const off = await read();
-        if (off.some((x) => Math.abs(x.gainDb - x.fader) > 0.1)) throw new Error('brut non égalisé : le gain devrait être le seul curseur : ' + JSON.stringify(off));
-        await page.check('#rawLevel');
+        if (off.some((x) => Math.abs(x.gainDb - x.fader) > 0.1)) throw new Error('égalisation retirée : le gain devrait être le seul curseur : ' + JSON.stringify(off));
         await page.click('#stopPlayBtn');
     }
     // Cadenas de piste : verrouillée, glisser la prise ne la déplace pas ; déverrouillée, si.

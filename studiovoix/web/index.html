@@ -120,7 +120,8 @@
   .fxfield input[type=range] { width: 100%; }
   .fxfield .pre { color: var(--muted); font-size: 11.5px; }
   .fxbody .fxreset { justify-self: start; align-self: end; }
-  .rawlvl { font-size: 12.5px; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+  #levelBtn.on { background: #1f6f43; border-color: #2a9a5c; }
+  #levelBtn.stale { background: #5a3d1a; border-color: #b8791f; }
   #finalInfo.stale { color: var(--warn); }
 
   /* téléphone : en-tête de piste au-dessus de sa forme d'onde */
@@ -194,7 +195,7 @@
     <button id="stopBtn" disabled>■ Stop</button>
     <button id="playBtn" class="primary" disabled title="Instru + pistes écoutées, chacune traitée selon son style et son type, équilibrées (barre d'espace)">▶ Mix</button>
     <button id="playRawBtn" disabled title="Instru + les prises brutes : aucun effet (ni écho, ni réverb, ni correction). Avec « Égaliser », seuls les volumes sont réglés.">▶ Brut</button>
-    <label class="rawlvl" title="Lecture brute avec les volumes égalisés : chaque piste est mise à son niveau selon son type (voix principales toutes au même niveau, backs dessous, ambiance plus bas), sans aucun effet. Décoché : les prises exactement comme enregistrées."><input id="rawLevel" type="checkbox" checked> Égaliser</label>
+    <button id="levelBtn" disabled title="Égalise les volumes sur le son brut, sans ajouter aucun effet : chaque piste est mise à son niveau selon son type (voix principales toutes au même niveau, backs dessous, ambiance plus bas). S'écoute ensuite avec « ▶ Brut ». Un second appui rend les volumes d'origine.">⚖ Égaliser</button>
     <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
     <span id="time">0:00.0</span>
     <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
