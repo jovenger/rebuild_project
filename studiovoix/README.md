@@ -45,6 +45,14 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   style). Chaque effet se règle ensuite dans le tableau des effets.
 - **Couplets / refrains** : à la séparation, les couplets vont sur une piste et les refrains sur une autre (par
   chanteur s'il y en a plusieurs) ; coupes placées dans un creux de la voix.
+- **Page en 5 étapes numérotées** : 1 Pistes · 2 Séparer une chanson · 3 Effets de la piste · 4 Volumes et mixage ·
+  5 Exporter ; lecture et enregistrement dans une seule barre fixe en bas ; réglages de prise, détail de la piste et
+  journal repliés en bas de page.
+- **Effets de la piste : « Sans effet / Lissé / Style »** en tête du tableau des effets (trois boutons, celui qui est
+  actif est allumé) ; le bouton de la piste fait le même choix.
+- **Export WAV ou MP3** (liste « Format », étape 5) pour les quatre exports : chanson brute, chanson « Mix », chanson
+  mixée (master), chaque piste à part. MP3 320 kbit/s encodé dans le navigateur par lamejs 1.2.1 (LGPL-3.0, portage de
+  LAME, fichier séparé non modifié `vendor/lame.min.js`, chargé seulement au premier export MP3).
 - **Exporter le brut** : la chanson complète sans effet, volumes égalisés si « ⚖ Égaliser » est actif.
 - **Bouton « ⚖ Égaliser »** : règle les volumes de toutes les pistes selon leur type sur le son brut, sans ajouter
   aucun effet ; s'écoute avec « ▶ Brut ». Après une séparation, aucun effet n'est imposé : les pistes restent brutes
@@ -91,7 +99,7 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   se règle d'après la mesure ; le rapport affiche les valeurs effet par effet.
 - Étape 4 : écoute du mix ou du brut (A/B), vumètres, export WAV 16 bits.
 
-Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), export MP3, sauvegarde du
+Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), sauvegarde du
 projet, plusieurs prises par piste (une prise par piste : ajouter une piste pour en garder une autre), installateur et bouton « Mise à jour » (la page est
 toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
 (modèle + ONNX Runtime Web, versions épinglées), essai : `node web/test/e2e.mjs`. La page s'isole (COOP/COEP) par

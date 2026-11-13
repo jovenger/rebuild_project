@@ -115,6 +115,25 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Export MP3, page rangée en 5 étapes, « Sans effet » dans les effets de la piste (demandes de Yann)
+
+- Demande : « il faut que j'arrive à le sortir au format MP3 » ; « l'organisation des boutons… c'est le fouillis, il y
+  en a en haut, en bas, à gauche, à droite, au milieu » ; « dans les effets de piste, savoir marquer sans effet ».
+- Fait — MP3 : liste « Format » (WAV / MP3 320 kbit/s) commune aux quatre exports. **Nouvelle dépendance** : lamejs
+  1.2.1 (LGPL-3.0, npm, 156 Ko), version épinglée et SHA-256 vérifié dans `web/fetch-ia.sh`, chargée seulement au
+  premier export MP3 (aucun coût au démarrage). Encodage par blocs de 64 trames MP3 (73 728 échantillons) en rendant la main (page
+  vivante), journalisé (durée, taille).
+- Fait — page : en-tête (titre, sauvegarde, Nouveau projet) ; barre fixe en bas (REC, Stop, ▶ Brut, ▶ Mix, ■, temps,
+  vumètre, écoute) ; étapes 1 Pistes, 2 Séparer une chanson, 3 Effets de la piste, 4 Volumes et mixage (⚖ Égaliser,
+  Mixer la chanson), 5 Exporter ; réglages de prise, rapport et journal dans un bloc replié. Aucun identifiant
+  changé : le code de la page n'a pas bougé. Règle globale `[hidden]` : les boutons « Chanson mixée / Avant mixage »
+  n'apparaissent plus avant un mixage final ; « Chanson mixée (master) » grisé tant qu'il n'y a pas de mixage final.
+- Fait — effets : trois boutons « Sans effet / Lissé / Style » en tête du tableau des effets de la piste.
+- Essais : e2e démo PC et Pixel 7 (export MP3 : 1 577 796 octets pour 39,4 s, relu par ffprobe : MP3 stéréo
+  44,1 kHz 320 kbit/s 39,44 s, crête -0,5 dB ; les trois boutons d'effets changent bien le son), balance, resample,
+  split.
+- Non vérifié : téléchargement du MP3 sur un vrai téléphone (iOS surtout) ; lisibilité de la page à l'œil de Yann.
+
 ## « Quand je mixe, les voix sont dans un sale état, pas lissées » : effets non imposés, mode « Lissé » (Yann)
 
 - Constat de Yann, répété : propre en brut, sale une fois mixé ; « il ne faut pas que les effets soient imposés,

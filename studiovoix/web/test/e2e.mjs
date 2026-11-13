@@ -1,7 +1,7 @@
 // Test de bout en bout de StudioVoix Web (Chromium sans écran, Playwright) :
 // page servie en local, instru et voix importées par les champs fichier, style appliqué, mix exporté en WAV.
 //   node web/test/e2e.mjs <url> <instru.wav> <voix.wav> [capture.png]
-import { statSync, readFileSync } from 'node:fs';
+import { statSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 // Playwright : dossier node_modules local (CI) ou global (PLAYWRIGHT_DIR = sortie de `npm root -g`).
@@ -379,6 +379,7 @@ try {
         await page.setInputFiles('#instruFile', instru);
         await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
         console.log(stamp(), 'instru :', await page.textContent('.track[data-id="0"] .tinfo'));
+        await page.click('details.more > summary');   // les réglages de prise sont repliés en bas de page : on les ouvre
         await page.fill('#countIn', '0');
         await recordTake('voix principale');
         // Seconde piste (back) : on entend l'instru ET la voix principale pendant la prise ; les deux doivent être
@@ -517,10 +518,13 @@ try {
             await btn(); await settle('!t.noFx && !t.smooth && t.processed && t.processed.report.gentle === false');
             const b = await st();
             if (b.badge !== 'traitée') throw new Error('bouton Style : piste non traitée par le style : ' + JSON.stringify(b));
-            await btn(); await settle('t.noFx && !t.processed');
+            // « Sans effet » choisi dans le tableau des effets (même action que le bouton de la piste)
+            await page.evaluate((k) => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[k].id}"] .head`).click(), i);
+            await page.click('#fxMode button[data-mode="none"]'); await settle('t.noFx && !t.processed');
+            if (!(await page.locator('#fxMode button[data-mode="none"]').evaluate((b) => b.classList.contains('on')))) throw new Error('tableau des effets : « Sans effet » non marqué actif');
             const c = await st();
             if (c.badge !== 'sans effet') throw new Error('bouton Brut : la piste garde des effets : ' + JSON.stringify(c));
-            await btn(); await settle('!t.noFx && t.smooth && t.processed && t.processed.report.gentle === true');
+            await page.click('#fxMode button[data-mode="smooth"]'); await settle('!t.noFx && t.smooth && t.processed && t.processed.report.gentle === true');
             console.log(stamp(), `effets non imposés : par défaut « lissée » (autotune ${a.pitch ? 'allumé' : 'éteint'}, saturation ${a.sat ? 'allumée' : 'éteinte'}, écho ${a.delay ? 'allumé' : 'éteint'}, compresseur ${a.comp.toFixed(1)}:1) ; Style → autotune ${b.pitch ? 'allumé' : 'éteint'}, compresseur ${b.comp.toFixed(1)}:1 ; Brut → sans effet ; retour Lissé`);
         }
     }
@@ -607,6 +611,20 @@ try {
         if (off.some((x) => Math.abs(x.gainDb - x.fader) > 0.1)) throw new Error('égalisation retirée : le gain devrait être le seul curseur : ' + JSON.stringify(off));
         await page.click('#stopPlayBtn');
         await checkRawExport('StudioVoix-brut.wav');
+        // Export en MP3 : même chanson, format MP3 320 kbit/s (taille ≈ durée × 40 ko/s, en-tête de trame MPEG).
+        {
+            await page.selectOption('#exportFormat', 'mp3');
+            const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), page.click('#exportRawBtn')]);
+            const bytes = readFileSync(await dl.path());
+            const secs = await page.evaluate(() => { const S = window.__studiovoix, sr = S.instru?.sampleRate || S.tracks.find((t) => t.take).take.sampleRate; return Math.max(S.instru ? S.instru.left.length / sr : 0, ...S.tracks.filter((t) => t.take).map((t) => t.take.startSec + t.take.mono.length / sr)); });
+            const want = secs * 320000 / 8;
+            console.log(stamp(), `export ${dl.suggestedFilename()} : ${bytes.length} octets pour ${secs.toFixed(1)} s (attendu ≈ ${Math.round(want)}), en-tête ${bytes[0].toString(16)} ${bytes[1].toString(16)}`);
+            if (process.env.MP3_OUT) writeFileSync(process.env.MP3_OUT, bytes);   // copie pour un contrôle au décodeur (ffmpeg)
+            if (dl.suggestedFilename() !== 'StudioVoix-brut.mp3') throw new Error('export MP3 : nom ' + dl.suggestedFilename());
+            if (!(bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)) throw new Error('export MP3 : le fichier ne commence pas par une trame MPEG');
+            if (Math.abs(bytes.length - want) > 0.05 * want + 4000) throw new Error(`export MP3 : ${bytes.length} octets au lieu d'environ ${Math.round(want)}`);
+            await page.selectOption('#exportFormat', 'wav');
+        }
     }
     // Cadenas de piste : verrouillée, glisser la prise ne la déplace pas ; déverrouillée, si.
     {

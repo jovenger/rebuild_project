@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # StudioVoix Web : récupère ce qu'il faut à l'isolation de la voix (IA), versions épinglées et sommes vérifiées.
-#   web/vendor/ : ONNX Runtime Web 1.22.0 (MIT, npm onnxruntime-web) — moteur d'inférence WebGPU / WASM
+#   web/vendor/ : ONNX Runtime Web 1.22.0 (MIT, npm onnxruntime-web) — moteur d'inférence WebGPU / WASM ;
+#                 lamejs 1.2.1 (LGPL-3.0, npm lamejs) — encodeur MP3 de l'export
 #   web/models/ : UVR-MDX-NET-Voc_FT.onnx (MIT, projet Ultimate Vocal Remover) — modèle « voix seule », 66,8 Mo ;
 #                 UVR_MDXNET_KARA_2.onnx (UVR, 52,8 Mo), Reverb_HQ_By_FoxJoy.onnx (66,8 Mo, licence non indiquée),
 #                 wespeaker_en_voxceleb_resnet34.onnx (WeSpeaker / sherpa-onnx, Apache-2.0, 26,5 Mo)
@@ -58,3 +59,19 @@ for f in ort.webgpu.min.mjs ort-wasm-simd-threaded.jsep.mjs ort-wasm-simd-thread
 done
 cp "$CACHE/ort/package/LICENSE" "$WEB/vendor/LICENSE-onnxruntime-web.txt" 2>/dev/null || true
 log "onnxruntime-web $V copié dans web/vendor ($(du -sh "$WEB/vendor" | cut -f1))"
+
+# Encodeur MP3 pour l'export (lamejs, LGPL-3.0, portage JavaScript de LAME — lame.sourceforge.net) : fichier séparé,
+# non modifié, version épinglée et somme vérifiée.
+LAME_VERSION=1.2.1
+LAME_SHA=15d285e2587b3bdbfd18a68de6ce07cc074f7480a82c3815da2dc1c348ec6df4
+if [ ! -f "$CACHE/lamejs-$LAME_VERSION.tgz" ]; then
+  log "téléchargement de lamejs@$LAME_VERSION (npm)"
+  (cd "$CACHE" && npm pack --silent "lamejs@$LAME_VERSION" >/dev/null)
+fi
+rm -rf "$CACHE/lame" && mkdir -p "$CACHE/lame"
+tar xzf "$CACHE/lamejs-$LAME_VERSION.tgz" -C "$CACHE/lame"
+GOT="$(sha256sum "$CACHE/lame/package/lame.min.js" | cut -d' ' -f1)"
+if [ "$GOT" != "$LAME_SHA" ]; then echo "fetch-ia : [error] lame.min.js : SHA-256 $GOT au lieu de $LAME_SHA" >&2; exit 1; fi
+cp "$CACHE/lame/package/lame.min.js" "$WEB/vendor/lame.min.js"
+cp "$CACHE/lame/package/LICENSE" "$WEB/vendor/LICENSE-lamejs.txt" 2>/dev/null || true
+log "lamejs $LAME_VERSION copié dans web/vendor (SHA-256 vérifié)"

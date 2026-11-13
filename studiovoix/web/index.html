@@ -19,7 +19,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body { background: var(--bg); color: var(--ink); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
-  .wrap { max-width: 1400px; margin: 0 auto; padding: 12px 12px 40px; display: grid; gap: 10px; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 12px 12px 96px; display: grid; gap: 12px; }   /* bas : place de la barre de lecture */
   header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
   h1 { margin: 0; font-size: 21px; letter-spacing: .2px; }
   h1 span { color: var(--accent); }
@@ -84,6 +84,22 @@
   .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
   .card h2 { margin: 0; font-size: 14px; }
+  [hidden] { display: none !important; }   /* un style « display » en ligne ne doit pas réafficher un élément caché */
+  /* Page en étapes numérotées (1 Pistes → 5 Exporter) ; la lecture reste dans la barre du bas. */
+  .step { display: grid; gap: 8px; }
+  .step > h2, .fxhead h2 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-2); color: #fff; font-size: 12.5px; font-weight: 700; flex: none; }
+  .hint { font-weight: 400; font-size: 12.5px; color: var(--muted); }
+  .mixline { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .exportcard { border-color: #2f7a55; }
+  .more > summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+  .more[open] > summary { margin-bottom: 8px; }
+  header #saveInfo { margin-left: auto; }
+  .transport .sep { width: 1px; align-self: stretch; background: var(--line); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 12.5px; background: transparent; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent-2); color: #fff; font-weight: 700; }
   .info { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; }
   .sepprog { margin: 8px 0 4px; padding: 10px; border: 1px solid var(--accent, #7c5cff); border-radius: 8px; display: grid; gap: 6px; }
   .sepprog[hidden] { display: none; }   /* sinon display:grid l'emporte sur l'attribut hidden */
@@ -145,19 +161,41 @@
   <header>
     <h1>Studio<span>Voix</span> Web</h1>
     <span id="version">chargement du moteur…</span>
+    <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
+    <button id="newBtn" title="Effacer le projet actuel et repartir de zéro">Nouveau projet</button>
   </header>
   <div id="status">Chargement…</div>
   <button id="skipIsoBtn" hidden title="Arrêter l'IA : la prise est gardée avec la musique des haut-parleurs déjà retirée, sans retirer les autres sons extérieurs">Passer l'IA</button>
 
-  <div class="topbar">
-    <button id="newBtn" title="Effacer le projet actuel et repartir de zéro">Nouveau projet</button>
-    <button id="exportBtn" disabled title="La chanson telle que « ▶ Mix » la joue : pistes écoutées, effets des pistes qui en ont, volumes équilibrés">Exporter le mix</button>
-    <button id="exportRawBtn" disabled title="La chanson telle que « ▶ Brut » la joue : aucun effet ; volumes égalisés si « ⚖ Égaliser » est actif, sinon volumes d'origine">Exporter le brut</button>
-    <button id="stemsBtn" disabled title="Un fichier WAV par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Exporter les pistes</button>
-    <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
+  <!-- Barre de lecture : toujours en bas de l'écran. Rien d'autre que enregistrer, écouter, arrêter. -->
+  <div class="transport">
+    <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●), à partir de la tête de lecture">● REC</button>
+    <button id="stopBtn" disabled>■ Stop</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="playRawBtn" disabled title="Instru + les prises brutes : aucun effet (ni écho, ni réverb, ni correction). Avec « Égaliser », seuls les volumes sont réglés.">▶ Brut</button>
+    <button id="playBtn" class="primary" disabled title="Instru + pistes écoutées, chacune traitée selon son style et son type, équilibrées (barre d'espace)">▶ Mix</button>
+    <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
+    <span id="time">0:00.0</span>
+    <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
+    <span id="clipInfo" hidden title="La sortie a dépassé le maximum pendant cette lecture : le son sature (craquements). Ce témoin reste affiché jusqu'à la lecture suivante."></span>
+    <span id="listen">Écoute : tout</span>
+    <button id="allBtn" disabled title="Retirer tous les muets et solos">Tout écouter</button>
   </div>
 
-  <section class="card sepcard">
+  <!-- 1 -->
+  <section class="step">
+    <h2><span class="num">1</span> Pistes <span class="hint">importe l'instru ou une chanson, enregistre ou importe les voix</span></h2>
+    <div id="tracks"></div>
+    <div class="add">
+      <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
+      <label>type <select id="addRole"></select></label>
+      <span class="info">Chaque piste : type (principale, back, ambiance…) et style à elle. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="card step sepcard">
+    <h2><span class="num">2</span> Séparer une chanson <span class="hint">facultatif : l'instru d'un côté, chaque voix sur sa piste</span></h2>
     <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">
       <button id="sepBtn" disabled title="La chanson posée sur la piste Instru est séparée par l'IA : l'instrumental reste sur la piste Instru, chaque voix repérée va sur sa propre piste">✂ Séparer la chanson</button>
       <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
@@ -176,8 +214,27 @@
     <div id="sepInfo" class="info">Pose une chanson avec voix sur la piste Instru, puis « Séparer la chanson ». Calcul dans le navigateur : environ 3 à 4 fois la durée de la chanson par étape sans carte graphique ; modèles téléchargés une seule fois (67 + 53 + 27 Mo, + 67 Mo pour l'ambiance). Là où personne ne chante, l'instru reste exactement l'originale.</div>
   </section>
 
-  <section class="card mixcard">
-    <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">
+  <!-- 3 -->
+  <section id="fxPanel" class="card step fxcard">
+    <div class="fxhead">
+      <h2><span class="num">3</span> <span id="fxTitle">Effets de la piste</span></h2>
+      <div id="fxMode" class="seg" title="Sans effet : la piste est jouée telle quelle. Lissé : voix seulement polie. Style : tous les effets du style.">
+        <button data-mode="none" disabled>Sans effet</button><button data-mode="smooth" disabled>Lissé</button><button data-mode="style" disabled>Style</button>
+      </div>
+      <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage">↺ Pré-réglage</button>
+    </div>
+    <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
+    <div id="fxList"></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="card step mixcard">
+    <h2><span class="num">4</span> Volumes et mixage</h2>
+    <div class="r mixline">
+      <button id="levelBtn" disabled title="Égalise les volumes sur le son brut, sans ajouter aucun effet : chaque piste est mise à son niveau selon son type (voix principales toutes au même niveau, backs dessous, ambiance plus bas). S'écoute ensuite avec « ▶ Brut ». Un second appui rend les volumes d'origine.">⚖ Égaliser</button>
+      <span class="info">Sans aucun effet : règle seulement le volume de chaque piste selon son type. S'écoute avec « ▶ Brut ».</span>
+    </div>
+    <div class="r mixline">
       <button id="finalMixBtn" class="primary" disabled title="Quand tout est enregistré : chaque piste à sa place selon son type, voix soudées ensemble, voix posée sur l'instru, puis mastering. Une seule chanson, à écouter et exporter.">🎚 Mixer la chanson</button>
       <label title="Volume final visé (standard des plateformes)">Destination <select id="finalTarget">
         <option value="spotify" selected>Spotify / YouTube (-14 LUFS)</option>
@@ -190,45 +247,29 @@
     <div class="r" id="finalPlayRow" style="display:flex;flex-wrap:wrap;gap:8px" hidden>
       <button id="playFinalBtn" class="primary">▶ Chanson mixée</button>
       <button id="playBeforeBtn" title="Le même passage avant le mixage final (pistes équilibrées, instru d'origine)">▶ Avant mixage</button>
-      <button id="exportFinalBtn">Exporter la chanson mixée</button>
     </div>
     <div id="finalInfo" class="info">Quand tout est enregistré, « Mixer la chanson » met chaque piste à son niveau selon son type (voix principale devant, back, ambiance…), soude les voix, pose la voix sur l'instru et masterise : une seule chanson, prête à écouter et exporter.</div>
   </section>
 
-  <div class="transport">
-    <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●), à partir de la tête de lecture">● REC</button>
-    <button id="stopBtn" disabled>■ Stop</button>
-    <button id="playBtn" class="primary" disabled title="Instru + pistes écoutées, chacune traitée selon son style et son type, équilibrées (barre d'espace)">▶ Mix</button>
-    <button id="playRawBtn" disabled title="Instru + les prises brutes : aucun effet (ni écho, ni réverb, ni correction). Avec « Égaliser », seuls les volumes sont réglés.">▶ Brut</button>
-    <button id="levelBtn" disabled title="Égalise les volumes sur le son brut, sans ajouter aucun effet : chaque piste est mise à son niveau selon son type (voix principales toutes au même niveau, backs dessous, ambiance plus bas). S'écoute ensuite avec « ▶ Brut ». Un second appui rend les volumes d'origine.">⚖ Égaliser</button>
-    <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
-    <span id="time">0:00.0</span>
-    <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
-    <span id="clipInfo" hidden title="La sortie a dépassé le maximum pendant cette lecture : le son sature (craquements). Ce témoin reste affiché jusqu'à la lecture suivante."></span>
-    <span id="listen">Écoute : tout</span>
-    <button id="allBtn" disabled title="Retirer tous les muets et solos">Tout écouter</button>
-  </div>
-
-  <div id="tracks"></div>
-
-  <div class="add">
-    <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
-    <label>type <select id="addRole"></select></label>
-    <span class="info">Chaque piste : type (principale, back, ambiance…) et style à elle. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
-  </div>
-
-  <section id="fxPanel" class="card fxcard">
-    <div class="fxhead">
-      <h2 id="fxTitle">Effets de la piste</h2>
-      <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage du style">↺ Tout remettre au pré-réglage</button>
+  <!-- 5 -->
+  <section class="card step exportcard">
+    <h2><span class="num">5</span> Exporter</h2>
+    <div class="r mixline">
+      <label title="WAV : sans perte, gros fichier. MP3 : 320 kbit/s, petit fichier, lisible partout.">Format <select id="exportFormat"><option value="wav" selected>WAV (sans perte)</option><option value="mp3">MP3 (320 kbit/s)</option></select></label>
+      <button id="exportRawBtn" disabled title="La chanson telle que « ▶ Brut » la joue : aucun effet ; volumes égalisés si « ⚖ Égaliser » est actif, sinon volumes d'origine">Chanson brute</button>
+      <button id="exportBtn" disabled title="La chanson telle que « ▶ Mix » la joue : pistes écoutées, effets des pistes qui en ont, volumes équilibrés">Chanson « Mix »</button>
+      <button id="exportFinalBtn" disabled title="Le résultat de « Mixer la chanson » (mastering compris). Disponible après le mixage.">Chanson mixée (master)</button>
+      <button id="stemsBtn" disabled title="Un fichier par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Chaque piste à part</button>
     </div>
-    <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
-    <div id="fxList"></div>
+    <div class="info">Chanson brute = ce que joue « ▶ Brut » (sans effet, volumes égalisés si « ⚖ Égaliser » est actif). Chanson « Mix » = ce que joue « ▶ Mix ». Chanson mixée = le résultat de « Mixer la chanson ».</div>
   </section>
 
-  <div class="panels">
-    <section class="card">
-      <h2>Prise</h2>
+  <!-- Réglages et détails : repliés -->
+  <details class="card more">
+    <summary>Réglages de prise, détail de la piste, journal</summary>
+    <div class="panels">
+      <section class="card">
+        <h2>Prise au micro</h2>
       <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 14px">
         <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:52px"> mesure(s)</label>
         <label title="Le décalage est mesuré et compensé automatiquement sur chaque prise ; ce réglage n'ajoute qu'un ajustement fin (0 = aucun)">Décalage auto, ajustement <input id="latencyMs" type="number" min="-200" max="200" value="0" style="width:60px"> ms</label>
@@ -236,14 +277,15 @@
         <label><input id="useScale" type="checkbox" checked> Gamme</label>
         <label><input id="cleaning" type="checkbox" checked> Nettoyage</label>
       </div>
-      <div id="isolateInfo" class="info">Seule la voix est gardée : l'instru captée par le micro est retirée, puis l'IA retire tout le reste (musique extérieure, bruits). Le modèle se télécharge au premier REC (une seule fois).</div>
-    </section>
-    <section class="card">
-      <h2>Piste sélectionnée</h2>
-      <div id="report">Clique sur l'en-tête d'une piste pour voir ce qui lui est appliqué : mesure de la prise, chaîne du style réglée pour son type, place dans le mix.</div>
-      <details><summary>Journal du moteur</summary><div id="log"></div></details>
-    </section>
-  </div>
+        <div id="isolateInfo" class="info">Seule la voix est gardée : l'instru captée par le micro est retirée, puis l'IA retire tout le reste (musique extérieure, bruits). Le modèle se télécharge au premier REC (une seule fois).</div>
+      </section>
+      <section class="card">
+        <h2>Piste sélectionnée</h2>
+        <div id="report">Clique sur l'en-tête d'une piste pour voir ce qui lui est appliqué : mesure de la prise, chaîne du style réglée pour son type, place dans le mix.</div>
+        <details><summary>Journal du moteur</summary><div id="log"></div></details>
+      </section>
+    </div>
+  </details>
 </div>
 <script type="module" src="./app.js"></script>
 </body>

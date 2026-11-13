@@ -16,7 +16,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), exportRawBtn: $('exportRawBtn'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
@@ -448,9 +448,7 @@ function trackRow(t) {
                 title: t.noFx ? 'Brut : la piste est jouée telle quelle, sans aucun effet (clique : Lissé)'
                     : t.smooth ? 'Lissé : voix seulement polie (nettoyage léger, égaliseur, compression douce, de-esser, un peu de réverb) ; ni autotune, ni saturation, ni écho. Les effets se règlent dans le tableau des effets (clique : Style)'
                     : 'Style : tous les effets du style (autotune, saturation, compression forte, écho…) (clique : Brut)',
-                onclick: (e) => { e.stopPropagation();
-                    if (t.noFx) { t.noFx = false; t.smooth = true; } else if (t.smooth) t.smooth = false; else t.noFx = true;
-                    log('info', `« ${t.name} » : ${t.noFx ? 'brut, sans effet' : t.smooth ? 'lissé (voix polie)' : 'effets du style'}`); markDirty(); renderTracks(); queueProcess(t); } }),
+                onclick: (e) => { e.stopPropagation(); setFxMode(t, t.noFx ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
             el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
                 title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
                 onclick: (e) => { e.stopPropagation(); t.locked = !t.locked; log('info', `« ${t.name} » : ${t.locked ? 'verrouillée (déplacement bloqué)' : 'déverrouillée (déplacement permis)'}`); markDirty(); renderTracks(); } }),
@@ -734,6 +732,15 @@ ui.useScale.addEventListener('change', () => {
     reprocessAll();
 });
 
+// État des effets d'une piste : 'none' (sans effet, brut), 'smooth' (lissé) ou 'style' (tous les effets du style).
+// Même action depuis le bouton de la piste et depuis le choix « Sans effet / Lissé / Style » du tableau des effets.
+const fxModeOf = (t) => (t.noFx ? 'none' : t.smooth ? 'smooth' : 'style');
+function setFxMode(t, mode) {
+    if (fxModeOf(t) === mode) return;
+    t.noFx = mode === 'none'; t.smooth = mode === 'smooth';
+    log('info', `« ${t.name} » : ${mode === 'none' ? 'sans effet (brut)' : mode === 'smooth' ? 'lissé (voix polie)' : 'effets du style'}`);
+    markDirty(); renderTracks(); queueProcess(t); renderFx(true);
+}
 // ------------------------------------------------------------------ tableau des effets (piste sélectionnée)
 // Le moteur rend, pour chaque piste traitée, le pré-réglage (style + type, ajusté à la mesure de la prise) et les
 // réglages réellement appliqués, un objet par effet. Ce tableau les montre, permet d'éteindre / allumer un effet et
@@ -824,11 +831,12 @@ function fxSummary(def, v) {
 function renderFx(force = false) {
     const t = findTrack(state.selectedId);
     ui.fxResetAll.disabled = !(t && t.fx && Object.keys(t.fx).length);
+    for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && fxModeOf(t) === b.dataset.mode); }
     if (!t) { ui.fxTitle.textContent = 'Effets de la piste'; ui.fxList.replaceChildren(); fxUi.trackId = 0; return; }
     ui.fxTitle.textContent = `Effets de « ${t.name} »`;
     const rep = t.processed?.report;
     const msg = !t.take ? 'Pas encore de prise sur cette piste : enregistre ou importe une voix, ses effets s\'afficheront ici.'
-        : t.noFx ? 'Piste « Brut » : elle est jouée telle quelle (seul son volume est réglé). Clique son bouton « Brut » pour passer en « Lissé » (voix polie) ou « Style » (tous les effets), puis règle-les ici.'
+        : t.noFx ? 'Cette piste est « Sans effet » : elle est jouée telle quelle (seul son volume est réglé). Choisis « Lissé » (voix polie) ou « Style » (tous les effets) ci-dessus pour lui en donner, puis règle-les ici.'
         : !rep?.fx ? 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.'
         : `Pré-réglage : ${t.smooth ? 'lissé (voix polie : ni autotune, ni saturation, ni écho)' : 'style ' + styleName(t.styleId)}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
     ui.fxInfo.textContent = msg;
@@ -878,6 +886,7 @@ function fxRefresh() {
         }
     }
 }
+for (const b of ui.fxMode.querySelectorAll('button')) b.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) setFxMode(t, b.dataset.mode); });
 ui.fxResetAll.addEventListener('click', () => {
     const t = findTrack(state.selectedId);
     if (!t) return;
@@ -1544,22 +1553,71 @@ async function exportSong(mode) {
         for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
         const ceil = Math.pow(10, -0.3 / 20), g = peak > ceil ? ceil / peak : 1;
         if (g < 1) for (let i = 0; i < n; ++i) { L[i] *= g; R[i] *= g; }
-        const wav = encodeWav16(L, R, sr);
         const r = { report: { lufs: NaN, limiterGrDb: 0, gainDb: 20 * Math.log10(g) } };
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
-        a.download = mode === 'mix' ? 'StudioVoix-mix.wav' : leveled ? 'StudioVoix-brut-egalise.wav' : 'StudioVoix-brut.wav';
-        document.body.appendChild(a); a.click(); a.remove();
+        const saved = await saveAudio(mode === 'mix' ? 'StudioVoix-mix' : leveled ? 'StudioVoix-brut-egalise' : 'StudioVoix-brut', L, R, sr, mode === 'mix' ? 'mix' : 'brut');
         const nTracks = state.tracks.filter((t) => t.take && audible(t)).length;
         const gtxt = r.report.gainDb < -0.05 ? `volume général −${(-r.report.gainDb).toFixed(1)} dB pour ne pas saturer` : 'volume d\'origine';
         const what = mode === 'mix' ? 'mix' : leveled ? 'brut, volumes égalisés, aucun effet' : 'brut, volumes d\'origine, aucun effet';
         log('info', `Export (${what}) : ${nTracks} piste(s) voix + instru intacte (aucun limiteur), ${(n / sr).toFixed(1)} s, crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
-        setStatus(`WAV exporté (${what} ; 16 bits, ${sr} Hz, ${fmt(n / sr)}) : instru intacte + ${nTracks} piste(s) voix, ${gtxt}.`);
+        setStatus(`${saved.name} exporté (${what} ; ${saved.desc}, ${sr} Hz, ${fmt(n / sr)}) : instru intacte + ${nTracks} piste(s) voix, ${gtxt}.`);
     } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
     refreshButtons();
 }
 ui.exportBtn.addEventListener('click', () => exportSong('mix'));
 ui.exportRawBtn.addEventListener('click', () => exportSong('raw'));
+// Format des exports : WAV (sans perte) ou MP3 320 kbit/s. L'encodeur MP3 (lamejs, LGPL, portage de LAME, fichier
+// séparé vendor/lame.min.js) n'est chargé qu'au premier export en MP3.
+const exportFormat = () => (ui.exportFormat?.value === 'mp3' ? 'mp3' : 'wav');
+const MP3_KBPS = 320;
+let lameLoading = null;
+function loadLame() {
+    if (window.lamejs?.Mp3Encoder) return Promise.resolve(window.lamejs);
+    if (!lameLoading) lameLoading = new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = './vendor/lame.min.js';
+        sc.onload = () => window.lamejs?.Mp3Encoder ? resolve(window.lamejs) : reject(new Error('encodeur MP3 chargé mais inutilisable'));
+        sc.onerror = () => { lameLoading = null; reject(new Error('encodeur MP3 introuvable (vendor/lame.min.js)')); };
+        document.head.appendChild(sc);
+    });
+    return lameLoading;
+}
+// Float32 (-1..1) stéréo → MP3 320 kbit/s (Blob). Par blocs, en rendant la main : la page reste vivante.
+async function encodeMp3(left, right, sampleRate, onProgress = null) {
+    if (![32000, 44100, 48000].includes(sampleRate)) throw new Error(`MP3 : fréquence ${sampleRate} Hz non prise en charge (32, 44,1 ou 48 kHz)`);
+    const lame = await loadLame();
+    const enc = new lame.Mp3Encoder(2, sampleRate, MP3_KBPS), n = left.length, block = 1152 * 64, parts = [];
+    const L = new Int16Array(block), R = new Int16Array(block);
+    const t0 = performance.now();
+    for (let s0 = 0; s0 < n; s0 += block) {
+        const m = Math.min(block, n - s0);
+        for (let i = 0; i < m; ++i) {
+            const a = Math.max(-1, Math.min(1, left[s0 + i])), b = Math.max(-1, Math.min(1, right[s0 + i]));
+            L[i] = a < 0 ? a * 32768 : a * 32767; R[i] = b < 0 ? b * 32768 : b * 32767;
+        }
+        const out = enc.encodeBuffer(m === block ? L : L.subarray(0, m), m === block ? R : R.subarray(0, m));
+        if (out.length) parts.push(new Uint8Array(out));
+        onProgress?.(Math.min(1, (s0 + m) / n));
+        await new Promise((r) => setTimeout(r, 0));
+    }
+    const end = enc.flush();
+    if (end.length) parts.push(new Uint8Array(end));
+    log('info', `MP3 ${MP3_KBPS} kbit/s : ${(n / sampleRate).toFixed(1)} s encodées en ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+    return new Blob(parts, { type: 'audio/mpeg' });
+}
+// Enregistre un son dans le format choisi : base = nom sans extension. Retourne { name, fmt }.
+async function saveAudio(base, left, right, sampleRate, label = '') {
+    const fmt = exportFormat();
+    let blob;
+    if (fmt === 'mp3') {
+        blob = await encodeMp3(left, right, sampleRate, (f) => setStatus(`Export MP3${label ? ' — ' + label : ''} : ${Math.round(f * 100)} %`));
+    } else blob = new Blob([encodeWav16(left, right, sampleRate)], { type: 'audio/wav' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${base}.${fmt}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    return { name: a.download, fmt, bytes: blob.size, desc: fmt === 'mp3' ? `MP3 ${MP3_KBPS} kbit/s` : 'WAV 16 bits' };
+}
 function encodeWav16(left, right, sampleRate) {
     const n = left.length, bytes = 44 + n * 4;
     const buf = new ArrayBuffer(bytes), v = new DataView(buf);
@@ -1635,6 +1693,7 @@ function refreshButtons() {
     refreshLevelBtn();
     ui.exportBtn.disabled = !(anyTake || state.instru);
     ui.exportRawBtn.disabled = !(anyTake || state.instru);
+    ui.exportFinalBtn.disabled = !state.finalMix;
     ui.stemsBtn.disabled = !(anyTake || state.instru);
     ui.finalMixBtn.disabled = !state.ready || !(anyTake || state.instru) || !!state.rec;
     ui.sepBtn.disabled = !state.ready || !state.instru || !!state.rec || state.isolating;
@@ -2084,6 +2143,7 @@ ui.finalMixBtn.addEventListener('click', async () => {
             `${rep.inputLufs.toFixed(1)} → ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP, limiteur ${rep.limiterGrDb.toFixed(1)} dB` +
             (unprocessed.length ? `\n⚠ Pistes sans traitement (brutes) : ${unprocessed.join(', ')}` : '');
         ui.finalPlayRow.hidden = false;
+        ui.exportFinalBtn.disabled = false;
         log('info', `Mixage final : ${rep.inputLufs.toFixed(1)} -> ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
         playFinal(state.playFromSec, true);
         setStatus('Chanson mixée, lecture en cours : « ▶ Avant mixage » pour comparer, puis « Exporter la chanson mixée ».');
@@ -2121,16 +2181,16 @@ function playFinal(fromSec = state.playFromSec, quiet = false) {
 }
 ui.playFinalBtn.addEventListener('click', () => playFinal());
 ui.playBeforeBtn.addEventListener('click', () => startPlay('mix'));
-ui.exportFinalBtn.addEventListener('click', () => {
+ui.exportFinalBtn.addEventListener('click', async () => {
     const f = state.finalMix;
-    if (!f) return;
-    const wav = encodeWav16(f.left, f.right, f.sampleRate);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
-    a.download = 'StudioVoix-chanson-mixee.wav';
-    document.body.appendChild(a); a.click(); a.remove();
-    log('info', `Export de la chanson mixée : ${f.report.outputLufs.toFixed(1)} LUFS, crête ${f.report.truePeakDb.toFixed(1)} dBTP`);
-    setStatus(`Chanson mixée exportée (WAV 16 bits, ${f.sampleRate} Hz, ${f.report.outputLufs.toFixed(1)} LUFS).`);
+    if (!f) { setStatus('Rien à exporter : lance d\'abord « Mixer la chanson ».'); return; }
+    try {
+        ui.exportFinalBtn.disabled = true;
+        const saved = await saveAudio('StudioVoix-chanson-mixee', f.left, f.right, f.sampleRate, 'chanson mixée');
+        log('info', `Export de la chanson mixée (${saved.desc}) : ${f.report.outputLufs.toFixed(1)} LUFS, crête ${f.report.truePeakDb.toFixed(1)} dBTP`);
+        setStatus(`${saved.name} exporté (${saved.desc}, ${f.sampleRate} Hz, ${f.report.outputLufs.toFixed(1)} LUFS)${f.stale ? ' — ⚠ le projet a changé depuis le mixage' : ''}.`);
+    } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
+    refreshButtons();
 });
 ui.finalTarget.addEventListener('change', markDirty);
 ui.finalDuck.addEventListener('change', markDirty);
@@ -2147,22 +2207,20 @@ ui.stemsBtn.addEventListener('click', async () => {
         const stem = (name, left, right, startSec, gainDb) => {
             const L = new Float32Array(n), R = new Float32Array(n), g = dbg(gainDb), o = Math.round(startSec * sr);
             for (let i = 0; i < left.length && o + i < n; ++i) { L[o + i] = left[i] * g; R[o + i] = right[i] * g; }
-            files.push({ name, wav: encodeWav16(L, R, sr) });
+            files.push({ name, L, R });
         };
         if (state.instru && audible(state.instruTrack)) stem('00-Instru', state.instru.left, state.instru.right, 0, state.instruTrack.volumeDb);
         state.tracks.forEach((t, i) => {
             const a = audible(t) ? trackAudio(t, 'mix') : null;
             if (a) stem(`${String(i + 1).padStart(2, '0')}-${t.name.replace(/[^\w\u00C0-\u017F-]+/g, '_')}`, a.left, a.right, t.take.startSec, trackGainDb(t, 'mix'));
         });
+        let desc = '';
         for (const f of files) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([f.wav], { type: 'audio/wav' }));
-            a.download = `StudioVoix-${f.name}.wav`;
-            document.body.appendChild(a); a.click(); a.remove();
+            desc = (await saveAudio(`StudioVoix-${f.name}`, f.L, f.R, sr, f.name)).desc;
             await new Promise((r) => setTimeout(r, 250));   // les navigateurs bloquent les rafales de téléchargements
         }
-        log('info', `Export pistes séparées : ${files.map((f) => f.name).join(', ')}`);
-        setStatus(`${files.length} piste(s) exportée(s) séparément (WAV 16 bits, ${sr} Hz, même longueur, à poser à 0:00).`);
+        log('info', `Export pistes séparées (${desc}) : ${files.map((f) => f.name).join(', ')}`);
+        setStatus(`${files.length} piste(s) exportée(s) séparément (${desc}, ${sr} Hz, même longueur, à poser à 0:00).`);
     } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
     refreshButtons();
 });
