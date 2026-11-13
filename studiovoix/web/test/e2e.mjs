@@ -218,6 +218,7 @@ try {
             if (!snap.shown || !snap.stop) throw new Error('séparation en cours sans progression visible ou sans bouton Arrêter');
             if (process.env.SEP_SHOT && !seen.shot && snap.pct >= 40) { seen.shot = true; await page.locator('.sepcard').screenshot({ path: process.env.SEP_SHOT }); }
             if (!seen.length || seen.at(-1).pct !== snap.pct || seen.at(-1).step !== snap.step) {
+                snap.at = Date.now();
                 seen.push(snap);
                 console.log(stamp(), `progression : ${snap.pct} % — ${snap.step} — ${snap.time} | onglet « ${snap.title} »`);
             }
@@ -227,6 +228,12 @@ try {
         if (new Set(pcts).size < 5) throw new Error(`progression trop pauvre : ${pcts.join(', ')}`);
         for (let i = 1; i < pcts.length; ++i) if (pcts[i] < pcts[i - 1]) throw new Error(`progression qui recule : ${pcts.join(', ')}`);
         if (!seen.some((x) => /En cours depuis/.test(x.time))) throw new Error('temps écoulé jamais affiché');
+        if (!seen.some((x) => /morceau \d+\/\d+/.test(x.step))) throw new Error('compteur de morceaux jamais affiché');
+        // Plus long écart sans changement visible du % pendant le calcul (doit rester court grâce à l'estimation).
+        let gap = 0;
+        for (let i = 1; i < seen.length; ++i) gap = Math.max(gap, seen[i].at - seen[i - 1].at);
+        console.log(stamp(), `progression : ${seen.length} changements, plus long écart sans changement ${(gap / 1000).toFixed(1)} s`);
+        if (process.env.MAX_SEP_GAP_S && gap > 1000 * Number(process.env.MAX_SEP_GAP_S)) throw new Error(`progression immobile ${(gap / 1000).toFixed(0)} s`);
         if (await page.isVisible('#sepProg')) throw new Error('bloc de progression encore affiché après la séparation');
         const st = await page.textContent('#status');
         console.log(stamp(), st);

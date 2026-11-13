@@ -109,7 +109,7 @@ function isoWorker() {
             if (state.separating) {
                 const what = SEP_MODELS[m.model] || 'IA';
                 if (m.stage === 'download') sepSet(null, `${sepRun.stepLabel} — téléchargement du modèle ${what} (une seule fois) : ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
-                else sepSet(null, `${sepRun.stepLabel} — calcul IA`, m.done / Math.max(1, m.total));
+                else sepChunk(m.done, m.total);
                 return;
             }
             const box = ui.isolateInfo;
@@ -1278,6 +1278,7 @@ const SEP_MODELS = { voc: 'voix / instru', kara: 'voix principale / backs', reve
 async function runSepModel(key, L, R, step, steps) {
     sepCheck();
     sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]}`, 0);
+    sepRun.isModel = true;
     log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]}`);
     const r = await isoCall('isolate', { model: key, left: L.slice(), right: R.slice(), release: key !== 'voc' });
     iso.backend = r.backend;
@@ -1290,36 +1291,57 @@ const toMonoLR = (L, R) => { const m = new Float32Array(L.length); for (let i = 
 // calcul vit, alerte si rien n'avance depuis longtemps. Mise à jour à chaque message du worker + chaque seconde.
 const sepRun = { t0: 0, steps: 1, step: 1, label: '', frac: 0, last: 0, timer: 0 };
 function sepSet(step, label, frac) {
-    if (step != null) sepRun.step = step;
+    if (step != null) { sepRun.step = step; Object.assign(sepRun, { cDone: 0, cTotal: 0, cLast: performance.now() }); }
     if (label != null) sepRun.label = label;
     if (step != null && label != null) sepRun.stepLabel = label;   // étiquette de l'étape, reprise par les messages du worker
     if (frac != null) sepRun.frac = Math.min(1, Math.max(0, frac));
     sepRun.last = performance.now();
     sepRender();
 }
+// L'IA traite la chanson par morceaux d'environ 6 s ; un morceau = un seul calcul du modèle (15 s sur PC, bien plus
+// sur téléphone), sans avancée intermédiaire possible. On affiche donc le compteur de morceaux, la durée mesurée par
+// morceau, et entre deux morceaux une avancée estimée d'après cette durée (plafonnée à 90 % du morceau).
+function sepChunk(done, total) {
+    const now = performance.now();
+    const dt = now - (sepRun.cLast || now);
+    sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
+    Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
+    if (done === 1 || done === total) log('info', `Séparation : morceau ${done}/${total} en ${(dt / 1000).toFixed(1)} s (${iso.backend || '?'})`);
+    sepRender();
+}
 function sepRender() {
     if (!state.separating) return;
+    const now = performance.now();
+    if (sepRun.cTotal && sepRun.cDone < sepRun.cTotal) {
+        const part = sepRun.cDur ? Math.min(0.9, (now - sepRun.cLast) / sepRun.cDur) : 0;
+        sepRun.frac = (sepRun.cDone + part) / sepRun.cTotal;
+        sepRun.label = `${sepRun.stepLabel} — morceau ${sepRun.cDone + 1}/${sepRun.cTotal} de la chanson (~${Math.max(1, Math.round(sepRun.cDur / 1000))} s par morceau${iso.backend ? ', ' + iso.backend : ''})`;
+    } else if (sepRun.isModel && sepRun.cTotal === 0 && now - sepRun.last > 3000 && !/téléchargement/.test(sepRun.label)) {
+        sepRun.label = `${sepRun.stepLabel} — 1er morceau en cours (démarrage de l'IA, le plus long)`;
+    }
     const overall = Math.min(1, (sepRun.step - 1 + sepRun.frac) / sepRun.steps);
-    const el = (performance.now() - sepRun.t0) / 1000, idle = (performance.now() - sepRun.last) / 1000;
+    const el = (now - sepRun.t0) / 1000, idle = (now - sepRun.last) / 1000;
+    // « bloqué ? » seulement si le morceau dure bien plus que prévu (ou 60 s sans aucune mesure).
+    const slow = sepRun.cDur ? idle > Math.max(20, 2.5 * sepRun.cDur / 1000) : idle > 60;
     const pct = Math.floor(overall * 100);
     ui.sepStep.textContent = sepRun.label;
     ui.sepPct.textContent = `${pct} %`;
     ui.sepBar.value = Math.round(overall * 1000);
     let t = `En cours depuis ${fmt(el)}`;
     if (overall > 0.04) t += ` — reste environ ${fmt(Math.max(1, el / overall - el))}`;
-    if (idle > 20) t += ` — étape longue, le calcul continue (dernière avancée il y a ${Math.round(idle)} s)`;
+    if (slow) t += ` — plus lent que prévu, le calcul continue (dernier morceau fini il y a ${Math.round(idle)} s)`;
     ui.sepTime.textContent = t;
-    ui.sepProg.classList.toggle('stalled', idle > 20);
+    ui.sepProg.classList.toggle('stalled', slow);
     document.title = `${pct} % — Séparation — StudioVoix`;
     setStatus(`Séparation en cours : ${sepRun.label} — ${pct} % (ne ferme pas la page)`);
 }
 function sepBegin(steps) {
-    Object.assign(sepRun, { cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
+    Object.assign(sepRun, { cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
     sepRun.title = document.title;
     ui.sepProg.hidden = false;
     ui.sepBtn.textContent = '⏳ Séparation en cours…';
     ui.sepProg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    sepRun.timer = setInterval(sepRender, 1000);
+    sepRun.timer = setInterval(sepRender, 500);
     window.addEventListener('beforeunload', sepLeaveGuard);
     sepRender();
 }
@@ -1364,6 +1386,7 @@ async function separateSong() {
         }
         // retour à la fréquence du projet
         sepCheck();
+        sepRun.isModel = false;
         sepSet(null, 'Assemblage des pistes…', 1); sepRun.stepLabel = 'Assemblage des pistes';
         const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
         const I = await back44(IL, IR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
