@@ -17,7 +17,7 @@ const ui = {
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'),
-    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'),
+    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
@@ -95,7 +95,11 @@ function isoWorker() {
     iso.worker = new Worker('./isolate-worker.js', { type: 'module' });
     iso.worker.onmessage = (e) => {
         const m = e.data;
-        if (m.type === 'log') { log(m.level, '[isolation] ' + m.msg); return; }
+        if (m.type === 'log') {
+            log(m.level, '[isolation] ' + m.msg);
+            if (state.separating) ui.sepSub.textContent = 'IA : ' + m.msg;   // ce que fait l'IA, visible sans ouvrir le journal
+            return;
+        }
         if (m.type === 'progress') {
             const pct = Math.round(100 * m.done / Math.max(1, m.total));
             let eta = '';
@@ -1338,7 +1342,7 @@ function sepRender() {
 function sepBegin(steps) {
     Object.assign(sepRun, { cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
     sepRun.title = document.title;
-    ui.sepProg.hidden = false;
+    ui.sepProg.hidden = false; ui.sepSub.textContent = '';
     ui.sepBtn.textContent = '⏳ Séparation en cours…';
     ui.sepProg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     sepRun.timer = setInterval(sepRender, 500);

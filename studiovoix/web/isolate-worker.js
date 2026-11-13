@@ -53,6 +53,8 @@ async function loadModelBytes(key) {
     const total = Number(resp.headers.get('content-length')) || cfg.modelBytes;
     const out = new Uint8Array(cfg.modelBytes);
     let got = 0, last = 0;
+    progress('download', 0, total, key);   // tout de suite : « 0 / 67 Mo » plutôt qu'un écran figé
+    log('info', `téléchargement du modèle ${cfg.label} (${(total / 1e6).toFixed(0)} Mo)…`);
     const reader = resp.body.getReader();
     for (;;) {
         const { done, value } = await reader.read();
@@ -60,7 +62,7 @@ async function loadModelBytes(key) {
         if (got + value.length > out.length) throw new Error('modèle plus gros que prévu : refusé');
         out.set(value, got);
         got += value.length;
-        if (got - last > 2e6) { last = got; progress('download', got, total, key); }
+        if (got - last > 1e6) { last = got; progress('download', got, total, key); }
     }
     if (got !== cfg.modelBytes) throw new Error(`modèle incomplet (${got} octets sur ${cfg.modelBytes})`);
     const sum = await sha256Hex(out.buffer);
@@ -117,6 +119,7 @@ async function ensureSession(key) {
         configure();
         const cfg = cfgOf(key);
         const bytes = await loadModelBytes(key);
+        log('info', `démarrage de l'IA ${cfg.label} (${cfg.type !== 'speaker' && await hasWebGpu() ? 'essai carte graphique' : 'processeur'})…`);
         if (cfg.type !== 'speaker' && await hasWebGpu()) {   // petit modèle d'empreinte de voix : processeur suffit
             try {
                 const s = await createSession(bytes, 'webgpu');
@@ -162,6 +165,7 @@ onmessage = async (e) => {
                 throw new Error('entrée invalide (deux Float32Array de même longueur attendus, 44,1 kHz)');
             const s = await ensureSession(key);
             const t0 = performance.now();
+            log('info', `${cfg.label} : calcul sur ${(left.length / cfg.sampleRate).toFixed(0)} s de musique (${s.backend}), 1er morceau en cours…`);
             const out = await separateVocals(left, right, runWith(s.session, cfg), (d, t) => progress('isolate', d, t, key), cfg);
             const sec = (performance.now() - t0) / 1000;
             log('info', `${cfg.label} : ${(left.length / cfg.sampleRate).toFixed(1)} s traitées en ${sec.toFixed(1)} s sur ${s.backend}`);
