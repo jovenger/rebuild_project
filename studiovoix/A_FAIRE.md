@@ -129,8 +129,13 @@ comment les automatismes doivent être faits, ordre proposé.
   relue à la relance, effacée après réussite ; durée estimée avant de lancer (vitesse mesurée de l'appareil retenue).
 - Écarté après mesure : modèle quantifié int8 (dynamique) : pas plus rapide (6,0 s contre 5,8 s par morceau, ORT CPU)
   et sortie faussée.
-- Non vérifié : vrai téléphone (repli carte graphique testé par simulation `?svTestGpuHang=1`) ; vitesse réelle sur
-  téléphone ; Brave isolé ou non (multi-cœur).
+- Vérifié par Yann sur son téléphone (Android / Brave, build 111, chanson 3:35) : séparation allée au bout en ~45 min ;
+  chaque voix sur sa piste, backs sur leur piste, instrumental « plutôt propre ».
+- Point de sauvegarde : commit 865ef8b = build 111 en ligne (tests locaux + CI passés).
+- À faire (retour de Yann) : petits nettoyages restants sur l'instrumental séparé ; durée (45 min) à réduire ;
+  problème à préciser sur la touche de lecture « Mix ».
+- Non vérifié : écran éteint / arrière-plan sur le vrai téléphone (pas de retour) ; Brave isolé ou non (multi-cœur) ;
+  recouvrement 0,1 (4:34 contre 5:07 en local, instru identique 16,3 dB) : effet sur backs / voix principale non mesuré.
 
 ## Séparer une chanson en pistes (demande de Yann : instru propre, chaque voix / back / ambiance / chanteur sur sa piste)
 
