@@ -456,6 +456,26 @@ try {
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
     }
 
+    // Lecture brute avec « Égaliser » : seuls les volumes changent (gain par piste = équilibre calculé sur les prises
+    // brutes) ; décoché pendant la lecture : retour aux volumes d'origine.
+    if (await page.evaluate(() => window.__studiovoix.tracks.some((t) => t.take))) {
+        await page.check('#rawLevel');
+        await page.click('#playRawBtn');
+        await page.waitForFunction(() => window.__studiovoix.player?.mode === 'raw' && window.__studiovoix.balanceRaw?.gains?.size >= 1, null, { timeout: 60000 });
+        const read = () => page.evaluate(() => window.__studiovoix.player.nodes.filter((n) => n.key).map((n) => {
+            const t = window.__studiovoix.tracks.find((x) => x.id === n.key);
+            return { name: t.name, gainDb: 20 * Math.log10(n.gain.gain.value + 1e-12), want: (window.__studiovoix.balanceRaw.gains.get(t.id) ?? 0) + t.volumeDb, fader: t.volumeDb, lufs: window.__studiovoix.balanceRaw.items.get(t.id)?.lufs };
+        }));
+        const on = await read();
+        if (!on.length || on.some((x) => Math.abs(x.gainDb - x.want) > 0.1)) throw new Error('brut égalisé : gain de piste différent de l\'équilibre brut : ' + JSON.stringify(on));
+        console.log(stamp(), 'brut égalisé :', on.map((x) => `${x.name} ${x.lufs.toFixed(1)} LUFS → gain ${x.gainDb.toFixed(1)} dB`).join(' ; '));
+        await page.uncheck('#rawLevel');
+        await page.waitForTimeout(400);
+        const off = await read();
+        if (off.some((x) => Math.abs(x.gainDb - x.fader) > 0.1)) throw new Error('brut non égalisé : le gain devrait être le seul curseur : ' + JSON.stringify(off));
+        await page.check('#rawLevel');
+        await page.click('#stopPlayBtn');
+    }
     // Cadenas de piste : verrouillée, glisser la prise ne la déplace pas ; déverrouillée, si.
     {
         const idx = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take));

@@ -115,6 +115,21 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Lecture brute avec volumes égalisés + saturation en lecture (retours de Yann)
+
+- Fait : case « Égaliser » à côté de « ▶ Brut » (cochée par défaut, choix gardé) : lecture des prises brutes, sans aucun
+  effet, avec seulement le volume de chaque piste réglé selon son type (mêmes règles que le Mix : voix principales au
+  même niveau, backs -7 LU, ambiance -14 LU, voix / instru) ; équilibre calculé sur les prises brutes
+  (`ensureRawBalance`, recalculé seulement si les pistes changent) ; décochée : prises exactement comme enregistrées.
+  Testé e2e PC + Pixel 7 (gain de chaque piste = équilibre brut ; décochée pendant la lecture = curseur seul).
+- Fait : le volume général de la lecture (marge contre la saturation) n'était calculé qu'au lancement ; un solo retiré,
+  une piste réactivée ou un curseur monté pendant la lecture pouvaient faire saturer la sortie (craquements quand le
+  niveau monte). Recalculé 120 ms après chaque changement, appliqué en douceur.
+- « Pas lisse / saccades quand la voix monte, après mixage » — mesuré sur un vrai morceau calme (« fishin », 45 s,
+  48 kHz, séparé puis mixé par la page) : chanson mixée / morceau d'origine = gain stable (variation d'une trame de
+  50 ms à l'autre : médiane 0,08 dB, max 0,8 dB, aucun saut > 2 dB ; passages forts 3,7 dB, calmes 3,9 dB) → pas de
+  pompage mesuré sur ce morceau. Mesure sur morceaux forts (-9 LUFS) en cours. Cause non établie.
+
 ## Une piste par voix quel que soit le nombre + « crépitements dans les aigus » des voix séparées (retours de Yann)
 
 - Constat de Yann : morceau avec sa voix + une voix de femme → une seule piste ; voix séparées « pas lisses », qui

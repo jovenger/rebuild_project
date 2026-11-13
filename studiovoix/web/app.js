@@ -16,7 +16,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), rawLevel: $('rawLevel'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
@@ -754,7 +754,10 @@ function audible(obj) {
 }
 // Gain final d'une piste (dB) : équilibre auto (Mix seulement) + fader.
 function trackGainDb(t, mode) {
-    const auto = mode === 'mix' ? (state.balance?.gains.get(t.id) ?? 0) : 0;
+    // Mix : équilibre calculé sur les pistes traitées. Brut + « Égaliser » : équilibre calculé sur les prises brutes
+    // (mêmes règles par type, aucun effet). Brut sans « Égaliser » : la prise telle quelle.
+    const auto = mode === 'mix' ? (state.balance?.gains.get(t.id) ?? 0)
+        : (rawLevelOn() ? (state.balanceRaw?.gains.get(t.id) ?? 0) : 0);
     return auto + t.volumeDb;
 }
 function trackAudio(t, mode) {
@@ -806,7 +809,7 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
         const a = trackAudio(t, mode);
         if (a) addSource(t.id, a.left, a.right, t.take.startSec, trackGainDb(t, mode), rowOf(t.id)?._meter);
     }
-    const player = { mode, nodes, t0, fromSec, raf: 0, outAn, headDb: head.db };
+    const player = { mode, nodes, t0, fromSec, raf: 0, outAn, headDb: head.db, master, exceptId };
     state.player = player;
     const buf = new Float32Array(1024);
     const peakOf = (an) => { an.getFloatTimeDomainData(buf); let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i])); return p; };
@@ -849,6 +852,21 @@ function liveGains() {
         const t = findTrack(n.key);
         if (t) n.gain.gain.value = audible(t) ? dbg(trackGainDb(t, p.mode)) : 0;
     }
+    // Le volume général (marge contre la saturation) dépend de ce qui est écouté : il était calculé une seule fois au
+    // lancement. Lecture lancée avec une piste en solo, puis solo retiré (ou piste réactivée, curseur monté) pendant
+    // la lecture → la somme dépassait le maximum et la sortie saturait (craquements quand le niveau monte).
+    // Recalcul 120 ms après le dernier changement, appliqué en douceur.
+    clearTimeout(liveGains.timer);
+    liveGains.timer = setTimeout(() => {
+        const q = state.player;
+        if (!q || q !== p || !q.master) return;
+        const ctx = audioContext(), head = headroomGain(q.mode, q.exceptId, ctx.sampleRate);
+        if (Math.abs(head.db - q.headDb) > 0.05) {
+            q.master.gain.setTargetAtTime(head.gain, ctx.currentTime, 0.03);
+            log('info', `Volume général ajusté pendant la lecture : ${head.db.toFixed(1)} dB (avant ${q.headDb.toFixed(1)} dB)`);
+            q.headDb = head.db;
+        }
+    }, 120);
 }
 function onMuteSolo() {
     state.balanceDirty = true;   // une piste muette ne compte pas dans l'équilibre
@@ -864,18 +882,53 @@ function listenAll() {
     onMuteSolo();
     setStatus('Toutes les pistes sont écoutées.');
 }
+// Équilibre des prises BRUTES (lecture « Brut » avec « Égaliser ») : mêmes règles que le Mix (voix principales au même
+// niveau, backs / ambiance à leur place, voix par rapport à l'instru), mais mesuré sur les prises sans aucun effet.
+// Recalculé seulement si les pistes ont changé (signature).
+const rawLevelOn = () => !!ui.rawLevel?.checked;
+async function ensureRawBalance() {
+    const list = state.tracks.filter((t) => t.take && !t.mute);
+    const sig = list.map((t) => `${t.id}:${t.roleId}:${t.take.audioId}:${t.take.startSec.toFixed(3)}`).join('|') + `#${state.instru?.audioId || ''}`;
+    if (state.balanceRaw && state.balanceRaw.sig === sig) return state.balanceRaw;
+    if (list.length === 0) { state.balanceRaw = { gains: new Map(), items: new Map(), sig }; return state.balanceRaw; }
+    const sr = list[0].take.sampleRate;
+    const tracks = list.map((t) => ({ key: t.id, left: t.take.mono.slice(), right: t.take.mono.slice(), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 }));
+    const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
+    const r = await call('balance', {
+        instruL: state.instru ? state.instru.left.slice() : null, instruR: state.instru ? state.instru.right.slice() : null,
+        sampleRate: sr, styleId: leadStyle, tracks,
+    });
+    const gains = new Map(), items = new Map();
+    for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
+    state.balanceRaw = { gains, items, report: r.report, sig };
+    log('info', `Volumes égalisés (brut, sans effet) : voix / instru ${r.report.vocalGainDb.toFixed(1)} dB ; ` +
+        list.map((t) => `${t.name} ${gains.get(t.id) >= 0 ? '+' : ''}${(gains.get(t.id) ?? 0).toFixed(1)} dB`).join(', '));
+    return state.balanceRaw;
+}
 async function startPlay(mode) {
     try {
         if (mode === 'mix') { setStatus('Équilibre des pistes…'); await ensureBalance(); }
+        else if (rawLevelOn()) { setStatus('Égalisation des volumes (sans effet)…'); await ensureRawBalance(); }
         const p = play(mode);
         const head = p.headDb < -0.05 ? ` Volume général −${(-p.headDb).toFixed(1)} dB pour ne pas saturer (instru intacte).` : '';
         setStatus((mode === 'mix'
             ? 'Lecture du mix : instru d\'origine, intacte + chaque piste traitée (style et type), équilibrées.'
-            : 'Lecture brute : instru d\'origine + prises sans effet (A/B).') + head);
+            : rawLevelOn() ? 'Lecture brute, volumes égalisés : aucune piste n\'est modifiée (aucun effet), seul son volume est réglé selon son type.'
+            : 'Lecture brute : instru d\'origine + prises sans effet, volumes d\'origine (A/B).') + head);
     } catch (err) { setStatus('Lecture impossible : ' + err.message); log('error', err.message); }
 }
 ui.playBtn.addEventListener('click', () => startPlay('mix'));
 ui.playRawBtn.addEventListener('click', () => startPlay('raw'));
+// « Égaliser » : choix gardé d'une visite à l'autre ; changé pendant une lecture brute, il s'applique tout de suite.
+try { const v = localStorage.getItem('sv-raw-level'); if (v != null) ui.rawLevel.checked = v === '1'; } catch { /* stockage indisponible : valeur par défaut */ }
+ui.rawLevel.addEventListener('change', async () => {
+    try { localStorage.setItem('sv-raw-level', ui.rawLevel.checked ? '1' : '0'); } catch (e) { log('warn', `choix non gardé : ${e.message}`); }
+    log('info', `Lecture brute : volumes ${ui.rawLevel.checked ? 'égalisés par type' : 'd\'origine'}`);
+    if (state.player?.mode === 'raw') {
+        try { if (rawLevelOn()) await ensureRawBalance(); liveGains(); }
+        catch (err) { log('error', 'Égalisation : ' + err.message); }
+    }
+});
 ui.stopPlayBtn.addEventListener('click', () => { stopPlayback(); setStatus('Lecture arrêtée.'); });
 
 // Ce que la page joue (somme instru + pistes avec leurs gains), sur la grille du morceau : référence pour retirer de
