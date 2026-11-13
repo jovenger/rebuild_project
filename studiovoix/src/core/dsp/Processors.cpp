@@ -293,6 +293,7 @@ void BusGlue::prepare (double sampleRate)
     rmsCoef = static_cast<float> (std::exp (-1.0 / (sr * 0.010)));
     gr = 0.0f;
     sq = 0.0f;
+    maxGr = 0.0f;
 }
 
 float BusGlue::process (float* const* channels, int numChannels, int numSamples) noexcept
@@ -312,6 +313,7 @@ float BusGlue::process (float* const* channels, int numChannels, int numSamples)
         const float levelDb = gainToDb (std::sqrt (std::max (0.0f, sq)));
         const float target = staticGainReductionDb (levelDb, T, R, W);
         gr = target > gr ? att * gr + (1.0f - att) * target : rel * gr + (1.0f - rel) * target;
+        maxGr = std::max (maxGr, gr);
         const float g = dbToGain (-gr) * makeup;
         for (int k = 0; k < numChannels; ++k)
             channels[k][i] *= g;

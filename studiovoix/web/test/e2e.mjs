@@ -456,6 +456,57 @@ try {
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
     }
 
+    // Tableau des effets : pré-réglage affiché, effet éteint puis réglé à la main PENDANT la lecture « Mix » (le son de la
+    // piste est remplacé sans arrêter la lecture), retour au pré-réglage.
+    {
+        const idx = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && t.processed?.report?.fx));
+        if (idx >= 0) {
+            // Sélection par l'en-tête lui-même (un clic au centre tomberait sur un de ses boutons).
+            await page.evaluate((i) => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[i].id}"] .head`).click(), idx);
+            await page.waitForFunction(() => document.querySelectorAll('#fxList .fxrow').length >= 12, null, { timeout: 10000 });
+            const snap = () => page.evaluate((i) => {
+                const t = window.__studiovoix.tracks[i], L = t.processed.left, n0 = t.take.mono.length;
+                let tail = 0; for (let k = n0; k < L.length; ++k) tail += L[k] * L[k];   // traîne après la fin de la prise = réverb + écho
+                const n = window.__studiovoix.player?.nodes.find((x) => x.key === t.id);
+                return { fx: t.processed.report.fx, preset: t.processed.report.preset, tailDb: 10 * Math.log10(tail / Math.max(1, L.length - n0) + 1e-20), status: t.status, mine: t.fx, swaps: n?.swaps || 0, playing: !!window.__studiovoix.player };
+            }, idx);
+            const settled = (pred) => page.waitForFunction(([i, src]) => { const t = window.__studiovoix.tracks[i]; return t.status === 'done' && t.processed?.report?.fx && new Function('fx', 'return ' + src)(t.processed.report.fx); }, [idx, pred], { timeout: 120000 });
+            const base = await snap();
+            console.log(stamp(), `effets (pré-réglage) : réverb ${base.fx.reverb.on ? Math.round(base.fx.reverb.send * 100) + ' %' : 'éteinte'}, écho ${base.fx.delay.on ? Math.round(base.fx.delay.send * 100) + ' %' : 'éteint'}, compresseur ${base.fx.comp.ratio.toFixed(1)}:1, traîne ${base.tailDb.toFixed(1)} dB`);
+            await page.click('#playBtn');
+            await page.waitForFunction(() => window.__studiovoix.player?.mode === 'mix', null, { timeout: 60000 });
+            // 1) réverb et écho éteints par leur case
+            for (const id of ['reverb', 'delay']) {
+                const c = page.locator(`#fxList .fxrow[data-fx="${id}"] input[type=checkbox]`);
+                if (await c.isChecked()) await c.uncheck(); else { await c.check(); await c.uncheck(); }
+            }
+            await settled('fx.reverb.on === false && fx.delay.on === false');
+            await page.waitForFunction((i) => (window.__studiovoix.player?.nodes.find((x) => x.key === window.__studiovoix.tracks[i].id)?.swaps || 0) >= 1, idx, { timeout: 30000 });
+            const off = await snap();
+            if (!off.playing) throw new Error('effets : la lecture s\'est arrêtée pendant le changement de réglage');
+            if (!(off.tailDb < -90)) throw new Error(`effets : réverb et écho éteints mais il reste une traîne (${off.tailDb.toFixed(1)} dB)`);
+            // 2) réverb remise et poussée à 60 % au curseur
+            await page.locator('#fxList .fxrow[data-fx="reverb"] .fxline').click();
+            await page.locator('#fxList .fxrow[data-fx="reverb"] input[type=checkbox]').check();
+            const slider = page.locator('#fxList .fxrow[data-fx="reverb"] .fxfield input[type=range]').first();
+            await slider.evaluate((e) => { e.value = '0.6'; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); });
+            await settled('fx.reverb.on === true && Math.abs(fx.reverb.send - 0.6) < 0.011');
+            await page.waitForFunction(([i, k]) => (window.__studiovoix.player?.nodes.find((x) => x.key === window.__studiovoix.tracks[i].id)?.swaps || 0) > k, [idx, off.swaps], { timeout: 30000 });
+            const big = await snap();
+            if (!big.playing) throw new Error('effets : la lecture s\'est arrêtée pendant le réglage du curseur');
+            if (!(big.tailDb > off.tailDb + 20)) throw new Error(`effets : réverb à 60 % sans traîne audible (${big.tailDb.toFixed(1)} dB)`);
+            if (!(await page.locator('#fxList .fxrow[data-fx="reverb"] .fxmod').isVisible())) throw new Error('effets : la ligne Réverb n\'est pas marquée « modifié »');
+            console.log(stamp(), `effets pendant la lecture : réverb + écho éteints → traîne ${off.tailDb.toFixed(1)} dB ; réverb à 60 % → traîne ${big.tailDb.toFixed(1)} dB ; ${big.swaps} échange(s) de son sans arrêt de la lecture`);
+            // 3) retour au pré-réglage
+            await page.click('#fxResetAll');
+            await settled(`Math.abs(fx.reverb.send - ${base.preset.reverb.send}) < 1e-6 && fx.delay.on === ${base.preset.delay.on}`);
+            const back = await snap();
+            if (Object.keys(back.mine || {}).length) throw new Error('effets : des réglages à la main restent après « Tout remettre au pré-réglage »');
+            if (Math.abs(back.tailDb - base.tailDb) > 0.5) throw new Error(`effets : retour au pré-réglage différent du départ (${back.tailDb.toFixed(1)} dB contre ${base.tailDb.toFixed(1)} dB)`);
+            console.log(stamp(), `effets : retour au pré-réglage identique au départ (traîne ${back.tailDb.toFixed(1)} dB)`);
+            await page.click('#stopPlayBtn');
+        }
+    }
     // Lecture brute avec « Égaliser » : seuls les volumes changent (gain par piste = équilibre calculé sur les prises
     // brutes) ; décoché pendant la lecture : retour aux volumes d'origine.
     if (await page.evaluate(() => window.__studiovoix.tracks.some((t) => t.take))) {

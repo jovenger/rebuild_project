@@ -216,10 +216,105 @@ EMSCRIPTEN_KEEPALIVE void sv_set_context (int root, int minor, double bpm, doubl
                        + (context.useScale ? "oui" : "non"));
 }
 
+} // extern "C"
+
+namespace
+{
+    // ------------------------------------------------------------------------------------------------------------
+    // Effets d'une piste, lisibles et réglables depuis la page (tableau des effets). Un objet par effet :
+    // { on, valeurs… }. fxToVar : réglages → JSON ; applyFx : surcharges de la page → réglages (valeurs bornées :
+    // entrée externe). « on » à faux neutralise l'effet ; « on » à vrai sur un effet que le style laisse éteint lui
+    // donne une valeur de départ audible.
+    juce::var fxObj (bool on, std::initializer_list<std::pair<const char*, double>> fields)
+    {
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("on", on);
+        for (const auto& f : fields)
+            o->setProperty (f.first, f.second);
+        return juce::var (o);
+    }
+
+    juce::var fxToVar (const sv::style::VocalParams& p)
+    {
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("clean", fxObj (p.clean.enabled, { { "denoiseDb", p.clean.denoiseDb }, { "gateRangeDb", p.clean.gateRangeDb },
+                                                          { "breathReductionDb", p.clean.breathReductionDb }, { "hpfHz", p.clean.hpfHz } }));
+        o->setProperty ("leveler", fxObj (p.leveler.enabled, { { "maxBoostDb", p.leveler.maxBoostDb }, { "maxCutDb", p.leveler.maxCutDb } }));
+        o->setProperty ("timing", fxObj (p.timing.strength > 0.001f, { { "strength", p.timing.strength } }));
+        o->setProperty ("pitch", fxObj (p.pitch.enabled, { { "amount", p.pitch.amount }, { "retuneMs", p.pitch.retuneMs }, { "humanize", p.pitch.humanize } }));
+        const bool eqOn = std::abs (p.eq.lowShelfDb) > 0.05f || std::abs (p.eq.mudDb) > 0.05f || std::abs (p.eq.presenceDb) > 0.05f
+                          || std::abs (p.eq.airDb) > 0.05f || p.eq.lowCutHz > 25.0f || p.eq.highCutHz > 0.0f;
+        o->setProperty ("eq", fxObj (eqOn, { { "lowCutHz", p.eq.lowCutHz }, { "lowShelfDb", p.eq.lowShelfDb }, { "mudDb", p.eq.mudDb },
+                                            { "presenceDb", p.eq.presenceDb }, { "airDb", p.eq.airDb } }));
+        o->setProperty ("resonance", fxObj (p.resonance.enabled, { { "maxReductionDb", p.resonance.maxReductionDb } }));
+        o->setProperty ("comp", fxObj (p.comp.ratio > 1.001f, { { "thresholdDb", p.comp.thresholdDb }, { "ratio", p.comp.ratio },
+                                                               { "attackMs", p.comp.attackMs }, { "releaseMs", p.comp.releaseMs }, { "mix", p.comp.mix } }));
+        o->setProperty ("comp2", fxObj (p.comp2.ratio > 1.001f, { { "thresholdDb", p.comp2.thresholdDb }, { "ratio", p.comp2.ratio } }));
+        o->setProperty ("deEss", fxObj (p.deEss.amount > 0.001f, { { "amount", p.deEss.amount }, { "freqHz", p.deEss.freqHz } }));
+        o->setProperty ("sat", fxObj (p.sat.mix > 0.001f, { { "mix", p.sat.mix }, { "driveDb", p.sat.driveDb } }));
+        o->setProperty ("reverb", fxObj (p.reverb.send > 0.001f, { { "send", p.reverb.send }, { "roomSize", p.reverb.roomSize },
+                                                                  { "damping", p.reverb.damping }, { "preDelayMs", p.reverb.preDelayMs } }));
+        o->setProperty ("delay", fxObj (p.delay.send > 0.001f, { { "send", p.delay.send }, { "feedback", p.delay.feedback }, { "noteBeats", p.delay.noteBeats } }));
+        o->setProperty ("stereo", fxObj (true, { { "pan", p.pan }, { "width", p.width } }));
+        return juce::var (o);
+    }
+
+    void applyFx (sv::style::VocalParams& p, const juce::var& fx)
+    {
+        if (! fx.isObject())
+            return;
+        auto num = [] (const juce::var& o, const char* k, float& dst, float lo, float hi)
+        {
+            if (! o.isObject() || ! o.hasProperty (k))
+                return;
+            const double v = static_cast<double> (o[k]);
+            if (std::isfinite (v))
+                dst = juce::jlimit (lo, hi, static_cast<float> (v));
+        };
+        // -1 = pas dit, 0 = éteint, 1 = allumé
+        auto on = [] (const juce::var& o) { return o.isObject() && o.hasProperty ("on") ? (static_cast<bool> (o["on"]) ? 1 : 0) : -1; };
+
+        { const auto e = fx["clean"]; num (e, "denoiseDb", p.clean.denoiseDb, 0.0f, 24.0f); num (e, "gateRangeDb", p.clean.gateRangeDb, 0.0f, 24.0f);
+          num (e, "breathReductionDb", p.clean.breathReductionDb, 0.0f, 18.0f); num (e, "hpfHz", p.clean.hpfHz, 20.0f, 250.0f);
+          if (on (e) >= 0) p.clean.enabled = on (e) == 1; }
+        { const auto e = fx["leveler"]; num (e, "maxBoostDb", p.leveler.maxBoostDb, 0.0f, 12.0f); num (e, "maxCutDb", p.leveler.maxCutDb, 0.0f, 12.0f);
+          if (on (e) >= 0) p.leveler.enabled = on (e) == 1; }
+        { const auto e = fx["timing"]; num (e, "strength", p.timing.strength, 0.0f, 1.0f);
+          if (on (e) == 0) p.timing.strength = 0.0f; else if (on (e) == 1 && p.timing.strength < 0.001f) p.timing.strength = 0.5f; }
+        { const auto e = fx["pitch"]; num (e, "amount", p.pitch.amount, 0.0f, 1.0f); num (e, "retuneMs", p.pitch.retuneMs, 0.0f, 400.0f);
+          num (e, "humanize", p.pitch.humanize, 0.0f, 1.0f);
+          if (on (e) >= 0) p.pitch.enabled = on (e) == 1; }
+        { const auto e = fx["eq"]; num (e, "lowCutHz", p.eq.lowCutHz, 20.0f, 300.0f); num (e, "lowShelfDb", p.eq.lowShelfDb, -12.0f, 12.0f);
+          num (e, "mudDb", p.eq.mudDb, -12.0f, 12.0f); num (e, "presenceDb", p.eq.presenceDb, -12.0f, 12.0f); num (e, "airDb", p.eq.airDb, -12.0f, 12.0f);
+          if (on (e) == 0) { p.eq.lowCutHz = 20.0f; p.eq.lowShelfDb = p.eq.mudDb = p.eq.presenceDb = p.eq.airDb = 0.0f; p.eq.highCutHz = 0.0f; p.referenceEq = false; } }
+        { const auto e = fx["resonance"]; num (e, "maxReductionDb", p.resonance.maxReductionDb, 0.0f, 12.0f);
+          if (on (e) >= 0) p.resonance.enabled = on (e) == 1; }
+        { const auto e = fx["comp"]; num (e, "thresholdDb", p.comp.thresholdDb, -50.0f, 0.0f); num (e, "ratio", p.comp.ratio, 1.0f, 20.0f);
+          num (e, "attackMs", p.comp.attackMs, 0.1f, 200.0f); num (e, "releaseMs", p.comp.releaseMs, 10.0f, 1000.0f); num (e, "mix", p.comp.mix, 0.0f, 1.0f);
+          if (on (e) == 0) p.comp.ratio = 1.0f; else if (on (e) == 1 && p.comp.ratio <= 1.001f) p.comp.ratio = 3.0f; }
+        { const auto e = fx["comp2"]; num (e, "thresholdDb", p.comp2.thresholdDb, -50.0f, 0.0f); num (e, "ratio", p.comp2.ratio, 1.0f, 10.0f);
+          if (on (e) == 0) p.comp2.ratio = 1.0f; else if (on (e) == 1 && p.comp2.ratio <= 1.001f) p.comp2.ratio = 2.0f; }
+        { const auto e = fx["deEss"]; num (e, "amount", p.deEss.amount, 0.0f, 1.0f); num (e, "freqHz", p.deEss.freqHz, 3000.0f, 12000.0f);
+          if (on (e) == 0) p.deEss.amount = 0.0f; else if (on (e) == 1 && p.deEss.amount <= 0.001f) p.deEss.amount = 0.5f; }
+        { const auto e = fx["sat"]; num (e, "mix", p.sat.mix, 0.0f, 1.0f); num (e, "driveDb", p.sat.driveDb, 0.0f, 24.0f);
+          if (on (e) == 0) p.sat.mix = 0.0f; else if (on (e) == 1 && p.sat.mix <= 0.001f) { p.sat.mix = 0.2f; p.sat.driveDb = juce::jmax (p.sat.driveDb, 6.0f); } }
+        { const auto e = fx["reverb"]; num (e, "send", p.reverb.send, 0.0f, 1.0f); num (e, "roomSize", p.reverb.roomSize, 0.0f, 1.0f);
+          num (e, "damping", p.reverb.damping, 0.0f, 1.0f); num (e, "preDelayMs", p.reverb.preDelayMs, 0.0f, 200.0f);
+          if (on (e) == 0) p.reverb.send = 0.0f; else if (on (e) == 1 && p.reverb.send <= 0.001f) p.reverb.send = 0.2f; }
+        { const auto e = fx["delay"]; num (e, "send", p.delay.send, 0.0f, 1.0f); num (e, "feedback", p.delay.feedback, 0.0f, 0.9f);
+          num (e, "noteBeats", p.delay.noteBeats, 0.125f, 2.0f);
+          if (on (e) == 0) p.delay.send = 0.0f; else if (on (e) == 1 && p.delay.send <= 0.001f) p.delay.send = 0.2f; }
+        { const auto e = fx["stereo"]; num (e, "pan", p.pan, -1.0f, 1.0f); num (e, "width", p.width, 0.0f, 1.0f); }
+    }
+} // namespace
+
+extern "C"
+{
 /** Traite une prise mono par le style : mesure de la prise, réglages du style ajustés à la mesure, chaîne complète.
     Résultat stéréo lisible via sv_out_left / sv_out_right / sv_out_frames. JSON : rapport (réglages, mesures, notes). */
 EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames, double sampleRate, const char* styleId,
-                                                   const char* roleId, int cleaning, int useScale, double startSec)
+                                                   const char* roleId, int cleaning, int useScale, double startSec,
+                                                   const char* fxJson)
 {
     ensureLog();
     if (mono == nullptr || frames <= 0 || sampleRate <= 0.0)
@@ -237,6 +332,21 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     sv::Mono raw (mono, mono + frames);
     const auto problems = sv::dsp::analyzeTrackProblems (raw, sampleRate, context.key, true);
     const auto notes = sv::dsp::fitStyleToMeasurement (params, problems, context.tempo.bpm);
+    // Tableau des effets : le pré-réglage (style + mesure) est rendu tel quel, puis les réglages faits à la main
+    // (fxJson, un objet par effet) s'appliquent par-dessus.
+    const auto preset = fxToVar (params);
+    if (fxJson != nullptr && fxJson[0] != 0)
+    {
+        juce::var fx;
+        const auto parsed = juce::JSON::parse (juce::String (juce::CharPointer_UTF8 (fxJson)), fx);
+        if (parsed.failed() || ! fx.isObject())
+            SV_LOG_WARN (kMod, "Réglages d'effets illisibles, ignorés : "_u8 + parsed.getErrorMessage());
+        else
+        {
+            applyFx (params, fx);
+            SV_LOG_INFO (kMod, "Réglages d'effets faits à la main appliqués : "_u8 + juce::JSON::toString (fx, true));
+        }
+    }
     // Grille rythmique vue depuis le début de la prise (comme le logiciel PC : Renderer, takeCtx) : une prise posée à
     // startSec sur le morceau voit le premier temps fort startSec plus tôt.
     auto takeCtx = context;
@@ -251,6 +361,8 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     o->setProperty ("roleId", sv::style::roleId (role));
     o->setProperty ("frames", lastOut.getNumSamples());
     o->setProperty ("chain", sv::dsp::describeChain (params));
+    o->setProperty ("preset", preset);           // réglages du style ajustés à la prise, avant les réglages à la main
+    o->setProperty ("fx", fxToVar (params));     // réglages réellement appliqués
     o->setProperty ("fitNotes", notes.joinIntoString (" ; "));
     o->setProperty ("found", problems.found.joinIntoString (" ; "));
     o->setProperty ("meanCorrectionCents", result.report.meanCorrectionCents);
@@ -618,10 +730,11 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
     auto bc = runBalance (-99.0f);
 
     // 2) Bus voix : réduction mesurée sur une copie, puis passage réel avec le rattrapage.
-    float busGr = 0.0f, makeup = 0.0f;
+    float busGr = 0.0f, makeup = 0.0f, busGrMax = 0.0f;
     if (! balance.tracks.empty())
     {
-        sv::Stereo probe (bc.all);
+        sv::Stereo probe;
+        probe.makeCopyOf (bc.all);
         sv::dsp::BusGlue g1;
         g1.prepare (sr);
         busGr = g1.process (probe);
@@ -630,6 +743,8 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
         g2.prepare (sr);
         g2.setMakeupDb (makeup);
         g2.process (bc.all);
+        busGrMax = g2.maxReductionDb();
+        SV_LOG_INFO (kMod, "Bus voix : réduction moyenne "_u8 + juce::String (busGr, 1) + " dB, max "_u8 + juce::String (busGrMax, 1) + " dB");
     }
 
     // 3) Voix / instru + creux de l'instru sous la voix.
@@ -679,6 +794,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
     o->setProperty ("tracks", bc.items);
     o->setProperty ("vocalGainDb", vocalGainDb);
     o->setProperty ("busGrDb", busGr);
+    o->setProperty ("busGrMaxDb", busGrMax);
     o->setProperty ("busMakeupDb", makeup);
     o->setProperty ("duckingDb", ms.duckingDb);
     o->setProperty ("instruLufs", bc.instruLufs);

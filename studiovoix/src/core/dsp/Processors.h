@@ -79,6 +79,8 @@ public:
     static CompressorSettings settings();
     void prepare (double sampleRate);
     void setMakeupDb (float db) noexcept { makeup = dbToGain (db); }
+    /** Plus forte réduction appliquée depuis prepare() (dB, positive) : diagnostic du pompage. */
+    float maxReductionDb() const noexcept { return maxGr; }
     /** Compresse en place numChannels canaux liés. Retourne la réduction de gain moyenne du bloc (dB, positive) sur les
         passages actifs (niveau au-dessus de seuil - 20 dB). */
     float process (float* const* channels, int numChannels, int numSamples) noexcept;
@@ -88,6 +90,7 @@ private:
     float att = 0.0f, rel = 0.0f, rmsCoef = 0.0f, makeup = 1.0f;
     float gr = 0.0f;   // réduction lissée (dB)
     float sq = 0.0f;   // puissance RMS lissée (fenêtre ~10 ms)
+    float maxGr = 0.0f;
 };
 
 // ---------------------------------------------------------------------------------------------

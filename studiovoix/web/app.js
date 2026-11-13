@@ -17,6 +17,7 @@ const ui = {
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), rawLevel: $('rawLevel'),
+    fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
@@ -513,7 +514,7 @@ function updateRow(t) {
     const empty = row._lane.querySelector('.empty');
     if (t.take && empty) empty.remove();
     drawLane(row, t);
-    if (t.id === state.selectedId) showReport(t);
+    if (t.id === state.selectedId) { showReport(t); renderFx(); }
     refreshButtons();
 }
 function selectTrack(id) {
@@ -521,6 +522,7 @@ function selectTrack(id) {
     for (const r of ui.tracks.querySelectorAll('.track')) r.classList.toggle('sel', r.dataset.id === String(id));
     const t = findTrack(id);
     if (t) showReport(t);
+    renderFx(true);
 }
 function showReport(t) {
     const rep = t.processed?.report;
@@ -685,17 +687,19 @@ function queueProcess(t) {
     updateRow(t);
     setBusy(1);
     state.jobs = state.jobs.then(() => processTrack(t, token)).catch((err) => log('error', err.message)).finally(() => setBusy(-1));
+    state.jobs.then(() => liveRefresh(t, token));   // lecture « Mix » en cours : le nouveau son remplace l'ancien sans arrêter
     return state.jobs;
 }
 async function processTrack(t, token) {
     if (token !== t.token || !findTrack(t.id) || !t.take) return;   // réglage changé entre-temps : seul le dernier compte
-    const key = `${t.styleId}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}`;
+    const fx = t.fx && Object.keys(t.fx).length ? t.fx : null;   // réglages faits à la main dans le tableau des effets
+    const key = `${t.styleId}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${fx ? JSON.stringify(fx) : ''}`;
     const t0 = performance.now();
     setStatus(`Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`);
     try {
         const r = await call('processVoice', {
             mono: t.take.mono.slice(), sampleRate: t.take.sampleRate, styleId: t.styleId, roleId: t.roleId,
-            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec,
+            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec, fx,
         });
         if (token !== t.token) return;
         t.processed = { left: r.left, right: r.right, report: r.report, key };
@@ -719,6 +723,189 @@ ui.useScale.addEventListener('change', () => {
     }
     reprocessAll();
 });
+
+// ------------------------------------------------------------------ tableau des effets (piste sélectionnée)
+// Le moteur rend, pour chaque piste traitée, le pré-réglage (style + type, ajusté à la mesure de la prise) et les
+// réglages réellement appliqués, un objet par effet. Ce tableau les montre, permet d'éteindre / allumer un effet et
+// d'en changer les valeurs ; les changements (t.fx, gardés avec le projet) sont renvoyés au moteur, qui retraite la
+// piste ; si la lecture « Mix » tourne, le nouveau son remplace l'ancien sans l'arrêter.
+const fPct = (v) => `${Math.round(v * 100)} %`, fDb = (v) => `${v > 0 ? '+' : ''}${(+v).toFixed(1)} dB`, fHz = (v) => `${Math.round(v)} Hz`, fMs = (v) => `${Math.round(v)} ms`;
+const fNote = (v) => ({ 0.25: 'double croche', 0.5: 'croche', 0.75: 'croche pointée', 1: 'noire' }[v] || `${v} temps`);
+const FX_DEFS = [
+    { id: 'clean', icon: '🧹', name: 'Nettoyage', fields: [
+        { k: 'denoiseDb', label: 'Souffle retiré', min: 0, max: 24, step: 1, fmt: fDb },
+        { k: 'gateRangeDb', label: 'Silences baissés', min: 0, max: 24, step: 1, fmt: fDb },
+        { k: 'breathReductionDb', label: 'Respirations baissées', min: 0, max: 18, step: 1, fmt: fDb },
+        { k: 'hpfHz', label: 'Coupe-bas', min: 20, max: 250, step: 5, fmt: fHz }] },
+    { id: 'leveler', icon: '📏', name: 'Niveleur (volume régulier)', fields: [
+        { k: 'maxBoostDb', label: 'Passages faibles remontés jusqu\'à', min: 0, max: 12, step: 0.5, fmt: fDb },
+        { k: 'maxCutDb', label: 'Passages forts baissés jusqu\'à', min: 0, max: 12, step: 0.5, fmt: fDb }] },
+    { id: 'timing', icon: '⏱', name: 'Recalage rythmique', fields: [{ k: 'strength', label: 'Force', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+    { id: 'pitch', icon: '🎯', name: 'Autotune (justesse)', fields: [
+        { k: 'amount', label: 'Quantité', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'retuneMs', label: 'Vitesse (0 = effet robot)', min: 0, max: 400, step: 5, fmt: fMs },
+        { k: 'humanize', label: 'Naturel', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+    { id: 'eq', icon: '🎚', name: 'Égaliseur', fields: [
+        { k: 'lowCutHz', label: 'Coupe-bas', min: 20, max: 300, step: 5, fmt: fHz },
+        { k: 'lowShelfDb', label: 'Graves', min: -12, max: 12, step: 0.5, fmt: fDb },
+        { k: 'mudDb', label: 'Bas-médium (boue)', min: -12, max: 12, step: 0.5, fmt: fDb },
+        { k: 'presenceDb', label: 'Présence', min: -12, max: 12, step: 0.5, fmt: fDb },
+        { k: 'airDb', label: 'Air (aigus)', min: -12, max: 12, step: 0.5, fmt: fDb }] },
+    { id: 'resonance', icon: '〰️', name: 'Résonances (dureté)', fields: [{ k: 'maxReductionDb', label: 'Baisse maximale', min: 0, max: 12, step: 0.5, fmt: fDb }] },
+    { id: 'comp', icon: '🗜️', name: 'Compresseur', fields: [
+        { k: 'thresholdDb', label: 'Seuil', min: -50, max: 0, step: 1, fmt: fDb },
+        { k: 'ratio', label: 'Taux', min: 1, max: 20, step: 0.1, fmt: (v) => `${(+v).toFixed(1)}:1` },
+        { k: 'attackMs', label: 'Attaque', min: 0.1, max: 200, step: 0.5, fmt: (v) => `${(+v).toFixed(1)} ms` },
+        { k: 'releaseMs', label: 'Relâchement', min: 10, max: 1000, step: 10, fmt: fMs },
+        { k: 'mix', label: 'Dosage', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+    { id: 'comp2', icon: '🧈', name: 'Compresseur doux', fields: [
+        { k: 'thresholdDb', label: 'Seuil', min: -50, max: 0, step: 1, fmt: fDb },
+        { k: 'ratio', label: 'Taux', min: 1, max: 10, step: 0.1, fmt: (v) => `${(+v).toFixed(1)}:1` }] },
+    { id: 'deEss', icon: '🐍', name: 'De-esser (sifflantes)', fields: [
+        { k: 'amount', label: 'Quantité', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'freqHz', label: 'Fréquence', min: 3000, max: 12000, step: 100, fmt: fHz }] },
+    { id: 'sat', icon: '🔥', name: 'Saturation (chaleur)', fields: [
+        { k: 'mix', label: 'Dosage', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'driveDb', label: 'Poussée', min: 0, max: 24, step: 0.5, fmt: fDb }] },
+    { id: 'reverb', icon: '🏛️', name: 'Réverb', fields: [
+        { k: 'send', label: 'Quantité', min: 0, max: 1, step: 0.01, fmt: fPct },
+        { k: 'roomSize', label: 'Taille de la pièce', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'damping', label: 'Aigus amortis', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'preDelayMs', label: 'Pré-délai', min: 0, max: 200, step: 1, fmt: fMs }] },
+    { id: 'delay', icon: '🔁', name: 'Écho (délai)', fields: [
+        { k: 'send', label: 'Quantité', min: 0, max: 1, step: 0.01, fmt: fPct },
+        { k: 'feedback', label: 'Répétitions', min: 0, max: 0.9, step: 0.05, fmt: fPct },
+        { k: 'noteBeats', label: 'Durée', min: 0.25, max: 1, step: 0.25, fmt: fNote }] },
+    { id: 'stereo', icon: '↔️', name: 'Placement stéréo', noToggle: true, fields: [
+        { k: 'pan', label: 'Gauche / droite', min: -1, max: 1, step: 0.05, fmt: (v) => Math.abs(v) < 0.025 ? 'centre' : `${Math.round(Math.abs(v) * 100)} % ${v < 0 ? 'gauche' : 'droite'}` },
+        { k: 'width', label: 'Largeur', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+];
+const fxUi = { trackId: 0, open: '', rows: new Map() };
+// Valeurs affichées d'un effet : ce que le moteur a appliqué, recouvert par les réglages à la main pas encore retraités.
+const fxNow = (t, id) => ({ ...(t.processed?.report?.fx?.[id] || {}), ...(t.fx?.[id] || {}) });
+const fxPre = (t, id) => t.processed?.report?.preset?.[id] || {};
+function fxIsModified(t, id) {
+    const o = t.fx?.[id], pre = fxPre(t, id);
+    return !!o && Object.keys(o).some((k) => typeof o[k] === 'boolean' ? o[k] !== !!pre[k] : Math.abs(o[k] - (pre[k] ?? 0)) > 1e-6);
+}
+// Retire de t.fx ce qui est revenu à la valeur du pré-réglage (rien à garder ni à envoyer au moteur).
+function fxPrune(t) {
+    for (const id of Object.keys(t.fx || {})) {
+        const pre = fxPre(t, id);
+        for (const k of Object.keys(t.fx[id])) {
+            const v = t.fx[id][k];
+            if (k in pre && (typeof v === 'boolean' ? v === !!pre[k] : Math.abs(v - pre[k]) <= 1e-6)) delete t.fx[id][k];
+        }
+        if (!Object.keys(t.fx[id]).length) delete t.fx[id];
+    }
+}
+function fxChanged(t, delayMs) {
+    fxPrune(t);
+    markDirty();
+    fxRefresh();
+    clearTimeout(t.fxTimer);
+    t.fxTimer = setTimeout(() => { log('info', `« ${t.name} » : réglages d'effets changés → ${JSON.stringify(t.fx)}`); queueProcess(t); }, delayMs);
+}
+function fxSummary(def, v) {
+    return def.fields.slice(0, 3).filter((f) => v[f.k] != null).map((f) => `${f.label.toLowerCase()} ${f.fmt(v[f.k])}`).join(' · ');
+}
+// Construit le tableau (force : piste ou effet ouvert changé) ; sinon met seulement à jour les valeurs affichées, pour
+// ne pas détruire le curseur que la main est en train de tirer.
+function renderFx(force = false) {
+    const t = findTrack(state.selectedId);
+    ui.fxResetAll.disabled = !(t && t.fx && Object.keys(t.fx).length);
+    if (!t) { ui.fxTitle.textContent = 'Effets de la piste'; ui.fxList.replaceChildren(); fxUi.trackId = 0; return; }
+    ui.fxTitle.textContent = `Effets de « ${t.name} »`;
+    const rep = t.processed?.report;
+    const msg = !t.take ? 'Pas encore de prise sur cette piste : enregistre ou importe une voix, ses effets s\'afficheront ici.'
+        : t.noFx ? 'Piste « sans effet » : elle est jouée telle quelle (seul son volume est réglé). Clique le bouton FX de la piste pour lui appliquer les effets du style, puis règle-les ici.'
+        : !rep?.fx ? 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.'
+        : `Pré-réglage : style ${styleName(t.styleId)}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
+    ui.fxInfo.textContent = msg;
+    if (!t.take || t.noFx || !rep?.fx) { ui.fxList.replaceChildren(); fxUi.trackId = 0; fxUi.rows.clear(); return; }
+    if (!force && fxUi.trackId === t.id && fxUi.rows.size) { fxRefresh(); return; }
+    fxUi.trackId = t.id; fxUi.rows.clear();
+    ui.fxList.replaceChildren(...FX_DEFS.map((def) => {
+        const open = fxUi.open === def.id;
+        const chk = def.noToggle ? null : el('input', { type: 'checkbox', title: 'Effet allumé / éteint',
+            onclick: (e) => e.stopPropagation(),
+            onchange: (e) => { t.fx = t.fx || {}; t.fx[def.id] = { ...(t.fx[def.id] || {}), on: e.target.checked }; fxChanged(t, 50); } });
+        const sum = el('span', { class: 'fxsum' }), mod = el('span', { class: 'fxmod', textContent: 'modifié', hidden: true });
+        const line = el('div', { class: 'fxline', title: 'Ouvrir / fermer les réglages de cet effet',
+            onclick: () => { fxUi.open = open ? '' : def.id; renderFx(true); } },
+            chk, el('span', { class: 'fxicon', textContent: def.icon }), el('span', { class: 'fxname', textContent: def.name }), sum, mod);
+        const inputs = new Map();
+        const body = !open ? null : el('div', { class: 'fxbody' }, ...def.fields.map((f) => {
+            const val = el('b'), pre = el('span', { class: 'pre' });
+            const inp = el('input', { type: 'range', min: f.min, max: f.max, step: f.step,
+                oninput: (e) => { t.fx = t.fx || {}; t.fx[def.id] = { ...(t.fx[def.id] || {}), [f.k]: Number(e.target.value) }; val.textContent = f.fmt(Number(e.target.value)); fxChanged(t, 350); },
+                onchange: () => fxChanged(t, 30) });
+            inputs.set(f.k, { inp, val, pre, f });
+            return el('div', { class: 'fxfield' }, el('label', {}, el('span', { textContent: f.label }), val), inp, pre);
+        }), el('button', { class: 'fxreset', textContent: '↺ Pré-réglage de cet effet', title: 'Efface les réglages faits à la main sur cet effet',
+            onclick: () => { if (t.fx) delete t.fx[def.id]; fxChanged(t, 30); renderFx(true); } }));
+        const row = el('div', { class: 'fxrow' + (open ? ' open' : '') }, line, body);
+        row.dataset.fx = def.id;
+        fxUi.rows.set(def.id, { row, chk, sum, mod, inputs, def });
+        return row;
+    }));
+    fxRefresh();
+}
+function fxRefresh() {
+    const t = findTrack(state.selectedId);
+    if (!t || fxUi.trackId !== t.id) return;
+    ui.fxResetAll.disabled = !(t.fx && Object.keys(t.fx).length);
+    for (const [id, r] of fxUi.rows) {
+        const v = fxNow(t, id), pre = fxPre(t, id), on = r.def.noToggle ? true : !!v.on;
+        if (r.chk && document.activeElement !== r.chk) r.chk.checked = on;
+        r.row.classList.toggle('off', !on);
+        r.sum.textContent = on ? fxSummary(r.def, v) : 'éteint';
+        r.mod.hidden = !fxIsModified(t, id);
+        for (const { inp, val, pre: preEl, f } of r.inputs.values()) {
+            if (document.activeElement !== inp) inp.value = v[f.k] ?? f.min;
+            val.textContent = v[f.k] != null ? f.fmt(v[f.k]) : '—';
+            preEl.textContent = pre[f.k] != null ? `pré-réglage : ${f.fmt(pre[f.k])}` : '';
+        }
+    }
+}
+ui.fxResetAll.addEventListener('click', () => {
+    const t = findTrack(state.selectedId);
+    if (!t) return;
+    t.fx = {};
+    log('info', `« ${t.name} » : tous les effets remis au pré-réglage`);
+    fxChanged(t, 30);
+    renderFx(true);
+});
+// Lecture « Mix » en cours quand une piste vient d'être retraitée : son nouveau son remplace l'ancien à la position
+// courante (volume de la piste ramené à 0 en 30 ms, échange, remonté en 30 ms), sans arrêter la lecture.
+async function liveRefresh(t, token) {
+    const p = state.player;
+    if (!p || p.mode !== 'mix' || token !== t.token || !t.processed || !findTrack(t.id)) return;
+    try {
+        await ensureBalance();
+        if (state.player !== p || token !== t.token) return;
+        liveGains();
+        swapTrackSource(p, t);
+        log('info', `« ${t.name} » : nouveau réglage appliqué pendant la lecture`);
+    } catch (err) { log('error', `« ${t.name} » : échange pendant la lecture impossible : ${err.message}`); }
+}
+function swapTrackSource(p, t) {
+    const ctx = audioContext(), n = p.nodes.find((x) => x.key === t.id), a = trackAudio(t, p.mode);
+    if (!n || !a) return;   // piste absente de cette lecture (finie avant le point de départ) : rien à échanger
+    const now = ctx.currentTime, at = now + 0.03, pos = p.fromSec + (at - p.t0), g = n.gain.gain;
+    const src = ctx.createBufferSource();
+    src.buffer = makeBuffer(a.left, a.right);
+    src.connect(n.gain);
+    g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, at);
+    try { n.src.stop(at); } catch (_) { /* déjà arrêtée */ }
+    const off = pos - t.take.startSec;
+    if (off < 0) src.start(at - off, 0);
+    else if (off < src.buffer.duration) src.start(at, off);
+    g.setValueAtTime(0, at);
+    g.linearRampToValueAtTime(audible(t) ? dbg(trackGainDb(t, p.mode)) : 0, at + 0.03);
+    n.src = src;
+    n.swaps = (n.swaps || 0) + 1;
+}
 
 // Équilibre automatique (moteur) : gain par piste pour « Mix ». Les faders s'ajoutent ensuite (non comptés ici).
 async function ensureBalance() {
@@ -1950,7 +2137,7 @@ async function saveProject() {
         instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
         instruTrack: state.instruTrack,
         tracks: state.tracks.map((t) => ({
-            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, locked: !!t.locked,
+            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, locked: !!t.locked, fx: t.fx || {},
             active: t.takes.indexOf(t.take),
             takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
         })),
@@ -1978,7 +2165,7 @@ async function restoreProject() {
         state.nextTrackId = meta.nextTrackId;
         state.tracks = [];
         for (const m of meta.tracks) {
-            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, fx: m.fx && typeof m.fx === 'object' ? m.fx : {}, locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
                         take: null, takes: [], processed: null, status: 'vide', token: 0 };
             for (const k of m.takes) {
                 const mono = await get(k.audioId);

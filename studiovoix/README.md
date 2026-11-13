@@ -37,6 +37,10 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   chanteurs en même temps ne se séparent pas. « ↺ Rétablir le morceau » remet l'original. Pendant le calcul : étape,
   morceau n/N, temps écoulé / restant, bouton Arrêter ; durée estimée avant de lancer ; écran gardé allumé ; si la page
   se ferme, la relance reprend après la dernière étape finie ; carte graphique qui bloque → processeur automatiquement.
+- **Tableau des effets** (sous les pistes, pour la piste sélectionnée) : chaque effet du pré-réglage avec sa case
+  (nettoyage, autotune, égaliseur, compresseurs, de-esser, saturation, réverb, écho…) ; un clic ouvre ses curseurs ;
+  tout changement est recalculé puis entendu pendant la lecture « ▶ Mix » ; retour au pré-réglage en un clic.
+- **Brut + « Égaliser »** : écoute sans aucun effet, avec seulement les volumes réglés selon le type de chaque piste.
 - **Même niveau pour toutes les voix** : au mixage, chaque piste « voix principale » est ramenée à la même sonie (2 ou
   40 pistes), les backs entre eux aussi, 7 LU sous la voix principale ; le curseur de volume reste un réglage à la main.
 - **Cadenas 🔒 par piste** : une piste verrouillée ne peut plus être déplacée par accident (elle reste calée sur

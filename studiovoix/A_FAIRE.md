@@ -115,6 +115,32 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Tableau des effets par piste : pré-réglage visible, réglable, actif pendant la lecture (demande de Yann)
+
+- Fait — moteur (`api.cpp`) : `sv_process_voice` rend `preset` (réglages du style ajustés à la prise) et `fx` (réglages
+  appliqués), un objet par effet ({ on, valeurs }) ; nouvel argument `fxJson` = réglages faits à la main, appliqués
+  par-dessus (valeurs bornées ; « on » à faux neutralise l'effet, « on » à vrai sur un effet éteint par le style lui
+  donne une valeur de départ). 13 effets : nettoyage, niveleur, recalage rythmique, autotune, égaliseur, résonances,
+  compresseur, compresseur doux, de-esser, saturation, réverb, écho, placement stéréo.
+- Fait — page : carte « Effets de « piste » » sous le tableau des pistes (piste sélectionnée) : une ligne par effet
+  (symbole, nom, case allumé / éteint, résumé, étiquette « modifié ») ; clic sur la ligne = curseurs avec la valeur du
+  pré-réglage rappelée ; « ↺ Pré-réglage de cet effet » et « ↺ Tout remettre au pré-réglage » ; réglages gardés avec
+  le projet (`t.fx`) ; la piste est retraitée 0,35 s après le dernier mouvement et, si « ▶ Mix » joue, son nouveau
+  son remplace l'ancien à la position courante sans arrêter la lecture (`liveRefresh`, fondu de 30 ms).
+- Testé e2e (PC + Pixel 7) pendant la lecture : réverb + écho éteints → traîne de la piste -60,3 → -130,6 dB ; réverb
+  poussée à 60 % → -81,0 dB ; 2 échanges de son sans arrêt ; retour au pré-réglage identique au départ.
+- À savoir : ce n'est pas instantané — la piste est recalculée par le moteur (≈ 3 s pour une prise de 28 s sur PC,
+  plus long sur téléphone ou sur une longue prise), puis le son change. Pas de vocodeur dans le moteur : l'effet le
+  plus proche est l'autotune (vitesse 0 = effet « robot »).
+- Non vérifié : à l'oreille ; pistes « sans effet » (séparées) : il faut d'abord activer FX sur la piste.
+- « Saccades quand la voix monte après mixage » — hypothèse écartée par la mesure : compresseur du bus voix trop
+  sollicité par des voix séparées (niveau du bus mesuré -16,6 dBFS sur « mardy », pas plus fort que la démo ;
+  variation de gain de la chanson mixée contre la somme simple : p95 0,9 dB, max 2,7 dB par trame de 50 ms). Seuil
+  adaptatif essayé (max 1,4 dB) puis retiré : il coupait aussi la « colle » voulue sur les voix enregistrées (3,5 →
+  0,2 dB sur la démo). Gardé : `busGrMaxDb` dans le rapport du mixage (diagnostic). Cause toujours non établie ;
+  pistes restantes : saturation en lecture (corrigée), conversion 48 kHz (corrigée, build 119), morceau d'un même
+  chanteur réparti sur deux pistes de niveaux différents (découpage du build 118, réglé au 119).
+
 ## Lecture brute avec volumes égalisés + saturation en lecture (retours de Yann)
 
 - Fait : case « Égaliser » à côté de « ▶ Brut » (cochée par défaut, choix gardé) : lecture des prises brutes, sans aucun
@@ -128,7 +154,7 @@ comment les automatismes doivent être faits, ordre proposé.
 - « Pas lisse / saccades quand la voix monte, après mixage » — mesuré sur un vrai morceau calme (« fishin », 45 s,
   48 kHz, séparé puis mixé par la page) : chanson mixée / morceau d'origine = gain stable (variation d'une trame de
   50 ms à l'autre : médiane 0,08 dB, max 0,8 dB, aucun saut > 2 dB ; passages forts 3,7 dB, calmes 3,9 dB) → pas de
-  pompage mesuré sur ce morceau. Mesure sur morceaux forts (-9 LUFS) en cours. Cause non établie.
+  pompage mesuré sur ce morceau. Morceaux forts (-9 LUFS) : voir la section du tableau des effets ci-dessus.
 
 ## Une piste par voix quel que soit le nombre + « crépitements dans les aigus » des voix séparées (retours de Yann)
 

@@ -102,6 +102,24 @@
   .sepcard { border-color: #2f5f7a; }
   button.tog.fx.on { background: #2b4f8a; border-color: #3d6cc0; }
   button.tog.lock.on { background: #5a3d1a; border-color: #b8791f; }
+  .fxcard { margin-top: 10px; }
+  .fxhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .fxhead h2 { margin: 0; flex: 1; min-width: 200px; }
+  #fxList { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px 10px; margin-top: 8px; align-items: start; }
+  .fxrow { border: 1px solid var(--line, #2a3142); border-radius: 8px; background: #10141d; }
+  .fxrow.off { opacity: .6; }
+  .fxrow.open { grid-column: 1 / -1; border-color: var(--accent-2, #7c5cff); opacity: 1; }
+  .fxline { display: flex; align-items: center; gap: 8px; padding: 6px 9px; cursor: pointer; }
+  .fxline input[type=checkbox] { width: 17px; height: 17px; flex: none; }
+  .fxicon { width: 22px; text-align: center; flex: none; }
+  .fxname { font-weight: 600; white-space: nowrap; }
+  .fxsum { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .fxmod { font-size: 11px; background: #5a3d1a; border-radius: 5px; padding: 1px 6px; flex: none; }
+  .fxbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 18px; padding: 4px 12px 10px 39px; }
+  .fxfield label { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+  .fxfield input[type=range] { width: 100%; }
+  .fxfield .pre { color: var(--muted); font-size: 11.5px; }
+  .fxbody .fxreset { justify-self: start; align-self: end; }
   .rawlvl { font-size: 12.5px; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
   #finalInfo.stale { color: var(--warn); }
 
@@ -191,6 +209,15 @@
     <label>type <select id="addRole"></select></label>
     <span class="info">Chaque piste : type (principale, back, ambiance…) et style à elle. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
   </div>
+
+  <section id="fxPanel" class="card fxcard">
+    <div class="fxhead">
+      <h2 id="fxTitle">Effets de la piste</h2>
+      <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage du style">↺ Tout remettre au pré-réglage</button>
+    </div>
+    <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
+    <div id="fxList"></div>
+  </section>
 
   <div class="panels">
     <section class="card">
