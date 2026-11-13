@@ -10,6 +10,9 @@ const CACHE_NAME = 'studiovoix-ia-v1';
 const sessions = new Map();   // clé du modèle → { session, backend } ; loading : clé → promesse
 const loading = new Map();
 let gpuChecked = null, configured = false;
+let testGpuHang = false;               // essai e2e : simule une carte graphique bloquée
+let noGpu = false;                     // la page le met à vrai si la carte graphique a déjà échoué sur cet appareil
+const PROBE_TIMEOUT_MS = 20000;        // essai du modèle sur carte graphique : au-delà, elle est jugée inutilisable
 
 const ts = () => new Date().toISOString().slice(11, 23);
 function log(level, msg) {
@@ -120,20 +123,45 @@ async function ensureSession(key) {
         const cfg = cfgOf(key);
         const bytes = await loadModelBytes(key);
         log('info', `démarrage de l'IA ${cfg.label} (${cfg.type !== 'speaker' && await hasWebGpu() ? 'essai carte graphique' : 'processeur'})…`);
-        if (cfg.type !== 'speaker' && await hasWebGpu()) {   // petit modèle d'empreinte de voix : processeur suffit
+        if (noGpu) log('info', 'carte graphique écartée sur cet appareil (échec précédent) : processeur');
+        if (!noGpu && testGpuHang && cfg.type !== 'speaker') {
+            log('warn', 'essai : carte graphique simulée bloquée → relance sur le processeur');
+            postMessage({ type: 'gpu', ok: false, reason: 'timeout' });
+            throw new Error('__gpu_restart__');
+        }
+        if (!noGpu && cfg.type !== 'speaker' && await hasWebGpu()) {   // petit modèle d'empreinte de voix : processeur suffit
             try {
                 const s = await createSession(bytes, 'webgpu');
                 // Essai sur une entrée connue : si la carte graphique rend une sortie aberrante, on passe au processeur.
                 const probe = new Float32Array(4 * cfg.dimF * cfg.dimT);
                 for (let i = 0; i < probe.length; ++i) probe[i] = Math.sin(i * 0.37) * 0.5;
-                if (sane(probe, await runWith(s, cfg)(probe))) {
+                // Sur certains téléphones, le 1er calcul sur carte graphique ne finit jamais (vu : Android, Brave,
+                // > 3 min sans un morceau). On limite l'essai ; s'il dépasse, on abandonne la carte graphique.
+                log('info', `essai du modèle sur la carte graphique (${PROBE_TIMEOUT_MS / 1000} s max)…`);
+                const tp = performance.now();
+                const res = await Promise.race([
+                    runWith(s, cfg)(probe).then((y) => ({ y })),
+                    new Promise((r) => setTimeout(() => r({ timeout: true }), PROBE_TIMEOUT_MS)),
+                ]);
+                if (res.timeout) {
+                    // Le calcul bloqué occupe le moteur ONNX de ce worker : la page en relance un neuf, processeur seul.
+                    log('warn', `carte graphique trop lente (essai > ${PROBE_TIMEOUT_MS / 1000} s) : relance sur le processeur, retenu pour les prochaines fois`);
+                    postMessage({ type: 'gpu', ok: false, reason: 'timeout' });
+                    throw new Error('__gpu_restart__');
+                }
+                log('info', `essai carte graphique : ${((performance.now() - tp) / 1000).toFixed(1)} s`);
+                if (sane(probe, res.y)) {
                     const e = { session: s, backend: 'carte graphique (WebGPU)' };
                     sessions.set(key, e);
                     return e;
                 }
                 log('warn', 'sortie WebGPU aberrante : passage au processeur');
+                postMessage({ type: 'gpu', ok: false, reason: 'aberrant' });
                 await s.release?.();
-            } catch (e) { log('warn', `WebGPU refusé (${e.message}) : passage au processeur`); }
+            } catch (e) {
+                if (e.message === '__gpu_restart__') throw e;
+                log('warn', `WebGPU refusé (${e.message}) : passage au processeur`);
+            }
         }
         const s = await createSession(bytes, 'wasm');
         const e = { session: s, backend: `processeur (WASM, ${ort.env.wasm.numThreads} fil${ort.env.wasm.numThreads > 1 ? 's' : ''})` };
@@ -153,6 +181,8 @@ async function releaseSession(key) {
 
 onmessage = async (e) => {
     const { id, cmd } = e.data;
+    if (e.data.noGpu) noGpu = true;
+    if (e.data.testGpuHang) testGpuHang = true;
     const key = e.data.model || 'voc';
     try {
         if (cmd === 'prepare') {

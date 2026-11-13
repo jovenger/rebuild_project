@@ -90,11 +90,19 @@ function call(cmd, payload, transfer = []) {
 // Retire tout ce qui n'est pas la voix (musique extérieure, restes de l'instru, bruits). Le modèle (67 Mo) n'est
 // téléchargé qu'au premier usage, puis gardé par le navigateur.
 const iso = { worker: null, pending: new Map(), nextId: 1, backend: '', prep: null };
+// Essai e2e seulement (?svTestGpuHang=1) : simule une carte graphique qui bloque au 1er calcul.
+const TEST_GPU_HANG = new URLSearchParams(location.search).has('svTestGpuHang');
+function gpuBanned() { try { return !!localStorage.getItem('sv-no-webgpu'); } catch { return false; } }
 function isoWorker() {
     if (iso.worker) return iso.worker;
     iso.worker = new Worker('./isolate-worker.js', { type: 'module' });
     iso.worker.onmessage = (e) => {
         const m = e.data;
+        if (m.type === 'gpu' && !m.ok) {   // carte graphique inutilisable ici : on s'en souvient (processeur direct la prochaine fois)
+            try { localStorage.setItem('sv-no-webgpu', m.reason || '1'); } catch (err) { log('warn', `préférence processeur non gardée : ${err.message}`); }
+            log('warn', `carte graphique écartée pour l'IA sur cet appareil (${m.reason})`);
+            return;
+        }
         if (m.type === 'log') {
             log(m.level, '[isolation] ' + m.msg);
             if (state.separating) ui.sepSub.textContent = 'IA : ' + m.msg;   // ce que fait l'IA, visible sans ouvrir le journal
@@ -148,7 +156,17 @@ function isoCall(cmd, payload = {}, transfer = []) {
     return new Promise((resolve, reject) => {
         const id = iso.nextId++;
         iso.pending.set(id, { resolve, reject });
-        w.postMessage({ id, cmd, ...payload }, transfer);
+        w.postMessage({ id, cmd, noGpu: gpuBanned(), testGpuHang: TEST_GPU_HANG, ...payload }, transfer);
+    }).catch((err) => {
+        // Carte graphique bloquée à l'essai : worker neuf en processeur seul, même commande (une seule fois).
+        if (err.message !== '__gpu_restart__' || payload.__retried) throw err;
+        log('warn', 'IA relancée sur le processeur (carte graphique bloquée)');
+        if (state.separating) ui.sepSub.textContent = 'IA : carte graphique bloquée → relance sur le processeur…';
+        try { iso.worker?.terminate(); } catch (e2) { log('warn', `arrêt du worker : ${e2.message}`); }
+        for (const p of iso.pending.values()) p.reject(new Error('__gpu_restart__'));   // les autres appels repartent aussi
+        iso.pending.clear();
+        iso.worker = null; iso.prep = null; iso.backend = '';
+        return isoCall(cmd, { ...payload, __retried: true }, []);
     });
 }
 // Prépare le modèle (téléchargement + session) en tâche de fond, par exemple pendant la prise.

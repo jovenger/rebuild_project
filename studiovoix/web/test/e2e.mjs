@@ -239,6 +239,11 @@ try {
         console.log(stamp(), st);
         console.log(stamp(), (await page.textContent('#sepInfo')).replace(/\n/g, ' | '));
         if (!st.startsWith('Chanson séparée')) throw new Error('séparation en échec');
+        if (process.env.EXPECT_GPU_FALLBACK === '1') {
+            const fb = await page.evaluate(() => ({ ban: localStorage.getItem('sv-no-webgpu'), log: document.getElementById('log').textContent }));
+            console.log(stamp(), `repli carte graphique → processeur : mémorisé « ${fb.ban} », journal ${/relancée sur le processeur/.test(fb.log) ? 'OK' : 'ABSENT'}`);
+            if (fb.ban !== 'timeout' || !/relancée sur le processeur/.test(fb.log)) throw new Error('repli carte graphique bloquée → processeur non fait');
+        }
         const tracks = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.noFx ? 'sansFX' : 'FX'}`));
         console.log(stamp(), 'pistes :', tracks.join(' ; '));
         if (!tracks.some((t) => /lead\|sansFX/.test(t))) throw new Error('aucune piste de voix principale créée');
