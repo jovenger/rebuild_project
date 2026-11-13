@@ -108,8 +108,8 @@ function isoWorker() {
             // celui du modèle d'empreinte de voix, restait affiché « 100 % » dans la carte Enregistrement).
             if (state.separating) {
                 const what = SEP_MODELS[m.model] || 'IA';
-                if (m.stage === 'download') sepSet(null, `${what} : téléchargement du modèle (une seule fois) — ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
-                else sepSet(null, null, m.done / Math.max(1, m.total));
+                if (m.stage === 'download') sepSet(null, `${sepRun.stepLabel} — téléchargement du modèle ${what} (une seule fois) : ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
+                else sepSet(null, `${sepRun.stepLabel} — calcul IA`, m.done / Math.max(1, m.total));
                 return;
             }
             const box = ui.isolateInfo;
@@ -1292,6 +1292,7 @@ const sepRun = { t0: 0, steps: 1, step: 1, label: '', frac: 0, last: 0, timer: 0
 function sepSet(step, label, frac) {
     if (step != null) sepRun.step = step;
     if (label != null) sepRun.label = label;
+    if (step != null && label != null) sepRun.stepLabel = label;   // étiquette de l'étape, reprise par les messages du worker
     if (frac != null) sepRun.frac = Math.min(1, Math.max(0, frac));
     sepRun.last = performance.now();
     sepRender();
@@ -1363,7 +1364,7 @@ async function separateSong() {
         }
         // retour à la fréquence du projet
         sepCheck();
-        sepSet(null, 'Assemblage des pistes…', 1);
+        sepSet(null, 'Assemblage des pistes…', 1); sepRun.stepLabel = 'Assemblage des pistes';
         const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
         const I = await back44(IL, IR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
         const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };

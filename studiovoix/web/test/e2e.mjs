@@ -216,6 +216,7 @@ try {
             if (snap.done) break;
             if (Date.now() - tSep > 1200000) throw new Error('séparation trop longue');
             if (!snap.shown || !snap.stop) throw new Error('séparation en cours sans progression visible ou sans bouton Arrêter');
+            if (process.env.SEP_SHOT && !seen.shot && snap.pct >= 40) { seen.shot = true; await page.locator('.sepcard').screenshot({ path: process.env.SEP_SHOT }); }
             if (!seen.length || seen.at(-1).pct !== snap.pct || seen.at(-1).step !== snap.step) {
                 seen.push(snap);
                 console.log(stamp(), `progression : ${snap.pct} % — ${snap.step} — ${snap.time} | onglet « ${snap.title} »`);
