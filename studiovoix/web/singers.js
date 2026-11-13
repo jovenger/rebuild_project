@@ -272,16 +272,77 @@ export async function findSingers(mono, sr, embed, { win = 2, hop = 1, onProgres
              why: `${c.k} voix différentes (ressemblance la plus forte entre deux voix ${maxSim.toFixed(2)} ; parts ${parts} ; hauteurs ${hz})` };
 }
 
-/** Copie d'une voix gardant seulement les phrases d'un chanteur (fondus de 30 ms aux bords). */
-export function keepPhrases(mono, sr, phrases, singer) {
-    const out = new Float32Array(mono.length), fade = Math.round(0.03 * sr);
-    for (const p of phrases) {
-        if (p.singer !== singer) continue;
-        const a = Math.max(0, Math.round(p.start * sr) - fade), b = Math.min(mono.length, Math.round(p.end * sr) + fade);
-        for (let i = a; i < b; ++i) {
-            const g = Math.min(1, (i - a) / fade, (b - 1 - i) / fade);
-            out[i] = mono[i] * Math.max(0, g);
+/**
+ * Répartit une voix sur plusieurs pistes d'après des plages [{ start, end, <clé> }] (clé = numéro de piste, 0..n-1).
+ * Là où deux plages se touchent (changement de chanteur ou de section en plein chant), fondu enchaîné de 20 ms centré
+ * sur la coupe : la somme des pistes redonne exactement la voix d'origine (pas de bosse ni de trou à la coupe).
+ * Aux bords libres (silence autour), fondu de 30 ms vers l'extérieur. Retourne n Float32Array de la longueur de mono.
+ */
+export function splitRanges(mono, sr, ranges, n, key = 'singer') {
+    const out = Array.from({ length: n }, () => new Float32Array(mono.length));
+    const rs = ranges.filter((r) => r.end > r.start && r[key] >= 0 && r[key] < n).slice().sort((a, b) => a.start - b.start);
+    const edge = Math.round(0.03 * sr), xf = Math.round(0.01 * sr);   // xf : demi-largeur du fondu enchaîné
+    rs.forEach((r, i) => {
+        const prev = rs[i - 1], next = rs[i + 1];
+        const a = Math.round(r.start * sr), b = Math.round(r.end * sr);
+        const joinL = !!prev && Math.abs(prev.end - r.start) < 1e-3, joinR = !!next && Math.abs(next.start - r.end) < 1e-3;
+        const sameL = joinL && prev[key] === r[key], sameR = joinR && next[key] === r[key];
+        // début et fin de la zone écrite, avec leurs rampes
+        const a0 = sameL ? a : joinL ? a - xf : a - edge, a1 = sameL ? a : joinL ? a + xf : a;
+        const b0 = sameR ? b : joinR ? b - xf : b, b1 = sameR ? b : joinR ? b + xf : b + edge;
+        const dst = out[r[key]];
+        for (let i2 = Math.max(0, a0); i2 < Math.min(mono.length, b1); ++i2) {
+            let g = 1;
+            if (i2 < a1) g = Math.min(g, (i2 - a0) / Math.max(1, a1 - a0));
+            if (i2 >= b0) g = Math.min(g, (b1 - i2) / Math.max(1, b1 - b0));
+            if (g > 0) dst[i2] += mono[i2] * g;
         }
+    });
+    return out;
+}
+
+/** Copie d'une voix gardant seulement les phrases d'un chanteur (voir splitRanges). */
+export function keepPhrases(mono, sr, phrases, singer) {
+    const n = phrases.reduce((m, p) => Math.max(m, p.singer + 1), singer + 1);
+    return splitRanges(mono, sr, phrases, n)[singer];
+}
+
+/**
+ * Coupes couplets / refrains d'une voix d'après les sections du morceau [{ start, end, kind }] (kind : "refrain",
+ * "couplet", "intro", "pont", "outro"). Chaque frontière entre « refrain » et le reste est déplacée vers le creux de
+ * la voix le plus proche (± snapSec), pour ne pas couper un mot. Retourne les plages [{ start, end, part }]
+ * (part 0 = couplets et le reste, 1 = refrains), ou null s'il n'y a pas les deux.
+ */
+export function sectionRanges(mono, sr, sections, snapSec = 1.5) {
+    const dur = mono.length / sr;
+    const secs = (sections || []).filter((x) => x.end > x.start).slice().sort((a, b) => a.start - b.start);
+    const isRef = (x) => x.kind === 'refrain';
+    if (!secs.some(isRef) || !secs.some((x) => !isRef(x))) return null;
+    // frontières où le genre change
+    const cuts = [];
+    for (let i = 1; i < secs.length; ++i) if (isRef(secs[i]) !== isRef(secs[i - 1])) cuts.push({ t: secs[i].start, ref: isRef(secs[i]) });
+    const hop = Math.round(0.05 * sr), lv = [];
+    for (let s = 0; s + hop <= mono.length; s += hop) { let e = 0; for (let i = s; i < s + hop; ++i) e += mono[i] * mono[i]; lv.push(e / hop); }
+    const snap = (t) => {
+        const f0 = Math.max(0, Math.round((t - snapSec) / 0.05)), f1 = Math.min(lv.length - 2, Math.round((t + snapSec) / 0.05));
+        // Creux de 100 ms : parmi les plus silencieux de la fenêtre (à 6 dB près du plus creux), le plus proche de la frontière.
+        let m = Infinity;
+        for (let f = f0; f <= f1; ++f) m = Math.min(m, lv[f] + lv[f + 1]);
+        let best = -1, bd = Infinity;
+        for (let f = f0; f <= f1; ++f) {
+            if (lv[f] + lv[f + 1] > Math.max(4 * m, 1e-8)) continue;
+            const d = Math.abs((f + 1) * 0.05 - t);
+            if (d < bd) { bd = d; best = f; }
+        }
+        return best < 0 ? t : (best + 1) * 0.05;
+    };
+    const out = [];
+    let start = 0, part = isRef(secs[0]) ? 1 : 0;
+    for (const c of cuts) {
+        const t = Math.min(dur, Math.max(start, snap(c.t)));
+        if (t > start) out.push({ start, end: t, part });
+        start = t; part = c.ref ? 1 : 0;
     }
+    if (dur > start) out.push({ start, end: dur, part });
     return out;
 }

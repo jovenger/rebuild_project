@@ -194,6 +194,36 @@ try {
         return before;
     }
 
+    // « Exporter le brut » : la chanson complète telle que « ▶ Brut » la joue (aucun effet ; volumes égalisés si
+    // « ⚖ Égaliser » est actif). Contrôle : nom du fichier, durée = tout le morceau, contenu = somme attendue.
+    const checkRawExport = async (wantName) => {
+        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#exportRawBtn')]);
+        const wav = readWavStereo(await dl.path());
+        const exp = await page.evaluate(() => {
+            const S = window.__studiovoix, sr = S.instru?.sampleRate || S.tracks.find((t) => t.take).take.sampleRate;
+            const end = Math.max(S.instru ? S.instru.left.length / sr : 0, ...S.tracks.filter((t) => t.take).map((t) => t.take.startSec + t.take.mono.length / sr));
+            const n = Math.ceil(end * sr), L = new Float32Array(n), R = new Float32Array(n);
+            const anySolo = S.instruTrack.solo || S.tracks.some((t) => t.solo), aud = (o) => !o.mute && (!anySolo || o.solo);
+            if (S.instru && aud(S.instruTrack)) { const g = Math.pow(10, S.instruTrack.volumeDb / 20); for (let i = 0; i < Math.min(n, S.instru.left.length); ++i) { L[i] += S.instru.left[i] * g; R[i] += S.instru.right[i] * g; } }
+            for (const t of S.tracks) {
+                if (!t.take || !aud(t)) continue;
+                const g = Math.pow(10, ((S.rawLevelOn ? (S.balanceRaw?.gains.get(t.id) ?? 0) : 0) + t.volumeDb) / 20), o = Math.round(t.take.startSec * sr);
+                for (let i = 0; i < t.take.mono.length && o + i < n; ++i) { L[o + i] += t.take.mono[i] * g; R[o + i] += t.take.mono[i] * g; }
+            }
+            let peak = 0, e = 0;
+            for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
+            const ceil = Math.pow(10, -0.3 / 20), g = peak > ceil ? ceil / peak : 1;
+            for (let i = 0; i < n; ++i) e += (L[i] * g) ** 2;
+            return { n, rmsDb: 10 * Math.log10(e / n + 1e-20), leveled: !!S.rawLevelOn, tracks: S.tracks.filter((t) => t.take).length };
+        });
+        let e = 0; for (let i = 0; i < wav.l.length; ++i) e += wav.l[i] ** 2;
+        const rmsDb = 10 * Math.log10(e / wav.l.length + 1e-20);
+        console.log(stamp(), `export ${dl.suggestedFilename()} : ${wav.l.length} échantillons (chanson entière : ${exp.n}), niveau ${rmsDb.toFixed(2)} dB (attendu ${exp.rmsDb.toFixed(2)} dB), ${exp.tracks} piste(s), ${exp.leveled ? 'égalisé' : 'volumes d\'origine'}`);
+        if (dl.suggestedFilename() !== wantName) throw new Error(`export brut : fichier ${dl.suggestedFilename()} au lieu de ${wantName}`);
+        if (wav.l.length !== exp.n) throw new Error(`export brut : ${wav.l.length} échantillons au lieu de ${exp.n} (chanson incomplète)`);
+        if (Math.abs(rmsDb - exp.rmsDb) > 0.1) throw new Error(`export brut : niveau ${rmsDb.toFixed(2)} dB au lieu de ${exp.rmsDb.toFixed(2)} dB`);
+    };
+
     let expected = 1;
     if (sepSong) {
         await page.setInputFiles('#instruFile', sepSong);
@@ -282,9 +312,12 @@ try {
         if (Math.max(...eqLead) - Math.min(...eqLead) > 0.3) throw new Error('égaliser après séparation : voix principales pas au même niveau');
         if (eqBack.length && Math.abs(eqLead[0] - eqBack[0] - 7) > 1) throw new Error('égaliser après séparation : backs mal placés');
         if (eqz.some((x) => x.fx)) throw new Error('égaliser après séparation : un effet a été appliqué');
+        await checkRawExport('StudioVoix-brut-egalise.wav');   // la chanson complète, dans l'état égalisé, sans effet
         if (process.env.EXPECT_BACKS === '1' && !tracks.some((t) => /manual_back/.test(t))) throw new Error('aucune piste de backs créée');
-        if (process.env.EXPECT_SINGERS && tracks.filter((t) => /^Chanteur/.test(t)).length !== Number(process.env.EXPECT_SINGERS))
-            throw new Error(`nombre de chanteurs ${tracks.filter((t) => /^Chanteur/.test(t)).length} au lieu de ${process.env.EXPECT_SINGERS}`);
+        // Chanteurs distincts (avec « Couplets / refrains », un chanteur peut avoir deux pistes).
+        const nSingers = new Set(tracks.map((t) => t.match(/^Chanteur (\d+)/)?.[1]).filter(Boolean)).size;
+        if (process.env.EXPECT_SINGERS && nSingers !== Number(process.env.EXPECT_SINGERS))
+            throw new Error(`nombre de chanteurs ${nSingers} au lieu de ${process.env.EXPECT_SINGERS}`);
         if (process.env.TRUTH_INSTRU) {
             const truth = readWavStereo(process.env.TRUTH_INSTRU), song = readWavStereo(sepSong);
             const got = await page.evaluate(() => ({ l: Array.from(window.__studiovoix.instru.left), r: Array.from(window.__studiovoix.instru.right) }));
@@ -546,12 +579,14 @@ try {
         const on = await read();
         if (!on.length || on.some((x) => Math.abs(x.gainDb - x.want) > 0.1)) throw new Error('brut égalisé : gain de piste différent de l\'équilibre brut : ' + JSON.stringify(on));
         console.log(stamp(), 'bouton Égaliser → brut égalisé :', on.map((x) => `${x.name} ${x.lufs.toFixed(1)} LUFS → volume ${x.gainDb.toFixed(1)} dB`).join(' ; '));
+        await checkRawExport('StudioVoix-brut-egalise.wav');
         await page.click('#levelBtn');   // second appui : volumes d'origine, pendant la lecture
         await page.waitForFunction(() => !window.__studiovoix.rawLevelOn, null, { timeout: 10000 });
         await page.waitForTimeout(400);
         const off = await read();
         if (off.some((x) => Math.abs(x.gainDb - x.fader) > 0.1)) throw new Error('égalisation retirée : le gain devrait être le seul curseur : ' + JSON.stringify(off));
         await page.click('#stopPlayBtn');
+        await checkRawExport('StudioVoix-brut.wav');
     }
     // Cadenas de piste : verrouillée, glisser la prise ne la déplace pas ; déverrouillée, si.
     {

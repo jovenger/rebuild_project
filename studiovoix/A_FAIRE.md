@@ -115,6 +115,25 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Pistes couplets / refrains à la séparation + export de la chanson brute égalisée (demandes de Yann)
+
+- Fait — couplets / refrains : option « Couplets / refrains » (cochée) dans la carte Séparation. Les sections viennent
+  de l'analyse du morceau (`detectStructure`, déjà faite à l'import) ; chaque voix est répartie sur une piste
+  « Couplets » et une piste « Refrain » (« Chanteur k — couplets / refrain » s'il y a plusieurs chanteurs) ;
+  `sectionRanges` déplace chaque coupe vers le creux de la voix le plus proche (± 1,5 s) pour ne pas couper un mot ;
+  sans refrain repéré, la voix reste sur une piste (dit dans le compte rendu).
+- Fait — défaut corrigé au passage : aux coupes entre deux pistes (chanteurs), les fondus se recouvraient sans se
+  compenser : bosse de +6 dB pendant 30 ms à chaque relais en plein chant. `splitRanges` : fondu enchaîné de 20 ms
+  centré sur la coupe, la somme des pistes redonne exactement la voix d'origine (essai `web/test/split.mjs` : écart
+  3e-8 ; ajouté à la CI).
+- Fait — export : bouton « Exporter le brut » (barre du haut) = la chanson complète telle que « ▶ Brut » la joue,
+  sans effet, volumes égalisés si « ⚖ Égaliser » est actif (`StudioVoix-brut-egalise.wav`), sinon volumes d'origine
+  (`StudioVoix-brut.wav`). Testé e2e : durée = tout le morceau, niveau du fichier = somme attendue à 0,01 dB près
+  (démo, et après une séparation à 48 kHz).
+- Non vérifié : justesse des sections sur de vrais morceaux (repérage approximatif par blocs de 4 mesures ; sur
+  « fishin » : couplet 0–35 s, refrain 35–122 s, outro — non contrôlé à l'oreille) ; essai complet sur un vrai morceau
+  en cours.
+
 ## « Crépitements et saccades seulement quand c'est mixé, à partir d'un certain niveau ; en brut c'est propre » (Yann)
 
 - Essayé / observé (aucune écoute possible ici, mesures seulement) :

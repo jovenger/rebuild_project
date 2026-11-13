@@ -5,7 +5,7 @@
 // du style réglée pour ce type et d'après la mesure de la prise ; le mix équilibre les pistes entre elles selon leur
 // type (back -7 LU sous la principale, ambiance -14 LU…) puis l'ensemble des voix par rapport à l'instru.
 
-import { findSingers, keepPhrases } from './singers.js';
+import { findSingers, splitRanges, sectionRanges } from './singers.js';
 import { resampleSincAsync } from './resample.js';
 
 const $ = (id) => document.getElementById(id);
@@ -18,7 +18,7 @@ const ui = {
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
-    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'),
+    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), exportRawBtn: $('exportRawBtn'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
@@ -1517,13 +1517,18 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
 
 // ------------------------------------------------------------------ export
 // Export : instru + pistes audibles (traitées, équilibrées, faders), limiteur -1 dBTP du moteur, WAV 16 bits.
-ui.exportBtn.addEventListener('click', async () => {
+// Export de la chanson complète telle qu'on l'entend : mode « mix » (comme « ▶ Mix » : effets des pistes qui en ont,
+// volumes équilibrés) ou « raw » (comme « ▶ Brut » : aucun effet ; volumes égalisés si « ⚖ Égaliser » est actif).
+async function exportSong(mode) {
+    const btn = mode === 'mix' ? ui.exportBtn : ui.exportRawBtn;
     try {
-        ui.exportBtn.disabled = true;
-        setStatus('Export : équilibre des pistes, somme, limiteur…');
-        await ensureBalance();
+        btn.disabled = true;
+        const leveled = mode === 'raw' && rawLevelOn();
+        setStatus(mode === 'mix' ? 'Export : équilibre des pistes, somme…' : `Export du brut${leveled ? ' égalisé' : ''} : somme des pistes sans effet…`);
+        if (mode === 'mix') await ensureBalance();
+        else if (leveled) { await ensureRawBalance(); refreshLevelBtn(); }
         const sr = state.instru?.sampleRate || state.tracks.find((t) => t.take)?.take.sampleRate || audioContext().sampleRate;
-        const mix = renderPlayed('mix', 0, sr);
+        const mix = renderPlayed(mode, 0, sr);
         const n = Math.ceil(songSeconds() * sr);
         // Pas de limiteur : l'instru reste telle quelle ; si la somme dépasse -0,3 dBFS, gain pur sur tout le mix.
         const L = mix.left.subarray(0, n), R = mix.right.subarray(0, n);
@@ -1535,15 +1540,18 @@ ui.exportBtn.addEventListener('click', async () => {
         const r = { report: { lufs: NaN, limiterGrDb: 0, gainDb: 20 * Math.log10(g) } };
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
-        a.download = 'StudioVoix-mix.wav';
+        a.download = mode === 'mix' ? 'StudioVoix-mix.wav' : leveled ? 'StudioVoix-brut-egalise.wav' : 'StudioVoix-brut.wav';
         document.body.appendChild(a); a.click(); a.remove();
         const nTracks = state.tracks.filter((t) => t.take && audible(t)).length;
         const gtxt = r.report.gainDb < -0.05 ? `volume général −${(-r.report.gainDb).toFixed(1)} dB pour ne pas saturer` : 'volume d\'origine';
-        log('info', `Export : ${nTracks} piste(s) voix + instru intacte (aucun limiteur), crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
-        setStatus(`WAV exporté (16 bits, ${sr} Hz) : instru intacte + ${nTracks} piste(s) voix, ${gtxt}.`);
+        const what = mode === 'mix' ? 'mix' : leveled ? 'brut, volumes égalisés, aucun effet' : 'brut, volumes d\'origine, aucun effet';
+        log('info', `Export (${what}) : ${nTracks} piste(s) voix + instru intacte (aucun limiteur), ${(n / sr).toFixed(1)} s, crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
+        setStatus(`WAV exporté (${what} ; 16 bits, ${sr} Hz, ${fmt(n / sr)}) : instru intacte + ${nTracks} piste(s) voix, ${gtxt}.`);
     } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
     refreshButtons();
-});
+}
+ui.exportBtn.addEventListener('click', () => exportSong('mix'));
+ui.exportRawBtn.addEventListener('click', () => exportSong('raw'));
 function encodeWav16(left, right, sampleRate) {
     const n = left.length, bytes = 44 + n * 4;
     const buf = new ArrayBuffer(bytes), v = new DataView(buf);
@@ -1618,6 +1626,7 @@ function refreshButtons() {
     ui.levelBtn.disabled = !anyTake || !state.ready;
     refreshLevelBtn();
     ui.exportBtn.disabled = !(anyTake || state.instru);
+    ui.exportRawBtn.disabled = !(anyTake || state.instru);
     ui.stemsBtn.disabled = !(anyTake || state.instru);
     ui.finalMixBtn.disabled = !state.ready || !(anyTake || state.instru) || !!state.rec;
     ui.sepBtn.disabled = !state.ready || !state.instru || !!state.rec || state.isolating;
@@ -1937,7 +1946,27 @@ async function separateSong() {
             singersNote = res.why;
             log('info', `Chanteurs : ${res.why}`);
             // Une piste par voix repérée (2, 3… autant qu'il y en a).
-            if (res.singers >= 2) parts = Array.from({ length: res.singers }, (_, k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono: keepPhrases(leadMono, sr, res.phrases, k) }));
+            // Fondu enchaîné exact aux coupes : la somme des pistes redonne la voix d'origine (pas de bosse à la coupe).
+            if (res.singers >= 2) parts = splitRanges(leadMono, sr, res.phrases, res.singers).map((mono, k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono, who: `Chanteur ${k + 1}` }));
+        }
+        // Couplets / refrains : chaque voix est répartie sur une piste « couplets » et une piste « refrain », d'après les
+        // sections trouvées à l'analyse du morceau (coupes placées dans un creux de la voix).
+        let sectionsNote = '';
+        if (ui.sepSections.checked) {
+            const secs = state.instru.analysis?.sections || [];
+            const ranges = sectionRanges(leadMono, sr, secs);
+            if (!ranges) sectionsNote = secs.length > 1 ? 'pas de refrain repéré dans ce morceau : voix laissée sur une seule piste' : 'morceau trop court pour repérer couplets et refrains';
+            else {
+                const next = [];
+                for (const p of parts) {
+                    const [cpl, ref] = splitRanges(p.mono, sr, ranges, 2, 'part');
+                    next.push({ name: `${p.who ? p.who + ' — c' : 'C'}ouplets (séparé)`, mono: cpl }, { name: `${p.who ? p.who + ' — r' : 'R'}efrain (séparé)`, mono: ref });
+                }
+                parts = next;
+                const cuts = ranges.slice(0, -1).map((r) => fmt(r.end)).join(', ');
+                sectionsNote = `refrains ${ranges.filter((r) => r.part === 1).map((r) => `${fmt(r.start)}–${fmt(r.end)}`).join(', ')} ; coupes à ${cuts}`;
+            }
+            log('info', `Couplets / refrains : ${sectionsNote}`);
         }
         // Pistes : l'instru séparée remplace la chanson (l'original reste gardé pour « Rétablir »).
         const original = state.instru.original || { left: src.left, right: src.right, name: src.name };
@@ -1965,7 +1994,7 @@ async function separateSong() {
         renderTracks();
         const sec = (performance.now() - t0) / 1000;
         ui.sepInfo.textContent = `Séparée en ${fmt(sec)} : instru + ${made.length} piste(s) — ${made.join(', ') || 'aucune voix repérée'}` +
-            (singersNote ? `\nChanteurs : ${singersNote}` : '') + `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`;
+            (singersNote ? `\nChanteurs : ${singersNote}` : '') + (sectionsNote ? `\nCouplets / refrains : ${sectionsNote}` : '') + `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`;
         log('info', `Séparation terminée en ${sec.toFixed(1)} s : ${made.join(', ')}`);
         sepCacheClear();
         setStatus(`Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);

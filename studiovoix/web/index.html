@@ -149,7 +149,8 @@
 
   <div class="topbar">
     <button id="newBtn" title="Effacer le projet actuel et repartir de zéro">Nouveau projet</button>
-    <button id="exportBtn" disabled title="Le mix complet (pistes écoutées), limiteur -1 dBTP">Exporter le mix</button>
+    <button id="exportBtn" disabled title="La chanson telle que « ▶ Mix » la joue : pistes écoutées, effets des pistes qui en ont, volumes équilibrés">Exporter le mix</button>
+    <button id="exportRawBtn" disabled title="La chanson telle que « ▶ Brut » la joue : aucun effet ; volumes égalisés si « ⚖ Égaliser » est actif, sinon volumes d'origine">Exporter le brut</button>
     <button id="stemsBtn" disabled title="Un fichier WAV par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Exporter les pistes</button>
     <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
   </div>
@@ -159,6 +160,7 @@
       <button id="sepBtn" disabled title="La chanson posée sur la piste Instru est séparée par l'IA : l'instrumental reste sur la piste Instru, chaque voix repérée va sur sa propre piste">✂ Séparer la chanson</button>
       <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
       <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" checked> Une piste par chanteur</label>
+      <label title="Les couplets sur une piste, les refrains sur une autre (par chanteur s'il y en a plusieurs). Les sections viennent de l'analyse du morceau ; chaque coupe est placée dans un creux de la voix, pas au milieu d'un mot."><input id="sepSections" type="checkbox" checked> Couplets / refrains</label>
       <label title="Chaque morceau est calculé deux fois pour annuler le bruit propre au modèle (souffle fin dans les aigus, surtout audible quand la voix se tait). Mesuré : 8 à 20 dB de bruit en moins dans les aigus, mais deux fois plus long."><input id="sepDenoise" type="checkbox"> Finition soignée (2× plus long)</label>
       <label title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox"> Ambiance (réverb) — expérimental</label>
     </div>

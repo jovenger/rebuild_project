@@ -432,6 +432,8 @@ jobs:
           # À 48 kHz, comme la plupart des téléphones et des PC (les modèles travaillent à 44,1 kHz : le rééchantillonnage
           # de la page est dans le chemin). Rééchantillonneur propre vérifié à part (sons purs, aller-retour).
           node web/test/resample.mjs
+          # Répartition d'une voix sur plusieurs pistes (chanteurs, couplets / refrains) : somme des pistes = voix d'origine.
+          node web/test/split.mjs
           mkdir -p "$SEP/48"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/song.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/song.wav"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/truth_instru.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/truth_instru.wav"
