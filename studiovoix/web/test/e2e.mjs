@@ -222,6 +222,7 @@ try {
                 step: document.getElementById('sepStep').textContent,
                 time: document.getElementById('sepTime').textContent,
                 title: document.title,
+                keep: !!(window.__svSep?.keep && !window.__svSep.keep.paused),
             }));
             if (snap.done) break;
             if (Date.now() - tSep > 1200000) throw new Error('séparation trop longue');
@@ -238,10 +239,13 @@ try {
         if (new Set(pcts).size < 5) throw new Error(`progression trop pauvre : ${pcts.join(', ')}`);
         for (let i = 1; i < pcts.length; ++i) if (pcts[i] < pcts[i - 1]) throw new Error(`progression qui recule : ${pcts.join(', ')}`);
         if (!seen.some((x) => /En cours depuis/.test(x.time))) throw new Error('temps écoulé jamais affiché');
+        const keepShare = seen.filter((x) => x.keep).length / Math.max(1, seen.length);
+        console.log(stamp(), `son de veille (arrière-plan) actif sur ${(100 * keepShare).toFixed(0)} % des relevés`);
+        if (keepShare < 0.8) throw new Error('son de veille absent pendant la séparation : le téléphone gèlerait la page écran éteint');
         if (!seen.some((x) => /morceau \d+\/\d+/.test(x.step))) throw new Error('compteur de morceaux jamais affiché');
         if (process.env.EXPECT_RESUME === '1') {
             const jl = await page.textContent('#log');
-            if (!/reprise : étape voix \/ instru déjà calculée/.test(jl)) throw new Error('reprise : étape 1 recalculée au lieu d\'être relue');
+            if (!/voix \/ instru : \d+ tranche\(s\), [1-9]\d* reprise/.test(jl)) throw new Error('reprise : étape 1 recalculée au lieu d\'être relue');
             console.log(stamp(), 'reprise après coupure : étape 1 relue sans recalcul');
         }
         // Plus long écart sans changement visible du % pendant le calcul (doit rester court grâce à l'estimation).

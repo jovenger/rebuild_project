@@ -229,14 +229,16 @@ export class MdxStft {
  * Retourne { left, right } (voix seule).
  * opts.overlap : recouvrement des morceaux (défaut cfg.overlap) ; opts.skipBelowDb : un morceau dont le niveau RMS est
  * sous ce seuil (dB par rapport à la crête du signal) n'est pas calculé (sortie nulle) — passages sans voix à l'étape
- * voix principale / backs. onProgress(fait, total, sauté).
+ * voix principale / backs. opts.peak : crête de référence (tranche d'un morceau). onProgress(fait, total, sauté).
  */
 export async function separateVocals(left, right, runModel, onProgress = () => {}, cfg = MDX, opts = {}) {
     const stft = new MdxStft(cfg);
     const n = left.length, trim = cfg.nFft / 2, chunk = stft.chunk, gen = chunk - 2 * trim;
+    // opts.peak : crête du morceau entier quand on traite une tranche (même niveau d'entrée pour toutes les tranches).
     let peak = 0;
     for (let i = 0; i < n; ++i) peak = Math.max(peak, Math.abs(left[i]), Math.abs(right[i]));
     if (peak < 1e-6) return { left: new Float32Array(n), right: new Float32Array(n) };
+    if (Number.isFinite(opts.peak) && opts.peak >= peak) peak = opts.peak;
     const pad = gen + trim - (n % gen);
     const len = trim + n + pad;
     const ml = new Float32Array(len), mr = new Float32Array(len);
