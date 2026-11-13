@@ -498,7 +498,10 @@ function trackInfo(t) {
     const g = state.balance?.gains.get(t.id);
     const parts = [`${roleLabel(t.roleId)} · ${styleName(t.styleId)}`];
     if (t.take) parts.push(`prise ${fmt(t.take.mono.length / t.take.sampleRate)} à ${fmt(t.take.startSec)}`);
-    if (g != null && !state.balanceDirty) parts.push(`mix ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`);
+    const lvl = mixLevelDb(t);
+    // En tête de ligne (l'en-tête de piste est étroit) : le niveau au Mix doit rester lisible.
+    if (lvl != null) parts.unshift(`niveau au mix ${lvl.toFixed(1).replace('.', ',')} LUFS (auto ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB)`);
+    else if (g != null && !state.balanceDirty) parts.push(`mix ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`);
     if (t.take?.note) parts.push(t.take.note);
     return parts.join(' · ');
 }
@@ -742,6 +745,7 @@ async function ensureBalance() {
     state.balanceDirty = false;
     log('info', `Équilibre : voix / instru ${r.report.vocalGainDb.toFixed(1)} dB` + (r.report.report ? ` ; ${r.report.report.replace(/\n/g, ' | ')}` : ''));
     for (const t of state.tracks) updateRow(t);
+    if (!state.player) restMeters();
     return state.balance;
 }
 
@@ -769,6 +773,7 @@ function stopPlayback() {
     state.player = null;
     drawMeter(ui.meterOut, 0, 0);
     for (const r of ui.tracks.querySelectorAll('.track')) if (r._meter && !(state.rec && r.dataset.id === String(state.armedId))) drawMeter(r._meter, 0, 0);
+    restMeters();
 }
 // Lecture en direct : une source par piste (gain + vumètre), puis un limiteur de sécurité commun.
 // exceptId : piste en cours d'enregistrement (pas rejouée). startAt : instant (ctx) du début, par défaut tout de suite.
@@ -794,7 +799,8 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
         src.connect(g); g.connect(master); g.connect(an);
         if (startSec >= fromSec) src.start(t0 + (startSec - fromSec), 0);
         else src.start(t0, fromSec - startSec);
-        nodes.push({ key, src, gain: g, an, meterEl, hold: 0, holdUntil: 0 });
+        const tr = key ? state.tracks.find((x) => x.id === key) : null;
+        nodes.push({ key, src, gain: g, an, meterEl, hold: 0, holdUntil: 0, mark: tr && mode === 'mix' ? mixLevelDb(tr) : null });
     };
     if (state.instru && audible(state.instruTrack))
         addSource(0, state.instru.left, state.instru.right, 0, state.instruTrack.volumeDb, rowOf(0)?._meter);
@@ -817,7 +823,7 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
             if (!n.meterEl) continue;
             const p = peakOf(n.an);
             if (p >= n.hold || now > n.holdUntil) { n.hold = p; n.holdUntil = now + 1500; }
-            drawMeter(n.meterEl, p, n.hold);
+            drawMeter(n.meterEl, p, n.hold, n.mark);
         }
         drawMeter(ui.meterOut, peakOf(outAn), 0);
         if (pos > total + 0.2 && !state.rec) { stopPlayback(); state.playFromSec = 0; setPlayhead(0); return; }
@@ -993,7 +999,16 @@ function makeBuffer(left, right) {
     b.copyToChannel(right || left, 1);
     return b;
 }
-function drawMeter(canvas, peak, hold) {
+// Niveau de la piste au Mix (sonie mesurée là où elle chante + gain d'équilibre + curseur), en LUFS : même valeur pour
+// toutes les pistes d'un même type une fois équilibrées. null tant que l'équilibre n'est pas calculé.
+function mixLevelDb(t) {
+    if (!state.balance || state.balanceDirty) return null;
+    const it = state.balance.items?.get(t.id), g = state.balance.gains.get(t.id);
+    if (!it || g == null || !(it.lufs > -90)) return null;
+    return it.lufs + g + t.volumeDb;
+}
+// mark (dB, facultatif) : repère bleu = niveau de la piste au Mix ; aligné d'une piste à l'autre quand elles sont égales.
+function drawMeter(canvas, peak, hold, mark = null) {
     const g = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
     const x = (db) => Math.max(0, Math.min(w, (db + 48) / 51 * w));
     const db = 20 * Math.log10(Math.max(peak, 1e-6));
@@ -1006,6 +1021,12 @@ function drawMeter(canvas, peak, hold) {
     for (const t of [-24, -12, -6]) g.fillRect(x(t), 2, 1, h - 4);
     g.fillStyle = '#fff'; g.fillRect(x0, 0, 2, h);
     if (hold > 1e-4) { const xh = x(20 * Math.log10(hold)); g.fillStyle = xh > x0 ? '#e5484d' : '#fff'; g.fillRect(xh - 1, 2, 2, h - 4); }
+    if (mark != null && Number.isFinite(mark)) { g.fillStyle = '#4cc9f0'; g.fillRect(x(mark) - 2, 0, 4, h); }
+    canvas._mark = mark;
+}
+// Vumètres au repos : barre vide + repère de niveau au Mix (visible sans lancer la lecture).
+function restMeters() {
+    for (const t of state.tracks) { const m = rowOf(t.id)?._meter; if (m && !(state.rec && t.id === state.armedId)) drawMeter(m, 0, 0, mixLevelDb(t)); }
 }
 // ------------------------------------------------------------------ prise
 // Capture micro : AudioWorklet dans le même graphe que l'instru → place de la prise connue à l'échantillon près.
@@ -1846,6 +1867,7 @@ function markDirty() {
         ui.finalInfo.classList.add('stale');
         ui.finalInfo.textContent = '⚠ Le projet a changé depuis le mixage : clique « Mixer la chanson » pour le refaire. ' + ui.finalInfo.textContent;
     }
+    if (!state.player && !state.restoring) restMeters();   // repères de niveau : effacés si l'équilibre n'est plus à jour
     if (state.restoring) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveProject().catch((err) => {

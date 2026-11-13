@@ -128,7 +128,12 @@ comment les automatismes doivent être faits, ordre proposé.
   PC + Pixel 7, micro + radio, séparation (mix -14,1 LUFS).
 - À savoir : sur une chanson séparée, « Chanteur 1 » et « Chanteur 2 » sortent donc au même niveau, même si l'un était
   plus bas dans le morceau d'origine (curseur de volume pour le rebaisser).
-- Non vérifié : à l'oreille sur de vraies voix (mesures sur signaux de synthèse).
+- Vérifié sur de vraies voix (3 locuteurs LibriSpeech, 4 pistes « voix principale » importées avec 22,7 dB d'écart,
+  traitées par la page) : niveau au Mix -27,9 LUFS sur les 4 ; mesure indépendante (RMS avec porte) : écart 0,8 dB.
+- Fait : repère bleu sur le vumètre de chaque piste = son niveau au Mix (aligné d'une piste à l'autre quand elles sont
+  égales) ; ligne de la piste « niveau au mix -27,9 LUFS (auto -18,7 dB) ». La barre du vumètre reste la crête
+  instantanée : elle bouge avec ce que chaque voix dit, c'est le repère bleu qui montre l'égalité.
+- Non vérifié : à l'oreille (aucune écoute possible ici).
 
 ## Séparer sur téléphone : « je vois pas s'il travaille », « la progression n'avance pas » (retours de Yann, Android / Brave)
 
