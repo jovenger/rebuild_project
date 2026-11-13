@@ -17,6 +17,7 @@ const ui = {
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'),
+    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
@@ -105,7 +106,13 @@ function isoWorker() {
             }
             // Pendant « Séparer », la progression va dans la carte Séparation (sinon le dernier téléchargement,
             // celui du modèle d'empreinte de voix, restait affiché « 100 % » dans la carte Enregistrement).
-            const box = state.separating ? ui.sepInfo : ui.isolateInfo;
+            if (state.separating) {
+                const what = SEP_MODELS[m.model] || 'IA';
+                if (m.stage === 'download') sepSet(null, `${what} : téléchargement du modèle (une seule fois) — ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
+                else sepSet(null, null, m.done / Math.max(1, m.total));
+                return;
+            }
+            const box = ui.isolateInfo;
             box.textContent = m.stage === 'download'
                 ? `Téléchargement du modèle IA (une seule fois) : ${pct} % de ${(m.total / 1e6).toFixed(0)} Mo`
                 : `${state.separating ? 'Séparation' : 'Isolation de la voix'} (IA) : ${pct} %${eta}` + (iso.backend ? ` (${iso.backend})` : '');
@@ -1269,7 +1276,9 @@ async function resampleStereo(L, R, fromSr, toSr) {
 }
 const SEP_MODELS = { voc: 'voix / instru', kara: 'voix principale / backs', reverb: 'ambiance', spk: 'chanteurs' };
 async function runSepModel(key, L, R, step, steps) {
-    setStatus(`Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]}… (« Passer l'IA » pour arrêter)`);
+    sepCheck();
+    sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]}`, 0);
+    log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]}`);
     const r = await isoCall('isolate', { model: key, left: L.slice(), right: R.slice(), release: key !== 'voc' });
     iso.backend = r.backend;
     log('info', `Séparation ${SEP_MODELS[key]} : ${r.seconds.toFixed(1)} s sur ${r.backend}`);
@@ -1277,6 +1286,52 @@ async function runSepModel(key, L, R, step, steps) {
 }
 const rmsDbSt = (L, R) => { let e = 0; for (let i = 0; i < L.length; ++i) e += L[i] * L[i] + R[i] * R[i]; return 10 * Math.log10(e / Math.max(1, 2 * L.length) + 1e-20); };
 const toMonoLR = (L, R) => { const m = new Float32Array(L.length); for (let i = 0; i < m.length; ++i) m[i] = 0.5 * (L[i] + R[i]); return m; };
+// Progression visible de « Séparer » : étape, barre globale, temps écoulé / restant, roue qui tourne tant que le
+// calcul vit, alerte si rien n'avance depuis longtemps. Mise à jour à chaque message du worker + chaque seconde.
+const sepRun = { t0: 0, steps: 1, step: 1, label: '', frac: 0, last: 0, timer: 0 };
+function sepSet(step, label, frac) {
+    if (step != null) sepRun.step = step;
+    if (label != null) sepRun.label = label;
+    if (frac != null) sepRun.frac = Math.min(1, Math.max(0, frac));
+    sepRun.last = performance.now();
+    sepRender();
+}
+function sepRender() {
+    if (!state.separating) return;
+    const overall = Math.min(1, (sepRun.step - 1 + sepRun.frac) / sepRun.steps);
+    const el = (performance.now() - sepRun.t0) / 1000, idle = (performance.now() - sepRun.last) / 1000;
+    const pct = Math.floor(overall * 100);
+    ui.sepStep.textContent = sepRun.label;
+    ui.sepPct.textContent = `${pct} %`;
+    ui.sepBar.value = Math.round(overall * 1000);
+    let t = `En cours depuis ${fmt(el)}`;
+    if (overall > 0.04) t += ` — reste environ ${fmt(Math.max(1, el / overall - el))}`;
+    if (idle > 20) t += ` — étape longue, le calcul continue (dernière avancée il y a ${Math.round(idle)} s)`;
+    ui.sepTime.textContent = t;
+    ui.sepProg.classList.toggle('stalled', idle > 20);
+    document.title = `${pct} % — Séparation — StudioVoix`;
+    setStatus(`Séparation en cours : ${sepRun.label} — ${pct} % (ne ferme pas la page)`);
+}
+function sepBegin(steps) {
+    Object.assign(sepRun, { cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
+    sepRun.title = document.title;
+    ui.sepProg.hidden = false;
+    ui.sepBtn.textContent = '⏳ Séparation en cours…';
+    ui.sepProg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    sepRun.timer = setInterval(sepRender, 1000);
+    window.addEventListener('beforeunload', sepLeaveGuard);
+    sepRender();
+}
+function sepEnd() {
+    clearInterval(sepRun.timer); sepRun.timer = 0;
+    ui.sepProg.hidden = true; ui.sepProg.classList.remove('stalled');
+    ui.sepBtn.textContent = '✂ Séparer la chanson';
+    document.title = sepRun.title || 'StudioVoix Web';
+    window.removeEventListener('beforeunload', sepLeaveGuard);
+}
+// Arrêt demandé entre deux étapes (hors calcul IA, que cancelIsolation coupe directement).
+function sepCheck() { if (sepRun.cancel) { const e = new Error('séparation arrêtée'); e.skipped = true; throw e; } }
+function sepLeaveGuard(e) { e.preventDefault(); e.returnValue = ''; }   // quitter la page = calcul perdu : le navigateur demande
 async function separateSong() {
     if (!state.instru) return;
     const comp = { voc: 1.021, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
@@ -1284,7 +1339,8 @@ async function separateSong() {
     const steps = 1 + (doKara ? 1 : 0) + (doRev ? 1 : 0) + (doSing ? 1 : 0);
     const t0 = performance.now();
     stopPlayback();
-    ui.sepBtn.disabled = true; ui.skipIsoBtn.hidden = false; state.isolating = true; state.separating = true;
+    ui.sepBtn.disabled = true; state.isolating = true; state.separating = true;
+    sepBegin(steps);
     try {
         const src = state.instru, sr = src.sampleRate;
         const song = await resampleStereo(src.left, src.right, sr, 44100);
@@ -1306,6 +1362,8 @@ async function separateSong() {
             leadL = leadL.map((x, i) => x - ambL[i]); leadR = leadR.map((x, i) => x - ambR[i]);
         }
         // retour à la fréquence du projet
+        sepCheck();
+        sepSet(null, 'Assemblage des pistes…', 1);
         const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
         const I = await back44(IL, IR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
         const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };
@@ -1313,9 +1371,11 @@ async function separateSong() {
         const leadMono = fit(toMonoLR(lead.left, lead.right));
         let parts = [{ name: 'Voix principale (séparée)', mono: leadMono }], singersNote = '';
         if (doSing) {
-            setStatus(`Séparation, étape ${steps}/${steps} : repérage des chanteurs (empreinte de voix)…`);
+            sepCheck();
+            sepSet(steps, `Étape ${steps}/${steps} : repérage des chanteurs (empreinte de voix)`, 0);
+            log('info', `Séparation, étape ${steps}/${steps} : chanteurs`);
             const embed = async (feats, frames) => (await isoCall('embed', { model: 'spk', feats, frames }, [feats.buffer])).emb;
-            const res = await findSingers(leadMono, sr, embed);
+            const res = await findSingers(leadMono, sr, embed, { onProgress: (d, t) => sepSet(null, null, d / Math.max(1, t)) });
             await isoCall('release', { model: 'spk' }).catch(() => {});
             singersNote = res.why;
             log('info', `Chanteurs : ${res.why}`);
@@ -1353,11 +1413,20 @@ async function separateSong() {
         if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); ui.sepInfo.textContent = 'Séparation arrêtée : rien n\'a été changé.'; }
         else { setStatus('Séparation impossible : ' + err.message); ui.sepInfo.textContent = 'Séparation impossible : ' + err.message; log('error', 'Séparation : ' + err.message); }
     } finally {
-        state.isolating = false; state.separating = false; ui.skipIsoBtn.hidden = true; iso.t0 = 0;
+        state.isolating = false; state.separating = false; iso.t0 = 0;
+        sepEnd();
         refreshButtons();
     }
 }
 ui.sepBtn.addEventListener('click', separateSong);
+ui.sepStopBtn.addEventListener('click', () => {
+    if (!state.separating) return;
+    if (!confirm('Arrêter la séparation ? Le calcul en cours est perdu, la chanson reste comme avant.')) return;
+    log('warn', 'Séparation arrêtée par l\'utilisateur');
+    sepRun.cancel = true;
+    ui.sepStep.textContent = 'Arrêt en cours…';
+    cancelIsolation();
+});
 function restoreOriginalSong() {
     const o = state.instru?.original;
     if (!o) return;

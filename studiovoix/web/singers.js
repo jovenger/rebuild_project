@@ -134,7 +134,7 @@ const cos = (a, b) => { let s = 0, na = 0, nb = 0; for (let i = 0; i < a.length;
  * ressemblent peu (cosinus entre centres < maxSimilarity) et chacun ≥ 20 % du chant ; sinon une seule voix.
  * Retourne { singers, phrases: [{ start, end, singer }], similarity, why }.
  */
-export async function findSingers(mono, sr, embed, { maxSimilarity = 0.45, win = 3, hop = 1.5 } = {}) {
+export async function findSingers(mono, sr, embed, { maxSimilarity = 0.45, win = 3, hop = 1.5, onProgress = null } = {}) {
     const phrases = findPhrases(mono, sr);
     const x16 = to16k(mono, sr);
     const wins = [];
@@ -149,6 +149,7 @@ export async function findSingers(mono, sr, embed, { maxSimilarity = 0.45, win =
     for (const [a, b] of wins) {
         const { feats, frames } = fbank80(x16.subarray(Math.round(a * 16000), Math.round(b * 16000)));
         embs.push(await embed(feats, frames));
+        onProgress?.(embs.length, wins.length);
     }
     // regroupement hiérarchique, lien moyen, jusqu'à 2 groupes
     let groups = embs.map((_, i) => [i]);

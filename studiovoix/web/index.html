@@ -85,6 +85,14 @@
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
   .card h2 { margin: 0; font-size: 14px; }
   .info { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; }
+  .sepprog { margin: 8px 0 4px; padding: 10px; border: 1px solid var(--accent, #7c5cff); border-radius: 8px; display: grid; gap: 6px; }
+  .sepprog progress { width: 100%; height: 14px; accent-color: var(--accent, #7c5cff); }
+  .sepline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #sepPct { margin-left: auto; font-family: Consolas, "IBM Plex Mono", monospace; }
+  #sepStopBtn { margin-left: auto; }
+  .spin { width: 14px; height: 14px; border: 2px solid var(--muted, #888); border-top-color: var(--accent, #7c5cff); border-radius: 50%; animation: svspin 0.8s linear infinite; flex: none; }
+  .sepprog.stalled .spin { animation-duration: 2.4s; }
+  @keyframes svspin { to { transform: rotate(360deg); } }
   #report { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 12px; white-space: pre-wrap; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; min-height: 60px; color: var(--muted); max-height: 320px; overflow: auto; }
   #log { font-family: Consolas, monospace; font-size: 11px; max-height: 180px; overflow: auto; background: #0b0d12; border-radius: 8px; padding: 6px 8px; color: var(--muted); }
   #log .l-warn { color: var(--warn); } #log .l-error { color: var(--bad); }
@@ -129,6 +137,11 @@
       <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
       <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" checked> Une piste par chanteur</label>
       <label title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox"> Ambiance (réverb) — expérimental</label>
+    </div>
+    <div id="sepProg" class="sepprog" hidden>
+      <div class="sepline"><span class="spin" aria-hidden="true"></span><b id="sepStep">Préparation…</b><span id="sepPct"></span></div>
+      <progress id="sepBar" max="1000" value="0"></progress>
+      <div class="sepline"><span id="sepTime" class="info"></span><button id="sepStopBtn" title="Arrête le calcul : la chanson reste comme avant, rien n'est changé">■ Arrêter la séparation</button></div>
     </div>
     <div id="sepInfo" class="info">Pose une chanson avec voix sur la piste Instru, puis « Séparer la chanson ». Calcul dans le navigateur : environ 3 à 4 fois la durée de la chanson par étape sans carte graphique ; modèles téléchargés une seule fois (67 + 53 + 27 Mo, + 67 Mo pour l'ambiance). Là où personne ne chante, l'instru reste exactement l'originale.</div>
   </section>

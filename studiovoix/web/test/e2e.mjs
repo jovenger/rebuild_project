@@ -199,7 +199,34 @@ try {
         await page.setInputFiles('#instruFile', sepSong);
         await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
         await page.click('#sepBtn');
-        await page.waitForFunction(() => /Chanson séparée|Séparation impossible|Séparation arrêtée/.test(document.getElementById('status').textContent), null, { timeout: 1200000 });
+        // Progression visible pendant tout le calcul : bloc affiché, roue, % qui monte, temps écoulé, bouton Arrêter.
+        await page.waitForSelector('#sepProg:not([hidden])', { timeout: 5000 });
+        const seen = [];
+        const tSep = Date.now();
+        for (;;) {
+            const snap = await page.evaluate(() => ({
+                done: /Chanson séparée|Séparation impossible|Séparation arrêtée/.test(document.getElementById('status').textContent),
+                shown: !document.getElementById('sepProg').hidden,
+                stop: !!document.getElementById('sepStopBtn').offsetParent,
+                pct: parseInt(document.getElementById('sepPct').textContent, 10),
+                step: document.getElementById('sepStep').textContent,
+                time: document.getElementById('sepTime').textContent,
+                title: document.title,
+            }));
+            if (snap.done) break;
+            if (Date.now() - tSep > 1200000) throw new Error('séparation trop longue');
+            if (!snap.shown || !snap.stop) throw new Error('séparation en cours sans progression visible ou sans bouton Arrêter');
+            if (!seen.length || seen.at(-1).pct !== snap.pct || seen.at(-1).step !== snap.step) {
+                seen.push(snap);
+                console.log(stamp(), `progression : ${snap.pct} % — ${snap.step} — ${snap.time} | onglet « ${snap.title} »`);
+            }
+            await page.waitForTimeout(1000);
+        }
+        const pcts = seen.map((x) => x.pct).filter(Number.isFinite);
+        if (new Set(pcts).size < 5) throw new Error(`progression trop pauvre : ${pcts.join(', ')}`);
+        for (let i = 1; i < pcts.length; ++i) if (pcts[i] < pcts[i - 1]) throw new Error(`progression qui recule : ${pcts.join(', ')}`);
+        if (!seen.some((x) => /En cours depuis/.test(x.time))) throw new Error('temps écoulé jamais affiché');
+        if (await page.isVisible('#sepProg')) throw new Error('bloc de progression encore affiché après la séparation');
         const st = await page.textContent('#status');
         console.log(stamp(), st);
         console.log(stamp(), (await page.textContent('#sepInfo')).replace(/\n/g, ' | '));
