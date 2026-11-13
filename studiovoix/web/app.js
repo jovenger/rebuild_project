@@ -16,7 +16,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
@@ -964,6 +964,18 @@ function stopPlayback() {
     for (const r of ui.tracks.querySelectorAll('.track')) if (r._meter && !(state.rec && r.dataset.id === String(state.armedId))) drawMeter(r._meter, 0, 0);
     restMeters();
 }
+// Témoin de saturation de la sortie : si ce qui part vers la carte son dépasse le maximum (1,0), le son est écrêté
+// (craquements). Compté pendant la lecture, affiché en rouge dans la barre de lecture, noté dans le journal.
+const clipWatch = { n: 0, maxDb: -120, mode: '' };
+function clipReset(mode) { clipWatch.n = 0; clipWatch.maxDb = -120; clipWatch.mode = mode; ui.clipInfo.hidden = true; }
+function clipCheck(peak) {
+    if (peak < 1.0) return;
+    const db = 20 * Math.log10(peak);
+    if (clipWatch.n === 0) log('warn', `Sortie saturée pendant la lecture (${clipWatch.mode}) : crête +${db.toFixed(1)} dB au-dessus du maximum`);
+    ++clipWatch.n; clipWatch.maxDb = Math.max(clipWatch.maxDb, db);
+    ui.clipInfo.hidden = false;
+    ui.clipInfo.textContent = `⚠ sortie saturée ×${clipWatch.n} (+${clipWatch.maxDb.toFixed(1)} dB)`;
+}
 // Lecture en direct : une source par piste (gain + vumètre), puis un limiteur de sécurité commun.
 // exceptId : piste en cours d'enregistrement (pas rejouée). startAt : instant (ctx) du début, par défaut tout de suite.
 function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } = {}) {
@@ -999,6 +1011,7 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
         if (a) addSource(t.id, a.left, a.right, t.take.startSec, trackGainDb(t, mode), rowOf(t.id)?._meter);
     }
     const player = { mode, nodes, t0, fromSec, raf: 0, outAn, headDb: head.db, master, exceptId };
+    clipReset(mode === 'mix' ? 'Mix' : 'Brut');
     state.player = player;
     const buf = new Float32Array(1024);
     const peakOf = (an) => { an.getFloatTimeDomainData(buf); let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i])); return p; };
@@ -1014,7 +1027,9 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
             if (p >= n.hold || now > n.holdUntil) { n.hold = p; n.holdUntil = now + 1500; }
             drawMeter(n.meterEl, p, n.hold, n.mark);
         }
-        drawMeter(ui.meterOut, peakOf(outAn), 0);
+        const outPeak = peakOf(outAn);
+        clipCheck(outPeak);
+        drawMeter(ui.meterOut, outPeak, 0);
         if (pos > total + 0.2 && !state.rec) { stopPlayback(); state.playFromSec = 0; setPlayhead(0); return; }
         player.raf = requestAnimationFrame(tick);
     };
@@ -2026,7 +2041,7 @@ ui.finalMixBtn.addEventListener('click', async () => {
         ui.finalInfo.textContent =
             `Chanson mixée en ${((performance.now() - t0) / 1000).toFixed(1)} s — style ${rep.style}, ${rep.target} :\n` +
             `• Voix : ${lines.join(' · ') || 'aucune'}\n` +
-            `• Voix soudées ensemble : compression ${rep.busGrDb.toFixed(1)} dB (rattrapage +${rep.busMakeupDb.toFixed(1)} dB)\n` +
+            `• Voix soudées ensemble : compression ${rep.busGrDb.toFixed(1)} dB en moyenne${rep.busGrMaxDb != null ? `, ${rep.busGrMaxDb.toFixed(1)} dB au plus fort` : ''} (rattrapage +${rep.busMakeupDb.toFixed(1)} dB)\n` +
             `• Instru : ${rep.duckingDb > 0 ? `place faite à la voix (creux jusqu'à ${rep.duckingDb.toFixed(1)} dB vers 2,5 kHz quand la voix chante)` : 'telle quelle'}\n` +
             `• Mastering : couleur du style (graves ${rep.lowShelfDb >= 0 ? '+' : ''}${rep.lowShelfDb} dB, aigus ${rep.highShelfDb >= 0 ? '+' : ''}${rep.highShelfDb} dB), ` +
             `${rep.inputLufs.toFixed(1)} → ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP, limiteur ${rep.limiterGrDb.toFixed(1)} dB` +
@@ -2058,9 +2073,11 @@ function playFinal(fromSec = state.playFromSec, quiet = false) {
         setPlayhead(from + ctx.currentTime - t0);
         outAn.getFloatTimeDomainData(buf);
         let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i]));
+        clipCheck(p);
         drawMeter(ui.meterOut, p, 0);
         player.raf = requestAnimationFrame(tick);
     };
+    clipReset('Chanson mixée');
     player.raf = requestAnimationFrame(tick);
     src.onended = () => { if (state.player === player) { stopPlayback(); setStatus('Fin de la chanson mixée.'); } };
     if (!quiet) setStatus('Lecture de la chanson mixée' + (f.stale ? ' (⚠ le projet a changé depuis : re-mixe pour l\'avoir à jour)' : '') + '.');

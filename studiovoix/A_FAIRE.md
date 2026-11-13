@@ -115,6 +115,24 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## « Crépitements et saccades seulement quand c'est mixé, à partir d'un certain niveau ; en brut c'est propre » (Yann)
+
+- Essayé / observé (aucune écoute possible ici, mesures seulement) :
+  - chaîne d'effets sur une vraie voix forte (« mardy », crête -0,1 dBFS) : pointes isolées (dérivée seconde) 14,5 /s
+    en brut, 13,6 /s traité, 11,6 à 15,4 /s avec chaque effet éteint à tour de rôle → la chaîne n'ajoute pas de
+    craquement mesurable sur cet extrait ;
+  - chanson mixée contre somme simple (deux morceaux à -9 LUFS) : variation de gain p95 0,9 dB, max 2,7 dB / 50 ms ;
+  - creux de l'instru sous la voix : enveloppe 10 ms / 250 ms, 2,5 dB : pas de claquement possible ;
+  - lecture : sortie qui saturait quand un solo était retiré en cours de lecture (corrigé au build 120).
+- Hypothèses restantes : écrêtage de la sortie dans un cas non reproduit ; effets du style appliqués à des voix déjà
+  produites (pistes importées ou FX activé sur une piste séparée) ; découpage d'une voix entre deux pistes de niveaux
+  différents.
+- Fait pour trancher : témoin rouge « ⚠ sortie saturée ×N (+x dB) » dans la barre de lecture dès que la sortie dépasse
+  le maximum (lectures Mix, Brut et Chanson mixée), noté dans le journal ; compression du bus voix au plus fort
+  affichée dans le compte rendu du mixage.
+- Attendu de Yann : une capture d'écran prise pendant que ça crépite (pistes, étiquettes « traitée » / « sans effet »,
+  barre d'état, témoin de saturation).
+
 ## Tableau des effets par piste : pré-réglage visible, réglable, actif pendant la lecture (demande de Yann)
 
 - Fait — moteur (`api.cpp`) : `sv_process_voice` rend `preset` (réglages du style ajustés à la prise) et `fx` (réglages

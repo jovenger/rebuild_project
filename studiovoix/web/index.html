@@ -120,6 +120,7 @@
   .fxfield input[type=range] { width: 100%; }
   .fxfield .pre { color: var(--muted); font-size: 11.5px; }
   .fxbody .fxreset { justify-self: start; align-self: end; }
+  #clipInfo { color: #fff; background: #b3261e; border-radius: 6px; padding: 2px 8px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
   #levelBtn.on { background: #1f6f43; border-color: #2a9a5c; }
   #levelBtn.stale { background: #5a3d1a; border-color: #b8791f; }
   #finalInfo.stale { color: var(--warn); }
@@ -199,6 +200,7 @@
     <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
     <span id="time">0:00.0</span>
     <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
+    <span id="clipInfo" hidden title="La sortie a dépassé le maximum pendant cette lecture : le son sature (craquements). Ce témoin reste affiché jusqu'à la lecture suivante."></span>
     <span id="listen">Écoute : tout</span>
     <button id="allBtn" disabled title="Retirer tous les muets et solos">Tout écouter</button>
   </div>
