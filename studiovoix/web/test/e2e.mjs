@@ -230,6 +230,8 @@ try {
         if (!/^\d+:\d\d\.\d$/.test(clock)) throw new Error(`compteur de temps invalide : « ${clock} »`);
         const fin = await page.textContent('#finalInfo');
         if (/sans traitement/.test(fin)) throw new Error('mixage final : pistes séparées « sans effet » signalées comme brutes : ' + fin);
+        const isoTxt = await page.textContent('#isolateInfo');
+        if (/Téléchargement/.test(isoTxt)) throw new Error('carte Enregistrement : progression de la séparation restée affichée : ' + isoTxt);
         if (shot) await page.screenshot({ path: shot, fullPage: true });
         const fatal = errors.filter((e) => !/favicon/i.test(e));
         if (fatal.length) { console.error('erreurs console :', fatal.join('\n')); process.exitCode = 1; } else console.log(stamp(), 'OK');

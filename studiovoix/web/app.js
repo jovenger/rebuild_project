@@ -103,10 +103,13 @@ function isoWorker() {
                 const el = (performance.now() - iso.t0) / 1000;
                 if (m.done > 1) { const left = Math.max(0, el / (m.done - 1) * (m.total - m.done + 1) - el); eta = ` — encore ~${fmt(left + 1)}`; }
             }
-            ui.isolateInfo.textContent = m.stage === 'download'
+            // Pendant « Séparer », la progression va dans la carte Séparation (sinon le dernier téléchargement,
+            // celui du modèle d'empreinte de voix, restait affiché « 100 % » dans la carte Enregistrement).
+            const box = state.separating ? ui.sepInfo : ui.isolateInfo;
+            box.textContent = m.stage === 'download'
                 ? `Téléchargement du modèle IA (une seule fois) : ${pct} % de ${(m.total / 1e6).toFixed(0)} Mo`
-                : `Isolation de la voix (IA) : ${pct} %${eta}` + (iso.backend ? ` (${iso.backend})` : '');
-            if (state.isolating) setStatus(ui.isolateInfo.textContent);
+                : `${state.separating ? 'Séparation' : 'Isolation de la voix'} (IA) : ${pct} %${eta}` + (iso.backend ? ` (${iso.backend})` : '');
+            if (state.isolating) setStatus(box.textContent);
             return;
         }
         const p = iso.pending.get(m.id);
@@ -1281,7 +1284,7 @@ async function separateSong() {
     const steps = 1 + (doKara ? 1 : 0) + (doRev ? 1 : 0) + (doSing ? 1 : 0);
     const t0 = performance.now();
     stopPlayback();
-    ui.sepBtn.disabled = true; ui.skipIsoBtn.hidden = false; state.isolating = true;
+    ui.sepBtn.disabled = true; ui.skipIsoBtn.hidden = false; state.isolating = true; state.separating = true;
     try {
         const src = state.instru, sr = src.sampleRate;
         const song = await resampleStereo(src.left, src.right, sr, 44100);
@@ -1347,10 +1350,10 @@ async function separateSong() {
         log('info', `Séparation terminée en ${sec.toFixed(1)} s : ${made.join(', ')}`);
         setStatus(`Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);
     } catch (err) {
-        if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); }
-        else { setStatus('Séparation impossible : ' + err.message); log('error', 'Séparation : ' + err.message); }
+        if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); ui.sepInfo.textContent = 'Séparation arrêtée : rien n\'a été changé.'; }
+        else { setStatus('Séparation impossible : ' + err.message); ui.sepInfo.textContent = 'Séparation impossible : ' + err.message; log('error', 'Séparation : ' + err.message); }
     } finally {
-        state.isolating = false; ui.skipIsoBtn.hidden = true; iso.t0 = 0;
+        state.isolating = false; state.separating = false; ui.skipIsoBtn.hidden = true; iso.t0 = 0;
         refreshButtons();
     }
 }
