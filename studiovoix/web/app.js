@@ -120,8 +120,9 @@ function isoWorker() {
             // celui du modèle d'empreinte de voix, restait affiché « 100 % » dans la carte Enregistrement).
             if (state.separating) {
                 const what = SEP_MODELS[m.model] || 'IA';
-                if (m.stage === 'download') sepSet(null, `${sepRun.stepLabel} — téléchargement du modèle ${what} (une seule fois) : ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
-                else sepChunk(m.done, m.total);
+                if (m.stage === 'download' && m.done >= m.total) sepSet(null, `${sepRun.stepLabel} — modèle ${what} téléchargé, démarrage de l'IA…`, 0);
+                else if (m.stage === 'download') sepSet(null, `${sepRun.stepLabel} — téléchargement du modèle ${what} (une seule fois) : ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
+                else sepChunk(m.done, m.total, m.skipped);
                 return;
             }
             const box = ui.isolateInfo;
@@ -1296,13 +1297,17 @@ async function resampleStereo(L, R, fromSr, toSr) {
     const out = await off.startRendering();
     return { left: out.getChannelData(0).slice(), right: out.getChannelData(1).slice() };
 }
+// Réglages de calcul de « Séparer » : recouvrement des morceaux et saut des morceaux sans signal (les passages sans
+// voix à l'étape backs ne passent pas dans l'IA). ?svSepOverlap=… pour les mesures A/B.
+const SEP_OVERLAP = (() => { const v = parseFloat(new URLSearchParams(location.search).get('svSepOverlap')); return Number.isFinite(v) ? v : 0.25; })();
+const SEP_OPTS = { voc: { overlap: SEP_OVERLAP, skipBelowDb: -60 }, kara: { overlap: SEP_OVERLAP, skipBelowDb: -45 }, reverb: { overlap: SEP_OVERLAP, skipBelowDb: -50 } };
 const SEP_MODELS = { voc: 'voix / instru', kara: 'voix principale / backs', reverb: 'ambiance', spk: 'chanteurs' };
 async function runSepModel(key, L, R, step, steps) {
     sepCheck();
     sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]}`, 0);
     sepRun.isModel = true;
     log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]}`);
-    const r = await isoCall('isolate', { model: key, left: L.slice(), right: R.slice(), release: key !== 'voc' });
+    const r = await isoCall('isolate', { model: key, left: L.slice(), right: R.slice(), release: key !== 'voc', opts: SEP_OPTS[key] || {} });
     iso.backend = r.backend;
     log('info', `Séparation ${SEP_MODELS[key]} : ${r.seconds.toFixed(1)} s sur ${r.backend}`);
     return r;
@@ -1323,10 +1328,11 @@ function sepSet(step, label, frac) {
 // L'IA traite la chanson par morceaux d'environ 6 s ; un morceau = un seul calcul du modèle (15 s sur PC, bien plus
 // sur téléphone), sans avancée intermédiaire possible. On affiche donc le compteur de morceaux, la durée mesurée par
 // morceau, et entre deux morceaux une avancée estimée d'après cette durée (plafonnée à 90 % du morceau).
-function sepChunk(done, total) {
+function sepChunk(done, total, skipped = false) {
     const now = performance.now();
     const dt = now - (sepRun.cLast || now);
-    sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
+    if (skipped) sepRun.cSkipped = (sepRun.cSkipped || 0) + 1;   // morceau sans signal : instantané, ne fausse pas la durée mesurée
+    else sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
     Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
     if (/1er morceau en cours/.test(ui.sepSub.textContent)) ui.sepSub.textContent = ui.sepSub.textContent.replace(/, 1er morceau en cours…/, '');   // ne pas laisser croire qu'on est toujours au 1er
     if (done === total) sepRun.label = `${sepRun.stepLabel} — finition de l'étape…`;
@@ -1341,8 +1347,11 @@ function sepRender() {
         const part = sepRun.cDur ? 0.95 * (1 - Math.exp(-(now - sepRun.cLast) / sepRun.cDur)) : 0;
         sepRun.frac = (sepRun.cDone + part) / sepRun.cTotal;
         sepRun.label = `${sepRun.stepLabel} — morceau ${sepRun.cDone + 1}/${sepRun.cTotal} de la chanson (~${Math.max(1, Math.round(sepRun.cDur / 1000))} s par morceau${iso.backend ? ', ' + iso.backend : ''})`;
-    } else if (sepRun.isModel && sepRun.cTotal === 0 && now - sepRun.last > 3000 && !/téléchargement/.test(sepRun.label)) {
-        sepRun.label = `${sepRun.stepLabel} — 1er morceau en cours (démarrage de l'IA, le plus long)`;
+    } else if (sepRun.isModel && sepRun.cTotal === 0 && !/téléchargement du/.test(sepRun.label)) {
+        // 1er morceau (durée encore inconnue) : avancée lente estimée (au plus la moitié d'un morceau sur ~1 min),
+        // pour montrer que le calcul vit ; la vraie mesure arrive avec le 1er morceau fini.
+        if (now - sepRun.last > 3000) sepRun.label = `${sepRun.stepLabel} — 1er morceau en cours (démarrage de l'IA, le plus long)`;
+        sepRun.frac = 0.02 * (1 - Math.exp(-(now - sepRun.last) / 30000));
     }
     const overall = Math.min(1, (sepRun.step - 1 + sepRun.frac) / sepRun.steps);
     const el = (now - sepRun.t0) / 1000, idle = (now - sepRun.last) / 1000;
@@ -1361,13 +1370,15 @@ function sepRender() {
     setStatus(`Séparation en cours : ${sepRun.label} — ${pct} % (ne ferme pas la page)`);
 }
 function sepBegin(steps) {
-    Object.assign(sepRun, { cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
+    Object.assign(sepRun, { cSkipped: 0, cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
     sepRun.title = document.title;
     ui.sepProg.hidden = false; ui.sepSub.textContent = '';
     ui.sepBtn.textContent = '⏳ Séparation en cours…';
     ui.sepProg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     sepRun.timer = setInterval(sepRender, 500);
     window.addEventListener('beforeunload', sepLeaveGuard);
+    document.addEventListener('visibilitychange', sepVisibility);
+    sepWakeLock();
     sepRender();
 }
 function sepEnd() {
@@ -1376,10 +1387,63 @@ function sepEnd() {
     ui.sepBtn.textContent = '✂ Séparer la chanson';
     document.title = sepRun.title || 'StudioVoix Web';
     window.removeEventListener('beforeunload', sepLeaveGuard);
+    document.removeEventListener('visibilitychange', sepVisibility);
+    if (sepRun.wake && !sepRun.wake.released) sepRun.wake.release().catch((e) => log('warn', `écran : ${e.message}`));
+    sepRun.wake = null;
 }
 // Arrêt demandé entre deux étapes (hors calcul IA, que cancelIsolation coupe directement).
 function sepCheck() { if (sepRun.cancel) { const e = new Error('séparation arrêtée'); e.skipped = true; throw e; } }
+// Écran gardé allumé pendant « Séparer » : sur téléphone, l'écran qui s'éteint met la page en veille et le calcul
+// s'arrête (ou la page est fermée par le système). Repris au retour sur la page (le navigateur le relâche en arrière-plan).
+async function sepWakeLock() {
+    if (!state.separating || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try {
+        sepRun.wake = await navigator.wakeLock.request('screen');
+        log('info', 'écran gardé allumé pendant la séparation');
+        sepRun.wake.addEventListener?.('release', () => log('info', 'écran : maintien allumé relâché'));
+    } catch (e) { log('warn', `écran non gardé allumé (${e.message}) : garde la page ouverte au premier plan`); }
+}
+function sepVisibility() {
+    if (!state.separating) return;
+    if (document.visibilityState === 'visible') { if (!sepRun.wake || sepRun.wake.released) sepWakeLock(); }
+    else log('warn', 'page passée en arrière-plan pendant la séparation : le calcul peut ralentir ou s\'arrêter');
+}
 function sepLeaveGuard(e) { e.preventDefault(); e.returnValue = ''; }   // quitter la page = calcul perdu : le navigateur demande
+// Reprise : chaque étape IA finie est gardée (IndexedDB, magasin « meta », une seule chanson à la fois). Si la page est
+// fermée ou rechargée pendant « Séparer », la relance reprend après la dernière étape finie. Effacé après réussite.
+const SEP_CACHE_KEY = 'sepcache';
+async function sepCacheGet(id, step) {
+    try {
+        const db = await openDb();
+        const c = await idb(db, 'meta', 'readonly', (st) => st.get(SEP_CACHE_KEY));
+        db.close();
+        if (c && c.id === id && c[step] && c[step].left?.length) { log('info', `reprise : étape ${SEP_MODELS[step]} déjà calculée, relue`); return c[step]; }
+    } catch (e) { log('warn', `reprise de la séparation indisponible : ${e.message}`); }
+    return null;
+}
+async function sepCachePut(id, step, left, right) {
+    try {
+        const db = await openDb();
+        const old = await idb(db, 'meta', 'readonly', (st) => st.get(SEP_CACHE_KEY));
+        const c = old && old.id === id ? old : { id };
+        c[step] = { left, right };
+        await idb(db, 'meta', 'readwrite', (st) => st.put(c, SEP_CACHE_KEY));
+        db.close();
+        log('info', `étape ${SEP_MODELS[step]} gardée pour une reprise éventuelle`);
+    } catch (e) { log('warn', `étape non gardée pour la reprise (${e.message}) : une coupure obligerait à la refaire`); }
+}
+async function sepCacheClear() {
+    try { const db = await openDb(); await idb(db, 'meta', 'readwrite', (st) => st.delete(SEP_CACHE_KEY)); db.close(); }
+    catch (e) { log('warn', `nettoyage de la reprise : ${e.message}`); }
+}
+// Étape IA avec reprise : relue si déjà calculée pour cette chanson, sinon calculée puis gardée.
+async function sepStep(cacheId, key, L, R, step, steps) {
+    const hit = await sepCacheGet(cacheId, key);
+    if (hit) { sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]} — reprise (déjà calculée)`, 1); return hit; }
+    const r = await runSepModel(key, L, R, step, steps);
+    await sepCachePut(cacheId, key, r.left, r.right);
+    return r;
+}
 async function separateSong() {
     if (!state.instru) return;
     const comp = { voc: 1.021, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
@@ -1393,19 +1457,20 @@ async function separateSong() {
         const src = state.instru, sr = src.sampleRate;
         const song = await resampleStereo(src.left, src.right, sr, 44100);
         // 1) voix / instru
-        const v = await runSepModel('voc', song.left, song.right, 1, steps);
+        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}`;
+        const v = await sepStep(cacheId, 'voc', song.left, song.right, 1, steps);
         const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);
         const IL = song.left.map((x, i) => x - VL[i]), IR = song.right.map((x, i) => x - VR[i]);
         let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
         // 2) voix principale / backs
         if (doKara) {
-            const k = await runSepModel('kara', VL, VR, ++step, steps);
+            const k = await sepStep(cacheId, 'kara', VL, VR, ++step, steps);
             backL = k.left.map((x) => x * comp.kara); backR = k.right.map((x) => x * comp.kara);
             leadL = VL.map((x, i) => x - backL[i]); leadR = VR.map((x, i) => x - backR[i]);
         }
         // 3) ambiance (expérimental)
         if (doRev) {
-            const rv = await runSepModel('reverb', leadL, leadR, ++step, steps);
+            const rv = await sepStep(cacheId, 'reverb', leadL, leadR, ++step, steps);
             ambL = rv.left.map((x) => x * comp.reverb); ambR = rv.right.map((x) => x * comp.reverb);
             leadL = leadL.map((x, i) => x - ambL[i]); leadR = leadR.map((x, i) => x - ambR[i]);
         }
@@ -1457,6 +1522,7 @@ async function separateSong() {
         ui.sepInfo.textContent = `Séparée en ${fmt(sec)} : instru + ${made.length} piste(s) — ${made.join(', ') || 'aucune voix repérée'}` +
             (singersNote ? `\nChanteurs : ${singersNote}` : '') + `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`;
         log('info', `Séparation terminée en ${sec.toFixed(1)} s : ${made.join(', ')}`);
+        sepCacheClear();
         setStatus(`Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);
     } catch (err) {
         if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); ui.sepInfo.textContent = 'Séparation arrêtée : rien n\'a été changé.'; }

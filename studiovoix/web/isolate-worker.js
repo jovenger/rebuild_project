@@ -20,7 +20,7 @@ function log(level, msg) {
     if (level === 'error') console.error(line); else console.log(line);
     postMessage({ type: 'log', level, msg });
 }
-const progress = (stage, done, total, model) => postMessage({ type: 'progress', stage, done, total, model });
+const progress = (stage, done, total, model, skipped = false) => postMessage({ type: 'progress', stage, done, total, model, skipped });
 
 async function sha256Hex(buf) {
     const h = new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
@@ -67,6 +67,7 @@ async function loadModelBytes(key) {
         got += value.length;
         if (got - last > 1e6) { last = got; progress('download', got, total, key); }
     }
+    progress('download', got, total, key);   // 100 % : la page passe à « démarrage de l'IA »
     if (got !== cfg.modelBytes) throw new Error(`modèle incomplet (${got} octets sur ${cfg.modelBytes})`);
     const sum = await sha256Hex(out.buffer);
     if (sum !== cfg.modelSha256) throw new Error(`modèle refusé : SHA-256 ${sum} au lieu de ${cfg.modelSha256}`);
@@ -189,14 +190,16 @@ onmessage = async (e) => {
             const s = await ensureSession(key);
             postMessage({ id, ok: true, backend: s.backend });
         } else if (cmd === 'isolate') {
-            const { left, right, release } = e.data;
+            const { left, right, release, opts = {} } = e.data;
             const cfg = cfgOf(key);
             if (!(left instanceof Float32Array) || !(right instanceof Float32Array) || left.length !== right.length)
                 throw new Error('entrée invalide (deux Float32Array de même longueur attendus, 44,1 kHz)');
             const s = await ensureSession(key);
             const t0 = performance.now();
             log('info', `${cfg.label} : calcul sur ${(left.length / cfg.sampleRate).toFixed(0)} s de musique (${s.backend}), 1er morceau en cours…`);
-            const out = await separateVocals(left, right, runWith(s.session, cfg), (d, t) => progress('isolate', d, t, key), cfg);
+            let skippedN = 0;
+            const out = await separateVocals(left, right, runWith(s.session, cfg), (d, t, sk) => { if (sk) ++skippedN; progress('isolate', d, t, key, sk); }, cfg, opts);
+            if (skippedN) log('info', `${cfg.label} : ${skippedN} morceau(x) sans signal sautés (calcul évité)`);
             const sec = (performance.now() - t0) / 1000;
             log('info', `${cfg.label} : ${(left.length / cfg.sampleRate).toFixed(1)} s traitées en ${sec.toFixed(1)} s sur ${s.backend}`);
             if (release) await releaseSession(key);
@@ -214,7 +217,8 @@ onmessage = async (e) => {
             postMessage({ id, ok: true });
         } else throw new Error('commande inconnue : ' + cmd);
     } catch (err) {
-        log('error', err.message || String(err));
+        if (err.message === '__gpu_restart__') log('info', 'relance demandée à la page (processeur seul)');   // pas une erreur : repli prévu
+        else log('error', err.message || String(err));
         postMessage({ id, ok: false, error: err.message || String(err) });
     }
 };

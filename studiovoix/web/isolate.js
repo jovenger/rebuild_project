@@ -227,8 +227,11 @@ export class MdxStft {
  * Isole la voix d'un signal stéréo 44,1 kHz (Float32Array left/right de même longueur).
  * runModel(Float32Array [1,4,dimF,dimT]) → Promise<Float32Array> (spectre de la voix) ; onProgress(fait, total).
  * Retourne { left, right } (voix seule).
+ * opts.overlap : recouvrement des morceaux (défaut cfg.overlap) ; opts.skipBelowDb : un morceau dont le niveau RMS est
+ * sous ce seuil (dB par rapport à la crête du signal) n'est pas calculé (sortie nulle) — passages sans voix à l'étape
+ * voix principale / backs. onProgress(fait, total, sauté).
  */
-export async function separateVocals(left, right, runModel, onProgress = () => {}, cfg = MDX) {
+export async function separateVocals(left, right, runModel, onProgress = () => {}, cfg = MDX, opts = {}) {
     const stft = new MdxStft(cfg);
     const n = left.length, trim = cfg.nFft / 2, chunk = stft.chunk, gen = chunk - 2 * trim;
     let peak = 0;
@@ -238,7 +241,9 @@ export async function separateVocals(left, right, runModel, onProgress = () => {
     const len = trim + n + pad;
     const ml = new Float32Array(len), mr = new Float32Array(len);
     for (let i = 0; i < n; ++i) { ml[trim + i] = left[i] / peak; mr[trim + i] = right[i] / peak; }
-    const step = Math.floor((1 - cfg.overlap) * chunk);
+    const overlap = Number.isFinite(opts.overlap) ? Math.min(0.5, Math.max(0, opts.overlap)) : cfg.overlap;
+    const step = Math.floor((1 - overlap) * chunk);
+    const skipRms = Number.isFinite(opts.skipBelowDb) ? Math.pow(10, opts.skipBelowDb / 20) : -1;   // signal normalisé à crête 1
     const resL = new Float64Array(len), resR = new Float64Array(len), div = new Float64Array(len);
     const spec = new Float32Array(4 * cfg.dimF * cfg.dimT);
     const cl = new Float32Array(chunk), cr = new Float32Array(chunk);
@@ -249,16 +254,22 @@ export async function separateVocals(left, right, runModel, onProgress = () => {
         const end = Math.min(start + chunk, len), actual = end - start;
         cl.fill(0); cr.fill(0);
         cl.set(ml.subarray(start, end)); cr.set(mr.subarray(start, end));
-        stft.forward(cl, cr, spec);
-        const voc = await runModel(spec);
-        stft.inverse(voc, ol, or);
+        let e = 0;
+        if (skipRms > 0) { for (let i = 0; i < actual; ++i) e += cl[i] * cl[i] + cr[i] * cr[i]; e = Math.sqrt(e / Math.max(1, 2 * actual)); }
+        const skipped = skipRms > 0 && e < skipRms;
+        if (skipped) { ol.fill(0); or.fill(0); }
+        else {
+            stft.forward(cl, cr, spec);
+            const voc = await runModel(spec);
+            stft.inverse(voc, ol, or);
+        }
         for (let i = 0; i < actual; ++i) {
             const w = actual > 1 ? 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (actual - 1)) : 1;   // np.hanning (symétrique)
             resL[start + i] += ol[i] * w;
             resR[start + i] += or[i] * w;
             div[start + i] += w;
         }
-        onProgress(++done, total);
+        onProgress(++done, total, skipped);
     }
     const outL = new Float32Array(n), outR = new Float32Array(n);
     for (let i = 0; i < n; ++i) {

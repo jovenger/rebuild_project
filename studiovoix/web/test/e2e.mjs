@@ -198,6 +198,16 @@ try {
     if (sepSong) {
         await page.setInputFiles('#instruFile', sepSong);
         await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
+        if (process.env.EXPECT_RESUME === '1') {
+            // Coupure en pleine séparation (page rechargée à l'étape 2), puis relance : l'étape 1 doit être reprise, pas refaite.
+            page.on('dialog', (d) => d.accept().catch(() => {}));   // « quitter la page ? » pendant le calcul
+            await page.click('#sepBtn');
+            await page.waitForFunction(() => /Étape 2\//.test(document.getElementById('sepStep').textContent), null, { timeout: 900000 });
+            console.log(stamp(), 'coupure simulée : rechargement de la page pendant l\'étape 2');
+            await page.reload({ waitUntil: 'load' });
+            await page.waitForFunction(() => window.__studiovoix?.instru && !document.getElementById('sepBtn').disabled, null, { timeout: 180000 });
+            await page.waitForTimeout(1500);
+        }
         await page.click('#sepBtn');
         // Progression visible pendant tout le calcul : bloc affiché, roue, % qui monte, temps écoulé, bouton Arrêter.
         await page.waitForSelector('#sepProg:not([hidden])', { timeout: 5000 });
@@ -229,6 +239,11 @@ try {
         for (let i = 1; i < pcts.length; ++i) if (pcts[i] < pcts[i - 1]) throw new Error(`progression qui recule : ${pcts.join(', ')}`);
         if (!seen.some((x) => /En cours depuis/.test(x.time))) throw new Error('temps écoulé jamais affiché');
         if (!seen.some((x) => /morceau \d+\/\d+/.test(x.step))) throw new Error('compteur de morceaux jamais affiché');
+        if (process.env.EXPECT_RESUME === '1') {
+            const jl = await page.textContent('#log');
+            if (!/reprise : étape voix \/ instru déjà calculée/.test(jl)) throw new Error('reprise : étape 1 recalculée au lieu d\'être relue');
+            console.log(stamp(), 'reprise après coupure : étape 1 relue sans recalcul');
+        }
         // Plus long écart sans changement visible du % pendant le calcul (doit rester court grâce à l'estimation).
         let gap = 0;
         for (let i = 1; i < seen.length; ++i) gap = Math.max(gap, seen[i].at - seen[i - 1].at);
