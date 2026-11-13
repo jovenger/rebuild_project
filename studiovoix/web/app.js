@@ -1637,7 +1637,8 @@ async function separateSong() {
             await isoCall('release', { model: 'spk' }).catch(() => {});
             singersNote = res.why;
             log('info', `Chanteurs : ${res.why}`);
-            if (res.singers === 2) parts = [0, 1].map((k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono: keepPhrases(leadMono, sr, res.phrases, k) }));
+            // Une piste par voix repérée (2, 3… autant qu'il y en a).
+            if (res.singers >= 2) parts = Array.from({ length: res.singers }, (_, k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono: keepPhrases(leadMono, sr, res.phrases, k) }));
         }
         // Pistes : l'instru séparée remplace la chanson (l'original reste gardé pour « Rétablir »).
         const original = state.instru.original || { left: src.left, right: src.right, name: src.name };

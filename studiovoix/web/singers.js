@@ -1,7 +1,6 @@
 // StudioVoix Web : repérage des chanteurs qui alternent dans une voix séparée (« Séparer » → « par chanteur »).
-// Phrases repérées par l'énergie, empreinte de voix (modèle WeSpeaker ResNet34, licence Apache-2.0) par fenêtre de 3 s,
-// deux groupes par ressemblance, puis décision prudente : on ne coupe que si les deux voix sont nettement différentes ;
-// sinon une seule voix. (Essai écarté : timbre MFCC par phrase, dominé par les mots prononcés plutôt que par la
+// Phrases repérées par l'énergie, empreinte de voix (modèle WeSpeaker ResNet34, licence Apache-2.0) par fenêtre de 2 s
+// + hauteur médiane, regroupement en autant de voix qu'il y en a (clusterVoices). (Essai écarté : timbre MFCC par phrase, dominé par les mots prononcés plutôt que par la
 // personne : même voix coupée en deux, deux voix différentes non séparées.) Deux chanteurs qui chantent EN
 // MÊME TEMPS ne sont pas séparés (aucune méthode fiable aujourd'hui).
 // Module ES pur : utilisé par la page et par les essais Node.
@@ -127,52 +126,127 @@ export function fbank80(x16) {
 
 const cos = (a, b) => { let s = 0, na = 0, nb = 0; for (let i = 0; i < a.length; ++i) { s += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return s / Math.sqrt(na * nb + 1e-20); };
 
+/** Hauteur médiane (demi-tons MIDI) d'un extrait 16 kHz, par autocorrélation normalisée (70–600 Hz) sur des trames
+ *  de 40 ms ; NaN si l'extrait n'est pas assez voisé. Sert d'indice en plus de l'empreinte (homme / femme). */
+export function medianPitch(x16) {
+    const sr = 16000, N = 640, hop = 320, lo = Math.floor(sr / 600), hi = Math.ceil(sr / 70), vals = [];
+    for (let s = 0; s + N + hi <= x16.length; s += hop) {
+        let e0 = 0;
+        for (let i = 0; i < N; ++i) e0 += x16[s + i] * x16[s + i];
+        if (e0 < 1e-5) continue;
+        let best = 0, bl = 0;
+        for (let l = lo; l <= hi; ++l) {
+            let c = 0, e1 = 0;
+            for (let i = 0; i < N; ++i) { c += x16[s + i] * x16[s + i + l]; e1 += x16[s + i + l] * x16[s + i + l]; }
+            const r = c / Math.sqrt(e0 * e1 + 1e-20);
+            if (r > best + 0.02) { best = r; bl = l; }   // +0,02 : à force égale, la période la plus courte (pas l'octave du dessous)
+        }
+        if (best > 0.6 && bl > 0) vals.push(69 + 12 * Math.log2(sr / bl / 440));
+    }
+    if (vals.length < 5) return NaN;
+    vals.sort((a, b) => a - b);
+    return vals[vals.length >> 1];
+}
+
 /**
- * Repère jusqu'à 2 chanteurs qui alternent, avec l'empreinte de voix : fenêtres de 3 s (pas 1,5 s) dans les phrases,
- * une empreinte par fenêtre (embed(feats, frames) → Float32Array(256), fourni par l'appelant : modèle ONNX), deux
- * groupes par regroupement hiérarchique (lien moyen, cosinus). Deux chanteurs seulement si les deux groupes se
- * ressemblent peu (cosinus entre centres < maxSimilarity) et chacun ≥ 20 % du chant ; sinon une seule voix.
- * Retourne { singers, phrases: [{ start, end, singer }], similarity, why }.
+ * Regroupe des fenêtres de voix par chanteur, sans connaître leur nombre : regroupement hiérarchique (lien moyen sur le
+ * cosinus des empreintes), arrêté quand les deux groupes les plus proches ne se ressemblent plus assez.
+ *   - ressemblance ≥ simSame : même voix, fusion ;
+ *   - entre simDiff et simSame : zone douteuse → fusion seulement si les hauteurs médianes sont proches (≤ pitchTol
+ *     demi-tons : une voix d'homme et une voix de femme restent séparées) ;
+ *   - < simDiff : voix différentes.
+ * Les groupes trop courts (< minSec) rejoignent le groupe le plus ressemblant. Retourne { labels, k, sims }.
  */
-export async function findSingers(mono, sr, embed, { maxSimilarity = 0.45, win = 3, hop = 1.5, onProgress = null } = {}) {
+export function clusterVoices(embs, pitches, durs, { simSame = 0.5, simDiff = 0.3, pitchTol = 4, minSec = 4, maxSingers = 12 } = {}) {
+    const n = embs.length;
+    const S = Array.from({ length: n }, () => new Float32Array(n));
+    for (let i = 0; i < n; ++i) for (let j = i; j < n; ++j) { const v = i === j ? 1 : cos(embs[i], embs[j]); S[i][j] = v; S[j][i] = v; }
+    let groups = embs.map((_, i) => [i]);
+    const link = (g, h) => { let a = 0; for (const i of g) for (const j of h) a += S[i][j]; return a / (g.length * h.length); };
+    const pitchOf = (g) => { const v = g.map((i) => pitches[i]).filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[v.length >> 1] : NaN; };
+    const durOf = (g) => g.reduce((a, i) => a + durs[i], 0);
+    const mayMerge = (g, h, v) => {
+        if (v >= simSame) return true;
+        if (v < simDiff) return false;
+        const pg = pitchOf(g), ph = pitchOf(h);
+        return !(Number.isFinite(pg) && Number.isFinite(ph)) || Math.abs(pg - ph) <= pitchTol;
+    };
+    for (;;) {
+        let bi = -1, bj = -1, best = -2;
+        for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) {
+            const v = link(groups[i], groups[j]);
+            if (v > best && (groups.length > maxSingers || mayMerge(groups[i], groups[j], v))) { best = v; bi = i; bj = j; }
+        }
+        if (bi < 0) break;
+        groups[bi] = groups[bi].concat(groups[bj]);
+        groups.splice(bj, 1);
+        if (groups.length === 1) break;
+    }
+    // Groupes trop courts : rattachés au groupe le plus ressemblant (une voix d'une ou deux fenêtres n'est pas une piste).
+    for (;;) {
+        if (groups.length <= 1) break;
+        let k = -1, kd = Infinity;
+        groups.forEach((g, i) => { const d = durOf(g); if (d < minSec && d < kd) { kd = d; k = i; } });
+        if (k < 0) break;
+        let to = -1, best = -2;
+        groups.forEach((g, i) => { if (i !== k) { const v = link(groups[k], g); if (v > best) { best = v; to = i; } } });
+        groups[to] = groups[to].concat(groups[k]);
+        groups.splice(k, 1);
+    }
+    groups.sort((a, b) => Math.min(...a) - Math.min(...b));   // chanteur 1 = le premier entendu
+    const labels = new Array(n).fill(0);
+    groups.forEach((g, k) => g.forEach((i) => { labels[i] = k; }));
+    const sims = [];
+    for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) sims.push(link(groups[i], groups[j]));
+    return { labels, k: groups.length, sims, pitch: groups.map(pitchOf), dur: groups.map(durOf) };
+}
+
+/**
+ * Repère les chanteurs qui alternent (autant qu'il y en a), avec l'empreinte de voix : fenêtres de `win` s (pas `hop`)
+ * dans les phrases, une empreinte par fenêtre (embed(feats, frames) → Float32Array(256), fourni par l'appelant :
+ * modèle ONNX) + hauteur médiane, puis clusterVoices. Les fenêtres isolées entre deux fenêtres d'un même chanteur
+ * sont rattachées à celui-ci. Retourne { singers, phrases: [{ start, end, singer }], similarity, why }.
+ */
+export async function findSingers(mono, sr, embed, { win = 2, hop = 1, onProgress = null, ...cl } = {}) {
     const phrases = findPhrases(mono, sr);
     const x16 = to16k(mono, sr);
     const wins = [];
     for (const [a, b] of phrases) {
-        if (b - a < win) { if (b - a >= 1.5) wins.push([a, b]); continue; }
-        for (let t = a; t + win <= b + 1e-6; t += hop) wins.push([t, t + win]);
-        if ((b - a - win) % hop > 0.5) wins.push([b - win, b]);
+        if (b - a < win) { if (b - a >= 1) wins.push([a, b]); continue; }
+        let t = a;
+        for (; t + win <= b + 1e-6; t += hop) wins.push([t, t + win]);
+        if (b - (t - hop + win) > 0.4) wins.push([b - win, b]);
     }
     const one = (why, sim = 1) => ({ singers: 1, phrases: phrases.map(([start, end]) => ({ start, end, singer: 0 })), similarity: sim, why });
     if (wins.length < 3) return one(`${wins.length} passage(s) chanté(s) assez longs seulement : pas assez pour comparer les voix`);
-    const embs = [];
+    const embs = [], pitches = [];
     for (const [a, b] of wins) {
-        const { feats, frames } = fbank80(x16.subarray(Math.round(a * 16000), Math.round(b * 16000)));
+        const seg = x16.subarray(Math.round(a * 16000), Math.round(b * 16000));
+        const { feats, frames } = fbank80(seg);
         embs.push(await embed(feats, frames));
+        pitches.push(medianPitch(seg));
         onProgress?.(embs.length, wins.length);
     }
-    // regroupement hiérarchique, lien moyen, jusqu'à 2 groupes
-    let groups = embs.map((_, i) => [i]);
-    const sim = (g, h) => { let s = 0; for (const i of g) for (const j of h) s += cos(embs[i], embs[j]); return s / (g.length * h.length); };
-    while (groups.length > 2) {
-        let bi = 0, bj = 1, best = -2;
-        for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) { const v = sim(groups[i], groups[j]); if (v > best) { best = v; bi = i; bj = j; } }
-        groups[bi] = groups[bi].concat(groups[bj]);
-        groups.splice(bj, 1);
-    }
-    const between = sim(groups[0], groups[1]);
-    const lab = new Array(wins.length);
-    groups.forEach((g, k) => g.forEach((i) => { lab[i] = k; }));
-    const dur = [0, 0];
-    wins.forEach(([a, b], i) => { dur[lab[i]] += b - a; });
-    const share = Math.min(dur[0], dur[1]) / Math.max(1e-9, dur[0] + dur[1]);
-    if (between >= maxSimilarity) return one(`une seule voix (ressemblance entre les deux groupes ${between.toFixed(2)} ≥ ${maxSimilarity})`, between);
-    if (share < 0.2) return one(`seconde voix trop courte (${Math.round(share * 100)} % du chant) : une seule voix`, between);
-    // chaque phrase est coupée là où le groupe des fenêtres change (milieu de fenêtre = repère)
-    const first = lab[0], out = [];
-    for (const [a, b] of phrases) {
-        const inside = wins.map((w, i) => ({ mid: (w[0] + w[1]) / 2, s: lab[i] === first ? 0 : 1 })).filter((w) => w.mid >= a && w.mid <= b);
-        if (!inside.length) { out.push({ start: a, end: b, singer: 0 }); continue; }
+    const durs = wins.map(([a, b]) => b - a);
+    const c = clusterVoices(embs, pitches, durs, cl);
+    const maxSim = c.sims.length ? Math.max(...c.sims) : 1;
+    if (c.k < 2) return one('une seule voix repérée (toutes les fenêtres se ressemblent)', maxSim);
+    // Lissage : une fenêtre seule entre deux fenêtres d'un même autre chanteur (dans la même phrase) suit ses voisines.
+    const lab = c.labels.slice();
+    const phraseOf = wins.map((w) => phrases.findIndex(([a, b]) => (w[0] + w[1]) / 2 >= a && (w[0] + w[1]) / 2 <= b));
+    for (let i = 1; i + 1 < lab.length; ++i)
+        if (lab[i - 1] === lab[i + 1] && lab[i] !== lab[i - 1] && phraseOf[i - 1] === phraseOf[i] && phraseOf[i + 1] === phraseOf[i]) lab[i] = lab[i - 1];
+    // chaque phrase est coupée là où le chanteur change (milieu entre deux centres de fenêtres)
+    const out = [];
+    phrases.forEach(([a, b], pi) => {
+        const inside = wins.map((w, i) => ({ mid: (w[0] + w[1]) / 2, s: lab[i], p: phraseOf[i] })).filter((w) => w.p === pi);
+        if (!inside.length) {   // phrase trop courte pour une empreinte : chanteur de la fenêtre la plus proche dans le temps
+            const mid = (a + b) / 2;
+            let bi = 0, bd = Infinity;
+            wins.forEach((w, i) => { const d = Math.abs((w[0] + w[1]) / 2 - mid); if (d < bd) { bd = d; bi = i; } });
+            out.push({ start: a, end: b, singer: lab[bi] });
+            return;
+        }
         let cur = inside[0].s, segStart = a;
         for (let k = 1; k < inside.length; ++k) {
             if (inside[k].s !== cur) {
@@ -182,8 +256,12 @@ export async function findSingers(mono, sr, embed, { maxSimilarity = 0.45, win =
             }
         }
         out.push({ start: segStart, end: b, singer: cur });
-    }
-    return { singers: 2, similarity: between, why: `deux voix différentes (ressemblance ${between.toFixed(2)}, ${Math.round(share * 100)} % / ${Math.round((1 - share) * 100)} %)`, phrases: out };
+    });
+    const tot = c.dur.reduce((x, y) => x + y, 0);
+    const parts = c.dur.map((d) => `${Math.round(100 * d / tot)} %`).join(' / ');
+    const hz = c.pitch.map((m) => Number.isFinite(m) ? `${Math.round(440 * Math.pow(2, (m - 69) / 12))} Hz` : '?').join(' / ');
+    return { singers: c.k, similarity: maxSim, phrases: out,
+             why: `${c.k} voix différentes (ressemblance la plus forte entre deux voix ${maxSim.toFixed(2)} ; parts ${parts} ; hauteurs ${hz})` };
 }
 
 /** Copie d'une voix gardant seulement les phrases d'un chanteur (fondus de 30 ms aux bords). */
