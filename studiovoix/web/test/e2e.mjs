@@ -484,7 +484,9 @@ try {
             await page.waitForFunction((i) => (window.__studiovoix.player?.nodes.find((x) => x.key === window.__studiovoix.tracks[i].id)?.swaps || 0) >= 1, idx, { timeout: 30000 });
             const off = await snap();
             if (!off.playing) throw new Error('effets : la lecture s\'est arrêtée pendant le changement de réglage');
-            if (!(off.tailDb < -90)) throw new Error(`effets : réverb et écho éteints mais il reste une traîne (${off.tailDb.toFixed(1)} dB)`);
+            // Au moins 30 dB de moins qu'avec le pré-réglage (sur une vraie prise, la fin de piste n'est pas un silence
+            // numérique : -88 dB mesurés en CI, contre -40 dB avec réverb et écho).
+            if (!(off.tailDb < base.tailDb - 30)) throw new Error(`effets : réverb et écho éteints mais il reste une traîne (${off.tailDb.toFixed(1)} dB, pré-réglage ${base.tailDb.toFixed(1)} dB)`);
             // 2) réverb remise et poussée à 60 % au curseur
             await page.locator('#fxList .fxrow[data-fx="reverb"] .fxline').click();
             await page.locator('#fxList .fxrow[data-fx="reverb"] input[type=checkbox]').check();
