@@ -445,6 +445,9 @@ function trackRow(t) {
         el('div', { class: 'r' }, ...toggles(t, onMuteSolo),
             el('button', { class: 'tog fx' + (t.noFx ? '' : ' on'), textContent: 'FX', title: t.noFx ? 'Sans effet : jouée telle quelle (clique pour appliquer la chaîne du style)' : 'Effets du style appliqués (clique pour jouer la piste telle quelle)',
                 onclick: (e) => { e.stopPropagation(); t.noFx = !t.noFx; log('info', `« ${t.name} » : ${t.noFx ? 'sans effet' : 'effets du style'}`); markDirty(); renderTracks(); queueProcess(t); } }),
+            el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
+                title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
+                onclick: (e) => { e.stopPropagation(); t.locked = !t.locked; log('info', `« ${t.name} » : ${t.locked ? 'verrouillée (déplacement bloqué)' : 'déverrouillée (déplacement permis)'}`); markDirty(); renderTracks(); } }),
             el('span', { class: 'file' }, el('button', { textContent: 'Importer', title: 'Importer une voix sur cette piste' }), file)),
         t.take?.raw ? el('div', { class: 'r' }, el('button', { class: 'raw', textContent: '🎙 Micro brut',
             title: 'Écouter ce que le micro a vraiment capté (avant nettoyage), pour comparer avec la prise gardée',
@@ -627,6 +630,10 @@ function laneEvents(lane, t) {
         if (!drag || !drag.onClip) return;
         const dx = e.clientX - drag.x;
         if (!drag.moved && Math.abs(dx) < 6) return;
+        if (t.locked) {   // cadenas : la prise reste calée sur l'instru ; le geste ne fait que placer la tête de lecture
+            if (!drag.warned) { drag.warned = true; setStatus(`« ${t.name} » est verrouillée 🔒 : la prise ne bouge pas. Clique le cadenas de la piste pour la déplacer.`); log('info', `« ${t.name} » : déplacement refusé (piste verrouillée)`); }
+            return;
+        }
         drag.moved = true;
         t.take.startSec = Math.max(0, drag.start + dx / drag.w * drag.total);
         drawLane(lane.parentElement, t);
@@ -1622,6 +1629,7 @@ async function separateSong() {
             if (rmsDbSt(mono, mono) < -55) { log('info', `${name} : rien de repéré (sous -55 dBFS), pas de piste`); return; }
             const t = addTrack(roleId, name);
             t.noFx = true;
+            t.locked = true;   // calée sur l'instru : pas de déplacement par accident
             t.styleId = state.tracks.find((x) => x.roleId === 'lead' && x !== t)?.styleId || t.styleId;
             addTake(t, { mono, sampleRate: sr, startSec: 0, note: 'séparée de la chanson', label: 'Séparée' });
             made.push(`${name} (${roleLabel(roleId)})`);
@@ -1859,7 +1867,7 @@ async function saveProject() {
         instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
         instruTrack: state.instruTrack,
         tracks: state.tracks.map((t) => ({
-            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx,
+            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, locked: !!t.locked,
             active: t.takes.indexOf(t.take),
             takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
         })),
@@ -1887,7 +1895,7 @@ async function restoreProject() {
         state.nextTrackId = meta.nextTrackId;
         state.tracks = [];
         for (const m of meta.tracks) {
-            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx,
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
                         take: null, takes: [], processed: null, status: 'vide', token: 0 };
             for (const k of m.takes) {
                 const mono = await get(k.audioId);

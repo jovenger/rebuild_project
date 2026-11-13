@@ -266,6 +266,7 @@ try {
         const tracks = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.noFx ? 'sansFX' : 'FX'}`));
         console.log(stamp(), 'pistes :', tracks.join(' ; '));
         if (!tracks.some((t) => /lead\|sansFX/.test(t))) throw new Error('aucune piste de voix principale créée');
+        if (!(await page.evaluate(() => window.__studiovoix.tracks.every((t) => t.locked)))) throw new Error('pistes séparées non verrouillées d\'office');
         if (process.env.EXPECT_BACKS === '1' && !tracks.some((t) => /manual_back/.test(t))) throw new Error('aucune piste de backs créée');
         if (process.env.EXPECT_SINGERS && tracks.filter((t) => /^Chanteur/.test(t)).length !== Number(process.env.EXPECT_SINGERS))
             throw new Error(`nombre de chanteurs ${tracks.filter((t) => /^Chanteur/.test(t)).length} au lieu de ${process.env.EXPECT_SINGERS}`);
@@ -426,6 +427,37 @@ try {
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
     }
 
+    // Cadenas de piste : verrouillée, glisser la prise ne la déplace pas ; déverrouillée, si.
+    {
+        const idx = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take));
+        if (idx >= 0) {
+            const info = () => page.evaluate((i) => { const t = window.__studiovoix.tracks[i], k = t.take; const total = Math.max(window.__studiovoix.instru?.seconds || 0, ...window.__studiovoix.tracks.filter((x) => x.take).map((x) => x.take.startSec + x.take.mono.length / x.take.sampleRate));
+                return { locked: !!t.locked, start: k.startSec, len: k.mono.length / k.sampleRate, total }; }, idx);
+            const drag = async () => {
+                const lane = page.locator('#tracks .lane').nth(idx + 1);
+                await lane.scrollIntoViewIfNeeded();
+                const b = await lane.boundingBox(), st = await info();
+                const x = b.x + Math.min(b.width - 80, Math.max(4, (st.start + st.len / 2) / st.total * b.width)), y = b.y + b.height / 2;
+                await page.mouse.move(x, y); await page.mouse.down();
+                for (let d = 10; d <= 60; d += 10) await page.mouse.move(x + d, y);
+                await page.mouse.up();
+                return (await info()).start;
+            };
+            const lockBtn = page.locator('#tracks button.tog.lock').nth(idx);
+            let st = await info();
+            if (!st.locked) await lockBtn.click();
+            const s0 = (await info()).start, s1 = await drag();
+            if (Math.abs(s1 - s0) > 1e-9) throw new Error(`cadenas : piste verrouillée déplacée de ${s0} à ${s1} s`);
+            if (!/verrouillée/.test(await page.textContent('#status'))) throw new Error('cadenas : pas de message quand on tente de déplacer une piste verrouillée');
+            await lockBtn.click();
+            const s2 = await drag();
+            if (Math.abs(s2 - s0) < 0.01) throw new Error('cadenas : piste déverrouillée non déplaçable');
+            console.log(stamp(), `cadenas : verrouillée → reste à ${s0.toFixed(2)} s ; déverrouillée → déplacée à ${s2.toFixed(2)} s`);
+            await page.evaluate(([i, v]) => { window.__studiovoix.tracks[i].take.startSec = v; }, [idx, s0]);
+            await page.locator('#tracks button.tog.lock').nth(idx).click();   // re-verrouille
+            if (!(await info()).locked) throw new Error('cadenas : re-verrouillage sans effet');
+        }
+    }
     {
         const clock = await page.textContent('#time');
         if (!/^\d+:\d\d\.\d$/.test(clock)) throw new Error(`compteur de temps invalide : « ${clock} »`);

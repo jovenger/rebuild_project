@@ -135,6 +135,10 @@ comment les automatismes doivent être faits, ordre proposé.
 - À faire (retour de Yann) : petits nettoyages restants sur l'instrumental séparé ; durée (45 min) à réduire ;
   problème à préciser sur la touche de lecture « Mix ».
 - Vérifié par Yann : l'écran est resté allumé pendant toute la séparation (Wake Lock).
+- Fait (demande de Yann) : cadenas 🔒 par piste (en-tête, à côté de FX) : piste verrouillée = glisser la prise ne la
+  déplace plus (message dans la barre d'état, le geste place seulement la tête de lecture) ; pistes séparées
+  verrouillées d'office (anciens projets compris) ; état gardé dans la sauvegarde. Testé e2e PC + Pixel 7 (verrouillée :
+  reste à 0,00 s ; déverrouillée : déplacée) et séparation (pistes créées verrouillées).
 - Non vérifié : calcul écran éteint / page en arrière-plan sur le vrai téléphone (son de veille, pas essayé) ; Brave isolé ou non (multi-cœur) ;
   recouvrement 0,1 (4:34 contre 5:07 en local, instru identique 16,3 dB) : effet sur backs / voix principale non mesuré.
 

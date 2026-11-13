@@ -36,7 +36,9 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   voix principale est coupée **par chanteur** quand ils chantent chacun leur tour (empreinte de voix WeSpeaker) ; deux
   chanteurs en même temps ne se séparent pas. « ↺ Rétablir le morceau » remet l'original. Pendant le calcul : étape,
   morceau n/N, temps écoulé / restant, bouton Arrêter ; durée estimée avant de lancer ; écran gardé allumé ; si la page
-  se ferme, la relance reprend après la dernière étape finie ; carte graphique qui bloque → processeur automatiquement. Mesuré sur un faux morceau à
+  se ferme, la relance reprend après la dernière étape finie ; carte graphique qui bloque → processeur automatiquement.
+- **Cadenas 🔒 par piste** : une piste verrouillée ne peut plus être déplacée par accident (elle reste calée sur
+  l'instru) ; les pistes séparées sont verrouillées d'office ; un clic sur le cadenas la libère. Mesuré sur un faux morceau à
   parties connues : instru 16,3 dB (chanson brute -2,4 dB), backs 10,2 dB, voix principale 17,8 dB, deux voix qui
   alternent repérées à ~1 s près ; ambiance : presque rien extrait sur nos essais (non vérifié). Modèles téléchargés
   une fois : 67 + 53 + 27 Mo (+ 67 Mo ambiance) ; calcul ~3 à 4 × la durée par étape sans carte graphique.
