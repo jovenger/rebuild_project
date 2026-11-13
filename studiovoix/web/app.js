@@ -1310,6 +1310,7 @@ function sepChunk(done, total) {
     const dt = now - (sepRun.cLast || now);
     sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
     Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
+    if (/1er morceau en cours/.test(ui.sepSub.textContent)) ui.sepSub.textContent = ui.sepSub.textContent.replace(/, 1er morceau en cours…/, '');   // ne pas laisser croire qu'on est toujours au 1er
     if (done === total) sepRun.label = `${sepRun.stepLabel} — finition de l'étape…`;
     if (done === 1 || done === total) log('info', `Séparation : morceau ${done}/${total} en ${(dt / 1000).toFixed(1)} s (${iso.backend || '?'})`);
     sepRender();
