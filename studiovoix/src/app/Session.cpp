@@ -1,0 +1,2357 @@
+#include "Session.h"
+
+#include "core/Log.h"
+#include <juce_gui_basics/juce_gui_basics.h>
+#if SV_EDITION_IA
+ #include "core/ai/Lyrics.h"
+ #include "core/ai/Separate.h"
+#endif
+#include "core/analysis/KeyDetector.h"
+#include "core/dsp/ProblemAnalyzer.h"
+#include "core/Loudness.h"
+#include "core/analysis/StructureDetector.h"
+#include "core/analysis/TempoDetector.h"
+
+namespace sv::app
+{
+namespace
+{
+    constexpr const char* kMod = "Session";
+    constexpr int kMaxUndo = 50;
+    constexpr size_t kMaxMemoRenders = 12;
+    constexpr size_t kMaxMemoBytes = size_t (1) << 30;   // 1 Go : ~7 pistes de 3 min
+
+    size_t renderBytes (const render::TrackRender& r)
+    {
+        const auto samples = [] (const Stereo& b) { return static_cast<size_t> (b.getNumChannels()) * static_cast<size_t> (b.getNumSamples()); };
+        return (samples (r.processed) + samples (r.raw) + r.prepared.size()) * sizeof (float);
+    }
+
+    juce::String trackJson (const project::Project& p, int id)
+    {
+        project::Project single;
+        single.style = p.style;
+        if (const auto* t = p.findTrack (id))
+            single.tracks.push_back (*t);
+        return juce::JSON::toString (single.toVar(), true);
+    }
+
+    // Contexte d'analyse partagé par toutes les pistes (style, tonalité, tempo, référence).
+    juce::String globalSignature (const project::Project& p)
+    {
+        return "|" + style::styleId (p.style) + "|" + juce::String (p.key.root) + (p.key.minor ? "m" : "M") + "|"
+               + juce::String (p.tempo.bpm, 6) + "|" + juce::String (p.tempo.firstBeatSec, 6) + "|" + p.referenceFile;
+    }
+
+    juce::String uniqueStamp() { return juce::Time::getCurrentTime().formatted ("%Y%m%d_%H%M%S"); }
+}
+
+Session::Session (AudioEngine& e, AppSettings& s)
+    : audioEngine (e),
+      appSettings (s),
+      context (std::make_shared<dsp::AnalysisContext>()),
+      pool (juce::ThreadPoolOptions{}.withNumberOfThreads (juce::jlimit (1, 4, juce::SystemStats::getNumCpus() - 1)).withThreadName ("Rendu"))
+{
+    juce::WeakReference<Session> weak (this);
+    audioEngine.onDeviceLostWhileRecording = [weak]
+    {
+        if (auto* self = weak.get())
+            if (self->isRecording())
+                self->stopRecording();   // la prise est gardée jusqu'à l'arrêt de la carte (avertissement dans le statut)
+    };
+    audioEngine.onSampleRateChanged = [weak] (double oldRate, double newRate)
+    {
+        if (auto* self = weak.get())
+            self->handleSampleRateChange (oldRate, newRate);
+    };
+    startTimer (200);
+}
+
+Session::~Session()
+{
+    stopTimer();
+    audioEngine.onDeviceLostWhileRecording = nullptr;
+    audioEngine.onSampleRateChanged = nullptr;
+    pool.removeAllJobs (true, 15000);
+    if (dirty && proj.folder != juce::File())
+    {
+        juce::String err;
+        if (! proj.saveAutosave (err))
+            SV_LOG_ERROR (kMod, "Sauvegarde auto à la fermeture impossible : "_u8 + err);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+void Session::setStatus (const juce::String& text)
+{
+    status = text;
+    SV_LOG_INFO (kMod, "Statut : " + text);
+    sendChangeMessage();
+}
+
+void Session::markDirty()
+{
+    dirty = true;
+    sendChangeMessage();
+}
+
+long Session::toDevice (long projectSamples) const
+{
+    const double r = deviceRate() / proj.sampleRate;
+    return static_cast<long> (std::llround (static_cast<double> (projectSamples) * r));
+}
+
+long Session::toProject (long deviceSamples) const
+{
+    const double r = proj.sampleRate / deviceRate();
+    return static_cast<long> (std::llround (static_cast<double> (deviceSamples) * r));
+}
+
+double Session::deviceRate() const
+{
+    const double sr = audioEngine.sampleRate();
+    return sr > 0.0 ? sr : proj.sampleRate;
+}
+
+// ---------------------------------------------------------------------------------------------
+bool Session::newProject (const juce::String& name, juce::String& error, style::Style projectStyle)
+{
+    const auto folder = project::createProjectFolder (project::defaultProjectsRoot(), name, error);
+    if (folder == juce::File())
+        return false;
+    project::Project created;
+    created.folder = folder;
+    created.name = name;
+    created.adLibFolder = appSettings.adLibFolder().getFullPathName();
+    created.style = projectStyle;   // tous les effets des pistes suivent ce style (makeParams)
+    auto& lead = created.addTrack (style::Role::Lead, "Voix principale");
+    // Plus de « Mon son » (curseurs mémorisés) appliqué d'office : le style s'applique tel quel, réglages effet par effet.
+    lead.raw = true;                  // tout arrive brut : aucun effet tant qu'on ne choisit pas un style (ou ne touche pas un réglage)
+    created.armedTrackId = lead.id;   // le micro enregistre sur la voix principale tant qu'on n'arme pas une autre piste
+    if (! created.save (error))
+    {
+        SV_LOG_ERROR (kMod, "Nouveau projet non enregistré, projet courant conservé : "_u8 + error);
+        return false;
+    }
+    beforeProjectChange();
+    proj = std::move (created);
+    appSettings.setLastProject (folder);
+    afterProjectLoaded();
+    SV_LOG_INFO (kMod, "Nouveau projet \"" + name + "\" : style " + style::styleName (proj.style)
+                       + " (réglages du style)"_u8);
+    setStatus ("Nouveau projet : " + name + " (style " + style::styleName (proj.style) + ") — importe une instru pour commencer"_u8);
+    return true;
+}
+
+bool Session::openProject (const juce::File& folderOrFile, bool preferAutosave, juce::String& error)
+{
+    project::Project loaded;
+    if (! project::Project::load (folderOrFile, loaded, error, preferAutosave))
+        return false;
+    beforeProjectChange();
+    proj = std::move (loaded);
+    appSettings.setLastProject (proj.folder);
+    afterProjectLoaded();
+    setStatus ("Projet ouvert : "_u8 + proj.name
+               + (proj.loadWarnings.isEmpty() ? juce::String()
+                                              : " — réparé au chargement : "_u8 + proj.loadWarnings.joinIntoString ("; ")));
+    renderAll();
+    recoverInterruptedTakes();
+    return true;
+}
+
+void Session::beforeProjectChange()
+{
+    if (isRecording())
+    {
+        SV_LOG_WARN (kMod, "Changement de projet pendant un enregistrement : la prise est d'abord terminée"_u8);
+        stopRecording();
+    }
+    if (dirty && proj.folder != juce::File())
+    {
+        juce::String err;
+        if (! proj.saveAutosave (err))
+            SV_LOG_ERROR (kMod, "Sauvegarde auto avant changement de projet impossible : "_u8 + err);
+    }
+    ++epoch;
+    pool.removeAllJobs (true, 15000);
+    autoMixJobs = 0;
+    // Les tâches retirées de la file ne s'exécuteront pas et celles terminées sont ignorées (époque) :
+    // aucune ne sera décomptée.
+    activeJobs = 0;
+}
+
+void Session::afterProjectLoaded()
+{
+    renders.clear();
+    renderGeneration.clear();
+    trackStatuses.clear();
+    trackMetrics.clear();
+    pendingRenders.clear();
+    pendingGeneration.clear();
+    leadAwaitingProposal.clear();
+    mixState = {};
+    duckedInstruShared.reset();
+    resampleCache.clear();
+    undoStack.clear();
+    redoStack.clear();
+    renderMemo.clear();
+    storedGeneration.clear();
+    cache.clear();
+    dirty = false;
+    selectedTrackId = proj.leadTrackId();
+    selectedTracks.clear();
+    if (selectedTrackId >= 0)
+        selectedTracks.insert (selectedTrackId);
+    refreshContext();
+    audioEngine.stop();
+    audioEngine.setPosition (0);
+    audioEngine.setTempo (proj.tempo.bpm, proj.tempo.firstBeatSec);
+    rebuildPlayState();
+    sendChangeMessage();
+}
+
+bool Session::save (juce::String& error)
+{
+    if (! proj.save (error))
+    {
+        setStatus ("Échec de la sauvegarde : "_u8 + error);
+        return false;
+    }
+    juce::String verr;
+    if (! proj.saveVersion ("sauvegarde", verr))
+        SV_LOG_WARN (kMod, "Version non enregistrée : "_u8 + verr);
+    dirty = false;
+    setStatus ("Projet sauvegardé"_u8);
+    return true;
+}
+
+void Session::restoreVersion (const juce::String& versionFileName)
+{
+    const auto file = proj.historyDir().getChildFile (versionFileName);
+    project::Project loaded;
+    loaded.folder = proj.folder;
+    juce::String err;
+    if (! project::Project::load (file, loaded, err))
+    {
+        setStatus ("Version illisible : " + err);
+        return;
+    }
+    pushUndo ("Restauration de version");
+    restoreSnapshot (loaded.toVar());
+    setStatus ("Version restaurée : "_u8 + versionFileName);
+}
+
+// ---------------------------------------------------------------------------------------------
+void Session::importInstru (const juce::File& file)
+{
+    if (! file.existsAsFile())
+    {
+        setStatus ("Instru introuvable : " + file.getFullPathName());
+        return;
+    }
+    const auto dest = proj.audioDir().getChildFile ("instru_" + uniqueStamp() + file.getFileExtension());
+    if (! file.copyFileTo (dest))
+    {
+        setStatus ("Copie de l'instru impossible vers le projet");
+        return;
+    }
+    pushUndo ("Import de l'instru");
+
+    project::Track* instru = nullptr;
+    for (auto& t : proj.tracks)
+        if (t.role == style::Role::Instru)
+            instru = &t;
+    if (instru == nullptr)
+    {
+        proj.tracks.insert (proj.tracks.begin(), project::Track());
+        instru = &proj.tracks.front();
+        instru->id = proj.nextTrackId++;
+        instru->role = style::Role::Instru;
+    }
+    instru->name = "Instru : " + file.getFileNameWithoutExtension();
+    instru->sourceFile = dest.getFileName();
+    instru->sourceStart = 0;
+    instru->raw = true;       // importée = brute : jouée telle quelle (seul son niveau est équilibré) ; correction ou creux sur demande (panneau Piste)
+    instru->styleId = {};
+    const int instruId = instru->id;
+    markDirty();
+    setStatus ("Analyse de l'instru (tempo, tonalité, structure)…"_u8);
+
+    ++activeJobs;
+    const double sr = proj.sampleRate;
+    const int ep = epoch;
+    const int analysisGen = ++instruAnalysisGeneration;
+    juce::WeakReference<Session> weak (this);
+    pool.addJob ([weak, dest, sr, instruId, ep, analysisGen]
+    {
+        struct Result
+        {
+            bool ok = false;
+            juce::String error;
+            MusicalKey key;
+            TempoInfo tempo;
+            std::vector<analysis::Section> sections;
+        };
+        auto res = std::make_shared<Result>();
+        auto loaded = audio::loadStereo (dest, sr);
+        if (loaded.ok())
+        {
+            const auto mono = audio::toMono (loaded.buffer);
+            res->key = analysis::detectKey (mono, sr).key;
+            res->tempo = analysis::detectTempo (mono, sr);
+            res->sections = analysis::detectStructure (mono, sr, res->tempo);
+            res->ok = true;
+        }
+        else
+        {
+            res->error = loaded.error;
+        }
+        juce::MessageManager::callAsync ([weak, res, instruId, ep, analysisGen, destName = dest.getFileName()]
+        {
+            auto* s = weak.get();
+            if (s == nullptr || ep != s->epoch)
+                return;
+            --s->activeJobs;
+            const auto* current = s->proj.instruTrack();
+            if (analysisGen != s->instruAnalysisGeneration || current == nullptr || current->sourceFile != destName)
+            {
+                SV_LOG_INFO (kMod, "Analyse d'une instru remplacée ou annulée entre-temps : résultat ignoré ("_u8 + destName + ")");
+                return;
+            }
+            if (! res->ok)
+            {
+                s->setStatus ("Instru illisible : " + res->error);
+                return;
+            }
+            if (! s->proj.keyManual)
+                s->proj.key = res->key;
+            if (! s->proj.tempoManual)
+                s->proj.tempo = res->tempo;
+            s->proj.sections = res->sections;
+            s->audioEngine.setTempo (s->proj.tempo.bpm, s->proj.tempo.firstBeatSec);
+            s->refreshContext();
+            s->requestRender (instruId);
+            for (const auto& t : s->proj.tracks)
+                if (t.isVocal())
+                    s->requestRender (t.id);
+            s->markDirty();
+            s->setStatus ("Instru analysée : "_u8 + juce::String (s->proj.tempo.bpm, 1) + " BPM, " + s->proj.key.toFrench() + ", "
+                          + juce::String ((int) s->proj.sections.size()) + " sections");
+        });
+    });
+}
+
+void Session::reanalyseInstru()
+{
+    const auto* instru = proj.instruTrack();
+    if (instru == nullptr)
+    {
+        setStatus ("Aucune instru à analyser"_u8);
+        return;
+    }
+    const auto file = proj.audioDir().getChildFile (instru->sourceFile);
+    // Réutilise le chemin d'import sans recopier le fichier.
+    const int instruId = instru->id;
+    ++activeJobs;
+    const double sr = proj.sampleRate;
+    const int ep = epoch;
+    const int analysisGen = ++instruAnalysisGeneration;
+    juce::WeakReference<Session> weak (this);
+    setStatus ("Nouvelle analyse de l'instru…"_u8);
+    pool.addJob ([weak, file, sr, instruId, ep, analysisGen]
+    {
+        auto loaded = audio::loadStereo (file, sr);
+        const juce::String loadError = loaded.ok() ? juce::String() : loaded.error;
+        auto mono = std::make_shared<Mono> (loaded.ok() ? audio::toMono (loaded.buffer) : Mono());
+        const auto key = analysis::detectKey (*mono, sr).key;
+        const auto tempo = analysis::detectTempo (*mono, sr);
+        const auto sections = analysis::detectStructure (*mono, sr, tempo);
+        juce::MessageManager::callAsync ([weak, key, tempo, sections, instruId, ep, analysisGen, loadError, fileName = file.getFileName()]
+        {
+            if (auto* s = weak.get())
+            {
+                if (ep != s->epoch)
+                    return;
+                --s->activeJobs;
+                const auto* current = s->proj.instruTrack();
+                if (analysisGen != s->instruAnalysisGeneration || current == nullptr || current->sourceFile != fileName)
+                {
+                    SV_LOG_INFO (kMod, "Nouvelle analyse d'une instru remplacée entre-temps : résultat ignoré"_u8);
+                    return;
+                }
+                if (loadError.isNotEmpty())
+                {
+                    SV_LOG_ERROR (kMod, "Nouvelle analyse impossible, instru illisible : "_u8 + loadError);
+                    s->setStatus ("Nouvelle analyse impossible : instru illisible ("_u8 + loadError + ")");
+                    return;
+                }
+                s->pushUndo ("Nouvelle analyse de l'instru");
+                s->proj.keyManual = false;
+                s->proj.tempoManual = false;
+                s->proj.key = key;
+                s->proj.tempo = tempo;
+                s->proj.sections = sections;
+                s->audioEngine.setTempo (tempo.bpm, tempo.firstBeatSec);
+                s->refreshContext();
+                juce::ignoreUnused (instruId);
+                for (const auto& t : s->proj.tracks)
+                    if (t.isVocal())
+                        s->requestRender (t.id);
+                s->markDirty();
+                s->setStatus ("Instru réanalysée : "_u8 + juce::String (tempo.bpm, 1) + " BPM, " + key.toFrench());
+            }
+        });
+    });
+}
+
+void Session::importVoice (const juce::File& file, int trackId, double startSec)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr || ! t->isVocal() || t->isGenerated())
+    {
+        setStatus ("Choisis d'abord une piste voix (non générée)"_u8);
+        return;
+    }
+    Mono data;
+    juce::String err;
+    if (! audio::loadMono (file, proj.sampleRate, data, err))
+    {
+        setStatus ("Voix illisible : " + err);
+        return;
+    }
+    pushUndo ("Import d'une voix");
+    // Fichier importé : traité d'emblée par le style de la piste (ou du projet) ; « Brut » pour écouter sans effet.
+    if (! addTakeFromAudio (trackId, data, startSec, err))
+    {
+        setStatus ("Copie de la voix impossible : " + err);
+        return;
+    }
+    setStatus ("Fichier importé dans "_u8 + t->name + (t->raw ? " : brut, sans effet — clique sur la piste et choisis un style à droite"_u8
+                                                            : juce::String()));
+}
+
+bool Session::addTakeFromAudio (int trackId, const Mono& data, double startSec, juce::String& error)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr || ! t->isRecordable())
+    {
+        error = "piste absente ou non enregistrable";
+        return false;
+    }
+    project::Take tk;
+    tk.id = proj.nextTakeId++;
+    tk.file = "import_" + juce::String (tk.id) + "_" + uniqueStamp() + ".wav";
+    if (! audio::writeMonoWavFloat (proj.audioDir().getChildFile (tk.file), data, proj.sampleRate, error))
+        return false;
+    const long start = std::max (0L, static_cast<long> (std::llround (startSec * proj.sampleRate)));
+    tk.startSample = start;
+    tk.regionStart = start;
+    tk.regionEnd = start + static_cast<long> (data.size());
+    tk.createdMs = juce::Time::currentTimeMillis();
+    t->takes.push_back (tk);
+    markDirty();
+    if (t->role == style::Role::Lead && ! t->raw)
+        leadAwaitingProposal.insert (trackId);
+    requestRender (trackId);
+    return true;
+}
+
+void Session::setTrackTreatment (int trackId, bool raw, const juce::String& trackStyleId)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr || t->isGenerated())
+        return;
+    if (t->raw == raw && t->styleId == trackStyleId)
+        return;
+    const auto label = raw ? juce::String ("brut, sans effet")
+                           : trackStyleId == dsp::kCorrectionStyleId ? juce::String ("correction automatique (son propre, sans effet de style)")
+                           : t->role == style::Role::Instru ? juce::String ("creux sous la voix (mix auto)")
+                           : "style " + style::styleName (trackStyleId.isNotEmpty() ? style::styleFromId (trackStyleId) : proj.style);
+    SV_LOG_INFO (kMod, "Traitement de « "_u8 + t->name + " » : " + label);
+    updateTrack (trackId, [raw, trackStyleId] (project::Track& tr) { tr.raw = raw; tr.styleId = trackStyleId; }, true, "Traitement de la piste");
+    if (auto* tr = proj.findTrack (trackId); tr != nullptr && tr->role == style::Role::Lead && ! raw && ! tr->takes.empty())
+        leadAwaitingProposal.insert (trackId);   // voix principale traitée : proposer backs / harmonies
+    launchAutoMix();
+    setStatus ("« "_u8 + t->name + " » : " + label);
+}
+
+int Session::importAsNewTrack (const juce::File& file, style::Role role, const juce::String& name, double startSec)
+{
+    const auto t0 = juce::Time::getMillisecondCounterHiRes();
+    SV_LOG_INFO (kMod, "Fichier déposé : "_u8 + file.getFullPathName() + " -> " + style::roleName (role) + " « "_u8 + name + " » à "_u8
+                       + juce::String (startSec, 2) + " s");
+    if (role == style::Role::Instru)
+    {
+        importInstru (file);
+        const auto* instru = proj.instruTrack();
+        return instru != nullptr ? instru->id : -1;
+    }
+    Mono data;
+    juce::String err;
+    if (! audio::loadMono (file, proj.sampleRate, data, err))
+    {
+        SV_LOG_ERROR (kMod, "Fichier déposé illisible : "_u8 + err);
+        setStatus ("Fichier illisible (" + file.getFileName() + ") : " + err);
+        return -1;
+    }
+    const int id = addUserTrack (role, name);   // une seule étape d'annulation : la piste et sa prise ; brute (addUserTrack)
+    if (! addTakeFromAudio (id, data, startSec, err))
+    {
+        SV_LOG_ERROR (kMod, "Copie du fichier déposé impossible : "_u8 + err);
+        setStatus ("Copie du fichier impossible : " + err);
+        return id;
+    }
+    SV_LOG_INFO (kMod, "Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " ("
+                       + juce::String (static_cast<double> (data.size()) / proj.sampleRate, 1) + " s) en "
+                       + juce::String (juce::roundToInt (juce::Time::getMillisecondCounterHiRes() - t0)) + " ms");
+    setStatus ("Piste « "_u8 + name + " » créée depuis " + file.getFileName() + " : brute, jouée telle quelle (niveau équilibré) — « Style » à droite ou un réglage pour la traiter"_u8);
+    return id;
+}
+
+// ---------------------------------------------------------------------------------------------
+int Session::addVocalTrack (style::Role role, const juce::String& name)
+{
+    pushUndo ("Ajout de piste");
+    auto& t = proj.addTrack (role, name);
+    selectedTrackId = t.id;
+    markDirty();
+    rebuildPlayState();
+    return t.id;
+}
+
+int Session::addUserTrack (style::Role role, const juce::String& name)
+{
+    const int id = role == style::Role::Instrument ? -1 : addVocalTrack (role, name);
+    int trackId = id;
+    if (role == style::Role::Instrument)
+    {
+        // Pas de « Mon son » (réglages de voix) ni de nettoyage de voix sur un instrument.
+        pushUndo ("Ajout de piste");
+        auto& t = proj.addTrack (role, name);
+        t.cleaning = false;
+        trackId = t.id;
+        selectedTrackId = t.id;
+        markDirty();
+        rebuildPlayState();
+    }
+    proj.armedTrackId = trackId;
+    if (auto* nt = proj.findTrack (trackId))
+        nt->raw = true;   // tout arrive brut : aucun effet tant qu'un style n'est pas choisi ou un réglage touché
+    SV_LOG_INFO (kMod, "Nouvelle piste « "_u8 + name + " » (" + style::roleName (role) + ") : brute, sélectionnée et armée"_u8);
+    setStatus ("Piste « "_u8 + name + " » ajoutée, brute (aucun effet) et armée : R pour enregistrer ; « Effets » à droite pour choisir un style"_u8);
+    return trackId;
+}
+
+juce::String Session::nextTrackName (style::Role role) const
+{
+    const auto base = style::userTrackBaseName (role);
+    int n = 0;
+    for (const auto& t : proj.tracks)
+        if (t.role == role && ! t.isGenerated())
+            ++n;
+    if (role == style::Role::Lead && n == 0)
+        return base;
+    for (int k = n + 1;; ++k)
+    {
+        const auto candidate = base + " " + juce::String (k);
+        bool used = false;
+        for (const auto& t : proj.tracks)
+            used = used || t.name == candidate;
+        if (! used)
+            return candidate;
+    }
+}
+
+void Session::armTrack (int trackId)
+{
+    if (audioEngine.isRecording())
+    {
+        setStatus ("Changement de piste armée impossible pendant l'enregistrement"_u8);
+        return;
+    }
+    const auto* t = proj.findTrack (trackId);
+    if (trackId >= 0 && (t == nullptr || ! t->isRecordable()))
+    {
+        setStatus ("Cette piste ne peut pas recevoir de prise (instru importée ou piste générée)"_u8);
+        return;
+    }
+    if (proj.armedTrackId == trackId)
+        return;
+    proj.armedTrackId = trackId;
+    if (t != nullptr)
+        selectedTrackId = trackId;
+    SV_LOG_INFO (kMod, t != nullptr ? "Piste armée : « "_u8 + t->name + " »"_u8 : juce::String ("Aucune piste armée"));
+    markDirty();
+    setStatus (t != nullptr ? "Piste armée : « "_u8 + t->name + " » — le micro enregistrera ici (R)"_u8
+                            : juce::String ("Aucune piste armée : R enregistre sur la piste sélectionnée"_u8));
+}
+
+void Session::setTrackPlugins (int trackId, std::vector<plugins::PluginSlot> slots, const juce::String& undoLabel)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return;
+    juce::StringArray names;
+    for (const auto& s : slots)
+        names.add (s.name + (s.bypass ? " (contourné)"_u8 : juce::String()));
+    SV_LOG_INFO (kMod, "Plugins de « "_u8 + t->name + " » : " + (names.isEmpty() ? juce::String ("aucun") : names.joinIntoString (" > ")));
+    updateTrack (trackId, [s = std::move (slots)] (project::Track& tr) { tr.plugins = s; }, true, undoLabel);
+}
+
+void Session::setTrackStage (int trackId, const juce::String& stageId, const plugins::StageOverride* override, const juce::String& undoLabel)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return;
+    SV_LOG_INFO (kMod, "Chaîne de « "_u8 + t->name + " », étape "_u8 + stageId + " : "
+                       + (override == nullptr ? juce::String ("réglage du style"_u8) : override->bypass ? juce::String ("contournée"_u8) : juce::String ("réglée à la main"_u8)));
+    std::optional<plugins::StageOverride> copy;
+    if (override != nullptr)
+        copy = *override;
+    updateTrack (trackId, [stageId, copy] (project::Track& tr)
+    {
+        if (copy.has_value())
+            tr.stages[stageId] = *copy;
+        else
+            tr.stages.erase (stageId);
+    }, true, undoLabel);
+}
+
+void Session::correctAllTracks()
+{
+    std::vector<int> ids;
+    for (const auto& t : proj.tracks)
+        // Voix seulement : les prises d'instruments et l'instru ne sont jamais touchées (demande de Yann) ;
+        // leur correction reste possible à la main, piste par piste (« Style » du panneau Piste).
+        if (t.isVoice() && t.isRecordable() && ! t.takes.empty() && ! t.isCorrection())
+            ids.push_back (t.id);
+    if (ids.empty())
+    {
+        setStatus ("Rien à corriger : aucune piste voix enregistrée ou importée (les instruments et l'instru ne sont jamais touchés)"_u8);
+        return;
+    }
+    pushUndo ("Correction automatique de " + juce::String (static_cast<int> (ids.size())) + " piste(s)");
+    for (const int id : ids)
+        if (auto* t = proj.findTrack (id))
+        {
+            t->raw = false;
+            t->styleId = dsp::kCorrectionStyleId;
+            requestRender (id);
+        }
+    markDirty();
+    launchAutoMix();
+    SV_LOG_INFO (kMod, "Correction automatique lancée sur "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s)");
+    setStatus ("Ingénieur du son : analyse et correction de "_u8 + juce::String (static_cast<int> (ids.size())) + " piste(s) voix (instruments et instru non touchés) : niveau régulier, bruit, résonances, EQ, sifflantes, justesse…"_u8);
+}
+
+int Session::recordTargetTrack() const
+{
+    for (const int id : { proj.armedTrackId, selectedTrackId })
+        if (const auto* t = proj.findTrack (id); t != nullptr && t->isRecordable())
+            return id;
+    return proj.leadTrackId();
+}
+
+void Session::removeTrack (int trackId)
+{
+    removeTracks ({ trackId });
+}
+
+void Session::moveTrackAudio (int trackId, int takeId, double deltaSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording() || std::abs (deltaSec) < 0.001)
+        return;
+    const long delta = static_cast<long> (std::llround (deltaSec * proj.sampleRate));
+    juce::String what;
+    updateTrack (trackId, [takeId, delta, &what] (project::Track& tr)
+    {
+        if (takeId < 0 || tr.takes.empty())
+        {
+            tr.sourceStart = std::max (0L, tr.sourceStart + delta);
+            what = "fichier";
+            return;
+        }
+        for (auto& tk : tr.takes)
+            if (tk.id == takeId)
+            {
+                const long d = std::max (delta, -std::min (tk.startSample, tk.regionStart));   // jamais avant 0
+                tk.startSample += d;
+                tk.regionStart += d;
+                tk.regionEnd += d;
+                what = "prise #" + juce::String (tk.id);
+            }
+    }, true, "Déplacement sur la timeline"_u8);
+    SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » : " + what + " déplacé(e) de "_u8 + juce::String (deltaSec, 2) + " s");
+    setStatus ("« "_u8 + t->name + " » déplacée de "_u8 + juce::String (deltaSec, 2) + " s (Ctrl+Z pour annuler)");
+}
+
+void Session::splitTake (int trackId, int takeId, double atSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long at = static_cast<long> (std::llround (atSec * proj.sampleRate));
+    bool ok = false;
+    updateTrack (trackId, [&] (project::Track& tr) { ok = project::splitTake (tr, takeId, at, proj.nextTakeId); }, true, "Couper le bloc"_u8);
+    setStatus (ok ? "Bloc coupé à "_u8 + juce::String (atSec, 2) + " s (Ctrl+Z pour annuler)" : juce::String ("Impossible de couper ici : le point doit être à l'intérieur du bloc"_u8));
+}
+
+void Session::trimTake (int trackId, int takeId, double newStartSec, double newEndSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long a = static_cast<long> (std::llround (newStartSec * proj.sampleRate)), b = static_cast<long> (std::llround (newEndSec * proj.sampleRate));
+    const long fileLen = takeFileLength (trackId, takeId);
+    bool ok = false;
+    updateTrack (trackId, [&] (project::Track& tr) { ok = project::trimTake (tr, takeId, a, b, fileLen, static_cast<long> (proj.sampleRate * 0.05)); }, true, "Rogner le bloc"_u8);
+    setStatus (ok ? "Bloc rogné : "_u8 + juce::String (a / proj.sampleRate, 2) + " - " + juce::String (b / proj.sampleRate, 2) + " s (Ctrl+Z pour annuler)"
+                  : juce::String ("Rognage refusé : bloc trop court ou au-delà du fichier"_u8));
+}
+
+void Session::setTakeFades (int trackId, int takeId, double fadeInSec, double fadeOutSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long fi = static_cast<long> (std::llround (std::max (0.0, fadeInSec) * proj.sampleRate));
+    const long fo = static_cast<long> (std::llround (std::max (0.0, fadeOutSec) * proj.sampleRate));
+    updateTrack (trackId, [&] (project::Track& tr) { project::setTakeFades (tr, takeId, fi, fo); }, true, "Fondus du bloc"_u8);
+    SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » : fondus du bloc #"_u8 + juce::String (takeId) + " : entrée "_u8 + juce::String (fadeInSec * 1000.0, 0)
+                       + " ms, sortie " + juce::String (fadeOutSec * 1000.0, 0) + " ms");
+    setStatus ("Fondus : entrée "_u8 + juce::String (fadeInSec * 1000.0, 0) + " ms, sortie " + juce::String (fadeOutSec * 1000.0, 0) + " ms");
+}
+
+void Session::removeTake (int trackId, int takeId)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    bool ok = false;
+    updateTrack (trackId, [&] (project::Track& tr) { ok = project::removeTake (tr, takeId); }, true, "Supprimer le bloc"_u8);
+    if (ok)
+        setStatus ("Bloc supprimé (Ctrl+Z pour annuler)"_u8);
+}
+
+long Session::takeFileLength (int trackId, int takeId)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return 0;
+    const auto* tk = project::findTake (*t, takeId);
+    if (tk == nullptr)
+        return 0;
+    juce::String err;
+    auto data = cache.mono (proj.audioDir().getChildFile (tk->file), proj.sampleRate, err);
+    if (data == nullptr)
+    {
+        SV_LOG_WARN (kMod, "Longueur de la prise #" + juce::String (takeId) + " inconnue : " + err);
+        return 0;
+    }
+    return static_cast<long> (data->size());
+}
+
+void Session::splitTrackAt (int trackId, double atSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    const long at = static_cast<long> (std::llround (atSec * proj.sampleRate));
+    std::vector<int> ids;
+    for (const auto& tk : t->takes)
+        if (at > tk.regionStart && at < tk.regionEnd)
+            ids.push_back (tk.id);
+    if (ids.empty())
+    {
+        setStatus ("Rien à couper à "_u8 + juce::String (atSec, 2) + " s : place la tête de lecture sur un bloc"_u8);
+        return;
+    }
+    updateTrack (trackId, [&] (project::Track& tr)
+    {
+        for (const int id : ids)
+            project::splitTake (tr, id, at, proj.nextTakeId);
+    }, true, "Couper (S)"_u8);
+    setStatus (juce::String (static_cast<int> (ids.size())) + " bloc(s) coupé(s) à "_u8 + juce::String (atSec, 2) + " s (Ctrl+Z pour annuler)");
+}
+
+void Session::cutRange (int trackId, double aSec, double bSec, bool copyFirst)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording() || bSec <= aSec)
+        return;
+    const long a = static_cast<long> (std::llround (aSec * proj.sampleRate)), b = static_cast<long> (std::llround (bSec * proj.sampleRate));
+    if (copyFirst)
+        clipboard = project::copyRange (*t, a, b);
+    int touched = 0;
+    updateTrack (trackId, [&] (project::Track& tr) { touched = project::cutRange (tr, a, b, proj.nextTakeId); }, true,
+                 copyFirst ? "Couper la zone (Ctrl+X)"_u8 : "Effacer la zone (Suppr)"_u8);
+    setStatus (touched == 0 ? juce::String ("Aucun bloc dans la zone sélectionnée"_u8)
+                            : "Zone "_u8 + juce::String (aSec, 2) + " - " + juce::String (bSec, 2) + " s "
+                                  + (copyFirst ? "coupée (Ctrl+V pour la coller)"_u8 : "effacée (Ctrl+Z pour annuler)"_u8));
+}
+
+void Session::copyRange (int trackId, double aSec, double bSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || bSec <= aSec)
+        return;
+    const long a = static_cast<long> (std::llround (aSec * proj.sampleRate)), b = static_cast<long> (std::llround (bSec * proj.sampleRate));
+    clipboard = project::copyRange (*t, a, b);
+    setStatus (clipboard.empty() ? juce::String ("Aucun bloc dans la zone sélectionnée"_u8)
+                                 : "Zone "_u8 + juce::String (bSec - aSec, 2) + " s copiée : Ctrl+V la colle à la tête de lecture sur la piste sélectionnée"_u8);
+}
+
+void Session::pasteClipboard (int trackId, double atSec)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    if (clipboard.empty())
+    {
+        setStatus ("Rien à coller : sélectionne une zone puis Ctrl+C"_u8);
+        return;
+    }
+    if (! t->isVocal())
+    {
+        setStatus ("Coller : choisis une piste voix ou instrument (pas l'instru importée)"_u8);
+        return;
+    }
+    const long at = static_cast<long> (std::llround (std::max (0.0, atSec) * proj.sampleRate));
+    int n = 0;
+    updateTrack (trackId, [&] (project::Track& tr) { n = project::pasteTakes (tr, clipboard, at, proj.nextTakeId); }, true, "Coller (Ctrl+V)"_u8);
+    setStatus (juce::String (n) + " bloc(s) collé(s) à "_u8 + juce::String (atSec, 2) + " s sur « "_u8 + t->name + " » (Ctrl+Z pour annuler)"_u8);
+}
+
+void Session::recognizeLyrics (int trackId)
+{
+#if SV_EDITION_IA
+    const int leadId = trackId >= 0 ? trackId : proj.leadTrackId();
+    auto r = renderFor (leadId);
+    if (r == nullptr || ! r->ok() || r->raw.getNumSamples() == 0)
+    {
+        setStatus ("Reconnaissance des paroles : enregistre ou importe d'abord la voix principale"_u8);
+        return;
+    }
+    if (! ai::local::whisperAvailable())
+    {
+        juce::WeakReference<Session> weakSelf (this);
+        ensureToolsThen ({ "whisper-cli", "whisper-base" }, "Reconnaître les paroles"_u8, [weakSelf, trackId] { if (auto* s = weakSelf.get()) s->recognizeLyrics (trackId); });
+        return;
+    }
+    const auto mono = std::make_shared<const Mono> (audio::toMono (r->raw));
+    const double offset = static_cast<double> (r->startSample) / proj.sampleRate;
+    const auto work = proj.audioDir().getChildFile ("cache_ia");
+    const double sr = proj.sampleRate;
+    setStatus ("Reconnaissance des paroles en cours (whisper.cpp)…"_u8);
+    SV_LOG_INFO (kMod, "Reconnaissance des paroles : "_u8 + juce::String (mono->size() / sr, 1) + " s de voix principale");
+    ++activeJobs;
+    juce::WeakReference<Session> weak (this);
+    const int ep = epoch;
+    pool.addJob ([weak, mono, offset, work, sr, leadId, ep]
+    {
+        juce::String error;
+        double seconds = 0.0;
+        auto words = std::make_shared<std::vector<LyricWord>> (ai::local::transcribeWithWhisper (*mono, sr, work, offset, error, seconds));
+        juce::MessageManager::callAsync ([weak, words, error, seconds, leadId, ep]
+        {
+            auto* s = weak.get();
+            if (s == nullptr || ep != s->epoch)
+                return;
+            --s->activeJobs;
+            if (words->empty())
+            {
+                s->setStatus ("Reconnaissance des paroles : "_u8 + error);
+                return;
+            }
+            const bool fillLyrics = s->proj.lyrics.trim().isEmpty();
+            s->updateProject ([words, leadId, fillLyrics] (project::Project& p)
+            {
+                if (auto* t = p.findTrack (leadId))
+                    t->words = *words;
+                if (fillLyrics)
+                {
+                    p.lyrics = ai::local::wordsToLyrics (*words);
+                    p.lyricsStartSec = words->front().startSec;
+                }
+            }, false, "Paroles reconnues"_u8);
+            s->setStatus (juce::String (static_cast<int> (words->size())) + " mots reconnus et calés en "_u8 + juce::String (seconds, 1) + " s"
+                          + (fillLyrics ? " (paroles remplies)"_u8 : juce::String()));
+        });
+    });
+#else
+    juce::ignoreUnused (trackId);
+    setStatus ("Reconnaissance des paroles : disponible dans StudioVoix IA"_u8);
+#endif
+}
+
+void Session::separateInstru()
+{
+#if SV_EDITION_IA
+    const auto* instru = proj.instruTrack();
+    if (instru == nullptr || instru->sourceFile.isEmpty())
+    {
+        setStatus ("Séparation : importe d'abord une instru"_u8);
+        return;
+    }
+    if (! ai::local::demucsAvailable())
+    {
+        juce::WeakReference<Session> weakSelf (this);
+        ensureToolsThen ({ "demucs", "demucs-htdemucs" }, "Séparer l'instru"_u8, [weakSelf] { if (auto* s = weakSelf.get()) s->separateInstru(); });
+        return;
+    }
+    const auto src = proj.audioDir().getChildFile (instru->sourceFile);
+    const double startSec = static_cast<double> (instru->sourceStart) / proj.sampleRate;
+    const auto work = proj.audioDir().getChildFile ("cache_ia");
+    const double sr = proj.sampleRate;
+    const int instruId = instru->id;
+    setStatus ("Séparation de l'instru en cours (Demucs, plusieurs minutes)…"_u8);
+    SV_LOG_INFO (kMod, "Séparation Demucs de "_u8 + src.getFileName());
+    ++activeJobs;
+    juce::WeakReference<Session> weak (this);
+    const int ep = epoch;
+    pool.addJob ([weak, src, work, sr, startSec, instruId, ep]
+    {
+        auto stems = std::make_shared<ai::local::StemSet>();
+        auto loaded = audio::loadStereo (src, sr);
+        if (! loaded.ok())
+            stems->note = "instru illisible : " + loaded.error;
+        else
+            *stems = ai::local::separateWithDemucs (loaded.buffer, sr, work);
+        juce::MessageManager::callAsync ([weak, stems, startSec, instruId, ep]
+        {
+            auto* s = weak.get();
+            if (s == nullptr || ep != s->epoch)
+                return;
+            --s->activeJobs;
+            if (! stems->ok)
+            {
+                s->setStatus ("Séparation : "_u8 + stems->note);
+                return;
+            }
+            s->pushUndo ("Séparation de l'instru (Demucs)"_u8);
+            const std::pair<const char*, const Mono*> parts[4] = { { "Batterie (Demucs)", &stems->drums }, { "Basse (Demucs)", &stems->bass },
+                                                                    { "Autres instruments (Demucs)", &stems->other }, { "Voix de l'instru (Demucs)", &stems->vocals } };
+            int created = 0;
+            for (const auto& [name, data] : parts)
+            {
+                auto& t = s->proj.addTrack (style::Role::Instrument, juce::String::fromUTF8 (name));
+                t.raw = true;   // partie séparée = brute : jouée telle quelle, niveau équilibré ; traitement sur demande
+                juce::String err;
+                if (s->addTakeFromAudio (t.id, *data, startSec, err))
+                    ++created;
+                else
+                    SV_LOG_ERROR (kMod, "Partie « "_u8 + juce::String::fromUTF8 (name) + " » non enregistrée : "_u8 + err);
+            }
+            if (auto* inst = s->proj.findTrack (instruId))
+                inst->mute = true;
+            s->markDirty();
+            s->rebuildPlayState();
+            s->sendChangeMessage();
+            s->setStatus (juce::String (created) + " pistes créées depuis l'instru en "_u8 + juce::String (stems->seconds, 0)
+                          + " s ; l'instru d'origine est coupée (M pour la rétablir, Ctrl+Z pour annuler)"_u8);
+        });
+    });
+#else
+    setStatus ("Séparation de l'instru : disponible dans StudioVoix IA"_u8);
+#endif
+}
+
+void Session::ensureToolsThen (const juce::StringArray& toolIds, const juce::String& purpose, std::function<void()> then)
+{
+    std::vector<const ai::local::ToolDef*> missing;
+    for (const auto& id : toolIds)
+        if (const auto* d = ai::local::findTool (id))
+            if (! ai::local::isInstalled (*d))
+                missing.push_back (d);
+    if (missing.empty())
+    {
+        then();
+        return;
+    }
+    if (installProgress != nullptr)
+    {
+        setStatus (purpose + " : un téléchargement est déjà en cours, patiente…"_u8);
+        return;
+    }
+    juce::String list;
+    for (const auto* d : missing)
+    {
+        if (d->url.isEmpty())
+        {
+            setStatus (purpose + " : "_u8 + d->name + " n'est pas disponible sur ce système"_u8);
+            SV_LOG_WARN (kMod, "Outil indisponible : " + d->id);
+            return;
+        }
+        list << "\n\u2022 " << d->name << (d->size > 0 ? " (" + juce::String (d->size / 1024 / 1024) + " Mo)" : juce::String());
+    }
+    SV_LOG_INFO (kMod, purpose + " : " + juce::String (static_cast<int> (missing.size())) + " outil(s) à télécharger"_u8);
+    juce::WeakReference<Session> weak (this);
+    juce::AlertWindow::showAsync (juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::QuestionIcon)
+                                      .withTitle (purpose)
+                                      .withMessage (purpose + " a besoin de télécharger une fois, gratuitement :"_u8 + list
+                                                    + "\n\nEnsuite l'action se lance toute seule (progression en bas de la fenêtre)."_u8)
+                                      .withButton ("Télécharger et continuer"_u8)
+                                      .withButton ("Annuler"),
+                                  [weak, missing, purpose, then] (int r)
+                                  {
+                                      auto* s = weak.get();
+                                      if (s == nullptr || r != 1)
+                                          return;
+                                      s->installThen (missing, purpose, then);
+                                  });
+}
+
+void Session::installThen (std::vector<const ai::local::ToolDef*> missing, const juce::String& purpose, std::function<void()> then)
+{
+    installProgress = std::make_shared<ai::local::Progress>();
+    installTotal = static_cast<int> (missing.size());
+    installIndex = 0;
+    installName = missing.front()->name;
+    lastInstallStatusMs = 0;
+    auto progress = installProgress;
+    juce::WeakReference<Session> weak (this);
+    pool.addJob ([weak, missing, progress, purpose, then]
+    {
+        juce::String error;
+        bool ok = true;
+        for (size_t i = 0; i < missing.size() && ok; ++i)
+        {
+            const auto name = missing[i]->name;
+            juce::MessageManager::callAsync ([weak, name, i]
+            {
+                if (auto* s = weak.get())
+                {
+                    s->installName = name;
+                    s->installIndex = static_cast<int> (i);
+                }
+            });
+            progress->fraction.store (0.0f);
+            progress->downloaded.store (0);
+            ok = ai::local::install (*missing[i], *progress, error);
+        }
+        juce::MessageManager::callAsync ([weak, ok, error, purpose, then]
+        {
+            auto* s = weak.get();
+            if (s == nullptr)
+                return;
+            s->installProgress = nullptr;
+            if (! ok)
+            {
+                s->setStatus (purpose + " : téléchargement échoué — "_u8 + error);
+                return;
+            }
+            s->setStatus ("Outils installés ; "_u8 + purpose + " démarre…"_u8);
+            s->sendChangeMessage();   // panneaux (Outils IA) à jour
+            then();
+        });
+    });
+}
+
+void Session::moveTrack (int trackId, int newIndex, const juce::String& undoLabel)
+{
+    if (proj.findTrack (trackId) == nullptr)
+        return;
+    bool moved = false;
+    updateProject ([&] (project::Project& p) { moved = p.moveTrack (trackId, newIndex); }, false, undoLabel);
+    if (moved)
+        sendChangeMessage();
+}
+
+void Session::moveTrackAudioToStart (int trackId)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || audioEngine.isRecording())
+        return;
+    long first = -1;
+    for (const auto& tk : t->takes)
+        first = first < 0 ? tk.regionStart : std::min (first, tk.regionStart);
+    if (t->takes.empty() && t->sourceFile.isNotEmpty())
+        first = t->sourceStart;
+    if (first <= 0)
+    {
+        setStatus ("« "_u8 + t->name + " » est déjà au début"_u8);
+        return;
+    }
+    updateTrack (trackId, [first] (project::Track& tr)
+    {
+        for (auto& tk : tr.takes)
+        {
+            tk.startSample -= first;
+            tk.regionStart -= first;
+            tk.regionEnd -= first;
+        }
+        if (tr.takes.empty())
+            tr.sourceStart = 0;
+    }, true, "Caler au début"_u8);
+    SV_LOG_INFO (kMod, "Piste « "_u8 + t->name + " » calée au début (-"_u8 + juce::String (first / proj.sampleRate, 2) + " s)");
+    setStatus ("« "_u8 + t->name + " » calée au début du morceau (Ctrl+Z pour annuler)"_u8);
+}
+
+void Session::removeTracks (const std::vector<int>& trackIds)
+{
+    std::vector<int> existing;
+    for (const int id : trackIds)
+        if (proj.findTrack (id) != nullptr)
+            existing.push_back (id);
+    if (existing.empty())
+        return;
+    pushUndo (existing.size() > 1 ? "Suppression de " + juce::String (static_cast<int> (existing.size())) + " pistes"
+                                  : juce::String ("Suppression de piste"));
+    for (const int trackId : existing)
+    {
+        proj.removeTrack (trackId);
+        renders.erase (trackId);
+        ++renderGeneration[trackId];   // un rendu en cours pour cette piste sera ignoré
+        storedGeneration.erase (trackId);
+        pendingRenders.erase (trackId);
+        selectedTracks.erase (trackId);
+    }
+    if (proj.findTrack (selectedTrackId) == nullptr)
+        selectedTrackId = proj.leadTrackId();
+    if (selectedTracks.empty() && proj.findTrack (selectedTrackId) != nullptr)
+        selectedTracks.insert (selectedTrackId);
+    SV_LOG_INFO (kMod, juce::String (static_cast<int> (existing.size())) + " piste(s) supprimée(s)"_u8);
+    setStatus (juce::String (static_cast<int> (existing.size())) + " piste(s) supprimée(s) (Ctrl+Z pour annuler)"_u8);
+    markDirty();
+    launchAutoMix();
+    rebuildPlayState();
+}
+
+void Session::updateTrack (int trackId, const std::function<void (project::Track&)>& change, bool rerender,
+                           const juce::String& undoLabelText)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+        return;
+    if (undoLabelText.isNotEmpty())
+        pushUndo (undoLabelText);
+    change (*t);
+    markDirty();
+    if (rerender)
+        requestRender (trackId);
+    else
+        rebuildPlayState();
+}
+
+void Session::selectTrack (int trackId, bool addToSelection, bool extendRange)
+{
+    if (extendRange && proj.findTrack (selectedTrackId) != nullptr && proj.findTrack (trackId) != nullptr)
+    {
+        // Maj + clic : toutes les pistes entre la dernière piste cliquée et celle-ci.
+        int a = -1, b = -1;
+        for (size_t i = 0; i < proj.tracks.size(); ++i)
+        {
+            if (proj.tracks[i].id == selectedTrackId) a = static_cast<int> (i);
+            if (proj.tracks[i].id == trackId) b = static_cast<int> (i);
+        }
+        for (int i = std::min (a, b); i <= std::max (a, b); ++i)
+            selectedTracks.insert (proj.tracks[static_cast<size_t> (i)].id);
+        SV_LOG_INFO (kMod, juce::String (static_cast<int> (selectedTracks.size())) + " pistes sélectionnées (Maj + clic)"_u8);
+        sendChangeMessage();
+        return;
+    }
+    if (addToSelection)
+    {
+        // Ctrl + clic : ajoute ou retire, sans changer la piste armée.
+        if (selectedTracks.count (trackId) > 0 && selectedTracks.size() > 1)
+        {
+            selectedTracks.erase (trackId);
+            if (selectedTrackId == trackId)
+                selectedTrackId = *selectedTracks.begin();
+        }
+        else
+        {
+            selectedTracks.insert (trackId);
+            selectedTrackId = trackId;
+        }
+        SV_LOG_INFO (kMod, juce::String (static_cast<int> (selectedTracks.size())) + " piste(s) sélectionnée(s) (Ctrl + clic)"_u8);
+        sendChangeMessage();
+        return;
+    }
+    selectedTracks.clear();
+    if (proj.findTrack (trackId) != nullptr)
+        selectedTracks.insert (trackId);
+    selectedTrackId = trackId;
+    // Cliquer sur une piste enregistrable l'arme aussi : la prochaine prise (R / REC) va sur la piste choisie.
+    // Pas pendant un enregistrement (la prise en cours garde sa piste).
+    if (const auto* t = proj.findTrack (trackId); t != nullptr && t->isRecordable() && ! audioEngine.isRecording()
+                                                  && proj.armedTrackId != trackId)
+    {
+        proj.armedTrackId = trackId;
+        dirty = true;
+        SV_LOG_INFO (kMod, "Piste sélectionnée et armée : « "_u8 + t->name + " »"_u8);
+    }
+    sendChangeMessage();
+}
+
+void Session::setStyle (style::Style s)
+{
+    if (s == proj.style)
+        return;
+    // Style du morceau : sert aux pistes générées, au mastering et aux propositions ; les pistes brutes le restent,
+    // chaque piste reçoit ses effets quand on lui choisit un style dans son panneau.
+    pushUndo ("Changement de style");
+    proj.style = s;
+    for (auto& t : proj.tracks)
+        if (t.isVocal() && ! t.isGenerated())
+            t.macros = {};   // nouveau style = ses réglages tels quels (plus de curseurs mémorisés par-dessus)
+    markDirty();
+    renderAll();
+    SV_LOG_INFO (kMod, "Style du morceau : " + style::styleName (s));
+    setStatus ("Style du morceau : " + style::styleName (s) + " (chaque piste garde son réglage « Style » à droite)"_u8);
+}
+
+void Session::setKey (const MusicalKey& key)
+{
+    pushUndo ("Changement de tonalité"_u8);
+    proj.key = key;
+    proj.keyManual = true;
+    refreshContext();
+    for (const auto& t : proj.tracks)
+        if (t.isVocal())
+            requestRender (t.id);
+    markDirty();
+}
+
+void Session::setTempo (double bpm)
+{
+    if (bpm < 40.0 || bpm > 240.0)
+    {
+        setStatus ("Tempo invalide (40 à 240 BPM)"_u8);
+        return;
+    }
+    pushUndo ("Changement de tempo");
+    proj.tempo.bpm = bpm;
+    proj.tempoManual = true;
+    audioEngine.setTempo (bpm, proj.tempo.firstBeatSec);
+    refreshContext();
+    for (const auto& t : proj.tracks)
+        if (t.isVocal())
+            requestRender (t.id);
+    markDirty();
+}
+
+void Session::updateProject (const std::function<void (project::Project&)>& change, bool rerenderVocals, const juce::String& undoLabelText)
+{
+    if (undoLabelText.isNotEmpty())
+        pushUndo (undoLabelText);
+    change (proj);
+    markDirty();
+    if (rerenderVocals)
+    {
+        refreshContext();
+        for (const auto& t : proj.tracks)
+            if (t.isVocal())
+                requestRender (t.id);
+    }
+    else
+    {
+        launchAutoMix();
+    }
+}
+
+void Session::setReferenceTrack (const juce::File& file)
+{
+    pushUndo ("Morceau de référence"_u8);
+    proj.referenceFile = file.getFullPathName();
+    markDirty();
+    refreshContext();
+    for (const auto& t : proj.tracks)
+        if (t.isVocal() && t.referenceEq)
+            requestRender (t.id);
+    setStatus (file == juce::File() ? juce::String ("Morceau de référence retiré"_u8)
+                                    : "Morceau de référence : "_u8 + file.getFileName());
+}
+
+void Session::refreshContext()
+{
+    auto ctx = std::make_shared<dsp::AnalysisContext>();
+    ctx->key = proj.key;
+    if (proj.keyManual)
+        ctx->key.confidence = 1.0f;   // tonalité choisie par l'utilisateur : certaine
+    ctx->tempo = proj.tempo;
+    const juce::String refPath = proj.referenceFile;
+    // Le spectre de référence n'est repris que s'il vient du même fichier (sinon : vide jusqu'au nouveau calcul).
+    if (context != nullptr && refPath.isNotEmpty() && refPath == contextRefPath)
+    {
+        ctx->reference = context->reference;
+        ctx->referenceLufs = context->referenceLufs;
+    }
+    context = ctx;
+
+    if (refPath.isEmpty())
+    {
+        contextRefPath = {};
+        return;
+    }
+    if (refPath == contextRefPath && ctx->reference.valid())
+        return;   // spectre déjà calculé pour ce fichier : pas de nouveau calcul ni de rendu en double
+    contextRefPath = {};
+    // Spectre de référence calculé en tâche de fond.
+    ++activeJobs;
+    const double sr = proj.sampleRate;
+    juce::WeakReference<Session> weak (this);
+    auto* cachePtr = &cache;
+    const int ep = epoch;
+    pool.addJob ([weak, refPath, sr, cachePtr, ep]
+    {
+        juce::String err;
+        auto st = cachePtr->stereo (juce::File (refPath), sr, err);
+        auto spectrum = std::make_shared<analysis::BandSpectrum> (st != nullptr ? analysis::averageSpectrum (audio::toMono (*st), sr)
+                                                                                 : analysis::BandSpectrum());
+        const double refLufs = st != nullptr ? loudness::integratedLufs (*st, sr) : -120.0;
+        juce::MessageManager::callAsync ([weak, spectrum, refPath, err, ep, refLufs]
+        {
+            if (auto* s = weak.get(); s != nullptr && ep == s->epoch)
+            {
+                --s->activeJobs;
+                if (s->proj.referenceFile != refPath)
+                    return;
+                if (! spectrum->valid())
+                {
+                    SV_LOG_ERROR (kMod, "Morceau de référence illisible : "_u8 + refPath + " " + err);
+                    s->setStatus ("Morceau de référence illisible : "_u8 + err);
+                    return;
+                }
+                auto c = std::make_shared<dsp::AnalysisContext> (*s->context);
+                c->reference = *spectrum;
+                c->referenceLufs = refLufs;
+                SV_LOG_INFO (kMod, "Morceau de référence : "_u8 + juce::String (refLufs, 1) + " LUFS");
+                s->context = c;
+                s->contextRefPath = refPath;
+                for (const auto& t : s->proj.tracks)
+                    if (t.isVocal() && t.referenceEq)
+                        s->requestRender (t.id);
+                s->sendChangeMessage();
+            }
+        });
+    });
+}
+
+void Session::addMarkerAtPlayhead()
+{
+    pushUndo ("Marqueur");
+    const double t = positionSec();
+    proj.markers.push_back ({ t, "Marqueur " + juce::String ((int) proj.markers.size() + 1) });
+    markDirty();
+    setStatus ("Marqueur ajouté à "_u8 + juce::String (t, 2) + " s");
+}
+
+void Session::copySectionToSimilar (int trackId, int sectionIndex)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || ! t->isVocal() || t->isGenerated())
+    {
+        setStatus ("Copie de section : choisis une piste voix enregistrée (pas l'instru ni une piste générée)"_u8);
+        return;
+    }
+    pushUndo ("Copie de section");
+    juce::String err;
+    const int copies = render::copySectionToSimilar (proj, trackId, sectionIndex, cache, err);
+    if (copies <= 0)
+    {
+        undoStack.pop_back();
+        setStatus (err.isNotEmpty() ? err : juce::String ("Aucune section semblable trouvée"_u8));
+        return;
+    }
+    markDirty();
+    requestRender (trackId);
+    if (err.isNotEmpty())
+        SV_LOG_WARN (kMod, "Copie de section partielle : "_u8 + err);
+    setStatus ("Section copiée "_u8 + juce::String (copies) + " fois" + (err.isNotEmpty() ? " — "_u8 + err : juce::String()));
+}
+
+// ---------------------------------------------------------------------------------------------
+double Session::positionSec() const
+{
+    return static_cast<double> (audioEngine.getPosition()) / deviceRate();
+}
+
+void Session::setPositionSec (double sec)
+{
+    if (isRecording())
+    {
+        setStatus ("Tête de lecture fixe pendant l'enregistrement (la prise serait décalée)"_u8);
+        return;
+    }
+    audioEngine.setPosition (static_cast<long> (std::max (0.0, sec) * deviceRate()));
+    sendChangeMessage();
+}
+
+void Session::togglePlay()
+{
+    if (audioEngine.isRecording())
+    {
+        stopRecording();
+        return;
+    }
+    if (audioEngine.isPlaying())
+        audioEngine.stop();
+    else
+        audioEngine.play();
+    sendChangeMessage();
+}
+
+void Session::stopTransport()
+{
+    if (audioEngine.isRecording())
+        stopRecording();
+    audioEngine.stop();
+    sendChangeMessage();
+}
+
+void Session::setLyrics (const juce::String& text)
+{
+    if (text == proj.lyrics)
+        return;
+    const auto now = juce::Time::currentTimeMillis();
+    if (now - lastLyricsEditMs > 2000)
+        pushUndo ("Paroles");
+    lastLyricsEditMs = now;
+    proj.lyrics = text;
+    markDirty();
+}
+
+void Session::setLoopRegion (bool enabled, double startSec, double endSec)
+{
+    loopEnabled = enabled;
+    loopStartSec = startSec;
+    loopEndSec = endSec;
+    audioEngine.setLoop (enabled, static_cast<long> (startSec * deviceRate()), static_cast<long> (endSec * deviceRate()));
+}
+
+// ---------------------------------------------------------------------------------------------
+bool Session::startRecording (int trackId, bool punch, double punchInSec, double punchOutSec, juce::String& error)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr || ! t->isRecordable())
+    {
+        error = "Arme une piste voix ou instrument (rond rouge à gauche de la piste) avant d'enregistrer ; "
+                "l'instru importée et les pistes générées ne reçoivent pas de prise"_u8;
+        return false;
+    }
+    if (punch && punchOutSec <= punchInSec + 0.1)
+    {
+        error = "Zone de punch-in invalide : définis-la sur la règle (Maj + glisser)"_u8;
+        return false;
+    }
+    const double dsr = deviceRate();
+    AudioEngine::RecordRequest req;
+    req.file = proj.audioDir().getChildFile ("prise_" + juce::String (trackId) + "_" + juce::String (proj.nextTakeId) + "_" + uniqueStamp() + ".wav");
+    req.punch = punch;
+    req.punchIn = static_cast<long> (punchInSec * dsr);
+    req.punchOut = static_cast<long> (punchOutSec * dsr);
+    // En punch-in, on enregistre 0,5 s avant la zone pour les fondus.
+    req.recordStart = punch ? std::max (0L, req.punchIn - static_cast<long> (0.5 * dsr)) : std::max (0L, audioEngine.getPosition());
+    req.prerollSamples = static_cast<long> (appSettings.countdownBars() * proj.tempo.barSec() * dsr);
+    if (punch)
+        req.prerollSamples = std::max (req.prerollSamples, static_cast<long> (proj.tempo.barSec() * dsr));
+
+    audioEngine.setMetronome (appSettings.metronome());
+    if (! audioEngine.startRecording (req, error))
+        return false;
+    selectedTrackId = trackId;
+    recordingTrackId = trackId;   // la prise ira sur cette piste, même si la sélection change pendant l'enregistrement
+    recordingDeviceKey = audioEngine.deviceKey();
+
+    // Description de la prise à côté du WAV : permet de la récupérer après un plantage (supprimée à l'arrêt).
+    auto* d = new juce::DynamicObject();
+    d->setProperty ("trackId", trackId);
+    d->setProperty ("file", req.file.getFileName());
+    d->setProperty ("recordStart", static_cast<juce::int64> (std::max (0L, req.recordStart)));
+    d->setProperty ("sampleRate", dsr);
+    d->setProperty ("inputLatency", audioEngine.inputLatency());
+    d->setProperty ("outputLatency", audioEngine.outputLatency());
+    d->setProperty ("deviceKey", recordingDeviceKey);
+    d->setProperty ("punch", punch);
+    d->setProperty ("punchIn", static_cast<juce::int64> (req.punchIn));
+    d->setProperty ("punchOut", static_cast<juce::int64> (req.punchOut));
+    recordingSidecar = req.file.withFileExtension (".enregistrement.json");
+    if (! recordingSidecar.replaceWithText (juce::JSON::toString (juce::var (d), false)))
+        SV_LOG_WARN (kMod, "Description de prise non écrite (pas de récupération possible après plantage) : "_u8 + recordingSidecar.getFullPathName());
+    setStatus (juce::String (punch ? "Punch-in" : "Enregistrement") + " sur " + t->name
+               + (req.prerollSamples > 0 ? " — compte à rebours…"_u8 : juce::String()));
+    return true;
+}
+
+void Session::stopRecording()
+{
+    auto take = audioEngine.stopRecording();
+    audioEngine.setMetronome (appSettings.metronome());
+    setLoopRegion (loopEnabled, loopStartSec, loopEndSec);   // un changement de boucle fait pendant la prise
+    const int trackId = recordingTrackId;
+    recordingTrackId = -1;
+    if (recordingSidecar != juce::File() && recordingSidecar.existsAsFile() && ! recordingSidecar.deleteFile())
+        SV_LOG_WARN (kMod, "Description de prise non supprimée : "_u8 + recordingSidecar.getFullPathName());
+    recordingSidecar = juce::File();
+    if (! take.ok)
+    {
+        setStatus ("Prise annulée : "_u8 + take.error);
+        take.file.deleteFile();
+        return;
+    }
+    addRecordedTake (take, trackId, recordingDeviceKey, false);
+}
+
+bool Session::addRecordedTake (const AudioEngine::RecordedTake& take, int trackId, const juce::String& deviceKey, bool recovered)
+{
+    auto* t = proj.findTrack (trackId);
+    if (t == nullptr || ! t->isVocal() || t->isGenerated())
+    {
+        SV_LOG_ERROR (kMod, "Piste de la prise introuvable ou non enregistrable (id "_u8 + juce::String (trackId) + ") : fichier conservé "
+                                + take.file.getFullPathName());
+        setStatus ("Piste de la prise introuvable (fichier conservé : "_u8 + take.file.getFileName() + ")");
+        return false;
+    }
+
+    // Recalage, à la fréquence de la carte qui a enregistré : latences du pilote + écart mesuré au calibrage
+    // (seulement s'il a été fait avec ce matériel) + décalage manuel.
+    const double rate = take.sampleRate > 0.0 ? take.sampleRate : deviceRate();
+    const int manual = static_cast<int> (appSettings.manualLatencyOffsetMs() * 0.001 * rate);
+    int residual = 0;
+    if (appSettings.hasCalibration())
+    {
+        if (appSettings.calibrationDeviceKey() == deviceKey)
+            residual = static_cast<int> (std::lround (appSettings.calibrationResidualMs() * 0.001 * rate));
+        else
+            SV_LOG_WARN (kMod, "Calibrage fait pour un autre matériel ("_u8 + appSettings.calibrationDeviceKey() + ") : latences du pilote seules");
+    }
+    const long deviceStart = project::compensatedTakeStart (take.firstWrittenPosition, take.inputLatency, take.outputLatency + residual, manual);
+    const auto toProj = [this, rate] (long deviceSamples)
+    {
+        return static_cast<long> (std::llround (static_cast<double> (deviceSamples) * proj.sampleRate / rate));
+    };
+
+    pushUndo (recovered ? "Prise récupérée"_u8 : juce::String ("Prise"));
+    project::Take tk;
+    tk.id = proj.nextTakeId++;
+    tk.file = take.file.getFileName();
+    tk.startSample = toProj (deviceStart);
+    const long len = toProj (take.numSamples);
+    tk.punch = take.request.punch;
+    if (tk.punch)
+    {
+        tk.regionStart = std::max (tk.startSample, toProj (take.request.punchIn));
+        tk.regionEnd = std::min (tk.startSample + len, toProj (take.request.punchOut));
+    }
+    else
+    {
+        tk.regionStart = std::max (0L, tk.startSample);
+        tk.regionEnd = tk.startSample + len;
+    }
+    tk.createdMs = juce::Time::currentTimeMillis();
+    if (tk.regionEnd <= tk.regionStart)
+    {
+        undoStack.pop_back();
+        if (! take.file.deleteFile())
+            SV_LOG_WARN (kMod, "Prise trop courte non supprimée : "_u8 + take.file.getFullPathName());
+        setStatus ("Prise trop courte, ignorée"_u8);
+        return false;
+    }
+    t->takes.push_back (tk);
+    const auto shiftMs = (take.firstWrittenPosition - deviceStart) * 1000.0 / rate;
+    SV_LOG_INFO (kMod, juce::String (recovered ? "Prise récupérée #"_u8 : "Prise #") + juce::String (tk.id) + " ajoutée à "_u8 + t->name
+                       + " : recalage " + juce::String (shiftMs, 1) + " ms (dont calibrage " + juce::String (residual * 1000.0 / rate, 1)
+                       + " ms), zone " + juce::String (tk.regionStart / proj.sampleRate, 2) + "-" + juce::String (tk.regionEnd / proj.sampleRate, 2) + " s");
+
+    juce::String err;
+    if (! proj.saveAutosave (err))
+        SV_LOG_ERROR (kMod, "Sauvegarde auto après prise impossible : "_u8 + err);
+    markDirty();
+    if (! recovered && t->role == style::Role::Lead && ! t->raw && appSettings.proposeGenerationAfterTake())
+        leadAwaitingProposal.insert (trackId);
+    requestRender (trackId);
+    setStatus (juce::String (recovered ? "Prise récupérée après une coupure"_u8 : "Prise enregistrée"_u8)
+               + (t->raw ? " — brute, sans effet : choisis un style dans « Effets » à droite pour la traiter"_u8 : juce::String())
+               + " (recalage "_u8 + juce::String (shiftMs, 1) + " ms)"
+               + (take.clipped ? " — ATTENTION : saturation pendant la prise, baisse le gain du micro"_u8 : juce::String())
+               + (take.warning.isNotEmpty() ? " — À VÉRIFIER : "_u8 + take.warning : juce::String())
+               + " — traitement en cours…"_u8);
+    return true;
+}
+
+void Session::recoverInterruptedTakes()
+{
+    const auto dir = proj.audioDir();
+    if (! dir.isDirectory())
+        return;
+    int recoveredCount = 0;
+    for (const auto& desc : dir.findChildFiles (juce::File::findFiles, false, "*.enregistrement.json"))
+    {
+        juce::var v;
+        const auto parsed = juce::JSON::parse (desc.loadFileAsString(), v);
+        const auto wav = dir.getChildFile (v.getProperty ("file", "").toString());
+        bool referenced = false;
+        for (const auto& t : proj.tracks)
+            for (const auto& tk : t.takes)
+                referenced = referenced || tk.file == wav.getFileName();
+        const long length = parsed.wasOk() && wav.existsAsFile() ? AudioEngine::wavFileLength (wav) : -1;
+        if (parsed.failed() || referenced || length <= 0)
+        {
+            SV_LOG_WARN (kMod, "Description de prise ignorée ("_u8 + (parsed.failed() ? "JSON illisible" : referenced ? "déjà dans le projet"_u8 : "fichier audio vide ou absent")
+                                   + ") : " + desc.getFileName());
+            if (! desc.deleteFile())
+                SV_LOG_WARN (kMod, "Suppression impossible : " + desc.getFullPathName());
+            continue;
+        }
+        AudioEngine::RecordedTake take;
+        take.ok = true;
+        take.file = wav;
+        take.firstWrittenPosition = static_cast<long> (static_cast<juce::int64> (v.getProperty ("recordStart", 0)));
+        take.numSamples = length;
+        take.sampleRate = static_cast<double> (v.getProperty ("sampleRate", proj.sampleRate));
+        take.inputLatency = static_cast<int> (v.getProperty ("inputLatency", 0));
+        take.outputLatency = static_cast<int> (v.getProperty ("outputLatency", 0));
+        take.request.file = wav;
+        take.request.punch = static_cast<bool> (v.getProperty ("punch", false));
+        take.request.punchIn = static_cast<long> (static_cast<juce::int64> (v.getProperty ("punchIn", 0)));
+        take.request.punchOut = static_cast<long> (static_cast<juce::int64> (v.getProperty ("punchOut", 0)));
+        take.warning = "prise interrompue (plantage ou coupure) : la fin peut manquer";
+        if (! (take.sampleRate > 1000.0))
+            take.sampleRate = proj.sampleRate;
+        SV_LOG_WARN (kMod, "Prise interrompue retrouvée : "_u8 + wav.getFileName() + ", " + juce::String (length / take.sampleRate, 1) + " s");
+        if (addRecordedTake (take, static_cast<int> (v.getProperty ("trackId", -1)), v.getProperty ("deviceKey", "").toString(), true))
+            ++recoveredCount;
+        if (! desc.deleteFile())
+            SV_LOG_WARN (kMod, "Suppression impossible : " + desc.getFullPathName());
+    }
+    if (recoveredCount > 0)
+        SV_LOG_INFO (kMod, juce::String (recoveredCount) + " prise(s) interrompue(s) récupérée(s)"_u8);
+}
+
+void Session::handleSampleRateChange (double oldRate, double newRate)
+{
+    SV_LOG_WARN (kMod, "Fréquence de la carte modifiée : "_u8 + juce::String (oldRate, 0) + " -> " + juce::String (newRate, 0)
+                       + " Hz : lecture recalculée"_u8);
+    if (oldRate > 0.0 && newRate > 0.0)
+        audioEngine.setPosition (static_cast<long> (std::llround (static_cast<double> (audioEngine.getPosition()) * newRate / oldRate)));
+    setLoopRegion (loopEnabled, loopStartSec, loopEndSec);
+    resampleCache.clear();
+    rebuildPlayState();
+    sendChangeMessage();
+}
+
+// ---------------------------------------------------------------------------------------------
+void Session::requestRender (int trackId)
+{
+    pendingRenders.insert (trackId);
+    pendingSinceMs = juce::Time::currentTimeMillis();
+    trackStatuses[trackId] = "En attente…"_u8;
+    sendChangeMessage();
+}
+
+void Session::renderAll()
+{
+    for (const auto& t : proj.tracks)
+        requestRender (t.id);
+}
+
+void Session::timerCallback()
+{
+    const auto now = juce::Time::currentTimeMillis();
+    if (! pendingRenders.empty() && now - pendingSinceMs > 300)
+    {
+        const auto ids = pendingRenders;
+        pendingRenders.clear();
+        for (int id : ids)
+            launchRender (id);
+    }
+
+    if (installProgress != nullptr && now - lastInstallStatusMs > 1000)
+    {
+        lastInstallStatusMs = now;
+        const float f = installProgress->fraction.load();
+        const auto mb = installProgress->downloaded.load() / 1024 / 1024;
+        status = "Téléchargement de "_u8 + installName + " (" + juce::String (installIndex + 1) + "/" + juce::String (installTotal) + ")… "_u8
+                 + (f > 0.0f ? juce::String (juce::roundToInt (f * 100.0f)) + " %" : juce::String (mb) + " Mo");
+        sendChangeMessage();   // sans passer par setStatus : pas une ligne de journal par seconde
+    }
+
+    if (dirty && proj.folder != juce::File() && now - lastAutosaveMs > 60000)
+    {
+        lastAutosaveMs = now;
+        juce::String err;
+        if (! proj.saveAutosave (err))
+            SV_LOG_ERROR (kMod, "Sauvegarde auto : " + err);
+    }
+}
+
+void Session::launchRender (int trackId)
+{
+    const auto* t = proj.findTrack (trackId);
+    if (t == nullptr)
+    {
+        ++renderGeneration[trackId];   // un rendu encore en cours pour cette piste sera ignoré
+        storedGeneration.erase (trackId);
+        return;
+    }
+    if (t->isVocal() && t->takes.empty() && t->sourceFile.isEmpty())
+    {
+        // Piste vidée (annuler, prises effacées) : un rendu en cours de l'ancienne prise ne doit pas revenir.
+        storedGeneration[trackId] = ++renderGeneration[trackId];
+        trackStatuses[trackId] = "Vide";
+        renders.erase (trackId);
+        pendingGeneration.erase (trackId);
+        leadAwaitingProposal.erase (trackId);
+        rebuildPlayState();
+        return;
+    }
+
+    const int gen = ++renderGeneration[trackId];
+    trackStatuses[trackId] = "Traitement…"_u8;
+    ++activeJobs;
+    sendChangeMessage();
+
+    auto snapshot = std::make_shared<const project::Project> (proj);
+    auto ctx = context;
+    auto* cachePtr = &cache;
+    const int ep = epoch;
+    juce::WeakReference<Session> weak (this);
+    pool.addJob ([weak, snapshot, ctx, cachePtr, trackId, gen, ep]
+    {
+        std::shared_ptr<const render::TrackRender> result;
+        try
+        {
+            // Abandon rapide si le pool demande l'arrêt (changement de projet, fermeture).
+            const ProgressFn keepGoing = [] (float)
+            {
+                auto* job = juce::ThreadPoolJob::getCurrentThreadPoolJob();
+                return job == nullptr || ! job->shouldExit();
+            };
+            const auto* track = snapshot->findTrack (trackId);
+            result = track != nullptr ? render::renderTrack (*snapshot, *track, *cachePtr, *ctx, keepGoing) : nullptr;
+        }
+        catch (const std::exception& e)
+        {
+            auto r = std::make_shared<render::TrackRender>();
+            r->trackId = trackId;
+            r->error = juce::String ("Exception pendant le rendu : ") + e.what();
+            result = r;
+        }
+        juce::MessageManager::callAsync ([weak, result, trackId, gen, ep]
+        {
+            if (auto* s = weak.get())
+                if (ep == s->epoch)
+                    s->onRenderDone (trackId, gen, result);
+        });
+    });
+}
+
+void Session::onRenderDone (int trackId, int generation, std::shared_ptr<const render::TrackRender> result)
+{
+    --activeJobs;
+    if (renderGeneration[trackId] != generation || proj.findTrack (trackId) == nullptr)
+    {
+        sendChangeMessage();
+        return;   // résultat périmé (réglages modifiés entre-temps)
+    }
+    if (result == nullptr || ! result->ok())
+    {
+        trackStatuses[trackId] = "Erreur : " + (result != nullptr ? result->error : juce::String ("rendu impossible"));
+        SV_LOG_ERROR (kMod, trackStatuses[trackId]);
+        if (pendingGeneration.erase (trackId) > 0)
+            SV_LOG_WARN (kMod, "Génération en attente annulée : le rendu de la voix principale a échoué"_u8);
+        leadAwaitingProposal.erase (trackId);
+        sendChangeMessage();
+        return;
+    }
+    renders[trackId] = result;
+    storedGeneration[trackId] = generation;
+    const auto& rep = result->report;
+    {
+        // Mesures pour les alertes : crête et sonie du rendu.
+        TrackMetrics m;
+        for (int c = 0; c < result->processed.getNumChannels(); ++c)
+            m.peakDb = std::max (m.peakDb, gainToDb (result->processed.getMagnitude (c, 0, result->processed.getNumSamples())));
+        for (int c = 0; c < result->raw.getNumChannels(); ++c)
+            m.rawPeakDb = std::max (m.rawPeakDb, gainToDb (result->raw.getMagnitude (c, 0, result->raw.getNumSamples())));
+        m.lufs = loudness::integratedLufs (result->processed, proj.sampleRate);
+        trackMetrics[trackId] = m;
+        const auto w = trackWarnings (trackId);
+        if (w.isNotEmpty())
+            SV_LOG_WARN (kMod, "Alerte sur « "_u8 + proj.findTrack (trackId)->name + " » : " + w);
+    }
+    trackStatuses[trackId] = result->compSummary.isNotEmpty() && ! proj.findTrack (trackId)->isGenerated()
+                               ? "Prêt — "_u8 + result->compSummary
+                               : juce::String ("Prêt"_u8);
+    if (proj.findTrack (trackId)->raw)
+        trackStatuses[trackId] << " | brut, sans effet"_u8;
+    else if (proj.findTrack (trackId)->isVocal())
+        trackStatuses[trackId] << " | justesse " << juce::String (juce::roundToInt (rep.meanCorrectionCents)) << " c, comp "
+                               << juce::String (rep.compGrDb, 1) << " dB";
+    if (rep.nearSilent)
+        trackStatuses[trackId] << " | PRISE QUASI SILENCIEUSE : vérifie l'entrée micro"_u8;
+    if (activeJobs == 0 && pendingRenders.empty())
+    {
+        // Tous les rendus terminés : bilan des alertes de l'ingénieur du son.
+        juce::StringArray alerts;
+        for (const auto& t : proj.tracks)
+            if (const auto w = trackWarnings (t.id); w.isNotEmpty())
+                alerts.add (t.name + " : " + w);
+        if (! alerts.isEmpty())
+            setStatus ("Ingénieur du son : "_u8 + juce::String (alerts.size()) + " alerte(s) — " + alerts.joinIntoString (" | "));
+    }
+
+    // Génération en attente de ce rendu ?
+    if (auto it = pendingGeneration.find (trackId); it != pendingGeneration.end())
+    {
+        const auto opts = it->second;
+        pendingGeneration.erase (it);
+        startGeneration (trackId, opts);
+    }
+    else if (leadAwaitingProposal.count (trackId) > 0)
+    {
+        leadAwaitingProposal.erase (trackId);
+        if (onLeadTakeReady)
+            onLeadTakeReady (trackId);
+    }
+
+    launchAutoMix();
+    rebuildPlayState();
+}
+
+void Session::launchAutoMix()
+{
+    if (! proj.autoMixEnabled)
+    {
+        ++autoMixGeneration;   // un calcul en cours ne doit pas réactiver le mix auto
+        mixState = {};
+        duckedInstruShared.reset();
+        rebuildPlayState();
+        return;
+    }
+    const int gen = ++autoMixGeneration;
+    ++autoMixJobs;
+    auto snapshot = std::make_shared<const project::Project> (proj);
+    auto rendersCopy = std::make_shared<const render::RenderSet> (renders);
+    ++activeJobs;
+    juce::WeakReference<Session> weak (this);
+    const int ep = epoch;
+    pool.addJob ([weak, snapshot, rendersCopy, gen, ep]
+    {
+        auto ms = std::make_shared<render::MixState> (render::computeAutoMix (*snapshot, *rendersCopy));
+        juce::MessageManager::callAsync ([weak, ms, gen, ep]
+        {
+            if (auto* s = weak.get(); s != nullptr && ep == s->epoch)
+            {
+                --s->activeJobs;
+                --s->autoMixJobs;
+                if (gen != s->autoMixGeneration)
+                    return;
+                s->mixState = std::move (*ms);
+                // L'instru avec creux est partagée avec le moteur (aucune copie à chaque réglage de volume).
+                auto& ducked = s->mixState.autoMix.duckedInstru;
+                s->duckedInstruShared = ducked.getNumSamples() > 0 ? std::make_shared<const Stereo> (std::move (ducked)) : nullptr;
+                s->rebuildPlayState();
+                s->sendChangeMessage();
+            }
+        });
+    });
+}
+
+void Session::rebuildPlayState()
+{
+    auto st = std::make_shared<AudioEngine::PlayState>();
+    bool solo = false;
+    for (const auto& t : proj.tracks)
+        solo = solo || t.solo;
+
+    const double dsr = deviceRate();
+    const bool resample = std::abs (dsr - proj.sampleRate) > 1.0;
+    for (auto it = resampleCache.begin(); it != resampleCache.end();)
+        it = it->second.source.expired() ? resampleCache.erase (it) : std::next (it);
+    for (const auto& t : proj.tracks)
+    {
+        if (t.mute || (solo && ! t.solo))
+            continue;
+        auto it = renders.find (t.id);
+        if (it == renders.end() || it->second == nullptr || ! it->second->ok())
+            continue;
+        const auto& r = it->second;
+        std::shared_ptr<const Stereo> buf;
+        if (t.role == style::Role::Instru && ! t.raw && mixState.autoMixApplied && duckedInstruShared != nullptr)
+            buf = duckedInstruShared;
+        else if (t.isVocal() && ! t.processingEnabled)
+            buf = std::shared_ptr<const Stereo> (r, &r->raw);
+        else
+            buf = std::shared_ptr<const Stereo> (r, &r->processed);
+        if (resample)
+        {
+            // Rééchantillonnage seulement si ce tampon n'a pas déjà été converti à cette fréquence.
+            auto& cached = resampleCache[buf.get()];
+            if (cached.buffer == nullptr || std::abs (cached.rate - dsr) > 0.5 || cached.source.lock() != buf)
+            {
+                log::ScopedTimer timer (kMod, "rééchantillonnage pour la carte ("_u8 + t.name + ")");
+                cached = { buf, dsr, std::make_shared<const Stereo> (audio::resample (*buf, proj.sampleRate, dsr)) };
+            }
+            buf = cached.buffer;
+        }
+
+        AudioEngine::PlayTrack pt;
+        pt.buffer = buf;
+        pt.start = toDevice (r->startSample);
+        const float vocalGain = t.isVoice() && mixState.autoMixApplied ? mixState.autoMix.vocalGainDb : 0.0f;
+        const float g = dbToGain (t.volumeDb + vocalGain + mixState.autoTrackGain (t.id));
+        const float p = juce::jlimit (-1.0f, 1.0f, t.pan);
+        auto& peak = trackPeaks[t.id];
+        if (peak == nullptr)
+            peak = std::make_shared<std::atomic<float>> (0.0f);
+        pt.peak = peak;
+        pt.gainL = g * (p <= 0.0f ? 1.0f : 1.0f - p);
+        pt.gainR = g * (p >= 0.0f ? 1.0f : 1.0f + p);
+        pt.voiceBus = t.isVoice();
+        st->length = std::max (st->length, pt.start + static_cast<long> (buf->getNumSamples()));
+        st->tracks.push_back (pt);
+    }
+    st->busGlue = proj.vocalBusEnabled;
+    st->busMakeupDb = mixState.busMakeupDb;
+    audioEngine.setPlayState (st);
+}
+
+// ---------------------------------------------------------------------------------------------
+void Session::generate (int leadTrackId, const gen::GenerationOptions& options)
+{
+    const auto* lead = proj.findTrack (leadTrackId);
+    if (lead == nullptr)
+    {
+        setStatus ("Voix principale introuvable");
+        return;
+    }
+    if (lead->raw)
+    {
+        setStatus ("La voix principale est brute : choisis d'abord un style dans le panneau de droite, puis génère"_u8);
+        return;
+    }
+    auto it = renders.find (leadTrackId);
+    const bool ready = it != renders.end() && it->second != nullptr && it->second->ok() && ! it->second->prepared.empty()
+                       && pendingRenders.count (leadTrackId) == 0 && trackStatuses[leadTrackId].startsWith ("Pr");
+    if (! ready)
+    {
+        pendingGeneration[leadTrackId] = options;
+        setStatus ("Génération lancée dès que la voix principale est traitée…"_u8);
+        return;
+    }
+    startGeneration (leadTrackId, options);
+}
+
+void Session::startGeneration (int leadTrackId, const gen::GenerationOptions& options)
+{
+    auto it = renders.find (leadTrackId);
+    if (it == renders.end() || it->second == nullptr || ! it->second->ok())
+    {
+        setStatus ("Voix principale non traitée : génération impossible"_u8);
+        return;
+    }
+    juce::String verr;
+    if (! proj.saveVersion ("avant génération"_u8, verr))
+        SV_LOG_WARN (kMod, verr);
+
+    struct GenOut
+    {
+        juce::String name, detail, file;
+        style::Role role;
+        float pan, width;
+    };
+    auto leadRender = it->second;
+    gen::LeadAnalysis la;
+    la.prepared = leadRender->prepared;
+    la.track = leadRender->track;
+    la.va = leadRender->va;
+    la.key = proj.key;
+    la.tempo = proj.tempo;
+    if (! proj.keyManual && proj.key.confidence < 0.2f)
+        SV_LOG_WARN (kMod, "Harmonies calculées sur une tonalité incertaine ("_u8 + proj.key.toFrench() + ", confiance "
+                           + juce::String (proj.key.confidence, 2) + ") : corrige la tonalité si elles sonnent faux"_u8);
+    auto lead = std::make_shared<gen::LeadAnalysis> (std::move (la));
+    auto opts = options;
+    if (opts.adLibFolder == juce::File() && proj.adLibFolder.isNotEmpty())
+        opts.adLibFolder = juce::File (proj.adLibFolder);
+    const auto audioDir = proj.audioDir();
+    const double sr = proj.sampleRate;
+    const long start = leadRender->startSample;
+    ++activeJobs;
+    setStatus ("Génération des backs, harmonies, ad-libs…"_u8
+               + (! proj.keyManual && proj.key.confidence < 0.2f ? " (tonalité incertaine : vérifie les harmonies)"_u8 : juce::String()));
+    const int ep = epoch;
+    juce::WeakReference<Session> weak (this);
+    pool.addJob ([weak, lead, opts, audioDir, sr, leadTrackId, start, ep]
+    {
+        auto outs = std::make_shared<std::vector<GenOut>>();
+        auto errors = std::make_shared<juce::StringArray>();
+        const auto tracks = gen::generate (*lead, sr, opts);
+        int idx = 0;
+        for (const auto& g : tracks)
+        {
+            GenOut o { g.name, g.detail, "gen_" + juce::String (leadTrackId) + "_" + juce::String (idx++) + "_" + uniqueStamp() + ".wav",
+                       g.role, g.pan, g.width };
+            juce::String err;
+            if (audio::writeMonoWavFloat (audioDir.getChildFile (o.file), g.audio, sr, err))
+                outs->push_back (o);
+            else
+                errors->add (g.name + " : " + err);
+        }
+        juce::MessageManager::callAsync ([weak, outs, errors, leadTrackId, start, ep]
+        {
+            auto* s = weak.get();
+            if (s == nullptr || ep != s->epoch)
+                return;
+            --s->activeJobs;
+            const auto* leadTrack = s->proj.findTrack (leadTrackId);
+            if (leadTrack == nullptr)
+            {
+                SV_LOG_WARN (kMod, "Génération terminée mais la voix principale a été supprimée : "_u8 + juce::String ((int) outs->size())
+                                       + " fichier(s) non utilisés"_u8);
+                s->setStatus ("Génération abandonnée : la voix principale n'existe plus"_u8);
+                return;
+            }
+            s->pushUndo ("Génération"_u8);
+            const auto macros = leadTrack->macros;
+            std::vector<int> old;
+            for (const auto& t : s->proj.tracks)
+                if (t.generatedFrom == leadTrackId)
+                    old.push_back (t.id);
+            for (int id : old)
+            {
+                s->proj.removeTrack (id);
+                s->renders.erase (id);
+            }
+            for (const auto& o : *outs)
+            {
+                auto& t = s->proj.addTrack (o.role, o.name);
+                t.generatedFrom = leadTrackId;
+                t.detail = o.detail;
+                t.genPan = o.pan;
+                t.genWidth = o.width;
+                t.sourceFile = o.file;
+                t.sourceStart = start;
+                t.macros = macros;
+                t.macros.level = 0.5f;
+                s->requestRender (t.id);
+            }
+            s->markDirty();
+            s->setStatus (juce::String ((int) outs->size()) + " pistes générées"_u8
+                          + (errors->isEmpty() ? juce::String() : " — erreurs : "_u8 + errors->joinIntoString ("; ")));
+        });
+    });
+}
+
+void Session::exportMix (const render::ExportOptions& options, std::function<void (const render::ExportReport&)> done)
+{
+    juce::StringArray inError;
+    for (const auto& t : proj.tracks)
+        if (trackStatus (t.id).startsWith ("Erreur"))
+            inError.add (t.name);
+    // Le mix auto en cours ne bloque pas : l'export recalcule le sien.
+    const bool rendering = ! pendingRenders.empty() || activeJobs - autoMixJobs > 0;
+    if (rendering || ! inError.isEmpty())
+    {
+        render::ExportReport rep;
+        rep.error = ! inError.isEmpty() ? "Piste(s) en erreur : "_u8 + inError.joinIntoString (", ") + ". Corrige-les ou supprime-les avant l'export."_u8
+                                        : "Des pistes sont encore en cours de traitement : réessaie dans un instant"_u8;
+        SV_LOG_WARN (kMod, "Export refusé : "_u8 + rep.error);
+        done (rep);
+        return;
+    }
+    auto snapshot = std::make_shared<const project::Project> (proj);
+    auto rendersCopy = std::make_shared<const render::RenderSet> (renders);
+    ++activeJobs;
+    setStatus ("Export en cours…"_u8);
+    juce::WeakReference<Session> weak (this);
+    const int ep = epoch;
+    pool.addJob ([weak, snapshot, rendersCopy, options, done, ep]
+    {
+        auto rep = std::make_shared<render::ExportReport> (render::exportProject (*snapshot, *rendersCopy, options));
+        juce::MessageManager::callAsync ([weak, rep, done, ep]
+        {
+            if (auto* s = weak.get(); s != nullptr && ep == s->epoch)
+            {
+                --s->activeJobs;
+                s->setStatus (rep->ok ? "Export terminé : "_u8 + rep->mixFile.getFileName() + " (" + juce::String (rep->master.outputLufs, 1) + " LUFS)"
+                                            + (rep->warning.isNotEmpty() ? " — à vérifier : "_u8 + rep->warning : juce::String())
+                                      : "Export impossible : " + rep->error);
+            }
+            done (*rep);
+        });
+    });
+}
+
+std::shared_ptr<const render::TrackRender> Session::renderFor (int trackId) const
+{
+    auto it = renders.find (trackId);
+    return it != renders.end() ? it->second : nullptr;
+}
+
+juce::String Session::trackStatus (int trackId) const
+{
+    auto it = trackStatuses.find (trackId);
+    return it != trackStatuses.end() ? it->second : juce::String();
+}
+
+float Session::trackPeakNow (int trackId)
+{
+    auto it = trackPeaks.find (trackId);
+    return it != trackPeaks.end() && it->second != nullptr ? it->second->exchange (0.0f) : 0.0f;
+}
+
+std::vector<Session::TrackIssue> Session::trackIssues (int trackId) const
+{
+    std::vector<TrackIssue> issues;
+    const auto* t = proj.findTrack (trackId);
+    auto it = trackMetrics.find (trackId);
+    auto r = renderFor (trackId);
+    if (t == nullptr || it == trackMetrics.end() || r == nullptr || ! r->ok())
+        return issues;
+    const auto& m = it->second;
+    const bool instru = t->role == style::Role::Instru;
+    // Corrections que le programme sait appliquer : « Correction automatique » sur la piste (dé-écrêtage, débruitage,
+    // niveleur, résonances, EQ corrective, limiteur −1 dBTP), nettoyage de la chaîne, baisse du fader.
+    const auto correctionFix = [trackId] (Session& s) { s.setTrackTreatment (trackId, false, dsp::kCorrectionStyleId); };
+
+    if (t->raw && ! t->isGenerated())
+    {
+        // Piste brute : les défauts mesurés sur le son (écrêtage, bruit, niveau irrégulier, résonances, boue, dureté,
+        // sifflantes), corrigeables d'un clic par la correction automatique.
+        juce::StringArray found;
+        for (const auto& f : r->problemsFound)
+            if (! f.startsWith ("instrument reconnu"_u8))   // information, pas un défaut
+                found.add (f);
+        if (! found.isEmpty())
+            issues.push_back ({ (instru ? "Instru : "_u8 : "Son brut : "_u8) + found.joinIntoString (" ; "),
+                                instru ? "Corriger : réparer l'instru (correction automatique, stéréo liée)"_u8
+                                       : "Corriger : son propre (correction automatique, sans effet de style)"_u8,
+                                correctionFix });
+        else if (m.rawPeakDb > -0.2f)
+            issues.push_back ({ (instru ? "Fichier écrêté à la source (crête "_u8 : "Prise écrêtée (crête "_u8) + juce::String (m.rawPeakDb, 1) + " dBFS)"_u8,
+                                "Corriger : dé-écrêtage (correction automatique)"_u8, correctionFix });
+    }
+    else
+    {
+        // Piste traitée : écrêtage à la source signalé si rien ne l'a réparé (nettoyage coupé) ; une prise réparée par le
+        // dé-écrêtage ne fait plus l'objet d'une alerte (conseil : baisser le gain du micro pour la prochaine).
+        const bool declipped = r->report.clean.clippedRepaired > 0;
+        if (m.rawPeakDb > -0.2f && ! declipped)
+        {
+            TrackIssue is;
+            is.text = instru ? "Fichier écrêté à la source (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS)"_u8
+                             : "Prise écrêtée (crête "_u8 + juce::String (m.rawPeakDb, 1) + " dBFS) : baisse le gain du micro pour la prochaine"_u8;
+            if (t->isVocal() && ! t->cleaning && ! t->isCorrection())
+            {
+                is.fixLabel = "Corriger : activer le nettoyage (dé-écrêtage)"_u8;
+                is.fix = [trackId] (Session& s) { s.updateTrack (trackId, [] (project::Track& tr) { tr.cleaning = true; }, true, "Nettoyage (dé-écrêtage)"_u8); };
+            }
+            else if (! t->isCorrection())
+            {
+                is.fixLabel = "Corriger : réparer (correction automatique)"_u8;
+                is.fix = correctionFix;
+            }
+            issues.push_back (std::move (is));
+        }
+    }
+    if (m.peakDb > 1.0f)
+    {
+        TrackIssue is;
+        is.text = "Sature après traitement (crête "_u8 + juce::String (m.peakDb, 1) + " dBFS)";
+        if (t->raw && ! t->isGenerated() && issues.empty())
+        {
+            is.fixLabel = "Corriger : limiteur -1 dBTP (correction automatique)"_u8;
+            is.fix = correctionFix;
+        }
+        issues.push_back (std::move (is));
+    }
+    if (std::abs (r->processingLagMs) > 15.0f)
+        issues.push_back ({ "Traitement décalé de "_u8 + juce::String (juce::roundToInt (r->processingLagMs)) + " ms par rapport au son brut (à signaler)"_u8, {}, nullptr });
+    // Plus forte que la voix principale (sonie mesurée, fader et orchestre compris) : corrigeable par le fader.
+    if (t->isVoice() && ! t->raw && t->id != proj.leadTrackId())
+        if (auto lead = trackMetrics.find (proj.leadTrackId()); lead != trackMetrics.end() && lead->second.lufs > -100.0 && m.lufs > -100.0)
+        {
+            const auto* lt = proj.findTrack (proj.leadTrackId());
+            const double over = m.lufs + t->volumeDb + mixState.autoTrackGain (t->id) - lead->second.lufs - (lt != nullptr ? lt->volumeDb : 0.0f);
+            if (over > 1.0)
+            {
+                const float cut = static_cast<float> (std::ceil (over * 2.0) / 2.0);   // au demi-dB
+                issues.push_back ({ "Plus forte que la voix principale (+"_u8 + juce::String (over, 1) + " LU)"_u8,
+                                    "Corriger : baisser son volume de "_u8 + juce::String (cut, 1) + " dB",
+                                    [trackId, cut] (Session& s) { s.updateTrack (trackId, [cut] (project::Track& tr) { tr.volumeDb -= cut; }, true, "Volume baissé (plus forte que la voix principale)"_u8); } });
+            }
+        }
+    return issues;
+}
+
+juce::String Session::trackWarnings (int trackId) const
+{
+    juce::StringArray w;
+    for (const auto& is : trackIssues (trackId))
+        w.add (is.text);
+    return w.joinIntoString (" ; ");
+}
+
+juce::String Session::trackCorrections (int trackId) const
+{
+    const auto* t = proj.findTrack (trackId);
+    auto it = trackMetrics.find (trackId);
+    auto r = renderFor (trackId);
+    if (t == nullptr || it == trackMetrics.end() || r == nullptr || ! r->ok())
+        return {};
+    juce::StringArray c;
+    const auto& m = it->second;
+    if (r->report.clean.clippedRepaired > 0)
+        c.add ("écrêtage réparé ("_u8 + juce::String (r->report.clean.clippedRepaired) + " échantillons)"_u8);
+    for (const auto& su : r->report.leveler.surges)
+        c.add ("montée "_u8 + su.describe() + (r->report.leveler.applied ? " rabaissée"_u8 : " (non rabaissée)"_u8));
+    if (t->isVoice() && r->report.outOfScaleFraction >= 0.25f)
+    {
+        if (r->report.scaleAdapted)
+            c.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors "_u8 + proj.key.toFrench()
+                   + " : accordée sur la gamme chantée, "_u8 + r->report.adaptedKey.toFrench());
+        else if (r->report.chromaticUsed && proj.scaleCorrection)
+            c.add (juce::String (juce::roundToInt (r->report.outOfScaleFraction * 100.0f)) + " % des notes hors "_u8 + proj.key.toFrench()
+                   + " : accordée note par note"_u8);
+    }
+    juce::ignoreUnused (m);
+    return c.joinIntoString (" ; ");
+}
+
+// ---------------------------------------------------------------------------------------------
+void Session::pushUndo (const juce::String& label)
+{
+    undoStack.push_back ({ label, proj.toVar() });
+    if (static_cast<int> (undoStack.size()) > kMaxUndo)
+        undoStack.erase (undoStack.begin());
+    redoStack.clear();
+    renderMemo.clear();
+}
+
+void Session::restoreSnapshot (const juce::var& state)
+{
+    project::Project restored;
+    restored.folder = proj.folder;
+    juce::String err;
+    if (! project::Project::fromVar (state, restored, err))
+    {
+        setStatus ("Restauration impossible : " + err);
+        return;
+    }
+    restored.folder = proj.folder;
+    const auto before = proj;
+    proj = std::move (restored);
+
+    // Recalcul des seules pistes modifiées.
+    std::set<int> toRender;
+    const bool globalChange = before.style != proj.style || before.key.root != proj.key.root || before.key.minor != proj.key.minor
+                              || std::abs (before.tempo.bpm - proj.tempo.bpm) > 1.0e-6 || std::abs (before.tempo.firstBeatSec - proj.tempo.firstBeatSec) > 1.0e-6
+                              || before.referenceFile != proj.referenceFile;
+    for (const auto& t : proj.tracks)
+        if (globalChange || trackJson (before, t.id) != trackJson (proj, t.id))
+            toRender.insert (t.id);
+
+    // Mise de côté des rendus à jour des pistes qui changent ou disparaissent (pour rétablir / annuler).
+    const auto beforeGlobal = globalSignature (before);
+    for (const auto& t : before.tracks)
+    {
+        if (proj.findTrack (t.id) != nullptr && toRender.count (t.id) == 0)
+            continue;
+        const auto r = renders.find (t.id);
+        if (r == renders.end() || r->second == nullptr || pendingRenders.count (t.id) > 0
+            || storedGeneration[t.id] != renderGeneration[t.id])
+            continue;   // rendu absent ou périmé : rien à garder
+        renderMemo.push_back ({ t.id, trackJson (before, t.id) + beforeGlobal, r->second });
+    }
+    for (;;)
+    {
+        size_t bytes = 0;
+        for (const auto& e : renderMemo)
+            bytes += renderBytes (*e.render);
+        if (renderMemo.empty() || (renderMemo.size() <= kMaxMemoRenders && bytes <= kMaxMemoBytes))
+            break;
+        renderMemo.pop_front();   // les plus anciens d'abord
+    }
+
+    // Les rendus encore en cours pour l'état précédent ne doivent plus être appliqués.
+    for (int id : toRender)
+        ++renderGeneration[id];
+    for (const auto& t : before.tracks)
+        if (proj.findTrack (t.id) == nullptr)
+        {
+            ++renderGeneration[t.id];
+            storedGeneration.erase (t.id);
+            pendingRenders.erase (t.id);
+        }
+    if (! pendingGeneration.empty())
+    {
+        SV_LOG_WARN (kMod, "Génération en attente annulée par annuler / rétablir"_u8);
+        pendingGeneration.clear();
+    }
+    leadAwaitingProposal.clear();
+
+    for (auto it = renders.begin(); it != renders.end();)
+        it = proj.findTrack (it->first) == nullptr ? renders.erase (it) : std::next (it);
+    if (globalChange)
+        refreshContext();
+    audioEngine.setTempo (proj.tempo.bpm, proj.tempo.firstBeatSec);
+
+    const auto nowGlobal = globalSignature (proj);
+    int reused = 0;
+    for (int id : toRender)
+    {
+        const auto sig = trackJson (proj, id) + nowGlobal;
+        const auto m = std::find_if (renderMemo.begin(), renderMemo.end(),
+                                     [&] (const MemoRender& e) { return e.trackId == id && e.signature == sig; });
+        if (m == renderMemo.end())
+        {
+            requestRender (id);
+            continue;
+        }
+        renders[id] = m->render;
+        storedGeneration[id] = ++renderGeneration[id];   // invalide un rendu en cours pour cette piste
+        pendingRenders.erase (id);
+        trackStatuses[id] = "Prêt"_u8;
+        renderMemo.erase (m);
+        ++reused;
+    }
+    SV_LOG_INFO (kMod, "Restauration : " + juce::String (static_cast<int> (toRender.size())) + " piste(s) modifiée(s), "_u8
+                       + juce::String (reused) + " rendu(s) réutilisé(s) sans recalcul, "_u8
+                       + juce::String (static_cast<int> (renderMemo.size())) + " en réserve"_u8);
+    if (proj.findTrack (selectedTrackId) == nullptr)
+        selectedTrackId = proj.leadTrackId();
+    selectedTracks.clear();
+    if (proj.findTrack (selectedTrackId) != nullptr)
+        selectedTracks.insert (selectedTrackId);
+    markDirty();
+    launchAutoMix();
+    rebuildPlayState();
+}
+
+void Session::undo()
+{
+    if (isRecording())
+    {
+        setStatus ("Annuler est indisponible pendant l'enregistrement"_u8);
+        return;
+    }
+    if (undoStack.empty())
+        return;
+    auto snap = undoStack.back();
+    undoStack.pop_back();
+    redoStack.push_back ({ snap.label, proj.toVar() });
+    restoreSnapshot (snap.state);
+    setStatus ("Annulé : "_u8 + snap.label);
+}
+
+void Session::redo()
+{
+    if (isRecording())
+    {
+        setStatus ("Rétablir est indisponible pendant l'enregistrement"_u8);
+        return;
+    }
+    if (redoStack.empty())
+        return;
+    auto snap = redoStack.back();
+    redoStack.pop_back();
+    undoStack.push_back ({ snap.label, proj.toVar() });
+    restoreSnapshot (snap.state);
+    setStatus ("Rétabli : "_u8 + snap.label);
+}
+} // namespace sv::app
