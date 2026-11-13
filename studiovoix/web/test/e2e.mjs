@@ -226,6 +226,10 @@ try {
         if (!rep) throw new Error('mixage final après séparation en échec : ' + await page.textContent('#status'));
         console.log(stamp(), `chanson remixée : ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
         await page.click('#stopPlayBtn');
+        const clock = await page.textContent('#time');
+        if (!/^\d+:\d\d\.\d$/.test(clock)) throw new Error(`compteur de temps invalide : « ${clock} »`);
+        const fin = await page.textContent('#finalInfo');
+        if (/sans traitement/.test(fin)) throw new Error('mixage final : pistes séparées « sans effet » signalées comme brutes : ' + fin);
         if (shot) await page.screenshot({ path: shot, fullPage: true });
         const fatal = errors.filter((e) => !/favicon/i.test(e));
         if (fatal.length) { console.error('erreurs console :', fatal.join('\n')); process.exitCode = 1; } else console.log(stamp(), 'OK');
@@ -361,6 +365,10 @@ try {
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
     }
 
+    {
+        const clock = await page.textContent('#time');
+        if (!/^\d+:\d\d\.\d$/.test(clock)) throw new Error(`compteur de temps invalide : « ${clock} »`);
+    }
     if (shot) { await page.screenshot({ path: shot, fullPage: true }); console.log(stamp(), 'capture :', shot); }
     const fatal = errors.filter((e) => !/favicon/i.test(e));
     if (fatal.length) { console.error('erreurs console :', fatal.join('\n')); process.exitCode = 1; }

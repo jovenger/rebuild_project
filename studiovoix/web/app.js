@@ -618,7 +618,13 @@ function laneEvents(lane, t) {
     lane.addEventListener('pointercancel', () => { drag = null; });
 }
 function setPlayhead(sec) {
-    ui.tracks.style.setProperty('--pos', `${(sec / songSeconds()) * 100}%`);
+    // Position bornée [0, durée] : une valeur négative ou NaN (arrêt, séparation) affichait « -1:-0.0 ».
+    const total = songSeconds();
+    const out = !Number.isFinite(sec) || sec < 0 || (total > 0 && sec > total);
+    if (out && !setPlayhead.warned) log('debug', `tête de lecture hors bornes (${sec}) : ramenée dans [0, ${total.toFixed(1)}]`);
+    setPlayhead.warned = out;   // un seul log par sortie de bornes (évite d'inonder le journal à chaque image)
+    sec = Math.min(Math.max(Number.isFinite(sec) ? sec : 0, 0), total > 0 ? total : 0);
+    ui.tracks.style.setProperty('--pos', `${total > 0 ? (sec / total) * 100 : 0}%`);
     ui.time.textContent = `${Math.floor(sec / 60)}:${(sec % 60).toFixed(1).padStart(4, '0')}`;
 }
 
@@ -1379,7 +1385,7 @@ ui.finalMixBtn.addEventListener('click', async () => {
         const list = state.tracks.filter((t) => t.take && audible(t));
         if (!state.instru && !list.length) throw new Error('rien à mixer (ni instru ni prise)');
         const sr = state.instru?.sampleRate || list[0].take.sampleRate;
-        const unprocessed = list.filter((t) => !t.processed).map((t) => t.name);
+        const unprocessed = list.filter((t) => !t.processed && !t.noFx).map((t) => t.name);   // « sans effet » : brut voulu
         setStatus(`Mixage de la chanson : ${list.length} piste(s) voix + instru, mastering ${ui.finalTarget.selectedOptions[0].textContent}…`);
         const t0 = performance.now();
         const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0]?.styleId || 'rap_conscient';
