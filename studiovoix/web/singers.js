@@ -39,7 +39,9 @@ export function findPhrases(mono, sr) {
     if (!lv.length) return [];
     const sorted = [...lv].sort((a, b) => a - b);
     const floor = sorted[Math.floor(sorted.length * 0.1)], peak = sorted[sorted.length - 1];
-    const thr = Math.max(floor + 15, peak - 45);
+    // Seuil : 15 dB au-dessus du fond, mais jamais à moins de 20 dB sous la crête — sur un chant continu (rap, voix sans
+    // pause) le « fond » est déjà de la voix, et le seuil passait au-dessus de tout : aucune phrase, donc aucun chanteur.
+    const thr = Math.max(Math.min(floor + 15, peak - 20), peak - 45);
     const out = [];
     let start = -1, lastOn = -1;
     for (let f = 0; f < lv.length; ++f) {
@@ -149,55 +151,60 @@ export function medianPitch(x16) {
 }
 
 /**
- * Regroupe des fenêtres de voix par chanteur, sans connaître leur nombre : regroupement hiérarchique (lien moyen sur le
- * cosinus des empreintes), arrêté quand les deux groupes les plus proches ne se ressemblent plus assez.
- *   - ressemblance ≥ simSame : même voix, fusion ;
- *   - entre simDiff et simSame : zone douteuse → fusion seulement si les hauteurs médianes sont proches (≤ pitchTol
- *     demi-tons : une voix d'homme et une voix de femme restent séparées) ;
- *   - < simDiff : voix différentes.
- * Les groupes trop courts (< minSec) rejoignent le groupe le plus ressemblant. Retourne { labels, k, sims }.
+ * Regroupe des fenêtres de voix par chanteur, sans connaître leur nombre. Mesuré sur de vrais chants (fenêtres de 2 s,
+ * voix séparées par la page) : deux fenêtres d'un même chanteur se ressemblent de 0,2 à 0,8 (moyenne ≈ 0,45), deux
+ * chanteurs différents de −0,1 à 0,35 (moyenne ≈ 0,13) — fenêtre par fenêtre les deux se chevauchent, mais la
+ * MOYENNE d'un groupe de fenêtres (centre) est beaucoup plus nette. D'où trois temps :
+ *   1. petits groupes sûrs : regroupement hiérarchique (lien moyen) tant que la ressemblance ≥ simPure ;
+ *   2. fusion des groupes dont les centres se ressemblent (cosinus des centres ≥ simCentre) ;
+ *   3. chaque fenêtre rejoint le centre le plus proche ; les groupes trop courts (< minSec) rejoignent le plus proche.
+ * `pitches` (hauteur médiane par fenêtre) ne sert qu'au compte rendu. Retourne { labels, k, sims, pitch, dur }.
  */
-export function clusterVoices(embs, pitches, durs, { simSame = 0.5, simDiff = 0.3, pitchTol = 4, minSec = 4, maxSingers = 12 } = {}) {
-    const n = embs.length;
+export function clusterVoices(embs, pitches, durs, { simPure = 0.45, simCentre = 0.44, minSec = 3, maxSingers = 12 } = {}) {
+    const n = embs.length, D = embs[0].length;
+    const unit = embs.map((e) => { let q = 0; for (let i = 0; i < D; ++i) q += e[i] * e[i]; q = Math.sqrt(q) + 1e-20; return Float32Array.from(e, (v) => v / q); });
     const S = Array.from({ length: n }, () => new Float32Array(n));
-    for (let i = 0; i < n; ++i) for (let j = i; j < n; ++j) { const v = i === j ? 1 : cos(embs[i], embs[j]); S[i][j] = v; S[j][i] = v; }
-    let groups = embs.map((_, i) => [i]);
+    for (let i = 0; i < n; ++i) for (let j = i; j < n; ++j) { let v = 0; if (i === j) v = 1; else for (let k = 0; k < D; ++k) v += unit[i][k] * unit[j][k]; S[i][j] = v; S[j][i] = v; }
     const link = (g, h) => { let a = 0; for (const i of g) for (const j of h) a += S[i][j]; return a / (g.length * h.length); };
-    const pitchOf = (g) => { const v = g.map((i) => pitches[i]).filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[v.length >> 1] : NaN; };
+    const centre = (g) => { const c = new Float32Array(D); for (const i of g) for (let k = 0; k < D; ++k) c[k] += unit[i][k]; return c; };
+    const ccos = (g, h) => cos(centre(g), centre(h));
     const durOf = (g) => g.reduce((a, i) => a + durs[i], 0);
-    const mayMerge = (g, h, v) => {
-        if (v >= simSame) return true;
-        if (v < simDiff) return false;
-        const pg = pitchOf(g), ph = pitchOf(h);
-        return !(Number.isFinite(pg) && Number.isFinite(ph)) || Math.abs(pg - ph) <= pitchTol;
-    };
-    for (;;) {
-        let bi = -1, bj = -1, best = -2;
-        for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) {
-            const v = link(groups[i], groups[j]);
-            if (v > best && (groups.length > maxSingers || mayMerge(groups[i], groups[j], v))) { best = v; bi = i; bj = j; }
+    const pitchOf = (g) => { const v = g.map((i) => pitches[i]).filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[v.length >> 1] : NaN; };
+    const mergeWhile = (score, thr, force = () => false) => {
+        for (;;) {
+            if (groups.length <= 1) return;
+            let bi = -1, bj = -1, best = -2;
+            for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) { const v = score(groups[i], groups[j]); if (v > best) { best = v; bi = i; bj = j; } }
+            if (best < thr && !force()) return;
+            groups[bi] = groups[bi].concat(groups[bj]);
+            groups.splice(bj, 1);
         }
-        if (bi < 0) break;
-        groups[bi] = groups[bi].concat(groups[bj]);
-        groups.splice(bj, 1);
-        if (groups.length === 1) break;
+    };
+    let groups = unit.map((_, i) => [i]);
+    mergeWhile(link, simPure);                                        // 1. petits groupes sûrs
+    mergeWhile(ccos, simCentre, () => groups.length > maxSingers);    // 2. centres qui se ressemblent
+    // 3. chaque fenêtre vers le centre le plus proche (2 passes), puis groupes trop courts absorbés
+    for (let pass = 0; pass < 2 && groups.length > 1; ++pass) {
+        const cs = groups.map(centre), next = groups.map(() => []);
+        for (let i = 0; i < n; ++i) { let bk = 0, best = -2; cs.forEach((c, k) => { const v = cos(unit[i], c); if (v > best) { best = v; bk = k; } }); next[bk].push(i); }
+        groups = next.filter((g) => g.length);
     }
-    // Groupes trop courts : rattachés au groupe le plus ressemblant (une voix d'une ou deux fenêtres n'est pas une piste).
     for (;;) {
         if (groups.length <= 1) break;
         let k = -1, kd = Infinity;
         groups.forEach((g, i) => { const d = durOf(g); if (d < minSec && d < kd) { kd = d; k = i; } });
         if (k < 0) break;
         let to = -1, best = -2;
-        groups.forEach((g, i) => { if (i !== k) { const v = link(groups[k], g); if (v > best) { best = v; to = i; } } });
+        groups.forEach((g, i) => { if (i !== k) { const v = ccos(groups[k], g); if (v > best) { best = v; to = i; } } });
         groups[to] = groups[to].concat(groups[k]);
         groups.splice(k, 1);
     }
-    groups.sort((a, b) => Math.min(...a) - Math.min(...b));   // chanteur 1 = le premier entendu
+    mergeWhile(ccos, simCentre);                                      // les absorptions peuvent rapprocher deux centres
+    groups.sort((a, b) => Math.min(...a) - Math.min(...b));           // chanteur 1 = le premier entendu
     const labels = new Array(n).fill(0);
     groups.forEach((g, k) => g.forEach((i) => { labels[i] = k; }));
     const sims = [];
-    for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) sims.push(link(groups[i], groups[j]));
+    for (let i = 0; i < groups.length; ++i) for (let j = i + 1; j < groups.length; ++j) sims.push(ccos(groups[i], groups[j]));
     return { labels, k: groups.length, sims, pitch: groups.map(pitchOf), dur: groups.map(durOf) };
 }
 
@@ -227,7 +234,8 @@ export async function findSingers(mono, sr, embed, { win = 2, hop = 1, onProgres
         pitches.push(medianPitch(seg));
         onProgress?.(embs.length, wins.length);
     }
-    const durs = wins.map(([a, b]) => b - a);
+    // Durée propre à chaque fenêtre (les fenêtres glissantes se recouvrent : chacune compte pour son pas).
+    const durs = wins.map(([a, b]) => Math.min(b - a, hop));
     const c = clusterVoices(embs, pitches, durs, cl);
     const maxSim = c.sims.length ? Math.max(...c.sims) : 1;
     if (c.k < 2) return one('une seule voix repérée (toutes les fenêtres se ressemblent)', maxSim);

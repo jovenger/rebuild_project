@@ -229,7 +229,7 @@ export class MdxStft {
  * Retourne { left, right } (voix seule).
  * opts.overlap : recouvrement des morceaux (défaut cfg.overlap) ; opts.skipBelowDb : un morceau dont le niveau RMS est
  * sous ce seuil (dB par rapport à la crête du signal) n'est pas calculé (sortie nulle) — passages sans voix à l'étape
- * voix principale / backs. opts.peak : crête de référence (tranche d'un morceau). onProgress(fait, total, sauté).
+ * voix principale / backs. opts.denoise : deux calculs par morceau, bruit propre au modèle annulé. opts.peak : crête de référence (tranche d'un morceau). onProgress(fait, total, sauté).
  */
 export async function separateVocals(left, right, runModel, onProgress = () => {}, cfg = MDX, opts = {}) {
     const stft = new MdxStft(cfg);
@@ -248,6 +248,7 @@ export async function separateVocals(left, right, runModel, onProgress = () => {
     const skipRms = Number.isFinite(opts.skipBelowDb) ? Math.pow(10, opts.skipBelowDb / 20) : -1;   // signal normalisé à crête 1
     const resL = new Float64Array(len), resR = new Float64Array(len), div = new Float64Array(len);
     const spec = new Float32Array(4 * cfg.dimF * cfg.dimT);
+    const neg = opts.denoise ? new Float32Array(spec.length) : null;
     const cl = new Float32Array(chunk), cr = new Float32Array(chunk);
     const ol = new Float32Array(chunk), or = new Float32Array(chunk);
     const total = Math.ceil(len / step);
@@ -262,7 +263,17 @@ export async function separateVocals(left, right, runModel, onProgress = () => {
         if (skipped) { ol.fill(0); or.fill(0); }
         else {
             stft.forward(cl, cr, spec);
-            const voc = await runModel(spec);
+            let voc = await runModel(spec);
+            if (opts.denoise) {
+                // Débruitage du modèle (comme « Denoise » d'UVR) : le réseau ajoute son propre bruit (crépitement dans
+                // les aigus), qui ne change pas de signe avec l'entrée. Moyenne de modèle(x) et de −modèle(−x) : la voix
+                // reste, ce bruit s'annule. Coût : deux calculs par morceau.
+                const pos = Float32Array.from(voc);
+                for (let i = 0; i < spec.length; ++i) neg[i] = -spec[i];
+                const vneg = await runModel(neg);
+                for (let i = 0; i < pos.length; ++i) pos[i] = 0.5 * (pos[i] - vneg[i]);
+                voc = pos;
+            }
             stft.inverse(voc, ol, or);
         }
         for (let i = 0; i < actual; ++i) {

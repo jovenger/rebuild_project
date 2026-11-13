@@ -277,6 +277,24 @@ try {
             const sdr = (ref, est) => { let a = 0, e = 0; for (const c of ['l', 'r']) for (let i = 0; i < n; ++i) { a += ref[c][i] ** 2; e += (ref[c][i] - est[c][i]) ** 2; } return 10 * Math.log10(a / Math.max(1e-20, e)); };
             const before = sdr(truth, song), after = sdr(truth, got);
             console.log(stamp(), `instru séparée : SDR ${after.toFixed(1)} dB (chanson brute : ${before.toFixed(1)} dB)`);
+            // Aigus seuls (dérivée seconde ≈ passe-haut) : un rééchantillonnage médiocre s'y voit, pas sur le SDR global.
+            const hp = (x) => { const y = new Float32Array(x.length); for (let i = 2; i < x.length; ++i) y[i] = x[i] - 2 * x[i - 1] + x[i - 2]; return y; };
+            const hi = sdr({ l: hp(truth.l), r: hp(truth.r) }, { l: hp(got.l), r: hp(got.r) });
+            console.log(stamp(), `instru séparée, aigus seuls : SDR ${hi.toFixed(1)} dB`);
+            if (process.env.MIN_INSTRU_HF_SDR_DB && !(hi >= Number(process.env.MIN_INSTRU_HF_SDR_DB))) throw new Error(`aigus de l'instru séparée abîmés : ${hi.toFixed(1)} dB`);
+            // Là où personne ne chante (voix vraie = chanson − instru vraie, muette), l'instru séparée doit être la chanson
+            // d'origine : mesure de l'écart dans les aigus sur ces passages (rééchantillonnage, bruit du modèle).
+            const fr = Math.round(0.05 * 44100), sh = hp(song.l), gh = hp(got.l);
+            let eZ = 0, sZ = 0, nz = 0;
+            for (let a = 0; a + fr <= n; a += fr) {
+                let v = 0; for (let i = a; i < a + fr; ++i) v += (song.l[i] - truth.l[i]) ** 2;
+                if (v / fr > 1e-8) continue;   // la voix chante dans cette trame
+                for (let i = a + 2; i < a + fr; ++i) { eZ += (gh[i] - sh[i]) ** 2; sZ += sh[i] ** 2; }
+                ++nz;
+            }
+            const quietHf = 10 * Math.log10(eZ / Math.max(1e-20, sZ) + 1e-20);
+            console.log(stamp(), `passages sans voix (${nz} trames) : écart instru séparée / chanson d'origine dans les aigus ${quietHf.toFixed(1)} dB`);
+            if (process.env.MAX_QUIET_HF_DB && !(quietHf <= Number(process.env.MAX_QUIET_HF_DB))) throw new Error(`instru modifiée là où personne ne chante : ${quietHf.toFixed(1)} dB dans les aigus`);
             if (!(after >= Number(process.env.MIN_INSTRU_SDR_DB || 10))) throw new Error(`instru séparée pas assez propre : ${after.toFixed(1)} dB`);
         }
         // Mixage final de la chanson reconstruite, puis fin de l'essai.

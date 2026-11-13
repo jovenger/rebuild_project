@@ -6,6 +6,7 @@
 // type (back -7 LU sous la principale, ambiance -14 LU…) puis l'ensemble des voix par rapport à l'instru.
 
 import { findSingers, keepPhrases } from './singers.js';
+import { resampleSincAsync } from './resample.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -16,7 +17,7 @@ const ui = {
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
-    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'),
+    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
@@ -186,12 +187,8 @@ function prepareIsolation() {
 }
 async function resampleMono(data, fromSr, toSr) {
     if (fromSr === toSr) return data.slice();   // copie : le résultat peut être transféré au worker (tampon détaché)
-    const n = Math.max(1, Math.round(data.length * toSr / fromSr));
-    const off = new OfflineAudioContext(1, n, toSr);
-    const b = off.createBuffer(1, data.length, fromSr);
-    b.copyToChannel(data, 0);
-    const s = off.createBufferSource(); s.buffer = b; s.connect(off.destination); s.start();
-    return (await off.startRendering()).getChannelData(0).slice();
+    // Sinc fenêtré (resample.js) : le rééchantillonnage du navigateur est linéaire (aigus étouffés et distordus).
+    return resampleSincAsync(data, fromSr, toSr);
 }
 function rmsDb(x) { let e = 0; for (let i = 0; i < x.length; ++i) e += x[i] * x[i]; return 10 * Math.log10(e / Math.max(1, x.length) + 1e-20); }
 // mono (Float32Array, sr Hz) → { mono, removedDb, seconds, backend } : voix seule, même longueur et même fréquence.
@@ -968,7 +965,9 @@ async function importVoice(t, file) {
 // ------------------------------------------------------------------ audio
 function audioContext() {
     if (!state.ctx) {
-        state.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+        // ?svRate=48000 : fréquence imposée (essais : la plupart des téléphones et des PC sont à 48 kHz, la CI à 44,1 kHz).
+        const forced = Number(new URLSearchParams(location.search).get('svRate'));
+        state.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive', ...(forced > 0 ? { sampleRate: forced } : {}) });
         log('info', `AudioContext ${state.ctx.sampleRate} Hz, latence de base ${Math.round(state.ctx.baseLatency * 1000)} ms`);
     }
     if (state.ctx.state === 'suspended') state.ctx.resume();
@@ -1310,7 +1309,8 @@ function sepEstimate() {
     const sp = sepSpeedLoad();
     const keys = ['voc', ...(ui.sepLeadBack.checked ? ['kara'] : []), ...(ui.sepAmbiance.checked ? ['reverb'] : [])];
     if (!sp.voc) { ui.sepEst.textContent = `Durée : environ ${chunks} morceaux de calcul par étape ; le temps exact s'affiche après le 1er morceau (puis il est retenu pour cet appareil).`; return; }
-    const ms = keys.reduce((a, k) => a + (sp[k] || sp.voc) * chunks * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
+    const dn = ui.sepDenoise.checked ? 2 : 1;   // finition soignée : deux calculs par morceau
+    const ms = dn * keys.reduce((a, k) => a + (sp[k] || sp.voc) * chunks * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
     const fast = sp.voc * chunks;
     ui.sepEst.textContent = `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})` +
         (keys.length > 1 ? ` — plus rapide : décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement).` : '.') +
@@ -1340,13 +1340,10 @@ function refreshButtons() {
 // Chaque partie arrive sur sa piste avec son type, « sans effet » (déjà produite), prête pour « Mixer la chanson ».
 async function resampleStereo(L, R, fromSr, toSr) {
     if (fromSr === toSr) return { left: L.slice(), right: R.slice() };
-    const n = Math.max(1, Math.round(L.length * toSr / fromSr));
-    const off = new OfflineAudioContext(2, n, toSr);
-    const b = off.createBuffer(2, L.length, fromSr);
-    b.copyToChannel(L, 0); b.copyToChannel(R, 1);
-    const src = off.createBufferSource(); src.buffer = b; src.connect(off.destination); src.start();
-    const out = await off.startRendering();
-    return { left: out.getChannelData(0).slice(), right: out.getChannelData(1).slice() };
+    const t0 = performance.now();
+    const left = await resampleSincAsync(L, fromSr, toSr), right = await resampleSincAsync(R, fromSr, toSr);
+    log('info', `rééchantillonnage ${fromSr} → ${toSr} Hz (sinc) : ${(L.length / fromSr).toFixed(0)} s de son en ${Math.round(performance.now() - t0)} ms`);
+    return { left, right };
 }
 // Réglages de calcul de « Séparer » : recouvrement des morceaux et saut des morceaux sans signal (les passages sans
 // voix à l'étape backs ne passent pas dans l'IA). ?svSepOverlap=… pour les mesures A/B.
@@ -1379,7 +1376,7 @@ function sepChunk(done, total, skipped = false, global = false) {
     if (skipped) sepRun.cSkipped = (sepRun.cSkipped || 0) + 1;   // morceau sans signal : instantané, ne fausse pas la durée mesurée
     else {
         sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
-        if (done > 1 && sepRun.key) sepSpeedSave(sepRun.key, dt);
+        if (done > 1 && sepRun.key) sepSpeedSave(sepRun.key, ui.sepDenoise.checked ? dt / 2 : dt);   // vitesse gardée pour un seul calcul par morceau
     }
     Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
     if (/1er morceau en cours/.test(ui.sepSub.textContent)) ui.sepSub.textContent = ui.sepSub.textContent.replace(/, 1er morceau en cours…/, '');   // ne pas laisser croire qu'on est toujours au 1er
@@ -1565,7 +1562,7 @@ async function sepStep(cacheId, key, L, R, step, steps) {
             ++reused;
             sepChunk((i + 1) * sepRun.seg.per, nSeg * sepRun.seg.per, true, true);   // reprise : avancée sans calcul
         } else {
-            const r = await isoCall('isolate', { model: key, left: L.slice(s0, s1), right: R.slice(s0, s1), release: false, opts: { ...(SEP_OPTS[key] || {}), peak } });
+            const r = await isoCall('isolate', { model: key, left: L.slice(s0, s1), right: R.slice(s0, s1), release: false, opts: { ...(SEP_OPTS[key] || {}), peak, denoise: ui.sepDenoise.checked } });
             iso.backend = r.backend; secs += r.seconds;
             y = { left: r.left, right: r.right };
             await sepCachePut(cacheId, `${key}#${i}`, y.left, y.right);
@@ -1600,17 +1597,24 @@ async function separateSong() {
         const src = state.instru, sr = src.sampleRate;
         const song = await resampleStereo(src.left, src.right, sr, 44100);
         // 1) voix / instru
-        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}`;
+        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}`;
         await sepCacheClear(cacheId);   // une seule chanson gardée
         const v = await sepStep(cacheId, 'voc', song.left, song.right, 1, steps);
         const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);
-        const IL = song.left.map((x, i) => x - VL[i]), IR = song.right.map((x, i) => x - VR[i]);
+        // L'instru est calculée plus bas, à la fréquence d'origine : morceau d'origine − voix (jamais rééchantillonnée).
         let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
         // 2) voix principale / backs
         if (doKara) {
             const k = await sepStep(cacheId, 'kara', VL, VR, ++step, steps);
             backL = k.left.map((x) => x * comp.kara); backR = k.right.map((x) => x * comp.kara);
             leadL = VL.map((x, i) => x - backL[i]); leadR = VR.map((x, i) => x - backR[i]);
+            // Voix doublée / à plusieurs couches (vu sur de vrais morceaux) : le modèle classe toute la voix en « backs »
+            // et il ne reste rien en voix principale. Dans ce cas la voix entière est gardée comme voix principale.
+            const leadDb = rmsDbSt(leadL, leadR), backDb = rmsDbSt(backL, backR);
+            if (leadDb < backDb - 12) {
+                log('warn', `Séparation : voix principale presque vide (${leadDb.toFixed(1)} dB contre ${backDb.toFixed(1)} dB en backs) → toute la voix est gardée en voix principale (voix doublée ou en chœur)`);
+                leadL = VL; leadR = VR; backL = null; backR = null;
+            } else log('info', `Séparation : voix principale ${leadDb.toFixed(1)} dB, backs ${backDb.toFixed(1)} dB`);
         }
         // 3) ambiance (expérimental)
         if (doRev) {
@@ -1623,8 +1627,11 @@ async function separateSong() {
         sepRun.isModel = false;
         sepSet(null, 'Assemblage des pistes…', 1); sepRun.stepLabel = 'Assemblage des pistes';
         const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
-        const I = await back44(IL, IR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
+        const vocSr = await back44(VL, VR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
         const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };
+        // Instru = morceau d'origine − voix, à la fréquence d'origine : là où personne ne chante, c'est l'original au bit près.
+        const vl = fit(vocSr.left), vr = fit(vocSr.right);
+        const I = { left: src.left.map((x, i) => x - vl[i]), right: src.right.map((x, i) => x - vr[i]) };
         // 4) chanteurs
         const leadMono = fit(toMonoLR(lead.left, lead.right));
         let parts = [{ name: 'Voix principale (séparée)', mono: leadMono }], singersNote = '';
@@ -1680,7 +1687,7 @@ async function separateSong() {
     }
 }
 ui.sepBtn.addEventListener('click', separateSong);
-for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers]) c.addEventListener('change', sepEstimate);
+for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers, ui.sepDenoise]) c.addEventListener('change', sepEstimate);
 ui.sepStopBtn.addEventListener('click', () => {
     if (!state.separating) return;
     if (!confirm('Arrêter la séparation ? Le calcul en cours est perdu, la chanson reste comme avant.')) return;

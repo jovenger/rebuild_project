@@ -115,6 +115,37 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Une piste par voix quel que soit le nombre + « crépitements dans les aigus » des voix séparées (retours de Yann)
+
+- Constat de Yann : morceau avec sa voix + une voix de femme → une seule piste ; voix séparées « pas lisses », qui
+  crépitent quand les aigus montent (écoute en solo après mixage).
+- Chanteurs — fait : `singers.js` refait pour un nombre de voix libre. Mis au point sur de vrais chants (voix séparées
+  par les modèles de la page : homme « mardy » 20 s, femme « fishin » 36 s, homme « spleeter » 7 s, + 3 locuteurs) :
+  deux fenêtres de 2 s d'un même chanteur se ressemblent de 0,2 à 0,8 (moyenne ≈ 0,45), deux chanteurs différents de
+  -0,1 à 0,35 (≈ 0,13) → regroupement en 3 temps (petits groupes sûrs ≥ 0,45, fusion des groupes dont les centres se
+  ressemblent ≥ 0,44, réaffectation au centre le plus proche, groupes < 3 s absorbés). 11 cas / 11 justes : homme
+  seul, femme seule, homme puis femme, alternés 10 s (coupes à ±0,5 s), invité de 7 s (15 %), deux hommes, 3 voix,
+  6 voix, parole A/B, A×2, A/B/C. Plus de règle « seconde voix ≥ 20 % ».
+- Chanteurs — défaut trouvé : `findPhrases` ne trouvait AUCUNE phrase sur un chant continu (seuil = fond + 15 dB, or
+  sans pause le fond est déjà de la voix) → « pas assez de passages », une seule voix. Seuil borné à crête - 20 dB.
+- Fait : voix principale presque vide après le modèle backs (voix doublée / en couches : « only time » → tout en
+  backs) → toute la voix est gardée en voix principale.
+- Crépitements — cause mesurée : les modèles travaillent à 44,1 kHz ; à 48 kHz (téléphones, PC) la page convertissait
+  avec OfflineAudioContext + AudioBufferSourceNode = interpolation linéaire. Aller-retour 48 → 44,1 → 48 kHz mesuré
+  dans Chromium : 8 kHz -1,7 dB et distorsion -21,8 dB ; 12 kHz -3,9 dB / -15,8 dB ; 16 kHz -6,8 dB / -12,3 dB.
+  Jamais vu en essai : la CI tournait à 44,1 kHz (pas de conversion). Fait : `resample.js` (sinc, fenêtre de Kaiser,
+  polyphase) : gain ±0,001 dB, distorsion < -95 dB jusqu'à 18 kHz, ~20 ms par seconde de son ; utilisé par « Séparer »
+  et par l'isolation de prise ; l'instru est maintenant calculée à la fréquence d'origine (morceau d'origine − voix) ;
+  essai `web/test/resample.mjs` + séparation de la CI passée à 48 kHz (`?svRate=48000`).
+- Crépitements — second levier, en option : « Finition soignée (2× plus long) » = débruitage du modèle (moyenne de
+  modèle(x) et −modèle(−x), comme « Denoise » d'UVR). Mesuré sur le faux morceau : bruit aigu de la voix séparée
+  -63,0 → -71,5 dB, dans les silences de la voix -65,1 → -85,1 dB, SDR inchangé (+0,06 dB), temps ×1,8. Sur un vrai
+  chant : ce qu'il retire est à -35 dB sous la voix.
+- Non vérifié : que ces deux points soient bien LE crépitement entendu par Yann (aucune écoute possible ici ; sur
+  l'essai de séparation complet à 48 kHz, l'écart global avant / après n'est pas mesurable : l'erreur du modèle dans les
+  aigus, -6 à -12 dB, domine) ; chanteurs sur le morceau de Yann ; deux voix simultanées (non séparables).
+- À refaire par Yann : les pistes déjà séparées gardent le défaut → relancer « Séparer » sur le nouveau build.
+
 ## Toutes les pistes de voix au même niveau après mixage, même 40 voix principales (demande de Yann)
 
 - Fait : `api.cpp` runBalance — sonie de chaque piste mesurée là où elle chante (porte BS.1770) ; les pistes « voix

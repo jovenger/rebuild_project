@@ -138,6 +138,7 @@
       <button id="sepBtn" disabled title="La chanson posée sur la piste Instru est séparée par l'IA : l'instrumental reste sur la piste Instru, chaque voix repérée va sur sa propre piste">✂ Séparer la chanson</button>
       <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
       <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" checked> Une piste par chanteur</label>
+      <label title="Chaque morceau est calculé deux fois pour annuler le bruit propre au modèle (souffle fin dans les aigus, surtout audible quand la voix se tait). Mesuré : 8 à 20 dB de bruit en moins dans les aigus, mais deux fois plus long."><input id="sepDenoise" type="checkbox"> Finition soignée (2× plus long)</label>
       <label title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox"> Ambiance (réverb) — expérimental</label>
     </div>
     <div id="sepEst" class="info"></div>

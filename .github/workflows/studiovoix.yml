@@ -429,8 +429,14 @@ jobs:
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/b.ogg" -ar 44100 -ac 1 -f f32le "$SEP/b.f32"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/c.ogg" -ar 44100 -ac 1 -f f32le "$SEP/c.f32"
           node web/test/make_song.mjs "$SEP/music.f32" "$SEP/a.f32" "$SEP/b.f32" "$SEP/c.f32" "$SEP"
-          SEP_SONG="$SEP/song.wav" TRUTH_INSTRU="$SEP/truth_instru.wav" MIN_INSTRU_SDR_DB=10 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
-          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_sep.png"
+          # À 48 kHz, comme la plupart des téléphones et des PC (les modèles travaillent à 44,1 kHz : le rééchantillonnage
+          # de la page est dans le chemin). Rééchantillonneur propre vérifié à part (sons purs, aller-retour).
+          node web/test/resample.mjs
+          mkdir -p "$SEP/48"
+          ffmpeg -hide_banner -loglevel error -y -i "$SEP/song.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/song.wav"
+          ffmpeg -hide_banner -loglevel error -y -i "$SEP/truth_instru.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/truth_instru.wav"
+          SEP_SONG="$SEP/48/song.wav" TRUTH_INSTRU="$SEP/48/truth_instru.wav" MIN_INSTRU_SDR_DB=10 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs "http://127.0.0.1:8765/index.html?svRate=48000" - - "$RUNNER_TEMP/web_sep.png"
           # Sans musique extérieure (instru captée seule) : prise déjà propre après le retrait, l'IA doit être sautée.
           python3 web/test/make_fake_mic.py "$RUNNER_TEMP/fakemic-clean" --voice "$RUNNER_TEMP/jfk.wav" --no-radio
           MIC_FILE="$RUNNER_TEMP/fakemic-clean/mic.wav" VOICE_REF="$RUNNER_TEMP/fakemic-clean/voice.wav" MIN_SDR_DB=10 \
