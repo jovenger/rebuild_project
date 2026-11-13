@@ -115,6 +115,23 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Séparer sur téléphone : « je vois pas s'il travaille », « la progression n'avance pas » (retours de Yann, Android / Brave)
+
+- Constat (capture build 109, chanson 3:35) : « IA : session webgpu prête en 3023 ms » puis aucun morceau fini en 3 min 33
+  → la carte graphique du téléphone bloque au 1er calcul du modèle. Sur PC (WASM 3 fils) : ~12 s par morceau de 6 s,
+  50 morceaux par étape pour 3:35 → ~30 min pour 3 étapes.
+- Fait : bloc de progression dans la carte Séparation (étape, morceau n/N, durée mesurée par morceau, barre au dixième
+  de %, avancée estimée entre deux morceaux, temps écoulé / restant, ligne « IA : … » = ce que fait le worker, roue,
+  % dans l'onglet, alerte seulement si plus lent que prévu) ; bouton « Arrêter la séparation » avec confirmation ;
+  avertissement avant de quitter la page ; essai carte graphique limité à 20 s → worker relancé en processeur seul,
+  choix retenu sur l'appareil (`sv-no-webgpu`) ; morceaux sans signal sautés (backs : -45 dB, voix/instru : -60 dB) ;
+  écran gardé allumé (Wake Lock) ; reprise après coupure : chaque étape finie gardée (IndexedDB « meta/sepcache »),
+  relue à la relance, effacée après réussite ; durée estimée avant de lancer (vitesse mesurée de l'appareil retenue).
+- Écarté après mesure : modèle quantifié int8 (dynamique) : pas plus rapide (6,0 s contre 5,8 s par morceau, ORT CPU)
+  et sortie faussée.
+- Non vérifié : vrai téléphone (repli carte graphique testé par simulation `?svTestGpuHang=1`) ; vitesse réelle sur
+  téléphone ; Brave isolé ou non (multi-cœur).
+
 ## Séparer une chanson en pistes (demande de Yann : instru propre, chaque voix / back / ambiance / chanteur sur sa piste)
 
 - Fait (build 99) : `isolate.js` MODELS (voc, kara = UVR_MDXNET_KARA_2, reverb = Reverb_HQ_By_FoxJoy, spk = WeSpeaker

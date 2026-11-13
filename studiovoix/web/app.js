@@ -17,7 +17,7 @@ const ui = {
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'),
-    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'),
+    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
@@ -1266,7 +1266,30 @@ function startMeter(node, canvas) {
 }
 function stopMeter(canvas) { if (canvas._raf) cancelAnimationFrame(canvas._raf); canvas._raf = 0; drawMeter(canvas, 0, 0); }
 
+// Vitesse mesurée de cet appareil (ms par morceau d'IA, par modèle), gardée d'une visite à l'autre : sert à annoncer
+// la durée d'une séparation avant de la lancer.
+function sepSpeedLoad() { try { return JSON.parse(localStorage.getItem('sv-sep-speed') || '{}'); } catch { return {}; } }
+function sepSpeedSave(key, ms) {
+    const sp = sepSpeedLoad();
+    sp[key] = sp[key] ? 0.8 * sp[key] + 0.2 * ms : ms;
+    try { localStorage.setItem('sv-sep-speed', JSON.stringify(sp)); } catch (e) { log('warn', `vitesse non gardée : ${e.message}`); }
+}
+const fmtLong = (sec) => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${String(Math.round((sec % 3600) / 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(sec / 60))} min`;
+function sepEstimate() {
+    if (!ui.sepEst) return;
+    if (!state.instru || state.separating) { ui.sepEst.textContent = ''; return; }
+    const chunks = Math.ceil(state.instru.seconds * 44100 / Math.floor((1 - SEP_OVERLAP) * 1024 * 255)) + 1;
+    const sp = sepSpeedLoad();
+    const keys = ['voc', ...(ui.sepLeadBack.checked ? ['kara'] : []), ...(ui.sepAmbiance.checked ? ['reverb'] : [])];
+    if (!sp.voc) { ui.sepEst.textContent = `Durée : environ ${chunks} morceaux de calcul par étape ; le temps exact s'affiche après le 1er morceau (puis il est retenu pour cet appareil).`; return; }
+    const ms = keys.reduce((a, k) => a + (sp[k] || sp.voc) * chunks * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
+    const fast = sp.voc * chunks;
+    ui.sepEst.textContent = `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})` +
+        (keys.length > 1 ? ` — plus rapide : décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement).` : '.') +
+        ` Garde la page ouverte, écran allumé.`;
+}
 function refreshButtons() {
+    sepEstimate();
     const anyTake = state.tracks.some((t) => t.take);
     ui.recBtn.disabled = !state.ready || !!state.rec;
     ui.addTrackBtn.disabled = !state.ready;
@@ -1305,7 +1328,7 @@ const SEP_MODELS = { voc: 'voix / instru', kara: 'voix principale / backs', reve
 async function runSepModel(key, L, R, step, steps) {
     sepCheck();
     sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]}`, 0);
-    sepRun.isModel = true;
+    sepRun.isModel = true; sepRun.key = key;
     log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]}`);
     const r = await isoCall('isolate', { model: key, left: L.slice(), right: R.slice(), release: key !== 'voc', opts: SEP_OPTS[key] || {} });
     iso.backend = r.backend;
@@ -1332,7 +1355,10 @@ function sepChunk(done, total, skipped = false) {
     const now = performance.now();
     const dt = now - (sepRun.cLast || now);
     if (skipped) sepRun.cSkipped = (sepRun.cSkipped || 0) + 1;   // morceau sans signal : instantané, ne fausse pas la durée mesurée
-    else sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
+    else {
+        sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
+        if (done > 1 && sepRun.key) sepSpeedSave(sepRun.key, dt);
+    }
     Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
     if (/1er morceau en cours/.test(ui.sepSub.textContent)) ui.sepSub.textContent = ui.sepSub.textContent.replace(/, 1er morceau en cours…/, '');   // ne pas laisser croire qu'on est toujours au 1er
     if (done === total) sepRun.label = `${sepRun.stepLabel} — finition de l'étape…`;
@@ -1534,6 +1560,7 @@ async function separateSong() {
     }
 }
 ui.sepBtn.addEventListener('click', separateSong);
+for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers]) c.addEventListener('change', sepEstimate);
 ui.sepStopBtn.addEventListener('click', () => {
     if (!state.separating) return;
     if (!confirm('Arrêter la séparation ? Le calcul en cours est perdu, la chanson reste comme avant.')) return;
