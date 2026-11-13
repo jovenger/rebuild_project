@@ -134,7 +134,8 @@ comment les automatismes doivent être faits, ordre proposé.
 - Point de sauvegarde : commit 865ef8b = build 111 en ligne (tests locaux + CI passés).
 - À faire (retour de Yann) : petits nettoyages restants sur l'instrumental séparé ; durée (45 min) à réduire ;
   problème à préciser sur la touche de lecture « Mix ».
-- Non vérifié : écran éteint / arrière-plan sur le vrai téléphone (pas de retour) ; Brave isolé ou non (multi-cœur) ;
+- Vérifié par Yann : l'écran est resté allumé pendant toute la séparation (Wake Lock).
+- Non vérifié : calcul écran éteint / page en arrière-plan sur le vrai téléphone (son de veille, pas essayé) ; Brave isolé ou non (multi-cœur) ;
   recouvrement 0,1 (4:34 contre 5:07 en local, instru identique 16,3 dB) : effet sur backs / voix principale non mesuré.
 
 ## Séparer une chanson en pistes (demande de Yann : instru propre, chaque voix / back / ambiance / chanteur sur sa piste)
