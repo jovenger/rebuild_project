@@ -133,6 +133,9 @@ comment les automatismes doivent être faits, ordre proposé.
 - Fait : repère bleu sur le vumètre de chaque piste = son niveau au Mix (aligné d'une piste à l'autre quand elles sont
   égales) ; ligne de la piste « niveau au mix -27,9 LUFS (auto -18,7 dB) ». La barre du vumètre reste la crête
   instantanée : elle bouge avec ce que chaque voix dit, c'est le repère bleu qui montre l'égalité.
+- Vérifié après une séparation (e2e, ajouté à l'essai de séparation) : « Chanteur 1 » -16,9 et « Chanteur 2 » -18,1 LUFS
+  sortent tous deux à -21,3 LUFS au Mix ; « Backs » -33,4 → -28,3 LUFS (7 LU sous la voix principale).
+- Limite : la séparation distingue au plus 2 chanteurs (3 chanteurs ou plus sont regroupés en 2 pistes).
 - Non vérifié : à l'oreille (aucune écoute possible ici).
 
 ## Séparer sur téléphone : « je vois pas s'il travaille », « la progression n'avance pas » (retours de Yann, Android / Brave)

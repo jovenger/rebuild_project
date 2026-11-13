@@ -285,6 +285,17 @@ try {
         const rep = await page.evaluate(() => window.__studiovoix.finalMix?.report);
         if (!rep) throw new Error('mixage final après séparation en échec : ' + await page.textContent('#status'));
         console.log(stamp(), `chanson remixée : ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
+        // Équilibre des pistes séparées : toutes les voix principales au même niveau au Mix, backs 7 LU dessous.
+        await page.click('#playBtn');
+        await page.waitForFunction(() => window.__studiovoix.balance?.gains?.size >= 1 && !window.__studiovoix.balanceDirty, null, { timeout: 120000 });
+        const lv = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.take).map((t) => {
+            const it = window.__studiovoix.balance.items.get(t.id), g = window.__studiovoix.balance.gains.get(t.id);
+            return { name: t.name, role: t.roleId, before: it.lufs, level: it.lufs + g + t.volumeDb };
+        }));
+        console.log(stamp(), 'niveau au Mix des pistes séparées :', lv.map((x) => `${x.name} ${x.before.toFixed(1)} → ${x.level.toFixed(1)} LUFS`).join(' ; '));
+        const leads = lv.filter((x) => x.role === 'lead').map((x) => x.level), backsLv = lv.filter((x) => x.role === 'manual_back').map((x) => x.level);
+        if (leads.length > 1 && Math.max(...leads) - Math.min(...leads) > 0.3) throw new Error('voix principales séparées pas au même niveau au Mix');
+        if (backsLv.length && leads.length && Math.abs(leads[0] - backsLv[0] - 7) > 1) throw new Error(`backs séparés mal placés : ${(leads[0] - backsLv[0]).toFixed(1)} LU sous la voix principale (visé 7)`);
         await page.click('#stopPlayBtn');
         const clock = await page.textContent('#time');
         if (!/^\d+:\d\d\.\d$/.test(clock)) throw new Error(`compteur de temps invalide : « ${clock} »`);
