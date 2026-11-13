@@ -101,6 +101,16 @@
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button.on { background: var(--accent-2); color: #fff; font-weight: 700; }
   .smoothbtn { font-size: 12.5px; padding: 5px 10px; }
+  /* inspection : une ligne par constat */
+  .inspect { display: grid; gap: 6px; margin: 8px 0; }
+  .inspect .finding { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); border-left-width: 4px; }
+  .inspect .finding .txt { flex: 1 1 240px; white-space: pre-wrap; }
+  .inspect .finding.ok { border-left-color: #2a9a5c; }
+  .inspect .finding.info { border-left-color: #3a9bff; }
+  .inspect .finding.warn { border-left-color: #e0a030; }
+  .inspect .finding.bad { border-left-color: #e94e4e; }
+  .inspect .finding button { font-size: 12.5px; padding: 4px 9px; }
+  .inspect .finding.link { cursor: pointer; }
   .smoothbtn.on { background: #9b7bff; border-color: #9b7bff; color: #fff; font-weight: 700; }
   .info { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; }
   .sepprog { margin: 8px 0 4px; padding: 10px; border: 1px solid var(--accent, #7c5cff); border-radius: 8px; display: grid; gap: 6px; }
@@ -225,7 +235,9 @@
       </div>
       <button id="fxSmooth" class="smoothbtn" disabled title="Voix lissée : s'ajoute au style. Les effets restent (autotune, couleur, réverb, écho) ; compression, nettoyage et saturation passent en régime doux pour une voix propre quand le niveau monte.">✨ Voix lissée : non</button>
       <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage">↺ Pré-réglage</button>
+      <button id="inspectBtn" disabled title="Le programme mesure lui-même la piste : prise saturée, bruit, effet qui salit la voix… et dit quoi faire">🔍 Inspecter</button>
     </div>
+    <div id="inspectBox" class="inspect" hidden></div>
     <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
     <div id="fxList"></div>
   </section>
@@ -237,6 +249,11 @@
       <button id="levelBtn" disabled title="Égalise les volumes sur le son brut, sans ajouter aucun effet : chaque piste est mise à son niveau selon son type (voix principales toutes au même niveau, backs dessous, ambiance plus bas). S'écoute ensuite avec « ▶ Brut ». Un second appui rend les volumes d'origine.">⚖ Égaliser</button>
       <span class="info">Sans aucun effet : règle seulement le volume de chaque piste selon son type. S'écoute avec « ▶ Brut ».</span>
     </div>
+    <div class="r mixline">
+      <button id="inspectAllBtn" disabled title="Mesure chaque piste voix l'une après l'autre (prise saturée, bruit, effet qui salit la voix) et liste ce qui ne va pas">🔍 Inspecter les pistes</button>
+      <span class="info">Le programme cherche lui-même ce qui ne va pas sur chaque piste et dit quoi faire.</span>
+    </div>
+    <div id="inspectAllBox" class="inspect" hidden></div>
     <div class="r mixline">
       <button id="finalMixBtn" class="primary" disabled title="Quand tout est enregistré : chaque piste à sa place selon son type, voix soudées ensemble, voix posée sur l'instru, puis mastering. Une seule chanson, à écouter et exporter.">🎚 Mixer la chanson</button>
       <label title="Volume final visé (standard des plateformes)">Destination <select id="finalTarget">

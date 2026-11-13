@@ -44,6 +44,12 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   **✨ Voix lissée** s'ajoute au style : les effets restent (autotune, couleur, réverb, écho), la compression, le
   nettoyage, la saturation et la vitesse de l'autotune passent en régime doux. Une piste enregistrée démarre en
   « Style + voix lissée ». Chaque effet se règle ensuite dans le tableau des effets.
+- **🔍 Inspection de piste** : le programme mesure lui-même ce qui ne va pas et dit quoi faire. « 🔍 Inspecter »
+  (étape 3, piste sélectionnée) ou « 🔍 Inspecter les pistes » (étape 4, toutes) : prise saturée à l'enregistrement
+  (plateaux), prise très faible, effets qui salissent la voix (le passage le plus fort est retraité, la saleté ajoutée
+  est mesurée dans les graves et les aigus ; au-dessus de +1 dB chaque effet est essayé seul et le responsable est
+  nommé, avec un bouton pour l'éteindre), limiteur qui écrase les crêtes, défauts mesurés par le moteur sur la prise.
+  Environ 5 s par piste sur PC.
 - **Voix propre quand le niveau monte** (mesuré, essai `web/test/clean.mjs` sur les 33 styles) : une note d'essai à
   +0 / +6 / +12 / +18 dB ressort avec moins de -55 dB de saleté hors harmoniques (pire cas -63 dB ; -23 dB avant
   correction). Trois défauts du moteur corrigés : autotune posé à l'échantillon entier (gigue dans les aigus),

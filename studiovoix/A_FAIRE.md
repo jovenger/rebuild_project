@@ -115,6 +115,31 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Inspection de piste : le programme détecte ce qui ne va pas et dit quoi faire (demande de Yann)
+
+- Demande : « est-ce que le programme pourra détecter quelque chose qui ne va pas sur une piste ? … il pourrait
+  inspecter des pistes et dire : il faut enlever ça ou il faut faire ça ».
+- Fait : `web/inspect.js` (mesures, module pur) + boutons « 🔍 Inspecter » (étape 3) et « 🔍 Inspecter les pistes »
+  (étape 4). Constats, chacun avec son niveau (✅ ℹ️ ⚠️ ❌) et, quand il y a une action, son bouton :
+  - prise saturée à l'enregistrement (3 plateaux ou plus collés à la crête), prise très faible (crête < -30 dBFS) ;
+  - effets qui salissent la voix : les 20 s les plus fortes de la prise sont retraitées avec les réglages de la
+    piste, puis avec l'égaliseur seul ; la saleté ajoutée = énergie qui ne se répète pas d'une période à l'autre
+    (trames chantées, graves < 1,5 kHz et aigus > 1,5 kHz, plancher d'audibilité -25 dB). Alerte à +1 dB, grave à
+    +2 dB ; chaque effet allumé est alors essayé seul, le ou les responsables sont nommés avec « Éteindre … » ;
+    sinon « Allumer Voix lissée » ou « Passer en Sans effet » ;
+  - limiteur de sécurité qui écrase les crêtes de 6 dB ou plus ; défauts mesurés par le moteur sur la prise.
+- Calage des seuils (mesuré) : moteur d'avant correction = +3,2 / +1,3 / +3,9 dB de saleté dans les aigus sur trois
+  vraies voix ; moteur corrigé = -0,8 à +0,3 dB ; voix de démo = +0,6 dB.
+- Retiré avant livraison (fausses alertes mesurées) : compteur de craquements (280 « pointes » sur une voix saine),
+  « bruit de fond » maison (prenait le chant doux pour du bruit), « distorsion » par part d'aigus (saturation normale
+  +3 à 4 dB, écrêtage ×10 seulement +4,8 dB : pas séparable).
+- Essais : `web/test/inspect.mjs` (CI) — mesures seules (son identique 0 dB, égaliseur < 1 dB, bruit à -20 dB
+  +4,7 dB, plateaux) ; dans la page : effet qui salit (simulé par `?svTestDirt=comp`) nommé, bouton qui l'éteint,
+  nouvelle inspection propre, prise saturée signalée, liste « toutes les pistes » ; vraie voix inspectée en 5 s sans
+  fausse alerte ; e2e démo PC + Pixel 7.
+- Limites connues : ne voit que la saleté non périodique (une saturation forte, périodique, n'est pas signalée) ;
+  mesure sur 20 s (le passage le plus fort) ; durée sur téléphone non mesurée.
+
 ## « Les voix craquent quand ça monte en niveau, même sous un effet » : cause trouvée et corrigée (Yann)
 
 - Demande : « en appuyant sur voix lissée, il faut que les voix soient vraiment lissées, très propres, pas de craquement,

@@ -7,6 +7,7 @@
 
 import { findSingers, splitRanges, sectionRanges } from './singers.js';
 import { resampleSincAsync } from './resample.js';
+import { voiceDirt, clipRuns, loudestWindow } from './inspect.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -16,7 +17,7 @@ const ui = {
     addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
     countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
     useScale: $('useScale'), cleaning: $('cleaning'),
-    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'), fxSmooth: $('fxSmooth'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'), fxSmooth: $('fxSmooth'), inspectBtn: $('inspectBtn'), inspectBox: $('inspectBox'), inspectAllBtn: $('inspectAllBtn'), inspectAllBox: $('inspectAllBox'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), exportRawBtn: $('exportRawBtn'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
@@ -712,6 +713,7 @@ async function processTrack(t, token) {
         if (token !== t.token) return;
         t.processed = { left: r.left, right: r.right, report: r.report, key };
         t.status = 'done';
+        if (t.inspect) t.inspect.stale = true;   // réglages changés depuis l'inspection : ses constats ne valent plus
         state.balanceDirty = true;
         log('info', `« ${t.name} » traitée (${r.report.role}, ${r.report.style}) en ${Math.round(performance.now() - t0)} ms`);
         setStatus(`Piste « ${t.name} » traitée : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}.`);
@@ -833,6 +835,7 @@ function fxSummary(def, v) {
 function renderFx(force = false) {
     const t = findTrack(state.selectedId);
     ui.fxResetAll.disabled = !(t && t.fx && Object.keys(t.fx).length);
+    renderInspect();
     for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && (b.dataset.mode === 'none') === !!t.noFx); }
     ui.fxSmooth.disabled = !t || !!t.noFx;
     ui.fxSmooth.classList.toggle('on', !!t && !t.noFx && !!t.smooth);
@@ -901,6 +904,155 @@ ui.fxResetAll.addEventListener('click', () => {
     fxChanged(t, 30);
     renderFx(true);
 });
+// ------------------------------------------------------------------ inspection d'une piste
+// Le programme mesure lui-même ce qui ne va pas sur une piste et dit quoi faire (demande de Yann : « il pourrait
+// inspecter des pistes et dire : il faut enlever ça ou il faut faire ça »). Trois familles de constats :
+//   1. la prise elle-même : saturée à l'enregistrement (plateaux), très faible ;
+//   2. les effets : le passage le plus fort de la prise (20 s) est retraité avec les réglages de la piste, puis avec les
+//      seuls effets linéaires (égaliseur) ; la saleté ajoutée par les autres (énergie qui ne se répète pas d'une
+//      période à l'autre, graves et aigus, inspect.js) est l'écart entre les deux. Au-dessus du seuil, chaque effet
+//      est essayé seul pour nommer le responsable, avec un bouton pour l'éteindre ;
+//   3. le limiteur de sécurité qui écrase les crêtes, et les défauts que le moteur a mesurés sur la prise.
+// Réverb et écho sont éteints pour la mesure : filtres linéaires, ils ne peuvent pas craquer, mais ils étalent les notes.
+// Seuils calés sur des mesures : moteur d'avant correction (défectueux) = +3,2 / +1,3 / +3,9 dB de saleté sur trois
+// vraies voix, moteur corrigé = -0,8 à +0,3 dB ; limiteur de sécurité = 3,5 à 5 dB sur une prise ordinaire.
+const INSPECT_SEC = 20, DIRT_WARN_DB = 1.0, DIRT_BAD_DB = 2.0, LIMITER_WARN_DB = 6.0;
+const NONLINEAR_FX = ['clean', 'leveler', 'timing', 'pitch', 'resonance', 'comp', 'comp2', 'deEss', 'sat'];
+const fxName = (id) => FX_DEFS.find((d) => d.id === id)?.name || id;
+// Essai e2e seulement (?svTestDirt=comp) : simule un effet qui salit la voix (bruit ajouté quand cet effet est allumé),
+// pour vérifier que l'inspection le nomme et que son bouton l'éteint.
+const TEST_DIRT = new URLSearchParams(location.search).get('svTestDirt');
+const sDb = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)} dB`;
+
+async function inspectTrack(t, onStep = () => {}) {
+    const findings = [], take = t.take, t0 = performance.now();
+    const add = (level, text, action) => findings.push({ level, text, action });
+    if (!take) { add('info', 'Pas encore de prise sur cette piste : rien à inspecter.'); return { findings }; }
+    const sr = take.sampleRate, mono = take.mono;
+
+    // 1) la prise elle-même
+    onStep('la prise');
+    const clip = clipRuns(mono), peakDb = 20 * Math.log10(clip.peak + 1e-12);
+    if (clip.runs >= 3) add('bad', `Prise saturée à l'enregistrement : ${clip.runs} crêtes écrasées (plateaux à ${peakDb.toFixed(1)} dBFS). Aucun effet ne l'enlève tout à fait : baisse le niveau du micro et refais la prise. Le « Nettoyage » reconstruit ce qu'il peut.`);
+    if (peakDb < -30) add('warn', `Prise très faible (crête ${peakDb.toFixed(0)} dBFS) : le souffle sera remonté avec la voix. Monte le niveau du micro ou rapproche-toi.`);
+    if (t.noFx) {
+        if (!findings.length) add('ok', 'Piste « Sans effet » : jouée telle quelle, aucun effet ne peut l\'abîmer ; rien d\'anormal mesuré sur la prise.');
+        else add('info', 'Piste « Sans effet » : aucun effet en cause, les constats ci-dessus viennent de la prise elle-même.');
+        log('info', `Inspection de « ${t.name} » (sans effet) : ${findings.length} constat(s) en ${Math.round(performance.now() - t0)} ms`);
+        return { findings };
+    }
+
+    // 2) les effets, sur le passage le plus fort
+    const at = loudestWindow(mono, sr, INSPECT_SEC), x = mono.slice(at, at + Math.round(INSPECT_SEC * sr));
+    const base = { sampleRate: sr, styleId: t.styleId, roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec + at / sr, gentle: !!t.smooth };
+    const user = t.fx || {}, noSpace = { reverb: { on: false }, delay: { on: false } };
+    const offAll = Object.fromEntries(NONLINEAR_FX.map((id) => [id, { on: false }]));
+    const run = async (fx) => {
+        const r = await call('processVoice', { ...base, mono: x.slice(), fx });
+        const y = new Float32Array(x.length);
+        for (let i = 0; i < x.length; ++i) y[i] = 0.5 * (r.left[i] + r.right[i]);
+        if (TEST_DIRT && r.report.fx?.[TEST_DIRT]?.on) {
+            let e = 0; for (let i = 0; i < y.length; i += 8) e += y[i] * y[i];
+            const a = 0.5 * Math.sqrt(e / (y.length / 8));
+            let seed = 12345;
+            for (let i = 0; i < y.length; ++i) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; y[i] += a * (seed / 0x3fffffff - 1); }
+        }
+        return { y, report: r.report };
+    };
+    onStep('les effets de la piste');
+    const full = await run({ ...user, ...noSpace });
+    onStep('la référence (égaliseur seul)');
+    const lin = await run({ ...user, ...offAll, ...noSpace });
+    const dFull = voiceDirt(x, full.y, sr), dLin = voiceDirt(x, lin.y, sr);
+    const excess = (d) => ({ high: d.high - dLin.high, highLoud: d.highLoud - dLin.highLoud, low: d.low - dLin.low, lowLoud: d.lowLoud - dLin.lowLoud });
+    const worstOf = (e) => Math.max(e.high, e.highLoud, e.low, e.lowLoud);
+    const where = `passage le plus fort, ${fmt(take.startSec + at / sr)} à ${fmt(take.startSec + at / sr + x.length / sr)}`;
+    const ex = excess(dFull), worst = worstOf(ex);
+    log('info', `Inspection de « ${t.name} » (${where}, ${dFull.frames} trames chantées) : saleté ajoutée par les effets — aigus ${sDb(ex.high)} (passages forts ${sDb(ex.highLoud)}), graves ${sDb(ex.low)} (forts ${sDb(ex.lowLoud)}) ; limiteur ${(full.report.limiterGrDb || 0).toFixed(1)} dB`);
+    if (dFull.frames < 20) add('info', `Trop peu de passages chantés dans la prise (${dFull.frames} trames) pour mesurer ce que les effets ajoutent.`);
+    else if (worst >= DIRT_WARN_DB) {
+        // qui ? chaque effet allumé, essayé seul
+        const active = NONLINEAR_FX.filter((id) => full.report.fx?.[id]?.on), scores = [];
+        for (const id of active) {
+            onStep(`l'effet « ${fxName(id)} » seul`);
+            const r = await run({ ...user, ...offAll, [id]: { ...(user[id] || {}), on: true }, ...noSpace });
+            const e = excess(voiceDirt(x, r.y, sr));
+            scores.push({ id, v: worstOf(e), e });
+            log('info', `Inspection de « ${t.name} » : « ${fxName(id)} » seul — aigus ${sDb(e.high)} (forts ${sDb(e.highLoud)}), graves ${sDb(e.low)} (forts ${sDb(e.lowLoud)})`);
+        }
+        scores.sort((p, q) => q.v - p.v);
+        const culprits = scores.filter((c) => c.v >= Math.max(0.5, 0.4 * worst));
+        const level = worst >= DIRT_BAD_DB ? 'bad' : 'warn';
+        const head = `Les effets salissent la voix : ${sDb(worst)} de bruit ajouté ${ex.highLoud >= ex.high && ex.highLoud >= ex.low ? 'dans les aigus des passages forts' : ex.high >= ex.low ? 'dans les aigus' : 'dans les graves'} (${where} ; alerte à partir de +${DIRT_WARN_DB.toFixed(0)} dB).`;
+        if (culprits.length) {
+            culprits.forEach((c, k) => add(level, k === 0 ? `${head} Responsable mesuré : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).` : `Aussi en cause : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).`,
+                { label: `Éteindre « ${fxName(c.id)} »`, run: () => { t.fx = t.fx || {}; t.fx[c.id] = { ...(t.fx[c.id] || {}), on: false }; log('info', `« ${t.name} » : « ${fxName(c.id)} » éteint (inspection)`); fxChanged(t, 30); renderFx(true); } }));
+        } else if (!t.smooth) add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Allumer « Voix lissée »', run: () => setFxMode(t, 'smooth') });
+        else add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Passer en « Sans effet »', run: () => setFxMode(t, 'none') });
+    }
+    // 3) limiteur de sécurité, et ce que le moteur a mesuré sur la prise (bruit, sifflantes, résonances, dynamique…)
+    const lim = full.report.limiterGrDb || 0;
+    if (lim >= LIMITER_WARN_DB) add('warn', `Le limiteur de sécurité de la piste écrase les crêtes de ${lim.toFixed(1)} dB : la voix sort trop fort de sa chaîne (compression trop faible pour une prise très dynamique). Allume le « Niveleur » ou monte le taux du compresseur.`);
+    if (!findings.some((f) => f.level === 'warn' || f.level === 'bad') && dFull.frames >= 20)
+        add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB.`);
+    const found = (full.report.found || '').trim();
+    if (found) add('info', `Mesuré sur la prise par le moteur (déjà pris en compte dans les réglages) : ${found}`);
+    log('info', `Inspection de « ${t.name} » : ${findings.filter((f) => f.level === 'warn' || f.level === 'bad').length} problème(s), en ${Math.round(performance.now() - t0)} ms`);
+    return { findings };
+}
+const INSPECT_ICON = { ok: '✅', info: 'ℹ️', warn: '⚠️', bad: '❌' };
+function findingRow(f) {
+    const row = el('div', { class: `finding ${f.level}` }, el('span', { class: 'txt', textContent: `${INSPECT_ICON[f.level]} ${f.text}` }));
+    if (f.action) row.append(el('button', { textContent: f.action.label, onclick: (e) => { e.stopPropagation(); f.action.run(); } }));
+    return row;
+}
+function renderInspect() {
+    const t = findTrack(state.selectedId);
+    ui.inspectBtn.disabled = !t || !t.take || state.inspecting || !state.ready;
+    if (!t || !t.inspect) { ui.inspectBox.hidden = true; ui.inspectBox.replaceChildren(); return; }
+    ui.inspectBox.hidden = false;
+    ui.inspectBox.replaceChildren(...(t.inspect.stale
+        ? [findingRow({ level: 'info', text: 'Réglages changés depuis la dernière inspection : relance « 🔍 Inspecter » pour revérifier.' })]
+        : t.inspect.findings.map(findingRow)));
+}
+async function runInspect(tracks) {
+    if (state.inspecting || !tracks.length) return;
+    state.inspecting = true; renderInspect(); refreshButtons();
+    try {
+        for (const t of tracks) {
+            // la piste doit avoir fini son traitement : l'inspection lit ses réglages réellement appliqués
+            for (let k = 0; k < 600 && (t.status === 'busy' || (!t.noFx && t.take && !t.processed)); ++k) await new Promise((r) => setTimeout(r, 100));
+            const res = await inspectTrack(t, (step) => setStatus(`Inspection de « ${t.name} » : ${step}…`));
+            t.inspect = { findings: res.findings, stale: false };
+            renderInspect(); renderInspectAll();
+        }
+        const bad = tracks.reduce((n, t) => n + (t.inspect?.findings || []).filter((f) => f.level === 'warn' || f.level === 'bad').length, 0);
+        setStatus(tracks.length === 1 ? `Inspection de « ${tracks[0].name} » : ${bad ? bad + ' problème(s) trouvé(s), voir « Effets de la piste »' : 'rien d\'anormal'}.`
+                                      : `Inspection de ${tracks.length} pistes : ${bad ? bad + ' problème(s) trouvé(s)' : 'rien d\'anormal'}.`);
+    } catch (err) {
+        log('error', `Inspection impossible : ${err.message}`);
+        setStatus(`Inspection impossible : ${err.message}`);
+    } finally {
+        state.inspecting = false; renderInspect(); refreshButtons();
+    }
+}
+// Liste « toutes les pistes » (étape 4) : une ligne par piste, cliquable (ouvre ses effets et le détail).
+function renderInspectAll() {
+    const done = state.tracks.filter((t) => t.inspect);
+    if (!done.length || !ui.inspectAllBox.dataset.shown) { ui.inspectAllBox.hidden = true; return; }
+    ui.inspectAllBox.hidden = false;
+    ui.inspectAllBox.replaceChildren(...done.map((t) => {
+        const pb = t.inspect.findings.filter((f) => f.level === 'warn' || f.level === 'bad');
+        const level = t.inspect.stale ? 'info' : pb.some((f) => f.level === 'bad') ? 'bad' : pb.length ? 'warn' : 'ok';
+        const text = t.inspect.stale ? `« ${t.name} » : réglages changés, à revérifier.` : pb.length ? `« ${t.name} » : ${pb.length} problème(s) — ${pb[0].text}` : `« ${t.name} » : rien d'anormal.`;
+        const row = findingRow({ level, text });
+        row.classList.add('link'); row.title = 'Ouvre les effets de cette piste et le détail de l\'inspection';
+        row.onclick = () => { selectTrack(t.id); ui.inspectBox.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+        return row;
+    }));
+}
+ui.inspectBtn.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) runInspect([t]); });
+ui.inspectAllBtn.addEventListener('click', () => { ui.inspectAllBox.dataset.shown = '1'; runInspect(state.tracks.filter((t) => t.take)); });
 // Lecture « Mix » en cours quand une piste vient d'être retraitée : son nouveau son remplace l'ancien à la position
 // courante (volume de la piste ramené à 0 en 30 ms, échange, remonté en 30 ms), sans arrêter la lecture.
 async function liveRefresh(t, token) {
@@ -1696,6 +1848,7 @@ function refreshButtons() {
     ui.playBtn.disabled = !(state.instru || anyTake);
     ui.playRawBtn.disabled = !(state.instru || anyTake);
     ui.levelBtn.disabled = !anyTake || !state.ready;
+    ui.inspectAllBtn.disabled = !anyTake || !state.ready || state.inspecting;
     refreshLevelBtn();
     ui.exportBtn.disabled = !(anyTake || state.instru);
     ui.exportRawBtn.disabled = !(anyTake || state.instru);

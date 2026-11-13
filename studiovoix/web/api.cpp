@@ -392,6 +392,10 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     o->setProperty ("found", problems.found.joinIntoString (" ; "));
     o->setProperty ("meanCorrectionCents", result.report.meanCorrectionCents);
     o->setProperty ("compGrDb", result.report.compGrDb);
+    o->setProperty ("deEssGrDb", result.report.deEssGrDb);
+    o->setProperty ("limiterGrDb", result.report.limiterGrDb);          // limiteur de sécurité en fin de piste
+    o->setProperty ("clippedRepaired", result.report.clean.clippedRepaired);   // échantillons en plateau reconstruits
+    o->setProperty ("inputGainDb", result.report.inputGainDb);
     o->setProperty ("adaptedKey", result.report.scaleAdapted ? result.report.adaptedKey.toFrench() : juce::String());
     o->setProperty ("chromatic", result.report.chromaticUsed);
     o->setProperty ("nearSilent", result.report.nearSilent);
