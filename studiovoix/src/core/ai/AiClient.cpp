@@ -204,7 +204,7 @@ ClaudeResponse askClaude (const ClaudeRequest& rq)
     juce::String headers;
     headers << "Content-Type: application/json\r\n"
             << "x-api-key: " << rq.apiKey.trim() << "\r\n"
-            << "anthropic-version: 2023-06-01\r\n"
+            << "anthropic-version: 2026-10-21\r\n"   // version d'API (sans temperature/top_p/top_k)
             << "anthropic-beta: server-side-fallback-2026-07-01\r\n";
     SV_LOG_INFO (kMod, "Claude : modèle "_u8 + rq.model + ", effort " + rq.effort + ", clé "_u8 + maskKey (rq.apiKey.trim())
                        + ", " + juce::String (rq.user.length()) + " caractères envoyés"_u8);
