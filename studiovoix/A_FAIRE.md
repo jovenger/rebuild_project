@@ -115,6 +115,21 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Toutes les pistes de voix au même niveau après mixage, même 40 voix principales (demande de Yann)
+
+- Fait : `api.cpp` runBalance — sonie de chaque piste mesurée là où elle chante (porte BS.1770) ; les pistes « voix
+  principale » sont ramenées chacune à la même sonie (médiane des voix principales), 1 seule voix principale = pas
+  touchée ; les autres types se placent sous la voix principale par piste (deux backs sortent au même niveau) ;
+  limites +12 dB (souffle) / -24 dB, piste trop loin signalée dans le rapport ; sert à la lecture Mix et à « Mixer la
+  chanson » ; le curseur de volume de la piste s'ajoute par-dessus (réglage à la main gardé).
+- Testé (`web/test/balance.mjs`, moteur WASM dans la page, ajouté à la CI) : 40 voix principales de -15 à +5 dB → écart
+  20,0 dB avant, 0,29 dB après ; 2 backs à 15 dB d'écart → 0,02 dB, 7,0 dB sous la voix principale ; 2 voix principales
+  simultanées → 0,13 dB ; 1 seule → 0,00 dB de correction ; piste à -30 dB → +12 dB et signalée. Non-régression : démo
+  PC + Pixel 7, micro + radio, séparation (mix -14,1 LUFS).
+- À savoir : sur une chanson séparée, « Chanteur 1 » et « Chanteur 2 » sortent donc au même niveau, même si l'un était
+  plus bas dans le morceau d'origine (curseur de volume pour le rebaisser).
+- Non vérifié : à l'oreille sur de vraies voix (mesures sur signaux de synthèse).
+
 ## Séparer sur téléphone : « je vois pas s'il travaille », « la progression n'avance pas » (retours de Yann, Android / Brave)
 
 - Constat (capture build 109, chanson 3:35) : « IA : session webgpu prête en 3023 ms » puis aucun morceau fini en 3 min 33

@@ -401,6 +401,8 @@ jobs:
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_e2e.png"
           # Même essai en affichage téléphone (en-têtes de piste au-dessus des formes d'onde).
           DEVICE="Pixel 7" PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs http://127.0.0.1:8765/index.html - - "$RUNNER_TEMP/web_tel.png"
+          # Équilibre : 40 voix principales à des niveaux différents doivent sortir au même niveau (backs entre eux aussi).
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/balance.mjs http://127.0.0.1:8765/index.html
           # Prise au micro sans casque (deux prises : voix principale puis back sur une seconde piste) : faux micro =
           # vraie voix (JFK, domaine public, whisper.cpp) + instru captée
           # (300 ms, -12 dB) + « radio » extérieure au niveau de la voix. La page doit retirer l'instru, compenser le

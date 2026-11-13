@@ -20,6 +20,7 @@
 
 #include <emscripten/emscripten.h>
 
+#include <algorithm>
 #include <cmath>
 #include <ctime>
 #include <cwchar>
@@ -442,37 +443,92 @@ namespace
             return d;
         };
 
-        // Voix principale : somme des pistes « voix principale » (au moins une ; sinon la première piste sert de repère).
+        // Sonie de chaque piste, mesurée seulement là où elle chante (porte BS.1770 : les silences ne comptent pas).
+        std::vector<double> lufsOf (balance.tracks.size(), -120.0);
+        for (size_t i = 0; i < balance.tracks.size(); ++i)
+            lufsOf[i] = sv::loudness::integratedLufs (balance.tracks[i].audio, sr);
+
+        // Voix principales entre elles : chacune est ramenée à la même sonie (la médiane des pistes « voix principale »),
+        // qu'il y en ait 2 ou 40 — une piste enregistrée plus fort ou plus loin du micro ne sort plus du lot.
+        // Une seule voix principale : rien ne change (gain 0).
+        std::vector<float> autoGain (balance.tracks.size(), 0.0f);
+        std::vector<double> leadVals;
+        for (size_t i = 0; i < balance.tracks.size(); ++i)
+            if (balance.tracks[i].role == sv::style::Role::Lead && lufsOf[i] > -90.0)
+                leadVals.push_back (lufsOf[i] + balance.tracks[i].volumeDb);
+        double leadEach = -120.0;   // sonie visée pour chaque piste de voix principale
+        if (! leadVals.empty())
+        {
+            std::sort (leadVals.begin(), leadVals.end());
+            const size_t m = leadVals.size() / 2;
+            leadEach = leadVals.size() % 2 == 1 ? leadVals[m] : 0.5 * (leadVals[m - 1] + leadVals[m]);
+        }
+        // Limites de la mise à niveau : remonter une piste remonte aussi son souffle (+12 dB au plus, signalé au-delà) ;
+        // baisser ne coûte rien (-24 dB).
+        constexpr float kMatchUpDb = 12.0f, kMatchDownDb = -24.0f;
+        int leadClamped = 0;
+        if (leadVals.size() > 1)
+            for (size_t i = 0; i < balance.tracks.size(); ++i)
+            {
+                const auto& t = balance.tracks[i];
+                if (t.role != sv::style::Role::Lead || lufsOf[i] <= -90.0)
+                    continue;
+                const float want = static_cast<float> (leadEach - (lufsOf[i] + t.volumeDb));
+                autoGain[i] = juce::jlimit (kMatchDownDb, kMatchUpDb, want);
+                if (want > kMatchUpDb || want < kMatchDownDb)
+                    ++leadClamped;
+            }
+
+        // Voix principale : somme des pistes « voix principale » mises au même niveau (au moins une ; sinon la première
+        // piste sert de repère).
         sv::Stereo lead = onGrid ({});
         int leadCount = 0;
-        for (const auto& t : balance.tracks)
+        for (size_t i = 0; i < balance.tracks.size(); ++i)
+        {
+            const auto& t = balance.tracks[i];
             if (t.role == sv::style::Role::Lead)
             {
                 const auto g = onGrid (t.audio);
                 for (int c = 0; c < 2; ++c)
-                    lead.addFrom (c, 0, g, c, 0, total, sv::dbToGain (t.volumeDb));
+                    lead.addFrom (c, 0, g, c, 0, total, sv::dbToGain (t.volumeDb + autoGain[i]));
                 ++leadCount;
             }
+        }
         if (leadCount == 0 && ! balance.tracks.empty())
             lead = onGrid (balance.tracks.front().audio);
         const double leadLufs = balance.tracks.empty() ? -120.0 : sv::loudness::integratedLufs (lead, sr);
 
-        // 1) Orchestre : gain automatique par piste (hors voix principale) selon son type.
+        // 1) Orchestre : gain automatique par piste selon son type (les autres types se placent par rapport à la voix
+        //    principale ; deux pistes du même type sortent donc au même niveau).
         juce::Array<juce::var> items;
-        std::vector<float> autoGain (balance.tracks.size(), 0.0f);
         juce::StringArray lines;
+        if (leadVals.size() > 1)
+        {
+            float lo = 0.0f, hi = 0.0f;
+            for (size_t i = 0; i < balance.tracks.size(); ++i)
+                if (balance.tracks[i].role == sv::style::Role::Lead)
+                {
+                    lo = juce::jmin (lo, autoGain[i]);
+                    hi = juce::jmax (hi, autoGain[i]);
+                }
+            lines.add (juce::String ((int) leadVals.size()) + " voix principales mises au même niveau ("_u8 + juce::String (leadEach, 1)
+                       + " LUFS chacune ; corrections de "_u8 + juce::String (lo, 1) + " à "_u8 + juce::String (hi, 1) + " dB"
+                       + (leadClamped > 0 ? " ; "_u8 + juce::String (leadClamped) + " piste(s) trop loin, limitée(s) à +12 / -24 dB"_u8 : juce::String()) + ")");
+        }
         for (size_t i = 0; i < balance.tracks.size(); ++i)
         {
             const auto& t = balance.tracks[i];
-            const double lufs = sv::loudness::integratedLufs (t.audio, sr);
+            const double lufs = lufsOf[i];
             const bool isLeadRef = t.role == sv::style::Role::Lead || (leadCount == 0 && i == 0);
             float offset = 0.0f;
             if (! isLeadRef && leadLufs > -90.0 && lufs > -90.0)
             {
                 offset = webRoleOffsetLu (t.role);
-                autoGain[i] = juce::jlimit (-12.0f, 6.0f, static_cast<float> (leadLufs + offset - (lufs + t.volumeDb)));
+                const float want = static_cast<float> (leadLufs + offset - (lufs + t.volumeDb));
+                autoGain[i] = juce::jlimit (kMatchDownDb, kMatchUpDb, want);
                 lines.add (sv::style::roleName (t.role) + " #" + juce::String (t.key) + " : " + juce::String (lufs - leadLufs, 1)
-                           + " LU / voix principale, place " + juce::String (offset, 0) + " LU -> " + juce::String (autoGain[i], 1) + " dB");
+                           + " LU / voix principale, place " + juce::String (offset, 0) + " LU -> " + juce::String (autoGain[i], 1) + " dB"
+                           + (want > kMatchUpDb || want < kMatchDownDb ? " (trop loin : limité)"_u8 : juce::String()));
             }
             auto* o = new juce::DynamicObject();
             o->setProperty ("key", t.key);
