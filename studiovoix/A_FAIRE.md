@@ -146,6 +146,8 @@ comment les automatismes doivent être faits, ordre proposé.
   moteur compilé, modèles d'IA, sons d'essai de la CI ; dossier de travail `SV_SCRATCH`, défaut /tmp/studiovoix-dev).
   Essais : `PLAYWRIGHT_DIR=$(npm root -g) CHROMIUM_PATH=/opt/pw-browsers/chromium node web/test/<essai>.mjs <url>`
   avec `python3 -m http.server <port> --bind 127.0.0.1 --directory web` lancé depuis `studiovoix/`.
+- Avancement (16/11, 21:00 UTC) : build 137 en ligne (A + C) ; B : recherche revenue (section « Chantier B »),
+  décision de Yann demandée.
 - Avancement (16/11, 20:50 UTC) : C intégré et vérifié (section « Chantier C » plus bas) ; reste B (recherche en
   cours), puis décision de Yann sur ce qui entre dans le produit pour l'instru, et sur la suite de la vitesse après
   lecture de la ligne « Profil » de son téléphone.
@@ -162,6 +164,35 @@ comment les automatismes doivent être faits, ordre proposé.
   - Instru = chanson d'origine − voix × 1,021 (voix ramenée à la fréquence de la page en sinc), aucun autre
     traitement (`app.js` 2130, 2157-2161). Mesures existantes : SDR instru 16,3 dB, « aigus seuls » 6,3 dB sur le
     faux morceau (voix parlées) : les aigus sont le point faible mesuré. Piste B : erreur du modèle dans les aigus.
+
+## Chantier B — instru séparée plus propre : recherche mesurée, décision de Yann en attente (16/11)
+
+- Banc hors navigateur fidèle au produit (retrouve 16,25 dB / 6,28 dB sur la chanson d'essai à 48 kHz ; revérifié par
+  l'orchestrateur) ; scripts et tableaux complets dans `web/test/bench-instru/`.
+- Matériel : 12 extraits chantés de l'échantillon MUSDB18 de 7 s (6,8 s chantés + les mêmes 6,8 s d'instru seule).
+  Limites : extraits courts, 6 peut-être vus à l'entraînement des modèles, stems AAC, rien au-dessus de 17,6 kHz,
+  aucune écoute.
+- Les quatre défauts entendus par Yann sont mesurés (moyenne des 12, modèle Voc_FT actuel) :
+  1. restes de voix : la voix n'est atténuée que de 20 dB en moyenne (pire extrait 6,7 dB), de moins en moins vers
+     les aigus (-21,7 dB entre 250 Hz et 2 kHz, -12,3 dB entre 6 et 12 kHz) ;
+  2. sons métalliques : c'est la plus grosse part de l'erreur là où la voix chante (artefacts à -11 / -14 dB sous
+     l'instru par bande ; SAR chanté 16,0 dB, pire 11,8) ;
+  3. volume qui bouge : invisible en pleine bande, net par bandes — entre 6 et 12 kHz l'instru perd 1,7 dB et varie de
+     2,3 dB d'une trame à l'autre quand la voix chante (0,3 et 0,4 dB sinon) ;
+  4. aigus étouffés : -0,6 dB au-dessus de 6 kHz là où la voix chante (pire -1,6).
+- Candidats mesurés : aucun ne réduit nettement les défauts 1, 2 ou 3 (écarts dans ±0,5 dB), ni les post-traitements
+  (masque de Wiener, centre / côtés, compensate par bandes : dégradent), ni « Finition soignée », décalages moyennés
+  ou recouvrement 0,5 (×1,5 à ×4 de temps pour +0,03 à +0,08 dB), ni les autres modèles de la même famille (Inst HQ 3,
+  Inst HQ 4, Kim Vocal 2, seuls ou moyennés : passages sans voix abîmés de 5 à 12 dB). Conclusion de l'ouvrier
+  (croyance, non mesurée) : ces défauts sont l'erreur propre de cette famille de modèles ; un gain net demande une
+  autre architecture, plus lourde.
+- Petits gains sûrs disponibles : (a) porte dans le temps à -30 dB — là où la voix estimée est 30 dB sous la chanson,
+  l'instru redevient l'original exact, coût nul (mesuré en Python seulement) ; (b) seuil dans les aigus au-dessus de
+  6 kHz — niveau des aigus sous la voix -0,60 → -0,18 dB, contre +0,09 dB de restes de voix et +7 % de temps ;
+  (c) borne par bande — retire un bruit du modèle entre 14 et 17,6 kHz (« aigus seuls » 6,3 → 9,8 dB sur la chanson
+  d'essai), +7 % de temps, sans doute inaudible (-75 dBFS).
+- En attente : choix de Yann entre petits gains sûrs, étude d'un modèle d'une autre famille (qualité, taille, temps ;
+  peut-être réservé au PC), ou les deux.
 
 ## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
 
