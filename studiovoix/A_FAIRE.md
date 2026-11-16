@@ -132,7 +132,21 @@ comment les automatismes doivent être faits, ordre proposé.
   menés l'un après l'autre ; C en parallèle.
 - Outillage : le conteneur a été recyclé le 16/11 (scratchpad, web/dist, web/models, web/vendor, Emscripten, JUCE et
   sons d'essai perdus ; rien de suivi par git n'est perdu). Étape 0 = remise en place.
-- Avancement : étape 0 lancée ; éclaireur « séparation » lancé ; A, B, C pas commencés ; point 4 en cours.
+- Avancement : étape 0 lancée ; point 4 fait (commit 02e7b49, vérifié en syntaxe seulement) ; éclaireur
+  « séparation » revenu ; A, B, C pas commencés.
+- Relevé de l'éclaireur sur la séparation (lu dans le code, lignes au 16/11 ; « piste » = hypothèse à mesurer) :
+  - STFT / ISTFT en JavaScript pur dans le worker (`isolate.js` MdxStft, lignes 102-223) : DFT de Bluestein, deux
+    FFT de 16 384 points en Float64 par trame, pour nFft 7680 (voc), 5120 (kara), 6144 (reverb) ; 256 trames par
+    morceau, 2 canaux, aller et retour. Piste A1 : part du temps par morceau à mesurer, puis FFT plus directe.
+  - Tranches de 40 s + 2 s de marge de chaque côté (`app.js` SEG_CORE / SEG_MARGIN, sepStep) : 11 morceaux calculés
+    par tranche de 44 s (pas 4,44 s, recouvrement 0,25) contre ~9 en continu. Piste A2 : reprise par morceau, sans
+    marges recalculées.
+  - ONNX Runtime Web 1.22.0, un fournisseur par session, `graphOptimizationLevel: 'all'`, fils = min(8, cœurs − 1)
+    si la page est isolée (`isolate-worker.js` 94, 115-116). Piste A3 : nombre de fils sur téléphone (cœurs lents),
+    mesurable seulement sur un vrai téléphone.
+  - Instru = chanson d'origine − voix × 1,021 (voix ramenée à la fréquence de la page en sinc), aucun autre
+    traitement (`app.js` 2130, 2157-2161). Mesures existantes : SDR instru 16,3 dB, « aigus seuls » 6,3 dB sur le
+    faux morceau (voix parlées) : les aigus sont le point faible mesuré. Piste B : erreur du modèle dans les aigus.
 
 ## Inspection de piste : le programme détecte ce qui ne va pas et dit quoi faire (demande de Yann)
 
