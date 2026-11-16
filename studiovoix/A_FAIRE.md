@@ -132,8 +132,12 @@ comment les automatismes doivent être faits, ordre proposé.
   menés l'un après l'autre ; C en parallèle.
 - Outillage : le conteneur a été recyclé le 16/11 (scratchpad, web/dist, web/models, web/vendor, Emscripten, JUCE et
   sons d'essai perdus ; rien de suivi par git n'est perdu). Étape 0 = remise en place.
-- Avancement : étape 0 lancée ; point 4 fait (commit 02e7b49, vérifié en syntaxe seulement) ; éclaireur
-  « séparation » revenu ; A, B, C pas commencés.
+- Avancement (16/11, 18:35 UTC) : étape 0 faite et contrôlée (moteur, modèles, sons d'essai ; les 6 essais
+  passent ; recette rejouable hors dépôt : `bootstrap.sh` + `ENV.md` dans le scratchpad de la session, perdus au
+  prochain recyclage — à transformer en script d'installation de l'environnement) ; point 4 fait et vérifié à
+  l'exécution (piste ajoutée = « Voix principale ») ; éclaireur « séparation » revenu ; ouvrier A lancé (profil,
+  puis A1 transformées plus directes et A2 plus de marges recalculées, dans l'arbre principal) ; ouvrier C lancé
+  (saturation forte, craquements isolés, dans une copie de travail à part) ; B attend la fin de A.
 - Relevé de l'éclaireur sur la séparation (lu dans le code, lignes au 16/11 ; « piste » = hypothèse à mesurer) :
   - STFT / ISTFT en JavaScript pur dans le worker (`isolate.js` MdxStft, lignes 102-223) : DFT de Bluestein, deux
     FFT de 16 384 points en Float64 par trame, pour nFft 7680 (voc), 5120 (kara), 6144 (reverb) ; 256 trames par
