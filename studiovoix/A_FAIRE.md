@@ -142,6 +142,10 @@ comment les automatismes doivent être faits, ordre proposé.
   trouvée au contrôle (passage à zéro lent d'une basse pris pour un « trou ») renvoyée à l'ouvrier, pas encore
   intégré (copie de travail `.claude/worktrees/agent-a4954ace2914eb65d`, tête détachée 7e5bea5) ; B lancé en
   recherche seule (banc de mesure + candidats, dossier `B/` du scratchpad, aucun changement au produit).
+- Outillage après recyclage du conteneur : `bash studiovoix/web/test/dev-setup.sh` (Emscripten par apt, JUCE 9.0.4,
+  moteur compilé, modèles d'IA, sons d'essai de la CI ; dossier de travail `SV_SCRATCH`, défaut /tmp/studiovoix-dev).
+  Essais : `PLAYWRIGHT_DIR=$(npm root -g) CHROMIUM_PATH=/opt/pw-browsers/chromium node web/test/<essai>.mjs <url>`
+  avec `python3 -m http.server <port> --bind 127.0.0.1 --directory web` lancé depuis `studiovoix/`.
 - Avancement (16/11, 20:50 UTC) : C intégré et vérifié (section « Chantier C » plus bas) ; reste B (recherche en
   cours), puis décision de Yann sur ce qui entre dans le produit pour l'instru, et sur la suite de la vitesse après
   lecture de la ligne « Profil » de son téléphone.
