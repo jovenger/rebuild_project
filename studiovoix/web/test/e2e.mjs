@@ -288,6 +288,10 @@ try {
         console.log(stamp(), st);
         console.log(stamp(), (await page.textContent('#sepInfo')).replace(/\n/g, ' | '));
         if (!st.startsWith('Chanson séparée')) throw new Error('séparation en échec');
+        // Porte dans le temps de l'instru (instru.js) : sa ligne du journal doit exister ; elle est citée ici.
+        const gateLine = (await page.$$eval('#log div', (els) => els.map((e) => e.textContent))).find((l) => /Séparation, instru : original exact sur [\d.]+ % de la chanson/.test(l));
+        if (!gateLine) throw new Error('séparation : ligne de journal de la porte de l\'instru absente');
+        console.log(stamp(), 'journal de la page :', gateLine);
         if (process.env.EXPECT_GPU_FALLBACK === '1') {
             const fb = await page.evaluate(() => ({ ban: localStorage.getItem('sv-no-webgpu'), log: document.getElementById('log').textContent }));
             console.log(stamp(), `repli carte graphique → processeur : mémorisé « ${fb.ban} », journal ${/relancée sur le processeur/.test(fb.log) ? 'OK' : 'ABSENT'}`);

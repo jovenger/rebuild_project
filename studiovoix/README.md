@@ -44,6 +44,9 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   **✨ Voix lissée** s'ajoute au style : les effets restent (autotune, couleur, réverb, écho), la compression, le
   nettoyage, la saturation et la vitesse de l'autotune passent en régime doux. Une piste enregistrée démarre en
   « Style + voix lissée ». Chaque effet se règle ensuite dans le tableau des effets.
+- **Instru séparée : l'original exact là où personne ne chante.** Une porte dans le temps ne retire la voix estimée
+  que là où elle pèse (plus de -30 dB sous la chanson) ; ailleurs l'instru est la chanson d'origine à l'échantillon
+  près (mesuré sur la chanson d'essai : écart dans les passages sans voix -12 dB → -92 dB).
 - **🔍 Inspection de piste** : le programme mesure lui-même ce qui ne va pas et dit quoi faire. « 🔍 Inspecter »
   (étape 3, piste sélectionnée) ou « 🔍 Inspecter les pistes » (étape 4, toutes) : prise saturée à l'enregistrement
   (plateaux), prise très faible, effets qui salissent la voix (le passage le plus fort est retraité, la saleté ajoutée

@@ -441,12 +441,14 @@ jobs:
           # Transformées de la séparation (FFT directe) et découpage en tranches sans marge : mêmes résultats que
           # l'ancien calcul (copie de référence dans l'essai) et qu'un calcul en un seul bloc.
           node web/test/stft.mjs
+          # Porte dans le temps de l'instru séparée : là où personne ne chante, l'instru est l'original exact.
+          node web/test/gate.mjs
           # Répartition d'une voix sur plusieurs pistes (chanteurs, couplets / refrains) : somme des pistes = voix d'origine.
           node web/test/split.mjs
           mkdir -p "$SEP/48"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/song.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/song.wav"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/truth_instru.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/truth_instru.wav"
-          SEP_SONG="$SEP/48/song.wav" TRUTH_INSTRU="$SEP/48/truth_instru.wav" MIN_INSTRU_SDR_DB=10 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
+          SEP_SONG="$SEP/48/song.wav" TRUTH_INSTRU="$SEP/48/truth_instru.wav" MIN_INSTRU_SDR_DB=10 MAX_QUIET_HF_DB=-40 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs "http://127.0.0.1:8765/index.html?svRate=48000" - - "$RUNNER_TEMP/web_sep.png"
           # Sans musique extérieure (instru captée seule) : prise déjà propre après le retrait, l'IA doit être sautée.
           python3 web/test/make_fake_mic.py "$RUNNER_TEMP/fakemic-clean" --voice "$RUNNER_TEMP/jfk.wav" --no-radio

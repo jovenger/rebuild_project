@@ -7,6 +7,7 @@
 
 import { findSingers, splitRanges, sectionRanges } from './singers.js';
 import { resampleSincAsync } from './resample.js';
+import { gatedInstru, GATE_DEFAULTS } from './instru.js';   // porte dans le temps de l'instru séparée
 import { voiceDirt, clipRuns, loudestWindow, findCrackles, addedDistortion } from './inspect.js';
 import { MODELS as MDX_MODELS, mdxGrid, mdxPart, mdxPartAdd, mdxFinish } from './isolate.js';   // grille des morceaux de « Séparer »
 
@@ -1915,7 +1916,10 @@ function refreshButtons() {
 
 // ------------------------------------------------------------------ « Séparer » une chanson en pistes
 // Chanson avec voix posée sur la piste Instru → IA (modèles MDX-Net, isolate.js) :
-//  1) voix = modèle « voix » ; instru = chanson − voix (là où personne ne chante, l'instru est l'original : pas de trou) ;
+//  1) voix = modèle « voix » ; instru = chanson − g × voix, avec g = porte dans le temps (instru.js) : là où la voix
+//     estimée est très en dessous de la chanson (personne ne chante : c'est un bruit du modèle), g = 0, rien n'est retiré
+//     et l'instru est la chanson d'origine à l'échantillon près ; là où ça chante, g = 1 : chanson − voix. Les pistes de
+//     voix ne passent pas par la porte : instru + voix ne redonne plus exactement la chanson là où la porte est fermée ;
 //  2) backs = modèle « karaoké » appliqué aux voix ; voix principale = voix − backs ;
 //  3) (expérimental) ambiance = modèle « réverb » appliqué à la voix principale ; voix sèche = voix principale − ambiance ;
 //  4) voix principale coupée par chanteur s'ils alternent (empreinte de voix, singers.js).
@@ -2188,7 +2192,7 @@ async function separateSong() {
         await sepCacheClear(cacheId);   // une seule chanson gardée
         const v = await sepStep(cacheId, 'voc', song.left, song.right, 1, steps);
         const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);
-        // L'instru est calculée plus bas, à la fréquence d'origine : morceau d'origine − voix (jamais rééchantillonnée).
+        // L'instru est calculée plus bas, à la fréquence d'origine : morceau d'origine (jamais rééchantillonné) − porte × voix.
         let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
         // 2) voix principale / backs
         if (doKara) {
@@ -2216,9 +2220,13 @@ async function separateSong() {
         const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
         const vocSr = await back44(VL, VR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
         const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };
-        // Instru = morceau d'origine − voix, à la fréquence d'origine : là où personne ne chante, c'est l'original au bit près.
+        // Instru = morceau d'origine − porte × voix, à la fréquence d'origine. Porte dans le temps (instru.js) : fermée là où
+        // la voix estimée est très en dessous de la chanson (bruit du modèle, personne ne chante) → l'original au bit près ;
+        // ouverte là où ça chante → morceau d'origine − voix. Les pistes de voix (plus bas) ne sont pas touchées par la porte.
         const vl = fit(vocSr.left), vr = fit(vocSr.right);
-        const I = { left: src.left.map((x, i) => x - vl[i]), right: src.right.map((x, i) => x - vr[i]) };
+        const tGate = performance.now();
+        const I = gatedInstru(src.left, src.right, vl, vr, sr);
+        log('info', `Séparation, instru : original exact sur ${(100 * I.closed).toFixed(1)} % de la chanson (personne ne chante : rien n'est retiré), voix retirée sur ${(100 * I.open).toFixed(1)} %, fondu entre les deux sur ${(100 * I.between).toFixed(1)} % — porte dans le temps : voix estimée à ${GATE_DEFAULTS.thresholdDb} dB sous la chanson, trames de ${Math.round(1000 * GATE_DEFAULTS.frameSec)} ms, ${Math.round(performance.now() - tGate)} ms`);
         // 4) chanteurs
         const leadMono = fit(toMonoLR(lead.left, lead.right));
         let parts = [{ name: 'Voix principale (séparée)', mono: leadMono }], singersNote = '';

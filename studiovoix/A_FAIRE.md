@@ -199,6 +199,17 @@ comment les automatismes doivent être faits, ordre proposé.
   énergie de la voix estimée / énergie de la chanson ; gain 0 sous -30 dB, 1 au-dessus de -24 dB, linéaire entre les
   deux ; tenue de ±100 ms autour d'une trame active ; interpolation linéaire entre trames ; instru = chanson − gain ×
   voix ; les pistes de voix ne changent pas. Mesuré sur 12 extraits : aucun recul (pire -0,01 dB de SDR).
+- Porte faite (16/11, 21:45 UTC) : `web/instru.js` (`gatedInstru`), branchée dans `separateSong`, une ligne de journal
+  (« Séparation, instru : original exact sur … % »), essai `web/test/gate.mjs` (CI) et seuil `MAX_QUIET_HF_DB=-40` sur
+  l'essai de séparation de la CI. Chanson d'essai à 48 kHz, avant → après : SDR instru 16,25 → 16,25 dB, aigus seuls
+  6,3 → 6,5 dB, passages sans voix -12,1 → -92,5 dB (reste = quantification 16 bits de la mesure), instru identique
+  à l'original sur 12,3 % de la durée ; pistes de voix inchangées. Vérifié par l'orchestrateur : `gate.mjs`,
+  séparation à 48 kHz avec le seuil, démo ; par l'ouvrier seulement : reprise après coupure.
+- Limites de la porte : dans un silence numérique de la chanson elle reste ouverte (comme avant) ; une voix très
+  faible (plus de 30 dB sous la chanson pendant plus de 100 ms : chuchotement, queue de réverb) n'est plus retirée ;
+  autour du seuil le bruit du modèle peut apparaître et disparaître par fondus de 50 ms (3,5 % de la durée sur la
+  chanson d'essai) ; non écouté. Les défauts sous la voix (restes de voix, sons métalliques) ne changent pas : c'est
+  l'objet de l'étude d'un autre modèle, en cours (dossier `B2/` du scratchpad).
 
 ## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
 
