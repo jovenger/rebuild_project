@@ -191,8 +191,14 @@ comment les automatismes doivent être faits, ordre proposé.
   6 kHz — niveau des aigus sous la voix -0,60 → -0,18 dB, contre +0,09 dB de restes de voix et +7 % de temps ;
   (c) borne par bande — retire un bruit du modèle entre 14 et 17,6 kHz (« aigus seuls » 6,3 → 9,8 dB sur la chanson
   d'essai), +7 % de temps, sans doute inaudible (-75 dBFS).
-- En attente : choix de Yann entre petits gains sûrs, étude d'un modèle d'une autre famille (qualité, taille, temps ;
-  peut-être réservé au PC), ou les deux.
+- Décisions de Yann (16/11, 21:15 UTC, à ne pas rediscuter) : (1) « les deux » — ajouter tout de suite la porte dans
+  le temps (là où personne ne chante, l'instru redevient l'original exact) ET étudier un modèle d'une autre famille,
+  gain mesuré / taille / temps présentés avant toute mise en ligne ; (2) PAS de seuil dans les aigus (+7 % de temps
+  et plus de sifflantes pour un gain faible).
+- Porte, règle mesurée par l'ouvrier B (`bench-instru/run_bench.py`, `tgate(-30)`) : trames de 50 ms ; rapport
+  énergie de la voix estimée / énergie de la chanson ; gain 0 sous -30 dB, 1 au-dessus de -24 dB, linéaire entre les
+  deux ; tenue de ±100 ms autour d'une trame active ; interpolation linéaire entre trames ; instru = chanson − gain ×
+  voix ; les pistes de voix ne changent pas. Mesuré sur 12 extraits : aucun recul (pire -0,01 dB de SDR).
 
 ## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
 
