@@ -7,7 +7,7 @@
 
 import { findSingers, splitRanges, sectionRanges } from './singers.js';
 import { resampleSincAsync } from './resample.js';
-import { voiceDirt, clipRuns, loudestWindow } from './inspect.js';
+import { voiceDirt, clipRuns, loudestWindow, findCrackles, addedDistortion } from './inspect.js';
 import { MODELS as MDX_MODELS, mdxGrid, mdxPart, mdxPartAdd, mdxFinish } from './isolate.js';   // grille des morceaux de « Séparer »
 
 const $ = (id) => document.getElementById(id);
@@ -913,11 +913,37 @@ ui.fxResetAll.addEventListener('click', () => {
 //      seuls effets linéaires (égaliseur) ; la saleté ajoutée par les autres (énergie qui ne se répète pas d'une
 //      période à l'autre, graves et aigus, inspect.js) est l'écart entre les deux. Au-dessus du seuil, chaque effet
 //      est essayé seul pour nommer le responsable, avec un bouton pour l'éteindre ;
-//   3. le limiteur de sécurité qui écrase les crêtes, et les défauts que le moteur a mesurés sur la prise.
+//   3. le limiteur de sécurité qui écrase les crêtes, et les défauts que le moteur a mesurés sur la prise ;
+//   4. les craquements isolés de la prise entière (saut, échantillon faux, court trou — inspect.js, findCrackles),
+//      dits avec leurs instants. Les craquements « ajoutés par les effets » (présents dans le passage retraité, absents
+//      de la prise) ne sont PAS cherchés : essayé et retiré, voir CRACKLE plus bas ;
+//   5. la saturation qui déforme : les 10 s les plus fortes du passage sont retraitées avec les réglages réellement
+//      appliqués, autotune et recalage éteints (ils déplacent le son), une fois avec la saturation et une fois sans ;
+//      la distorsion est ce que la version « avec » contient et qu'un simple gain de la version « sans » n'explique
+//      pas (inspect.js, addedDistortion). La saleté du point 2 ne la voit pas : une saturation reste périodique.
 // Réverb et écho sont éteints pour la mesure : filtres linéaires, ils ne peuvent pas craquer, mais ils étalent les notes.
 // Seuils calés sur des mesures : moteur d'avant correction (défectueux) = +3,2 / +1,3 / +3,9 dB de saleté sur trois
 // vraies voix, moteur corrigé = -0,8 à +0,3 dB ; limiteur de sécurité = 3,5 à 5 dB sur une prise ordinaire.
 const INSPECT_SEC = 20, DIRT_WARN_DB = 1.0, DIRT_BAD_DB = 2.0, LIMITER_WARN_DB = 6.0;
+// Saturation : distorsion / voix en dB. Calibrage sur 4 voix (démo, parole JFK, parole LibriSpeech, voix chantée
+// séparée) × 33 styles × style / lissé = 264 cas : réglages par défaut de -50,7 à -29,0 dB (pire : « rage », dosage
+// 55 %, poussée 10 dB) ; saturation abusive (100 %, 24 dB) de -19,8 à -10,6 dB ; forte mais plausible (60 %, 18 dB)
+// de -30,7 à -19,6 dB. Alerte à -22 dB : 7 dB au-dessus du pire réglage normal (0 / 264 signalés), 2 dB sous le cas
+// abusif le plus faible (264 / 264 signalés) ; 60 % / 18 dB : signalé 40 fois sur 264. « Très fort » à -18 dB.
+const SAT_SEC = 10, SAT_WARN_DB = -22.0, SAT_BAD_DB = -18.0;
+// Craquements (findCrackles) : pic du résidu ≥ 12 fois l'échelle de sa trame, ≥ 6 fois le 3e autre pic des 40 ms autour,
+// hauteur ≥ 2 % de la crête. Calibrage : 260 s de voix non modifiées (12 paroles, démo, voix chantée séparée) = aucune
+// fausse détection (1 avec des seuils 10 / 4 / 1 %) ; discontinuités insérées dans la voix : sauts de 0,1 trouvés à
+// 95 %, de 0,2 à 97 %, échantillons faux de 0,1 à 95 %, trous de 2 à 5 ms à 92-94 %.
+// Trous : bords en rupture exigés (un échantillon ≥ 5 fois le seuil à moins de 0,07 ms de chaque bord) depuis une fausse
+// alerte sur une prise micro avec de la basse captée (son grave et faible qui traverse zéro lentement) ; recalibré sur
+// 677 s de sons non modifiés (voix, prises micro simulées, morceaux complets) : aucune détection sans rupture réelle.
+// Limites mesurées : un saut déjà contenu dans un fichier à bande étroite (16 kHz rééchantillonné) n'est pas vu (0 %),
+// seuls ses trous le sont (85 %) ; un défaut collé à une consonne ou dans une voix de synthèse très impulsive passe.
+// « Ajoutés par les effets » : essayé (passage retraité contre la prise au même instant) et NON livré — avec ces seuils,
+// 12 des 264 cas ordinaires en font apparaître un (consonnes grossies par la compression et les aigus, jusqu'à 1,28 fois
+// le seuil) ; aucun au-delà de 1,5 fois le seuil, mais des seuils doublés n'ont pas été validés sur de vrais défauts.
+const CRACKLE = { kSigma: 12, kIso: 6, minAmp: 0.02 };
 const NONLINEAR_FX = ['clean', 'leveler', 'timing', 'pitch', 'resonance', 'comp', 'comp2', 'deEss', 'sat'];
 const fxName = (id) => FX_DEFS.find((d) => d.id === id)?.name || id;
 // Essai e2e seulement (?svTestDirt=comp) : simule un effet qui salit la voix (bruit ajouté quand cet effet est allumé),
@@ -936,6 +962,17 @@ async function inspectTrack(t, onStep = () => {}) {
     const clip = clipRuns(mono), peakDb = 20 * Math.log10(clip.peak + 1e-12);
     if (clip.runs >= 3) add('bad', `Prise saturée à l'enregistrement : ${clip.runs} crêtes écrasées (plateaux à ${peakDb.toFixed(1)} dBFS). Aucun effet ne l'enlève tout à fait : baisse le niveau du micro et refais la prise. Le « Nettoyage » reconstruit ce qu'il peut.`);
     if (peakDb < -30) add('warn', `Prise très faible (crête ${peakDb.toFixed(0)} dBFS) : le souffle sera remonté avec la voix. Monte le niveau du micro ou rapproche-toi.`);
+    // 4) craquements isolés de la prise entière (saut, échantillon faux, court trou)
+    //    Sous 32 kHz la mesure n'est pas faite : à 16 kHz elle prend des consonnes pour des craquements (mesuré).
+    onStep('les craquements de la prise');
+    const crackleOk = sr >= 32000;
+    const tC = performance.now(), takeCr = crackleOk ? findCrackles(mono, sr, CRACKLE) : [], whenCr = (c) => fmt(take.startSec + c.at / sr);
+    const listCr = (cr) => cr.slice(0, 5).map(whenCr).join(', ') + (cr.length > 5 ? '…' : '');
+    if (!crackleOk) log('warn', `Inspection de « ${t.name} » : craquements de la prise non cherchés (son à ${sr} Hz, mesure calée à partir de 32 kHz)`);
+    else log('info', `Inspection de « ${t.name} » : craquements de la prise (${(mono.length / sr).toFixed(1)} s) — ${takeCr.length}, dont ${takeCr.filter((c) => c.kind === 'trou').length} trou(s)`
+        + (takeCr.length ? ` : ${takeCr.slice(0, 5).map((c) => `${whenCr(c)} ${c.kind === 'trou' ? `trou de ${c.ms.toFixed(1)} ms` : `clic de ${(100 * c.amp / (clip.peak + 1e-12)).toFixed(1)} % de la crête, ${c.iso.toFixed(0)} fois plus fort que ses voisins`}`).join(' ; ')}` : '')
+        + ` (seuils : ${(100 * CRACKLE.minAmp).toFixed(0)} % de la crête, ${CRACKLE.kIso} fois les voisins) ; mesure ${Math.round(performance.now() - tC)} ms`);
+    if (takeCr.length) add(takeCr.length >= 3 ? 'bad' : 'warn', `La prise craque : ${takeCr.length} craquement${takeCr.length > 1 ? 's' : ''} (saut ou court trou dans le son) à ${listCr(takeCr)}. Cela vient de l'enregistrement, pas des effets : aucun effet ne l'enlève. Réécoute ${takeCr.length > 1 ? 'ces instants' : 'cet instant'} ; si cela s'entend, refais la prise (ferme les autres onglets et programmes pendant l'enregistrement).`);
     if (t.noFx) {
         if (!findings.length) add('ok', 'Piste « Sans effet » : jouée telle quelle, aucun effet ne peut l\'abîmer ; rien d\'anormal mesuré sur la prise.');
         else add('info', 'Piste « Sans effet » : aucun effet en cause, les constats ci-dessus viennent de la prise elle-même.');
@@ -948,10 +985,10 @@ async function inspectTrack(t, onStep = () => {}) {
     const base = { sampleRate: sr, styleId: t.styleId, roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec + at / sr, gentle: !!t.smooth };
     const user = t.fx || {}, noSpace = { reverb: { on: false }, delay: { on: false } };
     const offAll = Object.fromEntries(NONLINEAR_FX.map((id) => [id, { on: false }]));
-    const run = async (fx) => {
-        const r = await call('processVoice', { ...base, mono: x.slice(), fx });
-        const y = new Float32Array(x.length);
-        for (let i = 0; i < x.length; ++i) y[i] = 0.5 * (r.left[i] + r.right[i]);
+    const run = async (fx, src = x, offSec = 0) => {
+        const r = await call('processVoice', { ...base, startSec: base.startSec + offSec, mono: src.slice(), fx });
+        const y = new Float32Array(src.length);
+        for (let i = 0; i < src.length; ++i) y[i] = 0.5 * (r.left[i] + r.right[i]);
         if (TEST_DIRT && r.report.fx?.[TEST_DIRT]?.on) {
             let e = 0; for (let i = 0; i < y.length; i += 8) e += y[i] * y[i];
             const a = 0.5 * Math.sqrt(e / (y.length / 8));
@@ -970,10 +1007,12 @@ async function inspectTrack(t, onStep = () => {}) {
     const where = `passage le plus fort, ${fmt(take.startSec + at / sr)} à ${fmt(take.startSec + at / sr + x.length / sr)}`;
     const ex = excess(dFull), worst = worstOf(ex);
     log('info', `Inspection de « ${t.name} » (${where}, ${dFull.frames} trames chantées) : saleté ajoutée par les effets — aigus ${sDb(ex.high)} (passages forts ${sDb(ex.highLoud)}), graves ${sDb(ex.low)} (forts ${sDb(ex.lowLoud)}) ; limiteur ${(full.report.limiterGrDb || 0).toFixed(1)} dB`);
+    const active = NONLINEAR_FX.filter((id) => full.report.fx?.[id]?.on);
+    const offBtn = (id) => ({ label: `Éteindre « ${fxName(id)} »`, run: () => { t.fx = t.fx || {}; t.fx[id] = { ...(t.fx[id] || {}), on: false }; log('info', `« ${t.name} » : « ${fxName(id)} » éteint (inspection)`); fxChanged(t, 30); renderFx(true); } });
     if (dFull.frames < 20) add('info', `Trop peu de passages chantés dans la prise (${dFull.frames} trames) pour mesurer ce que les effets ajoutent.`);
     else if (worst >= DIRT_WARN_DB) {
         // qui ? chaque effet allumé, essayé seul
-        const active = NONLINEAR_FX.filter((id) => full.report.fx?.[id]?.on), scores = [];
+        const scores = [];
         for (const id of active) {
             onStep(`l'effet « ${fxName(id)} » seul`);
             const r = await run({ ...user, ...offAll, [id]: { ...(user[id] || {}), on: true }, ...noSpace });
@@ -987,15 +1026,28 @@ async function inspectTrack(t, onStep = () => {}) {
         const head = `Les effets salissent la voix : ${sDb(worst)} de bruit ajouté ${ex.highLoud >= ex.high && ex.highLoud >= ex.low ? 'dans les aigus des passages forts' : ex.high >= ex.low ? 'dans les aigus' : 'dans les graves'} (${where} ; alerte à partir de +${DIRT_WARN_DB.toFixed(0)} dB).`;
         if (culprits.length) {
             culprits.forEach((c, k) => add(level, k === 0 ? `${head} Responsable mesuré : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).` : `Aussi en cause : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).`,
-                { label: `Éteindre « ${fxName(c.id)} »`, run: () => { t.fx = t.fx || {}; t.fx[c.id] = { ...(t.fx[c.id] || {}), on: false }; log('info', `« ${t.name} » : « ${fxName(c.id)} » éteint (inspection)`); fxChanged(t, 30); renderFx(true); } }));
+                offBtn(c.id)));
         } else if (!t.smooth) add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Allumer « Voix lissée »', run: () => setFxMode(t, 'smooth') });
         else add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Passer en « Sans effet »', run: () => setFxMode(t, 'none') });
+    }
+    // 5) saturation qui déforme : mêmes réglages appliqués, autotune et recalage éteints, avec la saturation contre sans
+    let satDb = null;
+    if (full.report.fx?.sat?.on) {
+        onStep('la saturation');
+        const atS = loudestWindow(x, sr, SAT_SEC), xs = x.slice(atS, atS + Math.round(SAT_SEC * sr));
+        const pinned = { ...full.report.fx, pitch: { on: false }, timing: { on: false }, ...noSpace };
+        const tS = performance.now(), withSat = await run(pinned, xs, atS / sr), without = await run({ ...pinned, sat: { on: false } }, xs, atS / sr);
+        const d = addedDistortion(without.y, withSat.y, sr), sat = full.report.fx.sat;
+        satDb = d.db;
+        log('info', `Inspection de « ${t.name} » : saturation (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(1)} dB) — distorsion ajoutée ${d.db.toFixed(1)} dB par rapport à la voix (passages forts ${d.loudDb.toFixed(1)} dB, ${d.frames} trames, ${fmt(take.startSec + (at + atS) / sr)} à ${fmt(take.startSec + (at + atS + xs.length) / sr)}) ; alerte à ${SAT_WARN_DB.toFixed(0)} dB ; mesure ${Math.round(performance.now() - tS)} ms`);
+        if (d.frames >= 20 && d.db >= SAT_WARN_DB)
+            add(d.db >= SAT_BAD_DB ? 'bad' : 'warn', `La « ${fxName('sat')} » déforme la voix : la distorsion qu'elle ajoute n'est qu'à ${Math.abs(d.db).toFixed(0)} dB sous la voix (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(0)} dB ; alerte à ${Math.abs(SAT_WARN_DB).toFixed(0)} dB, les réglages des styles restent à 29 dB ou plus). Si ce grain n'est pas voulu, baisse sa « Poussée » ou son « Dosage », ou éteins-la.`, offBtn('sat'));
     }
     // 3) limiteur de sécurité, et ce que le moteur a mesuré sur la prise (bruit, sifflantes, résonances, dynamique…)
     const lim = full.report.limiterGrDb || 0;
     if (lim >= LIMITER_WARN_DB) add('warn', `Le limiteur de sécurité de la piste écrase les crêtes de ${lim.toFixed(1)} dB : la voix sort trop fort de sa chaîne (compression trop faible pour une prise très dynamique). Allume le « Niveleur » ou monte le taux du compresseur.`);
     if (!findings.some((f) => f.level === 'warn' || f.level === 'bad') && dFull.frames >= 20)
-        add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB.`);
+        add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB${crackleOk ? ', aucun craquement dans la prise' : ''}${satDb === null ? '' : `, distorsion de la saturation ${satDb.toFixed(0)} dB (alerte à ${SAT_WARN_DB.toFixed(0)} dB)`}.`);
     const found = (full.report.found || '').trim();
     if (found) add('info', `Mesuré sur la prise par le moteur (déjà pris en compte dans les réglages) : ${found}`);
     log('info', `Inspection de « ${t.name} » : ${findings.filter((f) => f.level === 'warn' || f.level === 'bad').length} problème(s), en ${Math.round(performance.now() - t0)} ms`);

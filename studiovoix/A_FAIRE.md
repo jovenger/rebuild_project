@@ -142,6 +142,9 @@ comment les automatismes doivent être faits, ordre proposé.
   trouvée au contrôle (passage à zéro lent d'une basse pris pour un « trou ») renvoyée à l'ouvrier, pas encore
   intégré (copie de travail `.claude/worktrees/agent-a4954ace2914eb65d`, tête détachée 7e5bea5) ; B lancé en
   recherche seule (banc de mesure + candidats, dossier `B/` du scratchpad, aucun changement au produit).
+- Avancement (16/11, 20:50 UTC) : C intégré et vérifié (section « Chantier C » plus bas) ; reste B (recherche en
+  cours), puis décision de Yann sur ce qui entre dans le produit pour l'instru, et sur la suite de la vitesse après
+  lecture de la ligne « Profil » de son téléphone.
 - Relevé de l'éclaireur sur la séparation (lu dans le code, lignes au 16/11 ; « piste » = hypothèse à mesurer) :
   - STFT / ISTFT en JavaScript pur dans le worker (`isolate.js` MdxStft, lignes 102-223) : DFT de Bluestein, deux
     FFT de 16 384 points en Float64 par trame, pour nFft 7680 (voc), 5120 (kara), 6144 (reverb) ; 256 trames par
@@ -155,6 +158,34 @@ comment les automatismes doivent être faits, ordre proposé.
   - Instru = chanson d'origine − voix × 1,021 (voix ramenée à la fréquence de la page en sinc), aucun autre
     traitement (`app.js` 2130, 2157-2161). Mesures existantes : SDR instru 16,3 dB, « aigus seuls » 6,3 dB sur le
     faux morceau (voix parlées) : les aigus sont le point faible mesuré. Piste B : erreur du modèle dans les aigus.
+
+## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
+
+- Livré — saturation (`addedDistortion`) : les 10 s les plus fortes sont retraitées avec les réglages appliqués
+  (autotune, recalage, réverb, écho éteints), avec et sans la saturation ; la distorsion = ce que la version « avec »
+  contient et qu'un ajustement linéaire de la version « sans » n'explique pas, en dB sous la voix. Calibrage de
+  l'ouvrier, 4 voix × 33 styles × (style, lissé) = 264 cas : réglages normaux -50,7 à -29,0 dB (0 alerte), saturation
+  au maximum (100 %, 24 dB) -19,8 à -10,6 dB (264 alertes), forte mais plausible (60 %, 18 dB) 40 alertes sur 264.
+  Seuils : alerte -22 dB, grave -18 dB. Constat avec bouton « Éteindre « Saturation (chaleur) » ».
+- Livré — craquements de la prise (`findCrackles`) : clic = pic du résidu de prédiction linéaire (ordre 24) ≥ 12 fois
+  l'échelle de sa trame, ≥ 6 fois le 3e autre pic des 40 ms autour, ≥ 2 % de la crête ; trou = son sous -60 dB de la
+  crête pendant 0,7 à 30 ms, avec une vraie rupture aux deux bords (échantillon ≥ 5 fois le seuil à moins de 0,07 ms).
+  Calibrage de l'ouvrier : 0 détection sans rupture réelle sur 677 s de sons non modifiés ; sauts de 0,1 trouvés à
+  95 %, trous de 2 à 5 ms à 92-94 %. Constat : nombre + 5 premiers instants ; « vient de l'enregistrement ».
+- Contrôle de l'orchestrateur sur des sons hors calibrage : une fausse alerte trouvée (passage à zéro lent d'une basse
+  captée pris pour un trou, `fakemic-clean/mic.wav` à 11,98 s) → règle des bords ajoutée par l'ouvrier, cas reproduit
+  dans l'essai (l'ancienne règle y voyait 205 trous, la nouvelle 0).
+- Corrigé en passant (signalé par l'ouvrier) : « Prise saturée » comptait comme plateau le sommet arrondi d'une note
+  pure (un sinus de 440 Hz : 1760 « plateaux » en 2 s). Un plateau doit maintenant être plat. Notes pures de 40 à
+  6000 Hz : 0 ; voix écrêtée : toujours détectée. Limite inchangée : un écrêtage rééchantillonné n'est pas vu.
+- Non livré — craquements « ajoutés par les effets » : 12 fausses alertes sur 264 cas ordinaires (consonnes grossies
+  par la compression), marge insuffisante même seuils doublés.
+- Limites mesurées : rien sous 32 kHz (fausses détections à 16 kHz : non cherché, dit au journal) ; un saut déjà
+  contenu dans un fichier à bande étroite n'est pas vu ; un son extérieur à attaque instantanée capté par le micro ou
+  un montage coupé net est signalé comme craquement ; règle des trous calée sur un seul faux trou réel (marge 3) ;
+  aucune vraie prise micro pleine bande avec de vrais craquements dans le calibrage.
+- Vérifié par l'orchestrateur après intégration : `inspect.mjs` avec vraie voix (32 contrôles), démo PC et Pixel 7.
+  Durée d'une inspection : 5,4 → 8,7 s (mesure de l'ouvrier).
 
 ## Chantier A — séparation plus rapide à résultat identique (16/11)
 
