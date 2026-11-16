@@ -115,6 +115,25 @@ comment les automatismes doivent être faits, ordre proposé.
 - À vérifier avec Yann : son instru réelle (la sienne peut dépasser 0 dBFS avec la voix : volume général baissé de
   quelques dB, son intact) ; si la voix couvre trop la musique, c'est le réglage voix / instru du style (à baisser).
 
+## Programme en cours — mode directeur (décisions de Yann du 16/11, à ne pas rediscuter)
+
+État tenu ici pour survivre à une coupure de session. Build en ligne : 131 (commit e267500).
+
+- Décisions verrouillées :
+  1. Chantier A — séparation plus rapide sur téléphone (45 min pour 3:35 aujourd'hui), **à qualité identique** :
+     seuls les gains qui ne changent pas le résultat mesuré sont permis (pas de « mode rapide »).
+  2. Chantier B — instru séparée plus propre. Défauts entendus par Yann, tous les quatre : restes de voix, sons
+     métalliques, volume qui bouge là où il y avait la voix, aigus étouffés.
+  3. Chantier C — inspection plus complète : détecter aussi la saturation forte et les craquements isolés, sans
+     fausse alerte (les deux contrôles avaient été retirés pour cette raison).
+  4. « Ajouter une piste » propose « Voix principale » par défaut (au lieu de « Voix back »).
+- Méthode : l'orchestrateur verrouille les décisions, écrit les consignes, vérifie lui-même et committe ; les
+  sous-agents lisent, mesurent et construisent, ne committent jamais. A et B touchent le même code (séparation) :
+  menés l'un après l'autre ; C en parallèle.
+- Outillage : le conteneur a été recyclé le 16/11 (scratchpad, web/dist, web/models, web/vendor, Emscripten, JUCE et
+  sons d'essai perdus ; rien de suivi par git n'est perdu). Étape 0 = remise en place.
+- Avancement : étape 0 lancée ; éclaireur « séparation » lancé ; A, B, C pas commencés ; point 4 en cours.
+
 ## Inspection de piste : le programme détecte ce qui ne va pas et dit quoi faire (demande de Yann)
 
 - Demande : « est-ce que le programme pourra détecter quelque chose qui ne va pas sur une piste ? … il pourrait

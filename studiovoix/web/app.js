@@ -66,7 +66,7 @@ function startWorker() {
             ui.version.textContent = m.version;
             state.styles = m.styles;
             state.roles = m.roles;
-            fillRoleSelect(ui.addRole, 'manual_back');
+            fillRoleSelect(ui.addRole, 'lead');   // « Ajouter une piste » propose « Voix principale » (choix de Yann, 16/11)
             setStatus('Moteur prêt. Pose une instru (piste Instru), arme une piste (●) puis REC.');
             restoreProject().then((restored) => {
                 if (!restored && state.tracks.length === 0) addTrack('lead', 'Voix principale');
