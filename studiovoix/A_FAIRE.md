@@ -138,6 +138,10 @@ comment les automatismes doivent être faits, ordre proposé.
   l'exécution (piste ajoutée = « Voix principale ») ; éclaireur « séparation » revenu ; ouvrier A lancé (profil,
   puis A1 transformées plus directes et A2 plus de marges recalculées, dans l'arbre principal) ; ouvrier C lancé
   (saturation forte, craquements isolés, dans une copie de travail à part) ; B attend la fin de A.
+- Avancement (16/11, 20:10 UTC) : A fait et vérifié (section « Chantier A » plus bas) ; C revenu, une fausse alerte
+  trouvée au contrôle (passage à zéro lent d'une basse pris pour un « trou ») renvoyée à l'ouvrier, pas encore
+  intégré (copie de travail `.claude/worktrees/agent-a4954ace2914eb65d`, tête détachée 7e5bea5) ; B lancé en
+  recherche seule (banc de mesure + candidats, dossier `B/` du scratchpad, aucun changement au produit).
 - Relevé de l'éclaireur sur la séparation (lu dans le code, lignes au 16/11 ; « piste » = hypothèse à mesurer) :
   - STFT / ISTFT en JavaScript pur dans le worker (`isolate.js` MdxStft, lignes 102-223) : DFT de Bluestein, deux
     FFT de 16 384 points en Float64 par trame, pour nFft 7680 (voc), 5120 (kara), 6144 (reverb) ; 256 trames par
@@ -151,6 +155,30 @@ comment les automatismes doivent être faits, ordre proposé.
   - Instru = chanson d'origine − voix × 1,021 (voix ramenée à la fréquence de la page en sinc), aucun autre
     traitement (`app.js` 2130, 2157-2161). Mesures existantes : SDR instru 16,3 dB, « aigus seuls » 6,3 dB sur le
     faux morceau (voix parlées) : les aigus sont le point faible mesuré. Piste B : erreur du modèle dans les aigus.
+
+## Chantier A — séparation plus rapide à résultat identique (16/11)
+
+- Profil mesuré (PC, 4 cœurs, 3 fils, chanson d'essai de 20 s à 48 kHz, meilleure passe) : modèle d'IA 84,5 % du temps
+  total (12,3 s par morceau pour voix / instru, 7,3 s pour voix principale / backs), transformées en JavaScript 7,9 %
+  (0,9 à 1,0 s par morceau), reste du worker 0,5 %, hors étapes (chargement, rééchantillonnage, chanteurs) 7,1 %.
+- Fait — A1 : transformées par FFT directe à bases mixtes (2, 3, 4, 5) au lieu de Bluestein. Par morceau : voc
+  936 → 212 ms, kara 1004 → 122 ms, reverb 1788 → 365 ms ; écart avec l'ancien calcul ≤ 6e-12 (essai `stft.mjs`).
+- Fait — A2 : une seule grille de morceaux sur toute l'étape, calculée par tranches de 9 morceaux (40 s) sans marge ;
+  le worker rend les sommes pondérées, la page additionne puis divise. Résultat = calcul en un seul bloc (écart
+  -146 dB). 3 min 35 : 54 → 49 morceaux à calculer par étape (-9 %). Reprise gardée (tranche de 40 s), format des
+  tranches changé (« g2 ») : une séparation interrompue avec l'ancienne version repart de zéro une fois.
+- Fait — une ligne « Profil … » au journal par étape (morceaux calculés / sautés, temps du modèle, des transformées,
+  du reste) : à demander à Yann après une séparation sur son téléphone.
+- Vérifié par l'orchestrateur : `stft.mjs` ; séparation à 48 kHz (SDR instru 16,3 dB, aigus 6,3 dB, 2 chanteurs +
+  backs : inchangés) ; reprise après coupure ; démo. Par l'ouvrier seulement : micro avec radio (SDR 18,5 dB).
+- Gain total : non mesuré proprement en durée (machine chargée pendant les passes : 115,8 → 113,2 s au mieux sur
+  20 s) ; attendu ≈ -15 % sur PC (transformées + morceaux en moins). Sur téléphone : inconnu, la ligne « Profil »
+  le dira.
+- Limite atteinte « à résultat identique » : après ces changements le modèle pèse plus de 95 % d'une étape. Aller
+  nettement plus vite = toucher au modèle (carte graphique du téléphone, nombre de fils, recouvrement, mode rapide) :
+  décision de Yann, après lecture du profil de son téléphone.
+- Risque connu : si le navigateur garde un ancien `isolate.js` avec le nouvel `app.js` (fenêtre de ~10 min après une
+  mise en ligne), la page ne se charge pas jusqu'au rechargement suivant.
 
 ## Inspection de piste : le programme détecte ce qui ne va pas et dit quoi faire (demande de Yann)
 

@@ -8,6 +8,7 @@
 import { findSingers, splitRanges, sectionRanges } from './singers.js';
 import { resampleSincAsync } from './resample.js';
 import { voiceDirt, clipRuns, loudestWindow } from './inspect.js';
+import { MODELS as MDX_MODELS, mdxGrid, mdxPart, mdxPartAdd, mdxFinish } from './isolate.js';   // grille des morceaux de « Séparer »
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -1827,12 +1828,14 @@ const fmtLong = (sec) => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${String(Mat
 function sepEstimate() {
     if (!ui.sepEst) return;
     if (!state.instru || state.separating) { ui.sepEst.textContent = ''; return; }
-    const chunks = Math.ceil(state.instru.seconds * 44100 / Math.floor((1 - SEP_OVERLAP) * 1024 * 255)) + 1;
+    // Nombre réel de morceaux par étape (une seule grille sur toute la chanson, la même que le calcul : isolate.js).
+    const n44 = Math.round(state.instru.seconds * 44100), count = (k) => mdxGrid(n44, MDX_MODELS[k], SEP_OVERLAP).total;
+    const chunks = count('voc');
     const sp = sepSpeedLoad();
     const keys = ['voc', ...(ui.sepLeadBack.checked ? ['kara'] : []), ...(ui.sepAmbiance.checked ? ['reverb'] : [])];
     if (!sp.voc) { ui.sepEst.textContent = `Durée : environ ${chunks} morceaux de calcul par étape ; le temps exact s'affiche après le 1er morceau (puis il est retenu pour cet appareil).`; return; }
     const dn = ui.sepDenoise.checked ? 2 : 1;   // finition soignée : deux calculs par morceau
-    const ms = dn * keys.reduce((a, k) => a + (sp[k] || sp.voc) * chunks * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
+    const ms = dn * keys.reduce((a, k) => a + (sp[k] || sp.voc) * count(k) * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
     const fast = sp.voc * chunks;
     ui.sepEst.textContent = `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})` +
         (keys.length > 1 ? ` — plus rapide : décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement).` : '.') +
@@ -1893,12 +1896,8 @@ function sepSet(step, label, frac) {
 // L'IA traite la chanson par morceaux d'environ 6 s ; un morceau = un seul calcul du modèle (15 s sur PC, bien plus
 // sur téléphone), sans avancée intermédiaire possible. On affiche donc le compteur de morceaux, la durée mesurée par
 // morceau, et entre deux morceaux une avancée estimée d'après cette durée (plafonnée à 90 % du morceau).
-function sepChunk(done, total, skipped = false, global = false) {
+function sepChunk(done, total, skipped = false) {   // done / total : n° du morceau dans l'étape entière (grille unique)
     const now = performance.now();
-    if (sepRun.seg && !global) {   // morceau d'une tranche → compte sur l'étape entière
-        done = Math.min(sepRun.seg.n * sepRun.seg.per - 1, sepRun.seg.i * sepRun.seg.per + done);
-        total = sepRun.seg.n * sepRun.seg.per;
-    }
     const dt = now - (sepRun.cLast || now);
     if (skipped) sepRun.cSkipped = (sepRun.cSkipped || 0) + 1;   // morceau sans signal : instantané, ne fausse pas la durée mesurée
     else {
@@ -2033,11 +2032,13 @@ function sepKeepAliveStop() {
     } catch (e) { log('warn', `arrière-plan : ${e.message}`); }
 }
 function sepLeaveGuard(e) { e.preventDefault(); e.returnValue = ''; }   // quitter la page = calcul perdu : le navigateur demande
-// Reprise fine : chaque étape est calculée par tranches de 40 s (+ 2 s de marge de chaque côté, fondu de 0,5 s entre
-// tranches), et chaque tranche finie est gardée tout de suite (IndexedDB, magasin « meta », clés « sep:… »). Si le
-// téléphone ferme la page (veille, mémoire), la relance reprend à la tranche en cours. Moins de mémoire aussi : l'IA ne
-// voit jamais plus de 44 s à la fois. Une seule chanson gardée à la fois ; tout est effacé après réussite.
-const SEG_CORE = 40 * 44100, SEG_MARGIN = 2 * 44100, SEG_FADE = Math.round(0.5 * 44100);
+// Reprise fine : une étape = une seule grille de morceaux sur toute la chanson (isolate.js, mdxGrid : morceaux de 5,9 s
+// tous les 4,4 s), calculée par tranches d'environ 40 s (9 morceaux), sans marge : aucun morceau n'est calculé deux
+// fois, et le résultat est celui d'un calcul en un seul bloc. Chaque tranche finie est gardée tout de suite (IndexedDB,
+// magasin « meta », clés « sep:… » : sommes pondérées de ses morceaux). Si le téléphone ferme la page (veille,
+// mémoire), la relance reprend à la tranche en cours. Moins de mémoire aussi : l'IA ne voit jamais plus de 42 s à la
+// fois. Une seule chanson gardée à la fois ; tout est effacé après réussite.
+const SEG_CORE = 40 * 44100;   // durée visée d'une tranche (grain de la reprise)
 const SEP_PREFIX = 'sep:';
 async function sepDb(fn) {
     const db = await openDb();
@@ -2065,50 +2066,56 @@ async function sepCacheClear(keepId = null) {
         });
     } catch (e) { log('warn', `nettoyage de la reprise : ${e.message}`); }
 }
+// Profil d'une étape, en une ligne de journal : où part le temps (modèle, transformées en JavaScript, reste). Sert à
+// comparer les appareils (un téléphone peut passer bien plus de temps qu'un PC dans les transformées).
+function sepProfileLog(key, prof, secs) {
+    const s1 = (ms) => (ms / 1000).toFixed(1).replace('.', ','), tf = prof.stftMs + prof.istftMs;
+    const rest = Math.max(0, secs * 1000 - prof.modelMs - tf), per = Math.max(1, prof.chunks);
+    log('info', `Profil ${SEP_MODELS[key]} : ${prof.chunks} morceau(x) calculé(s), ${prof.skipped} sauté(s) — modèle ${s1(prof.modelMs)} s, ` +
+        `transformées ${s1(tf)} s (aller ${s1(prof.stftMs)} s, retour ${s1(prof.istftMs)} s), reste ${s1(rest)} s — par morceau : modèle ${s1(prof.modelMs / per)} s, ` +
+        `transformées ${s1(tf / per)} s, reste ${s1(rest / per)} s`);
+}
 // Une étape IA complète, tranche par tranche, avec reprise. Même normalisation (crête du morceau entier) pour toutes
 // les tranches, pour que l'IA voie le même niveau qu'en un seul bloc.
 async function sepStep(cacheId, key, L, R, step, steps) {
-    const n = L.length, nSeg = Math.max(1, Math.ceil(n / SEG_CORE));
+    const n = L.length, grid = mdxGrid(n, MDX_MODELS[key], SEP_OVERLAP);
+    const per = Math.max(1, Math.floor(SEG_CORE / grid.step)), nSeg = Math.ceil(grid.total / per);   // morceaux par tranche
     let peak = 0;
     for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
     sepCheck();
     sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]}`, 0);
     sepRun.isModel = true; sepRun.key = key;
-    const chunkStep = Math.floor((1 - SEP_OVERLAP) * 1024 * 255);
-    sepRun.seg = { i: 0, n: nSeg, per: Math.ceil((Math.min(n, SEG_CORE) + 2 * SEG_MARGIN + 2560 + 261120) / chunkStep) };
-    log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]} — ${nSeg} tranche(s) de 40 s`);
-    const outL = new Float32Array(n), outR = new Float32Array(n), wsum = new Float32Array(n);
-    let reused = 0, secs = 0;
+    sepRun.seg = { i: 0, n: nSeg, per, chunks: grid.total };
+    log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]} — ${nSeg} tranche(s) de ${Math.round(per * grid.step / 44100)} s (${per} morceaux par tranche, ${grid.total} morceaux en tout, aucun calculé deux fois)`);
+    const outL = new Float32Array(n), outR = new Float32Array(n);
+    let reused = 0, reusedChunks = 0, secs = 0;
+    const prof = { chunks: 0, skipped: 0, stftMs: 0, modelMs: 0, istftMs: 0 };   // profil de l'étape (somme des tranches calculées)
     for (let i = 0; i < nSeg; ++i) {
         sepCheck();
-        const a = i * SEG_CORE, b = Math.min(n, a + SEG_CORE);
-        const s0 = Math.max(0, a - SEG_MARGIN), s1 = Math.min(n, b + SEG_MARGIN);
+        const part = mdxPart(grid, i * per, Math.min(grid.total, (i + 1) * per));   // morceaux k0 à k1 − 1
         sepRun.seg.i = i;
         let y = await sepCacheGet(cacheId, `${key}#${i}`);
-        if (y && y.left.length === s1 - s0) {
-            ++reused;
-            sepChunk((i + 1) * sepRun.seg.per, nSeg * sepRun.seg.per, true, true);   // reprise : avancée sans calcul
+        if (y && y.left.length === part.p1 - part.p0 && y.right?.length === y.left.length) {
+            ++reused; reusedChunks += part.k1 - part.k0;
+            sepChunk(part.k1, grid.total, true);   // reprise : avancée sans calcul
         } else {
-            const r = await isoCall('isolate', { model: key, left: L.slice(s0, s1), right: R.slice(s0, s1), release: false, opts: { ...(SEP_OPTS[key] || {}), peak, denoise: ui.sepDenoise.checked } });
+            const r = await isoCall('isolate', { model: key, left: L.slice(part.s0, part.s1), right: R.slice(part.s0, part.s1), release: false,
+                opts: { ...(SEP_OPTS[key] || {}), peak, denoise: ui.sepDenoise.checked, part: { n, k0: part.k0, k1: part.k1 } } });
             iso.backend = r.backend; secs += r.seconds;
+            if (r.profile) for (const k of Object.keys(prof)) prof[k] += r.profile[k] || 0;
+            // Garde-fou : un ancien worker resté en cache ignorerait « part » et rendrait autre chose que des sommes pondérées.
+            if (r.part?.k0 !== part.k0 || r.part?.k1 !== part.k1) throw new Error('le moteur de séparation n\'est pas à jour (ancienne version en cache) : recharge la page');
+            if (r.left.length !== part.p1 - part.p0 || r.right.length !== r.left.length) throw new Error(`tranche ${i + 1} de l'étape ${SEP_MODELS[key]} : taille inattendue (${r.left.length} au lieu de ${part.p1 - part.p0})`);
             y = { left: r.left, right: r.right };
             await sepCachePut(cacheId, `${key}#${i}`, y.left, y.right);
         }
-        // Fondu entre tranches : poids 1 sur [a, b), rampes de 0,5 s dans les marges.
-        for (let t = s0; t < s1; ++t) {
-            let w = 1;
-            if (t < a) w = (t - (a - SEG_FADE)) / SEG_FADE;
-            else if (t >= b) w = (b + SEG_FADE - t) / SEG_FADE;
-            if (w <= 0) continue;
-            if (w > 1) w = 1;
-            const j = t - s0;
-            outL[t] += y.left[j] * w; outR[t] += y.right[j] * w; wsum[t] += w;
-        }
+        mdxPartAdd(grid, part, y, outL, outR);   // sommes pondérées des morceaux de la tranche
     }
-    for (let t = 0; t < n; ++t) { const w = wsum[t]; if (w > 0) { outL[t] /= w; outR[t] /= w; } }
+    mdxFinish(grid, outL, outR);   // division par la somme des poids : même résultat qu'un calcul en un seul bloc
     sepRun.seg = null;
     if (key !== 'voc') await isoCall('release', { model: key }).catch((e) => log('warn', `libération ${key} : ${e.message}`));
-    log('info', `Séparation ${SEP_MODELS[key]} : ${nSeg} tranche(s), ${reused} reprise(s) sans calcul, ${secs.toFixed(1)} s de calcul sur ${iso.backend || '?'}`);
+    log('info', `Séparation ${SEP_MODELS[key]} : ${nSeg} tranche(s), ${reused} reprise(s) sans calcul (${reusedChunks} morceau(x) relu(s) sur ${grid.total}), ${secs.toFixed(1)} s de calcul sur ${iso.backend || '?'}`);
+    sepProfileLog(key, prof, secs);
     return { left: outL, right: outR };
 }
 async function separateSong() {
@@ -2124,7 +2131,8 @@ async function separateSong() {
         const src = state.instru, sr = src.sampleRate;
         const song = await resampleStereo(src.left, src.right, sr, 44100);
         // 1) voix / instru
-        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}`;
+        // « g2 » : format des tranches gardées (sommes pondérées sur une grille unique) — les anciennes ne sont pas relues.
+        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}|g2`;
         await sepCacheClear(cacheId);   // une seule chanson gardée
         const v = await sepStep(cacheId, 'voc', song.left, song.right, 1, steps);
         const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);

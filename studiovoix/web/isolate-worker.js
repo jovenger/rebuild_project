@@ -203,7 +203,9 @@ onmessage = async (e) => {
             const sec = (performance.now() - t0) / 1000;
             log('info', `${cfg.label} : ${(left.length / cfg.sampleRate).toFixed(1)} s traitées en ${sec.toFixed(1)} s sur ${s.backend}`);
             if (release) await releaseSession(key);
-            postMessage({ id, ok: true, left: out.left, right: out.right, seconds: sec, backend: s.backend }, [out.left.buffer, out.right.buffer]);
+            // Profil (temps par poste) : la page en fait une ligne de journal par étape de « Séparer ».
+            // part : la tranche de morceaux calculée, renvoyée telle quelle (la page vérifie que sa demande a été comprise).
+            postMessage({ id, ok: true, left: out.left, right: out.right, seconds: sec, backend: s.backend, profile: out.profile, part: opts.part || null }, [out.left.buffer, out.right.buffer]);
         } else if (cmd === 'embed') {
             // Empreinte de voix : fbank [T × 80] → 256 valeurs.
             const { feats, frames } = e.data;
