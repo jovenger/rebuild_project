@@ -242,6 +242,20 @@ comment les automatismes doivent être faits, ordre proposé.
   (option dans « Séparer une chanson », choix du fichier, diagnostic de la carte, repli propre, essais, doc) ; puis
   essai sur le PC de Yann, seul endroit où la carte graphique peut être mesurée.
 
+## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC)
+
+- En ligne : build 140 pour le produit (A, C, porte hors chant) ; les builds suivants ne portent que de la doc.
+- Chantier D (qualité maximale sur PC) : pilote D1 arrêté en cours de route, à ma main ; aucun changement au produit.
+  État relevé dans ses journaux, NON vérifié par l'orchestrateur : graphes sans poids produits (1,4 Mo, 3 graphes +
+  table du `.ckpt`) ; dans le Chromium d'ici, chemin processeur : audio à 90,2 dB de la référence PyTorch sur un
+  morceau de 8 s, mémoire du navigateur ≈ 2,2 Go ; un essai WebGPU a tourné (adaptateur logiciel) ; le dernier essai
+  (étape suivante) était en erreur au moment de l'arrêt. Pas de rapport rendu.
+- Fichiers du pilote : seulement dans le scratchpad de la session (`D/`, avec `rejouer.sh`), donc perdus si le
+  conteneur est recyclé ; il faudrait alors relancer D1 depuis la consigne (les décisions sont plus haut).
+- À la reprise : relancer ou reprendre D1, puis D2 (intégration), puis essai sur le PC de Yann.
+- Toujours attendu de Yann : la ligne « Profil » du journal après une séparation sur son téléphone ; son écoute
+  (voix lissées, instru séparée, alertes de l'inspection).
+
 ## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
 
 - Livré — saturation (`addedDistortion`) : les 10 s les plus fortes sont retraitées avec les réglages appliqués
