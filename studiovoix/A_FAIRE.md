@@ -231,7 +231,16 @@ comment les automatismes doivent être faits, ordre proposé.
 - Non mesuré : exécution dans un vrai navigateur (WASM ou WebGPU), quantification entière, Mel-Band « voix » de Kim.
 - Incident : l'export ONNX de l'ouvrier a provoqué un arrêt pour manque de mémoire (17/11 vers 00:25 UTC), cause
   probable du redémarrage du conteneur ; rien de perdu.
-- En attente : décision de Yann (arrêter le chantier instru ici, ou option « qualité maximale, PC seulement »).
+- Décisions de Yann (17/11, 02:40 UTC, à ne pas rediscuter) — chantier D « qualité maximale » :
+  1. on fait l'option « qualité maximale » avec BS-Roformer viperx 1297, réservée au PC ; le modèle actuel reste le
+     réglage normal (téléphone compris) ;
+  2. PC visé : carte graphique dédiée NVIDIA ou AMD, navigateur Brave (base Chromium, WebGPU) ;
+  3. la page ne distribue PAS le modèle (licence introuvable) : Yann télécharge une fois le fichier d'origine
+     (`model_bs_roformer_ep_317_sdr_12.9755.ckpt`, 639 Mo) depuis sa source et le donne à la page, qui le garde.
+- Chantier D, plan : D1 pilote hors produit (prouver « fichier d'origine → poids → calcul dans le navigateur → même
+  son que la référence », mémoire et temps, ce qui est vérifiable ici sans carte graphique) ; puis D2 intégration
+  (option dans « Séparer une chanson », choix du fichier, diagnostic de la carte, repli propre, essais, doc) ; puis
+  essai sur le PC de Yann, seul endroit où la carte graphique peut être mesurée.
 
 ## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
 
