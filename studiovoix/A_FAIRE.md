@@ -211,6 +211,28 @@ comment les automatismes doivent être faits, ordre proposé.
   chanson d'essai) ; non écouté. Les défauts sous la voix (restes de voix, sons métalliques) ne changent pas : c'est
   l'objet de l'étude d'un autre modèle, en cours (dossier `B2/` du scratchpad).
 
+## Chantier B, suite — modèle d'une autre famille : aucun ne passe le seuil décidé (17/11)
+
+- Mêmes mesures, mêmes 12 extraits chantés + chanson d'essai. Scripts et tableaux : `web/test/bench-instru/autre-famille/`.
+  Critère décidé pour « nettement plus propre » : restes de voix -3 dB ou artefacts sous la voix +2 dB, sans recul
+  du reste.
+- Résultats (moyenne des 12, écart au modèle actuel Voc_FT) :
+  - BS-Roformer viperx 1297 (639 Mo) : SDR instru +1,51 dB, restes de voix -2,66 dB, artefacts sous la voix +1,04 dB,
+    SDR voix +1,51 dB ; ne passe pas le critère (de peu) ; ≈ 19 fois le temps de calcul ; 5,5 à 7,9 Go de mémoire à
+    l'exécution (limite d'un onglet sur processeur : 4 Go) ; export ONNX réussi (645 Mo, 336 Mo en demi-précision) ;
+    licence des poids non trouvée.
+  - Mel-Band Roformer Inst v1 (913 Mo) : meilleur sur « volume qui bouge » (2,27 → 0,79 dB) et « aigus étouffés »
+    (-0,60 → -0,16 dB), mais ne réduit pas les restes de voix (+0,23) ; ≈ 8 fois le temps.
+  - MDX23C InstVoc HQ (448 Mo) : +0,44 dB de SDR, ≈ 7 fois le temps. SCNet et HTDemucs (légers) : moins bons que
+    le modèle actuel.
+- Extrapolation téléphone pour 3 min 35 (45 min aujourd'hui) : HTDemucs / SCNet ≈ 30 min, MDX23C ≈ 5 h, Mel-Band ≈ 6 h,
+  BS-Roformer ≈ 14 h. PC comme cette machine : actuel ≈ 2 min, BS-Roformer ≈ 38 min (processeur ; carte graphique
+  non mesurée).
+- Non mesuré : exécution dans un vrai navigateur (WASM ou WebGPU), quantification entière, Mel-Band « voix » de Kim.
+- Incident : l'export ONNX de l'ouvrier a provoqué un arrêt pour manque de mémoire (17/11 vers 00:25 UTC), cause
+  probable du redémarrage du conteneur ; rien de perdu.
+- En attente : décision de Yann (arrêter le chantier instru ici, ou option « qualité maximale, PC seulement »).
+
 ## Chantier C — inspection plus complète : saturation qui déforme, craquements de la prise (16/11)
 
 - Livré — saturation (`addedDistortion`) : les 10 s les plus fortes sont retraitées avec les réglages appliqués
