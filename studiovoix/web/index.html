@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StudioVoix Web</title>
+<link rel="icon" href="data:,">
+<!-- Isolement de la page (COOP/COEP) par service worker : GitHub Pages ne permet pas ces en-têtes ; il faut l'isolement
+     pour que l'IA utilise plusieurs cœurs du processeur. Recharge la page une fois à la première visite. -->
+<script src="./coi-serviceworker.js"></script>
+<style>
+  :root {
+    --bg: #0d1016; --panel: #151922; --panel-2: #1c2130; --panel-3: #232a3b; --line: #2a3142;
+    --ink: #e8ebf2; --muted: #98a1b3; --accent: #e94e8a; --accent-2: #7c5cff;
+    --ok: #3fb950; --warn: #e07b20; --bad: #e5484d; --instru: #8a94a8; --voice: #3a9bff; --done: #e94e8a;
+    --head: 290px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 12px 12px 96px; display: grid; gap: 12px; }   /* bas : place de la barre de lecture */
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  h1 { margin: 0; font-size: 21px; letter-spacing: .2px; }
+  h1 span { color: var(--accent); }
+  #version { color: var(--muted); font-size: 12px; }
+  #status { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
+
+  button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-3); color: var(--ink); cursor: pointer; touch-action: manipulation; }
+  button:hover:not(:disabled) { border-color: var(--accent-2); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.rec { background: #7a1f2b; border-color: #a52a3a; font-weight: 700; }
+  button.rec.on { background: #e5484d; }
+  button.primary { background: linear-gradient(135deg, var(--accent-2), var(--accent)); border: none; font-weight: 600; }
+  button.tog { min-width: 30px; padding: 3px 7px; font-size: 12px; font-weight: 700; }
+  button.tog.on.m { background: #8a6d1a; border-color: #b8921f; }
+  button.tog.on.s { background: #1f6f43; border-color: #2a9a5c; }
+  button.arm { width: 28px; height: 28px; padding: 0; border-radius: 50%; font-size: 13px; color: #c55; }
+  button.arm.on { background: #e5484d; color: #fff; border-color: #ff6b6f; }
+  select, input[type=number], input[type=text] { font: inherit; font-size: 13px; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 4px 6px; min-width: 0; }
+  input[type=range] { accent-color: var(--accent-2); min-width: 0; }
+  label { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .file { position: relative; overflow: hidden; display: inline-flex; }
+  .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  /* barre de transport */
+  /* barre de transport fixée en bas de l'écran (au pouce sur téléphone) */
+  body { padding-bottom: 76px; }
+  .transport { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(21,25,34,.97); border-top: 1px solid var(--line); padding: 8px max(10px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; box-shadow: 0 -6px 18px rgba(0,0,0,.35); }
+  #listen { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .track.off .lane { opacity: .35; }
+  .track.off .head .name, .track.off .head .tinfo { opacity: .55; }
+  .topbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #saveInfo { font-size: 12px; color: var(--muted); }
+  .transport .grow { flex: 1 1 120px; min-width: 120px; }
+  #time { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 15px; min-width: 92px; text-align: center; background: #0b0d12; border-radius: 7px; padding: 4px 8px; }
+  canvas.meter { width: 100%; height: 9px; border-radius: 3px; display: block; background: #000; }
+
+  /* pistes */
+  #tracks { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; --pos: 0%; }
+  .track { display: grid; grid-template-columns: var(--head) 1fr; border-bottom: 1px solid var(--line); min-height: 96px; }
+  .track:last-child { border-bottom: none; }
+  .track.sel .head { background: #20263a; }
+  .track.armed .head { box-shadow: inset 3px 0 0 var(--bad); }
+  .head { background: var(--panel-2); padding: 7px 9px; display: grid; gap: 5px; align-content: start; border-right: 1px solid var(--line); cursor: default; }
+  .head .r { display: flex; align-items: center; gap: 5px; min-width: 0; }
+  .head .r > select { flex: 1 1 0; }
+  .head .name { flex: 1 1 auto; font-weight: 600; background: transparent; border-color: transparent; padding: 2px 4px; }
+  .head .name:focus { border-color: var(--line); background: var(--panel); }
+  .head .vol { flex: 1 1 auto; }
+  .head .tinfo { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .head .tinfo.warn { color: var(--warn); white-space: normal; }
+  .head .badge { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--panel-3); color: var(--muted); white-space: nowrap; }
+  .head .badge.busy { color: #fff; background: var(--accent-2); }
+  .head .badge.done { color: #fff; background: #7a2a52; }
+  .head .x { padding: 2px 7px; font-size: 12px; color: var(--muted); }
+  .tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .lane { position: relative; background: #10131a; cursor: crosshair; min-height: 80px; }
+  .lane canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .lane::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #fff; opacity: .8; pointer-events: none; }
+  .lane .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #4d5568; font-size: 12.5px; pointer-events: none; text-align: center; padding: 0 8px; }
+  .add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px; background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; }
+
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
+  .card h2 { margin: 0; font-size: 14px; }
+  [hidden] { display: none !important; }   /* un style « display » en ligne ne doit pas réafficher un élément caché */
+  /* Page en étapes numérotées (1 Pistes → 5 Exporter) ; la lecture reste dans la barre du bas. */
+  .step { display: grid; gap: 8px; }
+  .step > h2, .fxhead h2 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-2); color: #fff; font-size: 12.5px; font-weight: 700; flex: none; }
+  .hint { font-weight: 400; font-size: 12.5px; color: var(--muted); }
+  .mixline { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .exportcard { border-color: #2f7a55; }
+  .more > summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+  .more[open] > summary { margin-bottom: 8px; }
+  header #saveInfo { margin-left: auto; }
+  .transport .sep { width: 1px; align-self: stretch; background: var(--line); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 12.5px; background: transparent; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent-2); color: #fff; font-weight: 700; }
+  .smoothbtn { font-size: 12.5px; padding: 5px 10px; }
+  /* inspection : une ligne par constat */
+  .inspect { display: grid; gap: 6px; margin: 8px 0; }
+  .inspect .finding { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); border-left-width: 4px; }
+  .inspect .finding .txt { flex: 1 1 240px; white-space: pre-wrap; }
+  .inspect .finding.ok { border-left-color: #2a9a5c; }
+  .inspect .finding.info { border-left-color: #3a9bff; }
+  .inspect .finding.warn { border-left-color: #e0a030; }
+  .inspect .finding.bad { border-left-color: #e94e4e; }
+  .inspect .finding button { font-size: 12.5px; padding: 4px 9px; }
+  .inspect .finding.link { cursor: pointer; }
+  .smoothbtn.on { background: #9b7bff; border-color: #9b7bff; color: #fff; font-weight: 700; }
+  .info { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; }
+  .sepprog { margin: 8px 0 4px; padding: 10px; border: 1px solid var(--accent, #7c5cff); border-radius: 8px; display: grid; gap: 6px; }
+  .sepprog[hidden] { display: none; }   /* sinon display:grid l'emporte sur l'attribut hidden */
+  .sepprog progress { width: 100%; height: 14px; accent-color: var(--accent, #7c5cff); }
+  .sepline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #sepPct { margin-left: auto; font-family: Consolas, "IBM Plex Mono", monospace; }
+  #sepStopBtn { margin-left: auto; }
+  .spin { width: 14px; height: 14px; border: 2px solid var(--muted, #888); border-top-color: var(--accent, #7c5cff); border-radius: 50%; animation: svspin 0.8s linear infinite; flex: none; }
+  .sepprog.stalled .spin { animation-duration: 2.4s; }
+  @keyframes svspin { to { transform: rotate(360deg); } }
+  #report { font-family: Consolas, "IBM Plex Mono", monospace; font-size: 12px; white-space: pre-wrap; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; min-height: 60px; color: var(--muted); max-height: 320px; overflow: auto; }
+  #log { font-family: Consolas, monospace; font-size: 11px; max-height: 180px; overflow: auto; background: #0b0d12; border-radius: 8px; padding: 6px 8px; color: var(--muted); }
+  #log .l-warn { color: var(--warn); } #log .l-error { color: var(--bad); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .mixcard { border-color: #4b3a8a; }
+  .sepcard { border-color: #2f5f7a; }
+  button.tog.fx { min-width: 46px; }
+  button.tog.fx.on { background: #8a2b5a; border-color: #c03d7c; }
+  button.tog.fx.on.smooth { background: #4a3a8a; border-color: #7c5cff; }
+  button.tog.lock.on { background: #5a3d1a; border-color: #b8791f; }
+  .fxcard { margin-top: 10px; }
+  .fxhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .fxhead h2 { margin: 0; flex: 1; min-width: 200px; }
+  #fxList { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px 10px; margin-top: 8px; align-items: start; }
+  .fxrow { border: 1px solid var(--line, #2a3142); border-radius: 8px; background: #10141d; }
+  .fxrow.off { opacity: .6; }
+  .fxrow.open { grid-column: 1 / -1; border-color: var(--accent-2, #7c5cff); opacity: 1; }
+  .fxline { display: flex; align-items: center; gap: 8px; padding: 6px 9px; cursor: pointer; }
+  .fxline input[type=checkbox] { width: 17px; height: 17px; flex: none; }
+  .fxicon { width: 22px; text-align: center; flex: none; }
+  .fxname { font-weight: 600; white-space: nowrap; }
+  .fxsum { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .fxmod { font-size: 11px; background: #5a3d1a; border-radius: 5px; padding: 1px 6px; flex: none; }
+  .fxbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 18px; padding: 4px 12px 10px 39px; }
+  .fxfield label { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+  .fxfield input[type=range] { width: 100%; }
+  .fxfield .pre { color: var(--muted); font-size: 11.5px; }
+  .fxbody .fxreset { justify-self: start; align-self: end; }
+  #clipInfo { color: #fff; background: #b3261e; border-radius: 6px; padding: 2px 8px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  #levelBtn.on { background: #1f6f43; border-color: #2a9a5c; }
+  #levelBtn.stale { background: #5a3d1a; border-color: #b8791f; }
+  #finalInfo.stale { color: var(--warn); }
+
+  /* téléphone : en-tête de piste au-dessus de sa forme d'onde */
+  @media (max-width: 720px) {
+    .wrap { padding: 8px 8px 32px; }
+    .track { grid-template-columns: 1fr; }
+    .head { border-right: none; border-bottom: 1px solid var(--line); }
+    .lane { min-height: 64px; }
+    .panels { grid-template-columns: 1fr; }
+    .transport { gap: 6px; }
+    body { padding-bottom: 118px; }
+    .transport .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Studio<span>Voix</span> Web</h1>
+    <span id="version">chargement du moteur…</span>
+    <span id="saveInfo">sauvegarde automatique dans le navigateur</span>
+    <button id="newBtn" title="Effacer le projet actuel et repartir de zéro">Nouveau projet</button>
+  </header>
+  <div id="status">Chargement…</div>
+  <button id="skipIsoBtn" hidden title="Arrêter l'IA : la prise est gardée avec la musique des haut-parleurs déjà retirée, sans retirer les autres sons extérieurs">Passer l'IA</button>
+
+  <!-- Barre de lecture : toujours en bas de l'écran. Rien d'autre que enregistrer, écouter, arrêter. -->
+  <div class="transport">
+    <button id="recBtn" class="rec" disabled title="Enregistre sur la piste armée (●), à partir de la tête de lecture">● REC</button>
+    <button id="stopBtn" disabled>■ Stop</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="playRawBtn" disabled title="Instru + les prises brutes : aucun effet (ni écho, ni réverb, ni correction). Avec « Égaliser », seuls les volumes sont réglés.">▶ Brut</button>
+    <button id="playBtn" class="primary" disabled title="Instru + pistes écoutées, chacune traitée selon son style et son type, équilibrées (barre d'espace)">▶ Mix</button>
+    <button id="stopPlayBtn" title="Arrêter la lecture">■</button>
+    <span id="time">0:00.0</span>
+    <div class="grow"><canvas id="meterOut" class="meter" width="600" height="9" title="Niveau de sortie"></canvas></div>
+    <span id="clipInfo" hidden title="La sortie a dépassé le maximum pendant cette lecture : le son sature (craquements). Ce témoin reste affiché jusqu'à la lecture suivante."></span>
+    <span id="listen">Écoute : tout</span>
+    <button id="allBtn" disabled title="Retirer tous les muets et solos">Tout écouter</button>
+  </div>
+
+  <!-- 1 -->
+  <section class="step">
+    <h2><span class="num">1</span> Pistes <span class="hint">importe l'instru ou une chanson, enregistre ou importe les voix</span></h2>
+    <div id="tracks"></div>
+    <div class="add">
+      <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
+      <label>type <select id="addRole"></select></label>
+      <span class="info">Chaque piste : type (principale, back, ambiance…) et style à elle. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="card step sepcard">
+    <h2><span class="num">2</span> Séparer une chanson <span class="hint">facultatif : l'instru d'un côté, chaque voix sur sa piste</span></h2>
+    <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">
+      <button id="sepBtn" disabled title="La chanson posée sur la piste Instru est séparée par l'IA : l'instrumental reste sur la piste Instru, chaque voix repérée va sur sa propre piste">✂ Séparer la chanson</button>
+      <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
+      <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" checked> Une piste par chanteur</label>
+      <label title="Les couplets sur une piste, les refrains sur une autre (par chanteur s'il y en a plusieurs). Les sections viennent de l'analyse du morceau ; chaque coupe est placée dans un creux de la voix, pas au milieu d'un mot."><input id="sepSections" type="checkbox" checked> Couplets / refrains</label>
+      <label title="Chaque morceau est calculé deux fois pour annuler le bruit propre au modèle (souffle fin dans les aigus, surtout audible quand la voix se tait). Mesuré : 8 à 20 dB de bruit en moins dans les aigus, mais deux fois plus long."><input id="sepDenoise" type="checkbox"> Finition soignée (2× plus long)</label>
+      <label title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox"> Ambiance (réverb) — expérimental</label>
+    </div>
+    <div id="sepEst" class="info"></div>
+    <div id="sepProg" class="sepprog" hidden>
+      <div class="sepline"><span class="spin" aria-hidden="true"></span><b id="sepStep">Préparation…</b><span id="sepPct"></span></div>
+      <progress id="sepBar" max="1000" value="0"></progress>
+      <div id="sepSub" class="info"></div>
+      <div class="sepline"><span id="sepTime" class="info"></span><button id="sepStopBtn" title="Arrête le calcul : la chanson reste comme avant, rien n'est changé">■ Arrêter la séparation</button></div>
+    </div>
+    <div id="sepInfo" class="info">Pose une chanson avec voix sur la piste Instru, puis « Séparer la chanson ». Calcul dans le navigateur : environ 3 à 4 fois la durée de la chanson par étape sans carte graphique ; modèles téléchargés une seule fois (67 + 53 + 27 Mo, + 67 Mo pour l'ambiance). Là où personne ne chante, l'instru reste exactement l'originale.</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="fxPanel" class="card step fxcard">
+    <div class="fxhead">
+      <h2><span class="num">3</span> <span id="fxTitle">Effets de la piste</span></h2>
+      <div id="fxMode" class="seg" title="Sans effet : la piste est jouée telle quelle. Style : les effets du style de la piste.">
+        <button data-mode="none" disabled>Sans effet</button><button data-mode="style" disabled>Style</button>
+      </div>
+      <button id="fxSmooth" class="smoothbtn" disabled title="Voix lissée : s'ajoute au style. Les effets restent (autotune, couleur, réverb, écho) ; compression, nettoyage et saturation passent en régime doux pour une voix propre quand le niveau monte.">✨ Voix lissée : non</button>
+      <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage">↺ Pré-réglage</button>
+      <button id="inspectBtn" disabled title="Le programme mesure lui-même la piste : prise saturée, bruit, effet qui salit la voix… et dit quoi faire">🔍 Inspecter</button>
+    </div>
+    <div id="inspectBox" class="inspect" hidden></div>
+    <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
+    <div id="fxList"></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="card step mixcard">
+    <h2><span class="num">4</span> Volumes et mixage</h2>
+    <div class="r mixline">
+      <button id="levelBtn" disabled title="Égalise les volumes sur le son brut, sans ajouter aucun effet : chaque piste est mise à son niveau selon son type (voix principales toutes au même niveau, backs dessous, ambiance plus bas). S'écoute ensuite avec « ▶ Brut ». Un second appui rend les volumes d'origine.">⚖ Égaliser</button>
+      <span class="info">Sans aucun effet : règle seulement le volume de chaque piste selon son type. S'écoute avec « ▶ Brut ».</span>
+    </div>
+    <div class="r mixline">
+      <button id="inspectAllBtn" disabled title="Mesure chaque piste voix l'une après l'autre (prise saturée, bruit, effet qui salit la voix) et liste ce qui ne va pas">🔍 Inspecter les pistes</button>
+      <span class="info">Le programme cherche lui-même ce qui ne va pas sur chaque piste et dit quoi faire.</span>
+    </div>
+    <div id="inspectAllBox" class="inspect" hidden></div>
+    <div class="r mixline">
+      <button id="finalMixBtn" class="primary" disabled title="Quand tout est enregistré : chaque piste à sa place selon son type, voix soudées ensemble, voix posée sur l'instru, puis mastering. Une seule chanson, à écouter et exporter.">🎚 Mixer la chanson</button>
+      <label title="Volume final visé (standard des plateformes)">Destination <select id="finalTarget">
+        <option value="spotify" selected>Spotify / YouTube (-14 LUFS)</option>
+        <option value="apple">Apple Music (-16 LUFS)</option>
+        <option value="tiktok">TikTok / Instagram (-14 LUFS)</option>
+        <option value="fort">Fort / club (-9 LUFS)</option>
+      </select></label>
+      <label title="L'instru se creuse légèrement là où la voix chante (vers 2,5 kHz), comme au mixage, pour que la voix passe devant sans monter le volume"><input id="finalDuck" type="checkbox" checked> Faire de la place à la voix dans l'instru</label>
+    </div>
+    <div class="r" id="finalPlayRow" style="display:flex;flex-wrap:wrap;gap:8px" hidden>
+      <button id="playFinalBtn" class="primary">▶ Chanson mixée</button>
+      <button id="playBeforeBtn" title="Le même passage avant le mixage final (pistes équilibrées, instru d'origine)">▶ Avant mixage</button>
+    </div>
+    <div id="finalInfo" class="info">Quand tout est enregistré, « Mixer la chanson » met chaque piste à son niveau selon son type (voix principale devant, back, ambiance…), soude les voix, pose la voix sur l'instru et masterise : une seule chanson, prête à écouter et exporter.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="card step exportcard">
+    <h2><span class="num">5</span> Exporter</h2>
+    <div class="r mixline">
+      <label title="WAV : sans perte, gros fichier. MP3 : 320 kbit/s, petit fichier, lisible partout.">Format <select id="exportFormat"><option value="wav" selected>WAV (sans perte)</option><option value="mp3">MP3 (320 kbit/s)</option></select></label>
+      <button id="exportRawBtn" disabled title="La chanson telle que « ▶ Brut » la joue : aucun effet ; volumes égalisés si « ⚖ Égaliser » est actif, sinon volumes d'origine">Chanson brute</button>
+      <button id="exportBtn" disabled title="La chanson telle que « ▶ Mix » la joue : pistes écoutées, effets des pistes qui en ont, volumes équilibrés">Chanson « Mix »</button>
+      <button id="exportFinalBtn" disabled title="Le résultat de « Mixer la chanson » (mastering compris). Disponible après le mixage.">Chanson mixée (master)</button>
+      <button id="stemsBtn" disabled title="Un fichier par piste écoutée, même longueur, à poser à 0:00 dans un autre logiciel">Chaque piste à part</button>
+    </div>
+    <div class="info">Chanson brute = ce que joue « ▶ Brut » (sans effet, volumes égalisés si « ⚖ Égaliser » est actif). Chanson « Mix » = ce que joue « ▶ Mix ». Chanson mixée = le résultat de « Mixer la chanson ».</div>
+  </section>
+
+  <!-- Réglages et détails : repliés -->
+  <details class="card more">
+    <summary>Réglages de prise, détail de la piste, journal</summary>
+    <div class="panels">
+      <section class="card">
+        <h2>Prise au micro</h2>
+      <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 14px">
+        <label>Compte à rebours <input id="countIn" type="number" min="0" max="4" value="1" style="width:52px"> mesure(s)</label>
+        <label title="Le décalage est mesuré et compensé automatiquement sur chaque prise ; ce réglage n'ajoute qu'un ajustement fin (0 = aucun)">Décalage auto, ajustement <input id="latencyMs" type="number" min="-200" max="200" value="0" style="width:60px"> ms</label>
+        <label title="Un modèle d'IA (MDX-Net, 67 Mo téléchargés une seule fois) garde uniquement la voix : musique extérieure (radio, télé, voisins), restes de l'instru, bruits sont retirés"><input id="isolateVoice" type="checkbox" checked> Isoler la voix (IA)</label>
+        <label><input id="useScale" type="checkbox" checked> Gamme</label>
+        <label><input id="cleaning" type="checkbox" checked> Nettoyage</label>
+      </div>
+        <div id="isolateInfo" class="info">Seule la voix est gardée : l'instru captée par le micro est retirée, puis l'IA retire tout le reste (musique extérieure, bruits). Le modèle se télécharge au premier REC (une seule fois).</div>
+      </section>
+      <section class="card">
+        <h2>Piste sélectionnée</h2>
+        <div id="report">Clique sur l'en-tête d'une piste pour voir ce qui lui est appliqué : mesure de la prise, chaîne du style réglée pour son type, place dans le mix.</div>
+        <details><summary>Journal du moteur</summary><div id="log"></div></details>
+      </section>
+    </div>
+  </details>
+</div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

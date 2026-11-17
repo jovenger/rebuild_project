@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7B5CFF"/>
+      <stop offset="1" stop-color="#3A2A8C"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3A4155"/>
+      <stop offset="0.5" stop-color="#2A3042"/>
+      <stop offset="1" stop-color="#1D2231"/>
+    </linearGradient>
+    <linearGradient id="iface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E35D5D"/>
+      <stop offset="1" stop-color="#B83A3A"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="958" height="438" rx="18" fill="#F7F8FB" stroke="#E2E5EE" stroke-width="2"/>
+  <text x="40" y="58" font-size="24" font-weight="700" fill="#1F2430">Montage 2 — Interface audio + micro XLR</text>
+  <text x="40" y="86" font-size="15" fill="#5B6275">Le meilleur son : préampli propre, retour direct, une seule horloge.</text>
+
+  <rect x="640" y="34" width="282" height="46" rx="23" fill="#E7F7EF" stroke="#1FA971" stroke-width="2"/>
+  <path d="M664 57 l8 8 l16 -18" fill="none" stroke="#1FA971" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="696" y="63" font-size="17" font-weight="700" fill="#137A50">Direct Monitor = 0 ms</text>
+
+  <!-- PC -->
+  <rect x="60" y="150" width="200" height="128" rx="12" fill="#1F2430"/>
+  <rect x="71" y="161" width="178" height="106" rx="5" fill="url(#screen)"/>
+  <polyline points="84,216 98,202 110,228 124,192 138,238 152,208 166,222 180,196 194,232 208,210 222,218 236,204" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M40 286 H280 L262 306 H58 Z" fill="#C9CEDA"/>
+  <rect x="258" y="236" width="10" height="16" rx="2" fill="#5B6275"/>
+  <text x="160" y="332" font-size="16" font-weight="600" fill="#1F2430" text-anchor="middle">PC (Windows)</text>
+
+  <!-- USB -->
+  <path d="M266 244 C 310 244, 330 290, 372 290" fill="none" stroke="#6C4CF5" stroke-width="7" stroke-linecap="round"/>
+  <rect x="290" y="252" width="56" height="28" rx="14" fill="#6C4CF5"/>
+  <text x="318" y="272" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">USB</text>
+
+  <!-- Interface -->
+  <rect x="372" y="250" width="236" height="86" rx="14" fill="url(#iface)"/>
+  <rect x="372" y="250" width="236" height="14" rx="7" fill="#FFFFFF" opacity="0.18"/>
+  <circle cx="412" cy="292" r="15" fill="#F2F3F7" stroke="#8E2B2B" stroke-width="3"/>
+  <line x1="412" y1="292" x2="420" y2="281" stroke="#8E2B2B" stroke-width="3" stroke-linecap="round"/>
+  <text x="412" y="326" font-size="11" fill="#FFFFFF" text-anchor="middle">GAIN</text>
+  <circle cx="462" cy="292" r="11" fill="#1D2231" stroke="#F2F3F7" stroke-width="3"/>
+  <text x="462" y="326" font-size="11" fill="#FFFFFF" text-anchor="middle">ENTRÉE 1</text>
+  <rect x="496" y="282" width="34" height="18" rx="4" fill="#37F29A" stroke="#1D2231" stroke-width="2"/>
+  <text x="513" y="326" font-size="10" fill="#FFFFFF" text-anchor="middle">DIRECT</text>
+  <circle cx="568" cy="292" r="8" fill="#0E1118" stroke="#F2F3F7" stroke-width="3"/>
+  <text x="568" y="326" font-size="11" fill="#FFFFFF" text-anchor="middle">CASQUE</text>
+  <text x="490" y="360" font-size="16" font-weight="600" fill="#1F2430" text-anchor="middle">Interface audio USB</text>
+
+  <!-- Micro XLR + anti-pop -->
+  <g transform="translate(0 28)">
+  <line x1="770" y1="130" x2="770" y2="330" stroke="#5B6275" stroke-width="8" stroke-linecap="round"/>
+  <ellipse cx="770" cy="336" rx="56" ry="10" fill="#C9CEDA"/>
+  <rect x="742" y="104" width="56" height="112" rx="28" fill="url(#body)"/>
+  <rect x="748" y="110" width="44" height="60" rx="22" fill="#4A5166"/>
+  <g stroke="#2A3042" stroke-width="2">
+    <line x1="752" y1="126" x2="788" y2="126"/>
+    <line x1="749" y1="139" x2="791" y2="139"/>
+    <line x1="749" y1="152" x2="791" y2="152"/>
+  </g>
+  <circle cx="676" cy="150" r="34" fill="#FFFFFF" fill-opacity="0.55" stroke="#2A3042" stroke-width="5"/>
+  <g stroke="#AEB4C3" stroke-width="1">
+    <line x1="652" y1="136" x2="700" y2="136"/><line x1="646" y1="150" x2="706" y2="150"/><line x1="652" y1="164" x2="700" y2="164"/>
+    <line x1="662" y1="124" x2="662" y2="176"/><line x1="676" y1="118" x2="676" y2="182"/><line x1="690" y1="124" x2="690" y2="176"/>
+  </g>
+  <path d="M710 150 Q 726 150 742 140" fill="none" stroke="#2A3042" stroke-width="3"/>
+  <text x="676" y="208" font-size="12" fill="#5B6275" text-anchor="middle">anti-pop</text>
+  </g>
+  <text x="812" y="168" font-size="16" font-weight="600" fill="#1F2430">Micro XLR</text>
+
+  <!-- XLR -->
+  <path d="M462 280 C 470 200, 640 262, 770 244" fill="none" stroke="#F08A24" stroke-width="6" stroke-linecap="round"/>
+  <rect x="520" y="206" width="104" height="26" rx="13" fill="#F08A24"/>
+  <text x="572" y="224" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">câble XLR</text>
+
+  <!-- Casque -->
+  <path d="M846 262 A44 44 0 0 1 934 262" fill="none" stroke="#2A3042" stroke-width="10" stroke-linecap="round"/>
+  <rect x="832" y="256" width="26" height="50" rx="11" fill="url(#body)"/>
+  <rect x="922" y="256" width="26" height="50" rx="11" fill="url(#body)"/>
+  <path d="M842 306 C 820 380, 620 380, 572 300" fill="none" stroke="#1FA971" stroke-width="5" stroke-linecap="round"/>
+  <text x="890" y="330" font-size="13" fill="#5B6275" text-anchor="middle">casque fermé</text>
+
+  <rect x="40" y="398" width="880" height="30" rx="10" fill="#EEF0F6"/>
+  <text x="56" y="418" font-size="14" fill="#1F2430"><tspan font-weight="700">Paramètres :</tspan> entrée et sortie = l'interface · Direct Monitor activé · écoute logicielle désactivée · 48 V si micro statique</text>
+</svg>
