@@ -451,6 +451,8 @@ jobs:
           # Repérage des chanteurs : même voix = même piste (une voix qui change de ton reste une seule voix ; dans le
           # doute, une seule piste ; pas de piste pour moins de 4 s de voix).
           node web/test/singers.mjs
+          # Projet dans un fichier (.studiovoix) : aller-retour au bit près, refus clair de tout fichier abîmé.
+          node web/test/projectfile.mjs
           mkdir -p "$SEP/48"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/song.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/song.wav"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/truth_instru.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/truth_instru.wav"

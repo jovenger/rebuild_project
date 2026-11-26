@@ -307,6 +307,25 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   `sv_process_voice`, compression selon la dynamique, compensation bornée, écarts réglables) ; partie page ensuite.
 - Étape 3 : éclaireur revenu (40 usages « une prise = un son continu » dans `web/app.js` ; ni zoom ni sélection de
   zone ; le logiciel Windows a couper / rogner / fondus / copier-coller dans `src/core/project`, non compilé en web).
+- Build 148 en ligne (26/11, 18:00 UTC) : étape 1 complète + moteur de l'étape 2 (mode `correction`, justesse
+  seulement sur voix chantée : `heldNoteFraction` ≥ 0,45, écarts par type réglables `setRoleOffset`).
+- DÉCISIONS DE YANN du 26/11 au soir (ne pas rediscuter) :
+  - vitesse sur téléphone : chercher un mode « Très rapide » EN OPTION (modèle plus léger), ajouté seulement si le
+    gain est net ; le modèle actuel reste le réglage par défaut. Recherche mesurée lancée (scratchpad `F/`).
+  - chanteurs : réglage strict gardé (même voix = même piste, quitte à laisser deux personnes proches ensemble).
+  - justesse automatique : voix chantée seulement (jamais le rap ni la voix parlée).
+  - étape 4, dans l'ordre : projet en fichier → écarts de volume réglables → inspection complète → protocole d'écoute.
+  - MONTAGE (retour de Yann en cours de route) : « comme les autres studios », manuel et simple — on maintient un
+    bout et on le glisse directement sur une autre piste ; clic droit (appui long au doigt) sur un bout → menu,
+    Supprimer en premier ; « Couper » au curseur (deux coupes = trois bouts) ; peu de boutons à l'écran ; rien
+    d'automatique. Transmis à l'ouvrier du montage.
+  - « Fais ce que tu as à faire tout de suite, n'attends pas après moi » : pendant que des ouvriers tournent,
+    l'orchestrateur avance lui-même sur ce qui ne touche pas leurs fichiers.
+- Étape 4, projet en fichier : module `web/projectfile.js` + essai `web/test/projectfile.mjs` (dans la CI) faits —
+  format « SVPROJ1 » : en-tête JSON (métadonnées de la sauvegarde automatique + table des sons avec CRC-32) puis les
+  sons en float 32 bits, au bit près ; tout fichier abîmé est refusé avec un message clair. RESTE : les deux boutons
+  dans la page (enregistrer / ouvrir), à brancher une fois les diffs « correction automatique » et « montage »
+  fusionnés (ils changent la sauvegarde).
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 
