@@ -34,14 +34,17 @@ export function crc32(bytes, crc = 0) {
     return ~c >>> 0;
 }
 
-/** Identifiants de sons dont les métadonnées ont besoin (prises, sources de montage, instru gauche / droite). */
+/**
+ * Identifiants de sons dont les métadonnées ont besoin : instru gauche / droite ; pour chaque prise, son son — ou, si
+ * la prise est montée (liste `clips`), les sons source de ses bouts (son rendu est recalculé à l'ouverture).
+ */
 export function audioRefs(meta) {
     const ids = new Set();
     if (meta?.instru?.audioId) { ids.add(`${meta.instru.audioId}L`); ids.add(`${meta.instru.audioId}R`); }
     for (const t of meta?.tracks || [])
         for (const k of t?.takes || []) {
-            if (typeof k?.audioId === 'string') ids.add(k.audioId);
-            for (const s of Array.isArray(k?.sources) ? k.sources : []) if (typeof s === 'string') ids.add(s); else if (typeof s?.audioId === 'string') ids.add(s.audioId);
+            if (Array.isArray(k?.clips)) { for (const c of k.clips) if (typeof c?.src === 'string' && c.src) ids.add(c.src); }
+            else if (typeof k?.audioId === 'string') ids.add(k.audioId);
         }
     return [...ids];
 }

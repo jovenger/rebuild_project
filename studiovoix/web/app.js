@@ -11,6 +11,8 @@ import { describeSound, packHeader, headerLength, parseHeader, unpackAudio, PROJ
 import { gatedInstru, GATE_DEFAULTS } from './instru.js';   // porte dans le temps de l'instru séparée
 import { voiceDirt, clipRuns, loudestWindow, findCrackles, addedDistortion } from './inspect.js';
 import { MODELS as MDX_MODELS, mdxGrid, mdxPart, mdxPartAdd, mdxFinish } from './isolate.js';   // grille des morceaux de « Séparer »
+import { renderClips, splitClip, trimClip, setFades, setGain, setMute, setRev, removeClip, duplicateClip, insertClip, mergeClips, crossfade,
+    clipAt, clipEnd, makeClip, cloneClips, sanitizeClips, dbToGain, ClipError, GAIN_MIN_DB, GAIN_MAX_DB } from './clips.js';   // montage par bouts
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -49,6 +51,10 @@ const state = {
     restoring: false,                    // projet relu depuis le navigateur : pas de sauvegarde pendant ce temps
     finalMix: null,                      // chanson mixée : { left, right, sampleRate, report, stale }
 };
+// Montage (voir la section « montage » plus bas) : sons source des bouts, bout sélectionné, piles annuler / rétablir,
+// bout copié, prise en cours de glissement (dessin direct depuis les sources), vue de la ligne de temps (zoom, début).
+const mt = { sources: new Map(), sel: { trackId: 0, clipId: '' }, undo: [], redo: [], clipboard: null, live: null, zoom: 1, start: 0, head: 0, nextId: 1, menu: false, menuAt: 0, menuTrack: 0 };
+state.montage = mt;
 // ------------------------------------------------------------------ journal et état
 function setStatus(text) { ui.status.textContent = text; }
 function log(level, msg) {
@@ -56,7 +62,7 @@ function log(level, msg) {
     line.className = 'l-' + level;
     line.textContent = new Date().toLocaleTimeString() + '  ' + msg;
     ui.log.prepend(line);
-    while (ui.log.childElementCount > 200) ui.log.lastChild.remove();
+    while (ui.log.childElementCount > 1000) ui.log.lastChild.remove();   // 1000 lignes gardées (200 avant : la correction d'office et le montage écrivent beaucoup, le début d'une séance sortait du journal)
     if (level === 'error') console.error(msg); else console.log(msg);
 }
 
@@ -381,6 +387,7 @@ function renderTracks() {
     ui.tracks.innerHTML = '';
     ui.tracks.appendChild(instruRow());
     for (const t of state.tracks) ui.tracks.appendChild(trackRow(t));
+    mtButtons();   // barre et menu de montage à jour (bout sélectionné, pistes d'arrivée)
     drawAllLanes();
     refreshAudibility();
     refreshButtons();
@@ -476,7 +483,9 @@ function trackRow(t) {
                     : t.correction ? 'Corrigé : correction automatique seule — volume régulier, résonances, compression et justesse réglés d\'après la prise ; aucune couleur de style (ni réverb, ni écho, ni saturation). Clique : effets du style, voix lissée'
                     : t.smooth ? 'Lissé : les effets du style (autotune, couleur, réverb, écho) avec la voix lissée — compression, nettoyage et saturation doux, rien de rêche quand le niveau monte (clique : Style sans lissage)'
                     : 'Style : tous les effets du style tels quels, sans lissage (clique : Brut)',
-                onclick: (e) => { e.stopPropagation(); setFxMode(t, t.noFx ? 'correction' : t.correction ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
+                // Le tour complet revient au même son : « Corrigé » repart avec la voix lissée (son réglage de départ), que
+                // l'étape « Style » du tour vient d'éteindre.
+                onclick: (e) => { e.stopPropagation(); if (t.noFx) t.smooth = true; setFxMode(t, t.noFx ? 'correction' : t.correction ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
             el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
                 title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
                 onclick: (e) => { e.stopPropagation(); t.locked = !t.locked; log('info', `« ${t.name} » : ${t.locked ? 'verrouillée (déplacement bloqué)' : 'déverrouillée (déplacement permis)'}`); markDirty(); renderTracks(); } }),
@@ -511,9 +520,10 @@ function playRawMic(t) {
     src.connect(ctx.destination);
     const t0 = ctx.currentTime + 0.05;
     src.start(t0);
-    const player = { mode: 'rawmic', nodes: [{ key: -1, src }], t0, fromSec: t.take.startSec, raf: 0 };
+    const rawAt = t.take.rawAt ?? t.take.startSec;   // prise montée : le micro brut reste à la place de la prise d'origine
+    const player = { mode: 'rawmic', nodes: [{ key: -1, src }], t0, fromSec: rawAt, raf: 0 };
     state.player = player;
-    const tick = () => { if (state.player !== player) return; setPlayhead(t.take.startSec + ctx.currentTime - t0); player.raf = requestAnimationFrame(tick); };
+    const tick = () => { if (state.player !== player) return; setPlayhead(rawAt + ctx.currentTime - t0); player.raf = requestAnimationFrame(tick); };
     player.raf = requestAnimationFrame(tick);
     src.onended = () => { if (state.player === player) { stopPlayback(); setStatus('Fin du micro brut.'); } };
     setStatus(`Micro brut de « ${t.name} » (${t.take.label}) : ce que le micro a capté avant nettoyage. Écoute « Mix » ou mets la piste en solo pour la prise gardée.`);
@@ -592,13 +602,13 @@ function drawLane(row, t, force = false) {
     if (canvas.height !== h) canvas.height = h;
     const g = canvas.getContext('2d');
     g.fillStyle = '#10131a'; g.fillRect(0, 0, w, h);
-    const total = songSeconds();
+    const total = viewDur(), v0 = mt.start;   // partie visible de la ligne de temps (zoom) : tout le morceau par défaut
     // repères de mesure (si l'instru est analysée)
     const bpm = state.instru?.analysis?.bpm;
     if (bpm) {
         g.fillStyle = 'rgba(255,255,255,.05)';
         const bar = 4 * 60 / bpm, first = state.instru.analysis.firstBeatSec || 0;
-        for (let s = first; s < total; s += bar) g.fillRect(Math.round(s / total * w), 0, 1, h);
+        for (let s = first; s < v0 + total; s += bar) if (s >= v0) g.fillRect(Math.round((s - v0) / total * w), 0, 1, h);
     }
     let data = null, sr = 0, start = 0, color = '#3a9bff';
     if (!t) { if (state.instru) { data = state.instru.left; sr = state.instru.sampleRate; color = '#8a94a8'; } }
@@ -606,18 +616,20 @@ function drawLane(row, t, force = false) {
         data = t.processed ? t.processed.left : t.take.mono; sr = t.take.sampleRate; start = t.take.startSec;
         color = t.processed ? (t.smooth ? '#9b7bff' : '#e94e8a') : '#3a9bff';   // bleu : brut ; violet : lissé ; rose : effets du style
     }
-    if (!data || !data.length) return;
-    const x0 = start / total * w, x1 = (start + data.length / sr) / total * w;
+    if (t?.take?.clips && mt.live === t.take) { mtDrawLive(g, t, w, h); data = null; }   // bout en cours de glissement
+    if (!data || !data.length) { if (t) mtDrawClips(g, row, t, w, h); return; }
+    const x0 = (start - v0) / total * w, x1 = (start - v0 + data.length / sr) / total * w;
     g.fillStyle = color + '22'; g.fillRect(x0, 2, x1 - x0, h - 4);
     g.fillStyle = color;
     const per = data.length / Math.max(1, x1 - x0);
-    for (let px = Math.floor(x0); px < Math.min(w, x1); ++px) {
+    for (let px = Math.max(0, Math.floor(x0)); px < Math.min(w, x1); ++px) {
         const a = Math.floor((px - x0) * per), b = Math.min(data.length, Math.floor((px + 1 - x0) * per));
         let mx = 0;
         for (let i = Math.max(0, a); i < b; i += 4) mx = Math.max(mx, Math.abs(data[i]));
         const hh = Math.max(1, mx * (h / 2 - 3));
         g.fillRect(px, h / 2 - hh, 1, hh * 2);
     }
+    if (t) mtDrawClips(g, row, t, w, h);   // contours des bouts, bout sélectionné, poignées pour rogner
 }
 // Forme d'onde en direct pendant la prise : la piste armée est vidée, puis chaque crête du micro (toutes les 256
 // échantillons, ~6 ms) est dessinée à sa place sur la ligne de temps dès qu'elle arrive.
@@ -641,8 +653,9 @@ function livePeak(t, p) {
     const sec = p.frame / r.sampleRate - r.songStartCtx + r.fromSec - r.inLatency;
     if (sec < 0) return;   // compte à rebours : avant le début du morceau
     const w = canvas.width, h = canvas.height, total = r.total;
-    const x = Math.min(w - 1, Math.floor(sec / total * w));
-    const dx = Math.max(1, Math.ceil(p.n / r.sampleRate / total * w));
+    const x = Math.min(w - 1, Math.floor((sec - mt.start) * mt.zoom / total * w));   // vue zoomée : même repère que drawLane
+    if (x < 0) return;
+    const dx = Math.max(1, Math.ceil(p.n / r.sampleRate * mt.zoom / total * w));
     const amp = Math.min(1, Math.max(Math.abs(p.min), Math.abs(p.max)) * 2.5);   // voix souvent faible : agrandie à l'écran
     const hh = Math.max(1, amp * (h / 2 - 3));
     const g = canvas.getContext('2d');
@@ -656,33 +669,90 @@ function drawAllLanes() {
 }
 window.addEventListener('resize', () => drawAllLanes());
 
-// Ligne de temps : un clic place la tête de lecture (et le départ du prochain REC) ; glisser une prise la déplace.
+// Ligne de temps : un clic place la tête de lecture (et le départ du prochain REC) ; glisser un bout le déplace, dans
+// le temps et d'une piste à l'autre (on le lâche sur la piste voulue) ; clic droit, ou appui long au doigt : menu du bout.
 function laneEvents(lane, t) {
     let drag = null;
+    const stopHold = (d) => { if (d?.timer) { clearTimeout(d.timer); d.timer = 0; } };
     lane.addEventListener('pointerdown', (e) => {
-        const r = lane.getBoundingClientRect(), total = songSeconds();
-        const sec = (e.clientX - r.left) / r.width * total;
+        if (e.target.classList?.contains('trimh') || e.button === 2) return;   // poignée pour rogner, clic droit (menu) : gestes à part
+        const r = lane.getBoundingClientRect(), total = viewDur();
+        const sec = mt.start + (e.clientX - r.left) / r.width * total;
         const k = t?.take;
-        const onClip = k && sec >= k.startSec && sec <= k.startSec + k.mono.length / k.sampleRate;
-        drag = { x: e.clientX, w: r.width, total, start: k ? k.startSec : 0, moved: false, onClip, sec };
+        // Bout sous le pointeur : son identifiant, '' pour une prise sans montage (un seul bout), null à côté.
+        const clipId = t ? mtHit(t, sec) : null, onClip = clipId != null;
+        const clip = clipId ? k.clips.find((c) => c.id === clipId) : null;
+        drag = { x: e.clientX, y: e.clientY, w: r.width, total, start: clip ? clip.at : k ? k.startSec : 0, moved: false, onClip, sec, clipId: clipId || '', timer: 0 };
         if (onClip) lane.setPointerCapture(e.pointerId);
+        if (t && e.pointerType === 'touch') {
+            // Doigt maintenu sans bouger : après MT_HOLD_MS le bout se glisse dans tous les sens (la page ne défile plus
+            // sous lui) ; après MT_MENU_MS : menu du bout (à côté d'un bout : menu « Coller ici »).
+            const d = drag;
+            d.timer = setTimeout(() => {
+                if (drag !== d) return;
+                d.hold = true;
+                d.timer = setTimeout(() => {
+                    if (drag !== d || d.moved || d.cross) return;
+                    drag = null;
+                    mtOpenMenu(t, d.onClip ? d.clipId : null, Math.max(0, d.sec), d.x, d.y, true);
+                }, MT_MENU_MS - MT_HOLD_MS);
+            }, MT_HOLD_MS);
+        }
     });
+    // Doigt : dès que le bout est tenu ou glisse, la page ne défile plus (sinon le navigateur reprend le geste).
+    lane.addEventListener('touchmove', (e) => { if (drag && drag.onClip && (drag.hold || drag.moved || drag.cross) && e.cancelable) e.preventDefault(); }, { passive: false });
     lane.addEventListener('pointermove', (e) => {
-        if (!drag || !drag.onClip) return;
-        const dx = e.clientX - drag.x;
-        if (!drag.moved && Math.abs(dx) < 6) return;
+        if (!drag) return;
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (Math.hypot(dx, dy) >= 6) stopHold(drag);   // le doigt bouge (dans n'importe quel sens) : ce n'est pas un appui long
+        if (!drag.onClip) return;
+        const to = mtRowAt(e.clientX, e.clientY), other = to !== t;   // piste sous le pointeur (null : hors des pistes de voix)
+        if (!drag.moved && !drag.cross && (other ? Math.hypot(dx, dy) < 6 : Math.abs(dx) < 6)) return;
+        stopHold(drag);
         if (t.locked) {   // cadenas : la prise reste calée sur l'instru ; le geste ne fait que placer la tête de lecture
             if (!drag.warned) { drag.warned = true; setStatus(`« ${t.name} » est verrouillée 🔒 : la prise ne bouge pas. Clique le cadenas de la piste pour la déplacer.`); log('info', `« ${t.name} » : déplacement refusé (piste verrouillée)`); }
             return;
         }
-        drag.moved = true;
-        t.take.startSec = Math.max(0, drag.start + dx / drag.w * drag.total);
+        if (state.rec && (drag.clipId || other)) return;   // enregistrement en cours : pas de montage
+        const c = drag.clipId ? t.take.clips.find((x) => x.id === drag.clipId) : null;
+        const put = (at) => { if (c) { c.at = at; mt.live = t.take; } else t.take.startSec = at; };
+        const at = Math.max(0, drag.start + dx / drag.w * drag.total);
+        if (other) {
+            // Vers une autre piste : le bout reste dessiné à sa place, son ombre suit le pointeur sur la ligne visée. Un
+            // petit écart horizontal (moins de MT_KEEP_PX) est ignoré : le bout garde sa place exacte dans le temps.
+            put(drag.start);
+            drag.moved = false; drag.cross = true; drag.to = to;
+            drag.at = Math.abs(dx) < MT_KEEP_PX ? drag.start : at;
+            mtGhost(to, drag.at, c ? c.len : t.take.mono.length, t.take.sampleRate);
+        } else {
+            if (drag.cross) { drag.cross = false; mtGhost(null); }
+            if (!drag.snap) drag.snap = mtSnap('déplacer');   // « Annuler » : état d'avant le glissement
+            drag.moved = true;
+            put(Math.abs(dx) < 6 ? drag.start : at);
+        }
         drawLane(lane.parentElement, t);
     });
-    const end = (e) => {
+    const end = (cancelled) => {
         if (!drag) return;
         const d = drag; drag = null;
+        stopHold(d);
+        if (d.cross) {   // lâché sur une autre piste, ou hors des pistes : sur sa piste, le bout n'a pas bougé
+            mt.live = null;
+            mtGhost(null);
+            drawLane(lane.parentElement, t);
+            if (cancelled !== true) mtDropOn(t, d.clipId, d.to, d.at);
+            return;
+        }
+        const c = d.clipId ? t.take.clips.find((x) => x.id === d.clipId) : null;
+        if (d.moved && (c ? c.at : t.take.startSec) === d.start) { mt.live = null; drawLane(lane.parentElement, t); return; }   // revenu à sa place : rien à faire
+        if (d.moved && d.clipId) {   // bout d'une prise montée : rendu recalculé, puis la suite commune du montage
+            mt.live = null;
+            mtCommit(t, t.take, d.snap, `bout déplacé de ${fSec(d.start)} à ${fSec(c ? c.at : d.start)}`);
+            setStatus(`Bout déplacé à ${fSec(c ? c.at : d.start)} sur « ${t.name} ».`);
+            return;
+        }
         if (d.moved) {
+            mtPushUndo(d.snap);
             log('info', `« ${t.name} » : prise déplacée de ${d.start.toFixed(2)} s à ${t.take.startSec.toFixed(2)} s`);
             state.balanceDirty = true;
             markDirty();
@@ -690,13 +760,25 @@ function laneEvents(lane, t) {
             queueProcess(t);   // grille rythmique vue depuis la nouvelle place
             return;
         }
-        const sec = Math.max(0, Math.min(d.total, d.sec));
+        const sec = Math.max(0, Math.min(songSeconds(), d.sec));
         state.playFromSec = sec;
         setPlayhead(sec);
         if (state.player) play(state.player.mode, sec);
+        if (t) mtSelect(t, d.onClip ? d.clipId : null);   // toucher un bout le sélectionne ; toucher à côté le lâche
     };
     lane.addEventListener('pointerup', end);
-    lane.addEventListener('pointercancel', () => { drag = null; });
+    // Geste repris par le navigateur (défilement de la page au doigt) : un glissement commencé dans le temps est terminé
+    // proprement ; un bout en route vers une autre piste revient à sa place.
+    lane.addEventListener('pointercancel', () => { if (drag?.moved || drag?.cross) end(true); else { stopHold(drag); drag = null; } });
+    // Clic droit (et appui long, sur les téléphones qui l'envoient) : menu du bout sous le pointeur.
+    lane.addEventListener('contextmenu', (e) => {
+        if (!t) return;   // piste instru : pas de montage
+        e.preventDefault();
+        if (drag?.moved || drag?.cross) return;
+        stopHold(drag); drag = null;
+        const r = lane.getBoundingClientRect(), sec = Math.max(0, mt.start + (e.clientX - r.left) / r.width * viewDur());
+        mtOpenMenu(t, mtHit(t, sec), sec, e.clientX, e.clientY);
+    });
 }
 function setPlayhead(sec) {
     // Position bornée [0, durée] : une valeur négative ou NaN (arrêt, séparation) affichait « -1:-0.0 ».
@@ -705,7 +787,7 @@ function setPlayhead(sec) {
     if (out && !setPlayhead.warned) log('debug', `tête de lecture hors bornes (${sec}) : ramenée dans [0, ${total.toFixed(1)}]`);
     setPlayhead.warned = out;   // un seul log par sortie de bornes (évite d'inonder le journal à chaque image)
     sec = Math.min(Math.max(Number.isFinite(sec) ? sec : 0, 0), total > 0 ? total : 0);
-    ui.tracks.style.setProperty('--pos', `${total > 0 ? (sec / total) * 100 : 0}%`);
+    ui.tracks.style.setProperty('--pos', `${mtHeadPct(sec, total)}%`);   // place dans la partie visible (zoom)
     ui.time.textContent = `${Math.floor(sec / 60)}:${(sec % 60).toFixed(1).padStart(4, '0')}`;
 }
 
@@ -2791,6 +2873,634 @@ document.addEventListener('keydown', (e) => {
     if (state.player) { stopPlayback(); setStatus('Lecture arrêtée.'); } else if (!ui.playBtn.disabled) startPlay('mix');
 });
 
+// ------------------------------------------------------------------ montage : bouts, sélection, outils, annuler, zoom
+// Une prise montée porte take.clips (liste de bouts, voir clips.js) ; take.mono et take.startSec sont alors le RENDU de
+// ces bouts, recalculé par mtRender après chaque geste : la lecture, le traitement, l'équilibre, l'export et
+// l'inspection lisent la prise comme avant. Une prise sans montage n'a pas de liste (un seul bout implicite) ; la
+// liste est créée au premier geste (mtEnsure). Les sons source (mt.sources) ne sont jamais modifiés.
+const MT_UNDO_MAX = 50, MT_ZOOM_MAX = 64, MT_TRIM_STEP = 0.01, MT_FADES = [0, 0.01, 0.03, 0.1, 0.25, 0.5, 1, 2, 4];
+// Doigt : MT_HOLD_MS de maintien avant de pouvoir glisser un bout dans tous les sens, MT_MENU_MS sans bouger = menu du
+// bout. MT_KEEP_PX : écart horizontal ignoré quand un bout change de piste (il garde sa place exacte dans le temps).
+const MT_HOLD_MS = 250, MT_MENU_MS = 600, MT_KEEP_PX = 12;
+const mtUi = {
+    menu: $('clipMenu'), title: $('clipTitle'), cutBar: $('cutBtn'), close: $('clipClose'), ghost: null, cut: $('clipCut'), dup: $('clipDup'), copy: $('clipCopy'), send: $('clipSend'), mute: $('clipMute'),
+    rev: $('clipRev'), gain: $('clipGain'), gainDown: $('clipGainDown'), gainUp: $('clipGainUp'), fadeIn: $('clipFadeIn'), fadeOut: $('clipFadeOut'),
+    xfade: $('clipXfade'), merge: $('clipMerge'), del: $('clipDel'), paste: $('clipPaste'), zoomIn: $('zoomInBtn'), zoomOut: $('zoomOutBtn'),
+    zoomInfo: $('zoomInfo'), viewPos: $('viewPos'),
+};
+const mtId = (p) => `${p}${Date.now().toString(36)}${(mt.nextId++).toString(36)}`;
+const mtNew = () => mtId('c');
+const fSec = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, '0')}`;
+const fDur = (s) => (s < 1 ? `${Math.round(s * 1000)} ms` : `${String(+s.toFixed(2)).replace('.', ',')} s`);
+const mtLockedText = (t) => `« ${t.name} » est verrouillée 🔒 : la prise ne bouge pas. Clique le cadenas de la piste pour la déplacer.`;
+// Durée visible de la ligne de temps (zoom 1 : tout le morceau).
+function viewDur() { return songSeconds() / mt.zoom; }
+// Bouts d'une prise : sa liste, ou le bout unique (identifiant vide) d'une prise sans montage.
+function takeClips(k) { return k.clips || [makeClip('', k.audioId, k.mono.length, k.startSec)]; }
+// Premier geste de montage sur une prise : son son devient une source, la liste de bouts est créée (un seul bout).
+function mtEnsure(k) {
+    if (k.clips) return;
+    mt.sources.set(k.audioId, k.mono);
+    if (k.raw && k.rawAt == null) k.rawAt = k.startSec;   // « micro brut » : il reste à la place de la prise d'origine
+    k.clips = [makeClip(mtNew(), k.audioId, k.mono.length, k.startSec)];
+}
+// Rendu des bouts → take.mono et take.startSec (la seule fonction qui les recalcule). Rend la durée du calcul (ms).
+function mtRender(k) {
+    const t0 = performance.now();
+    const r = renderClips(k.clips, mt.sources, k.sampleRate);
+    k.mono = r.mono; k.startSec = r.startSec;
+    return performance.now() - t0;
+}
+// Bout sélectionné : { t, k, c, i, n } ou null (rien de sélectionné, piste ou bout disparu).
+function mtSel() {
+    const t = findTrack(mt.sel.trackId), k = t?.take;
+    if (!k) return null;
+    const clips = takeClips(k), i = clips.findIndex((c) => c.id === mt.sel.clipId);
+    return i < 0 ? null : { t, k, c: clips[i], i, n: clips.length };
+}
+// Prise d'arrivée d'un bout collé ou envoyé : celle de la piste, ou une prise neuve si la piste est vide.
+function mtTakeFor(t, sr, from) {
+    if (t.take) { mtEnsure(t.take); return t.take; }
+    const k = { mono: new Float32Array(0), sampleRate: sr, startSec: 0, note: `montage (bout venu de « ${from} »)`, audioId: mtId('a'), label: 'Montage', clips: [], montage: true };
+    t.takes.push(k); t.take = k; t.status = 'raw';
+    log('info', `« ${t.name} » : prise « Montage » créée pour recevoir un bout venu de « ${from} »`);
+    return k;
+}
+
+// ---- annuler / rétablir : états de structure (listes de bouts, places), jamais de copie de son
+function mtSnap(what) {
+    return { what, sel: { ...mt.sel },
+        tracks: state.tracks.map((t) => ({ t, active: t.take, takes: t.takes.map((k) => ({ k, startSec: k.startSec, clips: k.clips ? cloneClips(k.clips) : null })) })) };
+}
+function mtPushUndo(snap) {
+    mt.undo.push(snap);
+    if (mt.undo.length > MT_UNDO_MAX) mt.undo.shift();
+    mt.redo.length = 0;
+    mtButtons();
+}
+const mtSig = (k) => (k ? (k.clips ? JSON.stringify(k.clips) : `-@${k.startSec}`) : '');
+// Remet les pistes dans l'état gardé ; rend les pistes dont la prise jouée a changé (à retraiter).
+function mtRestore(snap) {
+    const changed = [];
+    for (const s of snap.tracks) {
+        const t = s.t;
+        if (!state.tracks.includes(t)) continue;   // piste supprimée depuis : rien à lui rendre
+        const before = mtSig(t.take), was = t.take, known = s.takes.map((x) => x.k);
+        const extra = t.takes.filter((k) => !known.includes(k) && !k.montage);   // prises enregistrées depuis : gardées
+        for (const x of s.takes) {
+            const k = x.k;
+            if (x.clips) { if (mtSig(k) !== JSON.stringify(x.clips)) { k.clips = cloneClips(x.clips); mtRender(k); } }
+            else {
+                if (k.clips) { delete k.clips; k.mono = mt.sources.get(k.audioId); }   // retour à la prise sans montage : son d'origine
+                k.startSec = x.startSec;
+            }
+        }
+        t.takes = [...known, ...extra];
+        t.take = extra.includes(was) ? was : (s.active || null);
+        if (t.take !== was || mtSig(t.take) !== before) changed.push(t);
+    }
+    return changed;
+}
+function mtUndo(redo = false) {
+    const from = redo ? mt.redo : mt.undo, to = redo ? mt.undo : mt.redo;
+    if (!from.length) { setStatus(redo ? 'Rien à rétablir.' : 'Rien à annuler.'); return; }
+    if (state.rec) { setStatus('Enregistrement en cours : arrête-le avant de monter.'); return; }
+    const snap = from.pop();
+    to.push(mtSnap(snap.what));
+    const changed = mtRestore(snap);
+    mt.sel = { ...snap.sel };
+    log('info', `Montage — ${redo ? 'rétabli' : 'annulé'} : ${snap.what} (${changed.map((t) => `« ${t.name} »`).join(', ') || 'aucune piste changée'}) ; reste ${mt.undo.length} à annuler, ${mt.redo.length} à rétablir`);
+    mtAfter(changed);
+    setStatus(redo ? `Rétabli : ${snap.what}.` : `Annulé : ${snap.what}.`);
+}
+function mtReset() {
+    mt.undo.length = 0; mt.redo.length = 0; mt.clipboard = null; mt.live = null; mt.sel = { trackId: 0, clipId: '' };
+    mt.zoom = 1; mt.start = 0;
+    mtCloseMenu();
+    mtPrune();
+    mtButtons();
+}
+// Mémoire : un son source qui ne sert plus à rien (ni bout en place, ni état gardé pour annuler / rétablir, ni bout
+// copié, ni son d'origine d'une prise encore connue) est libéré — par exemple un bloc fusionné sorti de la pile.
+function mtPrune() {
+    const keep = new Set();
+    const add = (list) => { for (const c of list || []) keep.add(c.src); };
+    for (const t of state.tracks) for (const k of t.takes) { keep.add(k.audioId); add(k.clips); }
+    for (const s of [...mt.undo, ...mt.redo]) for (const tr of s.tracks) for (const x of tr.takes) { keep.add(x.k.audioId); add(x.clips); add(x.k.clips); }
+    if (mt.clipboard) keep.add(mt.clipboard.clip.src);
+    let n = 0;
+    for (const id of [...mt.sources.keys()]) if (!keep.has(id)) { mt.sources.delete(id); ++n; }
+    if (n) log('info', `Montage : ${n} son(s) source libéré(s) (plus aucun bout ni annulation ne s'en sert)`);
+}
+
+// ---- suite commune d'un geste de montage : rendu fait, traitement relancé, équilibre à refaire, projet à sauvegarder
+function mtAfter(tracks) {
+    for (const t of tracks) {
+        t.processed = null;                        // l'ancien son traité ne correspond plus aux bouts
+        if (t.inspect) t.inspect.stale = true;
+        if (!t.take) t.status = 'vide';
+    }
+    state.balanceDirty = true;
+    state.balanceRaw = null;                       // « Égaliser » : à refaire aussi
+    markDirty();
+    renderTracks();
+    for (const t of tracks) queueProcess(t);       // comme après un déplacement : effets recalculés sur le nouveau rendu
+    if (state.player && !state.rec && (state.player.mode === 'mix' || state.player.mode === 'raw')) play(state.player.mode, mt.head);   // lecture en cours : elle repart du même endroit avec le nouveau son
+    mtPrune();
+}
+// Fin d'un geste : état d'avant gardé pour « Annuler », rendu recalculé (prise vidée : elle quitte la piste), journal.
+function mtCommit(t, k, snap, text, others = []) {
+    mtPushUndo(snap);
+    let ms = 0;
+    if (k.clips.length) ms = mtRender(k);
+    else {
+        t.takes = t.takes.filter((x) => x !== k);
+        if (t.take === k) t.take = t.takes[t.takes.length - 1] || null;
+    }
+    log('info', `Montage — « ${t.name} » : ${text} · ${k.clips.length} bout(s), rendu en ${Math.round(ms)} ms`);
+    mtAfter([t, ...others]);
+}
+function mtAllowed(t, what) {
+    if (state.rec) { setStatus('Enregistrement en cours : arrête-le avant de monter.'); return false; }
+    if (t.locked) { setStatus(mtLockedText(t)); log('info', `« ${t.name} » : ${what} refusé (piste verrouillée)`); return false; }
+    return true;
+}
+// Un outil sur le bout sélectionné : garde-fous, opération pure (clips.js) par fn(k, id, t, c, others) qui pose la
+// nouvelle liste dans k.clips et rend le texte du journal, puis mtCommit. Geste impossible : message, rien ne change.
+function mtDo(what, fn) {
+    const s = mtSel();
+    if (!s) { setStatus('Touche d\'abord un bout de son sur une piste.'); return false; }
+    const { t, k } = s;
+    if (!mtAllowed(t, what)) { mtButtons(); return false; }   // la barre revient à l'état réel du bout (listes de fondus)
+    const snap = mtSnap(what), had = !!k.clips;
+    mtEnsure(k);
+    const id = had ? s.c.id : k.clips[0].id, c = k.clips.find((x) => x.id === id), others = [];
+    const desc = `bout ${s.i + 1}/${s.n} (${fSec(c.at)} → ${fSec(clipEnd(c, k.sampleRate))})`;
+    mt.sel.clipId = id;
+    let text;
+    try { text = fn(k, id, t, c, others); } catch (err) {
+        if (!had) { delete k.clips; mt.sel.clipId = ''; }
+        if (!err.clip) { log('error', `Montage (${what}) impossible : ${err.message}`); setStatus(`Montage impossible : ${err.message}`); return false; }
+        setStatus(err.message);
+        log('info', `Montage refusé — « ${t.name} » : ${what}, ${desc} : ${err.message}`);
+        mtButtons();
+        return false;
+    }
+    mtCommit(t, k, snap, `${what}, ${desc}${text ? ', ' + text : ''}`, others);
+    return true;
+}
+
+// ---- les outils
+// Couper au curseur de lecture (bouton de la barre) ou à l'endroit du menu : le bout sous cet instant, sur la piste du
+// bout sélectionné, sinon sur la piste sélectionnée. Deux coupes = trois bouts, chacun indépendant.
+function mtCut(at = mt.head) {
+    const s0 = mtSel(), t = s0?.t || findTrack(state.selectedId);
+    if (!t || !t.take) { setStatus('Touche d\'abord le son à couper : le curseur (trait blanc) s\'y place. Puis « ✂ Couper ».'); return; }
+    const hit = clipAt(takeClips(t.take), at, t.take.sampleRate, s0 ? mt.sel.clipId : null);
+    if (!hit) {
+        setStatus('Le curseur (trait blanc) n\'est sur aucun bout de cette piste : touche l\'endroit à couper, puis « ✂ Couper ».');
+        log('info', `Montage refusé — « ${t.name} » : couper à ${fSec(at)}, aucun bout sous le curseur`);
+        return;
+    }
+    mt.sel = { trackId: t.id, clipId: hit.id };
+    if (mtDo('couper', (k, id) => {
+        const r = splitClip(k.clips, id, at, k.sampleRate, mtNew);
+        k.clips = r.clips; mt.sel.clipId = r.right;
+        return `au curseur, à ${fSec(at)}`;
+    })) setStatus(`Coupé à ${fSec(at)} : deux bouts. Celui de droite est sélectionné.`);
+}
+function mtDup() {
+    if (mtDo('dupliquer', (k, id) => {
+        const r = duplicateClip(k.clips, id, k.sampleRate, mtNew);
+        k.clips = r.clips; mt.sel.clipId = r.id;
+        return `copie posée à ${fSec(r.clips[r.clips.length - 1].at)}`;
+    })) setStatus('Bout dupliqué : la copie est posée juste après et sélectionnée. Glisse-la où tu veux.');
+}
+function mtCopy() {
+    const s = mtSel();
+    if (!s) { setStatus('Touche d\'abord un bout de son sur une piste.'); return; }
+    if (!mt.sources.has(s.c.src)) mt.sources.set(s.c.src, s.k.mono);   // prise sans montage : son son est la source
+    mt.clipboard = { clip: { ...s.c }, sampleRate: s.k.sampleRate, from: s.t.name };
+    log('info', `Montage — « ${s.t.name} » : copier, bout ${s.i + 1}/${s.n} (${fSec(s.c.at)} → ${fSec(clipEnd(s.c, s.k.sampleRate))})`);
+    setStatus('Bout copié. Clic droit (ou appui long) sur la piste, à l\'endroit où le poser, puis « 📋 Coller ici ».');
+    mtButtons();
+}
+function mtPaste(at = mt.head, trackId = state.selectedId) {
+    const cb = mt.clipboard;
+    if (!cb) { setStatus('Rien à coller : copie d\'abord un bout.'); return; }
+    const t = findTrack(trackId) || findTrack(mt.sel.trackId);
+    if (!t) { setStatus('Touche d\'abord la piste où coller.'); return; }
+    if (!mtAllowed(t, 'coller')) return;
+    if (t.take && t.take.sampleRate !== cb.sampleRate) { setStatus('Ces deux pistes n\'ont pas la même fréquence de son : collage impossible.'); log('warn', `Montage — coller refusé sur « ${t.name} » : ${t.take.sampleRate} Hz au lieu de ${cb.sampleRate} Hz`); return; }
+    const snap = mtSnap('coller');
+    const k = mtTakeFor(t, cb.sampleRate, cb.from);
+    const r = insertClip(k.clips, cb.clip, at, mtNew);
+    k.clips = r.clips; mt.sel = { trackId: t.id, clipId: r.id };
+    mtCommit(t, k, snap, `coller, bout de ${fDur(cb.clip.len / cb.sampleRate)} venu de « ${cb.from} », posé au curseur à ${fSec(at)}`);
+    setStatus(`Bout collé à ${fSec(at)} sur « ${t.name} ».`);
+}
+// Changer un bout de piste : en le glissant (geste principal ; `at` = instant où il est lâché) ou par le menu
+// « Envoyer vers la piste… » (même instant du morceau).
+function mtSend(toId, at = null) {
+    const t2 = findTrack(Number(toId));
+    if (!t2) return false;
+    let kept = true;
+    const ok = mtDo(at == null ? 'envoyer vers une autre piste' : 'glisser vers une autre piste', (k, id, t, c, others) => {
+        if (t2 === t) throw new ClipError('Le bout est déjà sur cette piste.');
+        if (t2.locked) { log('info', `« ${t2.name} » : arrivée d'un bout refusée (piste verrouillée)`); throw new ClipError(mtLockedText(t2)); }
+        if (t2.take && t2.take.sampleRate !== k.sampleRate) throw new ClipError('Ces deux pistes n\'ont pas la même fréquence de son : envoi impossible.');
+        const k2 = mtTakeFor(t2, k.sampleRate, t.name);
+        const to = at == null ? c.at : at;   // même instant du morceau, sauf si le bout a aussi glissé dans le temps
+        kept = to === c.at;
+        const r = insertClip(k2.clips, c, to, mtNew);
+        k2.clips = r.clips;
+        mtRender(k2);
+        k.clips = removeClip(k.clips, id);
+        mt.sel = { trackId: t2.id, clipId: r.id };
+        others.push(t2);
+        return `vers « ${t2.name} », ${to === c.at ? `même place (${fSec(to)})` : `posé à ${fSec(to)} (il était à ${fSec(c.at)})`}`;
+    });
+    if (ok) setStatus(`Bout posé sur « ${t2.name} »${kept ? ', au même instant du morceau' : ''}.`);
+    return ok;
+}
+// Bout lâché après avoir été glissé hors de sa piste : sur une piste de voix libre, il y va ; ailleurs, il reste chez lui.
+function mtDropOn(t, clipId, t2, at) {
+    if (!t2) {
+        setStatus('Lâché hors des pistes de voix : le bout revient à sa place.');
+        log('info', `Montage refusé — « ${t.name} » : bout lâché hors des pistes de voix, remis à sa place`);
+        return;
+    }
+    const sel = { ...mt.sel };
+    mt.sel = { trackId: t.id, clipId };
+    if (mtSend(t2.id, at)) return;
+    mt.sel = sel;   // refusé (piste d'arrivée verrouillée…) : le message est affiché, rien n'a bougé
+    setStatus(`${ui.status.textContent} Le bout revient à sa place.`);
+    mtButtons(); drawAllLanes();
+}
+function mtMute() {
+    let on = false;
+    if (mtDo('muet', (k, id, t, c) => { on = !c.mute; k.clips = setMute(k.clips, id, on); return on ? 'rendu muet' : 'son rétabli'; }))
+        setStatus(on ? 'Ce bout est muet : le reste de la piste joue toujours.' : 'Ce bout rejoue.');
+}
+function mtRev() {
+    let on = false;
+    if (mtDo('inverser', (k, id, t, c) => { on = !c.rev; k.clips = setRev(k.clips, id, on); return on ? 'lu à l\'envers' : 'remis à l\'endroit'; }))
+        setStatus(on ? 'Ce bout est lu à l\'envers.' : 'Ce bout est remis à l\'endroit.');
+}
+function mtGain(d) {
+    let db = 0;
+    if (mtDo('volume du bout', (k, id, t, c) => {
+        db = Math.min(GAIN_MAX_DB, Math.max(GAIN_MIN_DB, c.gainDb + d));
+        if (db === c.gainDb) throw new ClipError(`Volume du bout déjà au ${d > 0 ? 'maximum (+12 dB)' : 'minimum (−24 dB)'}.`);
+        k.clips = setGain(k.clips, id, db);
+        return `${db > 0 ? '+' : ''}${db} dB`;
+    })) setStatus(`Volume du bout : ${db > 0 ? '+' : ''}${db} dB (avant les effets de la piste).`);
+}
+function mtFade(which, sec) {
+    const name = which === 'in' ? 'fondu d\'entrée' : 'fondu de sortie';
+    let got = 0;
+    if (mtDo(name, (k, id) => {
+        k.clips = setFades(k.clips, id, which === 'in' ? { fadeIn: sec } : { fadeOut: sec }, k.sampleRate);
+        const c = k.clips.find((x) => x.id === id);
+        got = which === 'in' ? c.fadeIn : c.fadeOut;
+        return got ? fDur(got) : 'retiré';
+    })) setStatus(got ? `${name[0].toUpperCase() + name.slice(1)} de ${fDur(got)}.` : `${name[0].toUpperCase() + name.slice(1)} retiré.`);
+}
+function mtXfade() {
+    let sec = 0;
+    if (mtDo('fondu croisé', (k, id) => {
+        const r = crossfade(k.clips, id, k.sampleRate, (src) => mt.sources.get(src)?.length || 0);
+        k.clips = r.clips; sec = r.sec;
+        return `de ${fDur(r.sec)} avec le bout voisin`;
+    })) setStatus(`Fondu croisé de ${fDur(sec)} : un bout s'efface pendant que l'autre arrive.`);
+}
+function mtTrim(edge, d) {
+    mtDo('rogner', (k, id, t, c) => {
+        const from = edge === 'start' ? c.at : clipEnd(c, k.sampleRate);
+        const r = trimClip(k.clips, id, edge, from + d, k.sampleRate, mt.sources.get(c.src).length);
+        if (!r.changed) throw new ClipError((edge === 'start') === (d > 0) ? 'Ce bout ne peut pas être plus court.' : 'Ce bord est déjà au bout du son d\'origine : rien de plus à re-dérouler.');
+        k.clips = r.clips;
+        const n = r.clips.find((x) => x.id === id);
+        setStatus(`${edge === 'start' ? 'Début' : 'Fin'} du bout : ${fSec(edge === 'start' ? n.at : clipEnd(n, k.sampleRate))}.`);
+        return `${edge === 'start' ? 'début' : 'fin'} ${d > 0 ? '+' : '−'}${fDur(Math.abs(d))}`;
+    });
+}
+function mtMerge() {
+    let n = 0;
+    if (mtDo('fusionner', (k) => {
+        n = k.clips.length;
+        const r = mergeClips(k.clips, mt.sources, k.sampleRate, mtId('m'), mtNew);
+        mt.sources.set(r.source.id, r.source.data);
+        k.clips = r.clips; mt.sel.clipId = r.clips[0].id;
+        return `${n} bouts réunis en un bloc de ${fDur(r.source.data.length / k.sampleRate)}`;
+    })) setStatus(`${n} bouts réunis en un seul bloc.`);
+}
+function mtDelete() {
+    if (mtDo('supprimer le bout', (k, id) => { k.clips = removeClip(k.clips, id); mt.sel = { trackId: 0, clipId: '' }; return ''; }))
+        setStatus('Bout supprimé. « ↶ Annuler » le ramène.');
+}
+
+// ---- sélection, piste et bout sous le pointeur, menu du bout
+function mtSelect(t, clipId) {
+    const sel = clipId == null ? { trackId: 0, clipId: '' } : { trackId: t.id, clipId };
+    const same = sel.trackId === mt.sel.trackId && sel.clipId === mt.sel.clipId;
+    mt.sel = sel;
+    if (state.selectedId !== t.id) selectTrack(t.id);
+    if (same) return;
+    mtButtons();
+    drawAllLanes();
+}
+// Bout de la piste t sous l'instant sec : son identifiant, '' pour une prise sans montage (un seul bout), null à côté.
+function mtHit(t, sec) {
+    const k = t.take;
+    if (!k) return null;
+    if (!k.clips) return sec >= k.startSec && sec <= k.startSec + k.mono.length / k.sampleRate ? '' : null;
+    const c = clipAt(k.clips, sec, k.sampleRate, mt.sel.trackId === t.id ? mt.sel.clipId : null);
+    return c ? c.id : null;
+}
+// Piste de voix dont la ligne (en-tête compris) est sous le point (x, y) de l'écran ; null : instru ou hors des pistes.
+function mtRowAt(x, y) {
+    for (const row of ui.tracks.querySelectorAll('.track')) {
+        const r = row.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return findTrack(Number(row.dataset.id));
+    }
+    return null;
+}
+// Pendant qu'un bout glisse vers une autre piste : ligne visée mise en évidence (rouge si verrouillée) et ombre du bout
+// à l'endroit où il tomberait. mtGhost(null) efface tout.
+function mtGhost(t2, at = 0, len = 0, sr = 1) {
+    for (const l of ui.tracks.querySelectorAll('.lane.drop, .lane.nodrop')) l.classList.remove('drop', 'nodrop');
+    const lane = t2 ? rowOf(t2.id)?._lane : null;
+    if (!lane) { mtUi.ghost?.remove(); return; }
+    if (!mtUi.ghost) mtUi.ghost = el('div', { class: 'clipghost' });
+    const W = lane.clientWidth, dur = viewDur();
+    lane.classList.add(t2.locked ? 'nodrop' : 'drop');
+    mtUi.ghost.classList.toggle('bad', !!t2.locked);
+    mtUi.ghost.style.left = `${(at - mt.start) / dur * W}px`;
+    mtUi.ghost.style.width = `${Math.max(4, len / sr / dur * W)}px`;
+    if (mtUi.ghost.parentElement !== lane) lane.append(mtUi.ghost);
+}
+// Menu du bout (clic droit, appui long) : le bout visé est sélectionné, le curseur vient à l'endroit visé (« Couper
+// ici » et « Coller ici » agissent là). À côté d'un bout : seulement « Coller ici », s'il y a un bout copié.
+function mtOpenMenu(t, clipId, sec, x, y, held = false) {
+    mt.sel = clipId == null ? { trackId: 0, clipId: '' } : { trackId: t.id, clipId };
+    if (state.selectedId !== t.id) selectTrack(t.id);
+    mt.menuAt = sec; mt.menuTrack = t.id;
+    if (!state.player) { state.playFromSec = sec; setPlayhead(sec); }
+    drawAllLanes();
+    if (clipId == null && !mt.clipboard) {
+        mtCloseMenu();
+        setStatus('Pas de bout de son ici. Clic droit (ou appui long) sur un bout pour ouvrir son menu ; pour coller, copie d\'abord un bout.');
+        return;
+    }
+    mt.menu = true;
+    mt.menuHold = held;   // ouvert par un appui long : le doigt est encore posé, son relâchement ne doit rien déclencher
+    mtUi.menu.classList.toggle('noclip', clipId == null);
+    mtUi.menu.hidden = false;
+    mtButtons();
+    const w = mtUi.menu.offsetWidth, h = mtUi.menu.offsetHeight, vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    mtUi.menu.style.left = `${Math.max(4, Math.min(x, vw - w - 4))}px`;
+    mtUi.menu.style.top = `${Math.max(4, Math.min(y, vh - h - 4))}px`;
+    log('info', `Menu du bout ouvert sur « ${t.name} » à ${fSec(sec)}${clipId == null ? ' (à côté d\'un bout : coller seulement)' : ''}`);
+}
+function mtCloseMenu() {
+    if (!mt.menu && mtUi.menu.hidden) return;
+    mt.menu = false;
+    mtUi.menu.hidden = true;
+}
+function mtFadeSelect(sel, v) {
+    const near = (x) => Math.abs(x - v) < 1e-4;
+    const list = MT_FADES.some(near) ? MT_FADES : [...MT_FADES, v].sort((a, b) => a - b);
+    sel.replaceChildren(...list.map((x) => el('option', { value: String(x), textContent: x ? fDur(x) : 'aucun' })));
+    sel.value = String(list.find(near));
+}
+function mtButtons() {
+    for (const b of document.querySelectorAll('.mtUndo')) b.disabled = !mt.undo.length;
+    for (const b of document.querySelectorAll('.mtRedo')) b.disabled = !mt.redo.length;
+    mtUi.paste.disabled = !mt.clipboard;
+    mtUi.cutBar.disabled = !state.tracks.some((t) => t.take);
+    mtUi.zoomOut.disabled = mt.zoom <= 1; mtUi.zoomIn.disabled = mt.zoom >= MT_ZOOM_MAX;
+    mtUi.zoomInfo.textContent = mt.zoom <= 1 ? 'vue entière' : `zoom ×${mt.zoom}`;
+    mtUi.viewPos.hidden = mt.zoom <= 1;
+    const total = songSeconds(), room = total - total / mt.zoom;
+    if (mt.zoom > 1 && document.activeElement !== mtUi.viewPos) mtUi.viewPos.value = String(Math.round(mt.start / Math.max(1e-9, room) * 1000));
+    const s = mtSel();
+    if (mt.menu && !s && !mtUi.menu.classList.contains('noclip')) mtCloseMenu();   // le bout du menu n'existe plus
+    if (!s) { if (mt.menu) mtUi.title.textContent = `« ${findTrack(mt.menuTrack)?.name || ''} » · à ${fSec(mt.menuAt)}`; return; }
+    const { t, k, c } = s, sr = k.sampleRate;
+    mtUi.title.textContent = `Bout ${s.i + 1} sur ${s.n} de « ${t.name} » · de ${fSec(c.at)} à ${fSec(clipEnd(c, sr))} (${fDur(c.len / sr)})`
+        + (t.locked ? ' · piste verrouillée 🔒 : montage bloqué' : '');
+    mtUi.mute.classList.toggle('on', c.mute); mtUi.mute.textContent = c.mute ? '🔇 Muet : oui' : '🔇 Muet';
+    mtUi.rev.classList.toggle('on', c.rev); mtUi.rev.textContent = c.rev ? '⇄ Inversé : oui' : '⇄ Inverser';
+    mtUi.gain.textContent = `Volume ${c.gainDb > 0 ? '+' : ''}${c.gainDb} dB`;
+    mtFadeSelect(mtUi.fadeIn, c.fadeIn); mtFadeSelect(mtUi.fadeOut, c.fadeOut);
+    mtUi.send.replaceChildren(el('option', { value: '', textContent: 'Envoyer vers la piste…' }),
+        ...state.tracks.filter((x) => x !== t).map((x) => el('option', { value: String(x.id), textContent: `→ ${x.name}${x.locked ? ' 🔒' : ''}` })));
+    mtUi.send.value = '';
+    mtUi.merge.disabled = s.n < 2;
+}
+// Barre permanente : couper au curseur de lecture. Menu du bout : chaque action simple referme le menu ; volume,
+// fondus et réglage fin le laissent ouvert (on les règle en plusieurs fois) ; ✕, Échap ou un clic ailleurs le ferment.
+mtUi.cutBar.addEventListener('click', () => mtCut(mt.head));
+const mtItem = (b, fn) => b.addEventListener('click', () => { mtCloseMenu(); fn(); });
+mtItem(mtUi.del, mtDelete);
+mtItem(mtUi.cut, () => mtCut(mt.menuAt));
+mtItem(mtUi.dup, mtDup);
+mtItem(mtUi.copy, mtCopy);
+mtItem(mtUi.paste, () => mtPaste(mt.menuAt, mt.menuTrack));
+mtItem(mtUi.mute, mtMute);
+mtItem(mtUi.rev, mtRev);
+mtItem(mtUi.merge, mtMerge);
+mtItem(mtUi.close, () => {});
+mtUi.send.addEventListener('change', () => { const v = mtUi.send.value; mtUi.send.value = ''; if (v) { mtCloseMenu(); mtSend(v); } });
+document.addEventListener('pointerdown', (e) => { if (mt.menu && !mtUi.menu.contains(e.target)) mtCloseMenu(); }, true);
+// Menu ouvert par un appui long : il apparaît sous le doigt. Tant que ce doigt n'est pas relevé (et un court instant
+// après), aucun clic dans le menu ne compte — sinon lâcher le doigt lancerait la commande qui se trouve dessous.
+mtUi.menu.addEventListener('click', (e) => { if (mt.menuHold) { e.stopPropagation(); e.preventDefault(); } }, true);
+for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => { if (mt.menuHold) setTimeout(() => { mt.menuHold = false; }, 120); }, true);
+mtUi.gainDown.addEventListener('click', () => mtGain(-1));
+mtUi.gainUp.addEventListener('click', () => mtGain(1));
+mtUi.fadeIn.addEventListener('change', () => mtFade('in', Number(mtUi.fadeIn.value)));
+mtUi.fadeOut.addEventListener('change', () => mtFade('out', Number(mtUi.fadeOut.value)));
+mtItem(mtUi.xfade, mtXfade);
+$('clipTrimS0').addEventListener('click', () => mtTrim('start', -MT_TRIM_STEP));
+$('clipTrimS1').addEventListener('click', () => mtTrim('start', MT_TRIM_STEP));
+$('clipTrimE0').addEventListener('click', () => mtTrim('end', -MT_TRIM_STEP));
+$('clipTrimE1').addEventListener('click', () => mtTrim('end', MT_TRIM_STEP));
+for (const b of document.querySelectorAll('.mtUndo')) b.addEventListener('click', () => mtUndo(false));
+for (const b of document.querySelectorAll('.mtRedo')) b.addEventListener('click', () => mtUndo(true));
+// Ctrl+Z : annuler ; Ctrl+Maj+Z ou Ctrl+Y : rétablir (hors champ de saisie).
+// Suppr : supprimer le bout sélectionné ; Échap : fermer le menu du bout.
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mt.menu) { mtCloseMenu(); return; }
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.key === 'Delete' && mtSel()) { e.preventDefault(); mtCloseMenu(); mtDelete(); return; }
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' || k === 'y') { e.preventDefault(); mtUndo(k === 'y' || e.shiftKey); }
+});
+
+// ---- dessin des bouts sur la ligne de temps, poignées pour rogner
+function mtDrawClips(g, row, t, w, h) {
+    const k = t.take, here = mt.sel.trackId === t.id;
+    let selClip = null;
+    if (k && (k.clips || here)) {
+        const sr = k.sampleRate, dur = viewDur(), dpr = window.devicePixelRatio || 1, X = (s) => (s - mt.start) / dur * w;
+        for (const c of takeClips(k)) {
+            const x0 = X(c.at), x1 = X(clipEnd(c, sr)), sel = here && c.id === mt.sel.clipId;
+            if (sel) selClip = c;
+            if (x1 < 0 || x0 > w) continue;
+            g.fillStyle = 'rgba(16,19,26,.7)';
+            if (c.mute) g.fillRect(x0, 2, x1 - x0, h - 4);   // bout muet : grisé
+            if (c.fadeIn > 0) { const xf = Math.min(x1, X(c.at + c.fadeIn)); g.beginPath(); g.moveTo(x0, 2); g.lineTo(xf, 2); g.lineTo(x0, h - 2); g.fill(); }
+            if (c.fadeOut > 0) { const xf = Math.max(x0, X(clipEnd(c, sr) - c.fadeOut)); g.beginPath(); g.moveTo(x1, 2); g.lineTo(xf, 2); g.lineTo(x1, h - 2); g.fill(); }
+            const lw = (sel ? 3 : 1) * dpr;
+            g.strokeStyle = sel ? '#ffd24a' : 'rgba(255,255,255,.5)'; g.lineWidth = lw;
+            g.strokeRect(x0 + lw / 2, 2 + lw / 2, Math.max(1, x1 - x0 - lw), h - 4 - lw);
+            const tags = [c.mute ? 'muet' : '', c.rev ? '◀ à l\'envers' : '', c.gainDb ? `${c.gainDb > 0 ? '+' : ''}${c.gainDb} dB` : ''].filter(Boolean).join(' · ');
+            if (tags && x1 - x0 > 36 * dpr) { g.fillStyle = '#fff'; g.font = `${Math.round(11 * dpr)}px system-ui, sans-serif`; g.fillText(tags, Math.max(x0, 0) + 5 * dpr, 15 * dpr, x1 - Math.max(x0, 0) - 8 * dpr); }
+        }
+    }
+    mtHandles(row, t, selClip);
+}
+// Pendant qu'un bout glisse ou se rogne : chaque bout est dessiné depuis sa source (pas de rendu complet à chaque pixel).
+function mtDrawLive(g, t, w, h) {
+    const k = t.take, sr = k.sampleRate, dur = viewDur();
+    for (const c of k.clips) {
+        const src = mt.sources.get(c.src);
+        if (!src) continue;
+        const x0 = (c.at - mt.start) / dur * w, x1 = (clipEnd(c, sr) - mt.start) / dur * w, per = c.len / Math.max(1, x1 - x0), gain = c.mute ? 0 : dbToGain(c.gainDb);
+        g.fillStyle = '#3a9bff22'; g.fillRect(x0, 2, x1 - x0, h - 4);
+        g.fillStyle = '#3a9bff';
+        for (let px = Math.max(0, Math.floor(x0)); px < Math.min(w, x1); ++px) {
+            const a = Math.max(0, Math.floor((px - x0) * per)), b = Math.min(c.len, Math.floor((px + 1 - x0) * per));
+            let mx = 0;
+            for (let i = a; i < b; i += 4) mx = Math.max(mx, Math.abs(src[c.rev ? c.off + c.len - 1 - i : c.off + i]));
+            const hh = Math.max(1, mx * gain * (h / 2 - 3));
+            g.fillRect(px, h / 2 - hh, 1, hh * 2);
+        }
+    }
+}
+// Poignées jaunes aux deux bords du bout sélectionné (32 px de large, toute la hauteur de la piste) : les glisser rogne
+// ou re-déroule le bord. Bout étroit : elles se mettent à l'extérieur pour ne pas se chevaucher.
+function mtHandles(row, t, c) {
+    const lane = row._lane;
+    let hs = lane._trim;
+    if (!c || t.locked) { if (hs && !lane._trimBusy) { hs[0].remove(); hs[1].remove(); lane._trim = null; } return; }
+    if (!hs) {
+        hs = lane._trim = ['start', 'end'].map((edge) => {
+            const d = el('div', { class: `trimh ${edge}`, textContent: '⋮', title: edge === 'start' ? 'Glisse pour rogner ou re-dérouler le début du bout' : 'Glisse pour rogner ou re-dérouler la fin du bout' });
+            mtTrimEvents(d, t, edge, lane);
+            lane.append(d);
+            return d;
+        });
+    }
+    const W = lane.clientWidth, dur = viewDur(), hw = 32;
+    const x0 = (c.at - mt.start) / dur * W, x1 = (clipEnd(c, t.take.sampleRate) - mt.start) / dur * W, inside = x1 - x0 >= 2.5 * hw;
+    const place = (d, x, out) => { d.hidden = out; d.style.left = `${Math.min(Math.max(0, x), Math.max(0, W - hw))}px`; };
+    place(hs[0], inside ? x0 : x0 - hw, x0 < -1 || x0 > W);
+    place(hs[1], inside ? x1 - hw : x1, x1 < 0 || x1 > W + 1);
+}
+function mtTrimEvents(h, t, edge, lane) {
+    let d = null;
+    h.addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); e.preventDefault();
+        const s = mtSel();
+        if (!s || s.t !== t || !mtAllowed(t, 'rognage')) return;
+        const k = s.k, had = !!k.clips, snap = mtSnap('rogner');
+        mtEnsure(k);
+        const id = had ? s.c.id : k.clips[0].id, c = k.clips.find((x) => x.id === id);
+        mt.sel.clipId = id;
+        d = { x: e.clientX, w: lane.clientWidth, dur: viewDur(), snap, had, id, orig: cloneClips(k.clips), changed: false,
+            edge0: edge === 'start' ? c.at : clipEnd(c, k.sampleRate), srcLen: mt.sources.get(c.src).length };
+        lane._trimBusy = true;
+        h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove', (e) => {
+        if (!d) return;
+        const k = t.take, r = trimClip(d.orig, d.id, edge, d.edge0 + (e.clientX - d.x) / d.w * d.dur, k.sampleRate, d.srcLen);
+        k.clips = r.clips; d.changed = r.changed; mt.live = k;
+        drawLane(lane.parentElement, t);
+    });
+    const end = () => {
+        if (!d) return;
+        const x = d, k = t.take;
+        d = null; mt.live = null; lane._trimBusy = false;
+        if (!x.changed) {   // poignée touchée sans bouger : rien ne change
+            if (x.had) k.clips = x.orig; else { delete k.clips; mt.sel.clipId = ''; }
+            drawLane(lane.parentElement, t);
+            return;
+        }
+        const c = k.clips.find((y) => y.id === x.id);
+        mtCommit(t, k, x.snap, `rogner (poignée), ${edge === 'start' ? 'début' : 'fin'} du bout amené à ${fSec(edge === 'start' ? c.at : clipEnd(c, k.sampleRate))}`);
+        setStatus(`${edge === 'start' ? 'Début' : 'Fin'} du bout : ${fSec(edge === 'start' ? c.at : clipEnd(c, k.sampleRate))} (durée ${fDur(c.len / k.sampleRate)}).`);
+    };
+    h.addEventListener('pointerup', end);
+    h.addEventListener('pointercancel', end);
+}
+
+// ---- zoom et défilement de la ligne de temps (communs à toutes les pistes)
+// Place de la tête de lecture dans la partie visible, en % ; hors de la vue : cachée. En lecture, la vue suit la tête.
+function mtHeadPct(sec, total) {
+    mt.head = sec;
+    if (mt.zoom <= 1 || total <= 0) return total > 0 ? (sec / total) * 100 : 0;   // vue entière : comme avant
+    const dur = total / mt.zoom;
+    if (state.player && (sec < mt.start || sec > mt.start + dur)) {
+        mt.start = Math.min(Math.max(0, sec - dur * 0.05), total - dur);
+        drawAllLanes(); mtButtons();
+    }
+    const p = (sec - mt.start) / dur * 100;
+    return p < 0 || p > 100 ? -1000 : p;
+}
+function mtScrollTo(start) {
+    const total = songSeconds();
+    mt.start = Math.min(Math.max(0, start), Math.max(0, total - total / mt.zoom));
+    setPlayhead(mt.head);
+    drawAllLanes();
+    mtButtons();
+}
+function mtZoom(f) {
+    const z = Math.min(MT_ZOOM_MAX, Math.max(1, mt.zoom * f));
+    if (z === mt.zoom) return;
+    mt.zoom = z;
+    mtScrollTo(mt.head - viewDur() / 2);   // centré sur la tête de lecture
+    log('info', `Ligne de temps : zoom ×${z}, de ${fSec(mt.start)} à ${fSec(mt.start + viewDur())}`);
+    setStatus(z <= 1 ? 'Ligne de temps : tout le morceau.' : `Ligne de temps zoomée ×${z} : ${fDur(viewDur())} visibles. Le curseur sous les boutons fait défiler.`);
+}
+mtUi.zoomIn.addEventListener('click', () => mtZoom(2));
+mtUi.zoomOut.addEventListener('click', () => mtZoom(0.5));
+mtUi.viewPos.addEventListener('input', () => { const total = songSeconds(); mtScrollTo(Number(mtUi.viewPos.value) / 1000 * (total - total / mt.zoom)); });
+// Souris : molette horizontale (ou Maj + molette) sur les pistes = défilement de la ligne de temps zoomée.
+ui.tracks.addEventListener('wheel', (e) => {
+    const d = e.shiftKey ? e.deltaY : Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : 0;
+    if (mt.zoom <= 1 || !d) return;
+    e.preventDefault();
+    mtScrollTo(mt.start + d / Math.max(200, ui.tracks.clientWidth) * viewDur());
+}, { passive: false });
+
+// ---- sauvegarde : sons à garder pour une prise, relecture d'une prise montée
+function mtAudioOf(k) {
+    if (!k.clips) return [[k.audioId, k.mono]];
+    const out = [];
+    for (const id of new Set(k.clips.map((c) => c.src))) { const data = mt.sources.get(id); if (data) out.push([id, data]); }
+    return out;
+}
+async function mtRestoreTake(k, get, trackName) {
+    for (const id of new Set(k.clips.map((c) => c?.src))) {
+        if (typeof id !== 'string' || mt.sources.has(id)) continue;
+        const data = await get(id);
+        if (data instanceof Float32Array) { mt.sources.set(id, data); savedAudio.add(id); }
+        else log('warn', `« ${trackName} » : un son source du montage (${k.label}) est introuvable dans la sauvegarde`);
+    }
+    const { clips, dropped } = sanitizeClips(k.clips, (id) => mt.sources.get(id)?.length || 0, k.sampleRate);
+    if (dropped) log('warn', `« ${trackName} » : ${dropped} bout(s) illisible(s) écarté(s) (${k.label})`);
+    if (!clips.length) { log('warn', `« ${trackName} » : ${k.label} sans aucun bout lisible, prise écartée`); return null; }
+    const take = { ...k, clips, mono: null };
+    const ms = mtRender(take);
+    log('info', `« ${trackName} » : ${k.label} remontée (${clips.length} bout(s), rendu en ${Math.round(ms)} ms)`);
+    return take;
+}
+
 // ------------------------------------------------------------------ sauvegarde automatique (navigateur)
 // Le projet (instru, prises, réglages des pistes) est gardé dans IndexedDB : rien n'est perdu si la page se ferme.
 // Les sons sont écrits une seule fois (clé = audioId) ; les réglages à chaque changement (1 s après le dernier).
@@ -2834,8 +3544,10 @@ async function saveProject() {
     const db = await openDb();
     const audio = [];
     if (state.instru) audio.push([state.instru.audioId + 'L', state.instru.left], [state.instru.audioId + 'R', state.instru.right]);
-    for (const t of state.tracks) for (const k of t.takes) audio.push([k.audioId, k.mono]);
-    const fresh = audio.filter(([id]) => !savedAudio.has(id));
+    // Prise montée : ce sont ses sons source qui sont gardés (jamais modifiés, écrits une seule fois) ; son rendu (mono)
+    // est recalculé au chargement à partir des bouts. Prise sans montage : son son, comme avant.
+    for (const t of state.tracks) for (const k of t.takes) audio.push(...mtAudioOf(k));
+    const fresh = audio.filter(([id], i) => !savedAudio.has(id) && audio.findIndex((a) => a[0] === id) === i);
     if (fresh.length) await idb(db, 'audio', 'readwrite', (st) => { for (const [id, data] of fresh) st.put(data, id); });
     for (const [id] of fresh) savedAudio.add(id);
     const meta = {
@@ -2847,7 +3559,8 @@ async function saveProject() {
             id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, smooth: !!t.smooth, locked: !!t.locked, fx: t.fx || {},
             mode: fxKindOf(t),   // 'none' | 'correction' | 'style' ; absent des projets d'avant le mode « Correction »
             active: t.takes.indexOf(t.take),
-            takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
+            takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label,
+                ...(k.clips ? { clips: cloneClips(k.clips), montage: !!k.montage } : {}) })),   // prise montée : ses bouts
         })),
     };
     await idb(db, 'meta', 'readwrite', (st) => st.put(meta, 'project'));
@@ -2882,6 +3595,7 @@ async function restoreProject() {
             t.correction = m.mode === 'correction'; if (m.mode) t.noFx = m.mode === 'none';
             log('info', `« ${t.name} » : mode ${fxKindOf(t)} ${m.mode ? 'repris de la sauvegarde' : '(projet d\'avant le mode « Correction » : comportement d\'avant gardé)'}`);
             for (const k of m.takes) {
+                if (Array.isArray(k.clips)) { const take = await mtRestoreTake(k, get, m.name); if (take) t.takes.push(take); continue; }   // prise montée
                 const mono = await get(k.audioId);
                 if (!(mono instanceof Float32Array)) { log('warn', `« ${m.name} » : ${k.label} introuvable dans la sauvegarde`); continue; }
                 t.takes.push({ ...k, mono });
@@ -2920,6 +3634,7 @@ ui.newBtn.addEventListener('click', async () => {
     state.tracks = []; state.nextTrackId = 1; state.armedId = 0; state.selectedId = 0;
     state.balance = null; state.balanceDirty = true; state.playFromSec = 0;
     if (Object.keys(state.roleOffsets).length) await setRoleOffset('', null, 'nouveau projet');
+    mtReset();   // montage : plus rien à annuler, plus de bout sélectionné ni copié
     addTrack('lead', 'Voix principale');
     renderTracks();
     setPlayhead(0);
@@ -3062,4 +3777,5 @@ setPlayhead(0);
 setStatus('Chargement du moteur…');
 window.__svSep = sepRun;   // tests : état de la séparation (son de veille, tranches)
 window.__studiovoix = state;   // lecture seule par les tests de bout en bout (vérification des prises)
+window.__svRenderPlayed = renderPlayed;   // essai du montage : ce que la page joue, rendu hors ligne
 startWorker();

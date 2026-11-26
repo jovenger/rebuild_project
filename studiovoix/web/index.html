@@ -75,10 +75,35 @@
   .head .badge.done { color: #fff; background: #7a2a52; }
   .head .x { padding: 2px 7px; font-size: 12px; color: var(--muted); }
   .tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  .lane { position: relative; background: #10131a; cursor: crosshair; min-height: 80px; }
+  .lane { position: relative; background: #10131a; cursor: crosshair; min-height: 80px; overflow: hidden; touch-action: pan-y; }   /* pan-y : le doigt glisse un bout de gauche à droite, la page défile de haut en bas */
   .lane canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .lane::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; background: #fff; opacity: .8; pointer-events: none; }
   .lane .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #4d5568; font-size: 12.5px; pointer-events: none; text-align: center; padding: 0 8px; }
+  /* montage : barre de la ligne de temps (couper, annuler, rétablir, zoom), menu du bout (clic droit, appui long),
+     poignées pour rogner, ombre du bout qu'on glisse vers une autre piste */
+  .lane { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .editbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .editbar button, .clipmenu button, .clipmenu select { min-height: 44px; min-width: 44px; font-size: 14px; }
+  .editbar #viewPos { flex: 1 1 100%; min-height: 40px; }
+  #zoomInfo { font-size: 12.5px; color: var(--muted); min-width: 70px; text-align: center; }
+  .clipmenu { position: fixed; z-index: 30; left: 8px; top: 8px; width: min(330px, calc(100vw - 8px)); max-height: calc(100vh - 8px); overflow: auto; overscroll-behavior: contain;
+              display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; background: #1a2032; border: 2px solid #ffd24a; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  .clipmenu > .wide { grid-column: 1 / -1; }
+  .clipmenu > button { text-align: left; }
+  .clipmenu.noclip > :not(.always) { display: none; }
+  .clipmenu button.on { background: #8a6d1a; border-color: #ffd24a; }
+  .clipmenu button.danger { border-color: #a52a3a; background: #4a1c24; }
+  .cliptitle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ffd24a; }
+  .cliptitle span { flex: 1; }
+  .clipgrp { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; }
+  .clipmenu label { font-size: 13px; display: flex; justify-content: space-between; }
+  .clipmenu label select { flex: 0 1 130px; }
+  #clipGain { min-width: 86px; text-align: center; color: var(--ink); }
+  .trimh { position: absolute; top: 0; bottom: 0; width: 32px; background: rgba(255,210,74,.3); border: 2px solid #ffd24a; border-radius: 6px; cursor: ew-resize; touch-action: none; z-index: 2; display: flex; align-items: center; justify-content: center; color: #ffd24a; font-weight: 700; user-select: none; }
+  .lane.drop { outline: 3px solid #ffd24a; outline-offset: -3px; }
+  .lane.nodrop { outline: 3px solid var(--bad); outline-offset: -3px; }
+  .clipghost { position: absolute; top: 3px; bottom: 3px; background: rgba(255,210,74,.25); border: 2px dashed #ffd24a; border-radius: 4px; pointer-events: none; z-index: 1; }
+  .clipghost.bad { background: rgba(229,72,77,.2); border-color: var(--bad); }
   .add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px; background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; }
 
   .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -209,7 +234,37 @@
   <!-- 1 -->
   <section class="step">
     <h2><span class="num">1</span> Pistes <span class="hint">importe l'instru ou une chanson, enregistre ou importe les voix</span></h2>
+    <!-- Ligne de temps : l'essentiel seulement (couper, annuler, rétablir, zoom) ; le reste est dans le menu du bout. -->
+    <div id="editBar" class="editbar">
+      <button id="cutBtn" disabled title="Couper en deux, à l'endroit du curseur (le trait blanc), le bout de son de la piste choisie">✂ Couper</button>
+      <button class="mtUndo" disabled title="Annuler le dernier geste de montage (Ctrl+Z)">↶ Annuler</button>
+      <button class="mtRedo" disabled title="Refaire le geste annulé (Ctrl+Maj+Z)">↷ Rétablir</button>
+      <button id="zoomOutBtn" disabled title="Voir plus large (dézoomer la ligne de temps)">🔍 −</button>
+      <span id="zoomInfo">vue entière</span>
+      <button id="zoomInBtn" title="Voir de plus près autour du curseur (zoomer la ligne de temps), pour couper précisément">🔍 +</button>
+      <span class="info">Glisse un bout pour le déplacer, même vers une autre piste. Clic droit (ou appui long) sur un bout : supprimer, copier, muet…</span>
+      <input id="viewPos" type="range" min="0" max="1000" value="0" hidden title="Faire défiler la ligne de temps (quand elle est zoomée)" aria-label="Défilement de la ligne de temps">
+    </div>
     <div id="tracks"></div>
+    <!-- Menu du bout : ouvert par un clic droit (ou un appui long) sur un bout de son. -->
+    <div id="clipMenu" class="clipmenu" hidden>
+      <div class="cliptitle wide always"><span id="clipTitle"></span><button id="clipClose" title="Fermer ce menu" aria-label="Fermer le menu">✕</button></div>
+      <button id="clipDel" class="danger" title="Retirer ce bout de la piste (« Annuler » le ramène)">🗑 Supprimer</button>
+      <button id="clipCut" title="Couper le bout en deux, à l'endroit visé">✂ Couper ici</button>
+      <button id="clipDup" title="Poser une copie du bout juste après lui">⧉ Dupliquer</button>
+      <button id="clipCopy" title="Copier le bout, pour le coller ailleurs">Copier</button>
+      <button id="clipPaste" class="always" title="Coller le bout copié à l'endroit visé, sur cette piste">📋 Coller ici</button>
+      <button id="clipMute" title="Rendre ce bout muet (le reste de la piste continue de jouer)">🔇 Muet</button>
+      <button id="clipRev" title="Lire ce bout à l'envers">⇄ Inverser</button>
+      <button id="clipXfade" title="Fondu croisé avec le bout voisin : l'un s'efface pendant que l'autre arrive, sans clic">⤫ Fondu croisé</button>
+      <span class="clipgrp wide" title="Volume de ce bout seul, de −24 à +12 dB, avant les effets de la piste"><button id="clipGainDown" aria-label="Baisser le volume du bout de 1 dB">−</button><span id="clipGain">Volume 0 dB</span><button id="clipGainUp" aria-label="Monter le volume du bout de 1 dB">+</button></span>
+      <label class="wide" title="Le son monte doucement au début du bout">Fondu d'entrée <select id="clipFadeIn"></select></label>
+      <label class="wide" title="Le son descend doucement à la fin du bout">Fondu de sortie <select id="clipFadeOut"></select></label>
+      <span class="clipgrp" title="Rogner ou re-dérouler le début du bout par pas de 10 ms (ou glisse la poignée jaune de gauche)">Début <button id="clipTrimS0" aria-label="Début du bout 10 ms plus tôt">◀</button><button id="clipTrimS1" aria-label="Début du bout 10 ms plus tard">▶</button></span>
+      <span class="clipgrp" title="Rogner ou re-dérouler la fin du bout par pas de 10 ms (ou glisse la poignée jaune de droite)">Fin <button id="clipTrimE0" aria-label="Fin du bout 10 ms plus tôt">◀</button><button id="clipTrimE1" aria-label="Fin du bout 10 ms plus tard">▶</button></span>
+      <select id="clipSend" class="wide" title="Envoyer le bout sur une autre piste, au même instant du morceau (ou glisse-le directement sur la piste)"><option value="">Envoyer vers la piste…</option></select>
+      <button id="clipMerge" class="wide" title="Réunir tous les bouts de cette piste en un seul bloc">Fusionner les bouts de la piste</button>
+    </div>
     <div class="add">
       <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
       <label>type <select id="addRole"></select></label>

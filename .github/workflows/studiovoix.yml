@@ -418,6 +418,11 @@ jobs:
           # Projet dans un fichier : « Enregistrer le projet » puis « Ouvrir un projet » redonnent le même projet au bit
           # près ; fichier abîmé, tronqué ou étranger refusé sans toucher au projet en cours.
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/projectpage.mjs http://127.0.0.1:8765/index.html
+          # Montage sur la ligne de temps (bouts) : couper, glisser un bout d'une piste à l'autre, menu du bout (clic
+          # droit / appui long : supprimer, dupliquer, copier / coller, muet, inverser, volume, fondus, fusionner),
+          # rogner, zoom, annuler / rétablir, sauvegarde ; à la souris puis au doigt (téléphone émulé).
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/montage.mjs http://127.0.0.1:8765/index.html
+          DEVICE="Pixel 7" PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/montage.mjs http://127.0.0.1:8765/index.html
           # Prise au micro sans casque (deux prises : voix principale puis back sur une seconde piste) : faux micro =
           # vraie voix (JFK, domaine public, whisper.cpp) + instru captée
           # (300 ms, -12 dB) + « radio » extérieure au niveau de la voix. La page doit retirer l'instru, compenser le
@@ -459,6 +464,8 @@ jobs:
           node web/test/singers.mjs
           # Projet dans un fichier (.studiovoix) : aller-retour au bit près, refus clair de tout fichier abîmé.
           node web/test/projectfile.mjs
+          # Montage : logique pure des bouts (rendu, couper, rogner, fondus, inverser, volume, muet, fusionner).
+          node web/test/clips.mjs
           mkdir -p "$SEP/48"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/song.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/song.wav"
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/truth_instru.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/truth_instru.wav"

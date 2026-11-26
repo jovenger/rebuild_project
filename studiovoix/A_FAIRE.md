@@ -343,7 +343,40 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   (mémoire : un son à la fois, mais le fichier entier passe par un Blob).
 - Détection « téléphone » rejouée par l'orchestrateur en émulation : Safari iPhone, Firefox Android et iPhone en
   « version pour ordinateur » → téléphone ; iPad en mode ordinateur, Mac, Windows → ordinateur.
-- RESTE étape 4 : inspection sur toute la durée + saturation due à la compression ; protocole d'écoute.
+- ÉTAPE 3 FAITE (26/11, 19:30 UTC) — montage par bouts, fusionné avec la correction d'office et le projet en fichier,
+  rejoué par l'orchestrateur sur l'arbre fusionné (montage.mjs : 92 contrôles à la souris, autant au doigt sur
+  téléphone émulé ; clips.mjs ; non-régression complète : auto, démo PC / téléphone, inspection, projet en fichier,
+  équilibre, séparation 48 kHz, micro avec radio) :
+  - modèle non destructif (`web/clips.js`) : une prise montée porte des bouts `{ id, src, off, len, at, gainDb, mute,
+    rev, fadeIn, fadeOut }` ; `take.mono` / `take.startSec` sont le RENDU des bouts (recalculé après chaque geste),
+    les sons source ne sont jamais modifiés ; sauvegarde : champ `clips` sur la prise, sources gardées par identifiant.
+  - gestes (retour de Yann : « comme les autres studios ») : « ✂ Couper » au curseur ; un bout se glisse dans le temps
+    ou, maintenu (souris : clic maintenu ; doigt : 250 ms), d'une piste à l'autre (écart horizontal < 12 px ignoré :
+    place exacte gardée) ; clic droit / appui long (600 ms) = menu du bout, Supprimer en premier ; poignées pour
+    rogner ; zoom ×1 à ×64 ; Annuler / Rétablir (50 gestes) ; barre permanente réduite à Couper, Annuler, Rétablir,
+    zoom.
+  - corrigé à la fusion : le tour du bouton d'effets d'une piste (Brut → Corrigé → Lissé → Style) ne revenait pas au
+    même son (la voix lissée restait éteinte en revenant sur « Corrigé ») ; `projectfile.js` : une prise montée a
+    besoin des sons source de ses bouts, pas de son propre son.
+  - À DIRE À YANN : le volume d'un bout passe avant les effets — en Correction ou en Style le niveleur rattrape
+    presque tout (−6 dB sur un bout ≈ −0,2 dB dans le mix), il s'entend pleinement en « Sans effet ». Chaque geste
+    relance le traitement de la piste (4 s pour 28 s ici ; ≈ 30 s pour 3 min 30, plus sur téléphone) : pendant ce
+    temps le mix joue le son brut du montage.
+  - non testé : vrai téléphone (maintien de 250 ms contre le défilement de la page, appui long sur iPhone, précision
+    des poignées), micro brut après montage, glisser entre deux pistes éloignées (pas de défilement automatique :
+    passer par « Envoyer vers la piste… »).
+- CI ROUGE sur `2841d62` (26/11, 18:54 UTC), cause trouvée et corrigée : `auto.mjs` comptait les lignes « Projet
+  sauvegardé » d'un journal plafonné à 200 lignes (le compte ne bouge plus quand le journal est plein). L'essai lit
+  maintenant la date `savedAt` de la sauvegarde ; le journal de la page garde 1000 lignes. Même motif fragile encore
+  présent dans `e2e.mjs` (deux endroits), sans échec connu.
+- RECHERCHE « Très rapide » revenue (26/11, scratchpad `F/`, rapport complet dans la conversation) : modèle
+  `UVR_MDXNET_1_9703.onnx` (29,7 Mo ; nFft 6144, dimF 2048, dimT 256, compensation 1,03 ; projet UVR, MIT avec
+  mention) = ×0,30 à ×0,32 du temps du modèle actuel (processeur et Chromium WebAssembly), SDR instru −0,29 dB, reste
+  de voix −0,48 dB (meilleur), SAR chanté −0,46 dB, aigus seuls −1,1 dB (voix extraite jusqu'à 14,7 kHz au lieu de
+  17,6). Recouvrement 0,25 → 0,10 : ×0,84 pour −0,03 dB. Gain net → case « Très rapide » à ajouter (décision de Yann :
+  en option). Projection 3 min 35 sur son téléphone : 8 à 10 min au lieu de ≈ 30 (proportion, non mesuré).
+- RESTE : case « Très rapide » ; inspection sur toute la durée + déformation due à la compression (calibrages en
+  cours : scratchpad `V8/`) ; protocole d'écoute ; note en ligne à mettre à jour.
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

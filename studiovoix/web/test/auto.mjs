@@ -218,8 +218,20 @@ try {
         `${rows.length} constat(s) : ${rows.map((r) => r.level).join(', ')} ; journal : ${(insLog.at(-1) || '').replace(/^[\d:]+(\s[AP]M)?\s+/, '').slice(0, 150)}`);
 
     // ------------------------------------------------------------------ f) sauvegarde : le mode survit au rechargement
-    const saves = () => page.evaluate(() => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length);
-    const waitSave = async (act) => { const n = await saves(); await act(); await page.waitForFunction((n) => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length > n, n, { timeout: 30000 }); };
+    // Une sauvegarde plus récente que le geste : lue dans la sauvegarde elle-même (date `savedAt` des métadonnées). Compter
+    // les lignes « Projet sauvegardé » du journal ne suffit pas : le journal est plafonné à 200 lignes, une ligne ancienne
+    // sort quand la nouvelle entre et le compte ne bouge plus (échec vu en CI, pas en local).
+    const savedAt = () => page.evaluate(() => new Promise((resolve) => {
+        const rq = indexedDB.open('studiovoix', 1);
+        rq.onerror = () => resolve(0);
+        rq.onsuccess = () => { const db = rq.result, g = db.transaction('meta').objectStore('meta').get('project'); g.onsuccess = () => { db.close(); resolve(g.result?.savedAt || 0); }; g.onerror = () => { db.close(); resolve(0); }; };
+    }));
+    const waitSave = async (act) => {
+        const from = await page.evaluate(() => Date.now());
+        await act();
+        for (let k = 0; k < 150; ++k) { if ((await savedAt()) >= from) return; await page.waitForTimeout(200); }
+        throw new Error('aucune sauvegarde du projet dans les 30 s qui suivent le geste');
+    };
     const modes = () => page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}=${t.noFx ? 'none' : t.correction ? 'correction' : 'style'}/${t.processed?.report?.mode || 'brut'}`).join(' ; '));
     // piste 1 : Style ; piste 2 : Correction ; piste 3 (si importée) : Sans effet
     await page.selectOption('.track[data-id="1"] select.style', 'pop'); await idle();

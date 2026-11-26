@@ -115,9 +115,25 @@ sur un serveur, le micro est lu par Web Audio sans traitement du navigateur (ni 
   se règle d'après la mesure ; le rapport affiche les valeurs effet par effet.
 - Étape 4 : écoute du mix ou du brut (A/B), vumètres, export WAV 16 bits.
 
-Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), sauvegarde du
-projet, plusieurs prises par piste (une prise par piste : ajouter une piste pour en garder une autre), installateur et bouton « Mise à jour » (la page est
-toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
+Depuis le cahier des charges du 26/11 (studio automatique) :
+- **Correction automatique de toutes les pistes** : toute voix qui arrive (micro, import, démo, séparation) est
+  corrigée d'office, sans couleur de style — volume régulier, résonances rabaissées ou manque de corps / présence
+  compensé, compression réglée sur la dynamique mesurée de la prise, justesse seulement sur une voix chantée (jamais
+  sur du rap ou de la voix parlée). Trois modes par piste : **Sans effet / Correction / Style** ; le style reste un
+  choix manuel. « Corriger toutes les pistes », « Tout sans effet », écarts de volume par type réglables.
+- **Montage sur la ligne de temps**, à la souris comme au doigt : « ✂ Couper » au curseur (deux coupes = trois bouts),
+  un bout se glisse dans le temps ou, maintenu, d'une piste à l'autre ; clic droit (appui long au doigt) sur un bout :
+  Supprimer, Dupliquer, Copier / Coller, Muet, Inverser, Volume du bout, Fondus d'entrée / de sortie / croisé,
+  Fusionner ; poignées pour rogner sans rien détruire ; zoom ; Annuler / Rétablir. Non destructif : les sons source
+  ne sont jamais modifiés.
+- **Projet dans un fichier** : « ⬇ Enregistrer le projet » (fichier `.studiovoix` : pistes, réglages, montage, tous
+  les sons au bit près) et « ⬆ Ouvrir un projet », ici ou sur un autre appareil ; un fichier abîmé est refusé sans
+  toucher au projet en cours.
+- **Séparer une chanson** : sur téléphone, mode rapide par défaut (instru + voix) avec la durée estimée avant de
+  lancer ; une même voix reste sur une seule piste ; bilan au journal (moteur, durée par étape, pistes créées).
+
+Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), installateur et bouton
+« Mise à jour » (la page est toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
 (modèle + ONNX Runtime Web, versions épinglées), essai : `node web/test/e2e.mjs`. La page s'isole (COOP/COEP) par
 `web/coi-serviceworker.js` (MIT, v0.1.7) : GitHub Pages ne permet pas ces en-têtes ; rechargement unique à la première
 visite.

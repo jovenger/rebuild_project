@@ -36,7 +36,8 @@ try {
             roleOffsets: s.roleOffsets || {},
             instru: s.instru ? { name: s.instru.name, sr: s.instru.sampleRate, l: fnv(s.instru.left), r: fnv(s.instru.right) } : null,
             tracks: s.tracks.map((t) => ({ name: t.name, role: t.roleId, style: t.styleId, vol: t.volumeDb, mute: !!t.mute, noFx: !!t.noFx, correction: !!t.correction, smooth: !!t.smooth, locked: !!t.locked, fx: t.fx || {},
-                active: t.takes.indexOf(t.take), takes: t.takes.map((k) => ({ sr: k.sampleRate, at: k.startSec, label: k.label, mono: fnv(k.mono) })) })),
+                active: t.takes.indexOf(t.take), takes: t.takes.map((k) => ({ sr: k.sampleRate, at: k.startSec, label: k.label, mono: fnv(k.mono),
+                    clips: k.clips ? k.clips.map((c) => [c.off, c.len, c.at, c.gainDb, !!c.mute, !!c.rev, c.fadeIn, c.fadeOut]) : null })) })),
         });
     });
     const storeKeys = () => page.evaluate(() => new Promise((resolve, reject) => { const rq = indexedDB.open('studiovoix', 1); rq.onerror = () => reject(rq.error); rq.onsuccess = () => { const db = rq.result, k = db.transaction('audio').objectStore('audio').getAllKeys(); k.onsuccess = () => { db.close(); resolve(k.result); }; k.onerror = () => reject(k.error); }; }));
@@ -58,9 +59,21 @@ try {
     await page.evaluate(() => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[1].id}"] .lock`).click());   // un geste réel : marque le projet à sauvegarder
     await page.evaluate(() => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[1].id}"] .lock`).click());
     await settled();
+    // Montage : la prise de la piste 2 est coupée en deux (clic sur la prise pour y placer le curseur, puis « ✂ Couper »),
+    // et le second bout est mis en muet par l'état de la page : les bouts doivent revenir tels quels.
+    const laneEl = page.locator(`#tracks .track[data-id="${await page.evaluate(() => window.__studiovoix.tracks[1].id)}"] .lane`);
+    await laneEl.scrollIntoViewIfNeeded();   // sur téléphone la ligne de la piste 2 est sous le bas de l'écran
+    const lane = await laneEl.boundingBox();
+    if (device?.hasTouch) await page.touchscreen.tap(lane.x + lane.width * 0.4, lane.y + lane.height / 2);
+    else await page.mouse.click(lane.x + lane.width * 0.4, lane.y + lane.height / 2);
+    await page.locator('#cutBtn').scrollIntoViewIfNeeded();
+    await (device?.hasTouch ? page.tap('#cutBtn') : page.click('#cutBtn'));
+    await page.waitForFunction(() => window.__studiovoix.tracks[1].take.clips?.length === 2, null, { timeout: 30000 });
+    await settled();
+    await page.waitForTimeout(1500);   // sauvegarde automatique
     const before = await snapshot();
     const b = JSON.parse(before);
-    check('projet de départ', b.tracks.length >= 2 && b.instru && b.tracks[0].locked && b.tracks[1].takes[0].at === 0.37 && b.tracks[0].correction && !b.tracks[1].correction && b.tracks[1].style === 'trap' && b.roleOffsets.manual_back === -11, `${b.tracks.length} pistes, instru « ${b.instru?.name} », piste 1 verrouillée : ${b.tracks[0].locked} et en Correction : ${b.tracks[0].correction}, piste 2 en Style ${b.tracks[1].style}, prise 2 à ${b.tracks[1].takes[0].at} s, écart des backs ${b.roleOffsets.manual_back} LU`);
+    check('projet de départ', b.tracks.length >= 2 && b.instru && b.tracks[0].locked && b.tracks[1].takes[0].at === 0.37 && b.tracks[0].correction && !b.tracks[1].correction && b.tracks[1].style === 'trap' && b.roleOffsets.manual_back === -11 && b.tracks[1].takes[0].clips?.length === 2, `${b.tracks.length} pistes, instru « ${b.instru?.name} », piste 1 verrouillée : ${b.tracks[0].locked} et en Correction : ${b.tracks[0].correction}, piste 2 en Style ${b.tracks[1].style}, prise 2 à ${b.tracks[1].takes[0].at} s, écart des backs ${b.roleOffsets.manual_back} LU, prise 2 montée en ${b.tracks[1].takes[0].clips?.length} bouts`);
 
     // 1) Enregistrer le projet dans un fichier.
     const [download] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#projSaveBtn')]);

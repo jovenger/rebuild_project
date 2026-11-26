@@ -21,10 +21,11 @@ const meta = {
         { id: 1, name: 'Voix principale', roleId: 'lead', styleId: 'rap_conscient', volumeDb: 0, mute: false, solo: false, noFx: false, smooth: true, locked: true, fx: { comp: { ratio: 3 } }, active: 1,
           takes: [{ audioId: 'a1', sampleRate: 48000, startSec: 0, note: 'micro', label: 'Prise 1' }, { audioId: 'a2', sampleRate: 48000, startSec: 1.25, note: 'micro', label: 'Prise 2' }] },
         { id: 2, name: 'Back', roleId: 'manual_back', styleId: 'rap_conscient', volumeDb: -2, mute: true, solo: false, noFx: true, smooth: false, locked: false, fx: {}, active: 0,
-          takes: [{ audioId: 'a3', sampleRate: 44100, startSec: 0.5, note: '', label: 'Prise 1', sources: ['s1'] }] },
+          // prise montée : ses bouts désignent leurs sons source ; son propre son (a3) n'est pas gardé
+          takes: [{ audioId: 'a3', sampleRate: 44100, startSec: 0.5, note: '', label: 'Prise 1', clips: [{ id: 'c1', src: 's1', off: 0, len: 100, at: 0.5 }, { id: 'c2', src: 's2', off: 10, len: 50, at: 1 }, { id: 'c3', src: 's1', off: 100, len: 100, at: 2 }] }] },
     ],
 };
-const audio = new Map([['i1L', sound(4801)], ['i1R', sound(4801)], ['a1', sound(1000)], ['a2', sound(1)], ['a3', sound(777)], ['s1', sound(333)], ['vide', new Float32Array(0)]]);
+const audio = new Map([['i1L', sound(4801)], ['i1R', sound(4801)], ['a1', sound(1000)], ['a2', sound(1)], ['s1', sound(333)], ['s2', sound(777)], ['vide', new Float32Array(0)]]);
 const fileOf = (p) => { const out = new Uint8Array(p.size); let o = 0; for (const part of p.parts) { out.set(part, o); o += part.length; } return out; };
 
 // ---------------------------------------------------------------- aller-retour
@@ -45,7 +46,8 @@ for (const s of header.audio) {
     for (let i = 0; i < a.length; ++i) if (a[i] !== ref[i]) { exact = false; break; }
 }
 check('tous les sons au bit près', exact && header.audio.length === audio.size, `${header.audio.length} sons, ${total} échantillons`);
-check('sons nécessaires listés', audioRefs(meta).sort().join() === ['a1', 'a2', 'a3', 'i1L', 'i1R', 's1'].sort().join(), audioRefs(meta).join(', '));
+check('sons nécessaires listés (prise montée : les sources de ses bouts, pas son propre son)', audioRefs(meta).sort().join() === ['a1', 'a2', 'i1L', 'i1R', 's1', 's2'].sort().join(), audioRefs(meta).join(', '));
+refuses('source d\'un bout manquante à l\'écriture', () => packProject(meta, new Map([...audio].filter(([k]) => k !== 's2'))), /introuvable.*s2/);
 check('CRC-32 conforme (« 123456789 » → cbf43926)', crc32(new TextEncoder().encode('123456789')) === 0xCBF43926, crc32(new TextEncoder().encode('123456789')).toString(16));
 // Un son vu à travers une fenêtre (sous-tableau) est enregistré tel quel, sans ses voisins.
 const big = sound(100), view = big.subarray(10, 60);
