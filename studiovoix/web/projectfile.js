@@ -70,28 +70,26 @@ export function checkMeta(meta) {
     return meta;
 }
 
-/**
- * Prépare le fichier d'un projet. `audio` : Map (ou liste de couples) identifiant → Float32Array.
- * Retourne { parts, size, header } ; `new Blob(parts)` donne le fichier (les sons ne sont pas recopiés).
- * Lève une erreur si un son dont les métadonnées ont besoin manque, ou s'il n'est pas un Float32Array.
- */
-export function packProject(meta, audio, extra = {}) {
+/** Un son prêt à écrire : sa ligne de table (place = `offset` octets depuis le début des sons) et ses octets (sans copie). */
+export function describeSound(id, a, offset) {
     if (!littleEndian) fail('cet appareil range les nombres dans l\'autre sens (gros-boutiste) : enregistrement non pris en charge');
+    if (typeof id !== 'string' || !id || id.length > LIMITS.idChars) fail(`identifiant de son invalide (${String(id).slice(0, 40)})`);
+    if (!(a instanceof Float32Array)) fail(`le son « ${id} » n'est pas un son (Float32Array attendu)`);
+    const bytes = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+    return { entry: { id, length: a.length, offset, crc: crc32(bytes) }, bytes };
+}
+
+/**
+ * Début du fichier (signature + en-tête) pour des métadonnées et une table de sons (lignes de describeSound, dans
+ * l'ordre d'écriture). Retourne { parts: [signature, en-tête], header }. Lève une erreur si un son dont les
+ * métadonnées ont besoin n'est pas dans la table.
+ */
+export function packHeader(meta, table, extra = {}) {
     checkMeta(meta);
-    const sounds = audio instanceof Map ? audio : new Map(audio);
-    const missing = audioRefs(meta).filter((id) => !sounds.has(id));
+    if (table.length > LIMITS.sounds) fail(`trop de sons (${table.length}, au plus ${LIMITS.sounds})`);
+    const have = new Set(table.map((s) => s.id));
+    const missing = audioRefs(meta).filter((id) => !have.has(id));
     if (missing.length) fail(`son(s) du projet introuvable(s) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
-    if (sounds.size > LIMITS.sounds) fail(`trop de sons (${sounds.size}, au plus ${LIMITS.sounds})`);
-    const table = [], data = [];
-    let offset = 0;
-    for (const [id, a] of sounds) {
-        if (typeof id !== 'string' || !id || id.length > LIMITS.idChars) fail(`identifiant de son invalide (${String(id).slice(0, 40)})`);
-        if (!(a instanceof Float32Array)) fail(`le son « ${id} » n'est pas un son (Float32Array attendu)`);
-        const bytes = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
-        table.push({ id, length: a.length, offset, crc: crc32(bytes) });
-        data.push(bytes);
-        offset += bytes.length;
-    }
     const header = { format: PROJECT_FORMAT, app: 'studiovoix-web', savedAt: new Date().toISOString(), meta, audio: table, extra };
     let json = enc.encode(JSON.stringify(header));
     const pad = (4 - ((12 + json.length) % 4)) % 4;   // les sons commencent sur un multiple de 4 octets
@@ -100,7 +98,31 @@ export function packProject(meta, audio, extra = {}) {
     const head = new Uint8Array(12);
     head.set(enc.encode(PROJECT_MAGIC));
     new DataView(head.buffer).setUint32(8, json.length, true);
-    return { parts: [head, json, ...data], size: 12 + json.length + offset, header };
+    return { parts: [head, json], header };
+}
+
+/**
+ * Prépare le fichier d'un projet. `audio` : Map (ou liste de couples) identifiant → Float32Array.
+ * Retourne { parts, size, header } ; `new Blob(parts)` donne le fichier (les sons ne sont pas recopiés).
+ * Lève une erreur si un son dont les métadonnées ont besoin manque, ou s'il n'est pas un Float32Array.
+ * (La page écrit son par son avec describeSound + packHeader, pour ne pas garder tous les sons en mémoire.)
+ */
+export function packProject(meta, audio, extra = {}) {
+    checkMeta(meta);
+    const sounds = audio instanceof Map ? audio : new Map(audio);
+    const missing = audioRefs(meta).filter((id) => !sounds.has(id));
+    if (missing.length) fail(`son(s) du projet introuvable(s) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
+    if (sounds.size > LIMITS.sounds) fail(`trop de sons (${sounds.size}, au plus ${LIMITS.sounds})`);
+    const table = [], data = [];
+    let offset = 0;
+    for (const [id, a] of sounds) {
+        const d = describeSound(id, a, offset);
+        table.push(d.entry);
+        data.push(d.bytes);
+        offset += d.bytes.length;
+    }
+    const h = packHeader(meta, table, extra);
+    return { parts: [...h.parts, ...data], size: h.parts[0].length + h.parts[1].length + offset, header: h.header };
 }
 
 /** Longueur de l'en-tête, lue dans les 12 premiers octets (signature contrôlée). */

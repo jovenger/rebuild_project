@@ -323,9 +323,27 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
     l'orchestrateur avance lui-même sur ce qui ne touche pas leurs fichiers.
 - Étape 4, projet en fichier : module `web/projectfile.js` + essai `web/test/projectfile.mjs` (dans la CI) faits —
   format « SVPROJ1 » : en-tête JSON (métadonnées de la sauvegarde automatique + table des sons avec CRC-32) puis les
-  sons en float 32 bits, au bit près ; tout fichier abîmé est refusé avec un message clair. RESTE : les deux boutons
-  dans la page (enregistrer / ouvrir), à brancher une fois les diffs « correction automatique » et « montage »
-  fusionnés (ils changent la sauvegarde).
+  sons en float 32 bits, au bit près ; tout fichier abîmé est refusé avec un message clair.
+- ÉTAPE 2 FAITE (26/11, 18:45 UTC), rejouée par l'orchestrateur (auto.mjs PC et téléphone émulé, démo, inspection,
+  séparation 48 kHz, micro avec radio : verts) : trois modes par piste (Sans effet / Correction / Style, champ
+  `t.correction`), Correction = mode de départ de toute nouvelle piste et lancée d'office (micro, import, démo,
+  séparation), style = choix manuel, « Corriger toutes les pistes », « Tout sans effet », ligne d'avancement, bloc
+  « Écarts par type » (réglage gardé dans `state.roleOffsets`, renvoyé au moteur après rechargement). Mesuré par
+  l'ouvrier : correction d'une piste de 3 min 30 = 24 s sur le serveur. RISQUES : mémoire (une piste séparée garde
+  maintenant un son corrigé stéréo, ≈ 75 Mo pour 3 min 30) ; file d'attente lente sur téléphone quand plusieurs
+  longues pistes arrivent d'un coup (non mesuré sur téléphone) ; « Nouveau projet » remet les écarts à l'origine :
+  codé, non testé.
+- ÉTAPE 4, point 1 FAIT (26/11) : « ⬇ Enregistrer le projet » / « ⬆ Ouvrir un projet » dans l'en-tête de la page.
+  Enregistrer : sauvegarde automatique mise à jour puis relue son par son. Ouvrir : fichier contrôlé EN ENTIER avant
+  toute écriture, sons écrits à côté du projet en cours (préfixe `imp:`), échange en une seule transaction, puis
+  rechargement de la page. Essai `web/test/projectpage.mjs` (dans la CI) : aller-retour au bit près (pistes, modes,
+  cadenas, places, écarts par type, sons), fichier abîmé / tronqué / étranger / vide refusé sans toucher au projet,
+  PC et téléphone émulé. Nom de fichier sans accent (un nom accentué était remplacé par « download » dans Chromium
+  sans écran). Non testé : sur un vrai téléphone (téléchargement et choix du fichier sur iPhone), gros projet
+  (mémoire : un son à la fois, mais le fichier entier passe par un Blob).
+- Détection « téléphone » rejouée par l'orchestrateur en émulation : Safari iPhone, Firefox Android et iPhone en
+  « version pour ordinateur » → téléphone ; iPad en mode ordinateur, Mac, Windows → ordinateur.
+- RESTE étape 4 : inspection sur toute la durée + saturation due à la compression ; protocole d'écoute.
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

@@ -7,6 +7,7 @@
 
 import { findSingers, splitRanges, sectionRanges } from './singers.js';
 import { resampleSincAsync } from './resample.js';
+import { describeSound, packHeader, headerLength, parseHeader, unpackAudio, PROJECT_EXT } from './projectfile.js';   // projet dans un fichier
 import { gatedInstru, GATE_DEFAULTS } from './instru.js';   // porte dans le temps de l'instru séparée
 import { voiceDirt, clipRuns, loudestWindow, findCrackles, addedDistortion } from './inspect.js';
 import { MODELS as MDX_MODELS, mdxGrid, mdxPart, mdxPartAdd, mdxFinish } from './isolate.js';   // grille des morceaux de « Séparer »
@@ -2926,6 +2927,135 @@ ui.newBtn.addEventListener('click', async () => {
     log('info', 'Nouveau projet');
     setStatus('Nouveau projet : importe une instru, arme une piste (●) puis REC.');
 });
+
+// ---------------------------------------------------------------- Projet dans un fichier (.studiovoix)
+// Le fichier contient exactement ce que garde la sauvegarde automatique (métadonnées + tous les sons, au bit près) :
+// voir projectfile.js. Enregistrer : la sauvegarde est mise à jour puis relue son par son (un seul son en mémoire à
+// la fois). Ouvrir : le fichier est d'abord contrôlé EN ENTIER sans toucher au projet en cours ; puis ses sons sont
+// écrits à côté de ceux du projet en cours, et l'échange se fait en une seule transaction (tout ou rien) ; la page
+// se recharge alors sur le projet ouvert.
+const projUi = { save: $('projSaveBtn'), open: $('projOpenBtn'), file: $('projFile') };
+const PROJ_TMP = 'imp:';   // préfixe des sons d'un fichier en cours d'ouverture, dans le magasin « audio »
+const projBusy = () => (state.separating || state.isolating || state.busy > 0 || state.recording
+    ? 'un calcul est en cours (séparation, IA ou traitement) : réessaie quand il est fini' : state.projectFileBusy ? 'un fichier de projet est déjà en cours' : '');
+const fmtMo = (bytes) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0).replace('.', ',')} Mo`;
+async function projectFileSave() {
+    const why = projBusy();
+    if (why) { setStatus('Enregistrer le projet : ' + why + '.'); log('warn', 'Projet en fichier non enregistré : ' + why); return null; }
+    state.projectFileBusy = true;
+    const t0 = performance.now();
+    let db = null;
+    try {
+        setStatus('Enregistrement du projet dans un fichier…');
+        clearTimeout(saveTimer);
+        await saveProject();   // le fichier = la sauvegarde automatique, à jour
+        db = await openDb();
+        const meta = await idb(db, 'meta', 'readonly', (st) => st.get('project'));
+        if (!meta) throw new Error('aucun projet sauvegardé à enregistrer');
+        const keys = ((await idb(db, 'audio', 'readonly', (st) => st.getAllKeys())) || []).filter((k) => typeof k === 'string' && !k.startsWith(PROJ_TMP));
+        const table = [], blobs = [];
+        let offset = 0;
+        for (const id of keys) {   // un son à la fois : relu, résumé (somme de contrôle), rangé dans un Blob, puis lâché
+            const a = await idb(db, 'audio', 'readonly', (st) => st.get(id));
+            const d = describeSound(id, a, offset);
+            table.push(d.entry);
+            blobs.push(new Blob([d.bytes]));
+            offset += d.bytes.length;
+        }
+        const h = packHeader(meta, table, { build: ui.version.textContent, tracks: meta.tracks.length });
+        const blob = new Blob([...h.parts, ...blobs], { type: 'application/octet-stream' });
+        // Nom du fichier : celui de l'instru, sans accent ni signe particulier (certains appareils refusent le nom entier sinon).
+        const base = (meta.instru?.name || 'projet').replace(/\.[^.]+$/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 _()-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'projet';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${base} ${new Date().toISOString().slice(0, 10)}${PROJECT_EXT}`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+        const info = { name: a.download, bytes: blob.size, sounds: table.length, tracks: meta.tracks.length };
+        log('info', `Projet enregistré dans le fichier « ${info.name} » : ${info.tracks} piste(s), ${info.sounds} son(s), ${fmtMo(info.bytes)}, en ${Math.round(performance.now() - t0)} ms`);
+        setStatus(`Projet enregistré : « ${info.name} » (${fmtMo(info.bytes)}), dans tes téléchargements. « Ouvrir un projet » pour le reprendre, ici ou sur un autre appareil.`);
+        return info;
+    } catch (err) {
+        log('error', 'Projet en fichier, enregistrement impossible : ' + err.message);
+        setStatus('Enregistrement du projet impossible : ' + err.message);
+        return null;
+    } finally { db?.close(); state.projectFileBusy = false; }
+}
+async function projectFileOpen(file) {
+    const why = projBusy();
+    if (why) { setStatus('Ouvrir un projet : ' + why + '.'); log('warn', 'Projet en fichier non ouvert : ' + why); return false; }
+    state.projectFileBusy = true;
+    const t0 = performance.now();
+    let db = null, switched = false;
+    const part = async (a, b) => new Uint8Array(await file.slice(a, b).arrayBuffer());
+    try {
+        // 1) contrôle complet du fichier, sans toucher au projet en cours
+        setStatus(`Contrôle du fichier « ${file.name} »…`);
+        log('info', `Projet en fichier : ouverture de « ${file.name} » (${fmtMo(file.size)})`);
+        const n = headerLength(await part(0, 12));
+        const { header, dataStart } = parseHeader(await part(0, 12 + n), file.size);
+        const sound = async (s) => unpackAudio(await part(dataStart + s.offset, dataStart + s.offset + 4 * s.length), s);
+        for (const s of header.audio) await sound(s);   // taille, somme de contrôle, valeurs : tout est vérifié avant d'écrire
+        log('info', `Projet en fichier : contrôle réussi — ${header.meta.tracks.length} piste(s), ${header.audio.length} son(s), enregistré le ${String(header.savedAt).slice(0, 16).replace('T', ' à ')} (${header.extra?.build || 'version inconnue'}), ${Math.round(performance.now() - t0)} ms`);
+        // 2) accord de l'utilisateur : le projet en cours est remplacé
+        const names = header.meta.tracks.map((t) => t.name).slice(0, 6).join(', ');
+        if (!confirm(`Ouvrir « ${file.name} » ?\n${header.meta.tracks.length} piste(s)${names ? ' : ' + names : ''}${header.meta.instru ? `\nInstru : ${header.meta.instru.name}` : ''}\n\nLe projet actuel sera remplacé (enregistre-le d'abord dans un fichier si tu veux le garder).`)) {
+            log('info', 'Projet en fichier : ouverture abandonnée à la demande, projet en cours inchangé');
+            setStatus('Ouverture abandonnée : le projet en cours n\'a pas changé.');
+            return false;
+        }
+        // 3) écriture à côté du projet en cours, puis échange en une seule transaction
+        stopPlayback();
+        clearTimeout(saveTimer);
+        state.restoring = true;   // plus de sauvegarde automatique du projet en cours à partir d'ici
+        setStatus('Ouverture du projet : écriture des sons…');
+        db = await openDb();
+        const clearTmp = async () => {
+            const tmp = ((await idb(db, 'audio', 'readonly', (st) => st.getAllKeys())) || []).filter((k) => typeof k === 'string' && k.startsWith(PROJ_TMP));
+            if (tmp.length) await idb(db, 'audio', 'readwrite', (st) => { for (const k of tmp) st.delete(k); });
+            return tmp.length;
+        };
+        await clearTmp();   // restes d'une ouverture interrompue
+        try {
+            for (const s of header.audio) { const a = await sound(s); await idb(db, 'audio', 'readwrite', (st) => st.put(a, PROJ_TMP + s.id)); }
+        } catch (err) {
+            await clearTmp().catch((e) => log('warn', `Projet en fichier : sons provisoires non effacés (${e.message})`));
+            state.restoring = false;
+            throw new Error(`écriture des sons impossible (${err.message}) — espace plein ? Le projet en cours n'a pas changé`);
+        }
+        await new Promise((resolve, reject) => {   // tout ou rien : anciens sons effacés, nouveaux mis à leur nom, métadonnées remplacées
+            const tx = db.transaction(['meta', 'audio'], 'readwrite'), au = tx.objectStore('audio');
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error || new Error('échange refusé'));
+            tx.onabort = () => reject(tx.error || new Error('échange annulé (espace plein ?)'));
+            const all = au.getAllKeys();
+            all.onsuccess = () => {
+                for (const k of all.result) if (!(typeof k === 'string' && k.startsWith(PROJ_TMP))) au.delete(k);
+                for (const s of header.audio) { const rq = au.get(PROJ_TMP + s.id); rq.onsuccess = () => { au.put(rq.result, s.id); au.delete(PROJ_TMP + s.id); }; }
+                tx.objectStore('meta').put(header.meta, 'project');
+            };
+        }).catch(async (err) => {
+            await clearTmp().catch((e) => log('warn', `Projet en fichier : sons provisoires non effacés (${e.message})`));
+            state.restoring = false;
+            throw new Error(`${err.message} — le projet en cours n'a pas changé`);
+        });
+        switched = true;
+        log('info', `Projet en fichier : « ${file.name} » ouvert (${header.meta.tracks.length} piste(s), ${header.audio.length} son(s)) en ${Math.round(performance.now() - t0)} ms ; rechargement de la page`);
+        setStatus('Projet ouvert : rechargement de la page…');
+        db.close(); db = null;
+        location.reload();
+        return true;
+    } catch (err) {
+        const msg = err.message.replace(/^fichier de projet : /, '');
+        log('error', 'Projet en fichier, ouverture impossible : ' + msg);
+        setStatus('Ouverture du projet impossible : ' + msg);
+        alert('Ce fichier ne peut pas être ouvert.\n\n' + msg + '\n\nLe projet en cours n\'a pas changé.');
+        return false;
+    } finally { db?.close(); if (!switched) state.projectFileBusy = false; }
+}
+projUi.save?.addEventListener('click', () => { projectFileSave(); });
+projUi.open?.addEventListener('click', () => projUi.file.click());
+projUi.file?.addEventListener('change', () => { const f = projUi.file.files?.[0]; projUi.file.value = ''; if (f) projectFileOpen(f); });
 
 drawMeter(ui.meterOut, 0, 0);
 setPlayhead(0);

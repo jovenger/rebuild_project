@@ -415,6 +415,9 @@ jobs:
           # Studio automatique : toute piste qui arrive est corrigée d'office (« Correction »), le style reste un choix
           # manuel, « Corriger toutes les pistes », écarts de volume par type réglables, modes gardés avec le projet.
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/auto.mjs http://127.0.0.1:8765/index.html
+          # Projet dans un fichier : « Enregistrer le projet » puis « Ouvrir un projet » redonnent le même projet au bit
+          # près ; fichier abîmé, tronqué ou étranger refusé sans toucher au projet en cours.
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/projectpage.mjs http://127.0.0.1:8765/index.html
           # Prise au micro sans casque (deux prises : voix principale puis back sur une seconde piste) : faux micro =
           # vraie voix (JFK, domaine public, whisper.cpp) + instru captée
           # (300 ms, -12 dB) + « radio » extérieure au niveau de la voix. La page doit retirer l'instru, compenser le
