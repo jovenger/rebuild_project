@@ -233,6 +233,31 @@ try {
     const takes = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.take).length);
     check('« Inspecter les pistes » : une ligne par piste', all.length === takes && takes >= 2, `${all.length} lignes pour ${takes} pistes`);
 
+    // i) compression qui déforme, sur une page PROPRE (sans ?svTestDirt : sinon tout compresseur allumé reçoit le bruit
+    //    simulé) : réglages d'origine mesurés et non signalés ; compression abusive (20:1, seuil -45 dB, attaque 0,1 ms,
+    //    relâche 10 ms) signalée ; son bouton l'adoucit et l'alerte disparaît.
+    {
+        await page.goto(url, { waitUntil: 'load' });
+        await page.waitForFunction(() => window.__studiovoix?.ready, null, { timeout: 120000 });
+        await page.click('#demoBtn');
+        await settled();
+        await sel(0);
+        const reprocess = () => page.evaluate(() => { document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[0].id}"] select.role`).dispatchEvent(new Event('change')); });
+        rows = await inspect(); show(rows);
+        const okRow0 = rows.find((r) => r.level === 'ok');
+        check('page propre, réglages d\'origine : compression mesurée, pas signalée', !!okRow0 && /distorsion de la compression -\d+ dB/.test(okRow0.text) && !rows.some((r) => r.level === 'warn' || r.level === 'bad'), okRow0 ? okRow0.text.slice(-130) : rows.map((r) => `[${r.level}] ${r.text.slice(0, 90)}`).join(' | '));
+        await setFx(0, { comp: { on: true, ratio: 20, thresholdDb: -45, attackMs: 0.1, releaseMs: 10 } });
+        await reprocess(); await settled();
+        rows = await inspect(); show(rows);
+        const compRow = rows.find((r) => /[Cc]ompression/.test(r.text) && /déforme|très forte/.test(r.text));
+        check('compression abusive : signalée, avec son bouton', !!compRow && (compRow.level === 'bad' || compRow.level === 'warn') && /Adoucir la compression/.test(compRow.btn), compRow ? `[${compRow.level}] ${compRow.text.slice(0, 190)} → « ${compRow.btn} »` : 'aucun constat sur la compression');
+        await page.locator('#inspectBox .finding button', { hasText: 'Adoucir la compression' }).first().click();
+        await page.waitForFunction(() => { const t = window.__studiovoix.tracks[0]; return t.fx?.comp?.ratio <= 3 && t.status === 'done' && t.processed?.report?.fx?.comp?.ratio <= 3.01 && t.inspect?.stale; }, null, { timeout: 120000 });
+        await settled();
+        rows = await inspect(); show(rows);
+        check('compression adoucie par le bouton : plus signalée', !rows.some((r) => /[Cc]ompression/.test(r.text) && /déforme|très forte/.test(r.text)), rows.map((r) => `[${r.level}] ${r.text.slice(0, 80)}`).join(' | '));
+    }
+
     // f) (facultatif) une vraie voix : VOICE_WAV sans exigence ; REAL_VOICE = voix propre, contrôles de saturation
     const realVoice = process.env.REAL_VOICE || '';
     if (process.env.VOICE_WAV || realVoice) {

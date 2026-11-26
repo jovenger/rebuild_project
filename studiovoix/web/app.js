@@ -1105,6 +1105,14 @@ const INSPECT_SEC = 20, DIRT_WARN_DB = 1.0, DIRT_BAD_DB = 2.0, LIMITER_WARN_DB =
 // de -30,7 à -19,6 dB. Alerte à -22 dB : 7 dB au-dessus du pire réglage normal (0 / 264 signalés), 2 dB sous le cas
 // abusif le plus faible (264 / 264 signalés) ; 60 % / 18 dB : signalé 40 fois sur 264. « Très fort » à -18 dB.
 const SAT_SEC = 10, SAT_WARN_DB = -22.0, SAT_BAD_DB = -18.0;
+// Compression qui déforme : même mesure que la saturation (addedDistortion : la chaîne sans compresseurs contre la même
+// avec), saturation éteinte des deux côtés. Calibrage du 26/11 : 6 voix réelles (2 parlées, 2 chantées, 1 rappée, 1
+// séparée) × 17 styles + « correction », style / lissé = 132 cas par réglage. Réglages d'origine : distorsion de -59,1 à
+// -23,5 dB, réduction moyenne 0 à 5,5 dB. Compression abusive (20:1, seuil -45 dB, attaque 0,1 ms, relâche 10 ms) :
+// médiane -14,3 dB, réduction 12,7 à 25,1 dB. Alerte si distorsion ≥ -20 dB OU réduction moyenne ≥ 12 dB : 0 / 132
+// réglages d'origine signalés, 132 / 132 compressions abusives ; forte et rapide (6:1, -30 dB, 0,5 / 20 ms) : 80 / 132 ;
+// forte mais lente (8:1, -32 dB) : 27 / 132. « Très fort » à -16 dB.
+const COMP_WARN_DB = -20.0, COMP_BAD_DB = -16.0, COMP_GR_WARN_DB = 12.0;
 // Craquements (findCrackles) : pic du résidu ≥ 12 fois l'échelle de sa trame, ≥ 6 fois le 3e autre pic des 40 ms autour,
 // hauteur ≥ 2 % de la crête. Calibrage : 260 s de voix non modifiées (12 paroles, démo, voix chantée séparée) = aucune
 // fausse détection (1 avec des seuils 10 / 4 / 1 %) ; discontinuités insérées dans la voix : sauts de 0,1 trouvés à
@@ -1249,11 +1257,36 @@ async function inspectTrack(t, onStep = () => {}) {
         if (d.frames >= 20 && d.db >= SAT_WARN_DB)
             add(d.db >= SAT_BAD_DB ? 'bad' : 'warn', `La « ${fxName('sat')} » déforme la voix : la distorsion qu'elle ajoute n'est qu'à ${Math.abs(d.db).toFixed(0)} dB sous la voix (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(0)} dB ; alerte à ${Math.abs(SAT_WARN_DB).toFixed(0)} dB, les réglages des styles restent à 29 dB ou plus). Si ce grain n'est pas voulu, baisse sa « Poussée » ou son « Dosage », ou éteins-la.`, offBtn('sat'));
     }
+    // 6) compression qui déforme : mêmes réglages appliqués, autotune, recalage et saturation éteints, avec les
+    //    compresseurs contre sans (gain qui bouge trop vite ou trop fort = distorsion ; réduction moyenne énorme = voix écrasée)
+    let compDb = null;
+    if (full.report.fx?.comp?.on || full.report.fx?.comp2?.on) {
+        onStep('la compression');
+        const atC = loudestWindow(x, sr, SAT_SEC), xc = x.slice(atC, atC + Math.round(SAT_SEC * sr));
+        const pinned = { ...full.report.fx, pitch: { on: false }, timing: { on: false }, sat: { on: false }, ...noSpace };
+        const tC2 = performance.now(), withC = await run(pinned, xc, (at + atC) / sr), without = await run({ ...pinned, comp: { on: false }, comp2: { on: false } }, xc, (at + atC) / sr);
+        const d = addedDistortion(without.y, withC.y, sr), gr = withC.report.compGrDb || 0, c = full.report.fx.comp || {};
+        const set = c.on ? `taux ${(+c.ratio).toFixed(1)}:1, seuil ${(+c.thresholdDb).toFixed(0)} dB, attaque ${(+c.attackMs).toFixed(1)} ms, relâche ${(+c.releaseMs).toFixed(0)} ms` : 'compresseur doux seul';
+        compDb = d.db;
+        log('info', `Inspection de « ${t.name} » : compression (${set}) — distorsion ajoutée ${d.db.toFixed(1)} dB par rapport à la voix (passages forts ${d.loudDb.toFixed(1)} dB, ${d.frames} trames), réduction moyenne ${gr.toFixed(1)} dB ; alerte à ${COMP_WARN_DB.toFixed(0)} dB ou ${COMP_GR_WARN_DB.toFixed(0)} dB de réduction ; mesure ${Math.round(performance.now() - tC2)} ms`);
+        // Bouton : ramène la compression à des valeurs sûres (celles de « Voix lissée »), sans l'éteindre.
+        const soften = { label: 'Adoucir la compression', run: () => {
+            t.fx = t.fx || {};
+            if (c.on) t.fx.comp = { ...(t.fx.comp || {}), on: true, ratio: Math.min(+c.ratio || 3, 3), thresholdDb: Math.max(+c.thresholdDb || -24, -24), attackMs: Math.max(+c.attackMs || 8, 8), releaseMs: Math.max(+c.releaseMs || 120, 120) };
+            if (full.report.fx.comp2?.on) t.fx.comp2 = { ...(t.fx.comp2 || {}), on: true, ratio: Math.min(+full.report.fx.comp2.ratio || 1.5, 1.5) };
+            log('info', `« ${t.name} » : compression adoucie (inspection) — ${JSON.stringify({ comp: t.fx.comp, comp2: t.fx.comp2 })}`);
+            fxChanged(t, 30); renderFx(true);
+        } };
+        if (d.frames >= 20 && d.db >= COMP_WARN_DB)
+            add(d.db >= COMP_BAD_DB ? 'bad' : 'warn', `La compression déforme la voix : la distorsion qu'elle ajoute n'est qu'à ${Math.abs(d.db).toFixed(0)} dB sous la voix (${set} ; réduction moyenne ${gr.toFixed(1)} dB ; alerte à ${Math.abs(COMP_WARN_DB).toFixed(0)} dB, les réglages d'origine restent à 23 dB ou plus). Elle serre trop fort ou trop vite : baisse le taux, remonte le seuil, ou rallonge l'attaque et le relâchement.`, soften);
+        else if (d.frames >= 20 && gr >= COMP_GR_WARN_DB)
+            add('warn', `Compression très forte : elle baisse la voix de ${gr.toFixed(1)} dB en moyenne (${set} ; alerte à ${COMP_GR_WARN_DB.toFixed(0)} dB, les réglages d'origine restent à 5,5 dB ou moins). La voix est écrasée : souffle et bruits remontent, les attaques s'aplatissent. Baisse le taux ou remonte le seuil.`, soften);
+    }
     // 3) limiteur de sécurité, et ce que le moteur a mesuré sur la prise (bruit, sifflantes, résonances, dynamique…)
     const lim = (scan?.report ?? full.report).limiterGrDb || 0;   // prise longue : le limiteur de la prise complète (son réellement joué)
     if (lim >= LIMITER_WARN_DB) add('warn', `Le limiteur de sécurité de la piste écrase les crêtes de ${lim.toFixed(1)} dB : la voix sort trop fort de sa chaîne (compression trop faible pour une prise très dynamique). Allume le « Niveleur » ou monte le taux du compresseur.`);
     if (!findings.some((f) => f.level === 'warn' || f.level === 'bad') && dFull.frames >= 20)
-        add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB${crackleOk ? ', aucun craquement dans la prise' : ''}${satDb === null ? '' : `, distorsion de la saturation ${satDb.toFixed(0)} dB (alerte à ${SAT_WARN_DB.toFixed(0)} dB)`}.`);
+        add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB${crackleOk ? ', aucun craquement dans la prise' : ''}${satDb === null ? '' : `, distorsion de la saturation ${satDb.toFixed(0)} dB (alerte à ${SAT_WARN_DB.toFixed(0)} dB)`}${compDb === null ? '' : `, distorsion de la compression ${compDb.toFixed(0)} dB (alerte à ${COMP_WARN_DB.toFixed(0)} dB)`}.`);
     const found = ((scan?.report ?? full.report).found || '').trim();
     if (found) add('info', `Mesuré sur la prise par le moteur (déjà pris en compte dans les réglages) : ${found}`);
     log('info', `Inspection de « ${t.name} » : ${findings.filter((f) => f.level === 'warn' || f.level === 'bad').length} problème(s), en ${Math.round(performance.now() - t0)} ms`);
