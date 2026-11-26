@@ -278,6 +278,35 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   réduction forte possible aujourd'hui sur téléphone est de faire moins d'étapes (mode rapide : 1 étape au lieu de 3).
 - Avancement : étape 1 lancée le 26/11 (deux ouvriers : regroupement des voix ; page) ; éclaireurs lancés pour les
   étapes 2 (ce que le moteur sait déjà corriger tout seul) et 3 (comment les prises sont rangées et dessinées).
+- ÉTAPE 1 FAITE (26/11), rejouée par l'orchestrateur avant commit :
+  - même voix = même piste (`web/singers.js`, essai `web/test/singers.mjs` dans la CI) : deux pistes seulement si les
+    centres des deux voix se ressemblent moins que 0,05 (parole, rap net) à 0,20 (chant), selon la cohésion locale ;
+    pas de piste pour moins de 4 s de voix. Mesuré par l'ouvrier sur voix réelles : 0 voix scindée à tort sur 341 cas
+    (121 avant) ; PRIX : 90 paires « deux voix différentes » reconnues sur 284 (275 avant ; 36 % en parole, 22 % en
+    chant). Rejoué : cas réel (chant d'une seule personne, couplet + refrain, 60 s) 2 pistes -> 1 ; chanson d'essai
+    (deux personnes) toujours 2. Non testé : vrai rap qui change de ton, autotune / vocodeur, morceau complet.
+  - page : mode rapide par défaut sur téléphone (instru + voix, 1 étape ; détection : userAgentData.mobile, sinon
+    agent utilisateur, sinon petit écran tactile ; choix à la main gardé dans `localStorage['sv-sep-choice']`) ;
+    durée estimée affichée avant tout calcul (vitesse de départ : PC 15 s / 9 s par morceau, téléphone 40 s / 24 s,
+    tirée de la seule mesure « 3 min 35 = 45 min ») ; journal « Séparation — départ » (moteur prévu) et
+    « Séparation — bilan » (moteur utilisé, repli, durée par étape, pistes créées) ; Ambiance masquée
+    (`SEP_AMBIANCE_ON = false`) ; « Couplets / refrains » décochée, et UNE piste couplets + UNE piste refrains (jamais
+    croisée avec les chanteurs) ; pas de piste de voix sous 2 s de contenu utile ; type proposé à l'ajout : 1re voix
+    principale puis voix back (`proposeAddRole`) ; annonce de reprise après coupure ; essai de coupure en cours
+    d'étape hors CI (`EXPECT_RESUME_MID=1`, chanson de 45 s) ; DÉFAUT CORRIGÉ : le cadenas d'une piste était perdu au
+    rechargement (clé `locked` tombée dans un commentaire), essai ajouté.
+  - rejoué : démo PC, démo téléphone (Pixel 7 émulé), séparation 48 kHz PC (3 pistes, 1 min 49 s), séparation en
+    mode rapide téléphone (1 piste, 1 min 08 s : 38 % de moins sur la chanson d'essai de 20 s, même machine).
+  - non vérifié : sur un vrai téléphone (détection iPhone / Firefox, vitesse réelle, gain réel du mode rapide —
+    estimé à environ un tiers : l'étape voix est la plus lourde) ; chemin carte graphique des lignes de journal ;
+    cas « presque pas de voix » ; règle des 2 s sur de vrais morceaux.
+  - à dire à Yann : le mode rapide ne divise pas le temps par trois (≈ −35 à −40 %) ; aller plus loin sur téléphone
+    = carte graphique (WebGPU) si elle passe, ou un modèle plus léger (qualité moindre) — non décidé.
+- Étape 2 : éclaireur revenu (le moteur a `correctionParams` = correction sans style, non exposé à la page ; il
+  mesure un excès mais pas un manque ; écarts par type en dur) ; ouvrier « moteur » lancé (mode `correction` dans
+  `sv_process_voice`, compression selon la dynamique, compensation bornée, écarts réglables) ; partie page ensuite.
+- Étape 3 : éclaireur revenu (40 usages « une prise = un son continu » dans `web/app.js` ; ni zoom ni sélection de
+  zone ; le logiciel Windows a couper / rogner / fondus / copier-coller dans `src/core/project`, non compilé en web).
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

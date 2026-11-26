@@ -145,6 +145,84 @@ try {
     await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Moteur prêt'), null, { timeout: 60000 });
     console.log(stamp(), 'moteur prêt :', await page.textContent('#version'));
 
+    // ---- Réglages de départ de « Séparer » et type proposé pour une nouvelle piste (décisions du 26/11).
+    // Téléphone attendu quand DEVICE est un téléphone (agent utilisateur « Mobile ») ; sinon ordinateur.
+    const wantPhone = !!device && /Mobi|iPhone|iPod/.test(device.userAgent || '');
+    const sepBoxes = () => page.evaluate(() => Object.fromEntries(['sepLeadBack', 'sepSingers', 'sepSections', 'sepDenoise', 'sepAmbiance'].map((id) => [id, document.getElementById(id).checked])));
+    const reloadReady = async () => {
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForFunction(() => window.__studiovoix?.ready && window.__studiovoix.tracks.length > 0 && document.getElementById('status').textContent.startsWith('Moteur prêt'), null, { timeout: 60000 });
+    };
+    // Estimation de durée affichée avant de lancer : mêmes morceaux que le calcul (mdxGrid), une étape par case cochée.
+    const { MODELS: MDX_MODELS, mdxGrid } = await import(new URL('../isolate.js', import.meta.url));
+    const sepOverlap = (() => { const v = parseFloat(new URL(url).searchParams.get('svSepOverlap')); return Number.isFinite(v) ? v : 0.25; })();
+    async function checkEstimate(label) {
+        const e = await page.evaluate(() => ({ text: document.getElementById('sepEst').textContent, est: window.__svSep.est, secs: window.__studiovoix.instru.seconds,
+            leadBack: document.getElementById('sepLeadBack').checked, denoise: document.getElementById('sepDenoise').checked, speed: localStorage.getItem('sv-sep-speed') }));
+        console.log(stamp(), `estimation (${label}) : ${e.text}`);
+        if (!e.est) throw new Error('estimation : aucune durée calculée avant de lancer');
+        const keys = ['voc', ...(e.leadBack ? ['kara'] : [])];
+        if (e.est.keys.join() !== keys.join()) throw new Error(`estimation : étapes ${e.est.keys.join('+')} au lieu de ${keys.join('+')} (cases cochées)`);
+        let ms = 0;
+        for (const k of keys) {
+            const total = mdxGrid(Math.round(e.secs * 44100), MDX_MODELS[k], sepOverlap).total;
+            if (e.est.chunks[k] !== total) throw new Error(`estimation : ${e.est.chunks[k]} morceaux pour l'étape ${k}, la grille du calcul en a ${total}`);
+            if (!(e.est.msPerChunk[k] >= 500 && e.est.msPerChunk[k] <= 600000)) throw new Error(`estimation : vitesse invraisemblable pour ${k} : ${e.est.msPerChunk[k]} ms par morceau`);
+            ms += e.est.msPerChunk[k] * total * (k === 'kara' ? 0.8 : 1);
+        }
+        ms *= e.denoise ? 2 : 1;
+        if (Math.abs(ms - e.est.ms) > 1) throw new Error(`estimation : ${e.est.ms} ms au lieu de ${ms} ms (morceaux × vitesse)`);
+        const min = Math.max(1, Math.round(ms / 60000)), shown = ms >= 3600000 ? `${Math.floor(ms / 3600000)} h ${String(Math.round((ms / 1000 % 3600) / 60)).padStart(2, '0')}` : `${min} min`;
+        if (!e.text.includes(`~${shown} (${keys.length} étape`)) throw new Error(`estimation : « ~${shown} (${keys.length} étape… » absent du texte affiché : ${e.text}`);
+        if (!e.speed && (e.est.measured || !/estimation de départ pour un (téléphone|ordinateur), affinée dès le premier morceau/.test(e.text))) throw new Error('estimation : avant toute mesure, le texte doit dire « estimation de départ …, affinée dès le premier morceau » : ' + e.text);
+        if (!e.speed && e.est.phone !== wantPhone) throw new Error(`estimation : vitesse de départ d'un ${e.est.phone ? 'téléphone' : 'ordinateur'} sur un ${wantPhone ? 'téléphone' : 'ordinateur'}`);
+        return { ...e.est, keys };
+    }
+    if (!micFile) {
+        const def = await sepBoxes();
+        const want = wantPhone ? { sepLeadBack: false, sepSingers: false } : { sepLeadBack: true, sepSingers: true };
+        console.log(stamp(), `séparation, cases au départ (${wantPhone ? 'téléphone' : 'ordinateur'}) : ${Object.entries(def).map(([k, v]) => `${k}=${v ? 'cochée' : 'décochée'}`).join(', ')}`);
+        if (def.sepLeadBack !== want.sepLeadBack || def.sepSingers !== want.sepSingers) throw new Error(`cases de séparation au départ : ${JSON.stringify(def)}, attendu ${JSON.stringify(want)} sur ${wantPhone ? 'téléphone (mode rapide)' : 'ordinateur'}`);
+        if (def.sepSections || def.sepDenoise) throw new Error('« Couplets / refrains » et « Finition soignée » doivent être décochées au départ : ' + JSON.stringify(def));
+        if (def.sepAmbiance || await page.isVisible('#sepAmbiance') || !(await page.isDisabled('#sepAmbiance'))) throw new Error('option « Ambiance » : doit être masquée, décochée et inactive');
+        const help = await page.textContent('#sepHelp');
+        if (wantPhone ? !/mode rapide/.test(help) || !/instru et la voix/.test(help) : !/Ordinateur/.test(help)) throw new Error('aide de la séparation : texte inattendu pour cet appareil : ' + help);
+        const devLine = (await page.$$eval('#log div', (els) => els.map((x) => x.textContent))).find((l) => /Séparation, réglages de départ : (téléphone|ordinateur) \(/.test(l));
+        if (!devLine) throw new Error('journal : ligne « Séparation, réglages de départ » absente');
+        console.log(stamp(), 'journal de la page :', devLine.replace(/^[\d:]+(\s[AP]M)?\s+/, ''));
+        // Choix fait à la main : gardé après rechargement ; un ancien réglage ne peut pas réactiver « Ambiance ».
+        await page.click('#sepLeadBack'); await page.click('#sepSections');
+        const mine = await sepBoxes();
+        await page.evaluate(() => localStorage.setItem('sv-sep-choice', JSON.stringify({ ...JSON.parse(localStorage.getItem('sv-sep-choice')), ambiance: true, sepAmbiance: true })));
+        await reloadReady();
+        const kept = await sepBoxes();
+        if (kept.sepLeadBack !== mine.sepLeadBack || kept.sepSections !== true || kept.sepSingers !== def.sepSingers) throw new Error(`choix de séparation non gardé après rechargement : ${JSON.stringify(kept)} au lieu de ${JSON.stringify(mine)}`);
+        if (kept.sepAmbiance) throw new Error('« Ambiance » réactivée par un ancien réglage');
+        console.log(stamp(), `choix fait à la main gardé après rechargement : sepLeadBack=${kept.sepLeadBack ? 'cochée' : 'décochée'}, sepSections=cochée ; « Ambiance » reste inactive`);
+        // Type proposé : « Voix principale » tant qu'aucune piste ne l'est, sinon « Voix back » ; choix à la main respecté.
+        const proposed = () => page.inputValue('#addRole');
+        const roles = () => page.evaluate(() => window.__studiovoix.tracks.map((t) => t.roleId).join(','));
+        const dropFirst = (role) => page.evaluate((role) => { const t = window.__studiovoix.tracks.find((x) => x.roleId === role); document.querySelector(`.track[data-id="${t.id}"] button.x`).click(); }, role);
+        if (await roles() !== 'lead' || await proposed() !== 'manual_back') throw new Error(`au démarrage : pistes « ${await roles()} », type proposé « ${await proposed()} » (attendu : une voix principale, puis voix back proposée)`);
+        await dropFirst('lead');
+        if (await roles() !== '' || await proposed() !== 'lead') throw new Error(`page vide : type proposé « ${await proposed()} » au lieu de voix principale`);
+        const seq = [];
+        for (let k = 0; k < 3; ++k) { seq.push(await proposed()); await page.click('#addTrackBtn'); }
+        if (seq.join() !== 'lead,manual_back,manual_back' || await roles() !== 'lead,manual_back,manual_back') throw new Error(`types proposés ${seq.join()} → pistes ${await roles()} (attendu : lead, manual_back, manual_back)`);
+        await dropFirst('lead');
+        const again = await proposed();
+        if (again !== 'lead') throw new Error(`voix principale supprimée : type proposé « ${again} » au lieu de voix principale`);
+        await page.selectOption('#addRole', 'ambiance'); await page.click('#addTrackBtn');   // choix à la main pour cet ajout
+        const hand = (await roles()).split(',').at(-1), after = await proposed();
+        if (hand !== 'ambiance' || after !== 'lead') throw new Error(`choix à la main : piste « ${hand} » (attendu ambiance), puis type proposé « ${after} » (attendu voix principale)`);
+        console.log(stamp(), `type proposé : page vide → ${seq.join(' → ')} ; voix principale supprimée → ${again} ; choix à la main « ambiance » respecté, puis ${after}`);
+        // Retour à une page neuve pour la suite (réglages de départ, une seule piste n° 1).
+        await page.evaluate(() => localStorage.removeItem('sv-sep-choice'));
+        await reloadReady();
+        const back = await sepBoxes();
+        if (JSON.stringify(back) !== JSON.stringify(def) || await roles() !== 'lead' || !(await page.$('.track[data-id="1"]'))) throw new Error(`retour à une page neuve manqué : cases ${JSON.stringify(back)}, pistes ${await roles()}`);
+    }
+
     const tracksDone = (n) => page.waitForFunction((n) => document.body.dataset.busy === '0'
         && window.__studiovoix.tracks.filter((t) => t.take && t.processed).length >= n, n, { timeout: 900000 });
     const trackInfo = (id) => page.textContent(`.track[data-id="${id}"] .tinfo`);
@@ -228,6 +306,49 @@ try {
     if (sepSong) {
         await page.setInputFiles('#instruFile', sepSong);
         await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
+        const est0 = await checkEstimate('avant tout calcul');
+        if (wantPhone && est0.keys.length !== 1) throw new Error('téléphone : l\'estimation de départ doit porter sur une seule étape (mode rapide)');
+        // EXPECT_RESUME_MID=1 (hors CI, chanson d'au moins 45 s) : coupure EN COURS d'étape. 1) séparation sans coupure
+        // (instru + voix seulement) : résultat de référence ; 2) morceau rétabli, séparation relancée et page rechargée
+        // pendant la 2e tranche ; 3) relance : la 1re tranche gardée est relue, le reste recalculé, et le résultat doit
+        // être celui de la référence. Les deux séparations se suivent dans le même essai.
+        let midRef = null;
+        if (process.env.EXPECT_RESUME_MID === '1') {
+            page.on('dialog', (d) => d.accept().catch(() => {}));   // « quitter la page ? », « Rétablir ? », « Supprimer la piste ? »
+            for (const id of ['sepLeadBack', 'sepSingers', 'sepSections']) await page.uncheck('#' + id);
+            const grab = () => page.evaluate(() => {
+                const b64 = (x) => { const u = new Uint8Array(x.buffer, x.byteOffset, x.byteLength); let s = ''; for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(s); };
+                const S = window.__studiovoix;
+                return { instru: b64(S.instru.left), voice: b64(S.tracks.at(-1).take.mono) };
+            }).then((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => { const b = Buffer.from(v, 'base64'); return [k, new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4)]; })));
+            const tRef = Date.now();
+            await page.click('#sepBtn');
+            await page.waitForFunction(() => /Chanson séparée|Séparation impossible|Séparation arrêtée/.test(document.getElementById('status').textContent), null, { timeout: 1200000 });
+            if (!(await page.textContent('#status')).startsWith('Chanson séparée')) throw new Error('reprise en cours d\'étape : séparation de référence en échec : ' + await page.textContent('#status'));
+            midRef = await grab();
+            midRef.grab = grab;
+            const refLine = (await page.$$eval('#log div', (els) => els.map((e) => e.textContent))).find((l) => /voix \/ instru : \d+ tranche\(s\)/.test(l)) || '';
+            const nSeg = Number((refLine.match(/(\d+) tranche\(s\)/) || [0, 0])[1]);
+            console.log(stamp(), `référence sans coupure : ${((Date.now() - tRef) / 1000).toFixed(0)} s, ${nSeg} tranche(s), instru ${midRef.instru.length} échantillons`);
+            if (nSeg < 2) throw new Error(`reprise en cours d'étape : la chanson ne fait qu'une tranche (${nSeg}) ; il en faut au moins 2 (45 s ou plus)`);
+            // Retour à la chanson d'origine, sans la piste de voix créée ; le projet est sauvegardé avant la coupure.
+            const saved = () => page.evaluate(() => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length);
+            const n0 = await saved();
+            await page.click('.track[data-id="0"] button:has-text("Rétablir le morceau")');
+            await page.evaluate(() => { const t = window.__studiovoix.tracks.at(-1); document.querySelector(`.track[data-id="${t.id}"] button.x`).click(); });
+            await page.waitForFunction((n) => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length > n, n0, { timeout: 60000 });
+            await page.click('#sepBtn');
+            // 2e tranche commencée (la 1re est gardée) et au moins un morceau de cette tranche fini : on coupe.
+            await page.waitForFunction(() => { const r = window.__svSep; return r.seg && r.seg.i >= 1 && r.cDone > r.seg.per; }, null, { timeout: 1200000 });
+            console.log(stamp(), `coupure simulée en cours d'étape : rechargement de la page à « ${await page.textContent('#sepStep')} » (2e tranche)`);
+            await page.reload({ waitUntil: 'load' });
+            await page.waitForFunction(() => window.__studiovoix?.instru && !document.getElementById('sepBtn').disabled, null, { timeout: 180000 });
+            await page.waitForTimeout(1500);
+            if (!/Séparation interrompue : \d+ tranche\(s\)/.test(await page.textContent('#sepInfo'))) throw new Error('après la coupure, la page n\'annonce pas que la séparation peut reprendre : ' + await page.textContent('#sepInfo'));
+            console.log(stamp(), 'après la coupure, la page annonce :', await page.textContent('#sepInfo'));
+            const boxes = await sepBoxes();
+            if (boxes.sepLeadBack || boxes.sepSingers || boxes.sepSections) throw new Error('reprise en cours d\'étape : les cases décochées à la main sont revenues après la coupure : ' + JSON.stringify(boxes));
+        }
         if (process.env.EXPECT_RESUME === '1') {
             // Coupure en pleine séparation (page rechargée à l'étape 2), puis relance : l'étape 1 doit être reprise, pas refaite.
             page.on('dialog', (d) => d.accept().catch(() => {}));   // « quitter la page ? » pendant le calcul
@@ -237,6 +358,8 @@ try {
             await page.reload({ waitUntil: 'load' });
             await page.waitForFunction(() => window.__studiovoix?.instru && !document.getElementById('sepBtn').disabled, null, { timeout: 180000 });
             await page.waitForTimeout(1500);
+            if (!/Séparation interrompue : \d+ tranche\(s\)/.test(await page.textContent('#sepInfo'))) throw new Error('après la coupure, la page n\'annonce pas que la séparation peut reprendre : ' + await page.textContent('#sepInfo'));
+            console.log(stamp(), 'après la coupure, la page annonce :', await page.textContent('#sepInfo'));
         }
         await page.click('#sepBtn');
         // Progression visible pendant tout le calcul : bloc affiché, roue, % qui monte, temps écoulé, bouton Arrêter.
@@ -278,6 +401,19 @@ try {
             if (!/voix \/ instru : \d+ tranche\(s\), [1-9]\d* reprise/.test(jl)) throw new Error('reprise : étape 1 recalculée au lieu d\'être relue');
             console.log(stamp(), 'reprise après coupure : étape 1 relue sans recalcul');
         }
+        if (midRef) {
+            // Tranches gardées relues, le reste recalculé, et même résultat que sans coupure.
+            const line = (await page.$$eval('#log div', (els) => els.map((e) => e.textContent))).find((l) => /voix \/ instru : \d+ tranche\(s\)/.test(l)) || '';
+            const m = line.match(/(\d+) tranche\(s\), (\d+) reprise\(s\) sans calcul \((\d+) morceau\(x\) relu\(s\) sur (\d+)\)/);
+            if (!m) throw new Error('reprise en cours d\'étape : ligne de journal de l\'étape absente');
+            const [nSeg, reused, reChunks, total] = m.slice(1).map(Number);
+            if (!(reused >= 1 && reused < nSeg)) throw new Error(`reprise en cours d'étape : ${reused} tranche(s) relue(s) sur ${nSeg} (attendu : au moins 1, pas toutes)`);
+            const got = await midRef.grab();
+            const diff = (a, b) => { if (a.length !== b.length) return Infinity; let d = 0; for (let i = 0; i < a.length; ++i) d = Math.max(d, Math.abs(a[i] - b[i])); return d; };
+            const dI = diff(got.instru, midRef.instru), dV = diff(got.voice, midRef.voice);
+            console.log(stamp(), `reprise en cours d'étape : ${reused} tranche(s) relue(s) sur ${nSeg} (${reChunks} morceaux relus sur ${total}, ${total - reChunks} recalculés) ; écart max avec le calcul sans coupure : instru ${dI.toExponential(1)}, voix ${dV.toExponential(1)}`);
+            if (!(dI <= 1e-6 && dV <= 1e-6)) throw new Error(`reprise en cours d'étape : résultat différent du calcul sans coupure (instru ${dI.toExponential(1)}, voix ${dV.toExponential(1)})`);
+        }
         // Plus long écart sans changement visible du % pendant le calcul (doit rester court grâce à l'estimation).
         let gap = 0;
         for (let i = 1; i < seen.length; ++i) gap = Math.max(gap, seen[i].at - seen[i - 1].at);
@@ -292,6 +428,15 @@ try {
         const gateLine = (await page.$$eval('#log div', (els) => els.map((e) => e.textContent))).find((l) => /Séparation, instru : original exact sur [\d.]+ % de la chanson/.test(l));
         if (!gateLine) throw new Error('séparation : ligne de journal de la porte de l\'instru absente');
         console.log(stamp(), 'journal de la page :', gateLine);
+        // Moteur de calcul annoncé au départ, puis bilan en une ligne (moteur utilisé, durée par étape, pistes créées).
+        const sepLines = await page.$$eval('#log div', (els) => els.map((e) => e.textContent));
+        const startLine = sepLines.find((l) => /Séparation — départ : calcul sur (carte graphique \(WebGPU\)|processeur \(\d+ fils?\))/.test(l));
+        if (!startLine) throw new Error('séparation : ligne de journal « départ » (moteur de calcul) absente');
+        console.log(stamp(), 'journal de la page :', startLine.replace(/^[\d:]+(\s[AP]M)?\s+/, ''));
+        const sumLine = sepLines.find((l) => /Séparation — bilan : moteur (carte graphique \(WebGPU\)|processeur \(\d+ fils?\)), (sans repli|repli sur le processeur[^;]*) ; durée par étape : .*voix \/ instru [\d, mins]+ \(\d+ morceaux.* ; total [\d, mins]+ ; \d+ piste\(s\) créée\(s\)/.test(l));
+        if (!sumLine) throw new Error('séparation : ligne de journal « bilan » (moteur, durée par étape, pistes créées) absente ou incomplète');
+        console.log(stamp(), 'journal de la page :', sumLine.replace(/^[\d:]+(\s[AP]M)?\s+/, ''));
+        if (/WebGL/i.test(startLine + sumLine)) throw new Error('journal : la page n\'utilise pas WebGL, le moteur est « carte graphique (WebGPU) » ou « processeur (N fils) »');
         if (process.env.EXPECT_GPU_FALLBACK === '1') {
             const fb = await page.evaluate(() => ({ ban: localStorage.getItem('sv-no-webgpu'), log: document.getElementById('log').textContent }));
             console.log(stamp(), `repli carte graphique → processeur : mémorisé « ${fb.ban} », journal ${/relancée sur le processeur/.test(fb.log) ? 'OK' : 'ABSENT'}`);
@@ -318,7 +463,14 @@ try {
         if (eqz.some((x) => x.fx)) throw new Error('égaliser après séparation : un effet a été appliqué');
         await checkRawExport('StudioVoix-brut-egalise.wav');   // la chanson complète, dans l'état égalisé, sans effet
         if (process.env.EXPECT_BACKS === '1' && !tracks.some((t) => /manual_back/.test(t))) throw new Error('aucune piste de backs créée');
-        // Chanteurs distincts (avec « Couplets / refrains », un chanteur peut avoir deux pistes).
+        // Nombre de pistes créées : EXPECT_TRACKS, ou à défaut chanteurs attendus + backs (pas de piste vide ni en double).
+        const wantTracks = process.env.EXPECT_TRACKS ? Number(process.env.EXPECT_TRACKS)
+            : process.env.EXPECT_SINGERS && process.env.EXPECT_BACKS === '1' ? Number(process.env.EXPECT_SINGERS) + 1 : null;
+        const sumCount = Number(sumLine.match(/(\d+) piste\(s\) créée\(s\)/)[1]);
+        console.log(stamp(), `pistes créées : ${tracks.length} (bilan du journal : ${sumCount}${wantTracks != null ? `, attendu : ${wantTracks}` : ''})`);
+        if (sumCount !== tracks.length) throw new Error(`bilan du journal : ${sumCount} piste(s) annoncée(s), ${tracks.length} dans le projet`);
+        if (wantTracks != null && tracks.length !== wantTracks) throw new Error(`${tracks.length} piste(s) créée(s) au lieu de ${wantTracks} : ${tracks.join(' ; ')}`);
+        // Chanteurs distincts (une piste par chanteur ; les couplets / refrains ne sont plus croisés avec les chanteurs).
         const nSingers = new Set(tracks.map((t) => t.match(/^Chanteur (\d+)/)?.[1]).filter(Boolean)).size;
         if (process.env.EXPECT_SINGERS && nSingers !== Number(process.env.EXPECT_SINGERS))
             throw new Error(`nombre de chanteurs ${nSingers} au lieu de ${process.env.EXPECT_SINGERS}`);
@@ -422,6 +574,10 @@ try {
         await page.click('#demoBtn');
         await page.waitForFunction(() => window.__studiovoix.tracks.length >= 2 && window.__studiovoix.tracks.every((t) => t.take), null, { timeout: 180000 });
         expected = 2;
+        // Estimation de la séparation affichée avant tout calcul : une seule étape sur téléphone (mode rapide), deux sur ordinateur.
+        const estDemo = await checkEstimate('démo, avant tout calcul');
+        if (estDemo.keys.length !== (wantPhone ? 1 : 2)) throw new Error(`estimation : ${estDemo.keys.length} étape(s) au lieu de ${wantPhone ? 1 : 2} sur ${wantPhone ? 'téléphone' : 'ordinateur'}`);
+        if (await page.inputValue('#addRole') !== 'manual_back') throw new Error('démo (une voix principale existe) : la prochaine piste devrait être proposée en voix back');
     }
     await tracksDone(expected);
     console.log(stamp(), 'pistes traitées :', await page.textContent('#status'));
@@ -499,6 +655,18 @@ try {
     // Sauvegarde automatique : après rechargement, le projet (instru, pistes, prises, réglages) revient.
     if (!micFile) {
         const before = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.styleId}|${t.takes.length}`).join(';'));
+        // Cadenas et place des prises : une piste verrouillée et une prise déplacée doivent revenir telles quelles.
+        // La prise de la dernière piste est décalée de 0,37 s, puis la 1re piste est verrouillée par son bouton (ce clic
+        // déclenche la sauvegarde, qui garde aussi le décalage) ; on attend une sauvegarde postérieure au clic.
+        const place = () => page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.locked ? 'verrouillée' : 'libre'}|${t.take ? t.take.startSec.toFixed(3) : '-'}`).join(';'));
+        const saves = () => page.evaluate(() => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length);
+        const wasLocked = await page.evaluate(() => !!window.__studiovoix.tracks[0].locked);
+        const start0 = await page.evaluate(() => { const k = window.__studiovoix.tracks.at(-1).take; const s = k.startSec; k.startSec = s + 0.37; return s; });
+        const nSaves = await saves();
+        if (!wasLocked) await page.locator('#tracks button.tog.lock').nth(0).click();
+        else await page.evaluate(() => document.querySelector('#tracks .track input.name').dispatchEvent(new Event('change')));   // déjà verrouillée : simple « projet modifié »
+        await page.waitForFunction((n) => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length > n, nSaves, { timeout: 30000 });
+        const placeBefore = await place();
         await page.waitForFunction(() => /Sauvegardé/.test(document.getElementById('saveInfo').textContent), null, { timeout: 30000 });
         await page.reload({ waitUntil: 'load' });
         await page.waitForFunction(() => window.__studiovoix?.ready && window.__studiovoix.instru && window.__studiovoix.tracks.length > 0
@@ -507,6 +675,13 @@ try {
         const after = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.styleId}|${t.takes.length}`).join(';'));
         console.log(stamp(), 'projet repris après rechargement :', after);
         if (after !== before) throw new Error(`projet repris différent : ${after} au lieu de ${before}`);
+        const placeAfter = await place();
+        console.log(stamp(), 'cadenas et place des prises après rechargement :', placeAfter);
+        if (!/\|verrouillée\|/.test(placeBefore)) throw new Error('essai de sauvegarde : aucune piste verrouillée avant le rechargement : ' + placeBefore);
+        if (placeAfter !== placeBefore) throw new Error(`cadenas ou place d'une prise perdus au rechargement : ${placeAfter} au lieu de ${placeBefore}`);
+        // Retour à l'état d'avant ce contrôle (la suite de l'essai déplace et verrouille elle-même).
+        await page.evaluate((s) => { window.__studiovoix.tracks.at(-1).take.startSec = s; }, start0);
+        if (!wasLocked) await page.locator('#tracks button.tog.lock').nth(0).click();
     }
 
     // Effets non imposés : une piste enregistrée ou importée démarre « Lissé » (effets du style + voix lissée : dynamique

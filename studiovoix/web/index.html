@@ -210,12 +210,14 @@
     <h2><span class="num">2</span> Séparer une chanson <span class="hint">facultatif : l'instru d'un côté, chaque voix sur sa piste</span></h2>
     <div class="r" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center">
       <button id="sepBtn" disabled title="La chanson posée sur la piste Instru est séparée par l'IA : l'instrumental reste sur la piste Instru, chaque voix repérée va sur sa propre piste">✂ Séparer la chanson</button>
-      <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" checked> Voix principale / backs</label>
-      <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" checked> Une piste par chanteur</label>
-      <label title="Les couplets sur une piste, les refrains sur une autre (par chanteur s'il y en a plusieurs). Les sections viennent de l'analyse du morceau ; chaque coupe est placée dans un creux de la voix, pas au milieu d'un mot."><input id="sepSections" type="checkbox" checked> Couplets / refrains</label>
-      <label title="Chaque morceau est calculé deux fois pour annuler le bruit propre au modèle (souffle fin dans les aigus, surtout audible quand la voix se tait). Mesuré : 8 à 20 dB de bruit en moins dans les aigus, mais deux fois plus long."><input id="sepDenoise" type="checkbox"> Finition soignée (2× plus long)</label>
-      <label title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox"> Ambiance (réverb) — expérimental</label>
+      <label title="Les chœurs, harmonies et backs vont sur leur propre piste, la voix principale sur la sienne"><input id="sepLeadBack" type="checkbox" autocomplete="off" checked> Voix principale / backs</label>
+      <label title="Une piste par chanteur quand ils chantent chacun leur tour (deux chanteurs en même temps ne se séparent pas)"><input id="sepSingers" type="checkbox" autocomplete="off" checked> Une piste par chanteur</label>
+      <label title="Tous les couplets sur une piste, tous les refrains sur une autre, pour toute la voix principale (deux pistes au lieu d'une). Si « Une piste par chanteur » trouve plusieurs chanteurs, les pistes par chanteur priment et les couplets / refrains ne sont pas découpés en plus. Les sections viennent de l'analyse du morceau ; chaque coupe est placée dans un creux de la voix, pas au milieu d'un mot."><input id="sepSections" type="checkbox" autocomplete="off"> Couplets / refrains</label>
+      <label title="Chaque morceau est calculé deux fois pour annuler le bruit propre au modèle (souffle fin dans les aigus, surtout audible quand la voix se tait). Mesuré : 8 à 20 dB de bruit en moins dans les aigus, mais deux fois plus long."><input id="sepDenoise" type="checkbox" autocomplete="off"> Finition soignée (2× plus long)</label>
+      <!-- Option masquée (26/11) : le modèle n'extrait presque rien. Le code reste (app.js, SEP_AMBIANCE_ON). -->
+      <label hidden title="Expérimental, non vérifié : la réverb / l'écho de la voix sur une piste Ambiance. Sur nos essais, le modèle n'a presque rien extrait."><input id="sepAmbiance" type="checkbox" autocomplete="off" disabled> Ambiance (réverb) — expérimental</label>
     </div>
+    <div id="sepHelp" class="info"></div>
     <div id="sepEst" class="info"></div>
     <div id="sepProg" class="sepprog" hidden>
       <div class="sepline"><span class="spin" aria-hidden="true"></span><b id="sepStep">Préparation…</b><span id="sepPct"></span></div>
@@ -223,7 +225,7 @@
       <div id="sepSub" class="info"></div>
       <div class="sepline"><span id="sepTime" class="info"></span><button id="sepStopBtn" title="Arrête le calcul : la chanson reste comme avant, rien n'est changé">■ Arrêter la séparation</button></div>
     </div>
-    <div id="sepInfo" class="info">Pose une chanson avec voix sur la piste Instru, puis « Séparer la chanson ». Calcul dans le navigateur : environ 3 à 4 fois la durée de la chanson par étape sans carte graphique ; modèles téléchargés une seule fois (67 + 53 + 27 Mo, + 67 Mo pour l'ambiance). Là où personne ne chante, l'instru reste exactement l'originale.</div>
+    <div id="sepInfo" class="info">Pose une chanson avec voix sur la piste Instru, puis « Séparer la chanson ». Calcul dans le navigateur : environ 3 à 4 fois la durée de la chanson par étape sans carte graphique ; modèles téléchargés une seule fois (67 Mo pour instru + voix, + 53 Mo pour les backs, + 27 Mo pour les chanteurs). Une piste de voix de moins de 2 secondes de chant n'est pas créée. Là où personne ne chante, l'instru reste exactement l'originale.</div>
   </section>
 
   <!-- 3 -->

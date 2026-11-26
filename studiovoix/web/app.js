@@ -22,7 +22,7 @@ const ui = {
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'), fxSmooth: $('fxSmooth'), inspectBtn: $('inspectBtn'), inspectBox: $('inspectBox'), inspectAllBtn: $('inspectAllBtn'), inspectAllBox: $('inspectAllBox'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
     sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), exportRawBtn: $('exportRawBtn'),
-    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'),
+    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'), sepHelp: $('sepHelp'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
 };
@@ -68,10 +68,12 @@ function startWorker() {
             ui.version.textContent = m.version;
             state.styles = m.styles;
             state.roles = m.roles;
-            fillRoleSelect(ui.addRole, 'lead');   // « Ajouter une piste » propose « Voix principale » (choix de Yann, 16/11)
+            fillRoleSelect(ui.addRole, 'lead');   // type proposé ensuite par proposeAddRole (choix de Yann, 26/11 : 1re voix principale, suivantes en back)
             setStatus('Moteur prêt. Pose une instru (piste Instru), arme une piste (●) puis REC.');
             restoreProject().then((restored) => {
                 if (!restored && state.tracks.length === 0) addTrack('lead', 'Voix principale');
+                proposeAddRole('chargement du projet');
+                if (restored) sepResumeNotice();   // coupure pendant « Séparer » : dit si le calcul peut reprendre
                 renderTracks();
             });
             refreshButtons();
@@ -106,10 +108,12 @@ function isoWorker() {
         if (m.type === 'gpu' && !m.ok) {   // carte graphique inutilisable ici : on s'en souvient (processeur direct la prochaine fois)
             try { localStorage.setItem('sv-no-webgpu', m.reason || '1'); } catch (err) { log('warn', `préférence processeur non gardée : ${err.message}`); }
             log('warn', `carte graphique écartée pour l'IA sur cet appareil (${m.reason})`);
+            if (state.separating) sepRun.gpuNote = m.reason === 'timeout' ? 'essai trop long' : m.reason === 'aberrant' ? 'résultat faux à l\'essai' : String(m.reason || 'échec');   // pour le bilan de la séparation
             return;
         }
         if (m.type === 'log') {
             log(m.level, '[isolation] ' + m.msg);
+            if (state.separating && /^WebGPU refusé/.test(m.msg)) sepRun.gpuNote = 'refusée par le navigateur';   // repli sans message dédié du worker
             if (state.separating) ui.sepSub.textContent = 'IA : ' + m.msg;   // ce que fait l'IA, visible sans ouvrir le journal
             return;
         }
@@ -307,8 +311,19 @@ function addTrack(roleId, name) {
     state.tracks.push(t);
     if (!state.armedId) state.armedId = t.id;
     log('info', `Piste ajoutée : « ${t.name} » (${roleLabel(roleId)}, ${styleName(t.styleId)})`);
+    proposeAddRole('piste ajoutée');
     markDirty();
     return t;
+}
+// Type proposé par « + Ajouter une piste » (décision de Yann, 26/11) : « Voix principale » tant qu'aucune piste n'a ce
+// type, sinon « Voix back ». Recalculé après chaque ajout, suppression, changement de type d'une piste ou chargement de
+// projet. Entre deux, la liste reste libre : un type choisi à la main vaut pour l'ajout en cours.
+function proposeAddRole(why) {
+    if (!ui.addRole.options.length) return;   // moteur pas encore prêt : liste vide
+    const want = state.tracks.some((t) => t.roleId === 'lead') ? 'manual_back' : 'lead';
+    if (ui.addRole.value === want) return;
+    ui.addRole.value = want;
+    log('info', `Type proposé pour la prochaine piste : ${roleLabel(want)} (${why})`);
 }
 // Nouvelle prise sur une piste : elle devient la prise active, les précédentes restent au choix (« Prise n »).
 let nextAudioId = 1;
@@ -344,6 +359,7 @@ function removeTrack(id) {
     if (state.selectedId === id) state.selectedId = 0;
     state.balanceDirty = true;
     log('info', `Piste supprimée : « ${t.name} »`);
+    proposeAddRole('piste supprimée');
     markDirty();
     renderTracks();
 }
@@ -430,7 +446,7 @@ function trackRow(t) {
         onchange: (e) => { t.name = e.target.value.trim() || t.name; log('info', `Piste renommée : « ${t.name} »`); markDirty(); } });
     const role = el('select', { class: 'role', title: 'Type de piste : règle la chaîne (effets) et la place dans le mix' });
     fillRoleSelect(role, t.roleId);
-    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); markDirty(); queueProcess(t); });
+    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); proposeAddRole('type d\'une piste changé'); markDirty(); queueProcess(t); });
     const style = el('select', { class: 'style', title: 'Style de mixage de cette voix' });
     fillStyleSelect(style, t.styleId);
     style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); queueProcess(t); });
@@ -1878,6 +1894,66 @@ function sepSpeedSave(key, ms) {
     try { localStorage.setItem('sv-sep-speed', JSON.stringify(sp)); } catch (e) { log('warn', `vitesse non gardée : ${e.message}`); }
 }
 const fmtLong = (sec) => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${String(Math.round((sec % 3600) / 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(sec / 60))} min`;
+// Téléphone ? Règle (26/11), le premier signal qui dit « oui » l'emporte : 1) navigator.userAgentData.mobile quand le
+// navigateur le donne (Chrome, Edge, Brave sur Android) ; 2) à défaut, agent utilisateur contenant « Mobi », « iPhone »
+// ou « iPod » (Safari et Firefox n'ont pas userAgentData) ; 3) à défaut, pointeur grossier (doigt) ET petit côté de
+// l'écran sous 600 points (téléphone en « version pour ordinateur »). Une tablette compte comme un ordinateur.
+function detectPhone() {
+    try {
+        if (navigator.userAgentData?.mobile === true) return { phone: true, why: 'navigateur : appareil mobile (userAgentData)' };
+        if (/Mobi|iPhone|iPod/i.test(navigator.userAgent || '')) return { phone: true, why: 'agent utilisateur de téléphone' };
+        const small = Math.min(screen.width, screen.height);
+        if (window.matchMedia?.('(pointer: coarse)').matches && small < 600) return { phone: true, why: `écran tactile de ${small} points de large` };
+        return { phone: false, why: 'ni mobile, ni petit écran tactile' };
+    } catch (e) { return { phone: false, why: `détection impossible (${e.message})` }; }
+}
+const sepDevice = detectPhone();
+// Option « Ambiance » masquée (décision du 26/11) : sur nos essais le modèle n'extrait presque rien. Son code reste ;
+// tant que ce drapeau est faux, la case est cachée, décochée, et aucun réglage gardé ne peut la réactiver.
+const SEP_AMBIANCE_ON = false;
+// Cases de « Séparer » : réglage de départ selon l'appareil, puis le choix fait à la main, gardé sur l'appareil, prime.
+//  - téléphone : mode rapide = une seule étape de calcul (instru + voix) ;
+//  - ordinateur : voix principale / backs et une piste par chanteur ;
+//  - partout : « Couplets / refrains » et « Finition soignée » décochées.
+const SEP_CHOICE_KEY = 'sv-sep-choice';
+const SEP_BOXES = { leadBack: ui.sepLeadBack, singers: ui.sepSingers, sections: ui.sepSections, denoise: ui.sepDenoise };
+const SEP_BOX_NAMES = { leadBack: 'Voix principale / backs', singers: 'Une piste par chanteur', sections: 'Couplets / refrains', denoise: 'Finition soignée' };
+function sepChoiceLoad() {
+    try { const c = JSON.parse(localStorage.getItem(SEP_CHOICE_KEY) || '{}'); return c && typeof c === 'object' ? c : {}; }
+    catch (e) { log('warn', `choix de séparation gardés illisibles (${e.message}) : réglages de départ`); return {}; }
+}
+function sepChoiceApply() {
+    const def = sepDevice.phone ? { leadBack: false, singers: false, sections: false, denoise: false } : { leadBack: true, singers: true, sections: false, denoise: false };
+    const mine = sepChoiceLoad(), kept = [];
+    for (const [k, box] of Object.entries(SEP_BOXES)) {
+        const own = typeof mine[k] === 'boolean';
+        box.checked = own ? mine[k] : def[k];
+        if (own) kept.push(`${SEP_BOX_NAMES[k]} ${mine[k] ? 'cochée' : 'décochée'}`);
+    }
+    ui.sepAmbiance.checked = false;
+    if (!SEP_AMBIANCE_ON) ui.sepAmbiance.disabled = true;
+    const on = Object.entries(SEP_BOXES).filter(([, b]) => b.checked).map(([k]) => SEP_BOX_NAMES[k]);
+    log('info', `Séparation, réglages de départ : ${sepDevice.phone ? 'téléphone' : 'ordinateur'} (${sepDevice.why}) → ${on.length ? 'cochées : ' + on.join(', ') : 'mode rapide, instru + voix seulement'}` +
+        (kept.length ? ` ; choix gardés sur cet appareil : ${kept.join(', ')}` : ' ; aucun choix gardé'));
+    if (ui.sepHelp) ui.sepHelp.textContent = sepDevice.phone
+        ? 'Téléphone : mode rapide par défaut — une seule étape de calcul, tu obtiens l\'instru et la voix (une piste chacune). En cochant « Voix principale / backs », les chœurs vont sur leur propre piste, pour environ une fois et demie plus de temps ; « Une piste par chanteur » ajoute une courte étape et donne une piste par voix quand elles chantent chacune leur tour. Ton choix est retenu sur ce téléphone.'
+        : 'Ordinateur : par défaut, l\'instru, la voix principale, les backs et une piste par chanteur. Plus rapide : décocher « Voix principale / backs » (instru + voix seulement, une seule étape de calcul). Ton choix est retenu sur cet appareil.';
+}
+function sepChoiceKeep(k) {
+    const mine = sepChoiceLoad();
+    mine[k] = SEP_BOXES[k].checked;
+    try { localStorage.setItem(SEP_CHOICE_KEY, JSON.stringify(mine)); log('info', `Séparation : « ${SEP_BOX_NAMES[k]} » ${mine[k] ? 'cochée' : 'décochée'} à la main, choix gardé sur cet appareil`); }
+    catch (e) { log('warn', `choix « ${SEP_BOX_NAMES[k]} » non gardé (${e.message}) : valable jusqu'à la fermeture de la page`); }
+}
+// Vitesse de départ (ms par morceau, pour un calcul par morceau), tant que rien n'a été mesuré sur l'appareil. Valeurs
+// prudentes, tirées des mesures du projet :
+//  - ordinateur : 12 à 15 s par morceau à l'étape voix, 7 à 9 s à l'étape backs (serveur de développement, 4 cœurs,
+//    processeur) → haut de la fourchette : 15 s et 9 s ;
+//  - téléphone : 3 min 35 de chanson ≈ 45 min avec les trois étapes (téléphone de Yann). 3 min 35 = 50 morceaux par
+//    étape ; backs à 0,6 fois la voix comme sur ordinateur, 20 % de morceaux sautés, étape chanteurs négligée :
+//    2700 s ≈ 50 × v × (1 + 0,8 × 0,6) → v ≈ 36 s → arrondi au-dessus : 40 s et 24 s.
+// Dès qu'un morceau a été mesuré sur l'appareil (sepSpeedSave), c'est la mesure qui sert.
+const SEP_START_SPEED = { phone: { voc: 40000, kara: 24000, reverb: 40000 }, pc: { voc: 15000, kara: 9000, reverb: 15000 } };
 function sepEstimate() {
     if (!ui.sepEst) return;
     if (!state.instru || state.separating) { ui.sepEst.textContent = ''; return; }
@@ -1885,13 +1961,18 @@ function sepEstimate() {
     const n44 = Math.round(state.instru.seconds * 44100), count = (k) => mdxGrid(n44, MDX_MODELS[k], SEP_OVERLAP).total;
     const chunks = count('voc');
     const sp = sepSpeedLoad();
-    const keys = ['voc', ...(ui.sepLeadBack.checked ? ['kara'] : []), ...(ui.sepAmbiance.checked ? ['reverb'] : [])];
-    if (!sp.voc) { ui.sepEst.textContent = `Durée : environ ${chunks} morceaux de calcul par étape ; le temps exact s'affiche après le 1er morceau (puis il est retenu pour cet appareil).`; return; }
+    const keys = ['voc', ...(ui.sepLeadBack.checked ? ['kara'] : []), ...(SEP_AMBIANCE_ON && ui.sepAmbiance.checked ? ['reverb'] : [])];
+    // Avant toute mesure sur cet appareil : vitesse de départ de son type (téléphone / ordinateur), annoncée comme telle.
+    const measured = !!sp.voc, start = SEP_START_SPEED[sepDevice.phone ? 'phone' : 'pc'];
+    const speed = (k) => (measured ? (sp[k] || sp.voc) : start[k]);
     const dn = ui.sepDenoise.checked ? 2 : 1;   // finition soignée : deux calculs par morceau
-    const ms = dn * keys.reduce((a, k) => a + (sp[k] || sp.voc) * count(k) * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
-    const fast = sp.voc * chunks;
-    ui.sepEst.textContent = `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})` +
-        (keys.length > 1 ? ` — plus rapide : décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement).` : '.') +
+    const ms = dn * keys.reduce((a, k) => a + speed(k) * count(k) * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
+    const fast = dn * speed('voc') * chunks;
+    // Détail du calcul, lisible par les essais (window.__svSep.est).
+    sepRun.est = { phone: sepDevice.phone, measured, keys, chunks: Object.fromEntries(keys.map((k) => [k, count(k)])), msPerChunk: Object.fromEntries(keys.map((k) => [k, speed(k)])), passes: dn, ms, text: fmtLong(ms / 1000) };
+    ui.sepEst.textContent = (measured ? `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})`
+            : `Durée estimée : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''}, ${chunks} morceaux de calcul par étape) — estimation de départ pour un ${sepDevice.phone ? 'téléphone' : 'ordinateur'}, affinée dès le premier morceau (puis retenue pour cet appareil)`) +
+        (keys.length > 1 && fmtLong(fast / 1000) !== fmtLong(ms / 1000) ? ` — plus rapide : décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement).` : '.') +
         ` Garde la page ouverte, écran allumé.`;
 }
 function refreshButtons() {
@@ -1998,7 +2079,7 @@ function sepRender() {
     setStatus(`Séparation en cours : ${sepRun.label} — ${pct} % (ne ferme pas la page)`);
 }
 function sepBegin(steps) {
-    Object.assign(sepRun, { cSkipped: 0, cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
+    Object.assign(sepRun, { gpuNote: '', cSkipped: 0, cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
     sepRun.title = document.title;
     ui.sepProg.hidden = false; ui.sepSub.textContent = '';
     ui.sepBtn.textContent = '⏳ Séparation en cours…';
@@ -2122,6 +2203,19 @@ async function sepCacheClear(keepId = null) {
         });
     } catch (e) { log('warn', `nettoyage de la reprise : ${e.message}`); }
 }
+// Après un rechargement (coupure pendant « Séparer ») : s'il reste des tranches gardées pour la chanson posée, on le
+// dit sous le bouton et au journal, pour que la relance soit évidente (elle relit ces tranches au lieu de les refaire).
+async function sepResumeNotice() {
+    if (!state.instru || state.separating) return;
+    try {
+        const keys = await sepDb((db) => idb(db, 'meta', 'readonly', (st) => st.getAllKeys()));
+        const mine = (keys || []).filter((k) => typeof k === 'string' && k.startsWith(`${SEP_PREFIX}${state.instru.audioId}|`));
+        if (!mine.length) return;
+        const steps = [...new Set(mine.map((k) => k.slice(k.lastIndexOf(':') + 1).split('#')[0]))].map((k) => SEP_MODELS[k] || k);
+        ui.sepInfo.textContent = `Séparation interrompue : ${mine.length} tranche(s) d'environ 40 s déjà calculée(s) sont gardées (${steps.join(', ')}). Relance « Séparer la chanson » : le calcul reprend là où il s'était arrêté, sans les refaire.`;
+        log('info', `reprise possible : ${mine.length} tranche(s) gardée(s) d'une séparation interrompue (${steps.join(', ')}) pour la chanson posée`);
+    } catch (e) { log('warn', `reprise : tranches gardées illisibles (${e.message})`); }
+}
 // Profil d'une étape, en une ligne de journal : où part le temps (modèle, transformées en JavaScript, reste). Sert à
 // comparer les appareils (un téléphone peut passer bien plus de temps qu'un PC dans les transformées).
 function sepProfileLog(key, prof, secs) {
@@ -2155,6 +2249,7 @@ async function sepStep(cacheId, key, L, R, step, steps) {
             ++reused; reusedChunks += part.k1 - part.k0;
             sepChunk(part.k1, grid.total, true);   // reprise : avancée sans calcul
         } else {
+            if (y) log('warn', `reprise : tranche ${i + 1} de l'étape ${SEP_MODELS[key]} gardée mais inutilisable (${y.left.length} échantillons au lieu de ${part.p1 - part.p0}) → recalculée`);
             const r = await isoCall('isolate', { model: key, left: L.slice(part.s0, part.s1), right: R.slice(part.s0, part.s1), release: false,
                 opts: { ...(SEP_OPTS[key] || {}), peak, denoise: ui.sepDenoise.checked, part: { n, k0: part.k0, k1: part.k1 } } });
             iso.backend = r.backend; secs += r.seconds;
@@ -2172,31 +2267,72 @@ async function sepStep(cacheId, key, L, R, step, steps) {
     if (key !== 'voc') await isoCall('release', { model: key }).catch((e) => log('warn', `libération ${key} : ${e.message}`));
     log('info', `Séparation ${SEP_MODELS[key]} : ${nSeg} tranche(s), ${reused} reprise(s) sans calcul (${reusedChunks} morceau(x) relu(s) sur ${grid.total}), ${secs.toFixed(1)} s de calcul sur ${iso.backend || '?'}`);
     sepProfileLog(key, prof, secs);
-    return { left: outL, right: outR };
+    return { left: outL, right: outR, chunks: grid.total, reusedChunks };
 }
+// Durée utile d'une piste : temps passé au-dessus de −55 dBFS (trames de 50 ms). Une piste de voix de moins de
+// SEP_MIN_USEFUL_SEC de contenu utile n'est pas créée (26/11) : son contenu reste sur la piste dont il vient.
+const SEP_MIN_USEFUL_SEC = 2, SEP_USEFUL_DB = -55;
+function usefulSec(mono, sr) {
+    const fr = Math.max(1, Math.round(0.05 * sr)), thr = Math.pow(10, SEP_USEFUL_DB / 10);
+    let n = 0;
+    for (let a = 0; a < mono.length; a += fr) {
+        const b = Math.min(mono.length, a + fr);
+        let e = 0;
+        for (let i = a; i < b; ++i) e += mono[i] * mono[i];
+        if (e / (b - a) > thr) n += b - a;
+    }
+    return n / sr;
+}
+// Nom du moteur de calcul tel qu'on l'écrit au journal : « carte graphique (WebGPU) » ou « processeur (N fils) » (le
+// worker dit « processeur (WASM, N fils) »). La page n'utilise ni WebGL ni autre moteur.
+const sepEngineName = (backend) => (backend || 'moteur inconnu').replace('WASM, ', '');
+// Moteur prévu avant le calcul, par la même règle que le worker (isolate-worker.js, ensureSession) : carte graphique
+// si le navigateur a WebGPU, qu'elle n'a pas été écartée sur cet appareil et que son essai réussit ; sinon processeur.
+async function sepEnginePlan() {
+    const cores = navigator.hardwareConcurrency || 2, threads = window.crossOriginIsolated ? Math.max(1, Math.min(8, cores - 1)) : 1;
+    const cpu = `processeur (${threads} fil${threads > 1 ? 's' : ''})`;
+    if (iso.worker && iso.backend) return { gpu: /WebGPU/.test(iso.backend), text: `${sepEngineName(iso.backend)}, déjà démarré` };
+    let banned = '';
+    try { banned = localStorage.getItem('sv-no-webgpu') || ''; } catch { banned = ''; }
+    if (banned) return { gpu: false, text: `${cpu} — carte graphique écartée sur cet appareil lors d'un essai précédent (${banned === 'timeout' ? 'essai trop long' : banned === 'aberrant' ? 'résultat faux' : banned})` };
+    let gpu = false;
+    try { gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch (e) { log('warn', `carte graphique non interrogeable (${e.message})`); }
+    return gpu ? { gpu: true, text: `carte graphique (WebGPU) si son essai réussit, sinon ${cpu}` } : { gpu: false, text: `${cpu} — pas de carte graphique utilisable par ce navigateur (WebGPU absent)` };
+}
+const sepDur = (s) => (s >= 59.95 ? `${Math.floor(Math.round(s) / 60)} min ${String(Math.round(s) % 60).padStart(2, '0')} s` : `${s.toFixed(1).replace('.', ',')} s`);
 async function separateSong() {
     if (!state.instru) return;
     const comp = { voc: 1.021, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
-    const doKara = ui.sepLeadBack.checked, doRev = ui.sepAmbiance.checked, doSing = ui.sepSingers.checked;
+    const doKara = ui.sepLeadBack.checked, doRev = SEP_AMBIANCE_ON && ui.sepAmbiance.checked, doSing = ui.sepSingers.checked;
     const steps = 1 + (doKara ? 1 : 0) + (doRev ? 1 : 0) + (doSing ? 1 : 0);
     const t0 = performance.now();
     stopPlayback();
     ui.sepBtn.disabled = true; state.isolating = true; state.separating = true;
     sepBegin(steps);
+    // Bilan de fin : durée de chaque étape (stepsLog), moteur prévu / utilisé.
+    const stepsLog = [];
+    const timed = async (name, fn) => {
+        const t = performance.now(), r = await fn();
+        stepsLog.push({ name, sec: (performance.now() - t) / 1000, chunks: r?.chunks, reused: r?.reusedChunks });
+        return r;
+    };
     try {
         const src = state.instru, sr = src.sampleRate;
-        const song = await resampleStereo(src.left, src.right, sr, 44100);
+        const plan = await sepEnginePlan();
+        log('info', `Séparation — départ : calcul sur ${plan.text} ; ${steps} étape(s) : ${['voix / instru', ...(doKara ? ['voix principale / backs'] : []), ...(doRev ? ['ambiance'] : []), ...(doSing ? ['chanteurs'] : [])].join(', ')}` +
+            `${ui.sepSections.checked ? ' ; couplets / refrains demandés' : ''}${ui.sepDenoise.checked ? ' ; finition soignée (deux calculs par morceau)' : ''} ; ${fmt(src.seconds)} de chanson, ${sepDevice.phone ? 'téléphone' : 'ordinateur'}`);
+        const song = await timed('préparation', () => resampleStereo(src.left, src.right, sr, 44100));
         // 1) voix / instru
         // « g2 » : format des tranches gardées (sommes pondérées sur une grille unique) — les anciennes ne sont pas relues.
         const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}|g2`;
         await sepCacheClear(cacheId);   // une seule chanson gardée
-        const v = await sepStep(cacheId, 'voc', song.left, song.right, 1, steps);
+        const v = await timed(SEP_MODELS.voc, () => sepStep(cacheId, 'voc', song.left, song.right, 1, steps));
         const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);
         // L'instru est calculée plus bas, à la fréquence d'origine : morceau d'origine (jamais rééchantillonné) − porte × voix.
         let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
         // 2) voix principale / backs
         if (doKara) {
-            const k = await sepStep(cacheId, 'kara', VL, VR, ++step, steps);
+            const k = await timed(SEP_MODELS.kara, () => sepStep(cacheId, 'kara', VL, VR, ++step, steps));
             backL = k.left.map((x) => x * comp.kara); backR = k.right.map((x) => x * comp.kara);
             leadL = VL.map((x, i) => x - backL[i]); leadR = VR.map((x, i) => x - backR[i]);
             // Voix doublée / à plusieurs couches (vu sur de vrais morceaux) : le modèle classe toute la voix en « backs »
@@ -2206,10 +2342,18 @@ async function separateSong() {
                 log('warn', `Séparation : voix principale presque vide (${leadDb.toFixed(1)} dB contre ${backDb.toFixed(1)} dB en backs) → toute la voix est gardée en voix principale (voix doublée ou en chœur)`);
                 leadL = VL; leadR = VR; backL = null; backR = null;
             } else log('info', `Séparation : voix principale ${leadDb.toFixed(1)} dB, backs ${backDb.toFixed(1)} dB`);
+            // Pas de piste presque vide : sous 2 s de contenu utile d'un côté, on ne coupe pas la voix en deux.
+            if (backL) {
+                const ub = usefulSec(toMonoLR(backL, backR), 44100), ul = usefulSec(toMonoLR(leadL, leadR), 44100);
+                if (ub < SEP_MIN_USEFUL_SEC || ul < SEP_MIN_USEFUL_SEC) {
+                    log('info', `Séparation : ${ub < SEP_MIN_USEFUL_SEC ? `backs trop courts (${ub.toFixed(1)} s utiles` : `voix principale trop courte (${ul.toFixed(1)} s utiles`}, moins de ${SEP_MIN_USEFUL_SEC} s au-dessus de ${SEP_USEFUL_DB} dBFS) → pas de piste à part : toute la voix reste sur la piste de voix principale`);
+                    leadL = VL; leadR = VR; backL = null; backR = null;
+                } else log('info', `Séparation : contenu utile — voix principale ${ul.toFixed(1)} s, backs ${ub.toFixed(1)} s`);
+            }
         }
-        // 3) ambiance (expérimental)
+        // 3) ambiance (expérimental, option masquée : SEP_AMBIANCE_ON)
         if (doRev) {
-            const rv = await sepStep(cacheId, 'reverb', leadL, leadR, ++step, steps);
+            const rv = await timed(SEP_MODELS.reverb, () => sepStep(cacheId, 'reverb', leadL, leadR, ++step, steps));
             ambL = rv.left.map((x) => x * comp.reverb); ambR = rv.right.map((x) => x * comp.reverb);
             leadL = leadL.map((x, i) => x - ambL[i]); leadR = leadR.map((x, i) => x - ambR[i]);
         }
@@ -2217,6 +2361,7 @@ async function separateSong() {
         sepCheck();
         sepRun.isModel = false;
         sepSet(null, 'Assemblage des pistes…', 1); sepRun.stepLabel = 'Assemblage des pistes';
+        const tAsm = performance.now();
         const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
         const vocSr = await back44(VL, VR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
         const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };
@@ -2229,11 +2374,21 @@ async function separateSong() {
         log('info', `Séparation, instru : original exact sur ${(100 * I.closed).toFixed(1)} % de la chanson (personne ne chante : rien n'est retiré), voix retirée sur ${(100 * I.open).toFixed(1)} %, fondu entre les deux sur ${(100 * I.between).toFixed(1)} % — porte dans le temps : voix estimée à ${GATE_DEFAULTS.thresholdDb} dB sous la chanson, trames de ${Math.round(1000 * GATE_DEFAULTS.frameSec)} ms, ${Math.round(performance.now() - tGate)} ms`);
         // 4) chanteurs
         const leadMono = fit(toMonoLR(lead.left, lead.right));
+        stepsLog.push({ name: 'assemblage', sec: (performance.now() - tAsm) / 1000 });
         let parts = [{ name: 'Voix principale (séparée)', mono: leadMono }], singersNote = '';
-        if (doSing) {
+        // Presque pas de voix dans la chanson (moins de 2 s utiles) : aucune piste de voix, et rien n'est retiré de la
+        // chanson (le peu de voix reste là d'où il vient : la piste Instru).
+        const voiceSec = backs ? Infinity : usefulSec(leadMono, sr);
+        const noVoice = voiceSec < SEP_MIN_USEFUL_SEC;
+        if (noVoice) {
+            parts = [];
+            log('warn', `Séparation : presque pas de voix repérée (${voiceSec.toFixed(1)} s utiles, moins de ${SEP_MIN_USEFUL_SEC} s au-dessus de ${SEP_USEFUL_DB} dBFS) → aucune piste de voix, la chanson reste entière sur la piste Instru`);
+        }
+        if (doSing && !noVoice) {
             sepCheck();
             sepSet(steps, `Étape ${steps}/${steps} : repérage des chanteurs (empreinte de voix)`, 0);
             log('info', `Séparation, étape ${steps}/${steps} : chanteurs`);
+            const tSing = performance.now();
             const embed = async (feats, frames) => (await isoCall('embed', { model: 'spk', feats, frames }, [feats.buffer])).emb;
             const res = await findSingers(leadMono, sr, embed, { onProgress: (d, t) => sepSet(null, null, d / Math.max(1, t)) });
             await isoCall('release', { model: 'spk' }).catch(() => {});
@@ -2241,33 +2396,53 @@ async function separateSong() {
             log('info', `Chanteurs : ${res.why}`);
             // Une piste par voix repérée (2, 3… autant qu'il y en a).
             // Fondu enchaîné exact aux coupes : la somme des pistes redonne la voix d'origine (pas de bosse à la coupe).
-            if (res.singers >= 2) parts = splitRanges(leadMono, sr, res.phrases, res.singers).map((mono, k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono, who: `Chanteur ${k + 1}` }));
-        }
-        // Couplets / refrains : chaque voix est répartie sur une piste « couplets » et une piste « refrain », d'après les
-        // sections trouvées à l'analyse du morceau (coupes placées dans un creux de la voix).
-        let sectionsNote = '';
-        if (ui.sepSections.checked) {
-            const secs = state.instru.analysis?.sections || [];
-            const ranges = sectionRanges(leadMono, sr, secs);
-            if (!ranges) sectionsNote = secs.length > 1 ? 'pas de refrain repéré dans ce morceau : voix laissée sur une seule piste' : 'morceau trop court pour repérer couplets et refrains';
-            else {
-                const next = [];
-                for (const p of parts) {
-                    const [cpl, ref] = splitRanges(p.mono, sr, ranges, 2, 'part');
-                    next.push({ name: `${p.who ? p.who + ' — c' : 'C'}ouplets (séparé)`, mono: cpl }, { name: `${p.who ? p.who + ' — r' : 'R'}efrain (séparé)`, mono: ref });
+            if (res.singers >= 2) {
+                let sing = splitRanges(leadMono, sr, res.phrases, res.singers).map((mono, k) => ({ mono, n: k + 1, useful: usefulSec(mono, sr) }));
+                // Pas de piste presque vide : un chanteur de moins de 2 s de chant n'a pas de piste, son chant est ajouté à
+                // la piste du chanteur le plus présent (la somme des pistes reste la voix d'origine).
+                const main = sing.reduce((a, b) => (b.useful > a.useful ? b : a));
+                for (const p of sing.filter((x) => x !== main && x.useful < SEP_MIN_USEFUL_SEC)) {
+                    for (let i = 0; i < main.mono.length; ++i) main.mono[i] += p.mono[i];
+                    log('info', `Chanteur ${p.n} : ${p.useful.toFixed(1)} s de chant seulement (moins de ${SEP_MIN_USEFUL_SEC} s) → pas de piste, son chant est rattaché au chanteur ${main.n} (le plus présent)`);
+                    singersNote += ` ; chanteur ${p.n} trop court (${p.useful.toFixed(1)} s) rattaché au chanteur ${main.n}`;
+                    p.dropped = true;
                 }
-                parts = next;
-                const cuts = ranges.slice(0, -1).map((r) => fmt(r.end)).join(', ');
-                sectionsNote = `refrains ${ranges.filter((r) => r.part === 1).map((r) => `${fmt(r.start)}–${fmt(r.end)}`).join(', ')} ; coupes à ${cuts}`;
+                sing = sing.filter((x) => !x.dropped);
+                if (sing.length >= 2) parts = sing.map((p, k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono: p.mono, who: `Chanteur ${k + 1}` }));
+                else log('info', 'Chanteurs : un seul chanteur avec assez de chant → une seule piste de voix principale');
+            }
+            stepsLog.push({ name: SEP_MODELS.spk, sec: (performance.now() - tSing) / 1000 });
+        }
+        // Couplets / refrains (26/11) : UNE piste pour tous les couplets et UNE pour tous les refrains, pour toute la voix
+        // principale, d'après les sections trouvées à l'analyse du morceau (coupes placées dans un creux de la voix).
+        // Si plusieurs chanteurs ont déjà chacun leur piste, ces pistes priment : pas de découpe en plus (elle
+        // multipliait les pistes : deux par chanteur).
+        let sectionsNote = '';
+        if (ui.sepSections.checked && !noVoice) {
+            const secs = state.instru.analysis?.sections || [];
+            const ranges = parts.length > 1 ? null : sectionRanges(leadMono, sr, secs);
+            if (parts.length > 1) sectionsNote = `${parts.length} chanteurs repérés : une piste par chanteur, sans découpe couplets / refrains en plus (pour ne pas multiplier les pistes)`;
+            else if (!ranges) sectionsNote = secs.length > 1 ? 'pas de refrain repéré dans ce morceau : voix laissée sur une seule piste' : 'morceau trop court pour repérer couplets et refrains';
+            else {
+                const [cpl, ref] = splitRanges(parts[0].mono, sr, ranges, 2, 'part');
+                const uc = usefulSec(cpl, sr), ur = usefulSec(ref, sr);
+                if (uc < SEP_MIN_USEFUL_SEC || ur < SEP_MIN_USEFUL_SEC) sectionsNote = `${uc < SEP_MIN_USEFUL_SEC ? 'couplets' : 'refrains'} presque vides (${Math.min(uc, ur).toFixed(1)} s de chant, moins de ${SEP_MIN_USEFUL_SEC} s) : voix laissée sur une seule piste`;
+                else {
+                    parts = [{ name: 'Couplets (séparés)', mono: cpl }, { name: 'Refrains (séparés)', mono: ref }];
+                    const cuts = ranges.slice(0, -1).map((r) => fmt(r.end)).join(', ');
+                    sectionsNote = `une piste couplets (${uc.toFixed(0)} s de chant) et une piste refrains (${ur.toFixed(0)} s) ; refrains ${ranges.filter((r) => r.part === 1).map((r) => `${fmt(r.start)}–${fmt(r.end)}`).join(', ')} ; coupes à ${cuts}`;
+                }
             }
             log('info', `Couplets / refrains : ${sectionsNote}`);
         }
         // Pistes : l'instru séparée remplace la chanson (l'original reste gardé pour « Rétablir »).
-        const original = state.instru.original || { left: src.left, right: src.right, name: src.name };
-        state.instru.left = fit(I.left); state.instru.right = fit(I.right);
-        state.instru.original = original;
-        state.instru.name = original.name.replace(/\.[^.]+$/, '') + ' (instru séparée)';
-        state.instru.audioId = `i${Date.now().toString(36)}`;
+        if (!noVoice) {
+            const original = state.instru.original || { left: src.left, right: src.right, name: src.name };
+            state.instru.left = fit(I.left); state.instru.right = fit(I.right);
+            state.instru.original = original;
+            state.instru.name = original.name.replace(/\.[^.]+$/, '') + ' (instru séparée)';
+            state.instru.audioId = `i${Date.now().toString(36)}`;
+        }
         const made = [];
         const mk = (name, roleId, mono) => {
             if (rmsDbSt(mono, mono) < -55) { log('info', `${name} : rien de repéré (sous -55 dBFS), pas de piste`); return; }
@@ -2283,15 +2458,25 @@ async function separateSong() {
         for (const p of parts) mk(p.name, 'lead', p.mono);
         if (backs) mk('Backs (séparés)', 'manual_back', fit(toMonoLR(backs.left, backs.right)));
         if (amb) mk('Ambiance (séparée)', 'ambiance', fit(toMonoLR(amb.left, amb.right)));
+        proposeAddRole('chanson séparée');
         state.armedId = 0; state.balanceDirty = true;
         markDirty();
         renderTracks();
         const sec = (performance.now() - t0) / 1000;
-        ui.sepInfo.textContent = `Séparée en ${fmt(sec)} : instru + ${made.length} piste(s) — ${made.join(', ') || 'aucune voix repérée'}` +
-            (singersNote ? `\nChanteurs : ${singersNote}` : '') + (sectionsNote ? `\nCouplets / refrains : ${sectionsNote}` : '') + `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`;
+        ui.sepInfo.textContent = (noVoice ? `Séparation finie en ${fmt(sec)} : presque pas de voix repérée (moins de ${SEP_MIN_USEFUL_SEC} s) — la chanson n'a pas été changée, aucune piste créée.`
+                : `Séparée en ${fmt(sec)} : instru + ${made.length} piste(s) — ${made.join(', ') || 'aucune voix repérée'}`) +
+            (singersNote ? `\nChanteurs : ${singersNote}` : '') + (sectionsNote ? `\nCouplets / refrains : ${sectionsNote}` : '') + (noVoice ? '' : `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`);
         log('info', `Séparation terminée en ${sec.toFixed(1)} s : ${made.join(', ')}`);
+        // Bilan en une ligne : moteur réellement utilisé (et repli éventuel), durée par étape, total, pistes créées.
+        const usedGpu = /WebGPU/.test(iso.backend || '');
+        const fallback = sepRun.gpuNote ? `repli sur le processeur : carte graphique écartée (${sepRun.gpuNote})`
+            : plan.gpu && !usedGpu ? 'repli sur le processeur : la carte graphique n\'a pas passé son essai' : 'sans repli';
+        log('info', `Séparation — bilan : moteur ${sepEngineName(iso.backend)}, ${fallback} ; durée par étape : ` +
+            stepsLog.map((s) => `${s.name} ${sepDur(s.sec)}${s.chunks ? ` (${s.chunks} morceaux${s.reused ? `, dont ${s.reused} relus après coupure` : ''})` : ''}`).join(', ') +
+            ` ; total ${sepDur(sec)} ; ${made.length} piste(s) créée(s)${made.length ? ' : ' + made.join(', ') : ''}`);
         sepCacheClear();
-        setStatus(`Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);
+        setStatus(noVoice ? 'Chanson séparée : presque pas de voix repérée, la chanson est restée entière sur la piste Instru (aucune piste créée).'
+            : `Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);
     } catch (err) {
         if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); ui.sepInfo.textContent = 'Séparation arrêtée : rien n\'a été changé.'; }
         else { setStatus('Séparation impossible : ' + err.message); ui.sepInfo.textContent = 'Séparation impossible : ' + err.message; log('error', 'Séparation : ' + err.message); }
@@ -2303,6 +2488,8 @@ async function separateSong() {
 }
 ui.sepBtn.addEventListener('click', separateSong);
 for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers, ui.sepDenoise]) c.addEventListener('change', sepEstimate);
+for (const k of Object.keys(SEP_BOXES)) SEP_BOXES[k].addEventListener('change', () => sepChoiceKeep(k));   // choix fait à la main : gardé sur l'appareil
+sepChoiceApply();
 ui.sepStopBtn.addEventListener('click', () => {
     if (!state.separating) return;
     if (!confirm('Arrêter la séparation ? Le calcul en cours est perdu, la chanson reste comme avant.')) return;
@@ -2543,7 +2730,8 @@ async function restoreProject() {
         state.nextTrackId = meta.nextTrackId;
         state.tracks = [];
         for (const m of meta.tracks) {
-            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, smooth: !!m.smooth, fx: m.fx && typeof m.fx === 'object' ? m.fx : {},   // anciens projets : effets du style, comme avant locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, smooth: !!m.smooth, fx: m.fx && typeof m.fx === 'object' ? m.fx : {},   // anciens projets : effets du style, comme avant
+                        locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
                         take: null, takes: [], processed: null, status: 'vide', token: 0 };
             for (const k of m.takes) {
                 const mono = await get(k.audioId);
