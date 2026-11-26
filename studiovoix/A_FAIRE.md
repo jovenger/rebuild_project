@@ -390,9 +390,19 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   correction.mjs, inspect.mjs, auto.mjs, démo, équilibre, séparation : verts.
 - Protocole d'écoute : `docs/PROTOCOLE_ECOUTE.md` + note en ligne (section « Mise à jour du 26 novembre » en tête,
   protocole à la fin).
-- RESTE : case « Très rapide » (ouvrier en cours) ; détection « la compression déforme la voix » (calibrée : alerte si
-  distorsion ≥ −20 dB ou réduction moyenne ≥ 12 dB → 0 / 132 réglages d'origine, 132 / 132 compressions abusives ;
-  correctif prêt dans le scratchpad `V14/patch_comp.py`).
+- INSPECTION, COMPRESSION QUI DÉFORME (26/11, fait) : alerte si la distorsion ajoutée par les compresseurs est à 20 dB
+  ou moins sous la voix, ou si la réduction moyenne atteint 12 dB → 0 / 132 réglages d'origine signalés, 132 / 132
+  compressions abusives ; bouton « Adoucir la compression ». Essai inspect.mjs sur page propre (32 contrôles).
+- CASE « TRÈS RAPIDE » (26/11, fait par un ouvrier, fusionné et rejoué par l'orchestrateur) : modèle
+  `UVR_MDXNET_1_9703.onnx` (clé `vocFast` dans `web/isolate.js`, SHA-256 `229ad3bb…e4be`, téléchargé seulement si la
+  case sert) + recouvrement 0,10 pour l'étape voix / instru ; décochée par défaut partout ; vitesse gardée à part
+  (`vocFast` dans `sv-sep-speed`, départ = 0,31 × le modèle complet) ; tranches de reprise jamais mélangées entre les
+  deux modèles (suffixe `|vf0.1`) ; les deux lignes de journal nomment le modèle. Mesuré sur la chanson d'essai
+  (20 s, 48 kHz, serveur) : étape voix / instru 21 s contre 1 min 04 s (×0,33), SDR instru 15,6 dB contre 16,3,
+  aigus seuls 4,2 dB contre 6,5, 2 chanteurs + backs dans les deux cas. NON VÉRIFIÉ : vrai téléphone (projection
+  3 min 35 ≈ 8 à 10 min au lieu de ≈ 30), WebGPU avec ce modèle, « Finition soignée » avec « Très rapide ».
+- ÉTAPE 4 : les quatre points demandés sont faits (projet en fichier, écarts par type, inspection complète,
+  protocole d'écoute). RESTE : l'écoute réelle par Yann et la mesure sur son téléphone.
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

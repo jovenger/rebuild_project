@@ -27,7 +27,11 @@ const minSdrDb = Number(process.env.MIN_SDR_DB || 10);
 
 // SEP_SONG = chanson avec voix (WAV) : essai de « Séparer la chanson » ; TRUTH_INSTRU = vraie instru (WAV stéréo 16 bits)
 // pour mesurer l'instru séparée ; MIN_INSTRU_SDR_DB = seuil d'échec.
+// SEP_FAST=1 : la séparation est faite avec la case « Très rapide » cochée (modèle léger, recouvrement 0,10).
+// EXPECT_NO_CROSS_RESUME=1 : une 1re séparation est coupée dans l'AUTRE mode (case inversée) ; ses tranches gardées ne
+// doivent pas être relues par la séparation de l'essai.
 const sepSong = process.env.SEP_SONG || '';
+const sepFast = process.env.SEP_FAST === '1';
 function readWavStereo(path) {
     const b = readFileSync(path);
     let o = 12, ch = 0;
@@ -148,7 +152,7 @@ try {
     // ---- Réglages de départ de « Séparer » et type proposé pour une nouvelle piste (décisions du 26/11).
     // Téléphone attendu quand DEVICE est un téléphone (agent utilisateur « Mobile ») ; sinon ordinateur.
     const wantPhone = !!device && /Mobi|iPhone|iPod/.test(device.userAgent || '');
-    const sepBoxes = () => page.evaluate(() => Object.fromEntries(['sepLeadBack', 'sepSingers', 'sepSections', 'sepDenoise', 'sepAmbiance'].map((id) => [id, document.getElementById(id).checked])));
+    const sepBoxes = () => page.evaluate(() => Object.fromEntries(['sepLeadBack', 'sepSingers', 'sepSections', 'sepDenoise', 'sepAmbiance', 'sepFast'].map((id) => [id, document.getElementById(id).checked])));
     const reloadReady = async () => {
         await page.reload({ waitUntil: 'load' });
         await page.waitForFunction(() => window.__studiovoix?.ready && window.__studiovoix.tracks.length > 0 && document.getElementById('status').textContent.startsWith('Moteur prêt'), null, { timeout: 60000 });
@@ -156,16 +160,21 @@ try {
     // Estimation de durée affichée avant de lancer : mêmes morceaux que le calcul (mdxGrid), une étape par case cochée.
     const { MODELS: MDX_MODELS, mdxGrid } = await import(new URL('../isolate.js', import.meta.url));
     const sepOverlap = (() => { const v = parseFloat(new URL(url).searchParams.get('svSepOverlap')); return Number.isFinite(v) ? v : 0.25; })();
+    // « Très rapide » : étape voix / instru par le modèle léger (clé vocFast), recouvrement 0,10 ; vitesse de départ =
+    // 0,31 × celle du modèle complet tant qu'elle n'a pas été mesurée sur l'appareil.
+    const SEP_FAST_OVERLAP = 0.1, SEP_FAST_RATIO = 0.31;
+    const overlapOf = (k) => (k === 'vocFast' ? SEP_FAST_OVERLAP : sepOverlap);
+    const shownDur = (ms) => (ms >= 3600000 ? `${Math.floor(ms / 3600000)} h ${String(Math.round((ms / 1000 % 3600) / 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(ms / 60000))} min`);
     async function checkEstimate(label) {
         const e = await page.evaluate(() => ({ text: document.getElementById('sepEst').textContent, est: window.__svSep.est, secs: window.__studiovoix.instru.seconds,
-            leadBack: document.getElementById('sepLeadBack').checked, denoise: document.getElementById('sepDenoise').checked, speed: localStorage.getItem('sv-sep-speed') }));
+            leadBack: document.getElementById('sepLeadBack').checked, denoise: document.getElementById('sepDenoise').checked, fast: document.getElementById('sepFast').checked, speed: localStorage.getItem('sv-sep-speed') }));
         console.log(stamp(), `estimation (${label}) : ${e.text}`);
         if (!e.est) throw new Error('estimation : aucune durée calculée avant de lancer');
-        const keys = ['voc', ...(e.leadBack ? ['kara'] : [])];
+        const keys = [e.fast ? 'vocFast' : 'voc', ...(e.leadBack ? ['kara'] : [])];
         if (e.est.keys.join() !== keys.join()) throw new Error(`estimation : étapes ${e.est.keys.join('+')} au lieu de ${keys.join('+')} (cases cochées)`);
         let ms = 0;
         for (const k of keys) {
-            const total = mdxGrid(Math.round(e.secs * 44100), MDX_MODELS[k], sepOverlap).total;
+            const total = mdxGrid(Math.round(e.secs * 44100), MDX_MODELS[k], overlapOf(k)).total;
             if (e.est.chunks[k] !== total) throw new Error(`estimation : ${e.est.chunks[k]} morceaux pour l'étape ${k}, la grille du calcul en a ${total}`);
             if (!(e.est.msPerChunk[k] >= 500 && e.est.msPerChunk[k] <= 600000)) throw new Error(`estimation : vitesse invraisemblable pour ${k} : ${e.est.msPerChunk[k]} ms par morceau`);
             ms += e.est.msPerChunk[k] * total * (k === 'kara' ? 0.8 : 1);
@@ -176,7 +185,34 @@ try {
         if (!e.text.includes(`~${shown} (${keys.length} étape`)) throw new Error(`estimation : « ~${shown} (${keys.length} étape… » absent du texte affiché : ${e.text}`);
         if (!e.speed && (e.est.measured || !/estimation de départ pour un (téléphone|ordinateur), affinée dès le premier morceau/.test(e.text))) throw new Error('estimation : avant toute mesure, le texte doit dire « estimation de départ …, affinée dès le premier morceau » : ' + e.text);
         if (!e.speed && e.est.phone !== wantPhone) throw new Error(`estimation : vitesse de départ d'un ${e.est.phone ? 'téléphone' : 'ordinateur'} sur un ${wantPhone ? 'téléphone' : 'ordinateur'}`);
-        return { ...e.est, keys };
+        // Case « Très rapide » décochée : le texte la propose avec sa durée (mêmes étapes, étape voix / instru par le
+        // modèle léger : morceaux de la grille à 0,10 × sa vitesse). Cochée : plus de proposition.
+        if (!e.fast) {
+            const sp = JSON.parse(e.speed || '{}'), dn = e.denoise ? 2 : 1;
+            const fastSpeed = sp.vocFast || SEP_FAST_RATIO * e.est.msPerChunk.voc;
+            const fastChunks = mdxGrid(Math.round(e.secs * 44100), MDX_MODELS.vocFast, SEP_FAST_OVERLAP).total;
+            const fastMs = ms - dn * e.est.msPerChunk.voc * e.est.chunks.voc + dn * fastSpeed * fastChunks;
+            if (Math.abs(fastMs - e.est.fastMs) > 1) throw new Error(`estimation « Très rapide » : ${e.est.fastMs} ms au lieu de ${fastMs} ms (${fastChunks} morceaux × ${fastSpeed} ms)`);
+            if (shownDur(fastMs) !== shown && !e.text.includes(`cocher « Très rapide » → ~${shownDur(fastMs)} (un peu moins propre)`)) throw new Error(`estimation : « cocher « Très rapide » → ~${shownDur(fastMs)} » absent du texte affiché : ${e.text}`);
+        } else if (/cocher « Très rapide »/.test(e.text)) throw new Error('estimation : « Très rapide » proposée alors que la case est déjà cochée : ' + e.text);
+        return { ...e.est, keys, secs: e.secs };
+    }
+    // Estimation avec « Très rapide » : cochée, elle baisse comme prévu (moins de morceaux × vitesse du modèle léger) et
+    // vaut la durée proposée juste avant ; puis la case et le choix gardé reviennent à leur état d'avant.
+    async function checkFastEstimate(est0) {
+        const kept = await page.evaluate(() => localStorage.getItem('sv-sep-choice'));
+        await page.check('#sepFast');
+        const estF = await checkEstimate('« Très rapide » cochée');
+        const sp = JSON.parse(await page.evaluate(() => localStorage.getItem('sv-sep-speed')) || '{}');
+        const wantSpeed = sp.vocFast || SEP_FAST_RATIO * est0.msPerChunk.voc;
+        if (Math.abs(estF.msPerChunk.vocFast - wantSpeed) > 1e-6 * wantSpeed) throw new Error(`estimation « Très rapide » : ${estF.msPerChunk.vocFast} ms par morceau au lieu de ${wantSpeed} (${sp.vocFast ? 'vitesse mesurée' : `${SEP_FAST_RATIO} × ${est0.msPerChunk.voc}`})`);
+        if (estF.chunks.vocFast > est0.chunks.voc || (est0.chunks.voc >= 8 && estF.chunks.vocFast >= est0.chunks.voc)) throw new Error(`estimation « Très rapide » : ${estF.chunks.vocFast} morceaux contre ${est0.chunks.voc} (recouvrement 0,10 attendu)`);
+        if (!(estF.ms < est0.ms)) throw new Error(`estimation « Très rapide » : ${estF.ms} ms, pas plus court que ${est0.ms} ms`);
+        if (Math.abs(estF.ms - est0.fastMs) > 1) throw new Error(`estimation « Très rapide » : ${estF.ms} ms une fois cochée, ${est0.fastMs} ms proposés avant de cocher`);
+        console.log(stamp(), `estimation « Très rapide » : ${estF.chunks.vocFast} morceaux × ${Math.round(estF.msPerChunk.vocFast)} ms contre ${est0.chunks.voc} × ${Math.round(est0.msPerChunk.voc)} ms à l'étape voix / instru ; total ${shownDur(estF.ms)} contre ${shownDur(est0.ms)} (rapport ${(estF.ms / est0.ms).toFixed(2)})`);
+        await page.uncheck('#sepFast');
+        await page.evaluate((v) => (v === null ? localStorage.removeItem('sv-sep-choice') : localStorage.setItem('sv-sep-choice', v)), kept);
+        return estF;
     }
     if (!micFile) {
         const def = await sepBoxes();
@@ -184,21 +220,24 @@ try {
         console.log(stamp(), `séparation, cases au départ (${wantPhone ? 'téléphone' : 'ordinateur'}) : ${Object.entries(def).map(([k, v]) => `${k}=${v ? 'cochée' : 'décochée'}`).join(', ')}`);
         if (def.sepLeadBack !== want.sepLeadBack || def.sepSingers !== want.sepSingers) throw new Error(`cases de séparation au départ : ${JSON.stringify(def)}, attendu ${JSON.stringify(want)} sur ${wantPhone ? 'téléphone (mode rapide)' : 'ordinateur'}`);
         if (def.sepSections || def.sepDenoise) throw new Error('« Couplets / refrains » et « Finition soignée » doivent être décochées au départ : ' + JSON.stringify(def));
+        if (def.sepFast) throw new Error('« Très rapide » doit être décochée au départ, sur ordinateur comme sur téléphone : ' + JSON.stringify(def));
         if (def.sepAmbiance || await page.isVisible('#sepAmbiance') || !(await page.isDisabled('#sepAmbiance'))) throw new Error('option « Ambiance » : doit être masquée, décochée et inactive');
         const help = await page.textContent('#sepHelp');
         if (wantPhone ? !/mode rapide/.test(help) || !/instru et la voix/.test(help) : !/Ordinateur/.test(help)) throw new Error('aide de la séparation : texte inattendu pour cet appareil : ' + help);
+        if (!/« Très rapide »/.test(help) || !/3 fois plus rapide/.test(help) || !/un peu moins propres/.test(help) || !/14,7 kHz restent dans l'instru/.test(help)) throw new Error('aide de la séparation : « Très rapide » mal expliquée (3 fois plus rapide, un peu moins propre, aigus au-dessus de 14,7 kHz) : ' + help);
         const devLine = (await page.$$eval('#log div', (els) => els.map((x) => x.textContent))).find((l) => /Séparation, réglages de départ : (téléphone|ordinateur) \(/.test(l));
         if (!devLine) throw new Error('journal : ligne « Séparation, réglages de départ » absente');
         console.log(stamp(), 'journal de la page :', devLine.replace(/^[\d:]+(\s[AP]M)?\s+/, ''));
         // Choix fait à la main : gardé après rechargement ; un ancien réglage ne peut pas réactiver « Ambiance ».
-        await page.click('#sepLeadBack'); await page.click('#sepSections');
+        await page.click('#sepLeadBack'); await page.click('#sepSections'); await page.click('#sepFast');
         const mine = await sepBoxes();
         await page.evaluate(() => localStorage.setItem('sv-sep-choice', JSON.stringify({ ...JSON.parse(localStorage.getItem('sv-sep-choice')), ambiance: true, sepAmbiance: true })));
         await reloadReady();
         const kept = await sepBoxes();
         if (kept.sepLeadBack !== mine.sepLeadBack || kept.sepSections !== true || kept.sepSingers !== def.sepSingers) throw new Error(`choix de séparation non gardé après rechargement : ${JSON.stringify(kept)} au lieu de ${JSON.stringify(mine)}`);
         if (kept.sepAmbiance) throw new Error('« Ambiance » réactivée par un ancien réglage');
-        console.log(stamp(), `choix fait à la main gardé après rechargement : sepLeadBack=${kept.sepLeadBack ? 'cochée' : 'décochée'}, sepSections=cochée ; « Ambiance » reste inactive`);
+        if (kept.sepFast !== true) throw new Error('« Très rapide » cochée à la main : choix non gardé après rechargement : ' + JSON.stringify(kept));
+        console.log(stamp(), `choix fait à la main gardé après rechargement : sepLeadBack=${kept.sepLeadBack ? 'cochée' : 'décochée'}, sepSections=cochée, sepFast=cochée ; « Ambiance » reste inactive`);
         // Type proposé : « Voix principale » tant qu'aucune piste ne l'est, sinon « Voix back » ; choix à la main respecté.
         const proposed = () => page.inputValue('#addRole');
         const roles = () => page.evaluate(() => window.__studiovoix.tracks.map((t) => t.roleId).join(','));
@@ -322,6 +361,31 @@ try {
         await page.waitForFunction(() => window.__studiovoix.instru?.analysis, null, { timeout: 120000 });
         const est0 = await checkEstimate('avant tout calcul');
         if (wantPhone && est0.keys.length !== 1) throw new Error('téléphone : l\'estimation de départ doit porter sur une seule étape (mode rapide)');
+        await checkFastEstimate(est0);
+        const vocKey = sepFast ? 'vocFast' : 'voc', wantModel = sepFast ? 'modèle léger, très rapide' : 'modèle complet';
+        const wantChunks = mdxGrid(Math.round(est0.secs * 44100), MDX_MODELS[vocKey], overlapOf(vocKey)).total;
+        if (sepFast) { await page.check('#sepFast'); console.log(stamp(), `séparation avec « Très rapide » cochée : ${wantChunks} morceaux attendus à l'étape voix / instru`); }
+        if (process.env.EXPECT_NO_CROSS_RESUME === '1') {
+            // Coupure pendant une séparation faite dans l'autre mode, une fois des tranches gardées (étape 2 commencée, ou
+            // 2e tranche de l'étape 1 en cours sur une chanson longue), puis retour au mode de l'essai : la page prévient,
+            // et la séparation qui suit ne doit relire aucune de ces tranches.
+            page.on('dialog', (d) => d.accept().catch(() => {}));   // « quitter la page ? » pendant le calcul
+            await page.setChecked('#sepFast', !sepFast);
+            await page.click('#sepBtn');
+            await page.waitForFunction(() => { const r = window.__svSep; return /Étape 2\//.test(document.getElementById('sepStep').textContent) || (r.seg && r.seg.i >= 1 && r.cDone > r.seg.per); }, null, { timeout: 1200000 });
+            console.log(stamp(), `coupure simulée en mode ${sepFast ? 'normal' : '« Très rapide »'} : rechargement de la page à « ${await page.textContent('#sepStep')} »`);
+            await page.reload({ waitUntil: 'load' });
+            await page.waitForFunction(() => window.__studiovoix?.instru && !document.getElementById('sepBtn').disabled, null, { timeout: 180000 });
+            await page.waitForTimeout(1500);
+            const n1 = await page.textContent('#sepInfo');
+            if (!/Séparation interrompue : \d+ tranche\(s\)/.test(n1) || /« Très rapide »/.test(n1)) throw new Error('autre mode : après la coupure, annonce de reprise inattendue : ' + n1);
+            if (await page.isChecked('#sepFast') === sepFast) throw new Error('autre mode : la case « Très rapide » n\'est pas revenue comme avant la coupure');
+            await page.setChecked('#sepFast', sepFast);
+            await page.waitForFunction(() => /Ces tranches ont été calculées/.test(document.getElementById('sepInfo').textContent), null, { timeout: 10000 });
+            const n2 = await page.textContent('#sepInfo');
+            console.log(stamp(), 'case « Très rapide » changée après la coupure, la page annonce :', n2);
+            if (!new RegExp(`calculées ${sepFast ? 'sans' : 'avec'} « Très rapide » : ${sepFast ? 'décoche' : 'recoche'} la case pour reprendre`).test(n2)) throw new Error('autre mode : la page ne dit pas que les tranches gardées ne serviront pas : ' + n2);
+        }
         // EXPECT_RESUME_MID=1 (hors CI, chanson d'au moins 45 s) : coupure EN COURS d'étape. 1) séparation sans coupure
         // (instru + voix seulement) : résultat de référence ; 2) morceau rétabli, séparation relancée et page rechargée
         // pendant la 2e tranche ; 3) relance : la 1re tranche gardée est relue, le reste recalculé, et le résultat doit
@@ -415,6 +479,14 @@ try {
             if (!/voix \/ instru : \d+ tranche\(s\), [1-9]\d* reprise/.test(jl)) throw new Error('reprise : étape 1 recalculée au lieu d\'être relue');
             console.log(stamp(), 'reprise après coupure : étape 1 relue sans recalcul');
         }
+        if (process.env.EXPECT_NO_CROSS_RESUME === '1') {
+            const jl = await page.$$eval('#log div', (els) => els.map((e) => e.textContent));
+            const line = jl.find((l) => /voix \/ instru : \d+ tranche\(s\)/.test(l)) || '';
+            const wiped = jl.find((l) => /reprise : \d+ tranche\(s\) d'une ancienne séparation effacée\(s\)/.test(l));
+            if (!/ 0 reprise\(s\) sans calcul \(0 morceau\(x\) relu\(s\)/.test(line)) throw new Error(`autre mode : des tranches gardées en mode ${sepFast ? 'normal' : '« Très rapide »'} ont été relues : ${line}`);
+            if (!wiped) throw new Error('autre mode : les tranches gardées de l\'autre mode n\'ont pas été effacées');
+            console.log(stamp(), `tranches gardées en mode ${sepFast ? 'normal' : '« Très rapide »'} non relues en mode ${sepFast ? '« Très rapide »' : 'normal'} : ${line.replace(/^.*Séparation voix/, 'Séparation voix')} ; ${wiped.replace(/^.*reprise :/, 'reprise :')}`);
+        }
         if (midRef) {
             // Tranches gardées relues, le reste recalculé, et même résultat que sans coupure.
             const line = (await page.$$eval('#log div', (els) => els.map((e) => e.textContent))).find((l) => /voix \/ instru : \d+ tranche\(s\)/.test(l)) || '';
@@ -450,6 +522,25 @@ try {
         const sumLine = sepLines.find((l) => /Séparation — bilan : moteur (carte graphique \(WebGPU\)|processeur \(\d+ fils?\)), (sans repli|repli sur le processeur[^;]*) ; durée par étape : .*voix \/ instru [\d, mins]+ \(\d+ morceaux.* ; total [\d, mins]+ ; \d+ piste\(s\) créée\(s\)/.test(l));
         if (!sumLine) throw new Error('séparation : ligne de journal « bilan » (moteur, durée par étape, pistes créées) absente ou incomplète');
         console.log(stamp(), 'journal de la page :', sumLine.replace(/^[\d:]+(\s[AP]M)?\s+/, ''));
+        // Les deux lignes disent quel modèle a servi à l'étape voix / instru ; le bilan donne son nombre de morceaux
+        // (grille à 0,10 de recouvrement en « Très rapide »). Le modèle léger n'est chargé que si la case sert.
+        if (!startLine.includes(` ; voix / instru : ${wantModel}`)) throw new Error(`journal, ligne « départ » : « voix / instru : ${wantModel} » absent : ${startLine}`);
+        const sumVoc = sumLine.match(/voix \/ instru [\d, mins]+ \((\d+) morceaux[^)]*, (modèle [^)]+)\)/);
+        if (!sumVoc || sumVoc[2] !== wantModel) throw new Error(`journal, ligne « bilan » : modèle de l'étape voix / instru « ${sumVoc?.[2]} » au lieu de « ${wantModel} » : ${sumLine}`);
+        if (Math.abs(Number(sumVoc[1]) - wantChunks) > 1) throw new Error(`étape voix / instru : ${sumVoc[1]} morceaux au lieu de ${wantChunks} (${sepFast ? 'recouvrement 0,10' : 'recouvrement habituel'})`);
+        const lightLoads = sepLines.filter((l) => /\[isolation\] modèle voix \(modèle léger\) (téléchargé|lu dans le cache)[^\n]*SHA-256 vérifié/.test(l));
+        const lightCached = await page.evaluate(async () => (await (await caches.open('studiovoix-ia-v1')).keys()).some((r) => /UVR_MDXNET_1_9703\.onnx$/.test(r.url)));
+        console.log(stamp(), `modèle de l'étape voix / instru : ${wantModel}, ${sumVoc[1]} morceaux (attendu ${wantChunks}) ; modèle léger chargé ${lightLoads.length} fois pendant cette séparation, ${lightCached ? 'gardé' : 'absent'} dans le cache du navigateur`);
+        // (EXPECT_RESUME : l'étape voix / instru est relue en entier après la coupure, le modèle n'est alors pas rechargé.)
+        if (sepFast ? !lightCached || (lightLoads.length < 1 && process.env.EXPECT_RESUME !== '1') : lightLoads.length > 0) throw new Error(`modèle léger : ${lightLoads.length} chargement(s) vérifié(s), cache ${lightCached} — attendu : ${sepFast ? 'chargé avec SHA-256 vérifié et gardé' : 'jamais chargé (case décochée)'}`);
+        if (!sepFast && process.env.EXPECT_NO_CROSS_RESUME !== '1' && lightCached) throw new Error('modèle léger téléchargé alors que « Très rapide » n\'a jamais servi');
+        // Vitesse mesurée : gardée sous la clé du modèle qui a servi (« vocFast » à part de « voc »), jamais sous l'autre.
+        const spd = JSON.parse(await page.evaluate(() => localStorage.getItem('sv-sep-speed')) || '{}');
+        console.log(stamp(), `vitesse gardée sur l'appareil (ms par morceau) : ${Object.entries(spd).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ') || 'aucune'}`);
+        if (!(spd[vocKey] > 0)) throw new Error(`vitesse du ${wantModel} non gardée sous sa clé « ${vocKey} » : ${JSON.stringify(spd)}`);
+        if (process.env.EXPECT_NO_CROSS_RESUME !== '1' && spd[sepFast ? 'voc' : 'vocFast'] != null) throw new Error(`vitesse de l'autre modèle écrite alors qu'il n'a pas servi : ${JSON.stringify(spd)}`);
+        const profLine = sepLines.find((l) => /Profil voix \/ instru : /.test(l));   // temps du modèle par morceau (comparaison des deux modèles)
+        if (profLine) console.log(stamp(), 'journal de la page :', profLine.replace(/^[\d:]+(\s[AP]M)?\s+/, ''));
         if (/WebGL/i.test(startLine + sumLine)) throw new Error('journal : la page n\'utilise pas WebGL, le moteur est « carte graphique (WebGPU) » ou « processeur (N fils) »');
         if (process.env.EXPECT_GPU_FALLBACK === '1') {
             const fb = await page.evaluate(() => ({ ban: localStorage.getItem('sv-no-webgpu'), log: document.getElementById('log').textContent }));
@@ -601,6 +692,7 @@ try {
         expected = 2;
         // Estimation de la séparation affichée avant tout calcul : une seule étape sur téléphone (mode rapide), deux sur ordinateur.
         const estDemo = await checkEstimate('démo, avant tout calcul');
+        await checkFastEstimate(estDemo);
         if (estDemo.keys.length !== (wantPhone ? 1 : 2)) throw new Error(`estimation : ${estDemo.keys.length} étape(s) au lieu de ${wantPhone ? 1 : 2} sur ${wantPhone ? 'téléphone' : 'ordinateur'}`);
         if (await page.inputValue('#addRole') !== 'manual_back') throw new Error('démo (une voix principale existe) : la prochaine piste devrait être proposée en voix back');
     }

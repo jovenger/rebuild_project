@@ -24,7 +24,7 @@ const ui = {
     useScale: $('useScale'), cleaning: $('cleaning'),
     listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'), fxSmooth: $('fxSmooth'), inspectBtn: $('inspectBtn'), inspectBox: $('inspectBox'), inspectAllBtn: $('inspectAllBtn'), inspectAllBox: $('inspectAllBox'),
     fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
-    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), exportRawBtn: $('exportRawBtn'),
+    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), sepFast: $('sepFast'), exportRawBtn: $('exportRawBtn'),
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'), sepHelp: $('sepHelp'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
@@ -2194,16 +2194,16 @@ const SEP_AMBIANCE_ON = false;
 // Cases de « Séparer » : réglage de départ selon l'appareil, puis le choix fait à la main, gardé sur l'appareil, prime.
 //  - téléphone : mode rapide = une seule étape de calcul (instru + voix) ;
 //  - ordinateur : voix principale / backs et une piste par chanteur ;
-//  - partout : « Couplets / refrains » et « Finition soignée » décochées.
+//  - partout : « Couplets / refrains », « Finition soignée » et « Très rapide » décochées.
 const SEP_CHOICE_KEY = 'sv-sep-choice';
-const SEP_BOXES = { leadBack: ui.sepLeadBack, singers: ui.sepSingers, sections: ui.sepSections, denoise: ui.sepDenoise };
-const SEP_BOX_NAMES = { leadBack: 'Voix principale / backs', singers: 'Une piste par chanteur', sections: 'Couplets / refrains', denoise: 'Finition soignée' };
+const SEP_BOXES = { leadBack: ui.sepLeadBack, singers: ui.sepSingers, sections: ui.sepSections, denoise: ui.sepDenoise, fast: ui.sepFast };
+const SEP_BOX_NAMES = { leadBack: 'Voix principale / backs', singers: 'Une piste par chanteur', sections: 'Couplets / refrains', denoise: 'Finition soignée', fast: 'Très rapide' };
 function sepChoiceLoad() {
     try { const c = JSON.parse(localStorage.getItem(SEP_CHOICE_KEY) || '{}'); return c && typeof c === 'object' ? c : {}; }
     catch (e) { log('warn', `choix de séparation gardés illisibles (${e.message}) : réglages de départ`); return {}; }
 }
 function sepChoiceApply() {
-    const def = sepDevice.phone ? { leadBack: false, singers: false, sections: false, denoise: false } : { leadBack: true, singers: true, sections: false, denoise: false };
+    const def = sepDevice.phone ? { leadBack: false, singers: false, sections: false, denoise: false, fast: false } : { leadBack: true, singers: true, sections: false, denoise: false, fast: false };
     const mine = sepChoiceLoad(), kept = [];
     for (const [k, box] of Object.entries(SEP_BOXES)) {
         const own = typeof mine[k] === 'boolean';
@@ -2215,9 +2215,10 @@ function sepChoiceApply() {
     const on = Object.entries(SEP_BOXES).filter(([, b]) => b.checked).map(([k]) => SEP_BOX_NAMES[k]);
     log('info', `Séparation, réglages de départ : ${sepDevice.phone ? 'téléphone' : 'ordinateur'} (${sepDevice.why}) → ${on.length ? 'cochées : ' + on.join(', ') : 'mode rapide, instru + voix seulement'}` +
         (kept.length ? ` ; choix gardés sur cet appareil : ${kept.join(', ')}` : ' ; aucun choix gardé'));
-    if (ui.sepHelp) ui.sepHelp.textContent = sepDevice.phone
+    if (ui.sepHelp) ui.sepHelp.textContent = (sepDevice.phone
         ? 'Téléphone : mode rapide par défaut — une seule étape de calcul, tu obtiens l\'instru et la voix (une piste chacune). En cochant « Voix principale / backs », les chœurs vont sur leur propre piste, pour environ une fois et demie plus de temps ; « Une piste par chanteur » ajoute une courte étape et donne une piste par voix quand elles chantent chacune leur tour. Ton choix est retenu sur ce téléphone.'
-        : 'Ordinateur : par défaut, l\'instru, la voix principale, les backs et une piste par chanteur. Plus rapide : décocher « Voix principale / backs » (instru + voix seulement, une seule étape de calcul). Ton choix est retenu sur cet appareil.';
+        : 'Ordinateur : par défaut, l\'instru, la voix principale, les backs et une piste par chanteur. Plus rapide : décocher « Voix principale / backs » (instru + voix seulement, une seule étape de calcul). Ton choix est retenu sur cet appareil.') +
+        ' « Très rapide » : un modèle d\'IA plus léger, environ 3 fois plus rapide ; l\'instru et la voix sont un peu moins propres, et les aigus de la voix au-dessus de 14,7 kHz restent dans l\'instru.';
 }
 function sepChoiceKeep(k) {
     const mine = sepChoiceLoad();
@@ -2233,26 +2234,41 @@ function sepChoiceKeep(k) {
 //    étape ; backs à 0,6 fois la voix comme sur ordinateur, 20 % de morceaux sautés, étape chanteurs négligée :
 //    2700 s ≈ 50 × v × (1 + 0,8 × 0,6) → v ≈ 36 s → arrondi au-dessus : 40 s et 24 s.
 // Dès qu'un morceau a été mesuré sur l'appareil (sepSpeedSave), c'est la mesure qui sert.
+// « Très rapide » (modèle léger, clé « vocFast ») : sa vitesse est mesurée et gardée à part ; tant qu'elle ne l'est pas,
+// départ = SEP_FAST_RATIO × la vitesse du modèle complet (mesurée sur l'appareil si elle existe, sinon celle de départ).
+// 0,31 : temps par morceau mesuré le 26/11 (0,30 à 0,32 sous Node, 0,305 dans Chromium, processeur).
+const SEP_FAST_RATIO = 0.31;
 const SEP_START_SPEED = { phone: { voc: 40000, kara: 24000, reverb: 40000 }, pc: { voc: 15000, kara: 9000, reverb: 15000 } };
 function sepEstimate() {
     if (!ui.sepEst) return;
     if (!state.instru || state.separating) { ui.sepEst.textContent = ''; return; }
     // Nombre réel de morceaux par étape (une seule grille sur toute la chanson, la même que le calcul : isolate.js).
-    const n44 = Math.round(state.instru.seconds * 44100), count = (k) => mdxGrid(n44, MDX_MODELS[k], SEP_OVERLAP).total;
-    const chunks = count('voc');
+    // « Très rapide » : autre modèle à l'étape voix / instru, et moins de morceaux (recouvrement 0,10 au lieu de 0,25).
+    const n44 = Math.round(state.instru.seconds * 44100), count = (k) => mdxGrid(n44, MDX_MODELS[k], sepOverlapOf(k)).total;
+    const fastOn = ui.sepFast.checked, vocKey = fastOn ? 'vocFast' : 'voc';
+    const chunks = count(vocKey);
     const sp = sepSpeedLoad();
-    const keys = ['voc', ...(ui.sepLeadBack.checked ? ['kara'] : []), ...(SEP_AMBIANCE_ON && ui.sepAmbiance.checked ? ['reverb'] : [])];
+    const others = [...(ui.sepLeadBack.checked ? ['kara'] : []), ...(SEP_AMBIANCE_ON && ui.sepAmbiance.checked ? ['reverb'] : [])];
+    const keys = [vocKey, ...others];
     // Avant toute mesure sur cet appareil : vitesse de départ de son type (téléphone / ordinateur), annoncée comme telle.
-    const measured = !!sp.voc, start = SEP_START_SPEED[sepDevice.phone ? 'phone' : 'pc'];
-    const speed = (k) => (measured ? (sp[k] || sp.voc) : start[k]);
+    const measured = !!sp[vocKey], start = SEP_START_SPEED[sepDevice.phone ? 'phone' : 'pc'];
+    const speed = (k) => (k === 'vocFast' ? (sp.vocFast || SEP_FAST_RATIO * (sp.voc || start.voc)) : sp.voc ? (sp[k] || sp.voc) : start[k]);
     const dn = ui.sepDenoise.checked ? 2 : 1;   // finition soignée : deux calculs par morceau
-    const ms = dn * keys.reduce((a, k) => a + speed(k) * count(k) * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
-    const fast = dn * speed('voc') * chunks;
+    const total = (ks) => dn * ks.reduce((a, k) => a + speed(k) * count(k) * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
+    const ms = total(keys);
+    const fast = dn * speed(vocKey) * chunks;
+    const fastMs = fastOn ? ms : total(['vocFast', ...others]);   // la même séparation avec « Très rapide »
     // Détail du calcul, lisible par les essais (window.__svSep.est).
-    sepRun.est = { phone: sepDevice.phone, measured, keys, chunks: Object.fromEntries(keys.map((k) => [k, count(k)])), msPerChunk: Object.fromEntries(keys.map((k) => [k, speed(k)])), passes: dn, ms, text: fmtLong(ms / 1000) };
+    sepRun.est = { phone: sepDevice.phone, measured, keys, chunks: Object.fromEntries(keys.map((k) => [k, count(k)])), msPerChunk: Object.fromEntries(keys.map((k) => [k, speed(k)])), passes: dn, ms, text: fmtLong(ms / 1000),
+        fast: fastOn, fastMs, fastChunks: count('vocFast'), fastMsPerChunk: speed('vocFast') };
+    const nChunks = [...new Set(keys.map(count))].join(' puis ');
+    const hints = [];
+    if (keys.length > 1 && fmtLong(fast / 1000) !== fmtLong(ms / 1000)) hints.push(`décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement)`);
+    if (!fastOn && fmtLong(fastMs / 1000) !== fmtLong(ms / 1000)) hints.push(`cocher « Très rapide » → ~${fmtLong(fastMs / 1000)} (un peu moins propre)`);
     ui.sepEst.textContent = (measured ? `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})`
-            : `Durée estimée : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''}, ${chunks} morceaux de calcul par étape) — estimation de départ pour un ${sepDevice.phone ? 'téléphone' : 'ordinateur'}, affinée dès le premier morceau (puis retenue pour cet appareil)`) +
-        (keys.length > 1 && fmtLong(fast / 1000) !== fmtLong(ms / 1000) ? ` — plus rapide : décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement).` : '.') +
+            : `Durée estimée : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''}, ${nChunks} morceaux de calcul par étape) — ` +
+                (fastOn && sp.voc ? 'estimation tirée de la vitesse mesurée ici avec le modèle complet' : `estimation de départ pour un ${sepDevice.phone ? 'téléphone' : 'ordinateur'}`) + `, affinée dès le premier morceau (puis retenue pour cet appareil)`) +
+        (hints.length ? ` — plus rapide : ${hints.join(' ; ')}.` : '.') +
         ` Garde la page ouverte, écran allumé.`;
 }
 function refreshButtons() {
@@ -2298,8 +2314,14 @@ async function resampleStereo(L, R, fromSr, toSr) {
 // Réglages de calcul de « Séparer » : recouvrement des morceaux et saut des morceaux sans signal (les passages sans
 // voix à l'étape backs ne passent pas dans l'IA). ?svSepOverlap=… pour les mesures A/B.
 const SEP_OVERLAP = (() => { const v = parseFloat(new URLSearchParams(location.search).get('svSepOverlap')); return Number.isFinite(v) ? v : 0.25; })();
-const SEP_OPTS = { voc: { overlap: SEP_OVERLAP, skipBelowDb: -60 }, kara: { overlap: SEP_OVERLAP, skipBelowDb: -45 }, reverb: { overlap: SEP_OVERLAP, skipBelowDb: -50 } };
-const SEP_MODELS = { voc: 'voix / instru', kara: 'voix principale / backs', reverb: 'ambiance', spk: 'chanteurs' };
+// « Très rapide » (case, décochée par défaut) : l'étape voix / instru passe par le modèle léger « vocFast » (isolate.js),
+// avec un recouvrement de 0,10 (mesuré le 26/11 : −0,03 dB de SDR instru, 16 % de morceaux en moins ; à 0,05 le pire
+// extrait se dégrade : ne pas descendre sous 0,10). Les autres étapes ne changent pas.
+const SEP_FAST_OVERLAP = 0.1;
+const SEP_OPTS = { voc: { overlap: SEP_OVERLAP, skipBelowDb: -60 }, vocFast: { overlap: SEP_FAST_OVERLAP, skipBelowDb: -60 }, kara: { overlap: SEP_OVERLAP, skipBelowDb: -45 }, reverb: { overlap: SEP_OVERLAP, skipBelowDb: -50 } };
+const sepOverlapOf = (key) => SEP_OPTS[key]?.overlap ?? SEP_OVERLAP;   // recouvrement des morceaux d'une étape
+const SEP_MODELS = { voc: 'voix / instru', vocFast: 'voix / instru', kara: 'voix principale / backs', reverb: 'ambiance', spk: 'chanteurs' };
+const sepModelName = (fastOn) => (fastOn ? 'modèle léger, très rapide' : 'modèle complet');   // journal : quel modèle a servi
 const rmsDbSt = (L, R) => { let e = 0; for (let i = 0; i < L.length; ++i) e += L[i] * L[i] + R[i] * R[i]; return 10 * Math.log10(e / Math.max(1, 2 * L.length) + 1e-20); };
 const toMonoLR = (L, R) => { const m = new Float32Array(L.length); for (let i = 0; i < m.length; ++i) m[i] = 0.5 * (L[i] + R[i]); return m; };
 // Progression visible de « Séparer » : étape, barre globale, temps écoulé / restant, roue qui tourne tant que le
@@ -2460,6 +2482,7 @@ function sepLeaveGuard(e) { e.preventDefault(); e.returnValue = ''; }   // quitt
 // fois. Une seule chanson gardée à la fois ; tout est effacé après réussite.
 const SEG_CORE = 40 * 44100;   // durée visée d'une tranche (grain de la reprise)
 const SEP_PREFIX = 'sep:';
+const SEP_FAST_TAG = '|vf';   // marque des tranches calculées en « Très rapide » dans l'identifiant de reprise (separateSong)
 async function sepDb(fn) {
     const db = await openDb();
     try { return await fn(db); } finally { db.close(); }
@@ -2497,6 +2520,12 @@ async function sepResumeNotice() {
         const steps = [...new Set(mine.map((k) => k.slice(k.lastIndexOf(':') + 1).split('#')[0]))].map((k) => SEP_MODELS[k] || k);
         ui.sepInfo.textContent = `Séparation interrompue : ${mine.length} tranche(s) d'environ 40 s déjà calculée(s) sont gardées (${steps.join(', ')}). Relance « Séparer la chanson » : le calcul reprend là où il s'était arrêté, sans les refaire.`;
         log('info', `reprise possible : ${mine.length} tranche(s) gardée(s) d'une séparation interrompue (${steps.join(', ')}) pour la chanson posée`);
+        // Les tranches d'un modèle ne servent jamais à l'autre : si la case « Très rapide » a changé, la relance repart de zéro.
+        const keptFast = mine.some((k) => k.includes(SEP_FAST_TAG));
+        if (keptFast !== ui.sepFast.checked) {
+            ui.sepInfo.textContent += ` Ces tranches ont été calculées ${keptFast ? 'avec' : 'sans'} « Très rapide » : ${keptFast ? 'recoche' : 'décoche'} la case pour reprendre, sinon le calcul repart du début.`;
+            log('warn', `reprise : tranches gardées ${keptFast ? 'avec' : 'sans'} « Très rapide », case ${ui.sepFast.checked ? 'cochée' : 'décochée'} → elles ne seront pas relues tant que la case n'est pas remise`);
+        }
     } catch (e) { log('warn', `reprise : tranches gardées illisibles (${e.message})`); }
 }
 // Profil d'une étape, en une ligne de journal : où part le temps (modèle, transformées en JavaScript, reste). Sert à
@@ -2511,7 +2540,7 @@ function sepProfileLog(key, prof, secs) {
 // Une étape IA complète, tranche par tranche, avec reprise. Même normalisation (crête du morceau entier) pour toutes
 // les tranches, pour que l'IA voie le même niveau qu'en un seul bloc.
 async function sepStep(cacheId, key, L, R, step, steps) {
-    const n = L.length, grid = mdxGrid(n, MDX_MODELS[key], SEP_OVERLAP);
+    const n = L.length, grid = mdxGrid(n, MDX_MODELS[key], sepOverlapOf(key));
     const per = Math.max(1, Math.floor(SEG_CORE / grid.step)), nSeg = Math.ceil(grid.total / per);   // morceaux par tranche
     let peak = 0;
     for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
@@ -2585,7 +2614,8 @@ async function sepEnginePlan() {
 const sepDur = (s) => (s >= 59.95 ? `${Math.floor(Math.round(s) / 60)} min ${String(Math.round(s) % 60).padStart(2, '0')} s` : `${s.toFixed(1).replace('.', ',')} s`);
 async function separateSong() {
     if (!state.instru) return;
-    const comp = { voc: 1.021, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
+    const comp = { voc: 1.021, vocFast: 1.03, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
+    const fastOn = ui.sepFast.checked, vocKey = fastOn ? 'vocFast' : 'voc';   // « Très rapide » : modèle léger à l'étape voix / instru
     const doKara = ui.sepLeadBack.checked, doRev = SEP_AMBIANCE_ON && ui.sepAmbiance.checked, doSing = ui.sepSingers.checked;
     const steps = 1 + (doKara ? 1 : 0) + (doRev ? 1 : 0) + (doSing ? 1 : 0);
     const t0 = performance.now();
@@ -2594,23 +2624,26 @@ async function separateSong() {
     sepBegin(steps);
     // Bilan de fin : durée de chaque étape (stepsLog), moteur prévu / utilisé.
     const stepsLog = [];
-    const timed = async (name, fn) => {
+    const timed = async (name, fn, note = '') => {
         const t = performance.now(), r = await fn();
-        stepsLog.push({ name, sec: (performance.now() - t) / 1000, chunks: r?.chunks, reused: r?.reusedChunks });
+        stepsLog.push({ name, sec: (performance.now() - t) / 1000, chunks: r?.chunks, reused: r?.reusedChunks, note });
         return r;
     };
     try {
         const src = state.instru, sr = src.sampleRate;
         const plan = await sepEnginePlan();
         log('info', `Séparation — départ : calcul sur ${plan.text} ; ${steps} étape(s) : ${['voix / instru', ...(doKara ? ['voix principale / backs'] : []), ...(doRev ? ['ambiance'] : []), ...(doSing ? ['chanteurs'] : [])].join(', ')}` +
+            ` ; voix / instru : ${sepModelName(fastOn)}${fastOn ? ` (${MDX_MODELS.vocFast.modelFile}, recouvrement ${String(SEP_FAST_OVERLAP).replace('.', ',')})` : ''}` +
             `${ui.sepSections.checked ? ' ; couplets / refrains demandés' : ''}${ui.sepDenoise.checked ? ' ; finition soignée (deux calculs par morceau)' : ''} ; ${fmt(src.seconds)} de chanson, ${sepDevice.phone ? 'téléphone' : 'ordinateur'}`);
         const song = await timed('préparation', () => resampleStereo(src.left, src.right, sr, 44100));
         // 1) voix / instru
         // « g2 » : format des tranches gardées (sommes pondérées sur une grille unique) — les anciennes ne sont pas relues.
-        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}|g2`;
+        // « Très rapide » : identifiant à part (modèle et recouvrement) — les tranches d'un modèle, et celles des étapes
+        // suivantes calculées à partir de sa voix, ne sont jamais relues pour l'autre.
+        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}|g2${fastOn ? `${SEP_FAST_TAG}${SEP_FAST_OVERLAP}` : ''}`;
         await sepCacheClear(cacheId);   // une seule chanson gardée
-        const v = await timed(SEP_MODELS.voc, () => sepStep(cacheId, 'voc', song.left, song.right, 1, steps));
-        const VL = v.left.map((x) => x * comp.voc), VR = v.right.map((x) => x * comp.voc);
+        const v = await timed(SEP_MODELS[vocKey], () => sepStep(cacheId, vocKey, song.left, song.right, 1, steps), sepModelName(fastOn));
+        const VL = v.left.map((x) => x * comp[vocKey]), VR = v.right.map((x) => x * comp[vocKey]);
         // L'instru est calculée plus bas, à la fréquence d'origine : morceau d'origine (jamais rééchantillonné) − porte × voix.
         let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
         // 2) voix principale / backs
@@ -2755,7 +2788,7 @@ async function separateSong() {
         const fallback = sepRun.gpuNote ? `repli sur le processeur : carte graphique écartée (${sepRun.gpuNote})`
             : plan.gpu && !usedGpu ? 'repli sur le processeur : la carte graphique n\'a pas passé son essai' : 'sans repli';
         log('info', `Séparation — bilan : moteur ${sepEngineName(iso.backend)}, ${fallback} ; durée par étape : ` +
-            stepsLog.map((s) => `${s.name} ${sepDur(s.sec)}${s.chunks ? ` (${s.chunks} morceaux${s.reused ? `, dont ${s.reused} relus après coupure` : ''})` : ''}`).join(', ') +
+            stepsLog.map((s) => `${s.name} ${sepDur(s.sec)}${s.chunks ? ` (${s.chunks} morceaux${s.reused ? `, dont ${s.reused} relus après coupure` : ''}${s.note ? `, ${s.note}` : ''})` : ''}`).join(', ') +
             ` ; total ${sepDur(sec)} ; ${made.length} piste(s) créée(s)${made.length ? ' : ' + made.join(', ') : ''}`);
         sepCacheClear();
         setStatus(noVoice ? 'Chanson séparée : presque pas de voix repérée, la chanson est restée entière sur la piste Instru (aucune piste créée).'
@@ -2776,8 +2809,9 @@ async function separateSong() {
     }
 }
 ui.sepBtn.addEventListener('click', separateSong);
-for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers, ui.sepDenoise]) c.addEventListener('change', sepEstimate);
+for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers, ui.sepDenoise, ui.sepFast]) c.addEventListener('change', sepEstimate);
 for (const k of Object.keys(SEP_BOXES)) SEP_BOXES[k].addEventListener('change', () => sepChoiceKeep(k));   // choix fait à la main : gardé sur l'appareil
+ui.sepFast.addEventListener('change', sepResumeNotice);   // tranches gardées après une coupure : dit si elles serviront encore
 sepChoiceApply();
 ui.sepStopBtn.addEventListener('click', () => {
     if (!state.separating) return;

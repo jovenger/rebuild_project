@@ -4,6 +4,8 @@
 #                 lamejs 1.2.1 (LGPL-3.0, npm lamejs) — encodeur MP3 de l'export
 #   web/models/ : UVR-MDX-NET-Voc_FT.onnx (MIT, projet Ultimate Vocal Remover) — modèle « voix seule », 66,8 Mo ;
 #                 UVR_MDXNET_KARA_2.onnx (UVR, 52,8 Mo), Reverb_HQ_By_FoxJoy.onnx (66,8 Mo, licence non indiquée),
+#                 UVR_MDXNET_1_9703.onnx (MIT, projet Ultimate Vocal Remover — crédit à UVR et à ses développeurs ;
+#                 29,7 Mo) — modèle « voix » léger de la case « Très rapide » de « Séparer »,
 #                 wespeaker_en_voxceleb_resnet34.onnx (WeSpeaker / sherpa-onnx, Apache-2.0, 26,5 Mo)
 # Usage : web/fetch-ia.sh [dossier_cache]   (le cache évite de retélécharger le modèle)
 set -euo pipefail
@@ -41,6 +43,7 @@ fetch_model() {   # fichier url sha256
 }
 UVR=https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models
 fetch_model UVR_MDXNET_KARA_2.onnx "$UVR/UVR_MDXNET_KARA_2.onnx" bf32e15105a09c0f7dddd2b67346146334d6f3ecb399ed7638eba2ab07cbf5f4
+fetch_model UVR_MDXNET_1_9703.onnx "$UVR/UVR_MDXNET_1_9703.onnx" 229ad3bb96a037e89d8ed86732d6d3675856e6a07c3e3f02896eac01ec7ee4be
 fetch_model Reverb_HQ_By_FoxJoy.onnx "$UVR/Reverb_HQ_By_FoxJoy.onnx" 233bb5c6aaa365e568659a0a81211746fa881f8f47f82d9e864fce1f7692db80
 fetch_model wespeaker_en_voxceleb_resnet34.onnx \
   https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_resnet34.onnx \

@@ -1,5 +1,7 @@
 // StudioVoix Web : isolation de la voix (IA) — modèle MDX-Net UVR-MDX-NET-Voc_FT (licence MIT, projet Ultimate Vocal
 // Remover), exécuté par ONNX Runtime Web (carte graphique WebGPU si disponible, sinon processeur WASM multi-cœur).
+// « Séparer », case « Très rapide » : modèle MDX-Net UVR-MDX-NET 1 (UVR_MDXNET_1_9703, licence MIT, projet Ultimate Vocal
+// Remover : crédit à UVR et à ses développeurs), plus léger — voir MODELS.vocFast.
 // Garde uniquement la voix de la prise : musique extérieure (radio, télé, voisin), restes de l'instru, bruits.
 //
 // Reprise fidèle du prétraitement de python-audio-separator (MDXSeparator + STFT) :
@@ -29,6 +31,17 @@ export const MDX = Object.freeze({
 // par l'empreinte UVR = md5 des 10 derniers Mo du fichier). primary = ce que le modèle rend ; l'autre partie = entrée − rendu.
 export const MODELS = Object.freeze({
     voc: MDX,
+    // UVR-MDX-NET 1 (fichier UVR_MDXNET_1_9703, licence MIT, projet Ultimate Vocal Remover — crédit à UVR et à ses
+    // développeurs ; empreinte UVR a3cd63058945e777505c01d2507daf37) :
+    // modèle « voix » léger, pour « Très rapide » de « Séparer ». Même forme d'entrée / sortie que voc, 2048 bandes au
+    // lieu de 3072 : environ 3 fois moins de calcul, voix extraite jusqu'à 14,7 kHz seulement (au-dessus, elle reste
+    // dans l'instru). Recouvrement 0,10 (mesuré : −0,03 dB de SDR instru ; ne pas descendre en dessous).
+    vocFast: Object.freeze({
+        sampleRate: 44100, nFft: 6144, hop: 1024, dimF: 2048, dimT: 256, overlap: 0.1,
+        modelFile: 'UVR_MDXNET_1_9703.onnx', modelBytes: 29704436,
+        modelSha256: '229ad3bb96a037e89d8ed86732d6d3675856e6a07c3e3f02896eac01ec7ee4be',
+        compensate: 1.03, primary: 'Vocals', label: 'voix (modèle léger)',
+    }),
     // UVR-MDX-NET Karaoke 2 (empreinte 1d64a6d2c30f709b8c9b4ce1366d96ee) : rend tout sauf la voix principale ; appliqué
     // aux voix seules, il rend les backs (chœurs, harmonies) ; voix principale = voix − backs.
     kara: Object.freeze({

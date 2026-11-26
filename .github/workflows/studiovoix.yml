@@ -384,7 +384,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/ia-cache
-          key: studiovoix-ia-voc-kara-reverb-spk-ort-1.22.0
+          key: studiovoix-ia-voc-kara-reverb-spk-fast-ort-1.22.0
 
       - name: IA (ONNX Runtime Web 1.22.0 + modèle voix seule)
         run: |
@@ -471,6 +471,10 @@ jobs:
           ffmpeg -hide_banner -loglevel error -y -i "$SEP/truth_instru.wav" -ar 48000 -c:a pcm_s16le "$SEP/48/truth_instru.wav"
           SEP_SONG="$SEP/48/song.wav" TRUTH_INSTRU="$SEP/48/truth_instru.wav" MIN_INSTRU_SDR_DB=10 MAX_QUIET_HF_DB=-40 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs "http://127.0.0.1:8765/index.html?svRate=48000" - - "$RUNNER_TEMP/web_sep.png"
+          # Même séparation avec la case « Très rapide » (modèle léger UVR_MDXNET_1_9703, recouvrement 0,10) : mêmes
+          # contrôles (instru, chanteurs, backs), modèle nommé au journal, nombre de morceaux attendu.
+          SEP_FAST=1 SEP_SONG="$SEP/48/song.wav" TRUTH_INSTRU="$SEP/48/truth_instru.wav" MIN_INSTRU_SDR_DB=10 MAX_QUIET_HF_DB=-40 EXPECT_BACKS=1 EXPECT_SINGERS=2 \
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/e2e.mjs "http://127.0.0.1:8765/index.html?svRate=48000" - - "$RUNNER_TEMP/web_sep_fast.png"
           # Sans musique extérieure (instru captée seule) : prise déjà propre après le retrait, l'IA doit être sautée.
           python3 web/test/make_fake_mic.py "$RUNNER_TEMP/fakemic-clean" --voice "$RUNNER_TEMP/jfk.wav" --no-radio
           MIC_FILE="$RUNNER_TEMP/fakemic-clean/mic.wav" VOICE_REF="$RUNNER_TEMP/fakemic-clean/voice.wav" MIN_SDR_DB=10 \

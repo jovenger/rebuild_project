@@ -3,6 +3,7 @@
 // puis gardés dans le cache du navigateur). Carte graphique (WebGPU) si le navigateur en a une, sinon processeur
 // (WASM, multi-cœur si la page est isolée). Plusieurs modèles (isolate.js, MODELS) : une session par modèle, chargée à
 // la demande ; « release » la libère après usage (mémoire limitée sur téléphone).
+// Le modèle léger de « Très rapide » (MODELS.vocFast, 30 Mo) n'est téléchargé que si la case sert.
 import * as ort from './vendor/ort.webgpu.min.mjs';
 import { separateVocals, MODELS } from './isolate.js';
 

@@ -131,6 +131,13 @@ Depuis le cahier des charges du 26/11 (studio automatique) :
   toucher au projet en cours.
 - **Séparer une chanson** : sur téléphone, mode rapide par défaut (instru + voix) avec la durée estimée avant de
   lancer ; une même voix reste sur une seule piste ; bilan au journal (moteur, durée par étape, pistes créées).
+- **Très rapide** (case de « Séparer une chanson », décochée par défaut) : l'étape « voix / instru » passe par un
+  modèle plus léger, MDX-Net « UVR-MDX-NET 1 » (`UVR_MDXNET_1_9703.onnx`, 29,7 Mo, licence MIT, projet Ultimate Vocal
+  Remover — merci à UVR et à ses développeurs), environ 3 fois plus rapide ; l'instru et la voix sont un peu moins
+  propres et les aigus de la voix au-dessus de 14,7 kHz restent dans l'instru. Téléchargé une seule fois, seulement si
+  la case sert (SHA-256 vérifié, gardé par le navigateur).
+- **Inspection** : sur toute la durée de la piste (le pire passage est détaillé) ; signale aussi une compression qui
+  déforme la voix, avec un bouton « Adoucir la compression ».
 
 Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), installateur et bouton
 « Mise à jour » (la page est toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
