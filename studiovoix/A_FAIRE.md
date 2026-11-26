@@ -242,7 +242,44 @@ comment les automatismes doivent être faits, ordre proposé.
   (option dans « Séparer une chanson », choix du fichier, diagnostic de la carte, repli propre, essais, doc) ; puis
   essai sur le PC de Yann, seul endroit où la carte graphique peut être mesurée.
 
-## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC)
+## REPRISE le 26/11 — cahier des charges de Yann (« Note de travail — StudioVoix (Version Web) », PDF du 26/11)
+
+Périmètre : la page web seulement (le logiciel Windows est écarté). Objectif : un vrai studio automatique multi-pistes —
+on importe ou on sépare, et le programme travaille toutes les pistes proprement, sans attendre un geste piste par piste.
+
+- Ce que la note demande, par étape (ordre fixé par Yann) :
+  1. **Séparation rapide et fidèle** : journal clair du moteur utilisé (carte graphique ou processeur), durée par étape,
+     nombre de pistes créées ; mode rapide par défaut sur téléphone (instru + voix) avec durée estimée fiable avant de
+     lancer ; reprise par tranches fiable ; **même voix = même piste** même quand le ton change (plus aigu, plus grave,
+     plus posé, plus énergique) : regroupement des chanteurs recalibré ; couplets sur une seule piste et refrains sur
+     une seule piste quand l'option est active ; pas de piste vide ou redondante ; option Ambiance corrigée ou masquée.
+  2. **Automatisme global** : dès qu'une piste arrive (séparation, import, enregistrement), toutes les pistes sont
+     analysées et traitées ensemble : volumes homogènes, résonances réduites OU compensées (corps, présence),
+     compression proportionnelle à la dynamique réelle, justesse ; retouches fines toujours possibles.
+  3. **Outils de montage** sur la ligne de temps : couper / découper, copier / coller / dupliquer, déplacer un bout de
+     prise d'une piste à l'autre en gardant sa position, rogner et fondus (entrée, sortie, croisés), muet par bout de
+     prise, fusionner, inverser le sens, gain par bout de prise.
+  4. **Équilibrage, inspection, sauvegarde** : normalisation, compresseur / limiteur d'équilibrage, réducteur /
+     compensateur de résonances, correction de hauteur ; inspection sur toute la durée de la piste et saturation due
+     à une compression excessive ; export / import d'un fichier projet ; écarts par type assouplis (-7, -9, -14, -4 LU)
+     et réglage de base de l'instru avant le mixage final ; protocole de vérification à l'oreille (prises micro, voix
+     lissées, séparation, MP3 sur iPhone).
+- Décisions de Yann du 26/11 (à ne pas rediscuter) :
+  - Automatisme = **correction seule** : volumes égalisés, résonances, compression à la juste valeur, justesse,
+    appliqués d'office à toutes les pistes ; aucune couleur de style d'office (ni réverb, ni écho, ni saturation) :
+    le style reste un choix à la main, piste par piste.
+  - Type proposé à l'ajout d'une piste : **la première voix est « Voix principale », les suivantes « Voix back »**
+    (remplace la décision du 16/11).
+  - Option « qualité maximale » sur PC (BS-Roformer, chantier D) : **laissée de côté** ; le pilote reste décrit plus bas.
+  - Mode rapide par défaut sur téléphone : écrit dans la note ; remplace la décision du 16/11 « pas de mode rapide ».
+- Choix de l'orchestrateur, annoncés à Yann : « Couplets / refrains » décoché par défaut (moins de pistes) ; le journal
+  dira « carte graphique (WebGPU) » ou « processeur » (la page n'utilise pas WebGL).
+- Ce qu'il faut dire franchement à Yann : le modèle d'IA pèse 85 à 95 % du temps d'une séparation ; la seule
+  réduction forte possible aujourd'hui sur téléphone est de faire moins d'étapes (mode rapide : 1 étape au lieu de 3).
+- Avancement : étape 1 lancée le 26/11 (deux ouvriers : regroupement des voix ; page) ; éclaireurs lancés pour les
+  étapes 2 (ce que le moteur sait déjà corriger tout seul) et 3 (comment les prises sont rangées et dessinées).
+
+## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 
 - En ligne : build 140 pour le produit (A, C, porte hors chant) ; les builds suivants ne portent que de la doc.
 - Chantier D (qualité maximale sur PC) : pilote D1 arrêté en cours de route, à ma main ; aucun changement au produit.
