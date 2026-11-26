@@ -414,7 +414,8 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
                        + juce::String (problems.bodyBalanceDb, 1) + " dB, présence "_u8 + juce::String (problems.presenceBalanceDb, 1)
                        + " dB, sifflantes " + juce::String (problems.sibilanceDb, 1) + " dB, résonances "_u8 + juce::String (problems.resonanceDb, 1)
                        + " dB, justesse " + juce::String (problems.pitchDeviationCents, 1) + " cents (voisé "_u8
-                       + juce::String (juce::roundToInt (problems.voicedFraction * 100.0f)) + " %, fondamentale "
+                       + juce::String (juce::roundToInt (problems.voicedFraction * 100.0f)) + " %, notes tenues "
+                       + juce::String (juce::roundToInt (problems.heldNoteFraction * 100.0f)) + " %, fondamentale "
                        + juce::String (juce::roundToInt (problems.medianF0Hz)) + " Hz)");
     // « Voix lissée » (gentle) : un interrupteur qui s'ajoute au style, pas un mode à part. Le style reste entier dans
     // ce qui fait son caractère (autotune, égaliseur, réverb, écho, image stéréo) ; tout ce qui peut rendre la voix
@@ -482,6 +483,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
         m->setProperty ("sibilanceDb", problems.sibilanceDb);
         m->setProperty ("pitchDeviationCents", problems.pitchDeviationCents);
         m->setProperty ("voicedFraction", problems.voicedFraction);
+        m->setProperty ("heldNoteFraction", problems.heldNoteFraction);    // part de notes tenues : voix chantée (justesse) ou parlée / rappée
         m->setProperty ("medianF0Hz", problems.medianF0Hz);
         m->setProperty ("clippedSamples", problems.clippedSamples);
         m->setProperty ("polyphonic", problems.polyphonic);

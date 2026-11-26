@@ -33,6 +33,43 @@ namespace
     }
 
     juce::String db1 (float v) { return (v >= 0.0f ? "+" : "") + juce::String (v, 1) + " dB"; }
+
+    /** Part des trames voisées sûres qui appartiennent à une note tenue : une suite ininterrompue de trames dont la
+        hauteur reste dans une fenêtre de 2 x halfWidthCents pendant au moins minMs. midi : hauteur par trame, NaN si
+        la trame n'est pas une trame voisée sûre. Une voix chantée tient ses notes (part élevée) ; une voix parlée ou
+        rappée glisse sans cesse (part faible). */
+    float heldNoteFraction (const std::vector<float>& midi, double hopSec, float halfWidthCents, float minMs)
+    {
+        const float width = 2.0f * halfWidthCents / 100.0f;
+        const int minFrames = std::max (2, static_cast<int> (std::ceil (minMs * 0.001 / hopSec)));
+        int sure = 0, held = 0;
+        size_t i = 0;
+        while (i < midi.size())
+        {
+            if (std::isnan (midi[i]))
+            {
+                ++i;
+                continue;
+            }
+            // Segment glouton : s'étend tant que toutes ses hauteurs tiennent dans la fenêtre.
+            float lo = midi[i], hi = midi[i];
+            size_t j = i + 1;
+            for (; j < midi.size() && ! std::isnan (midi[j]); ++j)
+            {
+                const float nlo = std::min (lo, midi[j]), nhi = std::max (hi, midi[j]);
+                if (nhi - nlo > width)
+                    break;
+                lo = nlo;
+                hi = nhi;
+            }
+            const int len = static_cast<int> (j - i);
+            sure += len;
+            if (len >= minFrames)
+                held += len;
+            i = j;
+        }
+        return sure > 0 ? static_cast<float> (held) / static_cast<float> (sure) : 0.0f;
+    }
 }
 
 TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& key, bool vocal)
@@ -153,6 +190,7 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
         double dev = 0.0;
         int voiced = 0, active = 0;
         std::vector<float> f0s;   // hauteurs sûres : médiane = registre de la voix (manque de corps jugé seulement si elle est grave)
+        std::vector<float> midis (track.frames.size(), std::nanf (""));   // hauteur par trame, NaN hors trame voisée sûre (notes tenues)
         for (size_t i = 0; i < track.frames.size(); ++i)
         {
             const double t = static_cast<double> (i) * track.hopSec;
@@ -166,7 +204,10 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
             dev += std::abs (midi - nearestScaleMidi (midi, key, false)) * 100.0;
             ++voiced;
             f0s.push_back (f.f0);
+            midis[i] = midi;
         }
+        // Notes tenues : ce qui distingue une voix chantée d'une voix parlée ou rappée (justesse de la correction).
+        p.heldNoteFraction = heldNoteFraction (midis, track.hopSec, kHeldNoteHalfWidthCents, kHeldNoteMinMs);
         if (! f0s.empty())
         {
             std::nth_element (f0s.begin(), f0s.begin() + static_cast<long> (f0s.size() / 2), f0s.end());
@@ -368,7 +409,19 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
         v.deEss = { 6500.0f, juce::jlimit (0.3f, 0.9f, 0.5f + p.sibilanceDb * 0.1f), 10.0f, -8.0f };
         p.fixes.add ("de-esser " + juce::String (juce::roundToInt (v.deEss.amount * 100.0f)) + " %");
     }
-    if (vocal && ! p.polyphonic && p.pitchDeviationCents >= 12.0f && p.voicedFraction > 0.2f)
+    // Justesse : seulement sur une voix chantée (des notes tenues). Une voix parlée ou rappée ne vise pas de note : son
+    // écart à la gamme est toujours grand, et l'accorder de force l'abîme.
+    const bool pitchWanted = vocal && ! p.polyphonic && p.pitchDeviationCents >= 12.0f && p.voicedFraction > 0.2f;
+    const bool sung = p.heldNoteFraction >= kSungMinHeldFraction;
+    if (pitchWanted && ! sung)
+    {
+        p.fixes.add ("voix parlée ou rappée : justesse non appliquée (notes tenues "_u8 + juce::String (juce::roundToInt (p.heldNoteFraction * 100.0f))
+                     + " % des trames voisées, il en faut "_u8 + juce::String (juce::roundToInt (kSungMinHeldFraction * 100.0f)) + " pour une voix chantée)"_u8);
+        SV_LOG_INFO (kMod, "Justesse : voix parlée ou rappée (notes tenues "_u8 + juce::String (p.heldNoteFraction * 100.0f, 1) + " %, seuil "
+                           + juce::String (juce::roundToInt (kSungMinHeldFraction * 100.0f)) + " %), écart à la gamme "_u8 + juce::String (p.pitchDeviationCents, 1)
+                           + " cents -> justesse non appliquée"_u8);
+    }
+    if (pitchWanted && sung)
     {
         // Justesse douce vers la gamme : corrige l'écart sans effet robot.
         const float amount = juce::jlimit (0.3f, 0.8f, p.pitchDeviationCents / 40.0f);

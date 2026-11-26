@@ -104,15 +104,20 @@ try {
         && (u.report.fx.comp.ratio > fx.comp.ratio + 0.1 || fx.comp.ratio > 2.99),
         `${fx.comp.ratio.toFixed(2)}:1 à ${fx.comp.thresholdDb.toFixed(1)} dB (dynamique ${m.levelRangeDb.toFixed(1)} dB) contre ${u.report.fx.comp.ratio.toFixed(2)}:1 à ${u.report.fx.comp.thresholdDb.toFixed(1)} dB (${u.report.measure.levelRangeDb.toFixed(1)} dB)`);
 
-    // 4) Justesse non dégradée : écart moyen à la gamme, mesuré par le moteur avant (prise) et après (sortie repassée
-    //    par la même mesure).
-    //    Référence : la même correction sans la justesse (le nettoyage seul déplace la mesure de quelques cents).
-    //    L'écart se mesure par rapport à la gamme du morceau : il n'a de sens que si la justesse a visé cette gamme.
-    //    Quand le moteur passe en « note par note » (notes dispersées : voix parlée) ou vise la gamme propre à la voix,
-    //    la comparaison est affichée mais marquée NON VÉRIFIÉ ; la voix de démonstration (chantée dans la gamme du
-    //    morceau) est alors vérifiée à sa place.
-    const pitchCheck = async (which, first, label) => {
+    // 4) Justesse : seulement sur une voix chantée (des notes tenues : measure.heldNoteFraction >= 0,45). Une voix parlée
+    //    ou rappée ne reçoit aucune justesse (correction moyenne nulle), et c'est dit dans les décisions.
+    //    Sur une voix chantée : justesse non dégradée — écart moyen à la gamme mesuré par le moteur avant (prise) et
+    //    après (sortie repassée par la même mesure) ; référence : la même correction sans la justesse (le nettoyage
+    //    seul déplace la mesure de quelques cents). L'écart se mesure par rapport à la gamme du morceau : il n'a de
+    //    sens que si la justesse a visé cette gamme. Si le moteur a visé la gamme propre à la voix (ou la note la plus
+    //    proche), la comparaison est affichée mais marquée NON VÉRIFIÉ, et la voix de démonstration (chantée dans la
+    //    gamme du morceau) est vérifiée à sa place.
+    const SUNG = 0.45, held = m.heldNoteFraction, heldPct = (v) => `${Math.round(v * 100)} %`;
+    check('part de notes tenues rendue', Number.isFinite(held) && held >= 0 && held <= 1, `notes tenues ${Number.isFinite(held) ? heldPct(held) : '?'} des trames voisées (voix chantée à partir de ${heldPct(SUNG)})`);
+    const pitchCheck = async (which, first, label, mustApply) => {
         const r = first || await run(which, { keep: 'p' });
+        if (mustApply) check(`voix chantée : justesse appliquée (${label})`, r.report.measure.heldNoteFraction >= SUNG && r.report.fx.pitch.on && r.report.meanCorrectionCents > 1 && /justesse ramenée/.test(r.report.fitNotes),
+            `notes tenues ${heldPct(r.report.measure.heldNoteFraction)}, autotune ${r.report.fx.pitch.on ? Math.round(r.report.fx.pitch.amount * 100) + ' %' : 'éteint'}, correction moyenne ${r.report.meanCorrectionCents.toFixed(1)} cents`);
         const out = await run(first ? 'a' : 'p');
         await run(which, { fx: { pitch: { on: false } }, keep: 'n' });
         const ref = await run('n');
@@ -124,8 +129,14 @@ try {
         check(`justesse non dégradée (${label})`, c[1] <= Math.max(c[0], c[2]) + 2, detail);
         return true;
     };
-    let judged = await pitchCheck('voice', a, voiceFile ? 'voix fournie' : 'voix de démonstration');
-    if (voiceFile && !judged) judged = await pitchCheck('demo', null, 'voix de démonstration, chantée dans la gamme');
+    let judged = false;
+    if (fx.pitch.on) judged = await pitchCheck('voice', a, voiceFile ? 'voix fournie' : 'voix de démonstration', !voiceFile);
+    else if (m.pitchDeviationCents >= 12 && m.voicedFraction > 0.2 && !m.polyphonic)
+        check('voix parlée ou rappée : justesse non appliquée', held < SUNG && a.report.meanCorrectionCents === 0 && /voix parlée ou rappée : justesse non appliquée/.test(a.report.fitNotes),
+            `notes tenues ${heldPct(held)} des trames voisées (il en faut ${heldPct(SUNG)}), écart à la gamme ${m.pitchDeviationCents.toFixed(1)} cents, autotune éteint, correction moyenne ${a.report.meanCorrectionCents.toFixed(1)} cents`);
+    else console.log(stamp(), 'justesse :', `rien à corriger sur cette voix (écart à la gamme ${m.pitchDeviationCents.toFixed(1)} cents, voisé ${heldPct(m.voicedFraction)})`);
+    if (!voiceFile && !fx.pitch.on) check('voix chantée de démonstration : justesse appliquée', false, `autotune éteint (notes tenues ${heldPct(held)})`);
+    if (voiceFile && !judged) judged = await pitchCheck('demo', null, 'voix de démonstration, chantée dans la gamme', true);
     if (!judged) check('justesse vérifiée sur au moins une voix', false, 'aucune voix où la justesse a visé la gamme du morceau');
 
     // 5) Le type de piste ne change pas la correction ; « Voix lissée » ne durcit rien ; les réglages à la main s'appliquent après.

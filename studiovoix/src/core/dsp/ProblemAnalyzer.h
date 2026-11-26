@@ -33,6 +33,9 @@ struct TrackProblems
     float medianF0Hz = 0.0f;         // hauteur médiane de la voix (0 = inconnue) : le corps ne se juge que si la fondamentale est sous la bande
     float pitchDeviationCents = 0.0f; // écart moyen à la gamme (voix seulement)
     float voicedFraction = 0.0f;
+    // Part des trames voisées sûres qui appartiennent à une note tenue (hauteur dans ± kHeldNoteHalfWidthCents pendant au
+    // moins kHeldNoteMinMs). Voix chantée : élevée ; voix parlée ou rappée (hauteur qui glisse sans viser de note) : ~0.
+    float heldNoteFraction = 0.0f;
     bool vocal = false;
     bool polyphonic = false;         // chœurs, piano, musique : jamais de correction de justesse
     juce::String instrumentKind;     // piste non vocale : "basse", "batterie", "harmonique" (clavier, guitare, synthé) ou "autre"
@@ -54,13 +57,21 @@ constexpr float kLackMaxBoostDb = 3.0f;      // compensation maximale (cloche la
 // + bruit blanc) : une cloche de +3 dB à 3,5 kHz remonte le souffle des pauses de 0,5 à 1,2 dB (1,2 à 1,8 dB dans sa
 // bande), quel que soit le bruit ; à 25 dB d'écart ce souffle sort à -32 dBFS (refusé), à 34 dB et plus sous -40 dBFS.
 constexpr float kLackMinSnrDb = 30.0f;
+// Justesse de la correction : seulement sur une voix CHANTÉE (des notes tenues). Mesuré sur 26 voix réelles (26/11/2026),
+// note tenue = ±50 cents pendant 300 ms : 13 voix parlées 0 à 7 % ; rap 0 % et 35 % (un extrait « hip-hop » mélodique) ;
+// 11 voix chantées 0 à 68 % (4 au-dessus du seuil). Le seuil est au-dessus de toutes les voix parlées et rappées : une
+// voix chantée laissée sans justesse est le moindre mal, une voix parlée ou rappée accordée de force est abîmée.
+constexpr float kHeldNoteHalfWidthCents = 50.0f;
+constexpr float kHeldNoteMinMs = 300.0f;
+constexpr float kSungMinHeldFraction = 0.45f;
 constexpr float kCorrectionMinRatio = 1.3f;  // compresseur de la correction : prise déjà régulière (étendue <= 4 dB)
 constexpr float kCorrectionMaxRatio = 3.0f;  // prise très irrégulière (étendue >= 14 dB)
 
 /** Mesure les défauts. key : tonalité du morceau (justesse) ; vocal : analyse de la justesse. */
 TrackProblems analyzeTrackProblems (const Mono& x, double sampleRate, const MusicalKey& key, bool vocal);
 
-/** Réglages de correction déduits des défauts : nettoyage, justesse douce vers la gamme, EQ corrective (excès coupés,
+/** Réglages de correction déduits des défauts : nettoyage, justesse douce vers la gamme (voix chantée seulement :
+    heldNoteFraction >= kSungMinHeldFraction ; voix parlée ou rappée : pas de justesse), EQ corrective (excès coupés,
     manques nets de corps / de présence compensés doucement sur une voix), de-esser dosé, compression proportionnelle
     à la dynamique mesurée (voix : de kCorrectionMinRatio à kCorrectionMaxRatio), niveau cible ; ni saturation, ni
     réverb, ni délai, ni recalage rythmique. Remplit fixes. */

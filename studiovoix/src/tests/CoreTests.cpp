@@ -2397,6 +2397,54 @@ public:
             expect (thdSat > thd + 20.0f, "l'essai voit bien une saturation quand il y en a une ("_u8 + juce::String (thdSat, 1) + " dB)");
         }
 
+        beginTest ("Correction seule : justesse seulement sur une voix chantee (notes tenues)");
+        {
+            const auto keySig = aMinor();
+            dsp::AnalysisContext ctx;
+            ctx.key = keySig;
+            ctx.tempo.bpm = 100.0;
+            // Voix chantée : notes tenues, fausses de 35 cents.
+            const auto sungSig = synthVoice (defaultPhrases (keySig, 100.0, 35.0f), kSr);
+            auto ps = dsp::analyzeTrackProblems (sungSig, kSr, keySig, true);
+            const auto vs = dsp::correctionParams (ps, true);
+            expect (ps.heldNoteFraction >= 0.8f, "voix chantée : notes tenues "_u8 + juce::String (ps.heldNoteFraction * 100.0f, 0) + " % des trames voisées"_u8);
+            expect (ps.pitchDeviationCents >= 12.0f && vs.pitch.enabled && ps.fixes.joinIntoString (" ").contains ("justesse ramen"),
+                    "voix chantée fausse ("_u8 + juce::String (ps.pitchDeviationCents, 1) + " cents) : justesse appliquée"_u8);
+            const auto rs = dsp::processVocal (sungSig, kSr, vs, ctx);
+            expect (rs.report.meanCorrectionCents > 5.0f, "voix chantée : correction moyenne "_u8 + juce::String (rs.report.meanCorrectionCents, 1) + " cents");
+
+            // Mêmes phrases, hauteur glissante comme une voix parlée (±2 demi-tons à 5,5 Hz dès 150 ms) : aucune note
+            // n'est tenue, l'écart moyen à la gamme est du même ordre — l'ancienne règle accordait cette voix de force.
+            const auto spokenSig = synthVoice (defaultPhrases (keySig, 100.0, 35.0f), kSr, 0.5, 200.0f);
+            auto pp = dsp::analyzeTrackProblems (spokenSig, kSr, keySig, true);
+            const auto vp = dsp::correctionParams (pp, true);
+            expect (! pp.polyphonic && pp.voicedFraction > 0.2f && pp.pitchDeviationCents >= 12.0f,
+                    "voix glissante : écart moyen "_u8 + juce::String (pp.pitchDeviationCents, 1) + " cents, voisé "_u8 + juce::String (pp.voicedFraction * 100.0f, 0)
+                    + " % (l'ancienne règle se déclenchait ; voix chantée : "_u8 + juce::String (ps.pitchDeviationCents, 1) + " cents)");
+            expect (pp.heldNoteFraction < dsp::kSungMinHeldFraction, "voix glissante : notes tenues "_u8 + juce::String (pp.heldNoteFraction * 100.0f, 0) + " %");
+            expect (! vp.pitch.enabled && pp.fixes.joinIntoString (" ").contains ("justesse non appliqu"), "voix parlée ou rappée : pas de justesse, dit dans les corrections : "_u8 + pp.fixes.joinIntoString (" ; "));
+            const auto rp = dsp::processVocal (spokenSig, kSr, vp, ctx);
+            expect (rp.report.meanCorrectionCents <= 0.0f, "voix glissante : correction moyenne nulle ("_u8 + juce::String (rp.report.meanCorrectionCents, 2) + " cents)");
+
+            // La règle seule : de part et d'autre du seuil, toutes choses égales.
+            dsp::TrackProblems below;
+            below.vocal = true;
+            below.pitchDeviationCents = 40.0f;
+            below.voicedFraction = 0.6f;
+            below.heldNoteFraction = dsp::kSungMinHeldFraction - 0.05f;
+            auto above = below;
+            above.heldNoteFraction = dsp::kSungMinHeldFraction + 0.05f;
+            auto inTune = above;
+            inTune.pitchDeviationCents = 5.0f;
+            expect (! dsp::correctionParams (below, true).pitch.enabled && dsp::correctionParams (above, true).pitch.enabled, "seuil des notes tenues respecté"_u8);
+            expect (! dsp::correctionParams (inTune, true).pitch.enabled && ! inTune.fixes.joinIntoString (" ").contains ("non appliqu"), "voix chantée déjà juste : rien à dire"_u8);
+            // Un style choisi à la main n'est pas concerné : sa justesse reste celle du style.
+            auto styled = style::makeParams (style::Style::Trap, style::Role::Lead, {}, true);
+            const bool before = styled.pitch.enabled;
+            dsp::fitStyleToMeasurement (styled, pp, 100.0);
+            expect (before && styled.pitch.enabled, "mode style : justesse du style inchangée sur une voix parlée"_u8);
+        }
+
         beginTest ("Copie de refrain vers les sections semblables");
         {
             p.sections = { { 0.0, 2.0, "Refrain 1", "refrain", 1, -10.0f }, { 2.0, 4.0, "Couplet 1", "couplet", 0, -12.0f },
