@@ -1154,12 +1154,14 @@ async function inspectTrack(t, onStep = () => {}) {
         return { findings };
     }
 
-    // 2) les effets, sur le passage le plus fort
-    const at = loudestWindow(mono, sr, INSPECT_SEC), x = mono.slice(at, at + Math.round(INSPECT_SEC * sr));
-    const base = { sampleRate: sr, styleId: engineStyle(t), roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec + at / sr, gentle: !!t.smooth };   // « correction » en mode Correction
+    // 2) les effets. Prise courte : mesurés sur le passage le plus fort. Prise longue : toute la durée est d'abord
+    //    balayée (plus bas) et le détail se fait sur le PIRE passage — un défaut loin du passage le plus fort n'échappe plus.
+    const W = Math.round(INSPECT_SEC * sr);
+    let at = loudestWindow(mono, sr, INSPECT_SEC), x = mono.slice(at, at + W), scan = null;
+    const base = { sampleRate: sr, styleId: engineStyle(t), roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec, gentle: !!t.smooth };   // « correction » en mode Correction ; startSec : début de la prise, run ajoute la place du passage
     const user = t.fx || {}, noSpace = { reverb: { on: false }, delay: { on: false } };
     const offAll = Object.fromEntries(NONLINEAR_FX.map((id) => [id, { on: false }]));
-    const run = async (fx, src = x, offSec = 0) => {
+    const run = async (fx, src = x, offSec = at / sr) => {   // offSec : place de `src` dans la prise (par défaut, le passage inspecté)
         const r = await call('processVoice', { ...base, startSec: base.startSec + offSec, mono: src.slice(), fx });
         const y = new Float32Array(src.length);
         for (let i = 0; i < src.length; ++i) y[i] = 0.5 * (r.left[i] + r.right[i]);
@@ -1171,6 +1173,34 @@ async function inspectTrack(t, onStep = () => {}) {
         }
         return { y, report: r.report };
     };
+    // Toute la durée (prise de plus de 20 s) : la chaîne entière et la référence passent sur la prise complète, la saleté
+    // ajoutée est mesurée par passages de 20 s. C'est CE chiffre qui décide de l'alerte : c'est le son réellement joué.
+    // (Un passage traité seul ne donne pas toujours le même chiffre — mesuré le 26/11 sur une voix chantée de 60 s :
+    // jusqu'à 0,7 dB de plus — parce que le moteur se règle sur ce qu'on lui donne.) Le passage traité seul ne sert plus
+    // qu'à nommer l'effet responsable, sur le pire passage.
+    if (mono.length > W) {
+        const tScan = performance.now();
+        onStep('les effets, sur toute la durée de la prise');
+        let all = await run({ ...user, ...noSpace }, mono, 0);
+        const fullY = all.y, fullRep = all.report;
+        onStep('la référence (égaliseur seul), sur toute la durée');
+        all = await run({ ...user, ...offAll, ...noSpace }, mono, 0);
+        const linY = all.y;
+        const starts = [];
+        for (let a = 0; a + W <= mono.length; a += W) starts.push(a);
+        if (starts[starts.length - 1] + W < mono.length) starts.push(mono.length - W);   // la fin de la prise, calée sur son dernier échantillon
+        const wins = starts.map((a) => {
+            const dF = voiceDirt(mono.subarray(a, a + W), fullY.subarray(a, a + W), sr), dL = voiceDirt(mono.subarray(a, a + W), linY.subarray(a, a + W), sr);
+            const e = { high: dF.high - dL.high, highLoud: dF.highLoud - dL.highLoud, low: dF.low - dL.low, lowLoud: dF.lowLoud - dL.lowLoud };
+            return { a, frames: dF.frames, e, worst: Math.max(e.high, e.highLoud, e.low, e.lowLoud) };
+        });
+        const ok = wins.filter((w) => w.frames >= 20);
+        const top = ok.length ? ok.reduce((p, q) => (q.worst > p.worst ? q : p)) : null;
+        if (top) { at = top.a; x = mono.slice(at, at + W); }
+        const whenW = (w) => `${fmt(take.startSec + w.a / sr)}–${fmt(take.startSec + (w.a + W) / sr)}`;
+        scan = { n: wins.length, measured: ok.length, top, report: fullRep, over: ok.filter((w) => w.worst >= DIRT_WARN_DB && w !== top).map(whenW) };
+        log('info', `Inspection de « ${t.name} » : toute la durée balayée (${(mono.length / sr).toFixed(0)} s, ${wins.length} passages de ${INSPECT_SEC} s) — saleté ajoutée par passage : ${wins.map((w) => `${whenW(w)} ${w.frames >= 20 ? sDb(w.worst) : 'trop peu de chant'}`).join(' ; ')} ; détail sur ${ok.length ? `le pire passage (${fmt(take.startSec + at / sr)})` : 'le passage le plus fort (aucun passage mesurable)'} ; ${Math.round(performance.now() - tScan)} ms`);
+    }
     onStep('les effets de la piste');
     const full = await run({ ...user, ...noSpace });
     onStep('la référence (égaliseur seul)');
@@ -1178,8 +1208,10 @@ async function inspectTrack(t, onStep = () => {}) {
     const dFull = voiceDirt(x, full.y, sr), dLin = voiceDirt(x, lin.y, sr);
     const excess = (d) => ({ high: d.high - dLin.high, highLoud: d.highLoud - dLin.highLoud, low: d.low - dLin.low, lowLoud: d.lowLoud - dLin.lowLoud });
     const worstOf = (e) => Math.max(e.high, e.highLoud, e.low, e.lowLoud);
-    const where = `passage le plus fort, ${fmt(take.startSec + at / sr)} à ${fmt(take.startSec + at / sr + x.length / sr)}`;
-    const ex = excess(dFull), worst = worstOf(ex);
+    const where = `${scan ? `pire passage de toute la prise (${scan.n} passages de ${INSPECT_SEC} s inspectés)` : 'passage le plus fort'}, ${fmt(take.startSec + at / sr)} à ${fmt(take.startSec + at / sr + x.length / sr)}`;
+    // Prise longue : le chiffre du balayage (son réellement joué) ; prise courte : le passage traité seul (= la prise).
+    const exAlone = excess(dFull), ex = scan?.top ? scan.top.e : exAlone, worst = worstOf(ex);
+    if (scan?.top) log('info', `Inspection de « ${t.name} » : pire passage — ${sDb(worst)} dans la prise complète (chiffre retenu), ${sDb(worstOf(exAlone))} pour le même passage traité seul`);
     log('info', `Inspection de « ${t.name} » (${t.correction ? 'mode Correction' : `style ${styleName(t.styleId)}`}, ${where}, ${dFull.frames} trames chantées) : saleté ajoutée par les effets — aigus ${sDb(ex.high)} (passages forts ${sDb(ex.highLoud)}), graves ${sDb(ex.low)} (forts ${sDb(ex.lowLoud)}) ; limiteur ${(full.report.limiterGrDb || 0).toFixed(1)} dB`);
     const active = NONLINEAR_FX.filter((id) => full.report.fx?.[id]?.on);
     const offBtn = (id) => ({ label: `Éteindre « ${fxName(id)} »`, run: () => { t.fx = t.fx || {}; t.fx[id] = { ...(t.fx[id] || {}), on: false }; log('info', `« ${t.name} » : « ${fxName(id)} » éteint (inspection)`); fxChanged(t, 30); renderFx(true); } });
@@ -1197,7 +1229,7 @@ async function inspectTrack(t, onStep = () => {}) {
         scores.sort((p, q) => q.v - p.v);
         const culprits = scores.filter((c) => c.v >= Math.max(0.5, 0.4 * worst));
         const level = worst >= DIRT_BAD_DB ? 'bad' : 'warn';
-        const head = `Les effets salissent la voix : ${sDb(worst)} de bruit ajouté ${ex.highLoud >= ex.high && ex.highLoud >= ex.low ? 'dans les aigus des passages forts' : ex.high >= ex.low ? 'dans les aigus' : 'dans les graves'} (${where} ; alerte à partir de +${DIRT_WARN_DB.toFixed(0)} dB).`;
+        const head = `Les effets salissent la voix : ${sDb(worst)} de bruit ajouté ${ex.highLoud >= ex.high && ex.highLoud >= ex.low ? 'dans les aigus des passages forts' : ex.high >= ex.low ? 'dans les aigus' : 'dans les graves'} (${where} ; alerte à partir de +${DIRT_WARN_DB.toFixed(0)} dB${scan?.over.length ? ` ; aussi au-dessus du seuil : ${scan.over.slice(0, 4).join(', ')}${scan.over.length > 4 ? '…' : ''}` : ''}).`;
         if (culprits.length) {
             culprits.forEach((c, k) => add(level, k === 0 ? `${head} Responsable mesuré : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).` : `Aussi en cause : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).`,
                 offBtn(c.id)));
@@ -1210,7 +1242,7 @@ async function inspectTrack(t, onStep = () => {}) {
         onStep('la saturation');
         const atS = loudestWindow(x, sr, SAT_SEC), xs = x.slice(atS, atS + Math.round(SAT_SEC * sr));
         const pinned = { ...full.report.fx, pitch: { on: false }, timing: { on: false }, ...noSpace };
-        const tS = performance.now(), withSat = await run(pinned, xs, atS / sr), without = await run({ ...pinned, sat: { on: false } }, xs, atS / sr);
+        const tS = performance.now(), withSat = await run(pinned, xs, (at + atS) / sr), without = await run({ ...pinned, sat: { on: false } }, xs, (at + atS) / sr);
         const d = addedDistortion(without.y, withSat.y, sr), sat = full.report.fx.sat;
         satDb = d.db;
         log('info', `Inspection de « ${t.name} » : saturation (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(1)} dB) — distorsion ajoutée ${d.db.toFixed(1)} dB par rapport à la voix (passages forts ${d.loudDb.toFixed(1)} dB, ${d.frames} trames, ${fmt(take.startSec + (at + atS) / sr)} à ${fmt(take.startSec + (at + atS + xs.length) / sr)}) ; alerte à ${SAT_WARN_DB.toFixed(0)} dB ; mesure ${Math.round(performance.now() - tS)} ms`);
@@ -1218,11 +1250,11 @@ async function inspectTrack(t, onStep = () => {}) {
             add(d.db >= SAT_BAD_DB ? 'bad' : 'warn', `La « ${fxName('sat')} » déforme la voix : la distorsion qu'elle ajoute n'est qu'à ${Math.abs(d.db).toFixed(0)} dB sous la voix (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(0)} dB ; alerte à ${Math.abs(SAT_WARN_DB).toFixed(0)} dB, les réglages des styles restent à 29 dB ou plus). Si ce grain n'est pas voulu, baisse sa « Poussée » ou son « Dosage », ou éteins-la.`, offBtn('sat'));
     }
     // 3) limiteur de sécurité, et ce que le moteur a mesuré sur la prise (bruit, sifflantes, résonances, dynamique…)
-    const lim = full.report.limiterGrDb || 0;
+    const lim = (scan?.report ?? full.report).limiterGrDb || 0;   // prise longue : le limiteur de la prise complète (son réellement joué)
     if (lim >= LIMITER_WARN_DB) add('warn', `Le limiteur de sécurité de la piste écrase les crêtes de ${lim.toFixed(1)} dB : la voix sort trop fort de sa chaîne (compression trop faible pour une prise très dynamique). Allume le « Niveleur » ou monte le taux du compresseur.`);
     if (!findings.some((f) => f.level === 'warn' || f.level === 'bad') && dFull.frames >= 20)
         add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB${crackleOk ? ', aucun craquement dans la prise' : ''}${satDb === null ? '' : `, distorsion de la saturation ${satDb.toFixed(0)} dB (alerte à ${SAT_WARN_DB.toFixed(0)} dB)`}.`);
-    const found = (full.report.found || '').trim();
+    const found = ((scan?.report ?? full.report).found || '').trim();
     if (found) add('info', `Mesuré sur la prise par le moteur (déjà pris en compte dans les réglages) : ${found}`);
     log('info', `Inspection de « ${t.name} » : ${findings.filter((f) => f.level === 'warn' || f.level === 'bad').length} problème(s), en ${Math.round(performance.now() - t0)} ms`);
     return { findings };

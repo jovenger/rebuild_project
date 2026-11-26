@@ -327,7 +327,12 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
     // Résonances : rabaissées seulement si elles sont mesurées ; graves protégés plus haut sur un instrument.
     v.resonance.enabled = p.resonanceDb >= 3.0f;
     v.resonance.thresholdDb = 3.0f;
-    v.resonance.maxReductionDb = juce::jlimit (3.0f, 9.0f, 1.5f + p.resonanceDb);
+    // Voix : baisse limitée à kCorrectionVoiceResonanceMaxDb. Mesuré le 26/11/2026 (6 voix réelles de 27 à 60 s, chaîne
+    // de correction entière, saleté ajoutée au pire passage — seuil d'alerte de l'inspection : +1 dB) : à 9 dB (ancienne
+    // limite, atteinte sur toutes ces voix) +0,5 à +2,3 dB, 5 voix sur 6 au-dessus du seuil ; à 4 dB +0,2 à +1,1 ; à 3 dB
+    // (réglage de tous les styles) +0,1 à +0,9, aucune au-dessus. La baisse des bandes bouge vite : plus elle est profonde,
+    // plus elle ajoute de bruit de modulation. Une baisse plus forte reste réglable à la main (effet « Résonances »).
+    v.resonance.maxReductionDb = vocal ? kCorrectionVoiceResonanceMaxDb : juce::jlimit (3.0f, 9.0f, 1.5f + p.resonanceDb);
     v.resonance.protectBelowHz = vocal ? 600.0f : 300.0f;
 
     p.fixes.clear();

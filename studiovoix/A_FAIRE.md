@@ -375,8 +375,24 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   de voix −0,48 dB (meilleur), SAR chanté −0,46 dB, aigus seuls −1,1 dB (voix extraite jusqu'à 14,7 kHz au lieu de
   17,6). Recouvrement 0,25 → 0,10 : ×0,84 pour −0,03 dB. Gain net → case « Très rapide » à ajouter (décision de Yann :
   en option). Projection 3 min 35 sur son téléphone : 8 à 10 min au lieu de ≈ 30 (proportion, non mesuré).
-- RESTE : case « Très rapide » ; inspection sur toute la durée + déformation due à la compression (calibrages en
-  cours : scratchpad `V8/`) ; protocole d'écoute ; note en ligne à mettre à jour.
+- Build 151 en ligne (26/11, 19:44 UTC) : correction d'office, montage, projet en fichier.
+- INSPECTION SUR TOUTE LA DURÉE (26/11, fait, essais verts) : pour une prise de plus de 20 s, la chaîne entière et la
+  référence passent sur la prise complète, la saleté ajoutée est mesurée par passages de 20 s ; c'est ce chiffre (le
+  son réellement joué) qui décide de l'alerte, et le détail effet par effet se fait sur le PIRE passage (avant : le
+  seul passage le plus fort, traité à part). Mesuré : le même passage traité seul peut donner jusqu'à 0,7 dB de plus
+  que dans la prise complète (le moteur se règle sur ce qu'on lui donne). Limiteur et constats pris sur la prise
+  complète. Calibrage du balayage (2 voix chantées de 40 et 60 s × 12 réglages) : réglages d'origine 0,0 à 0,9 dB.
+- DÉFAUT TROUVÉ PAR CE CALIBRAGE ET CORRIGÉ (moteur) : en « Correction » sans « Voix lissée », le réducteur de
+  résonances montait à 9 dB de baisse sur toutes les voix réelles et salissait la voix — saleté ajoutée +0,5 à +2,3 dB
+  sur 6 voix (5 sur 6 au-dessus du seuil d'alerte de +1 dB). Limite ramenée à 3 dB pour une voix
+  (`kCorrectionVoiceResonanceMaxDb`, réglage de tous les styles) : +0,1 à +0,9 dB, avec ou sans lissage. Une baisse
+  plus forte reste réglable à la main. Essais natifs 100 %, clean.mjs (33 styles + correction : pire −63 dB),
+  correction.mjs, inspect.mjs, auto.mjs, démo, équilibre, séparation : verts.
+- Protocole d'écoute : `docs/PROTOCOLE_ECOUTE.md` + note en ligne (section « Mise à jour du 26 novembre » en tête,
+  protocole à la fin).
+- RESTE : case « Très rapide » (ouvrier en cours) ; détection « la compression déforme la voix » (calibrée : alerte si
+  distorsion ≥ −20 dB ou réduction moyenne ≥ 12 dB → 0 / 132 réglages d'origine, 132 / 132 compressions abusives ;
+  correctif prêt dans le scratchpad `V14/patch_comp.py`).
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

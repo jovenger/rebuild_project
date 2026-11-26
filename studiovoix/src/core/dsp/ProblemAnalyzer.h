@@ -64,6 +64,9 @@ constexpr float kLackMinSnrDb = 30.0f;
 constexpr float kHeldNoteHalfWidthCents = 50.0f;
 constexpr float kHeldNoteMinMs = 300.0f;
 constexpr float kSungMinHeldFraction = 0.45f;
+// Correction d'une voix : baisse maximale du réducteur de résonances (dB). 3 dB = réglage de tous les styles ; au-delà la
+// correction ajoute un bruit de modulation mesurable (voir correctionParams).
+constexpr float kCorrectionVoiceResonanceMaxDb = 3.0f;
 constexpr float kCorrectionMinRatio = 1.3f;  // compresseur de la correction : prise déjà régulière (étendue <= 4 dB)
 constexpr float kCorrectionMaxRatio = 3.0f;  // prise très irrégulière (étendue >= 14 dB)
 

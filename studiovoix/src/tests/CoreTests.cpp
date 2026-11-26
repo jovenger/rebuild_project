@@ -2347,6 +2347,19 @@ public:
             const auto params = dsp::correctionParams (problems, true);
             expect (params.reverb.send <= 0.0f && params.delay.send <= 0.0f && params.sat.mix <= 0.0f && params.timing.strength <= 0.0f,
                     "ni réverb, ni écho, ni saturation, ni recalage dans les réglages"_u8);
+            // Voix propre : la baisse des résonances est limitée (au-delà, la correction ajoute un bruit de modulation mesuré).
+            {
+                auto resonant = problems;
+                resonant.resonanceDb = 15.0f;   // résonances très marquées, comme sur toutes les voix réelles mesurées
+                const auto strong = dsp::correctionParams (resonant, true);
+                expect (strong.resonance.enabled && strong.resonance.maxReductionDb <= dsp::kCorrectionVoiceResonanceMaxDb + 0.001f,
+                        "voix : résonances rabaissées de "_u8 + juce::String (strong.resonance.maxReductionDb, 1) + " dB au plus (limite "
+                        + juce::String (dsp::kCorrectionVoiceResonanceMaxDb, 0) + " dB)");
+                auto instr = problems;
+                instr.resonanceDb = 15.0f;
+                const auto strongInstr = dsp::correctionParams (instr, false);
+                expect (strongInstr.resonance.maxReductionDb > dsp::kCorrectionVoiceResonanceMaxDb, "instrument : limite d'origine gardée ("_u8 + juce::String (strongInstr.resonance.maxReductionDb, 1) + " dB)");
+            }
             dsp::AnalysisContext ctx;
             ctx.key = keySig;
             ctx.tempo.bpm = 100.0;
