@@ -156,9 +156,25 @@ try {
     const inspect = async () => { await page.click('#inspectBtn'); await page.waitForFunction(() => !window.__studiovoix.inspecting && window.__studiovoix.tracks.some((t) => t.inspect && !t.inspect.stale), null, { timeout: 180000 }); await settled(); return page.evaluate(() => [...document.querySelectorAll('#inspectBox .finding')].map((f) => ({ level: f.className.replace('finding', '').trim(), text: f.querySelector('.txt').textContent, btn: f.querySelector('button')?.textContent || '' }))); };
     const show = (rows) => rows.forEach((r) => console.log(stamp(), `   [${r.level}] ${r.text.slice(0, 260)}${r.btn ? '  → bouton « ' + r.btn + ' »' : ''}`));
 
+    // 0) mode « Correction » (mode de départ de toute piste : correction seule, sans couleur de style) : l'inspection
+    //    rejoue le moteur avec la correction seule, essaie les mêmes effets un par un et nomme celui qui salit.
+    await sel(0);
+    const mode0 = await page.evaluate(() => { const t = window.__studiovoix.tracks[0], r = t.processed?.report; return { correction: !!t.correction && !t.noFx, mode: r?.mode, sat: !!r?.fx?.sat?.on, comp: !!r?.fx?.comp?.on }; });
+    check('démo : piste en mode Correction avant l\'inspection', mode0.correction && mode0.mode === 'correction' && !mode0.sat && mode0.comp, JSON.stringify(mode0));
+    let rows = await inspect(); show(rows);
+    const hitC = rows.find((r) => /Compresseur/.test(r.text) && /Éteindre/.test(r.btn));
+    const logC = (await page.$$eval('#log div', (els) => els.map((x) => x.textContent))).filter((l) => /Inspection de « .* » \(mode Correction/.test(l));
+    check('mode Correction : effet qui salit nommé avec un bouton, sans mesure de saturation (éteinte)', !!hitC && (hitC.level === 'bad' || hitC.level === 'warn') && logC.length >= 1 && !rows.some((r) => /saturation/i.test(r.text)),
+        hitC ? `${hitC.text.slice(0, 140)} ; journal : ${logC.length} ligne(s) « mode Correction »` : 'aucun constat sur le compresseur');
+    // La suite contrôle l'inspection des effets d'un style (saturation comprise) : la piste est passée en mode Style à
+    // la main (bouton « Style » du tableau des effets), comme le fait l'utilisateur.
+    await page.click('#fxMode button[data-mode="style"]');
+    await page.waitForFunction(() => { const t = window.__studiovoix.tracks[0]; return !t.correction && !t.noFx && t.status === 'done' && t.processed?.report?.mode === 'style'; }, null, { timeout: 120000 });
+    await settled();
+
     // a) l'effet qui salit (simulé : compresseur) est nommé, avec son bouton
     await sel(0);
-    let rows = await inspect(); show(rows);
+    rows = await inspect(); show(rows);
     const hit = rows.find((r) => /Compresseur/.test(r.text) && /Éteindre/.test(r.btn));
     check('effet qui salit : nommé avec un bouton', !!hit && (hit.level === 'bad' || hit.level === 'warn'), hit ? hit.text.slice(0, 140) : 'aucun constat sur le compresseur');
     // b) le bouton l'éteint ; la piste est retraitée ; l'ancienne inspection est marquée périmée

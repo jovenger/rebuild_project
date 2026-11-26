@@ -226,6 +226,20 @@ try {
     const tracksDone = (n) => page.waitForFunction((n) => document.body.dataset.busy === '0'
         && window.__studiovoix.tracks.filter((t) => t.take && t.processed).length >= n, n, { timeout: 900000 });
     const trackInfo = (id) => page.textContent(`.track[data-id="${id}"] .tinfo`);
+    // Studio automatique (décision du 26/11) : toute piste de voix qui arrive (démo, import, micro, séparation) est corrigée
+    // d'office en « correction seule », sans geste : mode Correction, rapport du moteur « correction », aucune couleur de
+    // style (réverb, écho, saturation, recalage éteints), donc aucune traîne après la prise (silence numérique).
+    const checkAutoCorrection = async (label) => {
+        const arr = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.take).map((t) => {
+            const r = t.processed?.report, L = t.processed?.left, R = t.processed?.right, n0 = t.take.mono.length + Math.round(0.25 * t.take.sampleRate);
+            let m = 0; if (L) for (let i = n0; i < L.length; ++i) m = Math.max(m, Math.abs(L[i]), Math.abs(R[i]));
+            return { name: t.name, noFx: !!t.noFx, correction: !!t.correction, has: !!L, mode: r?.mode, styleId: r?.styleId, color: ['reverb', 'delay', 'sat', 'timing'].filter((id) => r?.fx?.[id]?.on).join('+'), tailDb: 20 * Math.log10(m + 1e-12),
+                     badge: document.querySelector(`#tracks .track[data-id="${t.id}"] .badge`)?.textContent };
+        }));
+        console.log(stamp(), `correction d'office (${label}) :`, arr.map((x) => `${x.name} — mode ${x.noFx ? 'sans effet' : x.correction ? 'correction' : 'style'}, rapport « ${x.mode} », couleur ${x.color || 'aucune'}, traîne ${x.tailDb.toFixed(0)} dB`).join(' ; '));
+        const bad = arr.filter((x) => x.noFx || !x.correction || !x.has || x.mode !== 'correction' || x.styleId !== 'correction' || x.color || !(x.tailDb < -90) || x.badge !== 'corrigée');
+        if (!arr.length || bad.length) throw new Error(`${label} : piste(s) non corrigée(s) d'office en « correction seule » : ${JSON.stringify(bad.length ? bad : arr)}`);
+    };
 
     // Prise au micro sur la piste armée ; retourne l'id de la piste.
     async function recordTake(label) {
@@ -442,25 +456,36 @@ try {
             console.log(stamp(), `repli carte graphique → processeur : mémorisé « ${fb.ban} », journal ${/relancée sur le processeur/.test(fb.log) ? 'OK' : 'ABSENT'}`);
             if (fb.ban !== 'timeout' || !/relancée sur le processeur/.test(fb.log)) throw new Error('repli carte graphique bloquée → processeur non fait');
         }
-        const tracks = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.noFx ? 'sansFX' : 'FX'}`));
+        const tracks = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.roleId}|${t.noFx ? 'sansFX' : t.correction ? 'correction' : 'style'}`));
         console.log(stamp(), 'pistes :', tracks.join(' ; '));
-        if (!tracks.some((t) => /lead\|sansFX/.test(t))) throw new Error('aucune piste de voix principale créée');
+        if (!tracks.some((t) => /lead\|correction/.test(t))) throw new Error('aucune piste de voix principale créée en mode Correction');
         if (!(await page.evaluate(() => window.__studiovoix.tracks.every((t) => t.locked)))) throw new Error('pistes séparées non verrouillées d\'office');
-        // Après la séparation, aucun effet n'est imposé : les pistes restent brutes (« sans effet »). Le bouton
-        // « ⚖ Égaliser » règle seulement leurs volumes selon leur type : voix principales au même niveau, backs dessous.
-        if (await page.evaluate(() => window.__studiovoix.tracks.some((t) => t.take && (!t.noFx || t.processed)))) throw new Error('séparation : des effets ont été appliqués d\'office à une piste séparée');
+        // Après la séparation (décision du 26/11, studio automatique) : les pistes créées ne naissent plus « sans effet »,
+        // elles sont corrigées d'office en « correction seule » (aucune couleur de style), l'une après l'autre, et restent
+        // verrouillées. La barre d'état garde « Chanson séparée » et dit l'avancement de la correction.
+        await page.waitForFunction(() => document.body.dataset.busy === '0' && window.__studiovoix.tracks.every((t) => !t.take || t.processed), null, { timeout: 600000 });
+        await checkAutoCorrection('pistes séparées');
+        const stCorr = await page.textContent('#status'), nMade = tracks.length;
+        console.log(stamp(), 'barre d\'état après la correction :', stCorr);
+        if (!stCorr.startsWith('Chanson séparée') || !stCorr.includes(`Correction automatique : ${nMade} / ${nMade} piste`)) throw new Error('séparation : barre d\'état sans « Chanson séparée » ou sans avancement complet de la correction : ' + stCorr);
+        if (!(await page.evaluate(() => window.__studiovoix.tracks.every((t) => t.locked)))) throw new Error('pistes séparées déverrouillées par la correction');
+        // Le bouton « ⚖ Égaliser » règle seulement les volumes du son BRUT selon le type (voix principales au même niveau,
+        // backs dessous) : il ne change pas le traitement des pistes.
+        const procSig = () => page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.noFx ? 'sansFX' : t.correction ? 'correction' : 'style'}:${t.processed ? t.processed.left.length : 0}:${t.token}`).join(','));
+        const procBeforeEq = await procSig();
         await page.click('#levelBtn');
         await page.waitForFunction(() => /Volumes égalisés|Égalisation impossible/.test(document.getElementById('status').textContent), null, { timeout: 120000 });
+        const procAfterEq = await procSig();
         const eqz = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.take).map((t) => {
             const it = window.__studiovoix.balanceRaw?.items.get(t.id), g = window.__studiovoix.balanceRaw?.gains.get(t.id);
-            return { name: t.name, role: t.roleId, before: it?.lufs, after: it ? it.lufs + g : NaN, fx: !t.noFx || !!t.processed };
+            return { name: t.name, role: t.roleId, before: it?.lufs, after: it ? it.lufs + g : NaN };
         }));
         console.log(stamp(), 'bouton Égaliser après séparation (brut, sans effet) :', eqz.map((x) => `${x.name} ${x.before?.toFixed(1)} → ${x.after.toFixed(1)} LUFS`).join(' ; '));
         const eqLead = eqz.filter((x) => x.role === 'lead').map((x) => x.after), eqBack = eqz.filter((x) => x.role === 'manual_back').map((x) => x.after);
         if (!eqLead.length || eqLead.some((v) => !Number.isFinite(v))) throw new Error('égaliser après séparation : pas de volume calculé');
         if (Math.max(...eqLead) - Math.min(...eqLead) > 0.3) throw new Error('égaliser après séparation : voix principales pas au même niveau');
         if (eqBack.length && Math.abs(eqLead[0] - eqBack[0] - 7) > 1) throw new Error('égaliser après séparation : backs mal placés');
-        if (eqz.some((x) => x.fx)) throw new Error('égaliser après séparation : un effet a été appliqué');
+        if (procAfterEq !== procBeforeEq) throw new Error(`égaliser après séparation : le traitement des pistes a changé (${procBeforeEq} → ${procAfterEq})`);
         await checkRawExport('StudioVoix-brut-egalise.wav');   // la chanson complète, dans l'état égalisé, sans effet
         if (process.env.EXPECT_BACKS === '1' && !tracks.some((t) => /manual_back/.test(t))) throw new Error('aucune piste de backs créée');
         // Nombre de pistes créées : EXPECT_TRACKS, ou à défaut chanteurs attendus + backs (pas de piste vide ni en double).
@@ -581,10 +606,18 @@ try {
     }
     await tracksDone(expected);
     console.log(stamp(), 'pistes traitées :', await page.textContent('#status'));
+    await checkAutoCorrection(micFile ? 'prises au micro' : voice ? 'voix importée' : 'démo');
 
-    // Changement de style sur la piste 1 → retraitement de cette piste seule.
+    // Changement de style sur la piste 1 → retraitement de cette piste seule. Choisir un style à la main fait passer la
+    // piste du mode « Correction » au mode « Style » : les contrôles du mode Style qui suivent portent sur cette piste.
     await page.selectOption('.track[data-id="1"] select.style', 'trap');
     await page.waitForFunction(() => document.body.dataset.busy === '0' && window.__studiovoix.tracks[0].processed?.report.style === 'Trap', null, { timeout: 300000 });
+    {
+        const m = await page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name} : ${t.noFx ? 'sans effet' : t.correction ? 'correction' : 'style'} (rapport « ${t.processed?.report?.mode} »)`));
+        console.log(stamp(), 'style choisi à la main sur la piste 1 :', m.join(' ; '));
+        if (!/: style \(rapport « style »\)/.test(m[0])) throw new Error('style choisi à la main : la piste 1 n\'est pas passée en mode Style : ' + m[0]);
+        if (m.slice(1).some((x) => !/: correction \(rapport « correction »\)/.test(x))) throw new Error('style choisi sur la piste 1 : une autre piste a quitté le mode Correction : ' + m.join(' ; '));
+    }
     const reports = await page.evaluate(() => window.__studiovoix.tracks.filter((t) => t.processed).map((t) => `${t.name} : ${t.processed.report.role} / ${t.processed.report.style}`));
     console.log(stamp(), 'traitements :', reports.join(' ; '));
     if (expected >= 2 && !reports.some((r) => r.includes('Back'))) throw new Error('seconde piste non traitée en back');
@@ -684,11 +717,12 @@ try {
         if (!wasLocked) await page.locator('#tracks button.tog.lock').nth(0).click();
     }
 
-    // Effets non imposés : une piste enregistrée ou importée démarre « Lissé » (effets du style + voix lissée : dynamique
-    // et saturation bornées). Son bouton passe à « Style » (sans lissage), puis « Sans effet » ; « Voix lissée » est un
-    // interrupteur du tableau des effets qui s'ajoute au style.
+    // Effets non imposés : une piste passée en mode Style (ici la piste 1, par le choix de son style plus haut) est
+    // « Lissé » (effets du style + voix lissée : dynamique et saturation bornées). Son bouton passe à « Style » (sans
+    // lissage), puis « Sans effet » ; « Voix lissée » est un interrupteur du tableau des effets qui s'ajoute au style.
     {
-        const i = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && t.smooth && t.processed?.report?.fx));
+        const i = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && !t.correction && t.smooth && t.processed?.report?.fx));
+        if (i < 0) throw new Error('effets non imposés : aucune piste en mode Style lissé à contrôler (la piste 1 devrait l\'être)');
         if (i >= 0) {
             const st = () => page.evaluate((k) => { const t = window.__studiovoix.tracks[k], r = t.processed?.report; return { noFx: !!t.noFx, smooth: !!t.smooth, has: !!t.processed, gentle: r?.gentle, pitch: r?.fx?.pitch?.on, sat: r?.fx?.sat?.on, delay: r?.fx?.delay?.on, comp: r?.fx?.comp?.ratio, badge: document.querySelector(`#tracks .track[data-id="${t.id}"] .badge`)?.textContent }; }, i);
             const btn = () => page.evaluate((k) => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[k].id}"] button.tog.fx`).click(), i);
@@ -717,7 +751,8 @@ try {
     // Tableau des effets : pré-réglage affiché, effet éteint puis réglé à la main PENDANT la lecture « Mix » (le son de la
     // piste est remplacé sans arrêter la lecture), retour au pré-réglage.
     {
-        const idx = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && t.processed?.report?.fx));
+        const idx = await page.evaluate(() => window.__studiovoix.tracks.findIndex((t) => t.take && !t.noFx && !t.correction && t.processed?.report?.fx));   // piste en mode Style (traîne de réverb / écho)
+        if (idx < 0) throw new Error('tableau des effets : aucune piste en mode Style à contrôler (la piste 1 devrait l\'être)');
         if (idx >= 0) {
             // Sélection par l'en-tête lui-même (un clic au centre tomberait sur un de ses boutons).
             await page.evaluate((i) => document.querySelector(`#tracks .track[data-id="${window.__studiovoix.tracks[i].id}"] .head`).click(), idx);

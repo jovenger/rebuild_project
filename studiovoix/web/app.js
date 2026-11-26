@@ -25,12 +25,14 @@ const ui = {
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'), sepHelp: $('sepHelp'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
+    correctAllBtn: $('correctAllBtn'), rawAllBtn: $('rawAllBtn'), autoLine: $('autoLine'), fxDone: $('fxDone'), roleBox: $('roleBox'), roleList: $('roleList'), roleResetBtn: $('roleResetBtn'),
 };
 
 const state = {
     ctx: null,             // AudioContext (créé au premier geste)
     worker: null, ready: false, pending: new Map(), nextId: 1,
     styles: [], roles: [],
+    roleOffsets: {},       // écarts de volume par type réglés à la main { type: LU } (gardés avec le projet, renvoyés au moteur)
     // Instru : { left, right, sampleRate, seconds, name, analysis } ; réglages de piste à part (existe sans fichier).
     instru: null,
     instruTrack: { volumeDb: 0, mute: false, solo: false },
@@ -68,6 +70,7 @@ function startWorker() {
             ui.version.textContent = m.version;
             state.styles = m.styles;
             state.roles = m.roles;
+            renderRoles();   // « Écarts par type » (étape 4) : valeurs d'origine du moteur
             fillRoleSelect(ui.addRole, 'lead');   // type proposé ensuite par proposeAddRole (choix de Yann, 26/11 : 1re voix principale, suivantes en back)
             setStatus('Moteur prêt. Pose une instru (piste Instru), arme une piste (●) puis REC.');
             restoreProject().then((restored) => {
@@ -307,10 +310,12 @@ function addTrack(roleId, name) {
         id: state.nextTrackId++, name: name || nextTrackName(roleId), roleId, styleId: state.tracks[0]?.styleId || 'rap_conscient',
         volumeDb: 0, mute: false, solo: false, take: null, takes: [], processed: null, status: 'vide', token: 0,
         smooth: true,   // nouvelle piste : « voix lissée » allumée (les effets du style restent, la voix reste propre)
+        correction: true,   // nouvelle piste : « correction seule » d'office (décision de Yann) ; le style se choisit à la main
     };
     state.tracks.push(t);
     if (!state.armedId) state.armedId = t.id;
     log('info', `Piste ajoutée : « ${t.name} » (${roleLabel(roleId)}, ${styleName(t.styleId)})`);
+    log('info', `« ${t.name} » : mode de départ « Correction » (correction automatique seule, style ${styleName(t.styleId)} non appliqué tant qu'il n'est pas choisi à la main)`);
     proposeAddRole('piste ajoutée');
     markDirty();
     return t;
@@ -447,9 +452,11 @@ function trackRow(t) {
     const role = el('select', { class: 'role', title: 'Type de piste : règle la chaîne (effets) et la place dans le mix' });
     fillRoleSelect(role, t.roleId);
     role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); proposeAddRole('type d\'une piste changé'); markDirty(); queueProcess(t); });
-    const style = el('select', { class: 'style', title: 'Style de mixage de cette voix' });
+    const style = el('select', { class: 'style' + (t.noFx || t.correction ? ' unused' : ''), title: t.correction && !t.noFx ? 'Style de cette voix : PAS appliqué pour l\'instant (piste en « Correction »). Choisis un style ici pour l\'appliquer.'
+        : t.noFx ? 'Style de cette voix : pas appliqué (piste « Sans effet »). Choisis un style ici pour l\'appliquer.' : 'Style de mixage de cette voix' });
     fillStyleSelect(style, t.styleId);
-    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); queueProcess(t); });
+    // Choisir un style à la main fait passer la piste en mode « Style » (rien ne passe en Style tout seul).
+    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); if (t.noFx || t.correction) setFxMode(t, t.smooth ? 'smooth' : 'style', 'style choisi à la main'); else queueProcess(t); });
     const file = el('input', { type: 'file', accept: 'audio/*', class: 'voiceFile', onchange: (e) => importVoice(t, e.target.files[0]) });
     const meter = el('canvas', { class: 'meter', width: 300, height: 9 });
     const badge = el('span', { class: 'badge', textContent: badgeText(t) });
@@ -461,13 +468,14 @@ function trackRow(t) {
         el('div', { class: 'r' }, role, style),
         meter,
         el('div', { class: 'r' }, ...toggles(t, onMuteSolo),
-            // Effets de la piste, un clic passe à l'état suivant : Brut (aucun effet) → Lissé (effets du style + voix
-            // lissée) → Style (effets du style tels quels).
-            el('button', { class: 'tog fx' + (t.noFx ? '' : t.smooth ? ' on smooth' : ' on'), textContent: t.noFx ? 'Brut' : t.smooth ? 'Lissé' : 'Style',
-                title: t.noFx ? 'Brut : la piste est jouée telle quelle, sans aucun effet (clique : Lissé)'
+            // Effets de la piste, un clic passe à l'état suivant : Brut (aucun effet) → Corrigé (correction automatique
+            // seule, sans couleur de style) → Lissé (effets du style + voix lissée) → Style (effets du style tels quels).
+            el('button', { class: 'tog fx' + (t.noFx ? '' : t.correction ? ' on corr' : t.smooth ? ' on smooth' : ' on'), textContent: t.noFx ? 'Brut' : t.correction ? 'Corrigé' : t.smooth ? 'Lissé' : 'Style',
+                title: t.noFx ? 'Brut : la piste est jouée telle quelle, sans aucun effet (clique : Corrigé)'
+                    : t.correction ? 'Corrigé : correction automatique seule — volume régulier, résonances, compression et justesse réglés d\'après la prise ; aucune couleur de style (ni réverb, ni écho, ni saturation). Clique : effets du style, voix lissée'
                     : t.smooth ? 'Lissé : les effets du style (autotune, couleur, réverb, écho) avec la voix lissée — compression, nettoyage et saturation doux, rien de rêche quand le niveau monte (clique : Style sans lissage)'
                     : 'Style : tous les effets du style tels quels, sans lissage (clique : Brut)',
-                onclick: (e) => { e.stopPropagation(); setFxMode(t, t.noFx ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
+                onclick: (e) => { e.stopPropagation(); setFxMode(t, t.noFx ? 'correction' : t.correction ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
             el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
                 title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
                 onclick: (e) => { e.stopPropagation(); t.locked = !t.locked; log('info', `« ${t.name} » : ${t.locked ? 'verrouillée (déplacement bloqué)' : 'déverrouillée (déplacement permis)'}`); markDirty(); renderTracks(); } }),
@@ -513,13 +521,14 @@ function badgeText(t) {
     if (t.status === 'busy') return 'traitement…';
     if (t.status === 'isolating') return 'isolation IA…';
     if (t.noFx && t.take) return 'sans effet';
-    if (t.processed) return t.smooth ? 'lissée' : 'traitée';
+    if (t.processed) return t.correction ? 'corrigée' : t.smooth ? 'lissée' : 'traitée';
     if (t.take) return 'brute';
     return 'vide';
 }
 function trackInfo(t) {
     const g = state.balance?.gains.get(t.id);
-    const parts = [`${roleLabel(t.roleId)} · ${styleName(t.styleId)}`];
+    // Mode Correction : dit d'abord que le style n'est pas appliqué (l'en-tête est étroit, la fin de la ligne est coupée).
+    const parts = [t.correction && !t.noFx ? `correction seule, style non appliqué · ${roleLabel(t.roleId)}` : `${roleLabel(t.roleId)} · ${styleName(t.styleId)}`];
     if (t.take) parts.push(`prise ${fmt(t.take.mono.length / t.take.sampleRate)} à ${fmt(t.take.startSec)}`);
     const lvl = mixLevelDb(t);
     // En tête de ligne (l'en-tête de piste est étroit) : le niveau au Mix doit rester lisible.
@@ -555,10 +564,12 @@ function showReport(t) {
     const rep = t.processed?.report;
     const g = state.balance?.gains.get(t.id);
     const b = state.balance?.items?.get(t.id);
-    if (!t.take) { ui.report.textContent = `« ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}. Pas encore de prise.`; return; }
-    if (!rep) { ui.report.textContent = `« ${t.name} » : prise brute (${t.take.note || 'sans effet'}). Traitement à venir.`; return; }
+    if (!t.take) { ui.report.textContent = `« ${t.name} » : ${roleLabel(t.roleId)}, ${t.correction && !t.noFx ? `correction automatique seule (style ${styleName(t.styleId)} non appliqué)` : `style ${styleName(t.styleId)}`}. Pas encore de prise.`; return; }
+    if (!rep) { ui.report.textContent = `« ${t.name} » : prise brute (${t.take.note || 'sans effet'}). ${t.noFx ? 'Piste « Sans effet » : jouée telle quelle.' : 'Traitement à venir.'}`; return; }
     ui.report.textContent =
-        `« ${t.name} » — ${rep.role}, style ${rep.style}, réglé d'après la mesure de la prise :\n${rep.fitNotes || 'rien à ajuster'}\n\n` +
+        (rep.mode === 'correction'
+            ? `« ${t.name} » — ${rep.role}, correction automatique seule (aucune couleur de style : ni réverb, ni écho, ni saturation ; style ${styleName(t.styleId)} non appliqué), réglée d'après la mesure de la prise :\n${rep.fitNotes || 'rien à ajuster'}\n\n`
+            : `« ${t.name} » — ${rep.role}, style ${rep.style}, réglé d'après la mesure de la prise :\n${rep.fitNotes || 'rien à ajuster'}\n\n`) +
         `Mesuré sur la prise : ${rep.found || 'aucun défaut notable'}\n\n` +
         `Chaîne appliquée :\n${rep.chain}\n\n` +
         `Justesse ${Math.round(rep.meanCorrectionCents)} c · compression ${rep.compGrDb.toFixed(1)} dB · ${rep.lufs.toFixed(1)} LUFS` +
@@ -711,21 +722,24 @@ function queueProcess(t) {
     const token = ++t.token;
     t.status = 'busy';
     state.balanceDirty = true;
+    if (t.correction) autoQueued(t);
     updateRow(t);
     setBusy(1);
-    state.jobs = state.jobs.then(() => processTrack(t, token)).catch((err) => log('error', err.message)).finally(() => setBusy(-1));
+    state.jobs = state.jobs.then(() => processTrack(t, token)).catch((err) => log('error', err.message)).finally(() => { setBusy(-1); autoShow(); });
     state.jobs.then(() => liveRefresh(t, token));   // lecture « Mix » en cours : le nouveau son remplace l'ancien sans arrêter
     return state.jobs;
 }
 async function processTrack(t, token) {
     if (token !== t.token || !findTrack(t.id) || !t.take) return;   // réglage changé entre-temps : seul le dernier compte
     const fx = t.fx && Object.keys(t.fx).length ? t.fx : null;   // réglages faits à la main dans le tableau des effets
-    const key = `${t.styleId}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${t.smooth ? 'lissé' : 'style'}|${fx ? JSON.stringify(fx) : ''}`;
+    const corr = !!t.correction, sid = engineStyle(t);   // « correction » : correction seule, sans couleur de style
+    const key = `${sid}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${t.smooth ? 'lissé' : 'style'}|${fx ? JSON.stringify(fx) : ''}`;
     const t0 = performance.now();
-    setStatus(`Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`);
+    if (corr) { log('info', `« ${t.name} » : correction automatique lancée (${roleLabel(t.roleId)}, prise de ${fmt(t.take.mono.length / t.take.sampleRate)}${t.smooth ? ', voix lissée' : ''}${fx ? ', réglages à la main : ' + JSON.stringify(fx) : ''})`); autoShow(t); }
+    setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » (${roleLabel(t.roleId)}) en cours…` : `Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`);
     try {
         const r = await call('processVoice', {
-            mono: t.take.mono.slice(), sampleRate: t.take.sampleRate, styleId: t.styleId, roleId: t.roleId,
+            mono: t.take.mono.slice(), sampleRate: t.take.sampleRate, styleId: sid, roleId: t.roleId,
             cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec, fx, gentle: !!t.smooth,
         });
         if (token !== t.token) return;
@@ -734,7 +748,12 @@ async function processTrack(t, token) {
         if (t.inspect) t.inspect.stale = true;   // réglages changés depuis l'inspection : ses constats ne valent plus
         state.balanceDirty = true;
         log('info', `« ${t.name} » traitée (${r.report.role}, ${r.report.style}) en ${Math.round(performance.now() - t0)} ms`);
-        setStatus(`Piste « ${t.name} » traitée : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}.`);
+        if (corr) {
+            autoRun.done.add(t.id);
+            log('info', `« ${t.name} » : correction automatique finie en ${Math.round(performance.now() - t0)} ms — décisions du moteur : ${(r.report.fitNotes || 'rien à ajuster').replace(/\n/g, ' | ')} ; constats : ${(r.report.found || 'aucun défaut notable').replace(/\n/g, ' | ')}`);
+            if (r.report.mode !== 'correction') log('warn', `« ${t.name} » : le moteur a répondu en mode « ${r.report.mode} » au lieu de « correction »`);
+        }
+        setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » corrigée (${roleLabel(t.roleId)}, sans couleur de style).` : `Piste « ${t.name} » traitée : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}.`);
     } catch (err) {
         t.status = 'error';
         log('error', `« ${t.name} » : traitement impossible : ${err.message}`);
@@ -752,16 +771,62 @@ ui.useScale.addEventListener('change', () => {
     reprocessAll();
 });
 
-// État des effets d'une piste : 'none' (sans effet, brut), 'smooth' (effets du style + voix lissée) ou 'style' (effets
-// du style tels quels). « Voix lissée » (t.smooth) est un interrupteur qui s'ajoute au style : il est gardé quand la
-// piste repasse par « Sans effet ». Même action depuis le bouton de la piste et depuis le tableau des effets.
-const fxModeOf = (t) => (t.noFx ? 'none' : t.smooth ? 'smooth' : 'style');
-function setFxMode(t, mode) {
+// État des effets d'une piste : 'none' (sans effet, brut), 'correction' (correction automatique seule : volume régulier,
+// résonances, compression, justesse, sans couleur de style — mode de départ de toute nouvelle piste, t.correction),
+// 'smooth' (effets du style + voix lissée) ou 'style' (effets du style tels quels). « Voix lissée » (t.smooth) est un
+// interrupteur à part, valable en Correction comme en Style : il est gardé quand la piste repasse par « Sans effet » ou
+// « Correction ». Même action depuis le bouton de la piste et depuis le tableau des effets.
+// Le style ne s'applique que sur un geste : liste des styles de la piste, bouton « Style », bouton de la piste.
+const fxModeOf = (t) => (t.noFx ? 'none' : t.correction ? 'correction' : t.smooth ? 'smooth' : 'style');
+const fxKindOf = (t) => (t.noFx ? 'none' : t.correction ? 'correction' : 'style');   // les trois modes (gardé avec le projet)
+const engineStyle = (t) => (t.correction ? 'correction' : t.styleId);                 // identifiant de style envoyé au moteur
+function setFxMode(t, mode, why = '') {
     if (fxModeOf(t) === mode) return;
     t.noFx = mode === 'none';
-    if (mode !== 'none') t.smooth = mode === 'smooth';
-    log('info', `« ${t.name} » : ${mode === 'none' ? 'sans effet (brut)' : mode === 'smooth' ? 'effets du style, voix lissée' : 'effets du style, sans lissage'}`);
+    if (mode !== 'none') { t.correction = mode === 'correction'; if (!t.correction) t.smooth = mode === 'smooth'; }
+    log('info', `« ${t.name} » : ${mode === 'none' ? 'sans effet (brut)' : mode === 'correction' ? `mode « Correction » (correction automatique seule, style ${styleName(t.styleId)} non appliqué)` : mode === 'smooth' ? `passage en mode « Style » : effets du style ${styleName(t.styleId)}, voix lissée` : `passage en mode « Style » : effets du style ${styleName(t.styleId)}, sans lissage`}${why ? ` — ${why}` : ''}`);
     markDirty(); renderTracks(); queueProcess(t); renderFx(true);
+}
+// « Voix lissée » : s'ajoute au mode en cours (Correction ou Style) sans le changer.
+function setSmooth(t, on) {
+    if (t.noFx || !!t.smooth === !!on) return;
+    t.smooth = !!on;
+    log('info', `« ${t.name} » : voix lissée ${on ? 'allumée' : 'éteinte'} (${t.correction ? 'mode Correction' : `effets du style ${styleName(t.styleId)}`})`);
+    markDirty(); renderTracks(); queueProcess(t); renderFx(true);
+}
+// Avancement de la correction automatique : pistes en mode « Correction » mises en file depuis que la file est vide.
+const autoRun = { ids: new Set(), done: new Set(), head: '' };   // head : début de la barre d'état gardé pendant la file (« Chanson séparée… »)
+function autoQueued(t) {
+    if (state.busy === 0) { autoRun.ids.clear(); autoRun.done.clear(); autoRun.head = ''; }
+    autoRun.ids.add(t.id); autoRun.done.delete(t.id);
+    autoShow();
+}
+// Compte : pistes de la file encore présentes et encore en mode Correction (une piste supprimée ou passée en Style sort du compte).
+function autoCount() {
+    const ids = [...autoRun.ids].filter((id) => { const t = findTrack(id); return t && t.correction && !t.noFx; });
+    return { n: ids.length, done: ids.filter((id) => autoRun.done.has(id)).length };
+}
+const autoText = () => { const c = autoCount(); return `Correction automatique : ${c.done} / ${c.n} piste${c.n > 1 ? 's' : ''}`; };
+function autoShow(current) {
+    if (!ui.autoLine) return;
+    const { n, done } = autoCount(), left = n - done;
+    ui.autoLine.hidden = n === 0;
+    ui.autoLine.classList.toggle('busy', left > 0 && state.busy > 0);
+    ui.autoLine.textContent = n === 0 ? '' : left > 0 && state.busy > 0 ? `⏳ ${autoText()}${current ? ` — « ${current.name} » en cours…` : '…'}`
+        : left > 0 ? `${autoText()} (${left} non corrigée${left > 1 ? 's' : ''} : voir le journal)` : `✓ ${autoText()} — volume régulier, résonances, compression, justesse ; aucune couleur de style.`;
+}
+// « Corriger toutes les pistes » / « Tout sans effet » : même mode pour toutes les pistes de voix, traitement relancé.
+function setAllFxMode(mode) {
+    const list = state.tracks.filter((t) => fxModeOf(t) !== mode);
+    log('info', `${mode === 'correction' ? '« Corriger toutes les pistes »' : '« Tout sans effet »'} : ${state.tracks.length} piste(s) de voix, ${list.length} à changer${list.length ? ' (' + list.map((t) => `« ${t.name} » : ${fxKindOf(t)} → ${mode}`).join(', ') + ')' : ''}`);
+    for (const t of state.tracks) {
+        if (fxModeOf(t) !== mode) { t.noFx = mode === 'none'; if (mode === 'correction') t.correction = true; }
+        if (t.take) queueProcess(t);
+    }
+    markDirty(); renderTracks(); renderFx(true);
+    const n = state.tracks.filter((t) => t.take).length;
+    setStatus(mode === 'correction' ? (n ? `Correction automatique de ${n} piste(s) lancée : une piste après l'autre.` : 'Toutes les pistes sont en « Correction » : elles seront corrigées dès qu\'elles auront une prise.')
+                                    : `Toutes les pistes sont « Sans effet » : jouées telles quelles (${n} avec une prise).`);
 }
 // ------------------------------------------------------------------ tableau des effets (piste sélectionnée)
 // Le moteur rend, pour chaque piste traitée, le pré-réglage (style + type, ajusté à la mesure de la prise) et les
@@ -854,18 +919,25 @@ function renderFx(force = false) {
     const t = findTrack(state.selectedId);
     ui.fxResetAll.disabled = !(t && t.fx && Object.keys(t.fx).length);
     renderInspect();
-    for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && (b.dataset.mode === 'none') === !!t.noFx); }
+    for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && b.dataset.mode === fxKindOf(t)); }
     ui.fxSmooth.disabled = !t || !!t.noFx;
     ui.fxSmooth.classList.toggle('on', !!t && !t.noFx && !!t.smooth);
     ui.fxSmooth.textContent = t && !t.noFx && t.smooth ? '✨ Voix lissée : oui' : '✨ Voix lissée : non';
-    if (!t) { ui.fxTitle.textContent = 'Effets de la piste'; ui.fxList.replaceChildren(); fxUi.trackId = 0; return; }
+    if (!t) { ui.fxTitle.textContent = 'Effets de la piste'; ui.fxList.replaceChildren(); fxUi.trackId = 0; ui.fxDone.hidden = true; return; }
     ui.fxTitle.textContent = `Effets de « ${t.name} »`;
     const rep = t.processed?.report;
     const msg = !t.take ? 'Pas encore de prise sur cette piste : enregistre ou importe une voix, ses effets s\'afficheront ici.'
-        : t.noFx ? 'Cette piste est « Sans effet » : elle est jouée telle quelle (seul son volume est réglé). Choisis « Style » ci-dessus pour lui donner les effets de son style (avec « Voix lissée » pour une voix propre), puis règle-les ici.'
-        : !rep?.fx ? 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.'
+        : t.noFx ? 'Cette piste est « Sans effet » : elle est jouée telle quelle (seul son volume est réglé). Choisis « Correction » ci-dessus pour la corriger automatiquement (sans couleur de style), ou « Style » pour lui donner les effets de son style, puis règle-les ici.'
+        : !rep?.fx ? (t.correction ? 'Correction automatique de la piste en cours… ce qui a été fait s\'affiche dès qu\'elle est finie.' : 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.')
+        : t.correction ? `Mode « Correction » : cette piste est corrigée automatiquement d'après sa prise (${roleLabel(t.roleId)}${t.smooth ? ', voix lissée' : ''}). Le style ${styleName(t.styleId)} n'est PAS appliqué : aucune couleur (ni réverb, ni écho, ni saturation). Pour l'appliquer, choisis « Style » ci-dessus ou un style dans la liste de la piste.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Les réglages décidés sont ci-dessous : coche / décoche un effet, clique sur sa ligne pour le régler à la main. Chaque changement s'entend pendant « ▶ Mix ».`
         : `Pré-réglage : style ${styleName(t.styleId)}${t.smooth ? ' + voix lissée (compression, nettoyage et saturation doux)' : ''}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
     ui.fxInfo.textContent = msg;
+    // Ce que la correction automatique a fait sur cette piste : décisions du moteur et constats, en clair.
+    const showDone = !!t.take && !t.noFx && rep?.mode === 'correction';
+    ui.fxDone.hidden = !showDone;
+    if (showDone) ui.fxDone.textContent = `✓ Ce que la correction automatique a fait sur cette piste :\n${(rep.fitNotes || 'rien à ajuster').split(/\n| ; /).filter((l) => l.trim()).map((l) => '• ' + l.trim()).join('\n')}`
+        + `\nMesuré sur la prise : ${rep.found || 'aucun défaut notable'}`
+        + `\nJustesse corrigée de ${Math.round(rep.meanCorrectionCents)} centièmes en moyenne · compression ${rep.compGrDb.toFixed(1)} dB · aucune réverb, aucun écho, aucune saturation.`;
     if (!t.take || t.noFx || !rep?.fx) { ui.fxList.replaceChildren(); fxUi.trackId = 0; fxUi.rows.clear(); return; }
     if (!force && fxUi.trackId === t.id && fxUi.rows.size) { fxRefresh(); return; }
     fxUi.trackId = t.id; fxUi.rows.clear();
@@ -912,8 +984,10 @@ function fxRefresh() {
         }
     }
 }
-for (const b of ui.fxMode.querySelectorAll('button')) b.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) setFxMode(t, b.dataset.mode === 'none' ? 'none' : t.smooth ? 'smooth' : 'style'); });
-ui.fxSmooth.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t && !t.noFx) setFxMode(t, t.smooth ? 'style' : 'smooth'); });
+for (const b of ui.fxMode.querySelectorAll('button')) b.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) setFxMode(t, b.dataset.mode === 'none' ? 'none' : b.dataset.mode === 'correction' ? 'correction' : t.smooth ? 'smooth' : 'style', b.dataset.mode === 'style' ? 'bouton « Style »' : ''); });
+ui.fxSmooth.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t && !t.noFx) setSmooth(t, !t.smooth); });
+ui.correctAllBtn.addEventListener('click', () => setAllFxMode('correction'));
+ui.rawAllBtn.addEventListener('click', () => setAllFxMode('none'));
 ui.fxResetAll.addEventListener('click', () => {
     const t = findTrack(state.selectedId);
     if (!t) return;
@@ -999,7 +1073,7 @@ async function inspectTrack(t, onStep = () => {}) {
 
     // 2) les effets, sur le passage le plus fort
     const at = loudestWindow(mono, sr, INSPECT_SEC), x = mono.slice(at, at + Math.round(INSPECT_SEC * sr));
-    const base = { sampleRate: sr, styleId: t.styleId, roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec + at / sr, gentle: !!t.smooth };
+    const base = { sampleRate: sr, styleId: engineStyle(t), roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec + at / sr, gentle: !!t.smooth };   // « correction » en mode Correction
     const user = t.fx || {}, noSpace = { reverb: { on: false }, delay: { on: false } };
     const offAll = Object.fromEntries(NONLINEAR_FX.map((id) => [id, { on: false }]));
     const run = async (fx, src = x, offSec = 0) => {
@@ -1023,7 +1097,7 @@ async function inspectTrack(t, onStep = () => {}) {
     const worstOf = (e) => Math.max(e.high, e.highLoud, e.low, e.lowLoud);
     const where = `passage le plus fort, ${fmt(take.startSec + at / sr)} à ${fmt(take.startSec + at / sr + x.length / sr)}`;
     const ex = excess(dFull), worst = worstOf(ex);
-    log('info', `Inspection de « ${t.name} » (${where}, ${dFull.frames} trames chantées) : saleté ajoutée par les effets — aigus ${sDb(ex.high)} (passages forts ${sDb(ex.highLoud)}), graves ${sDb(ex.low)} (forts ${sDb(ex.lowLoud)}) ; limiteur ${(full.report.limiterGrDb || 0).toFixed(1)} dB`);
+    log('info', `Inspection de « ${t.name} » (${t.correction ? 'mode Correction' : `style ${styleName(t.styleId)}`}, ${where}, ${dFull.frames} trames chantées) : saleté ajoutée par les effets — aigus ${sDb(ex.high)} (passages forts ${sDb(ex.highLoud)}), graves ${sDb(ex.low)} (forts ${sDb(ex.lowLoud)}) ; limiteur ${(full.report.limiterGrDb || 0).toFixed(1)} dB`);
     const active = NONLINEAR_FX.filter((id) => full.report.fx?.[id]?.on);
     const offBtn = (id) => ({ label: `Éteindre « ${fxName(id)} »`, run: () => { t.fx = t.fx || {}; t.fx[id] = { ...(t.fx[id] || {}), on: false }; log('info', `« ${t.name} » : « ${fxName(id)} » éteint (inspection)`); fxChanged(t, 30); renderFx(true); } });
     if (dFull.frames < 20) add('info', `Trop peu de passages chantés dans la prise (${dFull.frames} trames) pour mesurer ce que les effets ajoutent.`);
@@ -1044,7 +1118,7 @@ async function inspectTrack(t, onStep = () => {}) {
         if (culprits.length) {
             culprits.forEach((c, k) => add(level, k === 0 ? `${head} Responsable mesuré : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).` : `Aussi en cause : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).`,
                 offBtn(c.id)));
-        } else if (!t.smooth) add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Allumer « Voix lissée »', run: () => setFxMode(t, 'smooth') });
+        } else if (!t.smooth) add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Allumer « Voix lissée »', run: () => setSmooth(t, true) });
         else add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Passer en « Sans effet »', run: () => setFxMode(t, 'none') });
     }
     // 5) saturation qui déforme : mêmes réglages appliqués, autotune et recalage éteints, avec la saturation contre sans
@@ -1179,6 +1253,64 @@ async function ensureBalance() {
     if (!state.player) restMeters();
     return state.balance;
 }
+
+// ------------------------------------------------------------------ écarts de volume par type (étape 4)
+// De combien chaque type de piste est placé sous la voix principale (LU) : valeur d'origine du moteur, réglable ici de
+// -24 à 0. L'état vit dans le moteur (commande setRoleOffset) : il est gardé avec le projet (state.roleOffsets) et
+// renvoyé au moteur après un rechargement. Il vaut pour l'équilibre (« ▶ Mix », export) et « Mixer la chanson ».
+const fLu = (v) => `${(+v).toFixed(1).replace('.', ',')} LU`;
+function renderRoles() {
+    const adj = state.roles.filter((r) => r.adjustable);
+    ui.roleList.replaceChildren(...adj.map((r) => {
+        const val = el('b', { textContent: fLu(r.placeLu) });
+        const inp = el('input', { type: 'range', min: -24, max: 0, step: 0.5, value: r.placeLu, 'data-role': r.id,
+            title: `${roleLabel(r.id)} : de combien ce type est placé sous la voix principale (0 = au même niveau)`,
+            oninput: (e) => { val.textContent = fLu(Number(e.target.value)); },
+            onchange: (e) => setRoleOffset(r.id, Number(e.target.value)) });
+        return el('div', { class: 'rolerow' }, el('span', { textContent: roleLabel(r.id) }), inp, val,
+            el('span', { class: 'pre', textContent: `valeur d'origine : ${fLu(r.defaultPlaceLu)}${r.placeLu !== r.defaultPlaceLu ? ' — modifié' : ''}` }));
+    }));
+    ui.roleResetBtn.disabled = !state.ready || !adj.some((r) => r.placeLu !== r.defaultPlaceLu);
+}
+function rolesChanged() {
+    state.roleOffsets = Object.fromEntries(state.roles.filter((x) => x.adjustable && x.placeLu !== x.defaultPlaceLu).map((x) => [x.id, x.placeLu]));
+    state.balanceDirty = true;                             // l'équilibre est à refaire
+    if (state.balanceRaw) state.balanceRaw.sig = '';       // « ⚖ Égaliser » aussi (mêmes écarts)
+    renderRoles();
+    markDirty();
+    for (const t of state.tracks) updateRow(t);
+    if (state.player?.mode === 'mix') ensureBalance().then(liveGains).catch((err) => log('error', `Équilibre après changement d'écart impossible : ${err.message}`));
+}
+// lu = null : retour à la valeur d'origine (roleId vide : tous les types).
+async function setRoleOffset(roleId, lu, why = 'curseur') {
+    try {
+        if (lu != null && !Number.isFinite(lu)) throw new Error('valeur invalide');
+        const before = Object.fromEntries(state.roles.map((r) => [r.id, r.placeLu]));
+        const r = await call('setRoleOffset', lu == null ? { roleId, reset: true } : { roleId, lu });
+        state.roles = r.roles;
+        const changed = state.roles.filter((x) => x.placeLu !== before[x.id]);
+        log('info', `Écarts par type (${why}) : ${changed.length ? changed.map((x) => `${roleLabel(x.id)} ${fLu(before[x.id])} → ${fLu(x.placeLu)} (origine ${fLu(x.defaultPlaceLu)})`).join(', ') : 'rien de changé'} ; équilibre des volumes à refaire`);
+        rolesChanged();
+        setStatus(changed.length ? `Écart réglé : ${changed.map((x) => `${roleLabel(x.id)} ${fLu(x.placeLu)}`).join(', ')}. L'équilibre sera refait à la prochaine lecture « ▶ Mix ».` : 'Écarts par type : rien de changé.');
+    } catch (err) {
+        log('error', `Écart de volume par type impossible (${roleId || 'tous'}) : ${err.message}`);
+        setStatus(`Écart de volume impossible : ${err.message}`);
+        renderRoles();
+    }
+}
+// Projet repris : les écarts gardés sont renvoyés au moteur (son état repart de l'origine à chaque chargement de page).
+async function applyRoleOffsets(saved) {
+    if (!saved || typeof saved !== 'object') return;
+    for (const [roleId, lu] of Object.entries(saved)) {
+        if (typeof lu !== 'number' || !Number.isFinite(lu)) { log('warn', `Écart gardé pour « ${roleId} » illisible (${lu}) : ignoré`); continue; }
+        try { state.roles = (await call('setRoleOffset', { roleId, lu })).roles; }
+        catch (err) { log('warn', `Écart gardé pour « ${roleId} » refusé par le moteur : ${err.message}`); }
+    }
+    rolesChanged();
+    const kept = Object.entries(state.roleOffsets);
+    log('info', `Écarts par type repris de la sauvegarde : ${kept.length ? kept.map(([id, lu]) => `${roleLabel(id)} ${fLu(lu)}`).join(', ') : 'valeurs d\'origine'}`);
+}
+ui.roleResetBtn.addEventListener('click', () => setRoleOffset('', null, '« Valeurs d\'origine »'));
 
 // ------------------------------------------------------------------ lecture
 const dbg = (db) => Math.pow(10, db / 20);
@@ -1493,7 +1625,7 @@ async function importVoice(t, file) {
         const isoRes = await maybeIsolate(toMono(buf), buf.sampleRate);
         addTake(t, { mono: isoRes.mono, sampleRate: buf.sampleRate, startSec: 0, note: `${file.name} · ${isoRes.note}` });
         renderTracks();
-        setStatus(`Voix importée sur « ${t.name} » : ${isoRes.note}. Traitement par son style…`);
+        setStatus(`Voix importée sur « ${t.name} » : ${isoRes.note}. ${t.noFx ? 'Piste « Sans effet » : jouée telle quelle.' : t.correction ? 'Correction automatique…' : 'Traitement par son style…'}`);
         queueProcess(t);
     } catch (err) { t.status = 'error'; updateRow(t); setStatus('Voix illisible : ' + err.message); log('error', err.message); }
 }
@@ -1752,7 +1884,7 @@ async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, 
         addTake(t, { mono, sampleRate: sr, startSec, note, raw: rawCut.slice() });
         log('info', `Prise sur « ${t.name} » : ${rep.describe} ; début ${startSec.toFixed(3)} s ; ${isoRes.note}`);
         renderTracks();
-        setStatus(`Prise enregistrée sur « ${t.name} » : voix seule, calée sur la musique (${note}). Traitement par son style…`);
+        setStatus(`Prise enregistrée sur « ${t.name} » : voix seule, calée sur la musique (${note}). ${t.noFx ? 'Piste « Sans effet » : jouée telle quelle.' : t.correction ? 'Correction automatique…' : 'Traitement par son style…'}`);
         queueProcess(t);
     } catch (err) { if (info) info.trackId = -1; setStatus('Prise impossible : ' + err.message); log('error', err.message); t.status = t.take ? 'raw' : 'vide'; updateRow(t); }
     state.rec = null;
@@ -1986,6 +2118,8 @@ function refreshButtons() {
     ui.playRawBtn.disabled = !(state.instru || anyTake);
     ui.levelBtn.disabled = !anyTake || !state.ready;
     ui.inspectAllBtn.disabled = !anyTake || !state.ready || state.inspecting;
+    ui.correctAllBtn.disabled = !state.ready || !state.tracks.length;
+    ui.rawAllBtn.disabled = !state.ready || !state.tracks.length;
     refreshLevelBtn();
     ui.exportBtn.disabled = !(anyTake || state.instru);
     ui.exportRawBtn.disabled = !(anyTake || state.instru);
@@ -2004,7 +2138,8 @@ function refreshButtons() {
 //  2) backs = modèle « karaoké » appliqué aux voix ; voix principale = voix − backs ;
 //  3) (expérimental) ambiance = modèle « réverb » appliqué à la voix principale ; voix sèche = voix principale − ambiance ;
 //  4) voix principale coupée par chanteur s'ils alternent (empreinte de voix, singers.js).
-// Chaque partie arrive sur sa piste avec son type, « sans effet » (déjà produite), prête pour « Mixer la chanson ».
+// Chaque partie arrive sur sa piste avec son type, en mode « Correction » (corrigée d'office, sans couleur de style),
+// verrouillée, prête pour « Mixer la chanson ».
 async function resampleStereo(L, R, fromSr, toSr) {
     if (fromSr === toSr) return { left: L.slice(), right: R.slice() };
     const t0 = performance.now();
@@ -2443,15 +2578,15 @@ async function separateSong() {
             state.instru.name = original.name.replace(/\.[^.]+$/, '') + ' (instru séparée)';
             state.instru.audioId = `i${Date.now().toString(36)}`;
         }
-        const made = [];
+        const made = [], madeTracks = [];
         const mk = (name, roleId, mono) => {
             if (rmsDbSt(mono, mono) < -55) { log('info', `${name} : rien de repéré (sous -55 dBFS), pas de piste`); return; }
-            const t = addTrack(roleId, name);
-            t.noFx = true;
+            const t = addTrack(roleId, name);   // naît en « Correction », comme toute nouvelle piste (plus « sans effet »)
             t.locked = true;   // calée sur l'instru : pas de déplacement par accident
             t.styleId = state.tracks.find((x) => x.roleId === 'lead' && x !== t)?.styleId || t.styleId;
             addTake(t, { mono, sampleRate: sr, startSec: 0, note: 'séparée de la chanson', label: 'Séparée' });
             made.push(`${name} (${roleLabel(roleId)})`);
+            madeTracks.push(t);
         };
         // pistes vides laissées par défaut au démarrage : retirées pour ne pas encombrer
         state.tracks = state.tracks.filter((t) => t.take || t.name !== 'Voix principale');
@@ -2476,7 +2611,13 @@ async function separateSong() {
             ` ; total ${sepDur(sec)} ; ${made.length} piste(s) créée(s)${made.length ? ' : ' + made.join(', ') : ''}`);
         sepCacheClear();
         setStatus(noVoice ? 'Chanson séparée : presque pas de voix repérée, la chanson est restée entière sur la piste Instru (aucune piste créée).'
-            : `Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix (sans effet, à leur type). « Mixer la chanson » quand tout est prêt.`);
+            : `Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix à leur type, corrigées automatiquement (sans couleur de style). « Mixer la chanson » quand tout est prêt.`);
+        // Correction automatique d'office des pistes créées (une après l'autre) ; la barre d'état garde « Chanson séparée ».
+        if (madeTracks.length) {
+            log('info', `Séparation : correction automatique lancée sur ${madeTracks.length} piste(s) créée(s) (${madeTracks.map((t) => `« ${t.name} »`).join(', ')})`);
+            for (const t of madeTracks) queueProcess(t);
+            autoRun.head = `Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix à leur type. `;
+        }
     } catch (err) {
         if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); ui.sepInfo.textContent = 'Séparation arrêtée : rien n\'a été changé.'; }
         else { setStatus('Séparation impossible : ' + err.message); ui.sepInfo.textContent = 'Séparation impossible : ' + err.message; log('error', 'Séparation : ' + err.message); }
@@ -2700,8 +2841,10 @@ async function saveProject() {
         version: 1, savedAt: Date.now(), nextTrackId: state.nextTrackId, armedId: state.armedId, rawLevelOn: !!state.rawLevelOn,
         instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
         instruTrack: state.instruTrack,
+        roleOffsets: state.roleOffsets,   // écarts de volume par type réglés à la main (absent : valeurs d'origine)
         tracks: state.tracks.map((t) => ({
             id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, smooth: !!t.smooth, locked: !!t.locked, fx: t.fx || {},
+            mode: fxKindOf(t),   // 'none' | 'correction' | 'style' ; absent des projets d'avant le mode « Correction »
             active: t.takes.indexOf(t.take),
             takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label })),
         })),
@@ -2728,11 +2871,15 @@ async function restoreProject() {
         state.instruTrack = { ...state.instruTrack, ...meta.instruTrack };
         state.rawLevelOn = !!meta.rawLevelOn;   // « Égaliser » demandé : les gains sont recalculés à la première lecture brute
         state.nextTrackId = meta.nextTrackId;
+        await applyRoleOffsets(meta.roleOffsets);
         state.tracks = [];
         for (const m of meta.tracks) {
             const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, smooth: !!m.smooth, fx: m.fx && typeof m.fx === 'object' ? m.fx : {},   // anciens projets : effets du style, comme avant
                         locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
                         take: null, takes: [], processed: null, status: 'vide', token: 0 };
+            // Mode gardé ; projet d'avant (pas de mode) : comportement d'avant, Style ou Sans effet — le son ne change pas.
+            t.correction = m.mode === 'correction'; if (m.mode) t.noFx = m.mode === 'none';
+            log('info', `« ${t.name} » : mode ${fxKindOf(t)} ${m.mode ? 'repris de la sauvegarde' : '(projet d\'avant le mode « Correction » : comportement d\'avant gardé)'}`);
             for (const k of m.takes) {
                 const mono = await get(k.audioId);
                 if (!(mono instanceof Float32Array)) { log('warn', `« ${m.name} » : ${k.label} introuvable dans la sauvegarde`); continue; }
@@ -2771,6 +2918,7 @@ ui.newBtn.addEventListener('click', async () => {
     state.instruTrack = { volumeDb: 0, mute: false, solo: false };
     state.tracks = []; state.nextTrackId = 1; state.armedId = 0; state.selectedId = 0;
     state.balance = null; state.balanceDirty = true; state.playFromSec = 0;
+    if (Object.keys(state.roleOffsets).length) await setRoleOffset('', null, 'nouveau projet');
     addTrack('lead', 'Voix principale');
     renderTracks();
     setPlayhead(0);

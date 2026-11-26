@@ -412,6 +412,9 @@ jobs:
           # « Correction seule » (styleId « correction ») : réglages déduits de la mesure de la prise, aucune couleur
           # (ni réverb, ni écho, ni saturation, ni recalage), compression selon la dynamique, pas de traîne.
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/correction.mjs http://127.0.0.1:8765/index.html
+          # Studio automatique : toute piste qui arrive est corrigée d'office (« Correction »), le style reste un choix
+          # manuel, « Corriger toutes les pistes », écarts de volume par type réglables, modes gardés avec le projet.
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/auto.mjs http://127.0.0.1:8765/index.html
           # Prise au micro sans casque (deux prises : voix principale puis back sur une seconde piste) : faux micro =
           # vraie voix (JFK, domaine public, whisper.cpp) + instru captée
           # (300 ms, -12 dB) + « radio » extérieure au niveau de la voix. La page doit retirer l'instru, compenser le

@@ -131,6 +131,15 @@
   button.tog.fx { min-width: 46px; }
   button.tog.fx.on { background: #8a2b5a; border-color: #c03d7c; }
   button.tog.fx.on.smooth { background: #4a3a8a; border-color: #7c5cff; }
+  button.tog.fx.on.corr { background: #17605f; border-color: #2aa3a1; padding-left: 4px; padding-right: 4px; }
+  select.style.unused { opacity: .55; font-style: italic; }
+  .autoline { font-size: 12.5px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); border-left: 4px solid #2aa3a1; white-space: pre-wrap; }
+  .autoline.busy { border-left-color: #e0a030; }
+  #fxDone { font-size: 12.5px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); border-left: 4px solid #2aa3a1; white-space: pre-wrap; }
+  .rolebox summary { cursor: pointer; font-size: 13px; }
+  .rolebox .rolerow { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(120px, 2fr) auto; gap: 4px 10px; align-items: center; font-size: 12.5px; margin-top: 6px; }
+  .rolebox .rolerow input[type=range] { width: 100%; }
+  .rolebox .rolerow .pre { color: var(--muted); grid-column: 1 / -1; font-size: 11.5px; }
   button.tog.lock.on { background: #5a3d1a; border-color: #b8791f; }
   .fxcard { margin-top: 10px; }
   .fxhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -201,7 +210,7 @@
     <div class="add">
       <button id="addTrackBtn" disabled>+ Ajouter une piste</button>
       <label>type <select id="addRole"></select></label>
-      <span class="info">Chaque piste : type (principale, back, ambiance…) et style à elle. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
+      <span class="info">Chaque piste : type (principale, back, ambiance…) à elle. Dès qu'une voix arrive, elle est corrigée automatiquement (volume, résonances, compression, justesse), sans couleur de style : le style se choisit à la main, piste par piste. M coupe une piste, S n'écoute qu'elle (ou celles en solo). Chaque REC ajoute une prise sur la piste armée ; glisse une prise pour la déplacer.</span>
     </div>
   </section>
 
@@ -232,15 +241,16 @@
   <section id="fxPanel" class="card step fxcard">
     <div class="fxhead">
       <h2><span class="num">3</span> <span id="fxTitle">Effets de la piste</span></h2>
-      <div id="fxMode" class="seg" title="Sans effet : la piste est jouée telle quelle. Style : les effets du style de la piste.">
-        <button data-mode="none" disabled>Sans effet</button><button data-mode="style" disabled>Style</button>
+      <div id="fxMode" class="seg" title="Sans effet : la piste est jouée telle quelle. Correction : correction automatique seule (volume régulier, résonances, compression, justesse), sans couleur de style — c'est le mode de départ de chaque piste. Style : les effets du style de la piste, en plus.">
+        <button data-mode="none" disabled>Sans effet</button><button data-mode="correction" disabled>Correction</button><button data-mode="style" disabled>Style</button>
       </div>
-      <button id="fxSmooth" class="smoothbtn" disabled title="Voix lissée : s'ajoute au style. Les effets restent (autotune, couleur, réverb, écho) ; compression, nettoyage et saturation passent en régime doux pour une voix propre quand le niveau monte.">✨ Voix lissée : non</button>
+      <button id="fxSmooth" class="smoothbtn" disabled title="Voix lissée : s'ajoute à la correction ou au style. Compression, nettoyage et saturation passent en régime doux pour une voix propre quand le niveau monte ; en mode Style, les effets du style restent (autotune, couleur, réverb, écho).">✨ Voix lissée : non</button>
       <button id="fxResetAll" disabled title="Efface tous les réglages faits à la main sur cette piste : retour au pré-réglage">↺ Pré-réglage</button>
       <button id="inspectBtn" disabled title="Le programme mesure lui-même la piste : prise saturée, bruit, effet qui salit la voix… et dit quoi faire">🔍 Inspecter</button>
     </div>
     <div id="inspectBox" class="inspect" hidden></div>
-    <div id="fxInfo" class="info">Clique sur l'en-tête d'une piste : ses effets s'affichent ici (pré-réglage du style, ajusté à la prise). Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
+    <div id="fxInfo" class="info">Chaque piste de voix est corrigée automatiquement dès qu'elle arrive (volume régulier, résonances, compression, justesse), sans couleur de style. Clique sur l'en-tête d'une piste : ce qui a été fait et ses réglages s'affichent ici. Coche ou décoche un effet, clique dessus pour ouvrir ses réglages : chaque changement s'entend pendant la lecture « ▶ Mix ».</div>
+    <div id="fxDone" hidden></div>
     <div id="fxList"></div>
   </section>
 
@@ -256,6 +266,17 @@
       <span class="info">Le programme cherche lui-même ce qui ne va pas sur chaque piste et dit quoi faire.</span>
     </div>
     <div id="inspectAllBox" class="inspect" hidden></div>
+    <div class="r mixline">
+      <button id="correctAllBtn" disabled title="Passe toutes les pistes de voix en « Correction » et les corrige l'une après l'autre : volume régulier, résonances réduites, compression à la bonne valeur, justesse. Aucune couleur de style (ni réverb, ni écho, ni saturation) : le style reste un choix à faire piste par piste.">✨ Corriger toutes les pistes</button>
+      <button id="rawAllBtn" disabled title="Passe toutes les pistes de voix en « Sans effet » : jouées telles quelles, seul le volume reste réglé">Tout sans effet</button>
+      <span class="info">Chaque nouvelle piste est déjà corrigée d'office. Ce bouton remet toutes les pistes en « Correction » (sans couleur de style).</span>
+    </div>
+    <div id="autoLine" class="autoline" hidden></div>
+    <details id="roleBox" class="rolebox">
+      <summary title="De combien chaque type de piste est placé sous la voix principale, dans « ▶ Mix » et dans « Mixer la chanson »">Écarts par type <span class="info">— de combien les backs, doublages, ambiances… sont placés sous la voix principale</span></summary>
+      <div id="roleList"></div>
+      <div class="r mixline" style="margin-top:8px"><button id="roleResetBtn" disabled title="Remet l'écart de chaque type à sa valeur d'origine">↺ Valeurs d'origine</button></div>
+    </details>
     <div class="r mixline">
       <button id="finalMixBtn" class="primary" disabled title="Quand tout est enregistré : chaque piste à sa place selon son type, voix soudées ensemble, voix posée sur l'instru, puis mastering. Une seule chanson, à écouter et exporter.">🎚 Mixer la chanson</button>
       <label title="Volume final visé (standard des plateformes)">Destination <select id="finalTarget">
@@ -303,7 +324,7 @@
       </section>
       <section class="card">
         <h2>Piste sélectionnée</h2>
-        <div id="report">Clique sur l'en-tête d'une piste pour voir ce qui lui est appliqué : mesure de la prise, chaîne du style réglée pour son type, place dans le mix.</div>
+        <div id="report">Clique sur l'en-tête d'une piste pour voir ce qui lui est appliqué : mesure de la prise, correction automatique ou chaîne du style réglée pour son type, place dans le mix.</div>
         <details><summary>Journal du moteur</summary><div id="log"></div></details>
       </section>
     </div>
