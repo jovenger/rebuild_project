@@ -21,6 +21,7 @@ async function boot() {
         setContext: engine.cwrap('sv_set_context', null, ['number', 'number', 'number', 'number', 'number']),
         processVoice: engine.cwrap('sv_process_voice', 'string', ['number', 'number', 'number', 'string', 'string', 'number', 'number', 'number', 'string', 'number']),
         roles: engine.cwrap('sv_roles', 'string', []),
+        setRoleOffset: engine.cwrap('sv_set_role_offset', 'string', ['string', 'number', 'number']),
         balanceBegin: engine.cwrap('sv_balance_begin', 'string', ['number', 'number', 'number', 'number', 'string']),
         balanceAdd: engine.cwrap('sv_balance_add', 'string', ['number', 'number', 'number', 'number', 'number', 'string', 'number']),
         balanceEnd: engine.cwrap('sv_balance_end', 'string', ['number']),
@@ -117,6 +118,13 @@ const handlers = {
         }
         const report = parse(api.finalMixEnd(targetId || 'spotify', duckingDb ?? 2.5));
         return { report, ...pullOut() };
+    },
+    // Écart de volume d'un type de piste par rapport à la voix principale (LU, borné à [-24, 0] par le moteur).
+    // { roleId, lu } règle ; { roleId, reset: true } revient à la valeur d'origine du type ; { reset: true } pour tous.
+    // Rend { roles } (comme la liste donnée au démarrage : placeLu en vigueur, defaultPlaceLu d'origine).
+    setRoleOffset({ roleId, lu, reset }) {
+        if (!reset && !Number.isFinite(lu)) throw new Error('écart de volume invalide (nombre attendu, en LU)');
+        return { roles: parse(api.setRoleOffset(roleId || '', reset ? 0 : lu, reset ? 1 : 0)).roles };
     },
     limit({ left, right, sampleRate, ceilingDb }) {
         const pl = push(left), pr = push(right);

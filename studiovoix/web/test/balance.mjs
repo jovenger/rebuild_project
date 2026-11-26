@@ -1,6 +1,6 @@
 // Essai de l'équilibre automatique (moteur WASM, dans la page) : plusieurs pistes « voix principale » enregistrées à des
 // niveaux très différents doivent sortir au même niveau après mixage, qu'il y en ait 2 ou 40 ; les backs entre eux aussi ;
-// une seule voix principale n'est pas touchée.
+// une seule voix principale n'est pas touchée ; l'écart de volume d'un type (backs…) se règle et revient à l'origine.
 //   node web/test/balance.mjs <url>
 import { createRequire } from 'node:module';
 const require = createRequire(process.env.PLAYWRIGHT_DIR ? process.env.PLAYWRIGHT_DIR.replace(/\/?$/, '/') : import.meta.url);
@@ -77,6 +77,41 @@ try {
         const tracks = [{ sec: 6, startSec: 0, gainDb: 0, f: 200, roleId: 'lead' }, { sec: 6, startSec: 6, gainDb: 0, f: 220, roleId: 'lead' }, { sec: 6, startSec: 12, gainDb: -30, f: 240, roleId: 'lead' }];
         const r = await run({ seconds: 18, tracks });
         check('piste trop loin : limitée à +12 dB et signalée', Math.abs(r.items[2].autoGainDb - 12) < 0.01 && /limitée/.test(r.report || ''), `gain ${r.items[2].autoGainDb.toFixed(1)} dB ; rapport : ${(r.report || '').split('\n')[0]}`);
+    }
+    // 5) Écarts de volume par type réglables depuis la page (commande setRoleOffset du moteur) : changer l'écart des
+    //    backs déplace leur niveau d'autant ; le retour aux valeurs d'origine redonne l'ancien résultat.
+    {
+        const engine = (cmd, payload) => page.evaluate(({ cmd, payload }) => new Promise((resolve) => {
+            const st = window.__studiovoix, id = 9500000 + Math.floor(Math.random() * 1e6);
+            const on = (e) => { if (e.data?.id !== id) return; st.worker.removeEventListener('message', on); resolve(e.data.ok ? { ok: true, roles: e.data.roles } : { ok: false, error: e.data.error }); };
+            st.worker.addEventListener('message', on);
+            st.worker.postMessage({ id, cmd, ...payload });
+        }), { cmd, payload });
+        const place = (r, id) => r.roles.find((x) => x.id === id);
+        const tracks = [{ sec: 8, startSec: 0, gainDb: 0, f: 200, roleId: 'lead' }, { sec: 8, startSec: 0, gainDb: -5, f: 330, roleId: 'manual_back' }];
+        const under = async () => { const r = await run({ seconds: 10, tracks }); const fin = r.items.map((it, k) => tracks[k].gainDb + it.gainDb); return { back: fin[1] - fin[0], gains: r.items.map((it) => it.gainDb) }; };
+        const origin = await engine('setRoleOffset', { reset: true });
+        const ORIGIN = { double: -9, manual_back: -7, harmony: -9, adlib: -9, ambiance: -14, instrument: -4 };
+        const known = origin.roles.filter((x) => x.id in ORIGIN);
+        check('écarts d\'origine inchangés', origin.ok && known.length >= 4 && known.every((x) => x.placeLu === ORIGIN[x.id] && x.defaultPlaceLu === ORIGIN[x.id]),
+            known.map((x) => `${x.id} ${x.placeLu}`).join(', ') + ' LU');
+        const a = await under();
+        const set = await engine('setRoleOffset', { roleId: 'manual_back', lu: -12 });
+        check('écart des backs réglé à -12 LU', set.ok && place(set, 'manual_back').placeLu === -12 && place(set, 'manual_back').defaultPlaceLu === -7, `rendu : ${place(set, 'manual_back')?.placeLu} LU (origine ${place(set, 'manual_back')?.defaultPlaceLu})`);
+        const b = await under();
+        check('les backs descendent d\'autant', Math.abs((b.back - a.back) - (-5)) < 0.1, `backs / voix principale : ${a.back.toFixed(2)} dB → ${b.back.toFixed(2)} dB (déplacement ${(b.back - a.back).toFixed(2)} dB, attendu -5)`);
+        const lo = await engine('setRoleOffset', { roleId: 'manual_back', lu: -40 }), hi = await engine('setRoleOffset', { roleId: 'manual_back', lu: 6 });
+        check('écart borné à [-24, 0] LU', place(lo, 'manual_back').placeLu === -24 && place(hi, 'manual_back').placeLu === 0, `-40 → ${place(lo, 'manual_back').placeLu} ; +6 → ${place(hi, 'manual_back').placeLu}`);
+        const lead = await engine('setRoleOffset', { roleId: 'lead', lu: -3 }), unknown = await engine('setRoleOffset', { roleId: 'nimporte', lu: -3 });
+        check('voix principale et type inconnu refusés', !lead.ok && !unknown.ok, `${lead.error || 'accepté'} | ${unknown.error || 'accepté'}`);
+        const back = await engine('setRoleOffset', { roleId: 'manual_back', reset: true });
+        const c = await under();
+        check('retour à la valeur d\'origine : ancien résultat', place(back, 'manual_back').placeLu === -7 && c.gains.every((g, k) => Math.abs(g - a.gains[k]) < 1e-4),
+            `backs / voix principale ${c.back.toFixed(2)} dB (avant réglage ${a.back.toFixed(2)}) ; gains ${c.gains.map((g) => g.toFixed(3)).join(' / ')} contre ${a.gains.map((g) => g.toFixed(3)).join(' / ')}`);
+        await engine('setRoleOffset', { roleId: 'ambiance', lu: -20 });
+        await engine('setRoleOffset', { roleId: 'double', lu: -3 });
+        const all = await engine('setRoleOffset', { reset: true });
+        check('retour aux valeurs d\'origine pour tous les types', all.ok && all.roles.every((x) => x.placeLu === x.defaultPlaceLu), all.roles.map((x) => `${x.id} ${x.placeLu}`).join(', '));
     }
 } catch (err) {
     console.log(stamp(), 'ÉCHEC :', err.message);

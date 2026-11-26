@@ -10,6 +10,7 @@
 #include "PitchCorrector.h"
 #include "Processors.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace sv::dsp
@@ -98,8 +99,11 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
         const float sib = bandMeanDb (spec, 5000.0f, 9000.0f);
         const float presence = bandMeanDb (spec, 1000.0f, 4000.0f);
         // Courbe attendue d'une voix propre : bas-médium ~ médium, 2,5-5 kHz ~ médium - 3 dB.
-        p.mudExcessDb = std::max (0.0f, low - mid - (vocal ? 0.0f : 3.0f));
-        p.harshExcessDb = std::max (0.0f, high - (mid - 3.0f));
+        // Grandeurs signées (négatif = manque) ; les excès historiques en sont la partie positive (valeurs inchangées).
+        p.bodyBalanceDb = low - mid - (vocal ? 0.0f : 3.0f);
+        p.presenceBalanceDb = high - (mid - 3.0f);
+        p.mudExcessDb = std::max (0.0f, p.bodyBalanceDb);
+        p.harshExcessDb = std::max (0.0f, p.presenceBalanceDb);
         p.sibilanceDb = sib - presence;
         // Centre de gravité spectral (pondéré par l'énergie).
         double wsum = 0.0, esum = 0.0;
@@ -148,6 +152,7 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
         const auto track = analysis::detectPitch (x, sr);
         double dev = 0.0;
         int voiced = 0, active = 0;
+        std::vector<float> f0s;   // hauteurs sûres : médiane = registre de la voix (manque de corps jugé seulement si elle est grave)
         for (size_t i = 0; i < track.frames.size(); ++i)
         {
             const double t = static_cast<double> (i) * track.hopSec;
@@ -160,6 +165,12 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
             const float midi = 69.0f + 12.0f * std::log2 (f.f0 / 440.0f);
             dev += std::abs (midi - nearestScaleMidi (midi, key, false)) * 100.0;
             ++voiced;
+            f0s.push_back (f.f0);
+        }
+        if (! f0s.empty())
+        {
+            std::nth_element (f0s.begin(), f0s.begin() + static_cast<long> (f0s.size() / 2), f0s.end());
+            p.medianF0Hz = f0s[f0s.size() / 2];
         }
         p.pitchDeviationCents = voiced > 0 ? static_cast<float> (dev / voiced) : 0.0f;
         p.voicedFraction = active > 0 ? static_cast<float> (voiced) / static_cast<float> (active) : 0.0f;
@@ -186,6 +197,11 @@ TrackProblems analyzeTrackProblems (const Mono& x, double sr, const MusicalKey& 
         p.found.add ("boue dans le bas-médium ("_u8 + db1 (p.mudExcessDb) + ")");
     if (p.harshExcessDb >= 2.0f)
         p.found.add ("dureté 2,5-5 kHz ("_u8 + db1 (p.harshExcessDb) + ")");
+    // Manques nets (voix seulement) : mêmes critères que la compensation de correctionParams.
+    if (vocal && spec.valid() && p.bodyBalanceDb <= kBodyLackDb && p.medianF0Hz > 0.0f && p.medianF0Hz <= kBodyLackMaxF0Hz)
+        p.found.add ("manque de corps (bas-médium "_u8 + db1 (p.bodyBalanceDb) + " par rapport au médium)"_u8);
+    if (vocal && spec.valid() && p.presenceBalanceDb <= kPresenceLackDb)
+        p.found.add ("manque de présence (2,5-5 kHz "_u8 + db1 (p.presenceBalanceDb) + " sous la courbe attendue)"_u8);
     if (p.sibilanceDb >= 0.0f)
         p.found.add ("sifflantes marquées ("_u8 + db1 (p.sibilanceDb) + ")");
     if (vocal && p.pitchDeviationCents >= 18.0f && p.voicedFraction > 0.2f)
@@ -227,6 +243,19 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
             v.comp = { -20.0f, 3.0f, 8.0f, 5.0f, 50.0f, 0.0f, 1.0f, false };    // piano / guitare : 3:1, 5 ms, 50 ms
         }
     }
+    if (vocal)
+    {
+        // Compression « à la bonne valeur » : taux et seuil suivent la dynamique mesurée (étendue du niveau court terme,
+        // P90 - P10), à la manière de fitStyleToMeasurement. Prise déjà régulière (4 dB ou moins) : kCorrectionMinRatio,
+        // presque rien ; prise très irrégulière (14 dB et plus) : kCorrectionMaxRatio. Le seuil descend quand la
+        // dynamique monte. Genou, attaque et relâchement (doux : 10 dB, 15 ms, 150 ms, détection RMS) ne bougent pas.
+        const float dyn = p.levelRangeDb;
+        const float t = juce::jlimit (0.0f, 1.0f, (dyn - 4.0f) / 10.0f);
+        v.comp.ratio = kCorrectionMinRatio + (kCorrectionMaxRatio - kCorrectionMinRatio) * t;
+        v.comp.thresholdDb = juce::jlimit (-30.0f, -10.0f, -22.0f + (10.0f - dyn) * 0.4f);
+        SV_LOG_INFO (kMod, "Compresseur de la correction : dynamique mesurée "_u8 + juce::String (dyn, 1) + " dB -> " + juce::String (v.comp.ratio, 2)
+                           + ":1, seuil " + juce::String (v.comp.thresholdDb, 1) + " dB");
+    }
     v.deEss.amount = 0.0f;
     v.clean.enabled = true;
     v.clean.dePlosive = vocal;
@@ -267,6 +296,9 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
                      : p.instrumentKind == "harmonique" ? juce::String ("instrument harmonique : coupe-bas 60 Hz, compression 3:1 (5 ms / 50 ms)"_u8)
                                                           : juce::String ("instrument : coupe-bas 30 Hz, nivellement doux"_u8));
     p.fixes.add ("niveau remis à -14 dB (gain "_u8 + db1 (-14.0f - p.activeLevelDb) + ")");
+    if (vocal)
+        p.fixes.add ("compresseur "_u8 + juce::String (v.comp.ratio, 1) + ":1, seuil " + juce::String (juce::roundToInt (v.comp.thresholdDb))
+                     + " dB (dynamique mesurée "_u8 + juce::String (juce::roundToInt (p.levelRangeDb)) + " dB)");
     if (! p.surges.empty())
         p.fixes.add ("montées brusques rabaissées (jusqu'à -"_u8 + juce::String (juce::roundToInt (v.leveler.surgeCutDb)) + " dB)");
     if (v.leveler.enabled)
@@ -287,12 +319,49 @@ style::VocalParams correctionParams (TrackProblems& p, bool vocal)
         v.eq.mudQ = 1.0f;
         p.fixes.add ("bas-médium corrigé "_u8 + db1 (v.eq.mudDb) + " à 300 Hz"_u8);
     }
+    // Manque net compensé (voix) : cloche large, kLackMaxBoostDb au plus, dosée sur le dépassement du seuil. Jamais sur
+    // une prise bruitée (bruit de fond à moins de kLackMinSnrDb sous la voix) : la cloche remonterait le souffle.
+    const float snrDb = p.activeLevelDb - p.noiseFloorDb;
+    const bool quietEnough = snrDb >= kLackMinSnrDb;
+    const juce::String noisyText = "prise bruitée (bruit de fond à "_u8 + juce::String (juce::roundToInt (snrDb)) + " dB sous la voix, il en faut "_u8
+                                   + juce::String (juce::roundToInt (kLackMinSnrDb)) + ")";
+    auto lackBoost = [] (float balanceDb, float thresholdDb) { return juce::jlimit (1.5f, kLackMaxBoostDb, 1.5f + (thresholdDb - balanceDb)); };
+    if (vocal && p.mudExcessDb < 1.0f && p.bodyBalanceDb <= kBodyLackDb && p.medianF0Hz > 0.0f && p.medianF0Hz <= kBodyLackMaxF0Hz)
+    {
+        if (quietEnough)
+        {
+            v.eq.mudHz = 280.0f;
+            v.eq.mudDb = lackBoost (p.bodyBalanceDb, kBodyLackDb);
+            v.eq.mudQ = 0.7f;
+            p.fixes.add ("manque de corps compensé "_u8 + db1 (v.eq.mudDb) + " à 280 Hz (cloche large ; mesuré "_u8 + db1 (p.bodyBalanceDb) + ")");
+        }
+        else
+            p.fixes.add ("manque de corps mesuré ("_u8 + db1 (p.bodyBalanceDb) + ") mais non compensé : "_u8 + noisyText + ", le souffle remonterait"_u8);
+        SV_LOG_INFO (kMod, "Manque de corps : "_u8 + db1 (p.bodyBalanceDb) + " (seuil " + db1 (kBodyLackDb) + "), fondamentale médiane "_u8
+                           + juce::String (juce::roundToInt (p.medianF0Hz)) + " Hz, bruit " + juce::String (juce::roundToInt (p.noiseFloorDb)) + " dBFS -> "
+                           + (quietEnough ? "compensé "_u8 + db1 (v.eq.mudDb) : "non compensé : "_u8 + noisyText));
+    }
     if (p.harshExcessDb >= 1.0f)
     {
         v.eq.presenceHz = 3500.0f;
         v.eq.presenceDb = -std::min (5.0f, p.harshExcessDb);
         v.eq.presenceQ = 1.2f;
         p.fixes.add ("dureté corrigée "_u8 + db1 (v.eq.presenceDb) + " à 3,5 kHz"_u8);
+    }
+    if (vocal && p.harshExcessDb < 1.0f && p.presenceBalanceDb <= kPresenceLackDb)
+    {
+        if (quietEnough)
+        {
+            v.eq.presenceHz = 3500.0f;
+            v.eq.presenceDb = lackBoost (p.presenceBalanceDb, kPresenceLackDb);
+            v.eq.presenceQ = 0.7f;
+            p.fixes.add ("manque de présence compensé "_u8 + db1 (v.eq.presenceDb) + " à 3,5 kHz (cloche large ; mesuré "_u8 + db1 (p.presenceBalanceDb) + ")");
+        }
+        else
+            p.fixes.add ("manque de présence mesuré ("_u8 + db1 (p.presenceBalanceDb) + ") mais non compensé : "_u8 + noisyText + ", le souffle remonterait"_u8);
+        SV_LOG_INFO (kMod, "Manque de présence : "_u8 + db1 (p.presenceBalanceDb) + " (seuil " + db1 (kPresenceLackDb) + "), bruit "
+                           + juce::String (juce::roundToInt (p.noiseFloorDb)) + " dBFS -> "
+                           + (quietEnough ? "compensé "_u8 + db1 (v.eq.presenceDb) : "non compensé : "_u8 + noisyText));
     }
     if (vocal && p.sibilanceDb >= -3.0f)
     {

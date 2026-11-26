@@ -3,7 +3,8 @@
 // du niveau courant), traverse chaque style, avec et sans « Voix lissée ». La saleté = part de l'énergie qui n'est PAS sur
 // les harmoniques de la note (craquements, gigue, bruit de modulation), mesurée au milieu de chaque passage.
 // Avant correction (autotune posé à l'échantillon entier, dé-écrêtage des crêtes fortes, débruitage qui apprenait le
-// chant doux comme du bruit) : jusqu'à -23 dB au-dessus de 2 kHz. Exigé ici : -55 dB partout, pour tous les styles.
+// chant doux comme du bruit) : jusqu'à -23 dB au-dessus de 2 kHz. Exigé ici : -55 dB partout, pour tous les styles et
+// pour la « correction seule » (identifiant « correction », hors liste des styles).
 //   node web/test/clean.mjs <url> [style ...]
 import { createRequire } from 'node:module';
 const require = createRequire(process.env.PLAYWRIGHT_DIR ? process.env.PLAYWRIGHT_DIR.replace(/\/?$/, '/') : import.meta.url);
@@ -102,15 +103,21 @@ try {
     //    leurs résonances propres et l'écho des attaques tombent hors des harmoniques et fausseraient la mesure
     //    (cloud rap : -44 dB avec la réverb seule, par construction).
     const noSpace = { reverb: { on: false }, delay: { on: false } };
-    const styles = only.length ? only : await page.evaluate(() => window.__studiovoix.styles.flatMap((g) => g.styles.map((s) => s.id)));
+    //    « correction » (correction seule) n'est pas un style de la liste de la page : c'est un mode du moteur, ajouté ici
+    //    à ce qui est parcouru, avec et sans « Voix lissée » comme les styles.
+    const CORRECTION = 'correction';
+    const listed = await page.evaluate(() => window.__studiovoix.styles.flatMap((g) => g.styles.map((s) => s.id)));
+    check('« correction » hors de la liste des styles de la page', !listed.includes(CORRECTION), `${listed.length} styles dans la liste`);
+    const styles = only.length ? only : [...listed, CORRECTION];
     let worst = { v: -200, name: '' };
     for (const style of styles) {
         const a = await run({ f0: 200, style, fx: noSpace }), b = await run({ f0: 200, style, gentle: true, fx: noSpace });
         const w = Math.max(a.worst, b.worst);
         if (w > worst.v) worst = { v: w, name: style };
-        if (w >= LIMIT_DB || only.length) check(`style ${style}`, w < LIMIT_DB, `saleté ${a.worst.toFixed(0)} dB (passages forts ${a.worstLoud.toFixed(0)}) ; lissé ${b.worst.toFixed(0)} dB (forts ${b.worstLoud.toFixed(0)})`);
+        if (w >= LIMIT_DB || only.length || style === CORRECTION) check(style === CORRECTION ? 'correction seule' : `style ${style}`, w < LIMIT_DB, `saleté ${a.worst.toFixed(0)} dB (passages forts ${a.worstLoud.toFixed(0)}) ; lissé ${b.worst.toFixed(0)} dB (forts ${b.worstLoud.toFixed(0)})`);
     }
-    check(`${styles.length} styles, avec et sans « Voix lissée »`, worst.v < LIMIT_DB, `pire saleté ${worst.v.toFixed(0)} dB (${worst.name}) ; limite ${LIMIT_DB} dB`);
+    const nStyles = styles.filter((s) => s !== CORRECTION).length;
+    check(`${nStyles} styles${styles.includes(CORRECTION) ? ' + correction seule' : ''}, avec et sans « Voix lissée »`, worst.v < LIMIT_DB, `pire saleté ${worst.v.toFixed(0)} dB (${worst.name}) ; limite ${LIMIT_DB} dB`);
 } catch (err) {
     console.log(stamp(), 'ÉCHEC :', err.message);
     failed = true;

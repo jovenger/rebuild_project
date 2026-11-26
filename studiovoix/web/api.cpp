@@ -98,7 +98,7 @@ namespace
 
     /** Place visée d'un rôle par rapport à la voix principale (LU). Même table que sv::render::roleOffsetLu
         (Renderer.cpp, logiciel PC), non compilé dans la version web : à garder identique. */
-    float webRoleOffsetLu (sv::style::Role role)
+    float webRoleOffsetDefaultLu (sv::style::Role role)
     {
         using sv::style::Role;
         switch (role)
@@ -112,6 +112,52 @@ namespace
             case Role::Instrument:  return -4.0f;
             default:                return 0.0f;
         }
+    }
+
+    // Écarts réglés depuis la page (sv_set_role_offset) : NaN = valeur d'origine. La voix principale et l'instru sont
+    // les repères : jamais réglables.
+    constexpr float kRoleOffsetMinLu = -24.0f, kRoleOffsetMaxLu = 0.0f;
+    float roleOffsetOverride[static_cast<int> (sv::style::Role::Count)];
+    bool roleOffsetInit = false;
+    void ensureRoleOffsets()
+    {
+        if (! roleOffsetInit)
+        {
+            std::fill (std::begin (roleOffsetOverride), std::end (roleOffsetOverride), std::nanf (""));
+            roleOffsetInit = true;
+        }
+    }
+    bool roleOffsetAdjustable (sv::style::Role role)
+    {
+        return role != sv::style::Role::Lead && role != sv::style::Role::Instru && role != sv::style::Role::Count;
+    }
+
+    /** Écart en vigueur : celui réglé depuis la page s'il y en a un, sinon la valeur d'origine. */
+    float webRoleOffsetLu (sv::style::Role role)
+    {
+        ensureRoleOffsets();
+        const int i = static_cast<int> (role);
+        if (roleOffsetAdjustable (role) && i >= 0 && i < static_cast<int> (sv::style::Role::Count) && std::isfinite (roleOffsetOverride[i]))
+            return roleOffsetOverride[i];
+        return webRoleOffsetDefaultLu (role);
+    }
+
+    /** Liste des types de piste (sv_roles, sv_set_role_offset) : écart en vigueur, écart d'origine, réglable ou non. */
+    juce::var rolesVar()
+    {
+        juce::Array<juce::var> list;
+        for (const auto r : sv::style::userTrackRoles())
+        {
+            auto* o = new juce::DynamicObject();
+            o->setProperty ("id", sv::style::roleId (r));
+            o->setProperty ("name", sv::style::roleName (r));
+            o->setProperty ("label", sv::style::userTrackLabel (r));
+            o->setProperty ("placeLu", webRoleOffsetLu (r));
+            o->setProperty ("defaultPlaceLu", webRoleOffsetDefaultLu (r));
+            o->setProperty ("adjustable", roleOffsetAdjustable (r));
+            list.add (juce::var (o));
+        }
+        return juce::var (list);
     }
 
     void ensureLog()
@@ -311,7 +357,10 @@ namespace
 extern "C"
 {
 /** Traite une prise mono par le style : mesure de la prise, réglages du style ajustés à la mesure, chaîne complète.
-    Résultat stéréo lisible via sv_out_left / sv_out_right / sv_out_frames. JSON : rapport (réglages, mesures, notes). */
+    styleId = "correction" (sv::dsp::kCorrectionStyleId, hors liste des styles) : « correction seule », réglages déduits
+    de la seule mesure, aucune couleur de style ; fxJson et gentle s'appliquent ensuite comme pour un style.
+    Résultat stéréo lisible via sv_out_left / sv_out_right / sv_out_frames. JSON : rapport (réglages, mesures, notes),
+    même forme dans les deux modes (mode = "style" ou "correction", measure = grandeurs mesurées sur la prise). */
 EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames, double sampleRate, const char* styleId,
                                                    const char* roleId, int cleaning, int useScale, double startSec,
                                                    const char* fxJson, int gentle)
@@ -320,18 +369,53 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
     if (mono == nullptr || frames <= 0 || sampleRate <= 0.0)
         return reply (errorJson ("Prise vide"_u8));
     sv::log::ScopedTimer timer (kMod, "traitement de la voix"_u8);
-    const auto style = sv::style::styleFromId (juce::String (styleId != nullptr ? styleId : ""));
+    // « Correction seule » (styleId = "correction") : pas un style de la liste, un mode. Les réglages viennent de la
+    // mesure de la prise (correctionParams) : volumes égalisés, résonances réduites ou manques compensés, compression
+    // proportionnelle à la dynamique, justesse — aucune couleur (ni réverb, ni écho, ni saturation, ni recalage).
+    const juce::String styleIdText (styleId != nullptr ? styleId : "");
+    const bool correction = styleIdText == sv::dsp::kCorrectionStyleId;
+    const auto style = sv::style::styleFromId (styleIdText);
     auto role = sv::style::roleFromId (juce::String (roleId != nullptr ? roleId : "lead"));
     if (role == sv::style::Role::Instru)
         role = sv::style::Role::Lead;   // une piste voix n'est jamais traitée comme l'instru
-    auto params = sv::style::makeParams (style, role, {}, true);
-    SV_LOG_INFO (kMod, "Piste : style "_u8 + sv::style::styleName (style) + ", type " + sv::style::roleName (role));
-    params.clean.enabled = cleaning != 0;
+    const juce::String styleLabel = correction ? juce::String ("Correction seule") : sv::style::styleName (style);
+    SV_LOG_INFO (kMod, "Piste : "_u8 + (correction ? juce::String ("correction seule (aucun effet de style)") : "style "_u8 + styleLabel)
+                       + ", type " + sv::style::roleName (role));
     context.useScale = useScale != 0;
 
     sv::Mono raw (mono, mono + frames);
-    const auto problems = sv::dsp::analyzeTrackProblems (raw, sampleRate, context.key, true);
-    const auto notes = sv::dsp::fitStyleToMeasurement (params, problems, context.tempo.bpm);
+    auto problems = sv::dsp::analyzeTrackProblems (raw, sampleRate, context.key, true);
+    sv::style::VocalParams params;
+    juce::StringArray notes;
+    if (correction)
+    {
+        // Le type de piste (back, doublage…) ne change pas la correction : même mesure, mêmes règles pour toutes les voix.
+        params = sv::dsp::correctionParams (problems, true);
+        params.clean.enabled = cleaning != 0;   // case « Nettoyage » de la page, comme pour un style
+        notes = problems.fixes;
+        // Garde-fou : la correction ne porte aucune couleur, quoi que deviennent les réglages de départ.
+        if (params.reverb.send > 0.0f || params.delay.send > 0.0f || params.sat.mix > 0.0f || params.timing.strength > 0.0f)
+        {
+            SV_LOG_WARN (kMod, "Correction seule : effet de style trouvé dans les réglages (réverb / écho / saturation / recalage), remis à zéro"_u8);
+            params.reverb.send = 0.0f;
+            params.delay.send = 0.0f;
+            params.sat.mix = 0.0f;
+            params.timing.strength = 0.0f;
+        }
+    }
+    else
+    {
+        params = sv::style::makeParams (style, role, {}, true);
+        params.clean.enabled = cleaning != 0;
+        notes = sv::dsp::fitStyleToMeasurement (params, problems, context.tempo.bpm);
+    }
+    SV_LOG_INFO (kMod, "Mesure de la prise : niveau actif "_u8 + juce::String (problems.activeLevelDb, 1) + " dBFS, dynamique "
+                       + juce::String (problems.levelRangeDb, 1) + " dB, bruit " + juce::String (problems.noiseFloorDb, 1) + " dBFS, corps "
+                       + juce::String (problems.bodyBalanceDb, 1) + " dB, présence "_u8 + juce::String (problems.presenceBalanceDb, 1)
+                       + " dB, sifflantes " + juce::String (problems.sibilanceDb, 1) + " dB, résonances "_u8 + juce::String (problems.resonanceDb, 1)
+                       + " dB, justesse " + juce::String (problems.pitchDeviationCents, 1) + " cents (voisé "_u8
+                       + juce::String (juce::roundToInt (problems.voicedFraction * 100.0f)) + " %, fondamentale "
+                       + juce::String (juce::roundToInt (problems.medianF0Hz)) + " Hz)");
     // « Voix lissée » (gentle) : un interrupteur qui s'ajoute au style, pas un mode à part. Le style reste entier dans
     // ce qui fait son caractère (autotune, égaliseur, réverb, écho, image stéréo) ; tout ce qui peut rendre la voix
     // rêche quand le niveau monte est ramené dans un régime doux : dynamique (compresseurs, niveleur, résonances,
@@ -354,6 +438,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
         params.clean.gateRangeDb = juce::jmin (params.clean.gateRangeDb, 8.0f);
         params.clean.breathReductionDb = juce::jmin (params.clean.breathReductionDb, 6.0f);
         params.deEss.amount = juce::jmin (params.deEss.amount, 0.5f);
+        // En correction seule, les mêmes bornes s'appliquent : elles ne font qu'adoucir (jmin / jmax), rien n'est durci.
         SV_LOG_INFO (kMod, "Voix lissée : effets du style gardés (autotune, égaliseur, réverb, écho) ; compression, niveleur, résonances, de-esser, nettoyage, saturation et recalage ramenés dans un régime doux"_u8);
     }
     // Tableau des effets : le pré-réglage (style + mesure, lissé ou non) est rendu tel quel, puis les réglages faits à
@@ -380,7 +465,28 @@ EMSCRIPTEN_KEEPALIVE const char* sv_process_voice (const float* mono, int frames
 
     auto* o = new juce::DynamicObject();
     o->setProperty ("ok", true);
-    o->setProperty ("style", sv::style::styleName (style));
+    o->setProperty ("style", styleLabel);
+    o->setProperty ("styleId", correction ? juce::String (sv::dsp::kCorrectionStyleId) : sv::style::styleId (style));
+    o->setProperty ("mode", correction ? "correction" : "style");   // « correction » : réglages venus de la seule mesure, aucune couleur
+    {
+        // Ce qui a été mesuré sur la prise brute (les décisions sont dans fitNotes, les réglages dans preset / fx).
+        auto* m = new juce::DynamicObject();
+        m->setProperty ("peakDb", problems.peakDb);
+        m->setProperty ("activeLevelDb", problems.activeLevelDb);
+        m->setProperty ("noiseFloorDb", problems.noiseFloorDb);
+        m->setProperty ("levelRangeDb", problems.levelRangeDb);            // dynamique : étendue du niveau court terme (P90 - P10)
+        m->setProperty ("surges", (int) problems.surges.size());
+        m->setProperty ("resonanceDb", problems.resonanceDb);
+        m->setProperty ("bodyBalanceDb", problems.bodyBalanceDb);          // signé : négatif = manque de corps
+        m->setProperty ("presenceBalanceDb", problems.presenceBalanceDb);  // signé : négatif = manque de présence
+        m->setProperty ("sibilanceDb", problems.sibilanceDb);
+        m->setProperty ("pitchDeviationCents", problems.pitchDeviationCents);
+        m->setProperty ("voicedFraction", problems.voicedFraction);
+        m->setProperty ("medianF0Hz", problems.medianF0Hz);
+        m->setProperty ("clippedSamples", problems.clippedSamples);
+        m->setProperty ("polyphonic", problems.polyphonic);
+        o->setProperty ("measure", juce::var (m));
+    }
     o->setProperty ("role", sv::style::roleName (role));
     o->setProperty ("roleId", sv::style::roleId (role));
     o->setProperty ("frames", lastOut.getNumSamples());
@@ -864,17 +970,49 @@ EMSCRIPTEN_KEEPALIVE const char* sv_limit (const float* left, const float* right
 EMSCRIPTEN_KEEPALIVE const char* sv_roles()
 {
     ensureLog();
-    juce::Array<juce::var> list;
-    for (const auto r : sv::style::userTrackRoles())
+    return reply (rolesVar());
+}
+
+/** Écart de volume d'un type de piste par rapport à la voix principale, réglé depuis la page (équilibre automatique,
+    mixage final). lu : écart en LU, borné à [-24, 0]. reset != 0 : retour à la valeur d'origine — du type roleId, ou
+    de tous les types si roleId est vide. La voix principale et l'instru sont les repères : refusés. Les valeurs
+    d'origine ne changent jamais. JSON : { ok, roles: [ comme sv_roles ] }. */
+EMSCRIPTEN_KEEPALIVE const char* sv_set_role_offset (const char* roleId, float lu, int reset)
+{
+    ensureLog();
+    ensureRoleOffsets();
+    const juce::String id (roleId != nullptr ? roleId : "");
+    if (reset != 0 && id.isEmpty())
     {
-        auto* o = new juce::DynamicObject();
-        o->setProperty ("id", sv::style::roleId (r));
-        o->setProperty ("name", sv::style::roleName (r));
-        o->setProperty ("label", sv::style::userTrackLabel (r));
-        o->setProperty ("placeLu", webRoleOffsetLu (r));
-        list.add (juce::var (o));
+        std::fill (std::begin (roleOffsetOverride), std::end (roleOffsetOverride), std::nanf (""));
+        SV_LOG_INFO (kMod, "Écarts de volume par type : retour aux valeurs d'origine (tous les types)"_u8);
     }
-    return reply (juce::var (list));
+    else
+    {
+        // Entrée externe : identifiant inconnu refusé (roleFromId rendrait « voix principale » en silence).
+        const auto role = sv::style::roleFromId (id);
+        if (sv::style::roleId (role) != id || ! roleOffsetAdjustable (role))
+            return reply (errorJson ("Écart de volume : type de piste inconnu ou non réglable (« "_u8 + id + " »)"_u8));
+        const int i = static_cast<int> (role);
+        if (reset != 0)
+        {
+            roleOffsetOverride[i] = std::nanf ("");
+            SV_LOG_INFO (kMod, "Écart de volume « "_u8 + sv::style::roleName (role) + " » : retour à la valeur d'origine ("_u8
+                               + juce::String (webRoleOffsetDefaultLu (role), 1) + " LU)");
+        }
+        else
+        {
+            if (! std::isfinite (lu))
+                return reply (errorJson ("Écart de volume : valeur invalide"_u8));
+            roleOffsetOverride[i] = juce::jlimit (kRoleOffsetMinLu, kRoleOffsetMaxLu, lu);
+            SV_LOG_INFO (kMod, "Écart de volume « "_u8 + sv::style::roleName (role) + " » réglé à "_u8 + juce::String (roleOffsetOverride[i], 1)
+                               + " LU (demandé "_u8 + juce::String (lu, 1) + ", origine " + juce::String (webRoleOffsetDefaultLu (role), 1) + ")");
+        }
+    }
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("roles", rolesVar());
+    return reply (juce::var (o));
 }
 
 /** Démo : instru synthétique (La mineur, 100 BPM, `bars` mesures) dans sv_out_*, pour essayer sans fichier. */

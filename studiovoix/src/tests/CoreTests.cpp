@@ -2182,6 +2182,221 @@ public:
                     "pseudo-style correction sauvegardé / rechargé sans avertissement");
         }
 
+        beginTest ("Correction seule : compression proportionnelle a la dynamique mesuree");
+        {
+            // 1) La règle : taux et seuil suivent l'étendue de niveau mesurée ; le caractère (attaque, relâchement) ne bouge pas.
+            dsp::TrackProblems flat;
+            flat.vocal = true;
+            flat.levelRangeDb = 3.0f;
+            flat.noiseFloorDb = -70.0f;
+            flat.sibilanceDb = -12.0f;
+            auto medium = flat;
+            medium.levelRangeDb = 9.0f;
+            auto wild = flat;
+            wild.levelRangeDb = 18.0f;
+            const auto a = dsp::correctionParams (flat, true);
+            const auto b = dsp::correctionParams (medium, true);
+            const auto c = dsp::correctionParams (wild, true);
+            expect (std::abs (a.comp.ratio - dsp::kCorrectionMinRatio) < 0.01f, "prise régulière : presque pas de compression ("_u8 + juce::String (a.comp.ratio, 2) + ":1)");
+            expect (b.comp.ratio > a.comp.ratio + 0.3f && b.comp.ratio < c.comp.ratio - 0.3f, "prise moyenne : taux entre les deux ("_u8 + juce::String (b.comp.ratio, 2) + ":1)");
+            expect (std::abs (c.comp.ratio - dsp::kCorrectionMaxRatio) < 0.01f, "prise très irrégulière : taux borné ("_u8 + juce::String (c.comp.ratio, 2) + ":1)");
+            expect (a.comp.thresholdDb > b.comp.thresholdDb && b.comp.thresholdDb > c.comp.thresholdDb && c.comp.thresholdDb >= -30.0f && a.comp.thresholdDb <= -10.0f,
+                    "seuil plus haut sur la prise régulière : "_u8 + juce::String (a.comp.thresholdDb, 1) + " / " + juce::String (b.comp.thresholdDb, 1) + " / " + juce::String (c.comp.thresholdDb, 1) + " dB");
+            expect (std::abs (a.comp.attackMs - c.comp.attackMs) < 0.01f && std::abs (a.comp.releaseMs - c.comp.releaseMs) < 0.01f && a.comp2.ratio <= 1.0f && c.comp2.ratio <= 1.0f,
+                    "attaque / relâchement identiques, pas de second compresseur"_u8);
+            expect (flat.fixes.joinIntoString (" ").contains ("compresseur") && wild.fixes.joinIntoString (" ").contains ("18 dB"), "décision lisible : "_u8 + wild.fixes.joinIntoString (" ; "));
+            // Instrument : réglages d'origine inchangés (la règle ne vaut que pour une voix).
+            auto inst = wild;
+            inst.vocal = false;
+            expect (std::abs (dsp::correctionParams (inst, false).comp.ratio - 2.0f) < 0.01f, "instrument : compresseur d'origine"_u8);
+
+            // 2) Sur du son : deux prises de dynamique différente → taux différents, mesurés.
+            const auto keySig = aMinor();
+            auto phrases = defaultPhrases (keySig, 100.0);
+            const auto one = phrases;
+            for (int i = 0; i < 2; ++i)
+                phrases.insert (phrases.end(), one.begin(), one.end());
+            const auto steady = synthVoice (phrases, kSr);
+            auto uneven = steady;
+            for (size_t i = 0; i < uneven.size(); ++i)   // passages de 3 s, un sur deux 12 dB plus bas
+                if ((i / static_cast<size_t> (3.0 * kSr)) % 2 == 1)
+                    uneven[i] *= dbToGain (-12.0f);
+            auto ps = dsp::analyzeTrackProblems (steady, kSr, keySig, true);
+            auto pu = dsp::analyzeTrackProblems (uneven, kSr, keySig, true);
+            const auto vs = dsp::correctionParams (ps, true);
+            const auto vu = dsp::correctionParams (pu, true);
+            expect (pu.levelRangeDb > ps.levelRangeDb + 4.0f, "dynamique mesurée : "_u8 + juce::String (ps.levelRangeDb, 1) + " dB (régulière) contre "_u8 + juce::String (pu.levelRangeDb, 1) + " dB");
+            expect (vu.comp.ratio > vs.comp.ratio + 0.4f && vu.comp.thresholdDb < vs.comp.thresholdDb,
+                    "taux différents : "_u8 + juce::String (vs.comp.ratio, 2) + ":1 contre " + juce::String (vu.comp.ratio, 2) + ":1");
+            dsp::AnalysisContext ctx;
+            ctx.key = keySig;
+            ctx.tempo.bpm = 100.0;
+            const auto ru = dsp::processVocal (uneven, kSr, vu, ctx);
+            auto outU = audio::toMono (ru.audio);
+            outU.resize (uneven.size());
+            const auto after = dsp::analyzeTrackProblems (outU, kSr, keySig, true);
+            expect (after.levelRangeDb < pu.levelRangeDb - 3.0f, "étendue de niveau réduite : "_u8 + juce::String (pu.levelRangeDb, 1) + " dB avant, " + juce::String (after.levelRangeDb, 1) + " dB après"_u8);
+        }
+
+        beginTest ("Correction seule : manque de corps / de presence compense, voix normale intacte");
+        {
+            // 1) La règle, sur des mesures données.
+            dsp::TrackProblems normal;
+            normal.vocal = true;
+            normal.levelRangeDb = 6.0f;
+            normal.activeLevelDb = -20.0f;
+            normal.noiseFloorDb = -70.0f;   // bruit de fond 50 dB sous la voix : prise propre
+            normal.sibilanceDb = -12.0f;
+            normal.bodyBalanceDb = -4.0f;
+            normal.presenceBalanceDb = -8.0f;
+            normal.medianF0Hz = 150.0f;
+            const auto vn = dsp::correctionParams (normal, true);
+            expect (std::abs (vn.eq.mudDb) < 0.001f && std::abs (vn.eq.presenceDb) < 0.001f, "voix normale : égaliseur intact"_u8);
+            auto thin = normal;
+            thin.bodyBalanceDb = dsp::kBodyLackDb - 1.0f;
+            const auto vt = dsp::correctionParams (thin, true);
+            expect (vt.eq.mudDb >= 1.5f && vt.eq.mudDb <= dsp::kLackMaxBoostDb && vt.eq.mudQ <= 0.8f && std::abs (vt.eq.presenceDb) < 0.001f,
+                    "manque de corps : remonté de "_u8 + juce::String (vt.eq.mudDb, 1) + " dB, cloche large"_u8);
+            auto veryThin = normal;
+            veryThin.bodyBalanceDb = dsp::kBodyLackDb - 12.0f;
+            expect (std::abs (dsp::correctionParams (veryThin, true).eq.mudDb - dsp::kLackMaxBoostDb) < 0.001f, "compensation bornée"_u8);
+            auto high = thin;
+            high.medianF0Hz = 450.0f;   // fondamentale au-dessus de la bande : rien à remonter dessous
+            expect (std::abs (dsp::correctionParams (high, true).eq.mudDb) < 0.001f, "voix aiguë : pas de compensation du corps"_u8);
+            auto dull = normal;
+            dull.presenceBalanceDb = dsp::kPresenceLackDb - 1.0f;
+            const auto vd = dsp::correctionParams (dull, true);
+            expect (vd.eq.presenceDb >= 1.5f && vd.eq.presenceDb <= dsp::kLackMaxBoostDb && vd.eq.presenceQ <= 0.8f && std::abs (vd.eq.mudDb) < 0.001f,
+                    "manque de présence : remonté de "_u8 + juce::String (vd.eq.presenceDb, 1) + " dB, cloche large"_u8);
+            auto noisy = dull;
+            noisy.noiseFloorDb = -42.0f;   // 22 dB sous la voix (moins que kLackMinSnrDb) : le souffle remonterait
+            expect (noisy.activeLevelDb - noisy.noiseFloorDb < dsp::kLackMinSnrDb);
+            const auto vnoisy = dsp::correctionParams (noisy, true);
+            expect (std::abs (vnoisy.eq.presenceDb) < 0.001f && noisy.fixes.joinIntoString (" ").contains ("non compens"), "prise bruitée : manque signalé, pas compensé"_u8);
+            auto muddy = normal;
+            muddy.bodyBalanceDb = 4.0f;
+            muddy.mudExcessDb = 4.0f;
+            expect (dsp::correctionParams (muddy, true).eq.mudDb <= -3.9f, "excès toujours coupé"_u8);
+            auto instLack = dull;
+            instLack.vocal = false;
+            expect (std::abs (dsp::correctionParams (instLack, false).eq.presenceDb) < 0.001f, "instrument : jamais de compensation"_u8);
+
+            // 2) Sur du son : une voix dont on retire la présence, puis le corps (cloche large, creusée jusqu'au manque net).
+            const auto keySig = aMinor();
+            //    Voix grave (une octave sous les phrases par défaut) : le corps ne se juge que sous kBodyLackMaxF0Hz.
+            auto lowPhrases = defaultPhrases (keySig, 100.0);
+            for (auto& ph : lowPhrases)
+                for (auto& note : ph.notes)
+                    note.midi -= 12.0f;
+            const auto voiceSig = synthVoice (lowPhrases, kSr);
+            const auto base = dsp::analyzeTrackProblems (voiceSig, kSr, keySig, true);
+            expect (std::abs (base.mudExcessDb - std::max (0.0f, base.bodyBalanceDb)) < 0.001f && std::abs (base.harshExcessDb - std::max (0.0f, base.presenceBalanceDb)) < 0.001f,
+                    "grandeurs signées cohérentes avec les excès (corps "_u8 + juce::String (base.bodyBalanceDb, 1) + ", présence "_u8 + juce::String (base.presenceBalanceDb, 1) + " dB)");
+            expect (base.medianF0Hz > 80.0f && base.medianF0Hz <= dsp::kBodyLackMaxF0Hz, "fondamentale médiane mesurée : "_u8 + juce::String (base.medianF0Hz, 0) + " Hz");
+            dsp::AnalysisContext ctx;
+            ctx.key = keySig;
+            ctx.tempo.bpm = 100.0;
+            for (int band = 0; band < 2; ++band)
+            {
+                const bool body = band == 0;
+                const juce::String what (body ? "corps" : juce::String ("présence"_u8));
+                Mono cut;
+                dsp::TrackProblems pc;
+                for (float depth = 6.0f; depth <= 36.0f; depth += 3.0f)
+                {
+                    cut = voiceSig;
+                    dsp::EqSettings e;
+                    e.lowCutHz = 20.0f;
+                    (body ? e.mudDb : e.presenceDb) = -std::min (18.0f, depth);
+                    (body ? e.mudQ : e.presenceQ) = 0.7f;
+                    (body ? e.mudHz : e.presenceHz) = body ? 280.0f : 3500.0f;
+                    dsp::applyEq (cut, kSr, e);
+                    if (depth > 18.0f)
+                    {
+                        (body ? e.mudDb : e.presenceDb) = -(depth - 18.0f);
+                        dsp::applyEq (cut, kSr, e);
+                    }
+                    pc = dsp::analyzeTrackProblems (cut, kSr, keySig, true);
+                    if ((body ? pc.bodyBalanceDb : pc.presenceBalanceDb) <= (body ? dsp::kBodyLackDb : dsp::kPresenceLackDb) - 0.5f)
+                        break;
+                }
+                const float before = body ? pc.bodyBalanceDb : pc.presenceBalanceDb;
+                expect (before <= (body ? dsp::kBodyLackDb : dsp::kPresenceLackDb), what + " retiré : manque mesuré "_u8 + juce::String (before, 1) + " dB");
+                expect (pc.found.joinIntoString (" ").contains ("manque de"), what + " : manque listé dans les défauts"_u8);
+                const auto vc = dsp::correctionParams (pc, true);
+                const float boost = body ? vc.eq.mudDb : vc.eq.presenceDb;
+                expect (boost >= 1.5f && boost <= dsp::kLackMaxBoostDb, what + " : compensation "_u8 + juce::String (boost, 1) + " dB");
+                auto res = audio::toMono (dsp::processVocal (cut, kSr, vc, ctx).audio);
+                res.resize (cut.size());
+                auto vOff = vc;   // même chaîne sans la compensation : l'écart vient d'elle seule
+                (body ? vOff.eq.mudDb : vOff.eq.presenceDb) = 0.0f;
+                auto resOff = audio::toMono (dsp::processVocal (cut, kSr, vOff, ctx).audio);
+                resOff.resize (cut.size());
+                const auto pOn = dsp::analyzeTrackProblems (res, kSr, keySig, true);
+                const auto pOff = dsp::analyzeTrackProblems (resOff, kSr, keySig, true);
+                const float gain = (body ? pOn.bodyBalanceDb : pOn.presenceBalanceDb) - (body ? pOff.bodyBalanceDb : pOff.presenceBalanceDb);
+                expect (gain > 0.5f * boost && gain < boost + 1.0f, what + " : spectre rapproché de l'original de "_u8 + juce::String (gain, 1) + " dB (cloche de "_u8 + juce::String (boost, 1) + " dB)");
+            }
+        }
+
+        beginTest ("Correction seule : aucune couleur (ni traine, ni distorsion ajoutee)");
+        {
+            const auto keySig = aMinor();
+            const auto voiceSig = synthVoice (defaultPhrases (keySig, 100.0, 35.0f), kSr);
+            auto problems = dsp::analyzeTrackProblems (voiceSig, kSr, keySig, true);
+            const auto params = dsp::correctionParams (problems, true);
+            expect (params.reverb.send <= 0.0f && params.delay.send <= 0.0f && params.sat.mix <= 0.0f && params.timing.strength <= 0.0f,
+                    "ni réverb, ni écho, ni saturation, ni recalage dans les réglages"_u8);
+            dsp::AnalysisContext ctx;
+            ctx.key = keySig;
+            ctx.tempo.bpm = 100.0;
+            // Traîne : la sortie dure 3 s de plus que la prise (place de la réverb d'un style) ; en correction, il n'y a rien.
+            auto tailPeakDb = [&] (const style::VocalParams& v)
+            {
+                const auto res = dsp::processVocal (voiceSig, kSr, v, ctx);
+                const int from = static_cast<int> (voiceSig.size()) + static_cast<int> (0.25 * kSr);
+                const int len = res.audio.getNumSamples() - from;
+                return len > 0 ? gainToDb (std::max (res.audio.getMagnitude (0, from, len), res.audio.getMagnitude (1, from, len))) : -200.0f;
+            };
+            const float tail = tailPeakDb (params);
+            const float tailStyle = tailPeakDb (style::makeParams (style::Style::Pop, style::Role::Lead, {}, true));
+            expect (tail < -100.0f, "aucune traîne après la prise : crête "_u8 + juce::String (tail, 1) + " dBFS (silence numérique)"_u8);
+            expect (tailStyle > -70.0f, "l'essai voit bien une traîne quand il y en a une (style pop : "_u8 + juce::String (tailStyle, 1) + " dBFS)");
+
+            // Distorsion ajoutée : un son pur tenu ressort pur (harmoniques 2 à 5 par rapport à la fondamentale).
+            const double f0 = 220.0;
+            const auto tone = sine (f0, 5.0, kSr, dbToGain (-20.0f) * juce::MathConstants<float>::sqrt2);
+            auto harmonicsDb = [&] (const Mono& y)
+            {
+                const size_t a = static_cast<size_t> (1.5 * kSr), n = static_cast<size_t> (2.0 * kSr);
+                auto mag = [&] (double f)
+                {
+                    double re = 0.0, im = 0.0;
+                    for (size_t i = 0; i < n; ++i)
+                    {
+                        const double w = 0.5 - 0.5 * std::cos (2.0 * juce::MathConstants<double>::pi * static_cast<double> (i) / static_cast<double> (n - 1));
+                        const double ph = 2.0 * juce::MathConstants<double>::pi * f * static_cast<double> (i) / kSr;
+                        re += w * y[a + i] * std::cos (ph);
+                        im += w * y[a + i] * std::sin (ph);
+                    }
+                    return re * re + im * im;
+                };
+                double h = 0.0;
+                for (int k = 2; k <= 5; ++k)
+                    h += mag (f0 * k);
+                return static_cast<float> (10.0 * std::log10 (std::max (1.0e-30, h) / std::max (1.0e-30, mag (f0))));
+            };
+            auto pt = dsp::analyzeTrackProblems (tone, kSr, keySig, true);
+            auto vTone = dsp::correctionParams (pt, true);
+            const float rawThd = harmonicsDb (tone);
+            const float thd = harmonicsDb (audio::toMono (dsp::processVocal (tone, kSr, vTone, ctx).audio));
+            auto vSat = vTone;
+            vSat.sat = { 6.0f, 0.3f, 0.1f };
+            const float thdSat = harmonicsDb (audio::toMono (dsp::processVocal (tone, kSr, vSat, ctx).audio));
+            expect (thd < -70.0f, "distorsion ajoutée nulle : harmoniques "_u8 + juce::String (thd, 1) + " dB (son brut "_u8 + juce::String (rawThd, 1) + " dB)");
+            expect (thdSat > thd + 20.0f, "l'essai voit bien une saturation quand il y en a une ("_u8 + juce::String (thdSat, 1) + " dB)");
+        }
+
         beginTest ("Copie de refrain vers les sections semblables");
         {
             p.sections = { { 0.0, 2.0, "Refrain 1", "refrain", 1, -10.0f }, { 2.0, 4.0, "Couplet 1", "couplet", 0, -12.0f },
