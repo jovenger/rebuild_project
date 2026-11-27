@@ -2965,7 +2965,8 @@ async function separateSong() {
         }
         // Pistes : l'instru séparée remplace la chanson (l'original reste gardé pour « Rétablir »).
         if (!noVoice) {
-            const original = state.instru.original || { left: src.left, right: src.right, name: src.name };
+            // audioId : celui sous lequel la chanson est déjà dans la sauvegarde (elle y reste : « Rétablir » survit au rechargement).
+            const original = state.instru.original || { left: src.left, right: src.right, name: src.name, audioId: src.audioId };
             state.instru.left = fit(I.left); state.instru.right = fit(I.right);
             state.instru.original = original;
             state.instru.name = original.name.replace(/\.[^.]+$/, '') + ' (instru séparée)';
@@ -3039,7 +3040,8 @@ function restoreOriginalSong() {
     if (!o) return;
     if (!confirm('Rétablir le morceau d\'origine sur la piste Instru ? (les pistes séparées restent ; supprime-les si besoin)')) return;
     state.instru.left = o.left; state.instru.right = o.right; state.instru.name = o.name; state.instru.original = null;
-    state.instru.audioId = `i${Date.now().toString(36)}`;
+    state.instru.audioId = o.audioId || `i${Date.now().toString(36)}`;   // même son, même identifiant : pas de seconde écriture dans la sauvegarde
+    log('info', `Morceau d'origine rétabli sur la piste Instru : « ${o.name} »`);
     state.balanceDirty = true; markDirty(); renderTracks();
     setStatus('Morceau d\'origine rétabli sur la piste Instru.');
     ensureInstruFix('morceau rétabli');   // « Instru : corrigée » allumé : refaite pour le morceau d'origine
@@ -3876,6 +3878,11 @@ async function saveProject() {
     const audio = [];
     const src = instruSource();   // l'ORIGINAL : la version corrigée n'est jamais sauvegardée (recalculée au rechargement)
     if (src) audio.push([src.audioId + 'L', src.left], [src.audioId + 'R', src.right]);
+    // Chanson d'avant la séparation (« Rétablir le morceau ») : gardée aussi, sous son identifiant d'origine (déjà écrite
+    // quand elle était l'instru : pas de seconde écriture). Avant le 27/11 elle n'était pas sauvegardée : « Rétablir »
+    // disparaissait au rechargement de la page ou à l'ouverture d'un projet en fichier.
+    const orig = src?.original || null;
+    if (orig) { if (!orig.audioId) orig.audioId = `o${Date.now().toString(36)}`; audio.push([orig.audioId + 'L', orig.left], [orig.audioId + 'R', orig.right]); }
     // Prise montée : ce sont ses sons source qui sont gardés (jamais modifiés, écrits une seule fois) ; son rendu (mono)
     // est recalculé au chargement à partir des bouts. Prise sans montage : son son, comme avant.
     for (const t of state.tracks) for (const k of t.takes) audio.push(...mtAudioOf(k));
@@ -3884,7 +3891,8 @@ async function saveProject() {
     for (const [id] of fresh) savedAudio.add(id);
     const meta = {
         version: 1, savedAt: Date.now(), nextTrackId: state.nextTrackId, armedId: state.armedId, rawLevelOn: !!state.rawLevelOn,
-        instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
+        instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name,
+            ...(orig ? { original: { audioId: orig.audioId, name: orig.name } } : {}) } : null,
         instruTrack: state.instruTrack,
         roleOffsets: state.roleOffsets,   // écarts de volume par type réglés à la main (absent : valeurs d'origine)
         instruFix: !!state.instruFix,     // « Instru : corrigée » allumé (absent : telle quelle) ; le son corrigé n'est pas gardé
@@ -3952,6 +3960,16 @@ async function restoreProject() {
                 await setInstru(L, R, meta.instru.sampleRate, meta.instru.name);
                 state.instru.audioId = meta.instru.audioId;
                 savedAudio.add(meta.instru.audioId + 'L'); savedAudio.add(meta.instru.audioId + 'R');
+                // Chanson d'avant la séparation : reprise pour « Rétablir le morceau » (absente d'un projet d'avant le 27/11).
+                const mo = meta.instru.original;
+                if (mo && typeof mo.audioId === 'string' && mo.audioId) {
+                    const oL = await get(mo.audioId + 'L'), oR = await get(mo.audioId + 'R');
+                    if (oL instanceof Float32Array && oR instanceof Float32Array && oL.length === oR.length) {
+                        state.instru.original = { left: oL, right: oR, name: typeof mo.name === 'string' && mo.name ? mo.name : 'morceau d\'origine', audioId: mo.audioId };
+                        savedAudio.add(mo.audioId + 'L'); savedAudio.add(mo.audioId + 'R');
+                        log('info', `Chanson d'origine reprise (« ${state.instru.original.name} », ${fmt(oL.length / meta.instru.sampleRate)}) : « Rétablir le morceau » est disponible`);
+                    } else log('warn', 'Chanson d\'origine introuvable ou illisible dans la sauvegarde : « Rétablir le morceau » indisponible');
+                }
                 ensureInstruFix('projet repris');   // bouton allumé dans la sauvegarde : version corrigée recalculée
             } else log('warn', 'Instru introuvable dans la sauvegarde');
         }

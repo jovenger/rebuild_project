@@ -35,12 +35,15 @@ export function crc32(bytes, crc = 0) {
 }
 
 /**
- * Identifiants de sons dont les métadonnées ont besoin : instru gauche / droite ; pour chaque prise, son son — ou, si
+ * Identifiants de sons dont les métadonnées ont besoin : instru gauche / droite (et la chanson d'avant la séparation,
+ * si elle est gardée) ; pour chaque prise, son son — ou, si
  * la prise est montée (liste `clips`), les sons source de ses bouts (son rendu est recalculé à l'ouverture).
  */
 export function audioRefs(meta) {
     const ids = new Set();
     if (meta?.instru?.audioId) { ids.add(`${meta.instru.audioId}L`); ids.add(`${meta.instru.audioId}R`); }
+    const orig = meta?.instru?.original?.audioId;   // chanson d'avant la séparation (« Rétablir le morceau »)
+    if (typeof orig === 'string' && orig) { ids.add(`${orig}L`); ids.add(`${orig}R`); }
     for (const t of meta?.tracks || [])
         for (const k of t?.takes || []) {
             if (Array.isArray(k?.clips)) { for (const c of k.clips) if (typeof c?.src === 'string' && c.src) ids.add(c.src); }

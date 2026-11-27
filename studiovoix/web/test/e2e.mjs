@@ -654,6 +654,35 @@ try {
         const isoTxt = await page.textContent('#isolateInfo');
         if (/Téléchargement/.test(isoTxt)) throw new Error('carte Enregistrement : progression de la séparation restée affichée : ' + isoTxt);
         if (shot) await page.screenshot({ path: shot, fullPage: true });
+        // Chanson d'avant la séparation : gardée avec le projet. « Rétablir le morceau » doit survivre au rechargement de
+        // la page (avant le 27/11 l'original n'était pas sauvegardé : le bouton disparaissait).
+        {
+            const orig = () => page.evaluate(() => {
+                const fnv = (a) => { const b = new Uint8Array(a.buffer, a.byteOffset, a.byteLength); let h = 0x811c9dc5; for (let i = 0; i < b.length; ++i) { h ^= b[i]; h = Math.imul(h, 0x01000193) >>> 0; } return `${a.length}:${h.toString(16)}`; };
+                const i = window.__studiovoix.instru, o = i?.original;
+                return { original: o ? { name: o.name, hash: fnv(o.left) + '/' + fnv(o.right) } : null, instru: i ? { name: i.name, hash: fnv(i.left) + '/' + fnv(i.right) } : null,
+                    button: !!document.querySelector('.track[data-id="0"]') && [...document.querySelectorAll('.track[data-id="0"] button')].some((b) => /Rétablir le morceau/.test(b.textContent)) };
+            });
+            const o0 = await orig();
+            if (!o0.original || !o0.button) throw new Error('après séparation : chanson d\'origine absente ou bouton « Rétablir le morceau » manquant');
+            const fromO = await page.evaluate(() => Date.now());
+            await page.evaluate(() => document.querySelector('#tracks .track input.name').dispatchEvent(new Event('change')));   // « projet modifié » : sauvegarde
+            await savedSince(page, fromO, 60000);
+            await page.reload({ waitUntil: 'load' });
+            // Reprise du projet terminée (state.restoring retombé) : l'instru existe avant que la chanson d'origine soit relue.
+            await page.waitForFunction(() => window.__studiovoix?.ready && window.__studiovoix.restoring === false && window.__studiovoix.instru && window.__studiovoix.tracks.length > 0 && window.__studiovoix.tracks.every((t) => t.take)
+                && [...document.querySelectorAll('#log div')].some((d) => /Projet repris/.test(d.textContent)), null, { timeout: 180000 });
+            const o1 = await orig();
+            if (!o1.original || !o1.button) throw new Error('après rechargement : chanson d\'origine perdue (« Rétablir le morceau » indisponible)');
+            if (o1.original.hash !== o0.original.hash || o1.original.name !== o0.original.name) throw new Error(`après rechargement : chanson d'origine différente (${o1.original.name} ${o1.original.hash} au lieu de ${o0.original.name} ${o0.original.hash})`);
+            if (o1.instru.hash !== o0.instru.hash) throw new Error('après rechargement : instru séparée différente');
+            page.once('dialog', (d) => d.accept().catch(() => {}));   // « Rétablir le morceau d'origine ? »
+            await page.click('.track[data-id="0"] button:has-text("Rétablir le morceau")');
+            await page.waitForFunction(() => window.__studiovoix.instru && !window.__studiovoix.instru.original, null, { timeout: 30000 });
+            const o2 = await orig();
+            if (o2.instru.hash !== o0.original.hash || o2.instru.name !== o0.original.name) throw new Error(`« Rétablir le morceau » après rechargement : la piste Instru ne porte pas la chanson d'origine (${o2.instru.name})`);
+            console.log(stamp(), `chanson d'origine après rechargement : « ${o1.original.name} » retrouvée au bit près ; « Rétablir le morceau » la remet sur la piste Instru`);
+        }
         const fatal = errors.filter((e) => !/favicon/i.test(e));
         if (fatal.length) { console.error('erreurs console :', fatal.join('\n')); process.exitCode = 1; } else console.log(stamp(), 'OK');
         await browser.close();

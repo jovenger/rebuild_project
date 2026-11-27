@@ -422,6 +422,17 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
     (`sv_finalmix_end` reçoit l'écart) ; gardé avec le projet.
   - NON FAIT, à proposer à Yann : des réglages manuels du son de l'instru (graves / aigus) — c'est peut-être ce
     qu'il entend par « réglage de base » ; un traitement automatique plus poussé d'une instru entière est risqué.
+- Build 157 en ligne (27/11, 09:35 UTC) : réglage de base de l'instru.
+- 27/11 — « Rétablir le morceau » APRÈS RECHARGEMENT (manque relevé en répondant à « qu'est-ce qui n'a pas été
+  fait ? ») : la chanson d'avant la séparation n'était pas sauvegardée, le bouton disparaissait au rechargement de la
+  page et à l'ouverture d'un projet en fichier. Elle est maintenant gardée avec le projet sous son identifiant
+  d'origine (déjà écrite quand elle était l'instru : pas de seconde écriture), relue à la reprise, exigée par
+  `projectfile.js`. Essai dans `e2e.mjs` (séparation) : retrouvée au bit près, « Rétablir » la remet sur la piste.
+- RESTE CONNU (dit à Yann le 27/11) : rien d'écouté ni essayé sur un vrai téléphone ; WebGPU jamais exécuté ;
+  Ambiance masquée, pas réparée ; pas de montage sur la piste Instru ; pas de défilement automatique en glissant un
+  bout entre deux pistes éloignées ; « micro brut » ne suit pas le montage ; pas de réglages manuels du son de
+  l'instru ; couplets / refrains non appliqués quand plusieurs chanteurs sont trouvés ; pistes corrigées l'une après
+  l'autre ; PR #3 en brouillon, non fusionnée.
 - Build 154 en ligne (26/11, 21:00 UTC), contenu publié contrôlé sur la branche `gh-pages` (modèle léger, `clips.js`,
   `projectfile.js`, boutons). La page `jovenger.github.io` n'est pas joignable depuis l'environnement de travail.
 - 27/11 — ALLÈGEMENTS POUR LE TÉLÉPHONE (risques relevés la veille) :
