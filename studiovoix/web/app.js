@@ -1,0 +1,4144 @@
+// StudioVoix Web : studio multipiste. Micro et lecture par Web Audio, moteur C++ (WebAssembly) dans un Web Worker,
+// isolation de la voix (IA) dans un second worker.
+// Pistes : l'instru en haut (jouée telle quelle, jamais modifiée), puis autant de pistes voix que voulu. Chaque piste
+// a son nom, son type (voix principale, back, ambiance, doublage…) et son style : sa prise est traitée par la chaîne
+// du style réglée pour ce type et d'après la mesure de la prise ; le mix équilibre les pistes entre elles selon leur
+// type (back -7 LU sous la principale, ambiance -14 LU…) puis l'ensemble des voix par rapport à l'instru.
+
+import { findSingers, splitRanges, sectionRanges } from './singers.js';
+import { resampleSincAsync } from './resample.js';
+import { describeSound, packHeader, headerLength, parseHeader, unpackAudio, PROJECT_EXT } from './projectfile.js';   // projet dans un fichier
+import { gatedInstru, GATE_DEFAULTS } from './instru.js';   // porte dans le temps de l'instru séparée
+import { voiceDirt, clipRuns, loudestWindow, findCrackles, addedDistortion } from './inspect.js';
+import { MODELS as MDX_MODELS, mdxGrid, mdxPart, mdxPartAdd, mdxFinish } from './isolate.js';   // grille des morceaux de « Séparer »
+import { renderClips, splitClip, trimClip, setFades, setGain, setMute, setRev, removeClip, duplicateClip, insertClip, mergeClips, crossfade,
+    clipAt, clipEnd, makeClip, cloneClips, sanitizeClips, dbToGain, ClipError, GAIN_MIN_DB, GAIN_MAX_DB } from './clips.js';   // montage par bouts
+
+const $ = (id) => document.getElementById(id);
+const ui = {
+    status: $('status'), log: $('log'), version: $('version'), tracks: $('tracks'), report: $('report'),
+    recBtn: $('recBtn'), stopBtn: $('stopBtn'), playBtn: $('playBtn'), playRawBtn: $('playRawBtn'), stopPlayBtn: $('stopPlayBtn'),
+    exportBtn: $('exportBtn'), meterOut: $('meterOut'), time: $('time'),
+    addTrackBtn: $('addTrackBtn'), addRole: $('addRole'),
+    countIn: $('countIn'), latencyMs: $('latencyMs'), isolateVoice: $('isolateVoice'), isolateInfo: $('isolateInfo'),
+    useScale: $('useScale'), cleaning: $('cleaning'),
+    listen: $('listen'), allBtn: $('allBtn'), skipIsoBtn: $('skipIsoBtn'), levelBtn: $('levelBtn'), clipInfo: $('clipInfo'), exportFormat: $('exportFormat'), fxMode: $('fxMode'), fxSmooth: $('fxSmooth'), inspectBtn: $('inspectBtn'), inspectBox: $('inspectBox'), inspectAllBtn: $('inspectAllBtn'), inspectAllBox: $('inspectAllBox'),
+    fxPanel: $('fxPanel'), fxTitle: $('fxTitle'), fxInfo: $('fxInfo'), fxList: $('fxList'), fxResetAll: $('fxResetAll'),
+    sepBtn: $('sepBtn'), sepLeadBack: $('sepLeadBack'), sepAmbiance: $('sepAmbiance'), sepSingers: $('sepSingers'), sepInfo: $('sepInfo'), sepDenoise: $('sepDenoise'), sepSections: $('sepSections'), sepFast: $('sepFast'), exportRawBtn: $('exportRawBtn'),
+    sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'), sepHelp: $('sepHelp'),
+    finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
+    playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
+    correctAllBtn: $('correctAllBtn'), rawAllBtn: $('rawAllBtn'), autoLine: $('autoLine'), fxDone: $('fxDone'), roleBox: $('roleBox'), roleList: $('roleList'), roleResetBtn: $('roleResetBtn'), voxInstruRow: $('voxInstruRow'),
+};
+
+const state = {
+    ctx: null,             // AudioContext (créé au premier geste)
+    worker: null, ready: false, pending: new Map(), nextId: 1,
+    styles: [], roles: [],
+    roleOffsets: {},       // écarts de volume par type réglés à la main { type: LU } (gardés avec le projet, renvoyés au moteur)
+    // Instru : { left, right, sampleRate, seconds, name, analysis } ; réglages de piste à part (existe sans fichier).
+    // left / right = l'instru d'ORIGINE, jamais modifiée ; fixed = sa version corrigée (voir « instru corrigée »).
+    instru: null,
+    instruFix: false,          // bouton « Instru : corrigée » (éteint par défaut ; gardé avec le projet, pas le son corrigé)
+    vocalOverInstruLu: null,   // de combien la voix principale passe devant l'instru, réglé à la main (LU) ; null : valeur du style
+    instruTrack: { volumeDb: 0, mute: false, solo: false },
+    // Pistes voix : { id, name, roleId, styleId, volumeDb, mute, solo, take: { mono, sampleRate, startSec, note } | null,
+    //                 takes: [prises de cette piste], processed: { left, right, report, key } | null, status, token }
+    //   take = prise active (une des takes) ; chaque REC sur la piste ajoute une prise, les anciennes restent.
+    tracks: [], nextTrackId: 1, selectedId: 0, armedId: 0,
+    balance: null, balanceDirty: true,   // gains par piste (dB) calculés par le moteur pour « Mix »
+    jobs: Promise.resolve(), busy: 0,    // traitements en file (un à la fois, dans l'ordre)
+    player: null,                        // lecture en cours : { mode, nodes, t0, fromSec, raf }
+    playFromSec: 0,
+    rec: null, workletReady: false, isolating: false,
+    restoring: false,                    // projet relu depuis le navigateur : pas de sauvegarde pendant ce temps
+    finalMix: null,                      // chanson mixée : { left, right, sampleRate, report, stale }
+};
+// Montage (voir la section « montage » plus bas) : sons source des bouts, bout sélectionné, piles annuler / rétablir,
+// bout copié, prise en cours de glissement (dessin direct depuis les sources), vue de la ligne de temps (zoom, début).
+const mt = { sources: new Map(), sel: { trackId: 0, clipId: '' }, undo: [], redo: [], clipboard: null, live: null, zoom: 1, start: 0, head: 0, nextId: 1, menu: false, menuAt: 0, menuTrack: 0 };
+state.montage = mt;
+// ------------------------------------------------------------------ journal et état
+// Barre d'état. Un message né d'un geste (refus, résultat) reste lisible STATUS_HOLD_MS : pendant ce temps, un message
+// d'avancement venu de l'arrière-plan (traitement d'une piste, { low: true }) attend son tour au lieu de l'écraser
+// (vu le 27/11 : « piste verrouillée » remplacé aussitôt par « Correction automatique … en cours »).
+const STATUS_HOLD_MS = 2500;
+let statusHold = 0, statusLow = null, statusTimer = 0;
+function setStatus(text, opts) {
+    if (opts?.low) {
+        const wait = statusHold - performance.now();
+        if (wait <= 0) { ui.status.textContent = text; return; }
+        statusLow = text;
+        clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => { if (statusLow !== null) { ui.status.textContent = statusLow; statusLow = null; } }, wait);
+        return;
+    }
+    statusLow = null;
+    clearTimeout(statusTimer);
+    ui.status.textContent = text;
+    statusHold = performance.now() + STATUS_HOLD_MS;
+}
+function log(level, msg) {
+    const line = document.createElement('div');
+    line.className = 'l-' + level;
+    line.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+    ui.log.prepend(line);
+    while (ui.log.childElementCount > 1000) ui.log.lastChild.remove();   // 1000 lignes gardées (200 avant : la correction d'office et le montage écrivent beaucoup, le début d'une séance sortait du journal)
+    if (level === 'error') console.error(msg); else console.log(msg);
+}
+
+// ------------------------------------------------------------------ moteur (worker)
+function startWorker() {
+    state.worker = new Worker('./worker.js', { type: 'module' });
+    state.worker.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === 'log') { log(m.level, '[moteur] ' + m.msg); return; }
+        if (m.type === 'ready') {
+            state.ready = true;
+            ui.version.textContent = m.version;
+            state.styles = m.styles;
+            state.roles = m.roles;
+            renderRoles();   // « Écarts par type » (étape 4) : valeurs d'origine du moteur
+            fillRoleSelect(ui.addRole, 'lead');   // type proposé ensuite par proposeAddRole (choix de Yann, 26/11 : 1re voix principale, suivantes en back)
+            setStatus('Moteur prêt. Pose une instru (piste Instru), arme une piste (●) puis REC.');
+            restoreProject().then((restored) => {
+                if (!restored && state.tracks.length === 0) addTrack('lead', 'Voix principale');
+                proposeAddRole('chargement du projet');
+                if (restored) sepResumeNotice();   // coupure pendant « Séparer » : dit si le calcul peut reprendre
+                renderTracks();
+            });
+            refreshButtons();
+            return;
+        }
+        if (m.type === 'fatal') { setStatus('Moteur indisponible : ' + m.error); return; }
+        const p = state.pending.get(m.id);
+        if (!p) return;
+        state.pending.delete(m.id);
+        m.ok ? p.resolve(m) : p.reject(new Error(m.error));
+    };
+}
+// Copie d'une paire gauche / droite pour le moteur. Mémoire (téléphone) : une seule copie quand les deux canaux sont le
+// même tableau (prise brute, piste corrigée : son mono), et son tampon va dans `transfer` : il est remis au worker
+// sans seconde copie à l'envoi. Avant (mesuré par lecture du code) : deux copies par canal pour chaque piste, toutes
+// en même temps, à chaque calcul d'équilibre ou de mixage.
+function lrCopy(left, right, transfer) {
+    const l = left.slice();
+    transfer.push(l.buffer);
+    if (right === left) return { left: l, right: l };
+    const r = right.slice();
+    transfer.push(r.buffer);
+    return { left: l, right: r };
+}
+function call(cmd, payload, transfer = []) {
+    return new Promise((resolve, reject) => {
+        const id = state.nextId++;
+        state.pending.set(id, { resolve, reject });
+        state.worker.postMessage({ id, cmd, ...payload }, transfer);
+    });
+}
+// ------------------------------------------------------------------ isolation de la voix (IA, worker séparé)
+// Retire tout ce qui n'est pas la voix (musique extérieure, restes de l'instru, bruits). Le modèle (67 Mo) n'est
+// téléchargé qu'au premier usage, puis gardé par le navigateur.
+const iso = { worker: null, pending: new Map(), nextId: 1, backend: '', prep: null };
+// Essai e2e seulement (?svTestGpuHang=1) : simule une carte graphique qui bloque au 1er calcul.
+const TEST_GPU_HANG = new URLSearchParams(location.search).has('svTestGpuHang');
+function gpuBanned() { try { return !!localStorage.getItem('sv-no-webgpu'); } catch { return false; } }
+function isoWorker() {
+    if (iso.worker) return iso.worker;
+    iso.worker = new Worker('./isolate-worker.js', { type: 'module' });
+    iso.worker.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === 'gpu' && !m.ok) {   // carte graphique inutilisable ici : on s'en souvient (processeur direct la prochaine fois)
+            try { localStorage.setItem('sv-no-webgpu', m.reason || '1'); } catch (err) { log('warn', `préférence processeur non gardée : ${err.message}`); }
+            log('warn', `carte graphique écartée pour l'IA sur cet appareil (${m.reason})`);
+            if (state.separating) sepRun.gpuNote = m.reason === 'timeout' ? 'essai trop long' : m.reason === 'aberrant' ? 'résultat faux à l\'essai' : String(m.reason || 'échec');   // pour le bilan de la séparation
+            return;
+        }
+        if (m.type === 'log') {
+            log(m.level, '[isolation] ' + m.msg);
+            if (state.separating && /^WebGPU refusé/.test(m.msg)) sepRun.gpuNote = 'refusée par le navigateur';   // repli sans message dédié du worker
+            if (state.separating) ui.sepSub.textContent = 'IA : ' + m.msg;   // ce que fait l'IA, visible sans ouvrir le journal
+            return;
+        }
+        if (m.type === 'progress') {
+            const pct = Math.round(100 * m.done / Math.max(1, m.total));
+            let eta = '';
+            if (m.stage === 'isolate') {
+                if (m.done <= 1 || !iso.t0) iso.t0 = performance.now();
+                const el = (performance.now() - iso.t0) / 1000;
+                if (m.done > 1) { const left = Math.max(0, el / (m.done - 1) * (m.total - m.done + 1) - el); eta = ` — encore ~${fmt(left + 1)}`; }
+            }
+            // Pendant « Séparer », la progression va dans la carte Séparation (sinon le dernier téléchargement,
+            // celui du modèle d'empreinte de voix, restait affiché « 100 % » dans la carte Enregistrement).
+            if (state.separating) {
+                const what = SEP_MODELS[m.model] || 'IA';
+                if (m.stage === 'download' && m.done >= m.total) sepSet(null, `${sepRun.stepLabel} — modèle ${what} téléchargé, démarrage de l'IA…`, 0);
+                else if (m.stage === 'download') sepSet(null, `${sepRun.stepLabel} — téléchargement du modèle ${what} (une seule fois) : ${(m.done / 1e6).toFixed(0)} / ${(m.total / 1e6).toFixed(0)} Mo`, 0);
+                else sepChunk(m.done, m.total, m.skipped);
+                return;
+            }
+            const box = ui.isolateInfo;
+            box.textContent = m.stage === 'download'
+                ? `Téléchargement du modèle IA (une seule fois) : ${pct} % de ${(m.total / 1e6).toFixed(0)} Mo`
+                : `${state.separating ? 'Séparation' : 'Isolation de la voix'} (IA) : ${pct} %${eta}` + (iso.backend ? ` (${iso.backend})` : '');
+            if (state.isolating) setStatus(box.textContent);
+            return;
+        }
+        const p = iso.pending.get(m.id);
+        if (!p) return;
+        iso.pending.delete(m.id);
+        m.ok ? p.resolve(m) : p.reject(new Error(m.error));
+    };
+    iso.worker.onerror = (e) => {
+        log('error', `[isolation] worker en échec : ${e.message || 'erreur de chargement'}`);
+        for (const p of iso.pending.values()) p.reject(new Error('isolation indisponible : ' + (e.message || 'worker en échec')));
+        iso.pending.clear(); iso.worker = null; iso.prep = null;
+    };
+    return iso.worker;
+}
+// « Passer l'IA » : arrête le calcul en cours (le modèle reste dans le cache du navigateur pour la prochaine fois).
+function cancelIsolation() {
+    if (!iso.worker) return;
+    iso.worker.terminate();
+    for (const p of iso.pending.values()) { const e = new Error('IA passée à la demande'); e.skipped = true; p.reject(e); }
+    iso.pending.clear(); iso.worker = null; iso.prep = null; iso.t0 = 0;
+    log('warn', 'Isolation IA arrêtée à la demande');
+}
+function isoCall(cmd, payload = {}, transfer = []) {
+    const w = isoWorker();
+    return new Promise((resolve, reject) => {
+        const id = iso.nextId++;
+        iso.pending.set(id, { resolve, reject });
+        w.postMessage({ id, cmd, noGpu: gpuBanned(), testGpuHang: TEST_GPU_HANG, ...payload }, transfer);
+    }).catch((err) => {
+        // Carte graphique bloquée à l'essai : worker neuf en processeur seul, même commande (une seule fois).
+        if (err.message !== '__gpu_restart__' || payload.__retried) throw err;
+        log('warn', 'IA relancée sur le processeur (carte graphique bloquée)');
+        if (state.separating) ui.sepSub.textContent = 'IA : carte graphique bloquée → relance sur le processeur…';
+        try { iso.worker?.terminate(); } catch (e2) { log('warn', `arrêt du worker : ${e2.message}`); }
+        for (const p of iso.pending.values()) p.reject(new Error('__gpu_restart__'));   // les autres appels repartent aussi
+        iso.pending.clear();
+        iso.worker = null; iso.prep = null; iso.backend = '';
+        return isoCall(cmd, { ...payload, __retried: true }, []);
+    });
+}
+// Prépare le modèle (téléchargement + session) en tâche de fond, par exemple pendant la prise.
+function prepareIsolation() {
+    if (!ui.isolateVoice.checked) return null;
+    if (!iso.prep) {
+        iso.prep = isoCall('prepare').then((m) => {
+            iso.backend = m.backend;
+            ui.isolateInfo.textContent = `IA prête : ${m.backend}`;
+            log('info', `Isolation prête sur ${m.backend}`);
+            return m;
+        }).catch((err) => { iso.prep = null; throw err; });
+        iso.prep.catch(() => { /* signalé à l'usage */ });
+    }
+    return iso.prep;
+}
+async function resampleMono(data, fromSr, toSr) {
+    if (fromSr === toSr) return data.slice();   // copie : le résultat peut être transféré au worker (tampon détaché)
+    // Sinc fenêtré (resample.js) : le rééchantillonnage du navigateur est linéaire (aigus étouffés et distordus).
+    return resampleSincAsync(data, fromSr, toSr);
+}
+function rmsDb(x) { let e = 0; for (let i = 0; i < x.length; ++i) e += x[i] * x[i]; return 10 * Math.log10(e / Math.max(1, x.length) + 1e-20); }
+// mono (Float32Array, sr Hz) → { mono, removedDb, seconds, backend } : voix seule, même longueur et même fréquence.
+async function isolateVoice(mono, sr) {
+    const t0 = performance.now();
+    await prepareIsolation();
+    const x = await resampleMono(mono, sr, 44100);
+    if (x.length === 0 || mono.length === 0) throw new Error('prise vide : rien à isoler');
+    const r = await isoCall('isolate', { left: x, right: x.slice() }, [x.buffer]);
+    const v = new Float32Array(r.left.length);
+    for (let i = 0; i < v.length; ++i) v[i] = 0.5 * (r.left[i] + r.right[i]);
+    let out = await resampleMono(v, 44100, sr);
+    if (out.length !== mono.length) { const o = new Float32Array(mono.length); o.set(out.subarray(0, mono.length)); out = o; }
+    if (out.length !== mono.length || out.length === 0) throw new Error(`longueur incohérente après isolation (${out.length} au lieu de ${mono.length})`);
+    const removedDb = rmsDb(mono) - rmsDb(out);
+    const total = (performance.now() - t0) / 1000;
+    log('info', `Isolation : ${(mono.length / sr).toFixed(1)} s en ${total.toFixed(1)} s (${r.backend}) ; énergie retirée ${removedDb.toFixed(1)} dB`);
+    return { mono: out, removedDb, seconds: total, backend: r.backend };
+}
+// Fond sonore de la prise : tranches de 50 ms ; voix = 90e centile, fond = 10e centile (silences entre les phrases).
+// Un grand écart = rien d'autre que la voix (pas de musique extérieure continue) : l'IA n'est alors pas nécessaire.
+const CLEAN_GAP_DB = 25;   // mesuré : radio au niveau de la voix 7,4 dB ; instru captée seule (retirée) 33,3 dB
+function backgroundGap(mono, sr) {
+    const hop = Math.max(1, Math.round(0.05 * sr)), lv = [];
+    for (let s = 0; s + hop <= mono.length; s += hop) {
+        let e = 0;
+        for (let i = s; i < s + hop; ++i) e += mono[i] * mono[i];
+        lv.push(10 * Math.log10(e / hop + 1e-20));
+    }
+    if (lv.length < 20) return { gapDb: 0, floorDb: -200, voiceDb: -200 };
+    lv.sort((a, b) => a - b);
+    const floorDb = lv[Math.floor(lv.length * 0.1)], voiceDb = lv[Math.floor(lv.length * 0.9)];
+    return { gapDb: voiceDb - floorDb, floorDb, voiceDb };
+}
+// Applique l'isolation si la case est cochée ; en cas d'échec, garde la prise telle quelle et le dit.
+async function maybeIsolate(mono, sr) {
+    if (!ui.isolateVoice.checked) return { mono, note: 'isolation IA désactivée' };
+    const bg = backgroundGap(mono, sr);
+    log('info', `Fond sonore de la prise : voix ${bg.voiceDb.toFixed(1)} dBFS, fond ${bg.floorDb.toFixed(1)} dBFS, écart ${bg.gapDb.toFixed(1)} dB (IA si < ${CLEAN_GAP_DB} dB)`);
+    if (bg.gapDb >= CLEAN_GAP_DB) {
+        ui.isolateInfo.textContent = `Prise déjà propre (fond ${bg.gapDb.toFixed(0)} dB sous la voix) : IA non nécessaire`;
+        return { mono, note: `aucun son extérieur détecté (fond ${bg.gapDb.toFixed(0)} dB sous la voix) : IA non nécessaire` };
+    }
+    state.isolating = true;
+    ui.skipIsoBtn.hidden = false;
+    setStatus(`Son extérieur détecté (fond seulement ${bg.gapDb.toFixed(0)} dB sous la voix) : isolation de la voix (IA)… « Passer l'IA » pour garder la prise sans elle.`);
+    try {
+        const r = await isolateVoice(mono, sr);
+        ui.isolateInfo.textContent = `Dernière isolation : ${r.seconds.toFixed(0)} s sur ${r.backend}`;
+        return { mono: r.mono, note: `voix isolée par IA (${r.removedDb.toFixed(1)} dB d'autres sons retirés)`, isolated: r };
+    } catch (err) {
+        if (err.skipped) {
+            ui.isolateInfo.textContent = 'IA passée : prise gardée avec la musique des haut-parleurs retirée, sans l\'IA';
+            return { mono, note: '⚠ IA passée à la demande (sons extérieurs non retirés)' };
+        }
+        log('error', 'Isolation IA impossible : ' + err.message);
+        ui.isolateInfo.textContent = 'Isolation IA impossible : ' + err.message;
+        return { mono, note: `⚠ isolation IA impossible (${err.message}) : prise gardée sans elle` };
+    } finally { state.isolating = false; ui.skipIsoBtn.hidden = true; iso.t0 = 0; }
+}
+
+
+// ------------------------------------------------------------------ listes (styles, types de piste)
+function fillStyleSelect(sel, value) {
+    sel.innerHTML = '';
+    for (const g of state.styles) {
+        const og = document.createElement('optgroup');
+        og.label = g.family;
+        for (const s of g.styles) {
+            const o = document.createElement('option');
+            o.value = s.id; o.textContent = s.name;
+            og.appendChild(o);
+        }
+        sel.appendChild(og);
+    }
+    sel.value = value;
+    if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+}
+function fillRoleSelect(sel, value) {
+    sel.innerHTML = '';
+    for (const r of state.roles) {
+        const o = document.createElement('option');
+        o.value = r.id; o.textContent = roleLabel(r.id); o.title = r.label;
+        sel.appendChild(o);
+    }
+    sel.value = value;
+}
+// Libellés courts des types (ceux que Yann a nommés d'abord : principale, back, ambiance).
+function roleLabel(id) {
+    const short = { lead: 'Voix principale', manual_back: 'Voix back', ambiance: "Voix d'ambiance", double: 'Doublage',
+                    harmony: 'Harmonie', adlib: 'Ad-libs', instrument: 'Instrument' };
+    return short[id] || state.roles.find((r) => r.id === id)?.name || id;
+}
+function styleName(id) {
+    for (const g of state.styles) for (const s of g.styles) if (s.id === id) return s.name;
+    return id;
+}
+
+// ------------------------------------------------------------------ pistes
+function nextTrackName(roleId) {
+    if (roleId === 'lead' && !state.tracks.some((t) => t.roleId === 'lead')) return 'Voix principale';
+    const n = state.tracks.length + 1;
+    if (n === 2) return 'Seconde voix';
+    return `Voix ${n}`;
+}
+function addTrack(roleId, name) {
+    const t = {
+        id: state.nextTrackId++, name: name || nextTrackName(roleId), roleId, styleId: state.tracks[0]?.styleId || 'rap_conscient',
+        volumeDb: 0, mute: false, solo: false, take: null, takes: [], processed: null, status: 'vide', token: 0,
+        smooth: true,   // nouvelle piste : « voix lissée » allumée (les effets du style restent, la voix reste propre)
+        correction: true,   // nouvelle piste : « correction seule » d'office (décision de Yann) ; le style se choisit à la main
+    };
+    state.tracks.push(t);
+    if (!state.armedId) state.armedId = t.id;
+    log('info', `Piste ajoutée : « ${t.name} » (${roleLabel(roleId)}, ${styleName(t.styleId)})`);
+    log('info', `« ${t.name} » : mode de départ « Correction » (correction automatique seule, style ${styleName(t.styleId)} non appliqué tant qu'il n'est pas choisi à la main)`);
+    proposeAddRole('piste ajoutée');
+    markDirty();
+    return t;
+}
+// Type proposé par « + Ajouter une piste » (décision de Yann, 26/11) : « Voix principale » tant qu'aucune piste n'a ce
+// type, sinon « Voix back ». Recalculé après chaque ajout, suppression, changement de type d'une piste ou chargement de
+// projet. Entre deux, la liste reste libre : un type choisi à la main vaut pour l'ajout en cours.
+function proposeAddRole(why) {
+    if (!ui.addRole.options.length) return;   // moteur pas encore prêt : liste vide
+    const want = state.tracks.some((t) => t.roleId === 'lead') ? 'manual_back' : 'lead';
+    if (ui.addRole.value === want) return;
+    ui.addRole.value = want;
+    log('info', `Type proposé pour la prochaine piste : ${roleLabel(want)} (${why})`);
+}
+// Nouvelle prise sur une piste : elle devient la prise active, les précédentes restent au choix (« Prise n »).
+let nextAudioId = 1;
+function addTake(t, take) {
+    take.audioId = take.audioId || `a${Date.now().toString(36)}${(nextAudioId++).toString(36)}`;
+    take.label = take.label || `Prise ${t.takes.length + 1}`;
+    t.takes.push(take);
+    t.take = take;
+    t.processed = null;
+    t.status = 'raw';
+    state.balanceDirty = true;
+    log('info', `« ${t.name} » : ${take.label} (${fmt(take.mono.length / take.sampleRate)} à ${take.startSec.toFixed(2)} s)`);
+    markDirty();
+}
+function selectTake(t, index) {
+    const take = t.takes[index];
+    if (!take || take === t.take) return;
+    t.take = take;
+    t.processed = null;
+    state.balanceDirty = true;
+    log('info', `« ${t.name} » : ${take.label} choisie`);
+    markDirty();
+    renderTracks();
+    queueProcess(t);
+}
+function findTrack(id) { return state.tracks.find((t) => t.id === id) || null; }
+function removeTrack(id) {
+    const t = findTrack(id);
+    if (!t) return;
+    if (t.take && !confirm(`Supprimer la piste « ${t.name} » et sa prise ?`)) return;
+    state.tracks = state.tracks.filter((x) => x.id !== id);
+    if (state.armedId === id) state.armedId = state.tracks[0]?.id || 0;
+    if (state.selectedId === id) state.selectedId = 0;
+    state.balanceDirty = true;
+    log('info', `Piste supprimée : « ${t.name} »`);
+    proposeAddRole('piste supprimée');
+    markDirty();
+    renderTracks();
+}
+
+function songSeconds() {
+    let end = state.instru ? state.instru.seconds : 0;
+    for (const t of state.tracks) if (t.take) end = Math.max(end, t.take.startSec + t.take.mono.length / t.take.sampleRate);
+    return Math.max(end, 10);
+}
+
+// En-tête + forme d'onde de chaque piste. Reconstruit à chaque changement de structure (ajout, suppression).
+function renderTracks() {
+    ui.tracks.innerHTML = '';
+    ui.tracks.appendChild(instruRow());
+    for (const t of state.tracks) ui.tracks.appendChild(trackRow(t));
+    renderVoxInstru();   // « Voix principale devant l'instru » : valeur du style de la voix principale (étape 4)
+    mtButtons();   // barre et menu de montage à jour (bout sélectionné, pistes d'arrivée)
+    drawAllLanes();
+    refreshAudibility();
+    refreshButtons();
+}
+// Pistes entendues (muet / solo) : les autres sont grisées ; indication dans la barre de transport.
+function refreshAudibility() {
+    const rows = [[0, state.instruTrack], ...state.tracks.map((t) => [t.id, t])];
+    let on = 0;
+    for (const [id, obj] of rows) {
+        const r = rowOf(id);
+        const a = audible(obj);
+        if (a && (id === 0 ? state.instru : obj.take)) ++on;
+        if (r) r.classList.toggle('off', !a);
+    }
+    const total = (state.instru ? 1 : 0) + state.tracks.filter((t) => t.take).length;
+    const anyOff = rows.some(([, o]) => !audible(o));
+    ui.listen.textContent = anyOff ? `Écoute : ${on} piste(s) sur ${total}` : 'Écoute : tout';
+    ui.allBtn.disabled = !anyOff;
+}
+function el(tag, props = {}, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') e.className = v;
+        else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+        else if (k in e) e[k] = v;
+        else e.setAttribute(k, v);
+    }
+    for (const k of kids) if (k != null) e.append(k);
+    return e;
+}
+// Muet : coupe cette piste. Solo : n'écoute que les pistes en solo (une ou plusieurs). Effet immédiat, même en lecture.
+function toggles(obj, onChange) {
+    const m = el('button', { class: 'tog m' + (obj.mute ? ' on' : ''), textContent: 'M', title: 'Muet : couper le son de cette piste',
+        onclick: (e) => { e.stopPropagation(); obj.mute = !obj.mute; e.target.classList.toggle('on', obj.mute); onChange(); } });
+    const s = el('button', { class: 'tog s' + (obj.solo ? ' on' : ''), textContent: 'S', title: 'Solo : n\'écouter que cette piste (et les autres en solo)',
+        onclick: (e) => { e.stopPropagation(); obj.solo = !obj.solo; e.target.classList.toggle('on', obj.solo); onChange(); } });
+    const v = el('input', { type: 'range', class: 'vol', min: -24, max: 12, step: 0.5, value: obj.volumeDb, title: `Volume ${obj.volumeDb} dB`,
+        oninput: (e) => { obj.volumeDb = Number(e.target.value); e.target.title = `Volume ${obj.volumeDb} dB`; liveGains(); markDirty(); } });
+    return [m, s, v];
+}
+function instruRow() {
+    const row = el('div', { class: 'track instru', 'data-id': '0' });
+    const file = el('input', { type: 'file', accept: 'audio/*', id: 'instruFile', onchange: (e) => loadInstruFile(e.target.files[0]) });
+    const fixed = instruFixDone(), fixWait = state.instruFix && !!state.instru && !fixed;
+    const info = state.instru
+        ? `${state.instru.name} · ${fmt(state.instru.seconds)}` + (state.instru.analysis ? ` · ${state.instru.analysis.key} · ${state.instru.analysis.bpm.toFixed(0)} BPM` : '')
+            + (fixed ? ` · ${fixed.same ? '' : 'corrigée : '}${instruFixText(fixed.report)}` : fixWait ? (state.separating ? ' · correction refaite après la séparation' : ' · correction de l\'instru en cours…') : '')
+        : 'aucune instru';
+    // Bouton à deux états, jamais allumé tout seul : « telle quelle » (défaut) / « corrigée » (réglage de base : écrêtage réparé, niveau trop haut baissé, rien d'autre).
+    const fixBtn = el('button', { id: 'instruFixBtn', class: 'tog fix' + (state.instruFix ? ' on' : ''), disabled: !state.ready || !state.instru,
+        textContent: state.instruFix ? 'Instru : corrigée' : 'Instru : telle quelle',
+        title: state.instruFix ? 'Réglage de base de l\'instru avant le mix : les crêtes écrêtées sont reconstruites et, si l\'instru est trop forte, son niveau est baissé pour rendre de la marge. Rien d\'autre n\'est touché (ni égaliseur, ni compression, ni effet) ; une instru propre reste identique. L\'original est gardé : un appui la remet telle quelle.'
+            : 'Instru jouée telle quelle. Un appui lui applique un réglage de base avant le mix, utile pour un MP3 trop fort ou écrêté : crêtes écrêtées reconstruites, niveau baissé si la crête dépasse −1 dBFS. Rien d\'autre n\'est touché ; l\'original est gardé.',
+        onclick: (e) => { e.stopPropagation(); setInstruFix(!state.instruFix); } });
+    const meter = el('canvas', { class: 'meter', width: 300, height: 9 });
+    row._meter = meter;
+    const head = el('div', { class: 'head' },
+        el('div', { class: 'r' }, el('span', { class: 'tag', textContent: 'Instru' }), el('span', { class: 'name', textContent: state.instru ? state.instru.name : 'Instrumental' })),
+        meter,
+        el('div', { class: 'r' },
+            el('span', { class: 'file' }, el('button', { textContent: 'Importer l\'instru' }), file),
+            el('button', { id: 'demoBtn', textContent: 'Démo', disabled: !state.ready, title: 'Instru et deux voix de démonstration (La mineur, 100 BPM)', onclick: loadDemo })),
+        state.instru?.original ? el('div', { class: 'r' }, el('button', { textContent: '↺ Rétablir le morceau', title: 'Remettre la chanson d\'origine (avant séparation) sur cette piste', onclick: (e) => { e.stopPropagation(); restoreOriginalSong(); } })) : null,
+        el('div', { class: 'r' }, ...toggles(state.instruTrack, onMuteSolo)),
+        el('div', { class: 'r' }, fixBtn),
+        el('div', { class: 'tinfo', textContent: info, title: fixed ? 'Corrigée avant le mix (écrêtage réparé, niveau trop haut baissé — rien d\'autre) ; l\'original est gardé, jamais modifié' : 'Jouée telle quelle, jamais modifiée' }));
+    const lane = el('div', { class: 'lane' }, el('canvas'), state.instru ? null : el('div', { class: 'empty', textContent: 'Importe l\'instru (MP3, WAV…) : elle va seule sur cette piste' }));
+    laneEvents(lane, null);
+    row.append(head, lane);
+    row._lane = lane;
+    return row;
+}
+function trackRow(t) {
+    const row = el('div', { class: 'track' + (t.id === state.selectedId ? ' sel' : '') + (t.id === state.armedId ? ' armed' : ''), 'data-id': String(t.id) });
+    const arm = el('button', { class: 'arm' + (t.id === state.armedId ? ' on' : ''), textContent: '●', title: 'Armer : le prochain REC enregistre sur cette piste',
+        onclick: (e) => { e.stopPropagation(); state.armedId = t.id; renderTracks(); } });
+    const name = el('input', { type: 'text', class: 'name', value: t.name, title: 'Nom de la piste (libre)',
+        onchange: (e) => { t.name = e.target.value.trim() || t.name; log('info', `Piste renommée : « ${t.name} »`); markDirty(); } });
+    const role = el('select', { class: 'role', title: 'Type de piste : règle la chaîne (effets) et la place dans le mix' });
+    fillRoleSelect(role, t.roleId);
+    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); proposeAddRole('type d\'une piste changé'); markDirty(); renderVoxInstru(); queueProcess(t); });
+    const style = el('select', { class: 'style' + (t.noFx || t.correction ? ' unused' : ''), title: t.correction && !t.noFx ? 'Style de cette voix : PAS appliqué pour l\'instant (piste en « Correction »). Choisis un style ici pour l\'appliquer.'
+        : t.noFx ? 'Style de cette voix : pas appliqué (piste « Sans effet »). Choisis un style ici pour l\'appliquer.' : 'Style de mixage de cette voix' });
+    fillStyleSelect(style, t.styleId);
+    // Choisir un style à la main fait passer la piste en mode « Style » (rien ne passe en Style tout seul).
+    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); renderVoxInstru(); if (t.noFx || t.correction) setFxMode(t, t.smooth ? 'smooth' : 'style', 'style choisi à la main'); else queueProcess(t); });
+    const file = el('input', { type: 'file', accept: 'audio/*', class: 'voiceFile', onchange: (e) => importVoice(t, e.target.files[0]) });
+    const meter = el('canvas', { class: 'meter', width: 300, height: 9 });
+    const badge = el('span', { class: 'badge', textContent: badgeText(t) });
+    const info = el('div', { class: 'tinfo', textContent: trackInfo(t) });
+    row._meter = meter; row._badge = badge; row._info = info;
+    const head = el('div', { class: 'head', onclick: () => selectTrack(t.id) },
+        el('div', { class: 'r' }, arm, name, badge,
+            el('button', { class: 'x', textContent: '✕', title: 'Supprimer la piste', onclick: (e) => { e.stopPropagation(); removeTrack(t.id); } })),
+        el('div', { class: 'r' }, role, style),
+        meter,
+        el('div', { class: 'r' }, ...toggles(t, onMuteSolo),
+            // Effets de la piste, un clic passe à l'état suivant : Brut (aucun effet) → Corrigé (correction automatique
+            // seule, sans couleur de style) → Lissé (effets du style + voix lissée) → Style (effets du style tels quels).
+            el('button', { class: 'tog fx' + (t.noFx ? '' : t.correction ? ' on corr' : t.smooth ? ' on smooth' : ' on'), textContent: t.noFx ? 'Brut' : t.correction ? 'Corrigé' : t.smooth ? 'Lissé' : 'Style',
+                title: t.noFx ? 'Brut : la piste est jouée telle quelle, sans aucun effet (clique : Corrigé)'
+                    : t.correction ? 'Corrigé : correction automatique seule — volume régulier, résonances, compression et justesse réglés d\'après la prise ; aucune couleur de style (ni réverb, ni écho, ni saturation). Clique : effets du style, voix lissée'
+                    : t.smooth ? 'Lissé : les effets du style (autotune, couleur, réverb, écho) avec la voix lissée — compression, nettoyage et saturation doux, rien de rêche quand le niveau monte (clique : Style sans lissage)'
+                    : 'Style : tous les effets du style tels quels, sans lissage (clique : Brut)',
+                // Le tour complet revient au même son : « Corrigé » repart avec la voix lissée (son réglage de départ), que
+                // l'étape « Style » du tour vient d'éteindre.
+                onclick: (e) => { e.stopPropagation(); if (t.noFx) t.smooth = true; setFxMode(t, t.noFx ? 'correction' : t.correction ? 'smooth' : t.smooth ? 'style' : 'none'); } }),
+            el('button', { class: 'tog lock' + (t.locked ? ' on' : ''), textContent: t.locked ? '🔒' : '🔓',
+                title: t.locked ? 'Piste verrouillée : la prise ne peut pas être déplacée (clique pour déverrouiller)' : 'Piste libre : glisser la prise la déplace (clique pour la verrouiller à sa place)',
+                onclick: (e) => { e.stopPropagation(); t.locked = !t.locked; log('info', `« ${t.name} » : ${t.locked ? 'verrouillée (déplacement bloqué)' : 'déverrouillée (déplacement permis)'}`); markDirty(); renderTracks(); } }),
+            el('span', { class: 'file' }, el('button', { textContent: 'Importer', title: 'Importer une voix sur cette piste' }), file)),
+        t.take?.raw ? el('div', { class: 'r' }, el('button', { class: 'raw', textContent: '🎙 Micro brut',
+            title: 'Écouter ce que le micro a vraiment capté (avant nettoyage), pour comparer avec la prise gardée',
+            onclick: (e) => { e.stopPropagation(); playRawMic(t); } })) : null,
+        t.takes.length > 1 ? el('div', { class: 'r' }, takeSelect(t)) : null,
+        info);
+    const lane = el('div', { class: 'lane' }, el('canvas'), t.take ? null : el('div', { class: 'empty', textContent: 'Arme la piste (●) puis REC, ou importe une voix' }));
+    laneEvents(lane, t);
+    row.append(head, lane);
+    row._lane = lane;
+    return row;
+}
+function takeSelect(t) {
+    const sel = el('select', { class: 'take', title: 'Prises de cette piste : chaque REC en ajoute une, choisis celle qui joue' });
+    t.takes.forEach((k, i) => sel.appendChild(el('option', { value: String(i), textContent: `${k.label} · ${fmt(k.mono.length / k.sampleRate)}` })));
+    sel.value = String(t.takes.indexOf(t.take));
+    sel.addEventListener('change', () => selectTake(t, Number(sel.value)));
+    sel.addEventListener('click', (e) => e.stopPropagation());
+    return sel;
+}
+// Micro brut d'une prise, seul, à sa place : pour entendre ce qui a été retiré (musique captée, sons extérieurs).
+function playRawMic(t) {
+    if (!t.take?.raw) return;
+    if (state.player?.mode === 'rawmic') { stopPlayback(); setStatus('Lecture arrêtée.'); return; }
+    stopPlayback();
+    const ctx = audioContext();
+    const src = ctx.createBufferSource();
+    src.buffer = makeBuffer(t.take.raw, t.take.raw);
+    src.connect(ctx.destination);
+    const t0 = ctx.currentTime + 0.05;
+    src.start(t0);
+    const rawAt = t.take.rawAt ?? t.take.startSec;   // prise montée : le micro brut reste à la place de la prise d'origine
+    const player = { mode: 'rawmic', nodes: [{ key: -1, src }], t0, fromSec: rawAt, raf: 0 };
+    state.player = player;
+    const tick = () => { if (state.player !== player) return; setPlayhead(rawAt + ctx.currentTime - t0); player.raf = requestAnimationFrame(tick); };
+    player.raf = requestAnimationFrame(tick);
+    src.onended = () => { if (state.player === player) { stopPlayback(); setStatus('Fin du micro brut.'); } };
+    setStatus(`Micro brut de « ${t.name} » (${t.take.label}) : ce que le micro a capté avant nettoyage. Écoute « Mix » ou mets la piste en solo pour la prise gardée.`);
+}
+function badgeText(t) {
+    if (t.status === 'busy') return 'traitement…';
+    if (t.status === 'isolating') return 'isolation IA…';
+    if (t.noFx && t.take) return 'sans effet';
+    if (t.processed) return t.correction ? 'corrigée' : t.smooth ? 'lissée' : 'traitée';
+    if (t.take) return 'brute';
+    return 'vide';
+}
+function trackInfo(t) {
+    const g = state.balance?.gains.get(t.id);
+    // Mode Correction : dit d'abord que le style n'est pas appliqué (l'en-tête est étroit, la fin de la ligne est coupée).
+    const parts = [t.correction && !t.noFx ? `correction seule, style non appliqué · ${roleLabel(t.roleId)}` : `${roleLabel(t.roleId)} · ${styleName(t.styleId)}`];
+    if (t.take) parts.push(`prise ${fmt(t.take.mono.length / t.take.sampleRate)} à ${fmt(t.take.startSec)}`);
+    const lvl = mixLevelDb(t);
+    // En tête de ligne (l'en-tête de piste est étroit) : le niveau au Mix doit rester lisible.
+    if (lvl != null) parts.unshift(`niveau au mix ${lvl.toFixed(1).replace('.', ',')} LUFS (auto ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB)`);
+    else if (g != null && !state.balanceDirty) parts.push(`mix ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`);
+    if (t.take?.note) parts.push(t.take.note);
+    const rg = rawLevelOn() && rawLevelFresh() ? state.balanceRaw.gains.get(t.id) : null;
+    if (rg != null) parts.unshift(`brut égalisé ${rg >= 0 ? '+' : ''}${rg.toFixed(1)} dB`);
+    return parts.join(' · ');
+}
+function rowOf(id) { return ui.tracks.querySelector(`.track[data-id="${id}"]`); }
+function updateRow(t) {
+    const row = rowOf(t.id);
+    if (!row) return;
+    row._badge.textContent = badgeText(t);
+    row._badge.className = 'badge' + (t.status === 'busy' || t.status === 'isolating' ? ' busy' : t.processed ? ' done' : '');
+    row._info.textContent = trackInfo(t);
+    row._info.classList.toggle('warn', !!t.take?.note?.startsWith('⚠'));
+    const empty = row._lane.querySelector('.empty');
+    if (t.take && empty) empty.remove();
+    drawLane(row, t);
+    if (t.id === state.selectedId) { showReport(t); renderFx(); }
+    refreshButtons();
+}
+function selectTrack(id) {
+    state.selectedId = id;
+    for (const r of ui.tracks.querySelectorAll('.track')) r.classList.toggle('sel', r.dataset.id === String(id));
+    const t = findTrack(id);
+    if (t) showReport(t);
+    renderFx(true);
+}
+function showReport(t) {
+    const rep = t.processed?.report;
+    const g = state.balance?.gains.get(t.id);
+    const b = state.balance?.items?.get(t.id);
+    if (!t.take) { ui.report.textContent = `« ${t.name} » : ${roleLabel(t.roleId)}, ${t.correction && !t.noFx ? `correction automatique seule (style ${styleName(t.styleId)} non appliqué)` : `style ${styleName(t.styleId)}`}. Pas encore de prise.`; return; }
+    if (!rep) { ui.report.textContent = `« ${t.name} » : prise brute (${t.take.note || 'sans effet'}). ${t.noFx ? 'Piste « Sans effet » : jouée telle quelle.' : 'Traitement à venir.'}`; return; }
+    ui.report.textContent =
+        (rep.mode === 'correction'
+            ? `« ${t.name} » — ${rep.role}, correction automatique seule (aucune couleur de style : ni réverb, ni écho, ni saturation ; style ${styleName(t.styleId)} non appliqué), réglée d'après la mesure de la prise :\n${rep.fitNotes || 'rien à ajuster'}\n\n`
+            : `« ${t.name} » — ${rep.role}, style ${rep.style}, réglé d'après la mesure de la prise :\n${rep.fitNotes || 'rien à ajuster'}\n\n`) +
+        `Mesuré sur la prise : ${rep.found || 'aucun défaut notable'}\n\n` +
+        `Chaîne appliquée :\n${rep.chain}\n\n` +
+        `Justesse ${Math.round(rep.meanCorrectionCents)} c · compression ${rep.compGrDb.toFixed(1)} dB · ${rep.lufs.toFixed(1)} LUFS` +
+        (rep.adaptedKey ? ` · gamme adaptée à la voix : ${rep.adaptedKey}` : '') + (rep.chromatic ? ' · note par note' : '') +
+        (rep.nearSilent ? '\nPRISE QUASI SILENCIEUSE : vérifie le micro' : '') +
+        (g != null && !state.balanceDirty
+            ? `\n\nPlace dans le mix : ${b && b.placeLu ? `${b.placeLu} LU sous la voix principale, ` : ''}gain ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB (+ fader ${t.volumeDb} dB)`
+            : '') +
+        (t.take.note ? `\nPrise : ${t.take.note}` : '');
+}
+
+// Forme d'onde placée sur la ligne de temps commune (toute la chanson sur la largeur de la piste).
+function drawLane(row, t, force = false) {
+    if (!force && t && state.rec && state.rec.trackId === t.id) return;   // forme d'onde en direct : ne pas l'effacer
+    const canvas = row._lane.querySelector('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(50, Math.round(row._lane.clientWidth * dpr)), h = Math.max(40, Math.round(row._lane.clientHeight * dpr));
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#10131a'; g.fillRect(0, 0, w, h);
+    const total = viewDur(), v0 = mt.start;   // partie visible de la ligne de temps (zoom) : tout le morceau par défaut
+    // repères de mesure (si l'instru est analysée)
+    const bpm = state.instru?.analysis?.bpm;
+    if (bpm) {
+        g.fillStyle = 'rgba(255,255,255,.05)';
+        const bar = 4 * 60 / bpm, first = state.instru.analysis.firstBeatSec || 0;
+        for (let s = first; s < v0 + total; s += bar) if (s >= v0) g.fillRect(Math.round((s - v0) / total * w), 0, 1, h);
+    }
+    let data = null, sr = 0, start = 0, color = '#3a9bff';
+    if (!t) { if (state.instru) { data = instruAudio().left; sr = state.instru.sampleRate; color = '#8a94a8'; } }
+    else if (t.take) {
+        data = t.processed ? t.processed.left : t.take.mono; sr = t.take.sampleRate; start = t.take.startSec;
+        color = t.processed ? (t.smooth ? '#9b7bff' : '#e94e8a') : '#3a9bff';   // bleu : brut ; violet : lissé ; rose : effets du style
+    }
+    if (t?.take?.clips && mt.live === t.take) { mtDrawLive(g, t, w, h); data = null; }   // bout en cours de glissement
+    if (!data || !data.length) { if (t) mtDrawClips(g, row, t, w, h); return; }
+    const x0 = (start - v0) / total * w, x1 = (start - v0 + data.length / sr) / total * w;
+    g.fillStyle = color + '22'; g.fillRect(x0, 2, x1 - x0, h - 4);
+    g.fillStyle = color;
+    const per = data.length / Math.max(1, x1 - x0);
+    for (let px = Math.max(0, Math.floor(x0)); px < Math.min(w, x1); ++px) {
+        const a = Math.floor((px - x0) * per), b = Math.min(data.length, Math.floor((px + 1 - x0) * per));
+        let mx = 0;
+        for (let i = Math.max(0, a); i < b; i += 4) mx = Math.max(mx, Math.abs(data[i]));
+        const hh = Math.max(1, mx * (h / 2 - 3));
+        g.fillRect(px, h / 2 - hh, 1, hh * 2);
+    }
+    if (t) mtDrawClips(g, row, t, w, h);   // contours des bouts, bout sélectionné, poignées pour rogner
+}
+// Forme d'onde en direct pendant la prise : la piste armée est vidée, puis chaque crête du micro (toutes les 256
+// échantillons, ~6 ms) est dessinée à sa place sur la ligne de temps dès qu'elle arrive.
+function liveStart(t) {
+    const row = rowOf(t.id);
+    if (!row) return;
+    drawLane(row, { ...t, take: null, processed: null }, true);   // fond + repères de mesure seulement
+    row._lane.querySelector('.empty')?.remove();
+    const c = row._lane.querySelector('canvas'), g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.fillStyle = 'rgba(255,255,255,.55)';
+    g.font = `${Math.round(11 * dpr)}px system-ui, sans-serif`;
+    g.fillText('● micro en direct — la musique des haut-parleurs sera retirée à l\'arrêt', 6 * dpr, 14 * dpr);
+    log('info', `Forme d'onde en direct sur « ${t.name} » (latence d'entrée annoncée ${Math.round((state.rec?.inLatency || 0) * 1000)} ms, compensée à l'affichage)`);
+}
+function livePeak(t, p) {
+    const r = state.rec;
+    if (!r || r.trackId !== t.id) return;
+    const row = rowOf(t.id);
+    const canvas = row?._lane.querySelector('canvas');
+    if (!canvas) return;
+    const sec = p.frame / r.sampleRate - r.songStartCtx + r.fromSec - r.inLatency;
+    if (sec < 0) return;   // compte à rebours : avant le début du morceau
+    const w = canvas.width, h = canvas.height, total = r.total;
+    const x = Math.min(w - 1, Math.floor((sec - mt.start) * mt.zoom / total * w));   // vue zoomée : même repère que drawLane
+    if (x < 0) return;
+    const dx = Math.max(1, Math.ceil(p.n / r.sampleRate * mt.zoom / total * w));
+    const amp = Math.min(1, Math.max(Math.abs(p.min), Math.abs(p.max)) * 2.5);   // voix souvent faible : agrandie à l'écran
+    const hh = Math.max(1, amp * (h / 2 - 3));
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#e5484d';
+    g.fillRect(x, h / 2 - hh, dx, hh * 2);
+}
+function drawAllLanes() {
+    const ir = rowOf(0);
+    if (ir) drawLane(ir, null);
+    for (const t of state.tracks) { const r = rowOf(t.id); if (r) drawLane(r, t); }
+}
+window.addEventListener('resize', () => drawAllLanes());
+
+// Ligne de temps : un clic place la tête de lecture (et le départ du prochain REC) ; glisser un bout le déplace, dans
+// le temps et d'une piste à l'autre (on le lâche sur la piste voulue) ; clic droit, ou appui long au doigt : menu du bout.
+function laneEvents(lane, t) {
+    let drag = null;
+    const stopHold = (d) => { if (d?.timer) { clearTimeout(d.timer); d.timer = 0; } };
+    lane.addEventListener('pointerdown', (e) => {
+        if (e.target.classList?.contains('trimh') || e.button === 2) return;   // poignée pour rogner, clic droit (menu) : gestes à part
+        const r = lane.getBoundingClientRect(), total = viewDur();
+        const sec = mt.start + (e.clientX - r.left) / r.width * total;
+        const k = t?.take;
+        // Bout sous le pointeur : son identifiant, '' pour une prise sans montage (un seul bout), null à côté.
+        const clipId = t ? mtHit(t, sec) : null, onClip = clipId != null;
+        const clip = clipId ? k.clips.find((c) => c.id === clipId) : null;
+        drag = { x: e.clientX, y: e.clientY, w: r.width, total, start: clip ? clip.at : k ? k.startSec : 0, moved: false, onClip, sec, clipId: clipId || '', timer: 0 };
+        if (onClip) lane.setPointerCapture(e.pointerId);
+        if (t && e.pointerType === 'touch') {
+            // Doigt maintenu sans bouger : après MT_HOLD_MS le bout se glisse dans tous les sens (la page ne défile plus
+            // sous lui) ; après MT_MENU_MS : menu du bout (à côté d'un bout : menu « Coller ici »).
+            const d = drag;
+            d.timer = setTimeout(() => {
+                if (drag !== d) return;
+                d.hold = true;
+                d.timer = setTimeout(() => {
+                    if (drag !== d || d.moved || d.cross) return;
+                    drag = null;
+                    mtOpenMenu(t, d.onClip ? d.clipId : null, Math.max(0, d.sec), d.x, d.y, true);
+                }, MT_MENU_MS - MT_HOLD_MS);
+            }, MT_HOLD_MS);
+        }
+    });
+    // Doigt : dès que le bout est tenu ou glisse, la page ne défile plus (sinon le navigateur reprend le geste).
+    lane.addEventListener('touchmove', (e) => { if (drag && drag.onClip && (drag.hold || drag.moved || drag.cross) && e.cancelable) e.preventDefault(); }, { passive: false });
+    lane.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (Math.hypot(dx, dy) >= 6) stopHold(drag);   // le doigt bouge (dans n'importe quel sens) : ce n'est pas un appui long
+        if (!drag.onClip) return;
+        const to = mtRowAt(e.clientX, e.clientY), other = to !== t;   // piste sous le pointeur (null : hors des pistes de voix)
+        if (!drag.moved && !drag.cross && (other ? Math.hypot(dx, dy) < 6 : Math.abs(dx) < 6)) return;
+        stopHold(drag);
+        if (t.locked) {   // cadenas : la prise reste calée sur l'instru ; le geste ne fait que placer la tête de lecture
+            if (!drag.warned) { drag.warned = true; setStatus(`« ${t.name} » est verrouillée 🔒 : la prise ne bouge pas. Clique le cadenas de la piste pour la déplacer.`); log('info', `« ${t.name} » : déplacement refusé (piste verrouillée)`); }
+            return;
+        }
+        if (state.rec && (drag.clipId || other)) return;   // enregistrement en cours : pas de montage
+        const c = drag.clipId ? t.take.clips.find((x) => x.id === drag.clipId) : null;
+        const put = (at) => { if (c) { c.at = at; mt.live = t.take; } else t.take.startSec = at; };
+        const at = Math.max(0, drag.start + dx / drag.w * drag.total);
+        if (other) {
+            // Vers une autre piste : le bout reste dessiné à sa place, son ombre suit le pointeur sur la ligne visée. Un
+            // petit écart horizontal (moins de MT_KEEP_PX) est ignoré : le bout garde sa place exacte dans le temps.
+            put(drag.start);
+            drag.moved = false; drag.cross = true; drag.to = to;
+            drag.at = Math.abs(dx) < MT_KEEP_PX ? drag.start : at;
+            mtGhost(to, drag.at, c ? c.len : t.take.mono.length, t.take.sampleRate);
+        } else {
+            if (drag.cross) { drag.cross = false; mtGhost(null); }
+            if (!drag.snap) drag.snap = mtSnap('déplacer');   // « Annuler » : état d'avant le glissement
+            drag.moved = true;
+            put(Math.abs(dx) < 6 ? drag.start : at);
+        }
+        drawLane(lane.parentElement, t);
+    });
+    const end = (cancelled) => {
+        if (!drag) return;
+        const d = drag; drag = null;
+        stopHold(d);
+        if (d.cross) {   // lâché sur une autre piste, ou hors des pistes : sur sa piste, le bout n'a pas bougé
+            mt.live = null;
+            mtGhost(null);
+            drawLane(lane.parentElement, t);
+            if (cancelled !== true) mtDropOn(t, d.clipId, d.to, d.at);
+            return;
+        }
+        const c = d.clipId ? t.take.clips.find((x) => x.id === d.clipId) : null;
+        if (d.moved && (c ? c.at : t.take.startSec) === d.start) { mt.live = null; drawLane(lane.parentElement, t); return; }   // revenu à sa place : rien à faire
+        if (d.moved && d.clipId) {   // bout d'une prise montée : rendu recalculé, puis la suite commune du montage
+            mt.live = null;
+            mtCommit(t, t.take, d.snap, `bout déplacé de ${fSec(d.start)} à ${fSec(c ? c.at : d.start)}`);
+            setStatus(`Bout déplacé à ${fSec(c ? c.at : d.start)} sur « ${t.name} ».`);
+            return;
+        }
+        if (d.moved) {
+            mtPushUndo(d.snap);
+            log('info', `« ${t.name} » : prise déplacée de ${d.start.toFixed(2)} s à ${t.take.startSec.toFixed(2)} s`);
+            state.balanceDirty = true;
+            markDirty();
+            drawAllLanes();
+            queueProcess(t);   // grille rythmique vue depuis la nouvelle place
+            return;
+        }
+        const sec = Math.max(0, Math.min(songSeconds(), d.sec));
+        state.playFromSec = sec;
+        setPlayhead(sec);
+        if (state.player) play(state.player.mode, sec);
+        if (t) mtSelect(t, d.onClip ? d.clipId : null);   // toucher un bout le sélectionne ; toucher à côté le lâche
+    };
+    lane.addEventListener('pointerup', end);
+    // Geste repris par le navigateur (défilement de la page au doigt) : un glissement commencé dans le temps est terminé
+    // proprement ; un bout en route vers une autre piste revient à sa place.
+    lane.addEventListener('pointercancel', () => { if (drag?.moved || drag?.cross) end(true); else { stopHold(drag); drag = null; } });
+    // Clic droit (et appui long, sur les téléphones qui l'envoient) : menu du bout sous le pointeur.
+    lane.addEventListener('contextmenu', (e) => {
+        if (!t) return;   // piste instru : pas de montage
+        e.preventDefault();
+        if (drag?.moved || drag?.cross) return;
+        stopHold(drag); drag = null;
+        const r = lane.getBoundingClientRect(), sec = Math.max(0, mt.start + (e.clientX - r.left) / r.width * viewDur());
+        mtOpenMenu(t, mtHit(t, sec), sec, e.clientX, e.clientY);
+    });
+}
+function setPlayhead(sec) {
+    // Position bornée [0, durée] : une valeur négative ou NaN (arrêt, séparation) affichait « -1:-0.0 ».
+    const total = songSeconds();
+    const out = !Number.isFinite(sec) || sec < 0 || (total > 0 && sec > total);
+    if (out && !setPlayhead.warned) log('debug', `tête de lecture hors bornes (${sec}) : ramenée dans [0, ${total.toFixed(1)}]`);
+    setPlayhead.warned = out;   // un seul log par sortie de bornes (évite d'inonder le journal à chaque image)
+    sec = Math.min(Math.max(Number.isFinite(sec) ? sec : 0, 0), total > 0 ? total : 0);
+    ui.tracks.style.setProperty('--pos', `${mtHeadPct(sec, total)}%`);   // place dans la partie visible (zoom)
+    ui.time.textContent = `${Math.floor(sec / 60)}:${(sec % 60).toFixed(1).padStart(4, '0')}`;
+}
+
+// ------------------------------------------------------------------ traitement par piste (file d'attente)
+function setBusy(delta) {
+    state.busy += delta;
+    document.body.dataset.busy = String(state.busy);
+}
+function queueProcess(t) {
+    if (t.mtTimer) { clearTimeout(t.mtTimer); t.mtTimer = 0; }   // traitement différé par le montage : fait maintenant
+    if (!t.take) { updateRow(t); return; }
+    if (t.noFx) {   // piste « sans effet » (voix séparée d'une chanson déjà produite) : jouée telle quelle
+        ++t.token; t.processed = null; t.status = 'raw'; state.balanceDirty = true; updateRow(t);
+        return state.jobs;
+    }
+    const token = ++t.token;
+    t.status = 'busy';
+    state.balanceDirty = true;
+    if (t.correction) autoQueued(t);
+    updateRow(t);
+    setBusy(1);
+    state.jobs = state.jobs.then(() => processTrack(t, token)).catch((err) => log('error', err.message)).finally(() => { setBusy(-1); autoShow(); });
+    state.jobs.then(() => liveRefresh(t, token));   // lecture « Mix » en cours : le nouveau son remplace l'ancien sans arrêter
+    return state.jobs;
+}
+async function processTrack(t, token) {
+    if (token !== t.token || !findTrack(t.id) || !t.take) return;   // réglage changé entre-temps : seul le dernier compte
+    const fx = t.fx && Object.keys(t.fx).length ? t.fx : null;   // réglages faits à la main dans le tableau des effets
+    const corr = !!t.correction, sid = engineStyle(t);   // « correction » : correction seule, sans couleur de style
+    const key = `${sid}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${t.smooth ? 'lissé' : 'style'}|${fx ? JSON.stringify(fx) : ''}`;
+    const t0 = performance.now();
+    if (corr) { log('info', `« ${t.name} » : correction automatique lancée (${roleLabel(t.roleId)}, prise de ${fmt(t.take.mono.length / t.take.sampleRate)}${t.smooth ? ', voix lissée' : ''}${fx ? ', réglages à la main : ' + JSON.stringify(fx) : ''})`); autoShow(t); }
+    setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » (${roleLabel(t.roleId)}) en cours…` : `Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`, { low: true });   // avancement en arrière-plan : n'écrase pas le message d'un geste
+    try {
+        const mono = t.take.mono.slice();   // copie remise au worker (transférée : pas de seconde copie à l'envoi)
+        const r = await call('processVoice', {
+            mono, sampleRate: t.take.sampleRate, styleId: sid, roleId: t.roleId,
+            cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec, fx, gentle: !!t.smooth,
+        }, [mono.buffer]);
+        if (token !== t.token) return;
+        // Même son à gauche et à droite (mode Correction ; mesuré : écart nul pour tous les types de piste) : un seul
+        // tableau gardé pour les deux canaux — 37 Mo au lieu de 75 pour une piste de 3 min 30. Un style qui place la
+        // voix en stéréo (réverb, doublage) garde ses deux canaux.
+        let same = r.left.length === r.right.length;
+        for (let i = 0; same && i < r.left.length; ++i) if (r.left[i] !== r.right[i]) same = false;
+        t.processed = { left: r.left, right: same ? r.left : r.right, report: r.report, key };
+        log('info', `« ${t.name} » : son traité gardé en ${same ? 'mono (un seul tableau pour les deux canaux)' : 'stéréo'}, ${((same ? 1 : 2) * r.left.byteLength / 1048576).toFixed(0)} Mo`);
+        t.status = 'done';
+        if (t.inspect) t.inspect.stale = true;   // réglages changés depuis l'inspection : ses constats ne valent plus
+        state.balanceDirty = true;
+        log('info', `« ${t.name} » traitée (${r.report.role}, ${r.report.style}) en ${Math.round(performance.now() - t0)} ms`);
+        if (corr) {
+            autoRun.done.add(t.id);
+            log('info', `« ${t.name} » : correction automatique finie en ${Math.round(performance.now() - t0)} ms — décisions du moteur : ${(r.report.fitNotes || 'rien à ajuster').replace(/\n/g, ' | ')} ; constats : ${(r.report.found || 'aucun défaut notable').replace(/\n/g, ' | ')}`);
+            if (r.report.mode !== 'correction') log('warn', `« ${t.name} » : le moteur a répondu en mode « ${r.report.mode} » au lieu de « correction »`);
+        }
+        setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » corrigée (${roleLabel(t.roleId)}, sans couleur de style).` : `Piste « ${t.name} » traitée : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}.`, { low: true });   // avancement en arrière-plan : n'écrase pas le message d'un geste
+    } catch (err) {
+        t.status = 'error';
+        log('error', `« ${t.name} » : traitement impossible : ${err.message}`);
+        setStatus(`Traitement de « ${t.name} » impossible : ${err.message}`);
+    }
+    updateRow(t);
+}
+function reprocessAll() { for (const t of state.tracks) if (t.take) queueProcess(t); }
+ui.cleaning.addEventListener('change', reprocessAll);
+ui.useScale.addEventListener('change', () => {
+    if (state.instru?.analysis) {
+        const a = state.instru.analysis;
+        call('setContext', { root: a.root, minor: a.minor, bpm: a.bpm, firstBeatSec: a.firstBeatSec || 0, useScale: ui.useScale.checked }).catch((e) => log('warn', e.message));
+    }
+    reprocessAll();
+});
+
+// État des effets d'une piste : 'none' (sans effet, brut), 'correction' (correction automatique seule : volume régulier,
+// résonances, compression, justesse, sans couleur de style — mode de départ de toute nouvelle piste, t.correction),
+// 'smooth' (effets du style + voix lissée) ou 'style' (effets du style tels quels). « Voix lissée » (t.smooth) est un
+// interrupteur à part, valable en Correction comme en Style : il est gardé quand la piste repasse par « Sans effet » ou
+// « Correction ». Même action depuis le bouton de la piste et depuis le tableau des effets.
+// Le style ne s'applique que sur un geste : liste des styles de la piste, bouton « Style », bouton de la piste.
+const fxModeOf = (t) => (t.noFx ? 'none' : t.correction ? 'correction' : t.smooth ? 'smooth' : 'style');
+const fxKindOf = (t) => (t.noFx ? 'none' : t.correction ? 'correction' : 'style');   // les trois modes (gardé avec le projet)
+const engineStyle = (t) => (t.correction ? 'correction' : t.styleId);                 // identifiant de style envoyé au moteur
+function setFxMode(t, mode, why = '') {
+    if (fxModeOf(t) === mode) return;
+    t.noFx = mode === 'none';
+    if (mode !== 'none') { t.correction = mode === 'correction'; if (!t.correction) t.smooth = mode === 'smooth'; }
+    log('info', `« ${t.name} » : ${mode === 'none' ? 'sans effet (brut)' : mode === 'correction' ? `mode « Correction » (correction automatique seule, style ${styleName(t.styleId)} non appliqué)` : mode === 'smooth' ? `passage en mode « Style » : effets du style ${styleName(t.styleId)}, voix lissée` : `passage en mode « Style » : effets du style ${styleName(t.styleId)}, sans lissage`}${why ? ` — ${why}` : ''}`);
+    markDirty(); renderTracks(); queueProcess(t); renderFx(true);
+}
+// « Voix lissée » : s'ajoute au mode en cours (Correction ou Style) sans le changer.
+function setSmooth(t, on) {
+    if (t.noFx || !!t.smooth === !!on) return;
+    t.smooth = !!on;
+    log('info', `« ${t.name} » : voix lissée ${on ? 'allumée' : 'éteinte'} (${t.correction ? 'mode Correction' : `effets du style ${styleName(t.styleId)}`})`);
+    markDirty(); renderTracks(); queueProcess(t); renderFx(true);
+}
+// Avancement de la correction automatique : pistes en mode « Correction » mises en file depuis que la file est vide.
+const autoRun = { ids: new Set(), done: new Set(), head: '' };   // head : début de la barre d'état gardé pendant la file (« Chanson séparée… »)
+function autoQueued(t) {
+    if (state.busy === 0) { autoRun.ids.clear(); autoRun.done.clear(); autoRun.head = ''; }
+    autoRun.ids.add(t.id); autoRun.done.delete(t.id);
+    autoShow();
+}
+// Compte : pistes de la file encore présentes et encore en mode Correction (une piste supprimée ou passée en Style sort du compte).
+function autoCount() {
+    const ids = [...autoRun.ids].filter((id) => { const t = findTrack(id); return t && t.correction && !t.noFx; });
+    return { n: ids.length, done: ids.filter((id) => autoRun.done.has(id)).length };
+}
+const autoText = () => { const c = autoCount(); return `Correction automatique : ${c.done} / ${c.n} piste${c.n > 1 ? 's' : ''}`; };
+function autoShow(current) {
+    if (!ui.autoLine) return;
+    const { n, done } = autoCount(), left = n - done;
+    ui.autoLine.hidden = n === 0;
+    ui.autoLine.classList.toggle('busy', left > 0 && state.busy > 0);
+    ui.autoLine.textContent = n === 0 ? '' : left > 0 && state.busy > 0 ? `⏳ ${autoText()}${current ? ` — « ${current.name} » en cours…` : '…'}`
+        : left > 0 ? `${autoText()} (${left} non corrigée${left > 1 ? 's' : ''} : voir le journal)` : `✓ ${autoText()} — volume régulier, résonances, compression, justesse ; aucune couleur de style.`;
+}
+// « Corriger toutes les pistes » / « Tout sans effet » : même mode pour toutes les pistes de voix, traitement relancé.
+function setAllFxMode(mode) {
+    const list = state.tracks.filter((t) => fxModeOf(t) !== mode);
+    log('info', `${mode === 'correction' ? '« Corriger toutes les pistes »' : '« Tout sans effet »'} : ${state.tracks.length} piste(s) de voix, ${list.length} à changer${list.length ? ' (' + list.map((t) => `« ${t.name} » : ${fxKindOf(t)} → ${mode}`).join(', ') + ')' : ''}`);
+    for (const t of state.tracks) {
+        if (fxModeOf(t) !== mode) { t.noFx = mode === 'none'; if (mode === 'correction') t.correction = true; }
+        if (t.take) queueProcess(t);
+    }
+    markDirty(); renderTracks(); renderFx(true);
+    const n = state.tracks.filter((t) => t.take).length;
+    setStatus(mode === 'correction' ? (n ? `Correction automatique de ${n} piste(s) lancée : une piste après l'autre.` : 'Toutes les pistes sont en « Correction » : elles seront corrigées dès qu\'elles auront une prise.')
+                                    : `Toutes les pistes sont « Sans effet » : jouées telles quelles (${n} avec une prise).`);
+}
+// ------------------------------------------------------------------ tableau des effets (piste sélectionnée)
+// Le moteur rend, pour chaque piste traitée, le pré-réglage (style + type, ajusté à la mesure de la prise) et les
+// réglages réellement appliqués, un objet par effet. Ce tableau les montre, permet d'éteindre / allumer un effet et
+// d'en changer les valeurs ; les changements (t.fx, gardés avec le projet) sont renvoyés au moteur, qui retraite la
+// piste ; si la lecture « Mix » tourne, le nouveau son remplace l'ancien sans l'arrêter.
+const fPct = (v) => `${Math.round(v * 100)} %`, fDb = (v) => `${v > 0 ? '+' : ''}${(+v).toFixed(1)} dB`, fHz = (v) => `${Math.round(v)} Hz`, fMs = (v) => `${Math.round(v)} ms`;
+const fNote = (v) => ({ 0.25: 'double croche', 0.5: 'croche', 0.75: 'croche pointée', 1: 'noire' }[v] || `${v} temps`);
+const FX_DEFS = [
+    { id: 'clean', icon: '🧹', name: 'Nettoyage', fields: [
+        { k: 'denoiseDb', label: 'Souffle retiré', min: 0, max: 24, step: 1, fmt: fDb },
+        { k: 'gateRangeDb', label: 'Silences baissés', min: 0, max: 24, step: 1, fmt: fDb },
+        { k: 'breathReductionDb', label: 'Respirations baissées', min: 0, max: 18, step: 1, fmt: fDb },
+        { k: 'hpfHz', label: 'Coupe-bas', min: 20, max: 250, step: 5, fmt: fHz }] },
+    { id: 'leveler', icon: '📏', name: 'Niveleur (volume régulier)', fields: [
+        { k: 'maxBoostDb', label: 'Passages faibles remontés jusqu\'à', min: 0, max: 12, step: 0.5, fmt: fDb },
+        { k: 'maxCutDb', label: 'Passages forts baissés jusqu\'à', min: 0, max: 12, step: 0.5, fmt: fDb }] },
+    { id: 'timing', icon: '⏱', name: 'Recalage rythmique', fields: [{ k: 'strength', label: 'Force', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+    { id: 'pitch', icon: '🎯', name: 'Autotune (justesse)', fields: [
+        { k: 'amount', label: 'Quantité', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'retuneMs', label: 'Vitesse (0 = effet robot)', min: 0, max: 400, step: 5, fmt: fMs },
+        { k: 'humanize', label: 'Naturel', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+    { id: 'eq', icon: '🎚', name: 'Égaliseur', fields: [
+        { k: 'lowCutHz', label: 'Coupe-bas', min: 20, max: 300, step: 5, fmt: fHz },
+        { k: 'lowShelfDb', label: 'Graves', min: -12, max: 12, step: 0.5, fmt: fDb },
+        { k: 'mudDb', label: 'Bas-médium (boue)', min: -12, max: 12, step: 0.5, fmt: fDb },
+        { k: 'presenceDb', label: 'Présence', min: -12, max: 12, step: 0.5, fmt: fDb },
+        { k: 'airDb', label: 'Air (aigus)', min: -12, max: 12, step: 0.5, fmt: fDb }] },
+    { id: 'resonance', icon: '〰️', name: 'Résonances (dureté)', fields: [{ k: 'maxReductionDb', label: 'Baisse maximale', min: 0, max: 12, step: 0.5, fmt: fDb }] },
+    { id: 'comp', icon: '🗜️', name: 'Compresseur', fields: [
+        { k: 'thresholdDb', label: 'Seuil', min: -50, max: 0, step: 1, fmt: fDb },
+        { k: 'ratio', label: 'Taux', min: 1, max: 20, step: 0.1, fmt: (v) => `${(+v).toFixed(1)}:1` },
+        { k: 'attackMs', label: 'Attaque', min: 0.1, max: 200, step: 0.5, fmt: (v) => `${(+v).toFixed(1)} ms` },
+        { k: 'releaseMs', label: 'Relâchement', min: 10, max: 1000, step: 10, fmt: fMs },
+        { k: 'mix', label: 'Dosage', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+    { id: 'comp2', icon: '🧈', name: 'Compresseur doux', fields: [
+        { k: 'thresholdDb', label: 'Seuil', min: -50, max: 0, step: 1, fmt: fDb },
+        { k: 'ratio', label: 'Taux', min: 1, max: 10, step: 0.1, fmt: (v) => `${(+v).toFixed(1)}:1` }] },
+    { id: 'deEss', icon: '🐍', name: 'De-esser (sifflantes)', fields: [
+        { k: 'amount', label: 'Quantité', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'freqHz', label: 'Fréquence', min: 3000, max: 12000, step: 100, fmt: fHz }] },
+    { id: 'sat', icon: '🔥', name: 'Saturation (chaleur)', fields: [
+        { k: 'mix', label: 'Dosage', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'driveDb', label: 'Poussée', min: 0, max: 24, step: 0.5, fmt: fDb }] },
+    { id: 'reverb', icon: '🏛️', name: 'Réverb', fields: [
+        { k: 'send', label: 'Quantité', min: 0, max: 1, step: 0.01, fmt: fPct },
+        { k: 'roomSize', label: 'Taille de la pièce', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'damping', label: 'Aigus amortis', min: 0, max: 1, step: 0.05, fmt: fPct },
+        { k: 'preDelayMs', label: 'Pré-délai', min: 0, max: 200, step: 1, fmt: fMs }] },
+    { id: 'delay', icon: '🔁', name: 'Écho (délai)', fields: [
+        { k: 'send', label: 'Quantité', min: 0, max: 1, step: 0.01, fmt: fPct },
+        { k: 'feedback', label: 'Répétitions', min: 0, max: 0.9, step: 0.05, fmt: fPct },
+        { k: 'noteBeats', label: 'Durée', min: 0.25, max: 1, step: 0.25, fmt: fNote }] },
+    { id: 'stereo', icon: '↔️', name: 'Placement stéréo', noToggle: true, fields: [
+        { k: 'pan', label: 'Gauche / droite', min: -1, max: 1, step: 0.05, fmt: (v) => Math.abs(v) < 0.025 ? 'centre' : `${Math.round(Math.abs(v) * 100)} % ${v < 0 ? 'gauche' : 'droite'}` },
+        { k: 'width', label: 'Largeur', min: 0, max: 1, step: 0.05, fmt: fPct }] },
+];
+const fxUi = { trackId: 0, open: '', rows: new Map() };
+// Valeurs affichées d'un effet : ce que le moteur a appliqué, recouvert par les réglages à la main pas encore retraités.
+const fxNow = (t, id) => ({ ...(t.processed?.report?.fx?.[id] || {}), ...(t.fx?.[id] || {}) });
+const fxPre = (t, id) => t.processed?.report?.preset?.[id] || {};
+function fxIsModified(t, id) {
+    const o = t.fx?.[id], pre = fxPre(t, id);
+    return !!o && Object.keys(o).some((k) => typeof o[k] === 'boolean' ? o[k] !== !!pre[k] : Math.abs(o[k] - (pre[k] ?? 0)) > 1e-6);
+}
+// Retire de t.fx ce qui est revenu à la valeur du pré-réglage (rien à garder ni à envoyer au moteur).
+function fxPrune(t) {
+    for (const id of Object.keys(t.fx || {})) {
+        const pre = fxPre(t, id);
+        for (const k of Object.keys(t.fx[id])) {
+            const v = t.fx[id][k];
+            if (k in pre && (typeof v === 'boolean' ? v === !!pre[k] : Math.abs(v - pre[k]) <= 1e-6)) delete t.fx[id][k];
+        }
+        if (!Object.keys(t.fx[id]).length) delete t.fx[id];
+    }
+}
+function fxChanged(t, delayMs) {
+    fxPrune(t);
+    markDirty();
+    fxRefresh();
+    clearTimeout(t.fxTimer);
+    t.fxTimer = setTimeout(() => { log('info', `« ${t.name} » : réglages d'effets changés → ${JSON.stringify(t.fx)}`); queueProcess(t); }, delayMs);
+}
+function fxSummary(def, v) {
+    return def.fields.slice(0, 3).filter((f) => v[f.k] != null).map((f) => `${f.label.toLowerCase()} ${f.fmt(v[f.k])}`).join(' · ');
+}
+// Construit le tableau (force : piste ou effet ouvert changé) ; sinon met seulement à jour les valeurs affichées, pour
+// ne pas détruire le curseur que la main est en train de tirer.
+function renderFx(force = false) {
+    const t = findTrack(state.selectedId);
+    ui.fxResetAll.disabled = !(t && t.fx && Object.keys(t.fx).length);
+    renderInspect();
+    for (const b of ui.fxMode.querySelectorAll('button')) { b.disabled = !t; b.classList.toggle('on', !!t && b.dataset.mode === fxKindOf(t)); }
+    ui.fxSmooth.disabled = !t || !!t.noFx;
+    ui.fxSmooth.classList.toggle('on', !!t && !t.noFx && !!t.smooth);
+    ui.fxSmooth.textContent = t && !t.noFx && t.smooth ? '✨ Voix lissée : oui' : '✨ Voix lissée : non';
+    if (!t) { ui.fxTitle.textContent = 'Effets de la piste'; ui.fxList.replaceChildren(); fxUi.trackId = 0; ui.fxDone.hidden = true; return; }
+    ui.fxTitle.textContent = `Effets de « ${t.name} »`;
+    const rep = t.processed?.report;
+    const msg = !t.take ? 'Pas encore de prise sur cette piste : enregistre ou importe une voix, ses effets s\'afficheront ici.'
+        : t.noFx ? 'Cette piste est « Sans effet » : elle est jouée telle quelle (seul son volume est réglé). Choisis « Correction » ci-dessus pour la corriger automatiquement (sans couleur de style), ou « Style » pour lui donner les effets de son style, puis règle-les ici.'
+        : !rep?.fx ? (t.correction ? 'Correction automatique de la piste en cours… ce qui a été fait s\'affiche dès qu\'elle est finie.' : 'Traitement de la piste en cours… les effets s\'affichent dès qu\'il est fini.')
+        : t.correction ? `Mode « Correction » : cette piste est corrigée automatiquement d'après sa prise (${roleLabel(t.roleId)}${t.smooth ? ', voix lissée' : ''}). Le style ${styleName(t.styleId)} n'est PAS appliqué : aucune couleur (ni réverb, ni écho, ni saturation). Pour l'appliquer, choisis « Style » ci-dessus ou un style dans la liste de la piste.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Les réglages décidés sont ci-dessous : coche / décoche un effet, clique sur sa ligne pour le régler à la main. Chaque changement s'entend pendant « ▶ Mix ».`
+        : `Pré-réglage : style ${styleName(t.styleId)}${t.smooth ? ' + voix lissée (compression, nettoyage et saturation doux)' : ''}, ${roleLabel(t.roleId)}, ajusté à la prise.${t.status === 'busy' ? ' ⏳ Application des nouveaux réglages…' : ''} Coche / décoche un effet ; clique sur sa ligne pour ouvrir ses réglages. Chaque changement s'entend pendant « ▶ Mix ».`;
+    ui.fxInfo.textContent = msg;
+    // Ce que la correction automatique a fait sur cette piste : décisions du moteur et constats, en clair.
+    const showDone = !!t.take && !t.noFx && rep?.mode === 'correction';
+    ui.fxDone.hidden = !showDone;
+    if (showDone) ui.fxDone.textContent = `✓ Ce que la correction automatique a fait sur cette piste :\n${(rep.fitNotes || 'rien à ajuster').split(/\n| ; /).filter((l) => l.trim()).map((l) => '• ' + l.trim()).join('\n')}`
+        + `\nMesuré sur la prise : ${rep.found || 'aucun défaut notable'}`
+        + `\nJustesse corrigée de ${Math.round(rep.meanCorrectionCents)} centièmes en moyenne · compression ${rep.compGrDb.toFixed(1)} dB · aucune réverb, aucun écho, aucune saturation.`;
+    if (!t.take || t.noFx || !rep?.fx) { ui.fxList.replaceChildren(); fxUi.trackId = 0; fxUi.rows.clear(); return; }
+    if (!force && fxUi.trackId === t.id && fxUi.rows.size) { fxRefresh(); return; }
+    fxUi.trackId = t.id; fxUi.rows.clear();
+    ui.fxList.replaceChildren(...FX_DEFS.map((def) => {
+        const open = fxUi.open === def.id;
+        const chk = def.noToggle ? null : el('input', { type: 'checkbox', title: 'Effet allumé / éteint',
+            onclick: (e) => e.stopPropagation(),
+            onchange: (e) => { t.fx = t.fx || {}; t.fx[def.id] = { ...(t.fx[def.id] || {}), on: e.target.checked }; fxChanged(t, 50); } });
+        const sum = el('span', { class: 'fxsum' }), mod = el('span', { class: 'fxmod', textContent: 'modifié', hidden: true });
+        const line = el('div', { class: 'fxline', title: 'Ouvrir / fermer les réglages de cet effet',
+            onclick: () => { fxUi.open = open ? '' : def.id; renderFx(true); } },
+            chk, el('span', { class: 'fxicon', textContent: def.icon }), el('span', { class: 'fxname', textContent: def.name }), sum, mod);
+        const inputs = new Map();
+        const body = !open ? null : el('div', { class: 'fxbody' }, ...def.fields.map((f) => {
+            const val = el('b'), pre = el('span', { class: 'pre' });
+            const inp = el('input', { type: 'range', min: f.min, max: f.max, step: f.step,
+                oninput: (e) => { t.fx = t.fx || {}; t.fx[def.id] = { ...(t.fx[def.id] || {}), [f.k]: Number(e.target.value) }; val.textContent = f.fmt(Number(e.target.value)); fxChanged(t, 350); },
+                onchange: () => fxChanged(t, 30) });
+            inputs.set(f.k, { inp, val, pre, f });
+            return el('div', { class: 'fxfield' }, el('label', {}, el('span', { textContent: f.label }), val), inp, pre);
+        }), el('button', { class: 'fxreset', textContent: '↺ Pré-réglage de cet effet', title: 'Efface les réglages faits à la main sur cet effet',
+            onclick: () => { if (t.fx) delete t.fx[def.id]; fxChanged(t, 30); renderFx(true); } }));
+        const row = el('div', { class: 'fxrow' + (open ? ' open' : '') }, line, body);
+        row.dataset.fx = def.id;
+        fxUi.rows.set(def.id, { row, chk, sum, mod, inputs, def });
+        return row;
+    }));
+    fxRefresh();
+}
+function fxRefresh() {
+    const t = findTrack(state.selectedId);
+    if (!t || fxUi.trackId !== t.id) return;
+    ui.fxResetAll.disabled = !(t.fx && Object.keys(t.fx).length);
+    for (const [id, r] of fxUi.rows) {
+        const v = fxNow(t, id), pre = fxPre(t, id), on = r.def.noToggle ? true : !!v.on;
+        if (r.chk && document.activeElement !== r.chk) r.chk.checked = on;
+        r.row.classList.toggle('off', !on);
+        r.sum.textContent = on ? fxSummary(r.def, v) : 'éteint';
+        r.mod.hidden = !fxIsModified(t, id);
+        for (const { inp, val, pre: preEl, f } of r.inputs.values()) {
+            if (document.activeElement !== inp) inp.value = v[f.k] ?? f.min;
+            val.textContent = v[f.k] != null ? f.fmt(v[f.k]) : '—';
+            preEl.textContent = pre[f.k] != null ? `pré-réglage : ${f.fmt(pre[f.k])}` : '';
+        }
+    }
+}
+for (const b of ui.fxMode.querySelectorAll('button')) b.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) setFxMode(t, b.dataset.mode === 'none' ? 'none' : b.dataset.mode === 'correction' ? 'correction' : t.smooth ? 'smooth' : 'style', b.dataset.mode === 'style' ? 'bouton « Style »' : ''); });
+ui.fxSmooth.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t && !t.noFx) setSmooth(t, !t.smooth); });
+ui.correctAllBtn.addEventListener('click', () => setAllFxMode('correction'));
+ui.rawAllBtn.addEventListener('click', () => setAllFxMode('none'));
+ui.fxResetAll.addEventListener('click', () => {
+    const t = findTrack(state.selectedId);
+    if (!t) return;
+    t.fx = {};
+    log('info', `« ${t.name} » : tous les effets remis au pré-réglage`);
+    fxChanged(t, 30);
+    renderFx(true);
+});
+// ------------------------------------------------------------------ inspection d'une piste
+// Le programme mesure lui-même ce qui ne va pas sur une piste et dit quoi faire (demande de Yann : « il pourrait
+// inspecter des pistes et dire : il faut enlever ça ou il faut faire ça »). Trois familles de constats :
+//   1. la prise elle-même : saturée à l'enregistrement (plateaux), très faible ;
+//   2. les effets : le passage le plus fort de la prise (20 s) est retraité avec les réglages de la piste, puis avec les
+//      seuls effets linéaires (égaliseur) ; la saleté ajoutée par les autres (énergie qui ne se répète pas d'une
+//      période à l'autre, graves et aigus, inspect.js) est l'écart entre les deux. Au-dessus du seuil, chaque effet
+//      est essayé seul pour nommer le responsable, avec un bouton pour l'éteindre ;
+//   3. le limiteur de sécurité qui écrase les crêtes, et les défauts que le moteur a mesurés sur la prise ;
+//   4. les craquements isolés de la prise entière (saut, échantillon faux, court trou — inspect.js, findCrackles),
+//      dits avec leurs instants. Les craquements « ajoutés par les effets » (présents dans le passage retraité, absents
+//      de la prise) ne sont PAS cherchés : essayé et retiré, voir CRACKLE plus bas ;
+//   5. la saturation qui déforme : les 10 s les plus fortes du passage sont retraitées avec les réglages réellement
+//      appliqués, autotune et recalage éteints (ils déplacent le son), une fois avec la saturation et une fois sans ;
+//      la distorsion est ce que la version « avec » contient et qu'un simple gain de la version « sans » n'explique
+//      pas (inspect.js, addedDistortion). La saleté du point 2 ne la voit pas : une saturation reste périodique.
+// Réverb et écho sont éteints pour la mesure : filtres linéaires, ils ne peuvent pas craquer, mais ils étalent les notes.
+// Seuils calés sur des mesures : moteur d'avant correction (défectueux) = +3,2 / +1,3 / +3,9 dB de saleté sur trois
+// vraies voix, moteur corrigé = -0,8 à +0,3 dB ; limiteur de sécurité = 3,5 à 5 dB sur une prise ordinaire.
+const INSPECT_SEC = 20, DIRT_WARN_DB = 1.0, DIRT_BAD_DB = 2.0, LIMITER_WARN_DB = 6.0;
+// Saturation : distorsion / voix en dB. Calibrage sur 4 voix (démo, parole JFK, parole LibriSpeech, voix chantée
+// séparée) × 33 styles × style / lissé = 264 cas : réglages par défaut de -50,7 à -29,0 dB (pire : « rage », dosage
+// 55 %, poussée 10 dB) ; saturation abusive (100 %, 24 dB) de -19,8 à -10,6 dB ; forte mais plausible (60 %, 18 dB)
+// de -30,7 à -19,6 dB. Alerte à -22 dB : 7 dB au-dessus du pire réglage normal (0 / 264 signalés), 2 dB sous le cas
+// abusif le plus faible (264 / 264 signalés) ; 60 % / 18 dB : signalé 40 fois sur 264. « Très fort » à -18 dB.
+const SAT_SEC = 10, SAT_WARN_DB = -22.0, SAT_BAD_DB = -18.0;
+// Compression qui déforme : même mesure que la saturation (addedDistortion : la chaîne sans compresseurs contre la même
+// avec), saturation éteinte des deux côtés. Calibrage du 26/11 : 6 voix réelles (2 parlées, 2 chantées, 1 rappée, 1
+// séparée) × 17 styles + « correction », style / lissé = 132 cas par réglage. Réglages d'origine : distorsion de -59,1 à
+// -23,5 dB, réduction moyenne 0 à 5,5 dB. Compression abusive (20:1, seuil -45 dB, attaque 0,1 ms, relâche 10 ms) :
+// médiane -14,3 dB, réduction 12,7 à 25,1 dB. Alerte si distorsion ≥ -20 dB OU réduction moyenne ≥ 12 dB : 0 / 132
+// réglages d'origine signalés, 132 / 132 compressions abusives ; forte et rapide (6:1, -30 dB, 0,5 / 20 ms) : 80 / 132 ;
+// forte mais lente (8:1, -32 dB) : 27 / 132. « Très fort » à -16 dB.
+const COMP_WARN_DB = -20.0, COMP_BAD_DB = -16.0, COMP_GR_WARN_DB = 12.0;
+// Craquements (findCrackles) : pic du résidu ≥ 12 fois l'échelle de sa trame, ≥ 6 fois le 3e autre pic des 40 ms autour,
+// hauteur ≥ 2 % de la crête. Calibrage : 260 s de voix non modifiées (12 paroles, démo, voix chantée séparée) = aucune
+// fausse détection (1 avec des seuils 10 / 4 / 1 %) ; discontinuités insérées dans la voix : sauts de 0,1 trouvés à
+// 95 %, de 0,2 à 97 %, échantillons faux de 0,1 à 95 %, trous de 2 à 5 ms à 92-94 %.
+// Trous : bords en rupture exigés (un échantillon ≥ 5 fois le seuil à moins de 0,07 ms de chaque bord) depuis une fausse
+// alerte sur une prise micro avec de la basse captée (son grave et faible qui traverse zéro lentement) ; recalibré sur
+// 677 s de sons non modifiés (voix, prises micro simulées, morceaux complets) : aucune détection sans rupture réelle.
+// Limites mesurées : un saut déjà contenu dans un fichier à bande étroite (16 kHz rééchantillonné) n'est pas vu (0 %),
+// seuls ses trous le sont (85 %) ; un défaut collé à une consonne ou dans une voix de synthèse très impulsive passe.
+// « Ajoutés par les effets » : essayé (passage retraité contre la prise au même instant) et NON livré — avec ces seuils,
+// 12 des 264 cas ordinaires en font apparaître un (consonnes grossies par la compression et les aigus, jusqu'à 1,28 fois
+// le seuil) ; aucun au-delà de 1,5 fois le seuil, mais des seuils doublés n'ont pas été validés sur de vrais défauts.
+const CRACKLE = { kSigma: 12, kIso: 6, minAmp: 0.02 };
+const NONLINEAR_FX = ['clean', 'leveler', 'timing', 'pitch', 'resonance', 'comp', 'comp2', 'deEss', 'sat'];
+const fxName = (id) => FX_DEFS.find((d) => d.id === id)?.name || id;
+// Essai e2e seulement (?svTestDirt=comp) : simule un effet qui salit la voix (bruit ajouté quand cet effet est allumé),
+// pour vérifier que l'inspection le nomme et que son bouton l'éteint.
+const TEST_DIRT = new URLSearchParams(location.search).get('svTestDirt');
+const sDb = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)} dB`;
+
+async function inspectTrack(t, onStep = () => {}) {
+    const findings = [], take = t.take, t0 = performance.now();
+    const add = (level, text, action) => findings.push({ level, text, action });
+    if (!take) { add('info', 'Pas encore de prise sur cette piste : rien à inspecter.'); return { findings }; }
+    const sr = take.sampleRate, mono = take.mono;
+
+    // 1) la prise elle-même
+    onStep('la prise');
+    const clip = clipRuns(mono), peakDb = 20 * Math.log10(clip.peak + 1e-12);
+    if (clip.runs >= 3) add('bad', `Prise saturée à l'enregistrement : ${clip.runs} crêtes écrasées (plateaux à ${peakDb.toFixed(1)} dBFS). Aucun effet ne l'enlève tout à fait : baisse le niveau du micro et refais la prise. Le « Nettoyage » reconstruit ce qu'il peut.`);
+    if (peakDb < -30) add('warn', `Prise très faible (crête ${peakDb.toFixed(0)} dBFS) : le souffle sera remonté avec la voix. Monte le niveau du micro ou rapproche-toi.`);
+    // 4) craquements isolés de la prise entière (saut, échantillon faux, court trou)
+    //    Sous 32 kHz la mesure n'est pas faite : à 16 kHz elle prend des consonnes pour des craquements (mesuré).
+    onStep('les craquements de la prise');
+    const crackleOk = sr >= 32000;
+    const tC = performance.now(), takeCr = crackleOk ? findCrackles(mono, sr, CRACKLE) : [], whenCr = (c) => fmt(take.startSec + c.at / sr);
+    const listCr = (cr) => cr.slice(0, 5).map(whenCr).join(', ') + (cr.length > 5 ? '…' : '');
+    if (!crackleOk) log('warn', `Inspection de « ${t.name} » : craquements de la prise non cherchés (son à ${sr} Hz, mesure calée à partir de 32 kHz)`);
+    else log('info', `Inspection de « ${t.name} » : craquements de la prise (${(mono.length / sr).toFixed(1)} s) — ${takeCr.length}, dont ${takeCr.filter((c) => c.kind === 'trou').length} trou(s)`
+        + (takeCr.length ? ` : ${takeCr.slice(0, 5).map((c) => `${whenCr(c)} ${c.kind === 'trou' ? `trou de ${c.ms.toFixed(1)} ms` : `clic de ${(100 * c.amp / (clip.peak + 1e-12)).toFixed(1)} % de la crête, ${c.iso.toFixed(0)} fois plus fort que ses voisins`}`).join(' ; ')}` : '')
+        + ` (seuils : ${(100 * CRACKLE.minAmp).toFixed(0)} % de la crête, ${CRACKLE.kIso} fois les voisins) ; mesure ${Math.round(performance.now() - tC)} ms`);
+    if (takeCr.length) add(takeCr.length >= 3 ? 'bad' : 'warn', `La prise craque : ${takeCr.length} craquement${takeCr.length > 1 ? 's' : ''} (saut ou court trou dans le son) à ${listCr(takeCr)}. Cela vient de l'enregistrement, pas des effets : aucun effet ne l'enlève. Réécoute ${takeCr.length > 1 ? 'ces instants' : 'cet instant'} ; si cela s'entend, refais la prise (ferme les autres onglets et programmes pendant l'enregistrement).`);
+    if (t.noFx) {
+        if (!findings.length) add('ok', 'Piste « Sans effet » : jouée telle quelle, aucun effet ne peut l\'abîmer ; rien d\'anormal mesuré sur la prise.');
+        else add('info', 'Piste « Sans effet » : aucun effet en cause, les constats ci-dessus viennent de la prise elle-même.');
+        log('info', `Inspection de « ${t.name} » (sans effet) : ${findings.length} constat(s) en ${Math.round(performance.now() - t0)} ms`);
+        return { findings };
+    }
+
+    // 2) les effets. Prise courte : mesurés sur le passage le plus fort. Prise longue : toute la durée est d'abord
+    //    balayée (plus bas) et le détail se fait sur le PIRE passage — un défaut loin du passage le plus fort n'échappe plus.
+    const W = Math.round(INSPECT_SEC * sr);
+    let at = loudestWindow(mono, sr, INSPECT_SEC), x = mono.slice(at, at + W), scan = null;
+    const base = { sampleRate: sr, styleId: engineStyle(t), roleId: t.roleId, cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: take.startSec, gentle: !!t.smooth };   // « correction » en mode Correction ; startSec : début de la prise, run ajoute la place du passage
+    const user = t.fx || {}, noSpace = { reverb: { on: false }, delay: { on: false } };
+    const offAll = Object.fromEntries(NONLINEAR_FX.map((id) => [id, { on: false }]));
+    const run = async (fx, src = x, offSec = at / sr) => {   // offSec : place de `src` dans la prise (par défaut, le passage inspecté)
+        const r = await call('processVoice', { ...base, startSec: base.startSec + offSec, mono: src.slice(), fx });
+        const y = new Float32Array(src.length);
+        for (let i = 0; i < src.length; ++i) y[i] = 0.5 * (r.left[i] + r.right[i]);
+        if (TEST_DIRT && r.report.fx?.[TEST_DIRT]?.on) {
+            let e = 0; for (let i = 0; i < y.length; i += 8) e += y[i] * y[i];
+            const a = 0.5 * Math.sqrt(e / (y.length / 8));
+            let seed = 12345;
+            for (let i = 0; i < y.length; ++i) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; y[i] += a * (seed / 0x3fffffff - 1); }
+        }
+        return { y, report: r.report };
+    };
+    // Toute la durée (prise de plus de 20 s) : la chaîne entière et la référence passent sur la prise complète, la saleté
+    // ajoutée est mesurée par passages de 20 s. C'est CE chiffre qui décide de l'alerte : c'est le son réellement joué.
+    // (Un passage traité seul ne donne pas toujours le même chiffre — mesuré le 26/11 sur une voix chantée de 60 s :
+    // jusqu'à 0,7 dB de plus — parce que le moteur se règle sur ce qu'on lui donne.) Le passage traité seul ne sert plus
+    // qu'à nommer l'effet responsable, sur le pire passage.
+    if (mono.length > W) {
+        const tScan = performance.now();
+        onStep('les effets, sur toute la durée de la prise');
+        let all = await run({ ...user, ...noSpace }, mono, 0);
+        const fullY = all.y, fullRep = all.report;
+        onStep('la référence (égaliseur seul), sur toute la durée');
+        all = await run({ ...user, ...offAll, ...noSpace }, mono, 0);
+        const linY = all.y;
+        const starts = [];
+        for (let a = 0; a + W <= mono.length; a += W) starts.push(a);
+        if (starts[starts.length - 1] + W < mono.length) starts.push(mono.length - W);   // la fin de la prise, calée sur son dernier échantillon
+        const wins = starts.map((a) => {
+            const dF = voiceDirt(mono.subarray(a, a + W), fullY.subarray(a, a + W), sr), dL = voiceDirt(mono.subarray(a, a + W), linY.subarray(a, a + W), sr);
+            const e = { high: dF.high - dL.high, highLoud: dF.highLoud - dL.highLoud, low: dF.low - dL.low, lowLoud: dF.lowLoud - dL.lowLoud };
+            return { a, frames: dF.frames, e, worst: Math.max(e.high, e.highLoud, e.low, e.lowLoud) };
+        });
+        const ok = wins.filter((w) => w.frames >= 20);
+        const top = ok.length ? ok.reduce((p, q) => (q.worst > p.worst ? q : p)) : null;
+        if (top) { at = top.a; x = mono.slice(at, at + W); }
+        const whenW = (w) => `${fmt(take.startSec + w.a / sr)}–${fmt(take.startSec + (w.a + W) / sr)}`;
+        scan = { n: wins.length, measured: ok.length, top, report: fullRep, over: ok.filter((w) => w.worst >= DIRT_WARN_DB && w !== top).map(whenW) };
+        log('info', `Inspection de « ${t.name} » : toute la durée balayée (${(mono.length / sr).toFixed(0)} s, ${wins.length} passages de ${INSPECT_SEC} s) — saleté ajoutée par passage : ${wins.map((w) => `${whenW(w)} ${w.frames >= 20 ? sDb(w.worst) : 'trop peu de chant'}`).join(' ; ')} ; détail sur ${ok.length ? `le pire passage (${fmt(take.startSec + at / sr)})` : 'le passage le plus fort (aucun passage mesurable)'} ; ${Math.round(performance.now() - tScan)} ms`);
+    }
+    onStep('les effets de la piste');
+    const full = await run({ ...user, ...noSpace });
+    onStep('la référence (égaliseur seul)');
+    const lin = await run({ ...user, ...offAll, ...noSpace });
+    const dFull = voiceDirt(x, full.y, sr), dLin = voiceDirt(x, lin.y, sr);
+    const excess = (d) => ({ high: d.high - dLin.high, highLoud: d.highLoud - dLin.highLoud, low: d.low - dLin.low, lowLoud: d.lowLoud - dLin.lowLoud });
+    const worstOf = (e) => Math.max(e.high, e.highLoud, e.low, e.lowLoud);
+    const where = `${scan ? `pire passage de toute la prise (${scan.n} passages de ${INSPECT_SEC} s inspectés)` : 'passage le plus fort'}, ${fmt(take.startSec + at / sr)} à ${fmt(take.startSec + at / sr + x.length / sr)}`;
+    // Prise longue : le chiffre du balayage (son réellement joué) ; prise courte : le passage traité seul (= la prise).
+    const exAlone = excess(dFull), ex = scan?.top ? scan.top.e : exAlone, worst = worstOf(ex);
+    if (scan?.top) log('info', `Inspection de « ${t.name} » : pire passage — ${sDb(worst)} dans la prise complète (chiffre retenu), ${sDb(worstOf(exAlone))} pour le même passage traité seul`);
+    log('info', `Inspection de « ${t.name} » (${t.correction ? 'mode Correction' : `style ${styleName(t.styleId)}`}, ${where}, ${dFull.frames} trames chantées) : saleté ajoutée par les effets — aigus ${sDb(ex.high)} (passages forts ${sDb(ex.highLoud)}), graves ${sDb(ex.low)} (forts ${sDb(ex.lowLoud)}) ; limiteur ${(full.report.limiterGrDb || 0).toFixed(1)} dB`);
+    const active = NONLINEAR_FX.filter((id) => full.report.fx?.[id]?.on);
+    const offBtn = (id) => ({ label: `Éteindre « ${fxName(id)} »`, run: () => { t.fx = t.fx || {}; t.fx[id] = { ...(t.fx[id] || {}), on: false }; log('info', `« ${t.name} » : « ${fxName(id)} » éteint (inspection)`); fxChanged(t, 30); renderFx(true); } });
+    if (dFull.frames < 20) add('info', `Trop peu de passages chantés dans la prise (${dFull.frames} trames) pour mesurer ce que les effets ajoutent.`);
+    else if (worst >= DIRT_WARN_DB) {
+        // qui ? chaque effet allumé, essayé seul
+        const scores = [];
+        for (const id of active) {
+            onStep(`l'effet « ${fxName(id)} » seul`);
+            const r = await run({ ...user, ...offAll, [id]: { ...(user[id] || {}), on: true }, ...noSpace });
+            const e = excess(voiceDirt(x, r.y, sr));
+            scores.push({ id, v: worstOf(e), e });
+            log('info', `Inspection de « ${t.name} » : « ${fxName(id)} » seul — aigus ${sDb(e.high)} (forts ${sDb(e.highLoud)}), graves ${sDb(e.low)} (forts ${sDb(e.lowLoud)})`);
+        }
+        scores.sort((p, q) => q.v - p.v);
+        const culprits = scores.filter((c) => c.v >= Math.max(0.5, 0.4 * worst));
+        const level = worst >= DIRT_BAD_DB ? 'bad' : 'warn';
+        const head = `Les effets salissent la voix : ${sDb(worst)} de bruit ajouté ${ex.highLoud >= ex.high && ex.highLoud >= ex.low ? 'dans les aigus des passages forts' : ex.high >= ex.low ? 'dans les aigus' : 'dans les graves'} (${where} ; alerte à partir de +${DIRT_WARN_DB.toFixed(0)} dB${scan?.over.length ? ` ; aussi au-dessus du seuil : ${scan.over.slice(0, 4).join(', ')}${scan.over.length > 4 ? '…' : ''}` : ''}).`;
+        if (culprits.length) {
+            culprits.forEach((c, k) => add(level, k === 0 ? `${head} Responsable mesuré : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).` : `Aussi en cause : « ${fxName(c.id)} » (${sDb(c.v)} à lui seul).`,
+                offBtn(c.id)));
+        } else if (!t.smooth) add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Allumer « Voix lissée »', run: () => setSmooth(t, true) });
+        else add(level, `${head} Aucun effet n'en est responsable à lui seul : c'est leur cumul.`, { label: 'Passer en « Sans effet »', run: () => setFxMode(t, 'none') });
+    }
+    // 5) saturation qui déforme : mêmes réglages appliqués, autotune et recalage éteints, avec la saturation contre sans
+    let satDb = null;
+    if (full.report.fx?.sat?.on) {
+        onStep('la saturation');
+        const atS = loudestWindow(x, sr, SAT_SEC), xs = x.slice(atS, atS + Math.round(SAT_SEC * sr));
+        const pinned = { ...full.report.fx, pitch: { on: false }, timing: { on: false }, ...noSpace };
+        const tS = performance.now(), withSat = await run(pinned, xs, (at + atS) / sr), without = await run({ ...pinned, sat: { on: false } }, xs, (at + atS) / sr);
+        const d = addedDistortion(without.y, withSat.y, sr), sat = full.report.fx.sat;
+        satDb = d.db;
+        log('info', `Inspection de « ${t.name} » : saturation (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(1)} dB) — distorsion ajoutée ${d.db.toFixed(1)} dB par rapport à la voix (passages forts ${d.loudDb.toFixed(1)} dB, ${d.frames} trames, ${fmt(take.startSec + (at + atS) / sr)} à ${fmt(take.startSec + (at + atS + xs.length) / sr)}) ; alerte à ${SAT_WARN_DB.toFixed(0)} dB ; mesure ${Math.round(performance.now() - tS)} ms`);
+        if (d.frames >= 20 && d.db >= SAT_WARN_DB)
+            add(d.db >= SAT_BAD_DB ? 'bad' : 'warn', `La « ${fxName('sat')} » déforme la voix : la distorsion qu'elle ajoute n'est qu'à ${Math.abs(d.db).toFixed(0)} dB sous la voix (dosage ${Math.round(sat.mix * 100)} %, poussée ${(+sat.driveDb).toFixed(0)} dB ; alerte à ${Math.abs(SAT_WARN_DB).toFixed(0)} dB, les réglages des styles restent à 29 dB ou plus). Si ce grain n'est pas voulu, baisse sa « Poussée » ou son « Dosage », ou éteins-la.`, offBtn('sat'));
+    }
+    // 6) compression qui déforme : mêmes réglages appliqués, autotune, recalage et saturation éteints, avec les
+    //    compresseurs contre sans (gain qui bouge trop vite ou trop fort = distorsion ; réduction moyenne énorme = voix écrasée)
+    let compDb = null;
+    if (full.report.fx?.comp?.on || full.report.fx?.comp2?.on) {
+        onStep('la compression');
+        const atC = loudestWindow(x, sr, SAT_SEC), xc = x.slice(atC, atC + Math.round(SAT_SEC * sr));
+        const pinned = { ...full.report.fx, pitch: { on: false }, timing: { on: false }, sat: { on: false }, ...noSpace };
+        const tC2 = performance.now(), withC = await run(pinned, xc, (at + atC) / sr), without = await run({ ...pinned, comp: { on: false }, comp2: { on: false } }, xc, (at + atC) / sr);
+        const d = addedDistortion(without.y, withC.y, sr), gr = withC.report.compGrDb || 0, c = full.report.fx.comp || {};
+        const set = c.on ? `taux ${(+c.ratio).toFixed(1)}:1, seuil ${(+c.thresholdDb).toFixed(0)} dB, attaque ${(+c.attackMs).toFixed(1)} ms, relâche ${(+c.releaseMs).toFixed(0)} ms` : 'compresseur doux seul';
+        compDb = d.db;
+        log('info', `Inspection de « ${t.name} » : compression (${set}) — distorsion ajoutée ${d.db.toFixed(1)} dB par rapport à la voix (passages forts ${d.loudDb.toFixed(1)} dB, ${d.frames} trames), réduction moyenne ${gr.toFixed(1)} dB ; alerte à ${COMP_WARN_DB.toFixed(0)} dB ou ${COMP_GR_WARN_DB.toFixed(0)} dB de réduction ; mesure ${Math.round(performance.now() - tC2)} ms`);
+        // Bouton : ramène la compression à des valeurs sûres (celles de « Voix lissée »), sans l'éteindre.
+        const soften = { label: 'Adoucir la compression', run: () => {
+            t.fx = t.fx || {};
+            if (c.on) t.fx.comp = { ...(t.fx.comp || {}), on: true, ratio: Math.min(+c.ratio || 3, 3), thresholdDb: Math.max(+c.thresholdDb || -24, -24), attackMs: Math.max(+c.attackMs || 8, 8), releaseMs: Math.max(+c.releaseMs || 120, 120) };
+            if (full.report.fx.comp2?.on) t.fx.comp2 = { ...(t.fx.comp2 || {}), on: true, ratio: Math.min(+full.report.fx.comp2.ratio || 1.5, 1.5) };
+            log('info', `« ${t.name} » : compression adoucie (inspection) — ${JSON.stringify({ comp: t.fx.comp, comp2: t.fx.comp2 })}`);
+            fxChanged(t, 30); renderFx(true);
+        } };
+        if (d.frames >= 20 && d.db >= COMP_WARN_DB)
+            add(d.db >= COMP_BAD_DB ? 'bad' : 'warn', `La compression déforme la voix : la distorsion qu'elle ajoute n'est qu'à ${Math.abs(d.db).toFixed(0)} dB sous la voix (${set} ; réduction moyenne ${gr.toFixed(1)} dB ; alerte à ${Math.abs(COMP_WARN_DB).toFixed(0)} dB, les réglages d'origine restent à 23 dB ou plus). Elle serre trop fort ou trop vite : baisse le taux, remonte le seuil, ou rallonge l'attaque et le relâchement.`, soften);
+        else if (d.frames >= 20 && gr >= COMP_GR_WARN_DB)
+            add('warn', `Compression très forte : elle baisse la voix de ${gr.toFixed(1)} dB en moyenne (${set} ; alerte à ${COMP_GR_WARN_DB.toFixed(0)} dB, les réglages d'origine restent à 5,5 dB ou moins). La voix est écrasée : souffle et bruits remontent, les attaques s'aplatissent. Baisse le taux ou remonte le seuil.`, soften);
+    }
+    // 3) limiteur de sécurité, et ce que le moteur a mesuré sur la prise (bruit, sifflantes, résonances, dynamique…)
+    const lim = (scan?.report ?? full.report).limiterGrDb || 0;   // prise longue : le limiteur de la prise complète (son réellement joué)
+    if (lim >= LIMITER_WARN_DB) add('warn', `Le limiteur de sécurité de la piste écrase les crêtes de ${lim.toFixed(1)} dB : la voix sort trop fort de sa chaîne (compression trop faible pour une prise très dynamique). Allume le « Niveleur » ou monte le taux du compresseur.`);
+    if (!findings.some((f) => f.level === 'warn' || f.level === 'bad') && dFull.frames >= 20)
+        add('ok', `Rien d'anormal mesuré. Effets : ${sDb(Math.max(0, worst))} de bruit ajouté au pire (${where} ; alerte à +${DIRT_WARN_DB.toFixed(0)} dB), limiteur ${lim.toFixed(1)} dB${crackleOk ? ', aucun craquement dans la prise' : ''}${satDb === null ? '' : `, distorsion de la saturation ${satDb.toFixed(0)} dB (alerte à ${SAT_WARN_DB.toFixed(0)} dB)`}${compDb === null ? '' : `, distorsion de la compression ${compDb.toFixed(0)} dB (alerte à ${COMP_WARN_DB.toFixed(0)} dB)`}.`);
+    const found = ((scan?.report ?? full.report).found || '').trim();
+    if (found) add('info', `Mesuré sur la prise par le moteur (déjà pris en compte dans les réglages) : ${found}`);
+    log('info', `Inspection de « ${t.name} » : ${findings.filter((f) => f.level === 'warn' || f.level === 'bad').length} problème(s), en ${Math.round(performance.now() - t0)} ms`);
+    return { findings };
+}
+const INSPECT_ICON = { ok: '✅', info: 'ℹ️', warn: '⚠️', bad: '❌' };
+function findingRow(f) {
+    const row = el('div', { class: `finding ${f.level}` }, el('span', { class: 'txt', textContent: `${INSPECT_ICON[f.level]} ${f.text}` }));
+    if (f.action) row.append(el('button', { textContent: f.action.label, onclick: (e) => { e.stopPropagation(); f.action.run(); } }));
+    return row;
+}
+function renderInspect() {
+    const t = findTrack(state.selectedId);
+    ui.inspectBtn.disabled = !t || !t.take || state.inspecting || !state.ready;
+    if (!t || !t.inspect) { ui.inspectBox.hidden = true; ui.inspectBox.replaceChildren(); return; }
+    ui.inspectBox.hidden = false;
+    ui.inspectBox.replaceChildren(...(t.inspect.stale
+        ? [findingRow({ level: 'info', text: 'Réglages changés depuis la dernière inspection : relance « 🔍 Inspecter » pour revérifier.' })]
+        : t.inspect.findings.map(findingRow)));
+}
+async function runInspect(tracks) {
+    if (state.inspecting || !tracks.length) return;
+    state.inspecting = true; renderInspect(); refreshButtons();
+    try {
+        for (const t of tracks) {
+            // la piste doit avoir fini son traitement : l'inspection lit ses réglages réellement appliqués
+            for (let k = 0; k < 600 && (t.status === 'busy' || (!t.noFx && t.take && !t.processed)); ++k) await new Promise((r) => setTimeout(r, 100));
+            const res = await inspectTrack(t, (step) => setStatus(`Inspection de « ${t.name} » : ${step}…`));
+            t.inspect = { findings: res.findings, stale: false };
+            renderInspect(); renderInspectAll();
+        }
+        const bad = tracks.reduce((n, t) => n + (t.inspect?.findings || []).filter((f) => f.level === 'warn' || f.level === 'bad').length, 0);
+        setStatus(tracks.length === 1 ? `Inspection de « ${tracks[0].name} » : ${bad ? bad + ' problème(s) trouvé(s), voir « Effets de la piste »' : 'rien d\'anormal'}.`
+                                      : `Inspection de ${tracks.length} pistes : ${bad ? bad + ' problème(s) trouvé(s)' : 'rien d\'anormal'}.`);
+    } catch (err) {
+        log('error', `Inspection impossible : ${err.message}`);
+        setStatus(`Inspection impossible : ${err.message}`);
+    } finally {
+        state.inspecting = false; renderInspect(); refreshButtons();
+    }
+}
+// Liste « toutes les pistes » (étape 4) : une ligne par piste, cliquable (ouvre ses effets et le détail).
+function renderInspectAll() {
+    const done = state.tracks.filter((t) => t.inspect);
+    if (!done.length || !ui.inspectAllBox.dataset.shown) { ui.inspectAllBox.hidden = true; return; }
+    ui.inspectAllBox.hidden = false;
+    ui.inspectAllBox.replaceChildren(...done.map((t) => {
+        const pb = t.inspect.findings.filter((f) => f.level === 'warn' || f.level === 'bad');
+        const level = t.inspect.stale ? 'info' : pb.some((f) => f.level === 'bad') ? 'bad' : pb.length ? 'warn' : 'ok';
+        const text = t.inspect.stale ? `« ${t.name} » : réglages changés, à revérifier.` : pb.length ? `« ${t.name} » : ${pb.length} problème(s) — ${pb[0].text}` : `« ${t.name} » : rien d'anormal.`;
+        const row = findingRow({ level, text });
+        row.classList.add('link'); row.title = 'Ouvre les effets de cette piste et le détail de l\'inspection';
+        row.onclick = () => { selectTrack(t.id); ui.inspectBox.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+        return row;
+    }));
+}
+ui.inspectBtn.addEventListener('click', () => { const t = findTrack(state.selectedId); if (t) runInspect([t]); });
+ui.inspectAllBtn.addEventListener('click', () => { ui.inspectAllBox.dataset.shown = '1'; runInspect(state.tracks.filter((t) => t.take)); });
+// Lecture « Mix » en cours quand une piste vient d'être retraitée : son nouveau son remplace l'ancien à la position
+// courante (volume de la piste ramené à 0 en 30 ms, échange, remonté en 30 ms), sans arrêter la lecture.
+async function liveRefresh(t, token) {
+    const p = state.player;
+    if (!p || p.mode !== 'mix' || token !== t.token || !t.processed || !findTrack(t.id)) return;
+    try {
+        await ensureBalance();
+        if (state.player !== p || token !== t.token) return;
+        liveGains();
+        swapTrackSource(p, t);
+        log('info', `« ${t.name} » : nouveau réglage appliqué pendant la lecture`);
+    } catch (err) { log('error', `« ${t.name} » : échange pendant la lecture impossible : ${err.message}`); }
+}
+function swapTrackSource(p, t) {
+    const ctx = audioContext(), n = p.nodes.find((x) => x.key === t.id), a = trackAudio(t, p.mode);
+    if (!n || !a) return;   // piste absente de cette lecture (finie avant le point de départ) : rien à échanger
+    const now = ctx.currentTime, at = now + 0.03, pos = p.fromSec + (at - p.t0), g = n.gain.gain;
+    const src = ctx.createBufferSource();
+    src.buffer = makeBuffer(a.left, a.right);
+    src.connect(n.gain);
+    g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, at);
+    try { n.src.stop(at); } catch (_) { /* déjà arrêtée */ }
+    const off = pos - t.take.startSec;
+    if (off < 0) src.start(at - off, 0);
+    else if (off < src.buffer.duration) src.start(at, off);
+    g.setValueAtTime(0, at);
+    g.linearRampToValueAtTime(audible(t) ? dbg(trackGainDb(t, p.mode)) : 0, at + 0.03);
+    n.src = src;
+    n.swaps = (n.swaps || 0) + 1;
+}
+
+// Équilibre automatique (moteur) : gain par piste pour « Mix ». Les faders s'ajoutent ensuite (non comptés ici).
+async function ensureBalance() {
+    if (!state.balanceDirty && state.balance) return state.balance;
+    mtFlushPending();
+    await state.jobs;
+    const list = state.tracks.filter((t) => t.take && !t.mute);
+    if (list.length === 0) { state.balance = { gains: new Map(), items: new Map() }; state.balanceDirty = false; return state.balance; }
+    const sr = list[0].take.sampleRate, xfer = [];
+    const tracks = list.map((t) => {
+        const L = t.processed ? t.processed.left : t.take.mono, R = t.processed ? t.processed.right : t.take.mono;
+        return { key: t.id, ...lrCopy(L, R, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 };
+    });
+    const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
+    const ia = state.instru ? instruAudio() : null, ins = ia ? lrCopy(ia.left, ia.right, xfer) : null;
+    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks, vocalOverInstruLu: voxInstruArg() }, xfer);
+    const gains = new Map(), items = new Map();
+    for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
+    state.balance = { gains, items, report: r.report };
+    state.balanceDirty = false;
+    log('info', `Équilibre : voix / instru ${r.report.vocalGainDb.toFixed(1)} dB` + (state.instru ? ` (voix principale visée ${fLuS(r.report.vocalOverInstruLu)} devant l'instru${instruFixed() ? ' corrigée' : ''}, ${r.report.vocalOverInstruSet ? 'réglée à la main' : 'valeur du style'})` : '')
+        + (r.report.report ? ` ; ${r.report.report.replace(/\n/g, ' | ')}` : ''));
+    for (const t of state.tracks) updateRow(t);
+    if (!state.player) restMeters();
+    return state.balance;
+}
+
+// ------------------------------------------------------------------ écarts de volume par type (étape 4)
+// De combien chaque type de piste est placé sous la voix principale (LU) : valeur d'origine du moteur, réglable ici de
+// -24 à 0. L'état vit dans le moteur (commande setRoleOffset) : il est gardé avec le projet (state.roleOffsets) et
+// renvoyé au moteur après un rechargement. Il vaut pour l'équilibre (« ▶ Mix », export) et « Mixer la chanson ».
+const fLu = (v) => `${(+v).toFixed(1).replace('.', ',')} LU`;
+// « Voix principale devant l'instru » (première ligne du bloc) : de combien la voix principale passe devant l'instru
+// (LU). Sans réglage, c'est la valeur du style de la voix principale (0 à +2 LU selon le style) : comportement d'avant.
+// Réglée ici (pas de 0,5 ; bornes du moteur : kVoxInstruMinLu / kVoxInstruMaxLu de api.cpp), elle vaut pour « ▶ Mix »,
+// l'export « Chanson Mix », « ⚖ Égaliser » et « Mixer la chanson » ; elle est gardée avec le projet.
+const VOX_INSTRU_MIN = -4, VOX_INSTRU_MAX = 8;
+const fLuS = (v) => `${+v > 0 ? '+' : ''}${fLu(v)}`;
+const leadStyleId = () => state.tracks.find((t) => t.roleId === 'lead')?.styleId || state.tracks.find((t) => t.take && !t.mute)?.styleId || '';
+function styleVoxInstru() {
+    const all = state.styles.flatMap((g) => g.styles);
+    const st = all.find((x) => x.id === leadStyleId()) || all.find((x) => x.id === 'rap');   // style inconnu : comme le moteur (styleFromId → Rap)
+    return { lu: Number.isFinite(st?.vocalOverInstruLu) ? st.vocalOverInstruLu : 1, name: st?.name || '' };
+}
+const voxInstruArg = () => state.vocalOverInstruLu ?? undefined;   // absent : le moteur prend la valeur du style
+// La ligne est construite une fois puis mise à jour sur place : le curseur n'est jamais remplacé pendant un geste
+// (la valeur du style rappelée suit le style de la voix principale : pistes ajoutées, style ou type changé).
+function renderVoxInstru() {
+    const row = ui.voxInstruRow;
+    if (!row) return;
+    if (!row._inp) {
+        row._val = el('b');
+        row._inp = el('input', { type: 'range', id: 'voxInstru', min: VOX_INSTRU_MIN, max: VOX_INSTRU_MAX, step: 0.5,
+            title: 'De combien la voix principale passe devant l\'instru (0 = au même niveau ; plus haut = la voix plus devant)',
+            oninput: (e) => { row._val.textContent = fLuS(Number(e.target.value)); },
+            onchange: (e) => setVoxInstru(Number(e.target.value)) });
+        row._pre = el('span', { class: 'pre' });
+        row.replaceChildren(el('span', { textContent: 'Voix principale devant l\'instru' }), row._inp, row._val, row._pre);
+    }
+    const st = styleVoxInstru(), set = state.vocalOverInstruLu, cur = set ?? st.lu;
+    if (!row._inp.matches(':active')) { row._inp.value = cur; row._val.textContent = fLuS(cur); }
+    row._pre.textContent = `valeur du style${st.name ? ` (${st.name})` : ''} : ${fLuS(st.lu)}${set != null ? ' — modifié' : ''}`;
+}
+// lu = null : retour à la valeur du style.
+function setVoxInstru(lu, why = 'curseur') {
+    if (lu != null && !Number.isFinite(lu)) { log('error', `Voix principale devant l'instru : valeur invalide (${lu}), ignorée`); renderVoxInstru(); return; }
+    const before = state.vocalOverInstruLu, st = styleVoxInstru();
+    const v = lu == null ? null : Math.min(VOX_INSTRU_MAX, Math.max(VOX_INSTRU_MIN, Math.round(lu * 2) / 2));
+    state.vocalOverInstruLu = v;
+    log('info', `Voix principale devant l'instru (${why}) : ${fLuS(before ?? st.lu)}${before == null ? ' (valeur du style)' : ''} → ${fLuS(v ?? st.lu)}${v == null ? ' (valeur du style)' : ` (style ${st.name} : ${fLuS(st.lu)})`}${v === before ? ' — rien de changé' : ' ; équilibre des volumes à refaire'}`);
+    if (v === before) { renderVoxInstru(); return; }
+    rolesChanged();   // équilibre à refaire (« ⚖ Égaliser » aussi), sauvegarde, chanson mixée à refaire, lecture « Mix » rééquilibrée
+    setStatus(v == null ? `Voix principale devant l'instru : valeur du style (${fLuS(st.lu)}). L'équilibre sera refait à la prochaine lecture « ▶ Mix ».`
+        : `Voix principale réglée à ${fLuS(v)} devant l'instru (style : ${fLuS(st.lu)}). L'équilibre sera refait à la prochaine lecture « ▶ Mix ».`);
+}
+function renderRoles() {
+    renderVoxInstru();
+    const adj = state.roles.filter((r) => r.adjustable);
+    ui.roleList.replaceChildren(...adj.map((r) => {
+        const val = el('b', { textContent: fLu(r.placeLu) });
+        const inp = el('input', { type: 'range', min: -24, max: 0, step: 0.5, value: r.placeLu, 'data-role': r.id,
+            title: `${roleLabel(r.id)} : de combien ce type est placé sous la voix principale (0 = au même niveau)`,
+            oninput: (e) => { val.textContent = fLu(Number(e.target.value)); },
+            onchange: (e) => setRoleOffset(r.id, Number(e.target.value)) });
+        return el('div', { class: 'rolerow' }, el('span', { textContent: roleLabel(r.id) }), inp, val,
+            el('span', { class: 'pre', textContent: `valeur d'origine : ${fLu(r.defaultPlaceLu)}${r.placeLu !== r.defaultPlaceLu ? ' — modifié' : ''}` }));
+    }));
+    ui.roleResetBtn.disabled = !state.ready || !(adj.some((r) => r.placeLu !== r.defaultPlaceLu) || state.vocalOverInstruLu != null);
+}
+function rolesChanged() {
+    state.roleOffsets = Object.fromEntries(state.roles.filter((x) => x.adjustable && x.placeLu !== x.defaultPlaceLu).map((x) => [x.id, x.placeLu]));
+    state.balanceDirty = true;                             // l'équilibre est à refaire
+    if (state.balanceRaw) state.balanceRaw.sig = '';       // « ⚖ Égaliser » aussi (mêmes écarts)
+    renderRoles();
+    markDirty();
+    for (const t of state.tracks) updateRow(t);
+    if (state.player?.mode === 'mix') ensureBalance().then(liveGains).catch((err) => log('error', `Équilibre après changement d'écart impossible : ${err.message}`));
+}
+// lu = null : retour à la valeur d'origine (roleId vide : tous les types).
+async function setRoleOffset(roleId, lu, why = 'curseur') {
+    try {
+        if (lu != null && !Number.isFinite(lu)) throw new Error('valeur invalide');
+        const before = Object.fromEntries(state.roles.map((r) => [r.id, r.placeLu]));
+        const r = await call('setRoleOffset', lu == null ? { roleId, reset: true } : { roleId, lu });
+        state.roles = r.roles;
+        const changed = state.roles.filter((x) => x.placeLu !== before[x.id]);
+        log('info', `Écarts par type (${why}) : ${changed.length ? changed.map((x) => `${roleLabel(x.id)} ${fLu(before[x.id])} → ${fLu(x.placeLu)} (origine ${fLu(x.defaultPlaceLu)})`).join(', ') : 'rien de changé'} ; équilibre des volumes à refaire`);
+        rolesChanged();
+        setStatus(changed.length ? `Écart réglé : ${changed.map((x) => `${roleLabel(x.id)} ${fLu(x.placeLu)}`).join(', ')}. L'équilibre sera refait à la prochaine lecture « ▶ Mix ».` : 'Écarts par type : rien de changé.');
+    } catch (err) {
+        log('error', `Écart de volume par type impossible (${roleId || 'tous'}) : ${err.message}`);
+        setStatus(`Écart de volume impossible : ${err.message}`);
+        renderRoles();
+    }
+}
+// Projet repris : les écarts gardés sont renvoyés au moteur (son état repart de l'origine à chaque chargement de page).
+async function applyRoleOffsets(saved) {
+    if (!saved || typeof saved !== 'object') return;
+    for (const [roleId, lu] of Object.entries(saved)) {
+        if (typeof lu !== 'number' || !Number.isFinite(lu)) { log('warn', `Écart gardé pour « ${roleId} » illisible (${lu}) : ignoré`); continue; }
+        try { state.roles = (await call('setRoleOffset', { roleId, lu })).roles; }
+        catch (err) { log('warn', `Écart gardé pour « ${roleId} » refusé par le moteur : ${err.message}`); }
+    }
+    rolesChanged();
+    const kept = Object.entries(state.roleOffsets);
+    log('info', `Écarts par type repris de la sauvegarde : ${kept.length ? kept.map(([id, lu]) => `${roleLabel(id)} ${fLu(lu)}`).join(', ') : 'valeurs d\'origine'}`);
+}
+ui.roleResetBtn.addEventListener('click', async () => {
+    await setRoleOffset('', null, '« Valeurs d\'origine »');
+    if (state.vocalOverInstruLu != null) setVoxInstru(null, '« Valeurs d\'origine »');
+});
+
+// ------------------------------------------------------------------ lecture
+const dbg = (db) => Math.pow(10, db / 20);
+function audible(obj) {
+    const anySolo = state.instruTrack.solo || state.tracks.some((t) => t.solo);
+    return !obj.mute && (!anySolo || obj.solo);
+}
+// Gain final d'une piste (dB) : équilibre auto (Mix seulement) + fader.
+function trackGainDb(t, mode) {
+    // Mix : équilibre calculé sur les pistes traitées. Brut + « Égaliser » : équilibre calculé sur les prises brutes
+    // (mêmes règles par type, aucun effet). Brut sans « Égaliser » : la prise telle quelle.
+    const auto = mode === 'mix' ? (state.balance?.gains.get(t.id) ?? 0)
+        : (rawLevelOn() ? (state.balanceRaw?.gains.get(t.id) ?? 0) : 0);
+    return auto + t.volumeDb;
+}
+function trackAudio(t, mode) {
+    if (!t.take) return null;
+    if (mode === 'mix' && t.processed) return { left: t.processed.left, right: t.processed.right };
+    return { left: t.take.mono, right: t.take.mono };
+}
+function stopPlayback() {
+    const p = state.player;
+    if (!p) return;
+    for (const n of p.nodes) { try { n.src.stop(); } catch (_) { /* déjà arrêté */ } }
+    cancelAnimationFrame(p.raf);
+    state.player = null;
+    drawMeter(ui.meterOut, 0, 0);
+    for (const r of ui.tracks.querySelectorAll('.track')) if (r._meter && !(state.rec && r.dataset.id === String(state.armedId))) drawMeter(r._meter, 0, 0);
+    restMeters();
+}
+// Témoin de saturation de la sortie : si ce qui part vers la carte son dépasse le maximum (1,0), le son est écrêté
+// (craquements). Compté pendant la lecture, affiché en rouge dans la barre de lecture, noté dans le journal.
+const clipWatch = { n: 0, maxDb: -120, mode: '' };
+function clipReset(mode) { clipWatch.n = 0; clipWatch.maxDb = -120; clipWatch.mode = mode; ui.clipInfo.hidden = true; }
+function clipCheck(peak) {
+    if (peak < 1.0) return;
+    const db = 20 * Math.log10(peak);
+    if (clipWatch.n === 0) log('warn', `Sortie saturée pendant la lecture (${clipWatch.mode}) : crête +${db.toFixed(1)} dB au-dessus du maximum`);
+    ++clipWatch.n; clipWatch.maxDb = Math.max(clipWatch.maxDb, db);
+    ui.clipInfo.hidden = false;
+    ui.clipInfo.textContent = `⚠ sortie saturée ×${clipWatch.n} (+${clipWatch.maxDb.toFixed(1)} dB)`;
+}
+// Lecture en direct : une source par piste (gain + vumètre), puis un limiteur de sécurité commun.
+// exceptId : piste en cours d'enregistrement (pas rejouée). startAt : instant (ctx) du début, par défaut tout de suite.
+function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } = {}) {
+    stopPlayback();
+    const ctx = audioContext();
+    const t0 = startAt || ctx.currentTime + 0.05;
+    // Aucun traitement sur la sortie (ni compresseur ni limiteur) : l'instru sort telle qu'elle a été importée. Si la
+    // somme instru + voix dépasse le maximum, seul le volume général baisse (gain pur, sans effet sur le son).
+    const master = ctx.createGain();
+    const head = headroomGain(mode, exceptId, ctx.sampleRate);
+    master.gain.value = head.gain;
+    master.connect(ctx.destination);
+    const outAn = ctx.createAnalyser(); outAn.fftSize = 1024; master.connect(outAn);
+    const nodes = [];
+    const addSource = (key, left, right, startSec, gainDb, meterEl) => {
+        const end = startSec + left.length / ctx.sampleRate;
+        if (end <= fromSec) return;
+        const src = ctx.createBufferSource();
+        src.buffer = makeBuffer(left, right);
+        const g = ctx.createGain(); g.gain.value = dbg(gainDb);
+        const an = ctx.createAnalyser(); an.fftSize = 1024;
+        src.connect(g); g.connect(master); g.connect(an);
+        if (startSec >= fromSec) src.start(t0 + (startSec - fromSec), 0);
+        else src.start(t0, fromSec - startSec);
+        const tr = key ? state.tracks.find((x) => x.id === key) : null;
+        nodes.push({ key, src, gain: g, an, meterEl, hold: 0, holdUntil: 0, mark: tr && mode === 'mix' ? mixLevelDb(tr) : null });
+    };
+    if (state.instru && audible(state.instruTrack)) {
+        const ia = instruAudio();   // corrigée si « Instru : corrigée », sinon d'origine
+        addSource(0, ia.left, ia.right, 0, state.instruTrack.volumeDb, rowOf(0)?._meter);
+    }
+    for (const t of state.tracks) {
+        if (t.id === exceptId || !audible(t)) continue;
+        const a = trackAudio(t, mode);
+        if (a) addSource(t.id, a.left, a.right, t.take.startSec, trackGainDb(t, mode), rowOf(t.id)?._meter);
+    }
+    const player = { mode, nodes, t0, fromSec, raf: 0, outAn, headDb: head.db, master, exceptId };
+    clipReset(mode === 'mix' ? 'Mix' : 'Brut');
+    state.player = player;
+    const buf = new Float32Array(1024);
+    const peakOf = (an) => { an.getFloatTimeDomainData(buf); let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i])); return p; };
+    const total = songSeconds();
+    const tick = () => {
+        if (state.player !== player) return;
+        const pos = fromSec + Math.max(0, ctx.currentTime - t0);
+        setPlayhead(Math.min(pos, total));
+        const now = performance.now();
+        for (const n of nodes) {
+            if (!n.meterEl) continue;
+            const p = peakOf(n.an);
+            if (p >= n.hold || now > n.holdUntil) { n.hold = p; n.holdUntil = now + 1500; }
+            drawMeter(n.meterEl, p, n.hold, n.mark);
+        }
+        const outPeak = peakOf(outAn);
+        clipCheck(outPeak);
+        drawMeter(ui.meterOut, outPeak, 0);
+        if (pos > total + 0.2 && !state.rec) { stopPlayback(); state.playFromSec = 0; setPlayhead(0); return; }
+        player.raf = requestAnimationFrame(tick);
+    };
+    player.raf = requestAnimationFrame(tick);
+    return player;
+}
+// Volume général : 1 (rien) tant que la somme jouée ne dépasse pas -0,3 dBFS ; sinon baisse pure de ce qu'il faut.
+function headroomGain(mode, exceptId, sr) {
+    const mix = renderPlayed(mode, exceptId, sr);
+    let peak = 0;
+    for (let i = 0; i < mix.left.length; ++i) { const a = Math.abs(mix.left[i]), b = Math.abs(mix.right[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
+    const ceil = Math.pow(10, -0.3 / 20);
+    const gain = peak > ceil ? ceil / peak : 1;
+    const db = 20 * Math.log10(gain);
+    if (gain < 1) log('info', `Volume général baissé de ${(-db).toFixed(1)} dB (crête de la somme ${(20 * Math.log10(peak)).toFixed(1)} dBFS) : aucun effet sur le son de l'instru`);
+    return { gain, db, peakDb: 20 * Math.log10(peak + 1e-12) };
+}
+// Fader / muet / solo pendant la lecture : gains mis à jour en direct.
+function liveGains() {
+    const p = state.player;
+    if (!p) return;
+    for (const n of p.nodes) {
+        if (n.key === 0) { n.gain.gain.value = audible(state.instruTrack) ? dbg(state.instruTrack.volumeDb) : 0; continue; }
+        const t = findTrack(n.key);
+        if (t) n.gain.gain.value = audible(t) ? dbg(trackGainDb(t, p.mode)) : 0;
+    }
+    // Le volume général (marge contre la saturation) dépend de ce qui est écouté : il était calculé une seule fois au
+    // lancement. Lecture lancée avec une piste en solo, puis solo retiré (ou piste réactivée, curseur monté) pendant
+    // la lecture → la somme dépassait le maximum et la sortie saturait (craquements quand le niveau monte).
+    // Recalcul 120 ms après le dernier changement, appliqué en douceur.
+    clearTimeout(liveGains.timer);
+    liveGains.timer = setTimeout(() => {
+        const q = state.player;
+        if (!q || q !== p || !q.master) return;
+        const ctx = audioContext(), head = headroomGain(q.mode, q.exceptId, ctx.sampleRate);
+        if (Math.abs(head.db - q.headDb) > 0.05) {
+            q.master.gain.setTargetAtTime(head.gain, ctx.currentTime, 0.03);
+            log('info', `Volume général ajusté pendant la lecture : ${head.db.toFixed(1)} dB (avant ${q.headDb.toFixed(1)} dB)`);
+            q.headDb = head.db;
+        }
+    }, 120);
+}
+function onMuteSolo() {
+    state.balanceDirty = true;   // une piste muette ne compte pas dans l'équilibre
+    liveGains();
+    refreshAudibility();
+    markDirty();
+}
+// « Tout écouter » : retire tous les muets et solos.
+function listenAll() {
+    state.instruTrack.mute = state.instruTrack.solo = false;
+    for (const t of state.tracks) t.mute = t.solo = false;
+    renderTracks();
+    onMuteSolo();
+    setStatus('Toutes les pistes sont écoutées.');
+}
+// Bouton « ⚖ Égaliser » : volumes égalisés sur le son BRUT, sans aucun effet. Mêmes règles que le Mix (voix principales
+// toutes au même niveau, backs / ambiance à leur place selon leur type, voix par rapport à l'instru), mais mesuré sur
+// les prises telles quelles. Le résultat (un gain par piste) sert à la lecture « ▶ Brut » ; rien n'est modifié dans
+// les sons. state.rawLevelOn : égalisation demandée (gardée avec le projet) ; state.balanceRaw : gains calculés pour
+// les pistes d'une signature donnée (recalculés si les pistes ont changé).
+const rawLevelOn = () => !!state.rawLevelOn;
+const rawSig = () => state.tracks.filter((t) => t.take && !t.mute).map((t) => `${t.id}:${t.roleId}:${t.take.audioId}:${t.take.startSec.toFixed(3)}`).join('|') + `#${state.instru?.audioId || ''}${instruFixed() ? '+corrigée' : ''}`;
+const rawLevelFresh = () => !!state.balanceRaw && state.balanceRaw.sig === rawSig();
+async function ensureRawBalance(onStep = null) {
+    const list = state.tracks.filter((t) => t.take && !t.mute);
+    const sig = rawSig();
+    if (state.balanceRaw && state.balanceRaw.sig === sig) return state.balanceRaw;
+    if (list.length === 0) { state.balanceRaw = { gains: new Map(), items: new Map(), sig }; return state.balanceRaw; }
+    const sr = list[0].take.sampleRate;
+    const xfer = [];
+    const tracks = list.map((t) => ({ key: t.id, ...lrCopy(t.take.mono, t.take.mono, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 }));
+    const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
+    onStep?.(`mesure de ${list.length} piste(s)…`);
+    const ia = state.instru ? instruAudio() : null, ins = ia ? lrCopy(ia.left, ia.right, xfer) : null;
+    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks, vocalOverInstruLu: voxInstruArg() }, xfer);
+    const gains = new Map(), items = new Map();
+    for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
+    state.balanceRaw = { gains, items, report: r.report, sig };
+    log('info', `Volumes égalisés (brut, sans effet) : voix / instru ${r.report.vocalGainDb.toFixed(1)} dB ; ` +
+        list.map((t) => `${t.name} ${gains.get(t.id) >= 0 ? '+' : ''}${(gains.get(t.id) ?? 0).toFixed(1)} dB`).join(', '));
+    return state.balanceRaw;
+}
+function refreshLevelBtn() {
+    const on = rawLevelOn(), fresh = on && rawLevelFresh();
+    ui.levelBtn.classList.toggle('on', fresh);
+    ui.levelBtn.classList.toggle('stale', on && !fresh);
+    ui.levelBtn.textContent = fresh ? '⚖ Égalisé ✓' : on ? '⚖ Égaliser (à refaire)' : '⚖ Égaliser';
+}
+// Appui : lance l'égalisation (ou la refait si les pistes ont changé) ; appui quand c'est déjà égalisé : volumes d'origine.
+async function levelRaw() {
+    if (rawLevelOn() && rawLevelFresh()) {
+        state.rawLevelOn = false;
+        log('info', 'Égalisation retirée : volumes d\'origine en lecture brute');
+        setStatus('Égalisation retirée : « ▶ Brut » joue de nouveau les prises avec leurs volumes d\'origine.');
+    } else {
+        const list = state.tracks.filter((t) => t.take && !t.mute);
+        if (!list.length) { setStatus('Rien à égaliser : aucune piste avec une prise.'); return; }
+        ui.levelBtn.disabled = true; ui.levelBtn.textContent = '⚖ Égalisation…';
+        const t0 = performance.now();
+        try {
+            setStatus(`Égalisation des volumes sur le son brut (aucun effet) : mesure de ${list.length} piste(s)…`);
+            const b = await ensureRawBalance();
+            state.rawLevelOn = true;
+            // Résultat annoncé piste par piste (type, niveau mesuré, réglage de volume).
+            for (const t of list) {
+                const g = b.gains.get(t.id) ?? 0, it = b.items.get(t.id);
+                setStatus(`Égalisation : « ${t.name} » (${roleLabel(t.roleId)}) ${it?.lufs > -90 ? it.lufs.toFixed(1) + ' LUFS' : 'silence'} → volume ${g >= 0 ? '+' : ''}${g.toFixed(1)} dB`);
+                updateRow(t);
+                await new Promise((r) => setTimeout(r, 180));
+            }
+            setStatus(`Volumes égalisés sur ${list.length} piste(s) en ${((performance.now() - t0) / 1000).toFixed(1)} s, sans aucun effet : chaque piste est à son niveau selon son type. Écoute avec « ▶ Brut ».`);
+        } catch (err) { setStatus('Égalisation impossible : ' + err.message); log('error', 'Égalisation : ' + err.message); }
+        finally { ui.levelBtn.disabled = false; }
+    }
+    refreshLevelBtn();
+    for (const t of state.tracks) updateRow(t);
+    if (state.player?.mode === 'raw') liveGains();
+    markDirty();
+}
+async function startPlay(mode) {
+    try {
+        if (mode === 'mix') { setStatus('Équilibre des pistes…'); await ensureBalance(); }
+        else if (rawLevelOn()) { setStatus('Égalisation des volumes (sans effet)…'); await ensureRawBalance(); refreshLevelBtn(); }
+        const p = play(mode);
+        const head = p.headDb < -0.05 ? ` Volume général −${(-p.headDb).toFixed(1)} dB pour ne pas saturer (instru intacte).` : '';
+        const fixedOn = !!instruFixed();   // « Instru : corrigée » : dit dans la barre d'état
+        setStatus((mode === 'mix'
+            ? `Lecture du mix : ${fixedOn ? 'instru corrigée (écrêtage réparé, niveau trop haut baissé)' : 'instru d\'origine, intacte'} + chaque piste traitée (style et type), équilibrées.`
+            : rawLevelOn() ? `Lecture brute, volumes égalisés : aucune piste n\'est modifiée (aucun effet), seul son volume est réglé selon son type${fixedOn ? ' ; instru corrigée' : ''}.`
+            : `Lecture brute : ${fixedOn ? 'instru corrigée' : 'instru d\'origine'} + prises sans effet, volumes d\'origine. « ⚖ Égaliser » règle les volumes sans ajouter d\'effet.`) + head);
+    } catch (err) { setStatus('Lecture impossible : ' + err.message); log('error', err.message); }
+}
+ui.playBtn.addEventListener('click', () => startPlay('mix'));
+ui.playRawBtn.addEventListener('click', () => startPlay('raw'));
+ui.levelBtn.addEventListener('click', levelRaw);
+ui.stopPlayBtn.addEventListener('click', () => { stopPlayback(); setStatus('Lecture arrêtée.'); });
+
+// Ce que la page joue (somme instru + pistes avec leurs gains), sur la grille du morceau : référence pour retirer de
+// la prise tout ce que le micro capte des haut-parleurs (instru ET voix déjà enregistrées).
+function renderPlayed(mode, exceptId, sr) {
+    const n = Math.ceil(songSeconds() * sr) + sr;
+    const L = new Float32Array(n), R = new Float32Array(n);
+    const add = (left, right, startSec, gainDb) => {
+        const g = dbg(gainDb), o = Math.round(startSec * sr);
+        for (let i = 0; i < left.length && o + i < n; ++i) { L[o + i] += left[i] * g; R[o + i] += right[i] * g; }
+    };
+    if (state.instru && audible(state.instruTrack)) { const ia = instruAudio(); add(ia.left, ia.right, 0, state.instruTrack.volumeDb); }
+    for (const t of state.tracks) {
+        if (t.id === exceptId || !audible(t)) continue;
+        const a = trackAudio(t, mode);
+        if (a) add(a.left, a.right, t.take.startSec, trackGainDb(t, mode));
+    }
+    return { left: L, right: R };
+}
+
+// ------------------------------------------------------------------ instru corrigée (au choix, éteinte par défaut)
+// Bouton « Instru : telle quelle / corrigée » de la piste Instru. Allumé : le moteur applique le réglage de base d'un mix
+// entier (commande fixInstru → sv::dsp::fixMixBase) : crêtes écrêtées reconstruites quand l'écrêtage est net, puis un
+// gain constant si la crête dépasse −1 dBFS — rien d'autre (ni égaliseur, ni débruitage, ni compression, ni limiteur :
+// mesuré, la réparation d'instrument du moteur abîme une instru déjà masterisée). Une instru propre n'est pas touchée et
+// ne coûte aucune mémoire en plus. La version corrigée est gardée À CÔTÉ de l'original
+// (state.instru.fixed) : state.instru.left / right restent l'instru d'origine, jamais modifiée.
+//  - instruAudio() : ce qui est JOUÉ ou MIXÉ (lecture, équilibre, « Égaliser », mixage final, exports, pistes à part,
+//    dessin, musique retirée d'une prise au micro) — la version corrigée si le bouton est allumé et qu'elle est prête ;
+//  - instruSource() : l'ORIGINAL (séparation d'une chanson, « Rétablir le morceau », sauvegarde).
+// Seul l'état du bouton est gardé avec le projet : la version corrigée est recalculée au rechargement, refaite quand
+// l'instru change (nouvelle instru, séparation, « Rétablir »), et retirée de la mémoire quand le bouton est éteint.
+function instruFixDone() {   // réglage de base calculé pour l'instru en place (même s'il n'a rien eu à changer)
+    const i = state.instru, f = i?.fixed;
+    return state.instruFix && f && f.audioId === i.audioId ? f : null;
+}
+function instruFixed() {      // version réellement différente de l'original (null : instru telle quelle ou déjà propre)
+    const f = instruFixDone();
+    return f && !f.same ? f : null;
+}
+function instruAudio() {
+    const f = instruFixed();
+    return f ? { left: f.left, right: f.right } : { left: state.instru.left, right: state.instru.right };
+}
+function instruSource() { return state.instru; }
+// Ce qui a été fait, en une ligne (ligne d'état de la piste Instru, journal). Le réglage de base ne fait que deux choses :
+// reconstruire les crêtes écrêtées quand l'écrêtage est net, et baisser le niveau d'un gain constant si la crête dépasse
+// −1 dBFS. Une instru propre n'est pas touchée.
+function instruFixText(r) {
+    const f1 = (v) => v.toFixed(1).replace('.', ',');
+    if (!r.changed) return `rien à réparer : pas d'écrêtage net (${r.clippedSamples} échantillons au sommet), crête ${f1(r.peakBeforeDb)} dBFS — l'instru est jouée telle quelle`;
+    const parts = [];
+    if (r.clippedRepaired > 0) parts.push(`écrêtage réparé (${r.clippedRepaired} échantillons reconstruits)`);
+    if (r.gainDb < -0.05) parts.push(`niveau baissé de ${f1(-r.gainDb)} dB pour rendre de la marge`);
+    parts.push(`crête ${f1(r.peakBeforeDb)} → ${f1(r.peakAfterDb)} dBFS`);
+    parts.push(`niveau ${f1(r.lufsBefore)} → ${f1(r.lufsAfter)} LUFS`);
+    return parts.join(', ');
+}
+// L'instru entendue a changé (corrigée ↔ d'origine) : équilibre à refaire, « Égaliser » aussi (rawSig), chanson mixée
+// à refaire, état du bouton à sauvegarder, piste redessinée.
+function instruFixChanged() {
+    state.balanceDirty = true;
+    markDirty();
+    renderTracks();
+}
+// Version corrigée d'une instru qui n'est plus la bonne (ou bouton éteint) : retirée de la mémoire.
+function instruFixDrop(why) {
+    const i = state.instru;
+    if (!i?.fixed) return;
+    const mo = i.fixed.same ? 0 : (i.fixed.left.length + i.fixed.right.length) * 4 / 1048576;
+    i.fixed = null;
+    log('info', `Instru : version corrigée retirée de la mémoire (${mo.toFixed(0)} Mo) — ${why}`);
+}
+// Calcule la version corrigée si le bouton est allumé et qu'elle manque (ou n'est plus celle de l'instru en place).
+// Passe par la file des traitements (state.jobs) : l'équilibre et le mixage final, qui l'attendent, prennent la bonne
+// instru ; une seule demande par instru.
+function ensureInstruFix(why = '') {
+    const ins = state.instru;
+    if (ins?.fixed && ins.fixed.audioId !== ins.audioId) instruFixDrop('l\'instru a changé');
+    if (!state.instruFix || !ins || !state.ready || instruFixDone() || ins.fixing === ins.audioId) return state.jobs;
+    const audioId = ins.audioId;
+    const current = () => state.instruFix && state.instru === ins && ins.audioId === audioId;
+    ins.fixing = audioId;   // pas compté dans state.busy : la ligne d'avancement de la correction d'office des voix n'en dépend pas
+    log('info', `Instru : réglage de base demandé${why ? ` (${why})` : ''} — ${ins.name}, ${fmt(ins.seconds)}`);
+    state.jobs = state.jobs.then(async () => {
+        if (!current()) { log('info', 'Instru : correction abandonnée avant le calcul (bouton éteint ou instru changée entre-temps)'); return; }
+        const t0 = performance.now(), xfer = [], c = lrCopy(ins.left, ins.right, xfer);
+        setStatus(`Réglage de base de l'instru (${fmt(ins.seconds)}) : recherche d'écrêtage et de crêtes trop hautes…`, { low: true });
+        const r = await call('fixInstru', { left: c.left, right: c.right, sampleRate: ins.sampleRate }, xfer);
+        const sec = (performance.now() - t0) / 1000;
+        if (!current()) { log('info', `Instru : correction calculée en ${sec.toFixed(1)} s puis abandonnée (bouton éteint ou instru changée entre-temps)`); return; }
+        if (!(r.left instanceof Float32Array) || r.left.length !== ins.left.length) throw new Error(`résultat du moteur inattendu (${r.left?.length} échantillons pour ${ins.left.length})`);
+        const rep = r.report;
+        if (rep.reverbSend > 0 || rep.delaySend > 0 || rep.satMix > 0) throw new Error('le moteur annonce un effet de couleur (réverb, écho ou saturation) : version corrigée refusée');
+        // Instru déjà propre : rien n'a changé, la « version corrigée » EST l'original (aucune mémoire en plus).
+        ins.fixed = rep.changed ? { left: r.left, right: r.right, report: rep, audioId, seconds: sec }
+                                : { left: ins.left, right: ins.right, report: rep, audioId, seconds: sec, same: true };
+        stopPlayback();   // la lecture en cours jouait l'instru d'origine
+        instruFixChanged();
+        const mo = rep.changed ? (r.left.length + r.right.length) * 4 / 1048576 : 0;
+        log('info', `Instru, réglage de base en ${sec.toFixed(1)} s (${fmt(ins.seconds)} de son, ${mo.toFixed(0)} Mo gardés à côté de l'original) : ${instruFixText(rep)}`
+            + ` ; écrêtage : ${rep.clippedSamples} échantillons au sommet, ${rep.clippedSharePct.toFixed(3)} % (réparé à partir de ${rep.clippedMinSharePct.toFixed(3)} %) ; ni égaliseur, ni débruitage, ni compression, ni limiteur, ni réverb, ni écho, ni saturation ; l'original n'est pas modifié`);
+        setStatus(rep.changed ? `Instru corrigée en ${sec.toFixed(1)} s : ${instruFixText(rep)}. L'original est gardé (un appui sur « Instru : corrigée » la remet telle quelle).`
+                              : `Instru : ${instruFixText(rep)}.`);
+    }).catch((err) => {
+        log('error', `Correction de l'instru impossible : ${err.message} — l'instru reste telle quelle`);
+        if (state.instru === ins && ins.audioId === audioId) { state.instruFix = false; ins.fixed = null; instruFixChanged(); }
+        setStatus(`Correction de l'instru impossible : ${err.message}. L'instru reste telle quelle.`);
+    }).finally(() => { if (ins.fixing === audioId) ins.fixing = ''; });
+    renderTracks();   // ligne d'état : « correction de l'instru en cours… »
+    return state.jobs;
+}
+// Appui sur le bouton (ou état repris d'une sauvegarde). Jamais appelé tout seul avec on = true.
+function setInstruFix(on, why = 'bouton') {
+    on = !!on;
+    if (on === state.instruFix) return state.jobs;
+    if (on && !state.instru) { setStatus('Pas d\'instru à corriger : importe d\'abord une instru.'); return state.jobs; }
+    state.instruFix = on;
+    stopPlayback();
+    if (on) { markDirty(); return ensureInstruFix(why); }   // l'état du bouton est gardé tout de suite, même si la page est fermée pendant le calcul
+    instruFixDrop('bouton éteint');
+    log('info', `Instru : telle quelle (${why}) — l'instru d'origine est de nouveau jouée et mixée`);
+    instruFixChanged();
+    setStatus('Instru : telle quelle. Elle est jouée et mixée comme elle a été importée.');
+    return state.jobs;
+}
+
+// ------------------------------------------------------------------ instru, démo
+async function loadInstruFile(file) {
+    if (!file) return;
+    try {
+        setStatus('Lecture du fichier…');
+        const buf = await decodeFile(file);
+        const { left, right } = channels(buf);
+        await setInstru(left, right, buf.sampleRate, file.name);
+        setStatus(`Instru analysée : ${state.instru.analysis.key}, ${state.instru.analysis.bpm.toFixed(1)} BPM. Arme une piste (●) puis REC.`);
+    } catch (err) { setStatus('Instru illisible : ' + err.message); log('error', err.message); }
+}
+async function setInstru(left, right, sampleRate, name) {
+    stopPlayback();
+    state.instru = { left, right, sampleRate, seconds: left.length / sampleRate, name, audioId: `i${Date.now().toString(36)}` };
+    state.balanceDirty = true;
+    markDirty();
+    setStatus('Analyse de l\'instru (tonalité, tempo, structure)…');
+    const r = await call('analyze', { left: left.slice(), right: right.slice(), sampleRate });
+    state.instru.analysis = r;
+    const secs = (r.sections || []).map((s) => `${s.label} ${fmt(s.start)}–${fmt(s.end)}`).join(' · ');
+    log('info', `Instru : ${name} · ${fmt(state.instru.seconds)} · ${r.key} · ${r.bpm.toFixed(1)} BPM · ${r.lufs.toFixed(1)} LUFS · crête ${r.peakDb.toFixed(1)} dBFS` + (secs ? ` · ${secs}` : ''));
+    renderTracks();
+    if (!state.restoring) ensureInstruFix('nouvelle instru');   // « Instru : corrigée » allumé : refaite pour cette instru (projet repris : après la reprise de son identifiant)
+    reprocessAll();   // la gamme et le tempo de l'instru servent au traitement des voix
+}
+// Démo : instru et voix synthétiques du moteur sur deux pistes (principale + back), pour essayer sans fichier.
+async function loadDemo() {
+    try {
+        const ctx = audioContext();
+        setStatus('Fabrication de la démo (instru La mineur 100 BPM + deux voix)…');
+        const bars = 16;
+        const i = await call('demoInstru', { sampleRate: ctx.sampleRate, bars });
+        await setInstru(i.left, i.right, ctx.sampleRate, 'Instru de démo');
+        const v = await call('demoVoice', { sampleRate: ctx.sampleRate, bars });
+        const lead = state.tracks.find((t) => t.roleId === 'lead' && !t.take) || addTrack('lead', 'Voix principale');
+        addTake(lead, { mono: v.left, sampleRate: ctx.sampleRate, startSec: 0, note: 'voix de démo, légèrement fausse exprès' });
+        let back = state.tracks.find((t) => t !== lead && !t.take);
+        if (!back) back = addTrack('manual_back', 'Seconde voix');
+        back.roleId = 'manual_back';
+        addTake(back, { mono: v.left.slice(), sampleRate: ctx.sampleRate, startSec: 0, note: 'même voix de démo, en back' });
+        renderTracks();
+        queueProcess(lead); queueProcess(back);
+        setStatus(`Démo prête : ${state.instru.analysis.key}, ${state.instru.analysis.bpm.toFixed(1)} BPM, deux pistes voix (principale + back) en traitement.`);
+    } catch (err) { setStatus('Démo impossible : ' + err.message); log('error', err.message); }
+}
+
+// ------------------------------------------------------------------ ajout de piste, import d'une voix
+ui.addTrackBtn.addEventListener('click', () => {
+    const t = addTrack(ui.addRole.value);
+    state.armedId = t.id;
+    state.selectedId = t.id;
+    renderTracks();
+    setStatus(`Piste « ${t.name} » ajoutée (${roleLabel(t.roleId)}) et armée : REC pour enregistrer dessus.`);
+});
+async function importVoice(t, file) {
+    if (!file) return;
+    try {
+        setStatus(`Import sur « ${t.name} »…`);
+        const buf = await decodeFile(file);
+        t.status = 'isolating'; updateRow(t);
+        const isoRes = await maybeIsolate(toMono(buf), buf.sampleRate);
+        addTake(t, { mono: isoRes.mono, sampleRate: buf.sampleRate, startSec: 0, note: `${file.name} · ${isoRes.note}` });
+        renderTracks();
+        setStatus(`Voix importée sur « ${t.name} » : ${isoRes.note}. ${t.noFx ? 'Piste « Sans effet » : jouée telle quelle.' : t.correction ? 'Correction automatique…' : 'Traitement par son style…'}`);
+        queueProcess(t);
+    } catch (err) { t.status = 'error'; updateRow(t); setStatus('Voix illisible : ' + err.message); log('error', err.message); }
+}
+// ------------------------------------------------------------------ audio
+function audioContext() {
+    if (!state.ctx) {
+        // ?svRate=48000 : fréquence imposée (essais : la plupart des téléphones et des PC sont à 48 kHz, la CI à 44,1 kHz).
+        const forced = Number(new URLSearchParams(location.search).get('svRate'));
+        state.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive', ...(forced > 0 ? { sampleRate: forced } : {}) });
+        log('info', `AudioContext ${state.ctx.sampleRate} Hz, latence de base ${Math.round(state.ctx.baseLatency * 1000)} ms`);
+    }
+    if (state.ctx.state === 'suspended') state.ctx.resume();
+    return state.ctx;
+}
+async function decodeFile(file) {
+    const ctx = audioContext();
+    const bytes = await file.arrayBuffer();
+    return await ctx.decodeAudioData(bytes);   // décodage par le navigateur (MP3, WAV, FLAC, OGG, AAC selon le navigateur)
+}
+function channels(buffer) {
+    const left = buffer.getChannelData(0).slice();
+    const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1).slice() : left.slice();
+    return { left, right };
+}
+function toMono(buffer) {
+    const n = buffer.length, out = new Float32Array(n);
+    for (let c = 0; c < buffer.numberOfChannels; ++c) {
+        const d = buffer.getChannelData(c);
+        for (let i = 0; i < n; ++i) out[i] += d[i] / buffer.numberOfChannels;
+    }
+    return out;
+}
+function makeBuffer(left, right) {
+    const ctx = audioContext();
+    const b = ctx.createBuffer(2, left.length, ctx.sampleRate);
+    b.copyToChannel(left, 0);
+    b.copyToChannel(right || left, 1);
+    return b;
+}
+// Niveau de la piste au Mix (sonie mesurée là où elle chante + gain d'équilibre + curseur), en LUFS : même valeur pour
+// toutes les pistes d'un même type une fois équilibrées. null tant que l'équilibre n'est pas calculé.
+function mixLevelDb(t) {
+    if (!state.balance || state.balanceDirty) return null;
+    const it = state.balance.items?.get(t.id), g = state.balance.gains.get(t.id);
+    if (!it || g == null || !(it.lufs > -90)) return null;
+    return it.lufs + g + t.volumeDb;
+}
+// mark (dB, facultatif) : repère bleu = niveau de la piste au Mix ; aligné d'une piste à l'autre quand elles sont égales.
+function drawMeter(canvas, peak, hold, mark = null) {
+    const g = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
+    const x = (db) => Math.max(0, Math.min(w, (db + 48) / 51 * w));
+    const db = 20 * Math.log10(Math.max(peak, 1e-6));
+    g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+    const xl = x(db), x12 = x(-12), x0 = x(0);
+    g.fillStyle = '#3fb950'; g.fillRect(0, 2, Math.min(xl, x12), h - 4);
+    if (xl > x12) { g.fillStyle = '#e07b20'; g.fillRect(x12, 2, Math.min(xl, x0) - x12, h - 4); }
+    if (xl > x0) { g.fillStyle = '#e5484d'; g.fillRect(x0, 2, xl - x0, h - 4); }
+    g.fillStyle = 'rgba(255,255,255,.35)';
+    for (const t of [-24, -12, -6]) g.fillRect(x(t), 2, 1, h - 4);
+    g.fillStyle = '#fff'; g.fillRect(x0, 0, 2, h);
+    if (hold > 1e-4) { const xh = x(20 * Math.log10(hold)); g.fillStyle = xh > x0 ? '#e5484d' : '#fff'; g.fillRect(xh - 1, 2, 2, h - 4); }
+    if (mark != null && Number.isFinite(mark)) { g.fillStyle = '#4cc9f0'; g.fillRect(x(mark) - 2, 0, 4, h); }
+    canvas._mark = mark;
+}
+// Vumètres au repos : barre vide + repère de niveau au Mix (visible sans lancer la lecture).
+function restMeters() {
+    for (const t of state.tracks) { const m = rowOf(t.id)?._meter; if (m && !(state.rec && t.id === state.armedId)) drawMeter(m, 0, 0, mixLevelDb(t)); }
+}
+// ------------------------------------------------------------------ prise
+// Capture micro : AudioWorklet dans le même graphe que l'instru → place de la prise connue à l'échantillon près.
+// Aucun traitement du navigateur (ni annulation d'écho, ni réduction de bruit, ni gain auto) : c'est le moteur qui
+// retire ensuite l'instru captée par le micro (haut-parleurs) et qui mesure le décalage réel (latence aller-retour).
+async function ensureRecorderWorklet(ctx) {
+    if (!state.workletReady) {
+        await ctx.audioWorklet.addModule('./recorder-worklet.js');
+        state.workletReady = true;
+    }
+}
+// Latence annoncée par le navigateur (sortie + traitement + entrée), utilisée seulement si aucune musique n'est captée
+// (casque) : sinon le décalage est mesuré sur la prise elle-même.
+function announcedLatencySec(ctx, track) {
+    const out = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+    let inp = 0;
+    try { inp = track?.getSettings?.().latency || 0; } catch (_) { /* non fourni */ }
+    return out + inp;
+}
+
+
+// REC sur la piste armée. On entend l'instru et les autres pistes (mix) ; tout ce qui est joué sert de référence pour
+// le retirer de la prise si le micro le capte (haut-parleurs), puis l'IA retire le reste (musique extérieure, bruits).
+// Explication et marche à suivre pour chaque refus d'accès au micro (noms d'erreur standard de getUserMedia).
+function micErrorMessage(err) {
+    const android = /Android/i.test(navigator.userAgent), ios = /iPhone|iPad/i.test(navigator.userAgent);
+    switch (err?.name) {
+        case 'NotAllowedError':
+        case 'PermissionDeniedError':
+        case 'SecurityError':
+            return 'accès au micro refusé. Touche le cadenas (ou ⓘ) à gauche de l\'adresse > Autorisations > Micro > Autoriser, puis recharge la page.'
+                + (android ? ' Si c\'est déjà autorisé : Paramètres du téléphone > Applications > Chrome > Autorisations > Micro > Autoriser.' : '')
+                + (ios ? ' Sur iPhone : Réglages > Safari > Micro > Autoriser.' : '');
+        case 'NotFoundError':
+        case 'DevicesNotFoundError':
+            return 'aucun micro trouvé : branche un micro (ou un casque avec micro) puis réessaie.';
+        case 'NotReadableError':
+        case 'TrackStartError':
+        case 'AbortError':
+            return 'le micro est déjà utilisé par une autre application (appel, dictaphone, autre onglet, logiciel StudioVoix PC…) : ferme-la puis réessaie.';
+        case 'OverconstrainedError':
+            return 'le micro refuse les réglages demandés (' + (err.constraint || '?') + ').';
+        case 'TypeError':
+            return 'le navigateur ne donne pas accès au micro sur cette page (page non sécurisée ou navigateur trop ancien).';
+        default:
+            return (err?.name ? err.name + ' : ' : '') + (err?.message || String(err));
+    }
+}
+// Ouvre le micro sans traitement du navigateur ; si l'appareil refuse ces réglages (certains téléphones), second essai
+// avec les réglages par défaut du navigateur (annulation d'écho / réduction de bruit possibles), signalé.
+async function openMic() {
+    if (!navigator.mediaDevices?.getUserMedia) { const e = new Error('getUserMedia absent'); e.name = 'TypeError'; throw e; }
+    try {
+        if (navigator.permissions?.query) {
+            const p = await navigator.permissions.query({ name: 'microphone' }).catch(() => null);
+            if (p) log('info', `Autorisation du micro (navigateur) : ${p.state}`);
+        }
+    } catch (_) { /* information seulement */ }
+    try {
+        return { stream: await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
+        }), fallback: false };
+    } catch (err) {
+        log('error', `Micro : ${err.name || 'erreur'} : ${err.message || ''}`);
+        if (!['NotReadableError', 'OverconstrainedError', 'AbortError', 'TrackStartError'].includes(err.name)) throw err;
+        log('warn', 'Micro : second essai avec les réglages par défaut du navigateur');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        return { stream, fallback: true };
+    }
+}
+
+ui.recBtn.addEventListener('click', async () => {
+    let step = 'ouverture du micro';
+    let mic = null;
+    try {
+        let t = findTrack(state.armedId);
+        if (!t) { t = addTrack(state.tracks.some((x) => x.roleId === 'lead') ? ui.addRole.value : 'lead'); state.armedId = t.id; renderTracks(); }
+        const ctx = audioContext();
+        step = 'chargement de l\'enregistreur';
+        await ensureRecorderWorklet(ctx);
+        // L'IA n'est PAS préparée pendant la prise (téléchargement et calcul lourds : la prise saccadait sur téléphone).
+        step = 'équilibre des pistes';
+        await ensureBalance();   // ce qu'on entend pendant la prise = le mix des autres pistes
+        // Micro ouvert juste avant la lecture (comme avant : le faux micro des essais démarre à l'ouverture).
+        try { mic = await openMic(); }
+        catch (err) {
+            setStatus('Micro indisponible : ' + micErrorMessage(err));
+            log('error', `Micro indisponible (${err.name || '?'}) : ${err.message || err} ; navigateur : ${navigator.userAgent}`);
+            return;
+        }
+        const stream = mic.stream;
+        const track = stream.getAudioTracks()[0];
+        log('info', `Micro ouvert : « ${track?.label || 'sans nom'} »` + (mic.fallback ? ' (réglages par défaut du navigateur : traitement possible)' : '')
+                    + ` ; réglages ${JSON.stringify(track?.getSettings?.() || {})}`);
+        step = 'branchement du micro';
+        const src = ctx.createMediaStreamSource(stream);
+        const rec = new AudioWorkletNode(ctx, 'studiovoix-recorder', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+        const sink = ctx.createGain(); sink.gain.value = 0;   // le nœud doit être relié à la sortie pour tourner ; muet
+        src.connect(rec).connect(sink).connect(ctx.destination);
+        const row = rowOf(t.id);
+        if (row?._meter) startMeter(src, row._meter);
+        const chunks = [];
+        let firstFrame = -1;
+        rec.port.onmessage = (e) => {
+            if (e.data.type === 'chunk') {
+                if (firstFrame < 0) firstFrame = e.data.frame;
+                chunks.push(e.data.data);
+            } else if (e.data.type === 'peak') {
+                livePeak(t, e.data);
+            } else if (e.data.type === 'done') {
+                finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, track, meterEl: row?._meter });
+            }
+        };
+        // Compte à rebours AVANT la musique (clics seuls), puis la lecture démarre à la position choisie.
+        const bpm = state.instru?.analysis?.bpm || 100;
+        const bars = Number(ui.countIn.value || 0);
+        const countSec = bars * 4 * 60 / bpm;
+        const t0 = ctx.currentTime + 0.15;
+        for (let i = 0; i < bars * 4; ++i) {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            const tt = t0 + i * 60 / bpm;
+            o.frequency.value = i % 4 === 0 ? 1500 : 1000;
+            g.gain.setValueAtTime(0.25, tt); g.gain.exponentialRampToValueAtTime(0.001, tt + 0.05);
+            o.connect(g).connect(ctx.destination); o.start(tt); o.stop(tt + 0.06);
+        }
+        const songStart = t0 + countSec, fromSec = state.playFromSec;
+        state.rec = { node: rec, songStartCtx: songStart, fromSec, sampleRate: ctx.sampleRate, trackId: t.id, mode: 'mix', micFallback: mic.fallback,
+                      inLatency: Number(track?.getSettings?.().latency) || 0, total: songSeconds() };
+        liveStart(t);
+        play('mix', fromSec, { exceptId: t.id, startAt: songStart });
+        setStatus((bars > 0 ? `Enregistrement sur « ${t.name} »… ${bars} mesure(s) de clics à ${bpm.toFixed(0)} BPM, puis la musique : chante.`
+                            : `Enregistrement sur « ${t.name} »… chante.`) + ' Stop pour finir.');
+        ui.recBtn.disabled = true; ui.recBtn.classList.add('on'); ui.stopBtn.disabled = false;
+        log('info', `REC sur « ${t.name} » (${roleLabel(t.roleId)}) depuis ${fromSec.toFixed(2)} s ; latence annoncée ${(announcedLatencySec(ctx, track) * 1000).toFixed(0)} ms (sortie ${((ctx.outputLatency || 0) * 1000).toFixed(0)}, traitement ${((ctx.baseLatency || 0) * 1000).toFixed(0)})`);
+    } catch (err) {
+        mic?.stream.getTracks().forEach((x) => x.stop());
+        setStatus(`REC impossible (${step}) : ${err.message || err}`);
+        log('error', `REC impossible (${step}) : ${err.name || ''} ${err.message || err}`);
+        ui.recBtn.disabled = false; ui.recBtn.classList.remove('on');
+    }
+});
+ui.stopBtn.addEventListener('click', () => {
+    if (state.rec?.node) state.rec.node.port.postMessage('stop');
+    stopPlayback();
+    ui.stopBtn.disabled = true;
+});
+async function finishRecording({ t, stream, src, rec, sink, chunks, firstFrame, track, meterEl }) {
+    const info = state.rec;
+    try {
+        const ctx = audioContext();
+        const fallback = announcedLatencySec(ctx, track);
+        stream.getTracks().forEach((x) => x.stop());
+        try { src.disconnect(); rec.disconnect(); sink.disconnect(); } catch (_) { /* déjà déconnecté */ }
+        if (meterEl) stopMeter(meterEl);
+        const total = chunks.reduce((n, c) => n + c.length, 0);
+        if (total === 0 || firstFrame < 0) throw new Error('aucun échantillon reçu du micro');
+        const raw = new Float32Array(total);
+        let o = 0;
+        for (const c of chunks) { raw.set(c, o); o += c.length; }
+        const rawMic = raw.slice();   // micro tel quel (pour comparer avec la prise nettoyée : « Micro brut »)
+        const sr = info.sampleRate;
+        // Temps du morceau au moment où le premier échantillon a été écrit (négatif pendant les clics).
+        const recOffsetSec = firstFrame / sr - info.songStartCtx + info.fromSec;
+        setStatus('Nettoyage de la prise (musique des haut-parleurs captée par le micro, décalage)…');
+        const ref = renderPlayed(info.mode, t.id, sr);
+        const r = await call('cleanTake', {
+            rec: raw, instruL: ref.left, instruR: ref.right, sampleRate: sr, recOffsetSec, fallbackLatencySec: fallback,
+        }, [raw.buffer, ref.left.buffer, ref.right.buffer]);
+        const rep = r.report;
+        const nudge = Number(ui.latencyMs.value || 0) / 1000;   // ajustement fin manuel (0 par défaut)
+        let startSec = rep.startSec - nudge;
+        let mono = r.left;
+        let rawCut = rawMic.subarray(0, mono.length);
+        if (startSec < 0) {   // ce qui précède le début du morceau (clics, attente) est coupé
+            const cut = Math.min(mono.length, Math.round(-startSec * sr));
+            mono = mono.slice(cut);
+            rawCut = rawCut.subarray(cut);
+            startSec = 0;
+        }
+        t.status = 'isolating'; updateRow(t);
+        const isoRes = await maybeIsolate(mono, sr);
+        mono = isoRes.mono;
+        const lat = `${Math.round(rep.latencyMs)} ms ${rep.latencyMeasured ? 'mesuré' : 'annoncé (casque)'}`;
+        const bleed = rep.bleedDetected
+            ? `musique captée ${rep.bleedBeforeDb.toFixed(0)} dB → retirée (${rep.bleedAfterDb.toFixed(0)} dB)`
+            : 'aucune musique captée (casque)';
+        const note = `${bleed} · ${isoRes.note} · décalage ${lat}, compensé` + (info.micFallback ? ' · ⚠ micro ouvert avec les réglages du navigateur (traitement possible)' : '');
+        info.trackId = -1;   // fin de la forme d'onde en direct : la piste se redessine avec la prise nettoyée
+        addTake(t, { mono, sampleRate: sr, startSec, note, raw: rawCut.slice() });
+        log('info', `Prise sur « ${t.name} » : ${rep.describe} ; début ${startSec.toFixed(3)} s ; ${isoRes.note}`);
+        renderTracks();
+        setStatus(`Prise enregistrée sur « ${t.name} » : voix seule, calée sur la musique (${note}). ${t.noFx ? 'Piste « Sans effet » : jouée telle quelle.' : t.correction ? 'Correction automatique…' : 'Traitement par son style…'}`);
+        queueProcess(t);
+    } catch (err) { if (info) info.trackId = -1; setStatus('Prise impossible : ' + err.message); log('error', err.message); t.status = t.take ? 'raw' : 'vide'; updateRow(t); }
+    state.rec = null;
+    ui.recBtn.classList.remove('on');
+    refreshButtons();
+}
+
+// ------------------------------------------------------------------ export
+// Export : instru + pistes audibles (traitées, équilibrées, faders), limiteur -1 dBTP du moteur, WAV 16 bits.
+// Export de la chanson complète telle qu'on l'entend : mode « mix » (comme « ▶ Mix » : effets des pistes qui en ont,
+// volumes équilibrés) ou « raw » (comme « ▶ Brut » : aucun effet ; volumes égalisés si « ⚖ Égaliser » est actif).
+async function exportSong(mode) {
+    const btn = mode === 'mix' ? ui.exportBtn : ui.exportRawBtn;
+    try {
+        btn.disabled = true;
+        const leveled = mode === 'raw' && rawLevelOn();
+        setStatus(mode === 'mix' ? 'Export : équilibre des pistes, somme…' : `Export du brut${leveled ? ' égalisé' : ''} : somme des pistes sans effet…`);
+        if (mode === 'mix') await ensureBalance();
+        else if (leveled) { await ensureRawBalance(); refreshLevelBtn(); }
+        const sr = state.instru?.sampleRate || state.tracks.find((t) => t.take)?.take.sampleRate || audioContext().sampleRate;
+        const mix = renderPlayed(mode, 0, sr);
+        const n = Math.ceil(songSeconds() * sr);
+        // Pas de limiteur : l'instru reste telle quelle ; si la somme dépasse -0,3 dBFS, gain pur sur tout le mix.
+        const L = mix.left.subarray(0, n), R = mix.right.subarray(0, n);
+        let peak = 0;
+        for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
+        const ceil = Math.pow(10, -0.3 / 20), g = peak > ceil ? ceil / peak : 1;
+        if (g < 1) for (let i = 0; i < n; ++i) { L[i] *= g; R[i] *= g; }
+        const r = { report: { lufs: NaN, limiterGrDb: 0, gainDb: 20 * Math.log10(g) } };
+        const saved = await saveAudio(mode === 'mix' ? 'StudioVoix-mix' : leveled ? 'StudioVoix-brut-egalise' : 'StudioVoix-brut', L, R, sr, mode === 'mix' ? 'mix' : 'brut');
+        const nTracks = state.tracks.filter((t) => t.take && audible(t)).length;
+        const gtxt = r.report.gainDb < -0.05 ? `volume général −${(-r.report.gainDb).toFixed(1)} dB pour ne pas saturer` : 'volume d\'origine';
+        const what = mode === 'mix' ? 'mix' : leveled ? 'brut, volumes égalisés, aucun effet' : 'brut, volumes d\'origine, aucun effet';
+        const insWord = instruFixed() ? 'instru corrigée (écrêtage réparé, niveau trop haut baissé)' : 'instru intacte';
+        log('info', `Export (${what}) : ${nTracks} piste(s) voix + ${insWord} (aucun limiteur), ${(n / sr).toFixed(1)} s, crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
+        setStatus(`${saved.name} exporté (${what} ; ${saved.desc}, ${sr} Hz, ${fmt(n / sr)}) : ${insWord} + ${nTracks} piste(s) voix, ${gtxt}.`);
+    } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
+    refreshButtons();
+}
+ui.exportBtn.addEventListener('click', () => exportSong('mix'));
+ui.exportRawBtn.addEventListener('click', () => exportSong('raw'));
+// Format des exports : WAV (sans perte) ou MP3 320 kbit/s. L'encodeur MP3 (lamejs, LGPL, portage de LAME, fichier
+// séparé vendor/lame.min.js) n'est chargé qu'au premier export en MP3.
+const exportFormat = () => (ui.exportFormat?.value === 'mp3' ? 'mp3' : 'wav');
+const MP3_KBPS = 320;
+let lameLoading = null;
+function loadLame() {
+    if (window.lamejs?.Mp3Encoder) return Promise.resolve(window.lamejs);
+    if (!lameLoading) lameLoading = new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = './vendor/lame.min.js';
+        sc.onload = () => window.lamejs?.Mp3Encoder ? resolve(window.lamejs) : reject(new Error('encodeur MP3 chargé mais inutilisable'));
+        sc.onerror = () => { lameLoading = null; reject(new Error('encodeur MP3 introuvable (vendor/lame.min.js)')); };
+        document.head.appendChild(sc);
+    });
+    return lameLoading;
+}
+// Float32 (-1..1) stéréo → MP3 320 kbit/s (Blob). Par blocs, en rendant la main : la page reste vivante.
+async function encodeMp3(left, right, sampleRate, onProgress = null) {
+    if (![32000, 44100, 48000].includes(sampleRate)) throw new Error(`MP3 : fréquence ${sampleRate} Hz non prise en charge (32, 44,1 ou 48 kHz)`);
+    const lame = await loadLame();
+    const enc = new lame.Mp3Encoder(2, sampleRate, MP3_KBPS), n = left.length, block = 1152 * 64, parts = [];
+    const L = new Int16Array(block), R = new Int16Array(block);
+    const t0 = performance.now();
+    for (let s0 = 0; s0 < n; s0 += block) {
+        const m = Math.min(block, n - s0);
+        for (let i = 0; i < m; ++i) {
+            const a = Math.max(-1, Math.min(1, left[s0 + i])), b = Math.max(-1, Math.min(1, right[s0 + i]));
+            L[i] = a < 0 ? a * 32768 : a * 32767; R[i] = b < 0 ? b * 32768 : b * 32767;
+        }
+        const out = enc.encodeBuffer(m === block ? L : L.subarray(0, m), m === block ? R : R.subarray(0, m));
+        if (out.length) parts.push(new Uint8Array(out));
+        onProgress?.(Math.min(1, (s0 + m) / n));
+        await new Promise((r) => setTimeout(r, 0));
+    }
+    const end = enc.flush();
+    if (end.length) parts.push(new Uint8Array(end));
+    log('info', `MP3 ${MP3_KBPS} kbit/s : ${(n / sampleRate).toFixed(1)} s encodées en ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+    return new Blob(parts, { type: 'audio/mpeg' });
+}
+// Enregistre un son dans le format choisi : base = nom sans extension. Retourne { name, fmt }.
+async function saveAudio(base, left, right, sampleRate, label = '') {
+    const fmt = exportFormat();
+    let blob;
+    if (fmt === 'mp3') {
+        blob = await encodeMp3(left, right, sampleRate, (f) => setStatus(`Export MP3${label ? ' — ' + label : ''} : ${Math.round(f * 100)} %`));
+    } else blob = new Blob([encodeWav16(left, right, sampleRate)], { type: 'audio/wav' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${base}.${fmt}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    return { name: a.download, fmt, bytes: blob.size, desc: fmt === 'mp3' ? `MP3 ${MP3_KBPS} kbit/s` : 'WAV 16 bits' };
+}
+function encodeWav16(left, right, sampleRate) {
+    const n = left.length, bytes = 44 + n * 4;
+    const buf = new ArrayBuffer(bytes), v = new DataView(buf);
+    const str = (o, s) => { for (let i = 0; i < s.length; ++i) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, bytes - 8, true); str(8, 'WAVE'); str(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+    v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true);
+    str(36, 'data'); v.setUint32(40, n * 4, true);
+    let o = 44;
+    for (let i = 0; i < n; ++i) {
+        v.setInt16(o, Math.max(-1, Math.min(1, left[i])) * 32767, true); o += 2;
+        v.setInt16(o, Math.max(-1, Math.min(1, right[i])) * 32767, true); o += 2;
+    }
+    return buf;
+}
+
+function fmt(sec) { const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return `${m}:${String(s).padStart(2, '0')}`; }
+
+// Vumètre du micro pendant la prise (sur l'en-tête de la piste armée).
+function startMeter(node, canvas) {
+    const an = audioContext().createAnalyser();
+    an.fftSize = 1024;
+    node.connect(an);
+    const data = new Float32Array(an.fftSize);
+    let hold = 0, holdUntil = 0;
+    const tick = () => {
+        an.getFloatTimeDomainData(data);
+        let peak = 0;
+        for (let i = 0; i < data.length; ++i) peak = Math.max(peak, Math.abs(data[i]));
+        const now = performance.now();
+        if (peak >= hold || now > holdUntil) { hold = peak; holdUntil = now + 1500; }
+        drawMeter(canvas, peak, hold);
+        canvas._raf = requestAnimationFrame(tick);
+    };
+    stopMeter(canvas);
+    canvas._raf = requestAnimationFrame(tick);
+}
+function stopMeter(canvas) { if (canvas._raf) cancelAnimationFrame(canvas._raf); canvas._raf = 0; drawMeter(canvas, 0, 0); }
+
+// Vitesse mesurée de cet appareil (ms par morceau d'IA, par modèle), gardée d'une visite à l'autre : sert à annoncer
+// la durée d'une séparation avant de la lancer.
+function sepSpeedLoad() { try { return JSON.parse(localStorage.getItem('sv-sep-speed') || '{}'); } catch { return {}; } }
+function sepSpeedSave(key, ms) {
+    const sp = sepSpeedLoad();
+    sp[key] = sp[key] ? 0.8 * sp[key] + 0.2 * ms : ms;
+    try { localStorage.setItem('sv-sep-speed', JSON.stringify(sp)); } catch (e) { log('warn', `vitesse non gardée : ${e.message}`); }
+}
+const fmtLong = (sec) => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${String(Math.round((sec % 3600) / 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(sec / 60))} min`;
+// Téléphone ? Règle (26/11), le premier signal qui dit « oui » l'emporte : 1) navigator.userAgentData.mobile quand le
+// navigateur le donne (Chrome, Edge, Brave sur Android) ; 2) à défaut, agent utilisateur contenant « Mobi », « iPhone »
+// ou « iPod » (Safari et Firefox n'ont pas userAgentData) ; 3) à défaut, pointeur grossier (doigt) ET petit côté de
+// l'écran sous 600 points (téléphone en « version pour ordinateur »). Une tablette compte comme un ordinateur.
+function detectPhone() {
+    try {
+        if (navigator.userAgentData?.mobile === true) return { phone: true, why: 'navigateur : appareil mobile (userAgentData)' };
+        if (/Mobi|iPhone|iPod/i.test(navigator.userAgent || '')) return { phone: true, why: 'agent utilisateur de téléphone' };
+        const small = Math.min(screen.width, screen.height);
+        if (window.matchMedia?.('(pointer: coarse)').matches && small < 600) return { phone: true, why: `écran tactile de ${small} points de large` };
+        return { phone: false, why: 'ni mobile, ni petit écran tactile' };
+    } catch (e) { return { phone: false, why: `détection impossible (${e.message})` }; }
+}
+const sepDevice = detectPhone();
+// Option « Ambiance » masquée (décision du 26/11) : sur nos essais le modèle n'extrait presque rien. Son code reste ;
+// tant que ce drapeau est faux, la case est cachée, décochée, et aucun réglage gardé ne peut la réactiver.
+const SEP_AMBIANCE_ON = false;
+// Cases de « Séparer » : réglage de départ selon l'appareil, puis le choix fait à la main, gardé sur l'appareil, prime.
+//  - téléphone : mode rapide = une seule étape de calcul (instru + voix) ;
+//  - ordinateur : voix principale / backs et une piste par chanteur ;
+//  - partout : « Couplets / refrains », « Finition soignée » et « Très rapide » décochées.
+const SEP_CHOICE_KEY = 'sv-sep-choice';
+const SEP_BOXES = { leadBack: ui.sepLeadBack, singers: ui.sepSingers, sections: ui.sepSections, denoise: ui.sepDenoise, fast: ui.sepFast };
+const SEP_BOX_NAMES = { leadBack: 'Voix principale / backs', singers: 'Une piste par chanteur', sections: 'Couplets / refrains', denoise: 'Finition soignée', fast: 'Très rapide' };
+function sepChoiceLoad() {
+    try { const c = JSON.parse(localStorage.getItem(SEP_CHOICE_KEY) || '{}'); return c && typeof c === 'object' ? c : {}; }
+    catch (e) { log('warn', `choix de séparation gardés illisibles (${e.message}) : réglages de départ`); return {}; }
+}
+function sepChoiceApply() {
+    const def = sepDevice.phone ? { leadBack: false, singers: false, sections: false, denoise: false, fast: false } : { leadBack: true, singers: true, sections: false, denoise: false, fast: false };
+    const mine = sepChoiceLoad(), kept = [];
+    for (const [k, box] of Object.entries(SEP_BOXES)) {
+        const own = typeof mine[k] === 'boolean';
+        box.checked = own ? mine[k] : def[k];
+        if (own) kept.push(`${SEP_BOX_NAMES[k]} ${mine[k] ? 'cochée' : 'décochée'}`);
+    }
+    ui.sepAmbiance.checked = false;
+    if (!SEP_AMBIANCE_ON) ui.sepAmbiance.disabled = true;
+    const on = Object.entries(SEP_BOXES).filter(([, b]) => b.checked).map(([k]) => SEP_BOX_NAMES[k]);
+    log('info', `Séparation, réglages de départ : ${sepDevice.phone ? 'téléphone' : 'ordinateur'} (${sepDevice.why}) → ${on.length ? 'cochées : ' + on.join(', ') : 'mode rapide, instru + voix seulement'}` +
+        (kept.length ? ` ; choix gardés sur cet appareil : ${kept.join(', ')}` : ' ; aucun choix gardé'));
+    if (ui.sepHelp) ui.sepHelp.textContent = (sepDevice.phone
+        ? 'Téléphone : mode rapide par défaut — une seule étape de calcul, tu obtiens l\'instru et la voix (une piste chacune). En cochant « Voix principale / backs », les chœurs vont sur leur propre piste, pour environ une fois et demie plus de temps ; « Une piste par chanteur » ajoute une courte étape et donne une piste par voix quand elles chantent chacune leur tour. Ton choix est retenu sur ce téléphone.'
+        : 'Ordinateur : par défaut, l\'instru, la voix principale, les backs et une piste par chanteur. Plus rapide : décocher « Voix principale / backs » (instru + voix seulement, une seule étape de calcul). Ton choix est retenu sur cet appareil.') +
+        ' « Très rapide » : un modèle d\'IA plus léger, environ 3 fois plus rapide ; l\'instru et la voix sont un peu moins propres, et les aigus de la voix au-dessus de 14,7 kHz restent dans l\'instru.';
+}
+function sepChoiceKeep(k) {
+    const mine = sepChoiceLoad();
+    mine[k] = SEP_BOXES[k].checked;
+    try { localStorage.setItem(SEP_CHOICE_KEY, JSON.stringify(mine)); log('info', `Séparation : « ${SEP_BOX_NAMES[k]} » ${mine[k] ? 'cochée' : 'décochée'} à la main, choix gardé sur cet appareil`); }
+    catch (e) { log('warn', `choix « ${SEP_BOX_NAMES[k]} » non gardé (${e.message}) : valable jusqu'à la fermeture de la page`); }
+}
+// Vitesse de départ (ms par morceau, pour un calcul par morceau), tant que rien n'a été mesuré sur l'appareil. Valeurs
+// prudentes, tirées des mesures du projet :
+//  - ordinateur : 12 à 15 s par morceau à l'étape voix, 7 à 9 s à l'étape backs (serveur de développement, 4 cœurs,
+//    processeur) → haut de la fourchette : 15 s et 9 s ;
+//  - téléphone : 3 min 35 de chanson ≈ 45 min avec les trois étapes (téléphone de Yann). 3 min 35 = 50 morceaux par
+//    étape ; backs à 0,6 fois la voix comme sur ordinateur, 20 % de morceaux sautés, étape chanteurs négligée :
+//    2700 s ≈ 50 × v × (1 + 0,8 × 0,6) → v ≈ 36 s → arrondi au-dessus : 40 s et 24 s.
+// Dès qu'un morceau a été mesuré sur l'appareil (sepSpeedSave), c'est la mesure qui sert.
+// « Très rapide » (modèle léger, clé « vocFast ») : sa vitesse est mesurée et gardée à part ; tant qu'elle ne l'est pas,
+// départ = SEP_FAST_RATIO × la vitesse du modèle complet (mesurée sur l'appareil si elle existe, sinon celle de départ).
+// 0,31 : temps par morceau mesuré le 26/11 (0,30 à 0,32 sous Node, 0,305 dans Chromium, processeur).
+const SEP_FAST_RATIO = 0.31;
+const SEP_START_SPEED = { phone: { voc: 40000, kara: 24000, reverb: 40000 }, pc: { voc: 15000, kara: 9000, reverb: 15000 } };
+function sepEstimate() {
+    if (!ui.sepEst) return;
+    if (!state.instru || state.separating) { ui.sepEst.textContent = ''; return; }
+    // Nombre réel de morceaux par étape (une seule grille sur toute la chanson, la même que le calcul : isolate.js).
+    // « Très rapide » : autre modèle à l'étape voix / instru, et moins de morceaux (recouvrement 0,10 au lieu de 0,25).
+    const n44 = Math.round(state.instru.seconds * 44100), count = (k) => mdxGrid(n44, MDX_MODELS[k], sepOverlapOf(k)).total;
+    const fastOn = ui.sepFast.checked, vocKey = fastOn ? 'vocFast' : 'voc';
+    const chunks = count(vocKey);
+    const sp = sepSpeedLoad();
+    const others = [...(ui.sepLeadBack.checked ? ['kara'] : []), ...(SEP_AMBIANCE_ON && ui.sepAmbiance.checked ? ['reverb'] : [])];
+    const keys = [vocKey, ...others];
+    // Avant toute mesure sur cet appareil : vitesse de départ de son type (téléphone / ordinateur), annoncée comme telle.
+    const measured = !!sp[vocKey], start = SEP_START_SPEED[sepDevice.phone ? 'phone' : 'pc'];
+    const speed = (k) => (k === 'vocFast' ? (sp.vocFast || SEP_FAST_RATIO * (sp.voc || start.voc)) : sp.voc ? (sp[k] || sp.voc) : start[k]);
+    const dn = ui.sepDenoise.checked ? 2 : 1;   // finition soignée : deux calculs par morceau
+    const total = (ks) => dn * ks.reduce((a, k) => a + speed(k) * count(k) * (k === 'kara' ? 0.8 : 1), 0);   // backs : passages sans voix sautés
+    const ms = total(keys);
+    const fast = dn * speed(vocKey) * chunks;
+    const fastMs = fastOn ? ms : total(['vocFast', ...others]);   // la même séparation avec « Très rapide »
+    // Détail du calcul, lisible par les essais (window.__svSep.est).
+    sepRun.est = { phone: sepDevice.phone, measured, keys, chunks: Object.fromEntries(keys.map((k) => [k, count(k)])), msPerChunk: Object.fromEntries(keys.map((k) => [k, speed(k)])), passes: dn, ms, text: fmtLong(ms / 1000),
+        fast: fastOn, fastMs, fastChunks: count('vocFast'), fastMsPerChunk: speed('vocFast') };
+    const nChunks = [...new Set(keys.map(count))].join(' puis ');
+    const hints = [];
+    if (keys.length > 1 && fmtLong(fast / 1000) !== fmtLong(ms / 1000)) hints.push(`décocher « Voix principale / backs » → ~${fmtLong(fast / 1000)} (instru + voix seulement)`);
+    if (!fastOn && fmtLong(fastMs / 1000) !== fmtLong(ms / 1000)) hints.push(`cocher « Très rapide » → ~${fmtLong(fastMs / 1000)} (un peu moins propre)`);
+    ui.sepEst.textContent = (measured ? `Durée estimée sur cet appareil : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''})`
+            : `Durée estimée : ~${fmtLong(ms / 1000)} (${keys.length} étape${keys.length > 1 ? 's' : ''}, ${nChunks} morceaux de calcul par étape) — ` +
+                (fastOn && sp.voc ? 'estimation tirée de la vitesse mesurée ici avec le modèle complet' : `estimation de départ pour un ${sepDevice.phone ? 'téléphone' : 'ordinateur'}`) + `, affinée dès le premier morceau (puis retenue pour cet appareil)`) +
+        (hints.length ? ` — plus rapide : ${hints.join(' ; ')}.` : '.') +
+        ` Garde la page ouverte, écran allumé.`;
+}
+function refreshButtons() {
+    sepEstimate();
+    const anyTake = state.tracks.some((t) => t.take);
+    ui.recBtn.disabled = !state.ready || !!state.rec;
+    ui.addTrackBtn.disabled = !state.ready;
+    const demo = document.getElementById('demoBtn');
+    if (demo) demo.disabled = !state.ready;
+    ui.playBtn.disabled = !(state.instru || anyTake);
+    ui.playRawBtn.disabled = !(state.instru || anyTake);
+    ui.levelBtn.disabled = !anyTake || !state.ready;
+    ui.inspectAllBtn.disabled = !anyTake || !state.ready || state.inspecting;
+    ui.correctAllBtn.disabled = !state.ready || !state.tracks.length;
+    ui.rawAllBtn.disabled = !state.ready || !state.tracks.length;
+    refreshLevelBtn();
+    ui.exportBtn.disabled = !(anyTake || state.instru);
+    ui.exportRawBtn.disabled = !(anyTake || state.instru);
+    ui.exportFinalBtn.disabled = !state.finalMix;
+    ui.stemsBtn.disabled = !(anyTake || state.instru);
+    ui.finalMixBtn.disabled = !state.ready || !(anyTake || state.instru) || !!state.rec;
+    ui.sepBtn.disabled = !state.ready || !state.instru || !!state.rec || state.isolating;
+}
+
+// ------------------------------------------------------------------ « Séparer » une chanson en pistes
+// Chanson avec voix posée sur la piste Instru → IA (modèles MDX-Net, isolate.js) :
+//  1) voix = modèle « voix » ; instru = chanson − g × voix, avec g = porte dans le temps (instru.js) : là où la voix
+//     estimée est très en dessous de la chanson (personne ne chante : c'est un bruit du modèle), g = 0, rien n'est retiré
+//     et l'instru est la chanson d'origine à l'échantillon près ; là où ça chante, g = 1 : chanson − voix. Les pistes de
+//     voix ne passent pas par la porte : instru + voix ne redonne plus exactement la chanson là où la porte est fermée ;
+//  2) backs = modèle « karaoké » appliqué aux voix ; voix principale = voix − backs ;
+//  3) (expérimental) ambiance = modèle « réverb » appliqué à la voix principale ; voix sèche = voix principale − ambiance ;
+//  4) voix principale coupée par chanteur s'ils alternent (empreinte de voix, singers.js).
+// Chaque partie arrive sur sa piste avec son type, en mode « Correction » (corrigée d'office, sans couleur de style),
+// verrouillée, prête pour « Mixer la chanson ».
+async function resampleStereo(L, R, fromSr, toSr) {
+    if (fromSr === toSr) return { left: L.slice(), right: R.slice() };
+    const t0 = performance.now();
+    const left = await resampleSincAsync(L, fromSr, toSr), right = await resampleSincAsync(R, fromSr, toSr);
+    log('info', `rééchantillonnage ${fromSr} → ${toSr} Hz (sinc) : ${(L.length / fromSr).toFixed(0)} s de son en ${Math.round(performance.now() - t0)} ms`);
+    return { left, right };
+}
+// Réglages de calcul de « Séparer » : recouvrement des morceaux et saut des morceaux sans signal (les passages sans
+// voix à l'étape backs ne passent pas dans l'IA). ?svSepOverlap=… pour les mesures A/B.
+const SEP_OVERLAP = (() => { const v = parseFloat(new URLSearchParams(location.search).get('svSepOverlap')); return Number.isFinite(v) ? v : 0.25; })();
+// « Très rapide » (case, décochée par défaut) : l'étape voix / instru passe par le modèle léger « vocFast » (isolate.js),
+// avec un recouvrement de 0,10 (mesuré le 26/11 : −0,03 dB de SDR instru, 16 % de morceaux en moins ; à 0,05 le pire
+// extrait se dégrade : ne pas descendre sous 0,10). Les autres étapes ne changent pas.
+const SEP_FAST_OVERLAP = 0.1;
+const SEP_OPTS = { voc: { overlap: SEP_OVERLAP, skipBelowDb: -60 }, vocFast: { overlap: SEP_FAST_OVERLAP, skipBelowDb: -60 }, kara: { overlap: SEP_OVERLAP, skipBelowDb: -45 }, reverb: { overlap: SEP_OVERLAP, skipBelowDb: -50 } };
+const sepOverlapOf = (key) => SEP_OPTS[key]?.overlap ?? SEP_OVERLAP;   // recouvrement des morceaux d'une étape
+const SEP_MODELS = { voc: 'voix / instru', vocFast: 'voix / instru', kara: 'voix principale / backs', reverb: 'ambiance', spk: 'chanteurs' };
+const sepModelName = (fastOn) => (fastOn ? 'modèle léger, très rapide' : 'modèle complet');   // journal : quel modèle a servi
+const rmsDbSt = (L, R) => { let e = 0; for (let i = 0; i < L.length; ++i) e += L[i] * L[i] + R[i] * R[i]; return 10 * Math.log10(e / Math.max(1, 2 * L.length) + 1e-20); };
+const toMonoLR = (L, R) => { const m = new Float32Array(L.length); for (let i = 0; i < m.length; ++i) m[i] = 0.5 * (L[i] + R[i]); return m; };
+// Progression visible de « Séparer » : étape, barre globale, temps écoulé / restant, roue qui tourne tant que le
+// calcul vit, alerte si rien n'avance depuis longtemps. Mise à jour à chaque message du worker + chaque seconde.
+const sepRun = { t0: 0, steps: 1, step: 1, label: '', frac: 0, last: 0, timer: 0 };
+function sepSet(step, label, frac) {
+    if (step != null) { sepRun.step = step; Object.assign(sepRun, { cDone: 0, cTotal: 0, cLast: performance.now() }); }
+    if (label != null) sepRun.label = label;
+    if (step != null && label != null) sepRun.stepLabel = label;   // étiquette de l'étape, reprise par les messages du worker
+    if (frac != null) sepRun.frac = Math.min(1, Math.max(0, frac));
+    sepRun.last = performance.now();
+    sepRender();
+}
+// L'IA traite la chanson par morceaux d'environ 6 s ; un morceau = un seul calcul du modèle (15 s sur PC, bien plus
+// sur téléphone), sans avancée intermédiaire possible. On affiche donc le compteur de morceaux, la durée mesurée par
+// morceau, et entre deux morceaux une avancée estimée d'après cette durée (plafonnée à 90 % du morceau).
+function sepChunk(done, total, skipped = false) {   // done / total : n° du morceau dans l'étape entière (grille unique)
+    const now = performance.now();
+    const dt = now - (sepRun.cLast || now);
+    if (skipped) sepRun.cSkipped = (sepRun.cSkipped || 0) + 1;   // morceau sans signal : instantané, ne fausse pas la durée mesurée
+    else {
+        sepRun.cDur = sepRun.cDur && done > 1 ? 0.6 * sepRun.cDur + 0.4 * dt : dt;   // 1er morceau : inclut le chargement
+        if (done > 1 && sepRun.key) sepSpeedSave(sepRun.key, ui.sepDenoise.checked ? dt / 2 : dt);   // vitesse gardée pour un seul calcul par morceau
+    }
+    Object.assign(sepRun, { cDone: done, cTotal: total, cLast: now, last: now });
+    if (/1er morceau en cours/.test(ui.sepSub.textContent)) ui.sepSub.textContent = ui.sepSub.textContent.replace(/, 1er morceau en cours…/, '');   // ne pas laisser croire qu'on est toujours au 1er
+    if (done === total) sepRun.label = `${sepRun.stepLabel} — finition de l'étape…`;
+    if (done === 1 || done === total) log('info', `Séparation : morceau ${done}/${total} en ${(dt / 1000).toFixed(1)} s (${iso.backend || '?'})`);
+    sepRender();
+}
+function sepRender() {
+    if (!state.separating) return;
+    const now = performance.now();
+    if (sepRun.cTotal && sepRun.cDone < sepRun.cTotal) {
+        // Courbe qui ralentit sans jamais atteindre la fin du morceau : 60 % à la durée prévue, 82 % au double.
+        const part = sepRun.cDur ? 0.95 * (1 - Math.exp(-(now - sepRun.cLast) / sepRun.cDur)) : 0;
+        sepRun.frac = (sepRun.cDone + part) / sepRun.cTotal;
+        sepRun.label = `${sepRun.stepLabel} — morceau ${sepRun.cDone + 1}/${sepRun.cTotal} de la chanson (~${Math.max(1, Math.round(sepRun.cDur / 1000))} s par morceau${iso.backend ? ', ' + iso.backend : ''})`;
+    } else if (sepRun.isModel && sepRun.cTotal === 0 && !/téléchargement du/.test(sepRun.label)) {
+        // 1er morceau (durée encore inconnue) : avancée lente estimée (au plus la moitié d'un morceau sur ~1 min),
+        // pour montrer que le calcul vit ; la vraie mesure arrive avec le 1er morceau fini.
+        if (now - sepRun.last > 3000) sepRun.label = `${sepRun.stepLabel} — 1er morceau en cours (démarrage de l'IA, le plus long)`;
+        sepRun.frac = 0.02 * (1 - Math.exp(-(now - sepRun.last) / 30000));
+    }
+    const overall = Math.min(1, (sepRun.step - 1 + sepRun.frac) / sepRun.steps);
+    const el = (now - sepRun.t0) / 1000, idle = (now - sepRun.last) / 1000;
+    // « bloqué ? » seulement si le morceau dure bien plus que prévu (ou 60 s sans aucune mesure).
+    const slow = sepRun.cDur ? idle > Math.max(20, 2.5 * sepRun.cDur / 1000) : idle > 60;
+    const pct = (Math.floor(overall * 1000) / 10).toFixed(1).replace('.', ',');   // au dixième : bouge même sur une longue chanson
+    ui.sepStep.textContent = sepRun.label;
+    ui.sepPct.textContent = `${pct} %`;
+    ui.sepBar.value = Math.round(overall * 1000);
+    let t = `En cours depuis ${fmt(el)}`;
+    if (overall > 0.04) t += ` — reste environ ${fmt(Math.max(1, el / overall - el))}`;
+    if (slow) t += ` — plus lent que prévu, le calcul continue (dernier morceau fini il y a ${Math.round(idle)} s)`;
+    ui.sepTime.textContent = t;
+    ui.sepProg.classList.toggle('stalled', slow);
+    document.title = `${pct} % — Séparation — StudioVoix`;
+    sepKeepAliveUpdate(pct);
+    setStatus(`Séparation en cours : ${sepRun.label} — ${pct} % (ne ferme pas la page)`);
+}
+function sepBegin(steps) {
+    Object.assign(sepRun, { gpuNote: '', cSkipped: 0, cDone: 0, cTotal: 0, cDur: 0, cLast: performance.now(), cancel: false, t0: performance.now(), steps, step: 1, label: 'Préparation de la chanson…', frac: 0, last: performance.now() });
+    sepRun.title = document.title;
+    ui.sepProg.hidden = false; ui.sepSub.textContent = '';
+    ui.sepBtn.textContent = '⏳ Séparation en cours…';
+    ui.sepProg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    sepRun.timer = setInterval(sepRender, 500);
+    window.addEventListener('beforeunload', sepLeaveGuard);
+    document.addEventListener('visibilitychange', sepVisibility);
+    sepKeepAliveStart();
+    sepWakeLock();
+    sepRender();
+}
+function sepEnd() {
+    clearInterval(sepRun.timer); sepRun.timer = 0;
+    ui.sepProg.hidden = true; ui.sepProg.classList.remove('stalled');
+    ui.sepBtn.textContent = '✂ Séparer la chanson';
+    document.title = sepRun.title || 'StudioVoix Web';
+    window.removeEventListener('beforeunload', sepLeaveGuard);
+    document.removeEventListener('visibilitychange', sepVisibility);
+    sepKeepAliveStop();
+    if (sepRun.wake && !sepRun.wake.released) sepRun.wake.release().catch((e) => log('warn', `écran : ${e.message}`));
+    sepRun.wake = null;
+}
+// Arrêt demandé entre deux étapes (hors calcul IA, que cancelIsolation coupe directement).
+function sepCheck() { if (sepRun.cancel) { const e = new Error('séparation arrêtée'); e.skipped = true; throw e; } }
+// Écran gardé allumé pendant « Séparer » : sur téléphone, l'écran qui s'éteint met la page en veille et le calcul
+// s'arrête (ou la page est fermée par le système). Repris au retour sur la page (le navigateur le relâche en arrière-plan).
+async function sepWakeLock() {
+    if (!state.separating || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try {
+        sepRun.wake = await navigator.wakeLock.request('screen');
+        log('info', 'écran gardé allumé pendant la séparation');
+        sepRun.wake.addEventListener?.('release', () => log('info', 'écran : maintien allumé relâché'));
+    } catch (e) { log('warn', `écran non gardé allumé (${e.message}) : garde la page ouverte au premier plan`); }
+}
+function sepVisibility() {
+    if (!state.separating) return;
+    if (document.visibilityState === 'visible') { if (!sepRun.wake || sepRun.wake.released) sepWakeLock(); }
+    else log('info', `page en arrière-plan pendant la séparation : ${sepRun.keep && !sepRun.keep.paused ? 'son de veille actif, le calcul continue' : 'sans son de veille, le téléphone peut geler la page'}`);
+}
+// Travail en arrière-plan / écran éteint : Android gèle les pages muettes en arrière-plan (calcul arrêté), mais laisse
+// tourner celles qui jouent du son (comme un lecteur de musique). Pendant « Séparer », la page joue donc en boucle un
+// son de veille : 30 Hz à -46 dBFS (sous ce que reproduit un haut-parleur de téléphone, inaudible au casque à volume
+// normal) et affiche la progression dans la notification multimédia (Media Session).
+let keepAliveUrl = '';
+function keepAliveWav() {
+    if (keepAliveUrl) return keepAliveUrl;
+    const sr = 8000, n = sr * 4, amp = Math.pow(10, -46 / 20) * 32767;
+    const buf = new ArrayBuffer(44 + 2 * n), v = new DataView(buf);
+    const str = (o, t) => { for (let i = 0; i < t.length; ++i) v.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + 2 * n, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, 2 * sr, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, 2 * n, true);
+    for (let i = 0; i < n; ++i) v.setInt16(44 + 2 * i, Math.round(amp * Math.sin(2 * Math.PI * 30 * i / sr)), true);   // 4 s = 120 périodes : boucle sans clic
+    keepAliveUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+    return keepAliveUrl;
+}
+function sepKeepAliveStart() {
+    try {
+        const a = sepRun.keep || (sepRun.keep = new Audio());
+        a.src = keepAliveWav(); a.loop = true; a.volume = 1;
+        a.play().then(() => log('info', 'arrière-plan : son de veille actif (la séparation continue écran éteint)'))
+            .catch((e) => log('warn', `arrière-plan : son de veille refusé (${e.message}) : garde l'écran allumé`));
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({ title: 'Séparation en cours', artist: 'StudioVoix', album: 'IA' });
+            // « Pause » dans la notification : on relance le son de veille (sinon la page serait gelée et le calcul arrêté).
+            navigator.mediaSession.setActionHandler('pause', () => { log('warn', 'pause demandée dans la notification : la séparation continue (Arrêter depuis la page)'); a.play().catch(() => {}); });
+            navigator.mediaSession.setActionHandler('play', () => a.play().catch(() => {}));
+        }
+    } catch (e) { log('warn', `arrière-plan indisponible : ${e.message}`); }
+}
+function sepKeepAliveUpdate(pct) {
+    if (!('mediaSession' in navigator) || !navigator.mediaSession.metadata) return;
+    const now = performance.now();
+    if (now - (sepRun.mediaAt || 0) < 4000) return;
+    sepRun.mediaAt = now;
+    try { navigator.mediaSession.metadata = new MediaMetadata({ title: `Séparation ${pct} %`, artist: 'StudioVoix', album: sepRun.label || 'IA' }); }
+    catch (e) { /* métadonnées refusées : sans effet sur le calcul */ }
+}
+function sepKeepAliveStop() {
+    try {
+        if (sepRun.keep) { sepRun.keep.pause(); sepRun.keep.removeAttribute('src'); sepRun.keep.load(); }
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = null;
+            navigator.mediaSession.setActionHandler('pause', null); navigator.mediaSession.setActionHandler('play', null);
+        }
+        log('info', 'arrière-plan : son de veille arrêté');
+    } catch (e) { log('warn', `arrière-plan : ${e.message}`); }
+}
+function sepLeaveGuard(e) { e.preventDefault(); e.returnValue = ''; }   // quitter la page = calcul perdu : le navigateur demande
+// Reprise fine : une étape = une seule grille de morceaux sur toute la chanson (isolate.js, mdxGrid : morceaux de 5,9 s
+// tous les 4,4 s), calculée par tranches d'environ 40 s (9 morceaux), sans marge : aucun morceau n'est calculé deux
+// fois, et le résultat est celui d'un calcul en un seul bloc. Chaque tranche finie est gardée tout de suite (IndexedDB,
+// magasin « meta », clés « sep:… » : sommes pondérées de ses morceaux). Si le téléphone ferme la page (veille,
+// mémoire), la relance reprend à la tranche en cours. Moins de mémoire aussi : l'IA ne voit jamais plus de 42 s à la
+// fois. Une seule chanson gardée à la fois ; tout est effacé après réussite.
+const SEG_CORE = 40 * 44100;   // durée visée d'une tranche (grain de la reprise)
+const SEP_PREFIX = 'sep:';
+const SEP_FAST_TAG = '|vf';   // marque des tranches calculées en « Très rapide » dans l'identifiant de reprise (separateSong)
+async function sepDb(fn) {
+    const db = await openDb();
+    try { return await fn(db); } finally { db.close(); }
+}
+async function sepCacheGet(id, part) {
+    try {
+        const c = await sepDb((db) => idb(db, 'meta', 'readonly', (st) => st.get(`${SEP_PREFIX}${id}:${part}`)));
+        if (c && c.left?.length) return c;
+    } catch (e) { log('warn', `reprise de la séparation indisponible : ${e.message}`); }
+    return null;
+}
+async function sepCachePut(id, part, left, right) {
+    try { await sepDb((db) => idb(db, 'meta', 'readwrite', (st) => st.put({ left, right }, `${SEP_PREFIX}${id}:${part}`))); }
+    catch (e) { log('warn', `tranche non gardée pour la reprise (${e.message}) : une coupure obligerait à la refaire`); }
+}
+// Efface les tranches gardées (toutes, ou toutes sauf celles de la chanson keepId).
+async function sepCacheClear(keepId = null) {
+    try {
+        await sepDb(async (db) => {
+            const keys = await idb(db, 'meta', 'readonly', (st) => st.getAllKeys());
+            const old = (keys || []).filter((k) => typeof k === 'string' && k.startsWith(SEP_PREFIX) && !(keepId && k.startsWith(`${SEP_PREFIX}${keepId}:`)));
+            if (old.length) await idb(db, 'meta', 'readwrite', (st) => { for (const k of old) st.delete(k); });
+            if (old.length) log('info', `reprise : ${old.length} tranche(s) d'une ancienne séparation effacée(s)`);
+        });
+    } catch (e) { log('warn', `nettoyage de la reprise : ${e.message}`); }
+}
+// Après un rechargement (coupure pendant « Séparer ») : s'il reste des tranches gardées pour la chanson posée, on le
+// dit sous le bouton et au journal, pour que la relance soit évidente (elle relit ces tranches au lieu de les refaire).
+async function sepResumeNotice() {
+    if (!state.instru || state.separating) return;
+    try {
+        const keys = await sepDb((db) => idb(db, 'meta', 'readonly', (st) => st.getAllKeys()));
+        const mine = (keys || []).filter((k) => typeof k === 'string' && k.startsWith(`${SEP_PREFIX}${state.instru.audioId}|`));
+        if (!mine.length) return;
+        const steps = [...new Set(mine.map((k) => k.slice(k.lastIndexOf(':') + 1).split('#')[0]))].map((k) => SEP_MODELS[k] || k);
+        ui.sepInfo.textContent = `Séparation interrompue : ${mine.length} tranche(s) d'environ 40 s déjà calculée(s) sont gardées (${steps.join(', ')}). Relance « Séparer la chanson » : le calcul reprend là où il s'était arrêté, sans les refaire.`;
+        log('info', `reprise possible : ${mine.length} tranche(s) gardée(s) d'une séparation interrompue (${steps.join(', ')}) pour la chanson posée`);
+        // Les tranches d'un modèle ne servent jamais à l'autre : si la case « Très rapide » a changé, la relance repart de zéro.
+        const keptFast = mine.some((k) => k.includes(SEP_FAST_TAG));
+        if (keptFast !== ui.sepFast.checked) {
+            ui.sepInfo.textContent += ` Ces tranches ont été calculées ${keptFast ? 'avec' : 'sans'} « Très rapide » : ${keptFast ? 'recoche' : 'décoche'} la case pour reprendre, sinon le calcul repart du début.`;
+            log('warn', `reprise : tranches gardées ${keptFast ? 'avec' : 'sans'} « Très rapide », case ${ui.sepFast.checked ? 'cochée' : 'décochée'} → elles ne seront pas relues tant que la case n'est pas remise`);
+        }
+    } catch (e) { log('warn', `reprise : tranches gardées illisibles (${e.message})`); }
+}
+// Profil d'une étape, en une ligne de journal : où part le temps (modèle, transformées en JavaScript, reste). Sert à
+// comparer les appareils (un téléphone peut passer bien plus de temps qu'un PC dans les transformées).
+function sepProfileLog(key, prof, secs) {
+    const s1 = (ms) => (ms / 1000).toFixed(1).replace('.', ','), tf = prof.stftMs + prof.istftMs;
+    const rest = Math.max(0, secs * 1000 - prof.modelMs - tf), per = Math.max(1, prof.chunks);
+    log('info', `Profil ${SEP_MODELS[key]} : ${prof.chunks} morceau(x) calculé(s), ${prof.skipped} sauté(s) — modèle ${s1(prof.modelMs)} s, ` +
+        `transformées ${s1(tf)} s (aller ${s1(prof.stftMs)} s, retour ${s1(prof.istftMs)} s), reste ${s1(rest)} s — par morceau : modèle ${s1(prof.modelMs / per)} s, ` +
+        `transformées ${s1(tf / per)} s, reste ${s1(rest / per)} s`);
+}
+// Une étape IA complète, tranche par tranche, avec reprise. Même normalisation (crête du morceau entier) pour toutes
+// les tranches, pour que l'IA voie le même niveau qu'en un seul bloc.
+async function sepStep(cacheId, key, L, R, step, steps) {
+    const n = L.length, grid = mdxGrid(n, MDX_MODELS[key], sepOverlapOf(key));
+    const per = Math.max(1, Math.floor(SEG_CORE / grid.step)), nSeg = Math.ceil(grid.total / per);   // morceaux par tranche
+    let peak = 0;
+    for (let i = 0; i < n; ++i) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
+    sepCheck();
+    sepSet(step, `Étape ${step}/${steps} : ${SEP_MODELS[key]}`, 0);
+    sepRun.isModel = true; sepRun.key = key;
+    sepRun.seg = { i: 0, n: nSeg, per, chunks: grid.total };
+    log('info', `Séparation, étape ${step}/${steps} : ${SEP_MODELS[key]} — ${nSeg} tranche(s) de ${Math.round(per * grid.step / 44100)} s (${per} morceaux par tranche, ${grid.total} morceaux en tout, aucun calculé deux fois)`);
+    const outL = new Float32Array(n), outR = new Float32Array(n);
+    let reused = 0, reusedChunks = 0, secs = 0;
+    const prof = { chunks: 0, skipped: 0, stftMs: 0, modelMs: 0, istftMs: 0 };   // profil de l'étape (somme des tranches calculées)
+    for (let i = 0; i < nSeg; ++i) {
+        sepCheck();
+        const part = mdxPart(grid, i * per, Math.min(grid.total, (i + 1) * per));   // morceaux k0 à k1 − 1
+        sepRun.seg.i = i;
+        let y = await sepCacheGet(cacheId, `${key}#${i}`);
+        if (y && y.left.length === part.p1 - part.p0 && y.right?.length === y.left.length) {
+            ++reused; reusedChunks += part.k1 - part.k0;
+            sepChunk(part.k1, grid.total, true);   // reprise : avancée sans calcul
+        } else {
+            if (y) log('warn', `reprise : tranche ${i + 1} de l'étape ${SEP_MODELS[key]} gardée mais inutilisable (${y.left.length} échantillons au lieu de ${part.p1 - part.p0}) → recalculée`);
+            const r = await isoCall('isolate', { model: key, left: L.slice(part.s0, part.s1), right: R.slice(part.s0, part.s1), release: false,
+                opts: { ...(SEP_OPTS[key] || {}), peak, denoise: ui.sepDenoise.checked, part: { n, k0: part.k0, k1: part.k1 } } });
+            iso.backend = r.backend; secs += r.seconds;
+            if (r.profile) for (const k of Object.keys(prof)) prof[k] += r.profile[k] || 0;
+            // Garde-fou : un ancien worker resté en cache ignorerait « part » et rendrait autre chose que des sommes pondérées.
+            if (r.part?.k0 !== part.k0 || r.part?.k1 !== part.k1) throw new Error('le moteur de séparation n\'est pas à jour (ancienne version en cache) : recharge la page');
+            if (r.left.length !== part.p1 - part.p0 || r.right.length !== r.left.length) throw new Error(`tranche ${i + 1} de l'étape ${SEP_MODELS[key]} : taille inattendue (${r.left.length} au lieu de ${part.p1 - part.p0})`);
+            y = { left: r.left, right: r.right };
+            await sepCachePut(cacheId, `${key}#${i}`, y.left, y.right);
+        }
+        mdxPartAdd(grid, part, y, outL, outR);   // sommes pondérées des morceaux de la tranche
+    }
+    mdxFinish(grid, outL, outR);   // division par la somme des poids : même résultat qu'un calcul en un seul bloc
+    sepRun.seg = null;
+    if (key !== 'voc') await isoCall('release', { model: key }).catch((e) => log('warn', `libération ${key} : ${e.message}`));
+    log('info', `Séparation ${SEP_MODELS[key]} : ${nSeg} tranche(s), ${reused} reprise(s) sans calcul (${reusedChunks} morceau(x) relu(s) sur ${grid.total}), ${secs.toFixed(1)} s de calcul sur ${iso.backend || '?'}`);
+    sepProfileLog(key, prof, secs);
+    return { left: outL, right: outR, chunks: grid.total, reusedChunks };
+}
+// Durée utile d'une piste : temps passé au-dessus de −55 dBFS (trames de 50 ms). Une piste de voix de moins de
+// SEP_MIN_USEFUL_SEC de contenu utile n'est pas créée (26/11) : son contenu reste sur la piste dont il vient.
+const SEP_MIN_USEFUL_SEC = 2, SEP_USEFUL_DB = -55;
+function usefulSec(mono, sr) {
+    const fr = Math.max(1, Math.round(0.05 * sr)), thr = Math.pow(10, SEP_USEFUL_DB / 10);
+    let n = 0;
+    for (let a = 0; a < mono.length; a += fr) {
+        const b = Math.min(mono.length, a + fr);
+        let e = 0;
+        for (let i = a; i < b; ++i) e += mono[i] * mono[i];
+        if (e / (b - a) > thr) n += b - a;
+    }
+    return n / sr;
+}
+// Nom du moteur de calcul tel qu'on l'écrit au journal : « carte graphique (WebGPU) » ou « processeur (N fils) » (le
+// worker dit « processeur (WASM, N fils) »). La page n'utilise ni WebGL ni autre moteur.
+const sepEngineName = (backend) => (backend || 'moteur inconnu').replace('WASM, ', '');
+// Moteur prévu avant le calcul, par la même règle que le worker (isolate-worker.js, ensureSession) : carte graphique
+// si le navigateur a WebGPU, qu'elle n'a pas été écartée sur cet appareil et que son essai réussit ; sinon processeur.
+async function sepEnginePlan() {
+    const cores = navigator.hardwareConcurrency || 2, threads = window.crossOriginIsolated ? Math.max(1, Math.min(8, cores - 1)) : 1;
+    const cpu = `processeur (${threads} fil${threads > 1 ? 's' : ''})`;
+    if (iso.worker && iso.backend) return { gpu: /WebGPU/.test(iso.backend), text: `${sepEngineName(iso.backend)}, déjà démarré` };
+    let banned = '';
+    try { banned = localStorage.getItem('sv-no-webgpu') || ''; } catch { banned = ''; }
+    if (banned) return { gpu: false, text: `${cpu} — carte graphique écartée sur cet appareil lors d'un essai précédent (${banned === 'timeout' ? 'essai trop long' : banned === 'aberrant' ? 'résultat faux' : banned})` };
+    let gpu = false;
+    try { gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch (e) { log('warn', `carte graphique non interrogeable (${e.message})`); }
+    return gpu ? { gpu: true, text: `carte graphique (WebGPU) si son essai réussit, sinon ${cpu}` } : { gpu: false, text: `${cpu} — pas de carte graphique utilisable par ce navigateur (WebGPU absent)` };
+}
+const sepDur = (s) => (s >= 59.95 ? `${Math.floor(Math.round(s) / 60)} min ${String(Math.round(s) % 60).padStart(2, '0')} s` : `${s.toFixed(1).replace('.', ',')} s`);
+async function separateSong() {
+    if (!state.instru) return;
+    const comp = { voc: 1.021, vocFast: 1.03, kara: 1.065, reverb: 1.035 };   // = MODELS[*].compensate (isolate.js)
+    const fastOn = ui.sepFast.checked, vocKey = fastOn ? 'vocFast' : 'voc';   // « Très rapide » : modèle léger à l'étape voix / instru
+    const doKara = ui.sepLeadBack.checked, doRev = SEP_AMBIANCE_ON && ui.sepAmbiance.checked, doSing = ui.sepSingers.checked;
+    const steps = 1 + (doKara ? 1 : 0) + (doRev ? 1 : 0) + (doSing ? 1 : 0);
+    const t0 = performance.now();
+    stopPlayback();
+    ui.sepBtn.disabled = true; state.isolating = true; state.separating = true;
+    // « Instru : corrigée » : la séparation travaille sur l'original ; la version corrigée est retirée de la mémoire
+    // pendant le calcul (téléphone) et refaite à la fin, pour l'instru en place.
+    if (state.instru.fixed) { instruFixDrop('séparation de la chanson : elle travaille sur l\'original, la correction est refaite à la fin'); renderTracks(); }
+    sepBegin(steps);
+    // Bilan de fin : durée de chaque étape (stepsLog), moteur prévu / utilisé.
+    const stepsLog = [];
+    const timed = async (name, fn, note = '') => {
+        const t = performance.now(), r = await fn();
+        stepsLog.push({ name, sec: (performance.now() - t) / 1000, chunks: r?.chunks, reused: r?.reusedChunks, note });
+        return r;
+    };
+    try {
+        const src = instruSource(), sr = src.sampleRate;   // l'ORIGINAL, jamais la version corrigée
+        const plan = await sepEnginePlan();
+        log('info', `Séparation — départ : calcul sur ${plan.text} ; ${steps} étape(s) : ${['voix / instru', ...(doKara ? ['voix principale / backs'] : []), ...(doRev ? ['ambiance'] : []), ...(doSing ? ['chanteurs'] : [])].join(', ')}` +
+            ` ; voix / instru : ${sepModelName(fastOn)}${fastOn ? ` (${MDX_MODELS.vocFast.modelFile}, recouvrement ${String(SEP_FAST_OVERLAP).replace('.', ',')})` : ''}` +
+            `${ui.sepSections.checked ? ' ; couplets / refrains demandés' : ''}${ui.sepDenoise.checked ? ' ; finition soignée (deux calculs par morceau)' : ''} ; ${fmt(src.seconds)} de chanson, ${sepDevice.phone ? 'téléphone' : 'ordinateur'}`);
+        const song = await timed('préparation', () => resampleStereo(src.left, src.right, sr, 44100));
+        // 1) voix / instru
+        // « g2 » : format des tranches gardées (sommes pondérées sur une grille unique) — les anciennes ne sont pas relues.
+        // « Très rapide » : identifiant à part (modèle et recouvrement) — les tranches d'un modèle, et celles des étapes
+        // suivantes calculées à partir de sa voix, ne sont jamais relues pour l'autre.
+        const cacheId = `${src.audioId}|${SEP_OVERLAP}|${song.left.length}|${ui.sepDenoise.checked ? 'dn' : 'std'}|g2${fastOn ? `${SEP_FAST_TAG}${SEP_FAST_OVERLAP}` : ''}`;
+        await sepCacheClear(cacheId);   // une seule chanson gardée
+        const v = await timed(SEP_MODELS[vocKey], () => sepStep(cacheId, vocKey, song.left, song.right, 1, steps), sepModelName(fastOn));
+        const VL = v.left.map((x) => x * comp[vocKey]), VR = v.right.map((x) => x * comp[vocKey]);
+        // L'instru est calculée plus bas, à la fréquence d'origine : morceau d'origine (jamais rééchantillonné) − porte × voix.
+        let leadL = VL, leadR = VR, backL = null, backR = null, ambL = null, ambR = null, step = 1;
+        // 2) voix principale / backs
+        if (doKara) {
+            const k = await timed(SEP_MODELS.kara, () => sepStep(cacheId, 'kara', VL, VR, ++step, steps));
+            backL = k.left.map((x) => x * comp.kara); backR = k.right.map((x) => x * comp.kara);
+            leadL = VL.map((x, i) => x - backL[i]); leadR = VR.map((x, i) => x - backR[i]);
+            // Voix doublée / à plusieurs couches (vu sur de vrais morceaux) : le modèle classe toute la voix en « backs »
+            // et il ne reste rien en voix principale. Dans ce cas la voix entière est gardée comme voix principale.
+            const leadDb = rmsDbSt(leadL, leadR), backDb = rmsDbSt(backL, backR);
+            if (leadDb < backDb - 12) {
+                log('warn', `Séparation : voix principale presque vide (${leadDb.toFixed(1)} dB contre ${backDb.toFixed(1)} dB en backs) → toute la voix est gardée en voix principale (voix doublée ou en chœur)`);
+                leadL = VL; leadR = VR; backL = null; backR = null;
+            } else log('info', `Séparation : voix principale ${leadDb.toFixed(1)} dB, backs ${backDb.toFixed(1)} dB`);
+            // Pas de piste presque vide : sous 2 s de contenu utile d'un côté, on ne coupe pas la voix en deux.
+            if (backL) {
+                const ub = usefulSec(toMonoLR(backL, backR), 44100), ul = usefulSec(toMonoLR(leadL, leadR), 44100);
+                if (ub < SEP_MIN_USEFUL_SEC || ul < SEP_MIN_USEFUL_SEC) {
+                    log('info', `Séparation : ${ub < SEP_MIN_USEFUL_SEC ? `backs trop courts (${ub.toFixed(1)} s utiles` : `voix principale trop courte (${ul.toFixed(1)} s utiles`}, moins de ${SEP_MIN_USEFUL_SEC} s au-dessus de ${SEP_USEFUL_DB} dBFS) → pas de piste à part : toute la voix reste sur la piste de voix principale`);
+                    leadL = VL; leadR = VR; backL = null; backR = null;
+                } else log('info', `Séparation : contenu utile — voix principale ${ul.toFixed(1)} s, backs ${ub.toFixed(1)} s`);
+            }
+        }
+        // 3) ambiance (expérimental, option masquée : SEP_AMBIANCE_ON)
+        if (doRev) {
+            const rv = await timed(SEP_MODELS.reverb, () => sepStep(cacheId, 'reverb', leadL, leadR, ++step, steps));
+            ambL = rv.left.map((x) => x * comp.reverb); ambR = rv.right.map((x) => x * comp.reverb);
+            leadL = leadL.map((x, i) => x - ambL[i]); leadR = leadR.map((x, i) => x - ambR[i]);
+        }
+        // retour à la fréquence du projet
+        sepCheck();
+        sepRun.isModel = false;
+        sepSet(null, 'Assemblage des pistes…', 1); sepRun.stepLabel = 'Assemblage des pistes';
+        const tAsm = performance.now();
+        const back44 = async (L, R) => (L ? await resampleStereo(L, R, 44100, sr) : null);
+        const vocSr = await back44(VL, VR), lead = await back44(leadL, leadR), backs = await back44(backL, backR), amb = await back44(ambL, ambR);
+        const fit = (x) => { const o = new Float32Array(src.left.length); o.set(x.subarray(0, o.length)); return o; };
+        // Instru = morceau d'origine − porte × voix, à la fréquence d'origine. Porte dans le temps (instru.js) : fermée là où
+        // la voix estimée est très en dessous de la chanson (bruit du modèle, personne ne chante) → l'original au bit près ;
+        // ouverte là où ça chante → morceau d'origine − voix. Les pistes de voix (plus bas) ne sont pas touchées par la porte.
+        const vl = fit(vocSr.left), vr = fit(vocSr.right);
+        const tGate = performance.now();
+        const I = gatedInstru(src.left, src.right, vl, vr, sr);
+        log('info', `Séparation, instru : original exact sur ${(100 * I.closed).toFixed(1)} % de la chanson (personne ne chante : rien n'est retiré), voix retirée sur ${(100 * I.open).toFixed(1)} %, fondu entre les deux sur ${(100 * I.between).toFixed(1)} % — porte dans le temps : voix estimée à ${GATE_DEFAULTS.thresholdDb} dB sous la chanson, trames de ${Math.round(1000 * GATE_DEFAULTS.frameSec)} ms, ${Math.round(performance.now() - tGate)} ms`);
+        // 4) chanteurs
+        const leadMono = fit(toMonoLR(lead.left, lead.right));
+        stepsLog.push({ name: 'assemblage', sec: (performance.now() - tAsm) / 1000 });
+        let parts = [{ name: 'Voix principale (séparée)', mono: leadMono }], singersNote = '';
+        // Presque pas de voix dans la chanson (moins de 2 s utiles) : aucune piste de voix, et rien n'est retiré de la
+        // chanson (le peu de voix reste là d'où il vient : la piste Instru).
+        const voiceSec = backs ? Infinity : usefulSec(leadMono, sr);
+        const noVoice = voiceSec < SEP_MIN_USEFUL_SEC;
+        if (noVoice) {
+            parts = [];
+            log('warn', `Séparation : presque pas de voix repérée (${voiceSec.toFixed(1)} s utiles, moins de ${SEP_MIN_USEFUL_SEC} s au-dessus de ${SEP_USEFUL_DB} dBFS) → aucune piste de voix, la chanson reste entière sur la piste Instru`);
+        }
+        if (doSing && !noVoice) {
+            sepCheck();
+            sepSet(steps, `Étape ${steps}/${steps} : repérage des chanteurs (empreinte de voix)`, 0);
+            log('info', `Séparation, étape ${steps}/${steps} : chanteurs`);
+            const tSing = performance.now();
+            const embed = async (feats, frames) => (await isoCall('embed', { model: 'spk', feats, frames }, [feats.buffer])).emb;
+            const res = await findSingers(leadMono, sr, embed, { onProgress: (d, t) => sepSet(null, null, d / Math.max(1, t)) });
+            await isoCall('release', { model: 'spk' }).catch(() => {});
+            singersNote = res.why;
+            log('info', `Chanteurs : ${res.why}`);
+            // Une piste par voix repérée (2, 3… autant qu'il y en a).
+            // Fondu enchaîné exact aux coupes : la somme des pistes redonne la voix d'origine (pas de bosse à la coupe).
+            if (res.singers >= 2) {
+                let sing = splitRanges(leadMono, sr, res.phrases, res.singers).map((mono, k) => ({ mono, n: k + 1, useful: usefulSec(mono, sr) }));
+                // Pas de piste presque vide : un chanteur de moins de 2 s de chant n'a pas de piste, son chant est ajouté à
+                // la piste du chanteur le plus présent (la somme des pistes reste la voix d'origine).
+                const main = sing.reduce((a, b) => (b.useful > a.useful ? b : a));
+                for (const p of sing.filter((x) => x !== main && x.useful < SEP_MIN_USEFUL_SEC)) {
+                    for (let i = 0; i < main.mono.length; ++i) main.mono[i] += p.mono[i];
+                    log('info', `Chanteur ${p.n} : ${p.useful.toFixed(1)} s de chant seulement (moins de ${SEP_MIN_USEFUL_SEC} s) → pas de piste, son chant est rattaché au chanteur ${main.n} (le plus présent)`);
+                    singersNote += ` ; chanteur ${p.n} trop court (${p.useful.toFixed(1)} s) rattaché au chanteur ${main.n}`;
+                    p.dropped = true;
+                }
+                sing = sing.filter((x) => !x.dropped);
+                if (sing.length >= 2) parts = sing.map((p, k) => ({ name: `Chanteur ${k + 1} (séparé)`, mono: p.mono, who: `Chanteur ${k + 1}` }));
+                else log('info', 'Chanteurs : un seul chanteur avec assez de chant → une seule piste de voix principale');
+            }
+            stepsLog.push({ name: SEP_MODELS.spk, sec: (performance.now() - tSing) / 1000 });
+        }
+        // Couplets / refrains (26/11) : UNE piste pour tous les couplets et UNE pour tous les refrains, pour toute la voix
+        // principale, d'après les sections trouvées à l'analyse du morceau (coupes placées dans un creux de la voix).
+        // Si plusieurs chanteurs ont déjà chacun leur piste, ces pistes priment : pas de découpe en plus (elle
+        // multipliait les pistes : deux par chanteur).
+        let sectionsNote = '';
+        if (ui.sepSections.checked && !noVoice) {
+            const secs = state.instru.analysis?.sections || [];
+            const ranges = parts.length > 1 ? null : sectionRanges(leadMono, sr, secs);
+            if (parts.length > 1) sectionsNote = `${parts.length} chanteurs repérés : une piste par chanteur, sans découpe couplets / refrains en plus (pour ne pas multiplier les pistes)`;
+            else if (!ranges) sectionsNote = secs.length > 1 ? 'pas de refrain repéré dans ce morceau : voix laissée sur une seule piste' : 'morceau trop court pour repérer couplets et refrains';
+            else {
+                const [cpl, ref] = splitRanges(parts[0].mono, sr, ranges, 2, 'part');
+                const uc = usefulSec(cpl, sr), ur = usefulSec(ref, sr);
+                if (uc < SEP_MIN_USEFUL_SEC || ur < SEP_MIN_USEFUL_SEC) sectionsNote = `${uc < SEP_MIN_USEFUL_SEC ? 'couplets' : 'refrains'} presque vides (${Math.min(uc, ur).toFixed(1)} s de chant, moins de ${SEP_MIN_USEFUL_SEC} s) : voix laissée sur une seule piste`;
+                else {
+                    parts = [{ name: 'Couplets (séparés)', mono: cpl }, { name: 'Refrains (séparés)', mono: ref }];
+                    const cuts = ranges.slice(0, -1).map((r) => fmt(r.end)).join(', ');
+                    sectionsNote = `une piste couplets (${uc.toFixed(0)} s de chant) et une piste refrains (${ur.toFixed(0)} s) ; refrains ${ranges.filter((r) => r.part === 1).map((r) => `${fmt(r.start)}–${fmt(r.end)}`).join(', ')} ; coupes à ${cuts}`;
+                }
+            }
+            log('info', `Couplets / refrains : ${sectionsNote}`);
+        }
+        // Pistes : l'instru séparée remplace la chanson (l'original reste gardé pour « Rétablir »).
+        if (!noVoice) {
+            // audioId : celui sous lequel la chanson est déjà dans la sauvegarde (elle y reste : « Rétablir » survit au rechargement).
+            const original = state.instru.original || { left: src.left, right: src.right, name: src.name, audioId: src.audioId };
+            state.instru.left = fit(I.left); state.instru.right = fit(I.right);
+            state.instru.original = original;
+            state.instru.name = original.name.replace(/\.[^.]+$/, '') + ' (instru séparée)';
+            state.instru.audioId = `i${Date.now().toString(36)}`;
+        }
+        const made = [], madeTracks = [];
+        const mk = (name, roleId, mono) => {
+            if (rmsDbSt(mono, mono) < -55) { log('info', `${name} : rien de repéré (sous -55 dBFS), pas de piste`); return; }
+            const t = addTrack(roleId, name);   // naît en « Correction », comme toute nouvelle piste (plus « sans effet »)
+            t.locked = true;   // calée sur l'instru : pas de déplacement par accident
+            t.styleId = state.tracks.find((x) => x.roleId === 'lead' && x !== t)?.styleId || t.styleId;
+            addTake(t, { mono, sampleRate: sr, startSec: 0, note: 'séparée de la chanson', label: 'Séparée' });
+            made.push(`${name} (${roleLabel(roleId)})`);
+            madeTracks.push(t);
+        };
+        // pistes vides laissées par défaut au démarrage : retirées pour ne pas encombrer
+        state.tracks = state.tracks.filter((t) => t.take || t.name !== 'Voix principale');
+        for (const p of parts) mk(p.name, 'lead', p.mono);
+        if (backs) mk('Backs (séparés)', 'manual_back', fit(toMonoLR(backs.left, backs.right)));
+        if (amb) mk('Ambiance (séparée)', 'ambiance', fit(toMonoLR(amb.left, amb.right)));
+        proposeAddRole('chanson séparée');
+        state.armedId = 0; state.balanceDirty = true;
+        markDirty();
+        renderTracks();
+        const sec = (performance.now() - t0) / 1000;
+        ui.sepInfo.textContent = (noVoice ? `Séparation finie en ${fmt(sec)} : presque pas de voix repérée (moins de ${SEP_MIN_USEFUL_SEC} s) — la chanson n'a pas été changée, aucune piste créée.`
+                : `Séparée en ${fmt(sec)} : instru + ${made.length} piste(s) — ${made.join(', ') || 'aucune voix repérée'}`) +
+            (singersNote ? `\nChanteurs : ${singersNote}` : '') + (sectionsNote ? `\nCouplets / refrains : ${sectionsNote}` : '') + (noVoice ? '' : `\nL'original est gardé : « Rétablir le morceau » pour revenir en arrière.`);
+        log('info', `Séparation terminée en ${sec.toFixed(1)} s : ${made.join(', ')}`);
+        // Bilan en une ligne : moteur réellement utilisé (et repli éventuel), durée par étape, total, pistes créées.
+        const usedGpu = /WebGPU/.test(iso.backend || '');
+        const fallback = sepRun.gpuNote ? `repli sur le processeur : carte graphique écartée (${sepRun.gpuNote})`
+            : plan.gpu && !usedGpu ? 'repli sur le processeur : la carte graphique n\'a pas passé son essai' : 'sans repli';
+        log('info', `Séparation — bilan : moteur ${sepEngineName(iso.backend)}, ${fallback} ; durée par étape : ` +
+            stepsLog.map((s) => `${s.name} ${sepDur(s.sec)}${s.chunks ? ` (${s.chunks} morceaux${s.reused ? `, dont ${s.reused} relus après coupure` : ''}${s.note ? `, ${s.note}` : ''})` : ''}`).join(', ') +
+            ` ; total ${sepDur(sec)} ; ${made.length} piste(s) créée(s)${made.length ? ' : ' + made.join(', ') : ''}`);
+        sepCacheClear();
+        setStatus(noVoice ? 'Chanson séparée : presque pas de voix repérée, la chanson est restée entière sur la piste Instru (aucune piste créée).'
+            : `Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix à leur type, corrigées automatiquement (sans couleur de style). « Mixer la chanson » quand tout est prêt.`);
+        // Correction automatique d'office des pistes créées (une après l'autre) ; la barre d'état garde « Chanson séparée ».
+        if (madeTracks.length) {
+            log('info', `Séparation : correction automatique lancée sur ${madeTracks.length} piste(s) créée(s) (${madeTracks.map((t) => `« ${t.name} »`).join(', ')})`);
+            for (const t of madeTracks) queueProcess(t);
+            autoRun.head = `Chanson séparée : instru seule sur la piste Instru, ${made.length} piste(s) de voix à leur type. `;
+        }
+    } catch (err) {
+        if (err.skipped) { setStatus('Séparation arrêtée à la demande : rien n\'a été changé.'); ui.sepInfo.textContent = 'Séparation arrêtée : rien n\'a été changé.'; }
+        else { setStatus('Séparation impossible : ' + err.message); ui.sepInfo.textContent = 'Séparation impossible : ' + err.message; log('error', 'Séparation : ' + err.message); }
+    } finally {
+        state.isolating = false; state.separating = false; iso.t0 = 0;
+        sepEnd();
+        refreshButtons();
+        ensureInstruFix('après la séparation');   // « Instru : corrigée » allumé : refaite pour l'instru en place
+    }
+}
+ui.sepBtn.addEventListener('click', separateSong);
+for (const c of [ui.sepLeadBack, ui.sepAmbiance, ui.sepSingers, ui.sepDenoise, ui.sepFast]) c.addEventListener('change', sepEstimate);
+for (const k of Object.keys(SEP_BOXES)) SEP_BOXES[k].addEventListener('change', () => sepChoiceKeep(k));   // choix fait à la main : gardé sur l'appareil
+ui.sepFast.addEventListener('change', sepResumeNotice);   // tranches gardées après une coupure : dit si elles serviront encore
+sepChoiceApply();
+ui.sepStopBtn.addEventListener('click', () => {
+    if (!state.separating) return;
+    if (!confirm('Arrêter la séparation ? Le calcul en cours est perdu, la chanson reste comme avant.')) return;
+    log('warn', 'Séparation arrêtée par l\'utilisateur');
+    sepRun.cancel = true;
+    ui.sepStep.textContent = 'Arrêt en cours…';
+    cancelIsolation();
+});
+function restoreOriginalSong() {
+    const o = state.instru?.original;
+    if (!o) return;
+    if (!confirm('Rétablir le morceau d\'origine sur la piste Instru ? (les pistes séparées restent ; supprime-les si besoin)')) return;
+    state.instru.left = o.left; state.instru.right = o.right; state.instru.name = o.name; state.instru.original = null;
+    state.instru.audioId = o.audioId || `i${Date.now().toString(36)}`;   // même son, même identifiant : pas de seconde écriture dans la sauvegarde
+    log('info', `Morceau d'origine rétabli sur la piste Instru : « ${o.name} »`);
+    state.balanceDirty = true; markDirty(); renderTracks();
+    setStatus('Morceau d\'origine rétabli sur la piste Instru.');
+    ensureInstruFix('morceau rétabli');   // « Instru : corrigée » allumé : refaite pour le morceau d'origine
+}
+
+// ------------------------------------------------------------------ mixage final (« Mixer la chanson »)
+// Quand tout est enregistré : le moteur met chaque piste à sa place selon son type, soude les voix (bus voix), pose
+// les voix sur l'instru (sonie visée par le style, creux de l'instru sous la voix si coché) puis masterise (cohésion,
+// couleur du style, limiteur, sonie de la destination). Résultat : une seule chanson stéréo.
+ui.finalMixBtn.addEventListener('click', async () => {
+    try {
+        stopPlayback();
+        ui.finalMixBtn.disabled = true;
+        setStatus('Mixage de la chanson : attente des traitements en cours…');
+        mtFlushPending();
+        await state.jobs;
+        // Tout doit être en place : une piste encore brute (jamais traitée, ou réglage changé) est traitée d'abord.
+        const pending = state.tracks.filter((t) => t.take && audible(t) && !t.noFx && (!t.processed || t.status === 'busy'));
+        if (pending.length) {
+            setStatus(`Mixage de la chanson : traitement d'abord de ${pending.map((t) => '« ' + t.name + ' »').join(', ')} (style et type)…`);
+            for (const t of pending) if (!t.processed) queueProcess(t);
+            await state.jobs;
+        }
+        const list = state.tracks.filter((t) => t.take && audible(t));
+        if (!state.instru && !list.length) throw new Error('rien à mixer (ni instru ni prise)');
+        const sr = state.instru?.sampleRate || list[0].take.sampleRate;
+        const unprocessed = list.filter((t) => !t.processed && !t.noFx).map((t) => t.name);   // « sans effet » : brut voulu
+        setStatus(`Mixage de la chanson : ${list.length} piste(s) voix + instru, mastering ${ui.finalTarget.selectedOptions[0].textContent}…`);
+        const t0 = performance.now();
+        const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0]?.styleId || 'rap_conscient';
+        const insFixed = !!instruFixed(), ia = state.instru && audible(state.instruTrack) ? instruAudio() : null;
+        const xfer = [], ins = ia ? lrCopy(ia.left, ia.right, xfer) : null;
+        const r = await call('finalMix', {
+            instruL: ins?.left ?? null, instruR: ins?.right ?? null,
+            sampleRate: sr, styleId: leadStyle, targetId: ui.finalTarget.value, duckingDb: ui.finalDuck.checked ? 2.5 : 0, vocalOverInstruLu: voxInstruArg(),
+            tracks: list.map((t) => {
+                const a = trackAudio(t, 'mix');
+                return { key: t.id, ...lrCopy(a.left, a.right, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: t.volumeDb };
+            }),
+        }, xfer);
+        const rep = r.report;
+        state.finalMix = { left: r.left, right: r.right, sampleRate: sr, report: rep, stale: false };
+        const lines = rep.tracks.map((x) => {
+            const t = findTrack(x.key);
+            return `${t ? t.name : '#' + x.key} (${roleLabel(t?.roleId)}) : ${x.placeLu ? x.placeLu + ' LU sous la principale, ' : ''}${x.gainDb >= 0 ? '+' : ''}${x.gainDb.toFixed(1)} dB`;
+        });
+        ui.finalInfo.classList.remove('stale');
+        ui.finalInfo.textContent =
+            `Chanson mixée en ${((performance.now() - t0) / 1000).toFixed(1)} s — style ${rep.style}, ${rep.target} :\n` +
+            `• Voix : ${lines.join(' · ') || 'aucune'}\n` +
+            `• Voix soudées ensemble : compression ${rep.busGrDb.toFixed(1)} dB en moyenne${rep.busGrMaxDb != null ? `, ${rep.busGrMaxDb.toFixed(1)} dB au plus fort` : ''} (rattrapage +${rep.busMakeupDb.toFixed(1)} dB)\n` +
+            (ins && list.length ? `• Voix principale devant l'instru : ${fLuS(rep.vocalOverInstruLu)} (${rep.vocalOverInstruSet ? `réglée à la main ; style ${fLuS(rep.styleVocalOverInstruLu)}` : 'valeur du style'})\n` : '') +
+            `• Instru : ${insFixed && ins ? 'corrigée avant le mix (écrêtage réparé, niveau trop haut baissé) ; ' : ''}${rep.duckingDb > 0 ? `place faite à la voix (creux jusqu'à ${rep.duckingDb.toFixed(1)} dB vers 2,5 kHz quand la voix chante)` : insFixed && ins ? 'sans creux sous la voix' : 'telle quelle'}\n` +
+            `• Mastering : couleur du style (graves ${rep.lowShelfDb >= 0 ? '+' : ''}${rep.lowShelfDb} dB, aigus ${rep.highShelfDb >= 0 ? '+' : ''}${rep.highShelfDb} dB), ` +
+            `${rep.inputLufs.toFixed(1)} → ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP, limiteur ${rep.limiterGrDb.toFixed(1)} dB` +
+            (unprocessed.length ? `\n⚠ Pistes sans traitement (brutes) : ${unprocessed.join(', ')}` : '');
+        ui.finalPlayRow.hidden = false;
+        ui.exportFinalBtn.disabled = false;
+        log('info', `Mixage final : ${rep.inputLufs.toFixed(1)} -> ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
+        log('info', `Mixage final : instru ${!ins ? 'absente ou muette' : insFixed ? 'corrigée' : 'telle quelle'} ; voix principale visée ${fLuS(rep.vocalOverInstruLu)} devant l'instru (${rep.vocalOverInstruSet ? 'réglée à la main' : 'valeur du style'}), gain voix ${rep.vocalGainDb.toFixed(1)} dB`);
+        playFinal(state.playFromSec, true);
+        setStatus('Chanson mixée, lecture en cours : « ▶ Avant mixage » pour comparer, puis « Exporter la chanson mixée ».');
+    } catch (err) { setStatus('Mixage impossible : ' + err.message); log('error', 'Mixage final : ' + err.message); }
+    refreshButtons();
+});
+function playFinal(fromSec = state.playFromSec, quiet = false) {
+    const f = state.finalMix;
+    if (!f) return;
+    stopPlayback();
+    const ctx = audioContext();
+    const src = ctx.createBufferSource();
+    src.buffer = makeBuffer(f.left, f.right);
+    const outAn = ctx.createAnalyser(); outAn.fftSize = 1024;
+    src.connect(ctx.destination); src.connect(outAn);
+    const t0 = ctx.currentTime + 0.05;
+    const from = Math.min(fromSec, Math.max(0, f.left.length / f.sampleRate - 0.5));
+    src.start(t0, from);
+    const player = { mode: 'final', nodes: [{ key: -2, src }], t0, fromSec: from, raf: 0, outAn };
+    state.player = player;
+    const buf = new Float32Array(1024);
+    const tick = () => {
+        if (state.player !== player) return;
+        setPlayhead(from + ctx.currentTime - t0);
+        outAn.getFloatTimeDomainData(buf);
+        let p = 0; for (let i = 0; i < buf.length; ++i) p = Math.max(p, Math.abs(buf[i]));
+        clipCheck(p);
+        drawMeter(ui.meterOut, p, 0);
+        player.raf = requestAnimationFrame(tick);
+    };
+    clipReset('Chanson mixée');
+    player.raf = requestAnimationFrame(tick);
+    src.onended = () => { if (state.player === player) { stopPlayback(); setStatus('Fin de la chanson mixée.'); } };
+    if (!quiet) setStatus('Lecture de la chanson mixée' + (f.stale ? ' (⚠ le projet a changé depuis : re-mixe pour l\'avoir à jour)' : '') + '.');
+}
+ui.playFinalBtn.addEventListener('click', () => playFinal());
+ui.playBeforeBtn.addEventListener('click', () => startPlay('mix'));
+ui.exportFinalBtn.addEventListener('click', async () => {
+    const f = state.finalMix;
+    if (!f) { setStatus('Rien à exporter : lance d\'abord « Mixer la chanson ».'); return; }
+    try {
+        ui.exportFinalBtn.disabled = true;
+        const saved = await saveAudio('StudioVoix-chanson-mixee', f.left, f.right, f.sampleRate, 'chanson mixée');
+        log('info', `Export de la chanson mixée (${saved.desc}) : ${f.report.outputLufs.toFixed(1)} LUFS, crête ${f.report.truePeakDb.toFixed(1)} dBTP`);
+        setStatus(`${saved.name} exporté (${saved.desc}, ${f.sampleRate} Hz, ${f.report.outputLufs.toFixed(1)} LUFS)${f.stale ? ' — ⚠ le projet a changé depuis le mixage' : ''}.`);
+    } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
+    refreshButtons();
+});
+ui.finalTarget.addEventListener('change', markDirty);
+ui.finalDuck.addEventListener('change', markDirty);
+
+// Export des pistes séparées : un WAV par piste audible (traitée et équilibrée comme dans le mix), même longueur.
+ui.stemsBtn.addEventListener('click', async () => {
+    try {
+        ui.stemsBtn.disabled = true;
+        setStatus('Export des pistes séparées…');
+        await ensureBalance();
+        const sr = state.instru?.sampleRate || state.tracks.find((t) => t.take)?.take.sampleRate || audioContext().sampleRate;
+        const n = Math.ceil(songSeconds() * sr);
+        const files = [];
+        const stem = (name, left, right, startSec, gainDb) => {
+            const L = new Float32Array(n), R = new Float32Array(n), g = dbg(gainDb), o = Math.round(startSec * sr);
+            for (let i = 0; i < left.length && o + i < n; ++i) { L[o + i] = left[i] * g; R[o + i] = right[i] * g; }
+            files.push({ name, L, R });
+        };
+        if (state.instru && audible(state.instruTrack)) { const ia = instruAudio(); stem('00-Instru', ia.left, ia.right, 0, state.instruTrack.volumeDb); }
+        state.tracks.forEach((t, i) => {
+            const a = audible(t) ? trackAudio(t, 'mix') : null;
+            if (a) stem(`${String(i + 1).padStart(2, '0')}-${t.name.replace(/[^\w\u00C0-\u017F-]+/g, '_')}`, a.left, a.right, t.take.startSec, trackGainDb(t, 'mix'));
+        });
+        let desc = '';
+        for (const f of files) {
+            desc = (await saveAudio(`StudioVoix-${f.name}`, f.L, f.R, sr, f.name)).desc;
+            await new Promise((r) => setTimeout(r, 250));   // les navigateurs bloquent les rafales de téléchargements
+        }
+        log('info', `Export pistes séparées (${desc}) : ${files.map((f) => f.name).join(', ')}`);
+        setStatus(`${files.length} piste(s) exportée(s) séparément (${desc}, ${sr} Hz, même longueur, à poser à 0:00).`);
+    } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
+    refreshButtons();
+});
+
+ui.allBtn.addEventListener('click', listenAll);
+ui.skipIsoBtn.addEventListener('click', cancelIsolation);
+// Barre d'espace : lecture du mix / arrêt (sauf dans un champ de saisie).
+document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || e.repeat || /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    if (state.rec) return;
+    if (state.player) { stopPlayback(); setStatus('Lecture arrêtée.'); } else if (!ui.playBtn.disabled) startPlay('mix');
+});
+
+// ------------------------------------------------------------------ montage : bouts, sélection, outils, annuler, zoom
+// Une prise montée porte take.clips (liste de bouts, voir clips.js) ; take.mono et take.startSec sont alors le RENDU de
+// ces bouts, recalculé par mtRender après chaque geste : la lecture, le traitement, l'équilibre, l'export et
+// l'inspection lisent la prise comme avant. Une prise sans montage n'a pas de liste (un seul bout implicite) ; la
+// liste est créée au premier geste (mtEnsure). Les sons source (mt.sources) ne sont jamais modifiés.
+const MT_UNDO_MAX = 50, MT_ZOOM_MAX = 64, MT_TRIM_STEP = 0.01, MT_FADES = [0, 0.01, 0.03, 0.1, 0.25, 0.5, 1, 2, 4];
+// Doigt : MT_HOLD_MS de maintien avant de pouvoir glisser un bout dans tous les sens, MT_MENU_MS sans bouger = menu du
+// bout. MT_KEEP_PX : écart horizontal ignoré quand un bout change de piste (il garde sa place exacte dans le temps).
+const MT_HOLD_MS = 250, MT_MENU_MS = 600, MT_KEEP_PX = 12;
+const mtUi = {
+    menu: $('clipMenu'), title: $('clipTitle'), cutBar: $('cutBtn'), close: $('clipClose'), ghost: null, cut: $('clipCut'), dup: $('clipDup'), copy: $('clipCopy'), send: $('clipSend'), mute: $('clipMute'),
+    rev: $('clipRev'), gain: $('clipGain'), gainDown: $('clipGainDown'), gainUp: $('clipGainUp'), fadeIn: $('clipFadeIn'), fadeOut: $('clipFadeOut'),
+    xfade: $('clipXfade'), merge: $('clipMerge'), del: $('clipDel'), paste: $('clipPaste'), zoomIn: $('zoomInBtn'), zoomOut: $('zoomOutBtn'),
+    zoomInfo: $('zoomInfo'), viewPos: $('viewPos'),
+};
+const mtId = (p) => `${p}${Date.now().toString(36)}${(mt.nextId++).toString(36)}`;
+const mtNew = () => mtId('c');
+const fSec = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, '0')}`;
+const fDur = (s) => (s < 1 ? `${Math.round(s * 1000)} ms` : `${String(+s.toFixed(2)).replace('.', ',')} s`);
+const mtLockedText = (t) => `« ${t.name} » est verrouillée 🔒 : la prise ne bouge pas. Clique le cadenas de la piste pour la déplacer.`;
+// Durée visible de la ligne de temps (zoom 1 : tout le morceau).
+function viewDur() { return songSeconds() / mt.zoom; }
+// Bouts d'une prise : sa liste, ou le bout unique (identifiant vide) d'une prise sans montage.
+function takeClips(k) { return k.clips || [makeClip('', k.audioId, k.mono.length, k.startSec)]; }
+// Premier geste de montage sur une prise : son son devient une source, la liste de bouts est créée (un seul bout).
+function mtEnsure(k) {
+    if (k.clips) return;
+    mt.sources.set(k.audioId, k.mono);
+    if (k.raw && k.rawAt == null) k.rawAt = k.startSec;   // « micro brut » : il reste à la place de la prise d'origine
+    k.clips = [makeClip(mtNew(), k.audioId, k.mono.length, k.startSec)];
+}
+// Rendu des bouts → take.mono et take.startSec (la seule fonction qui les recalcule). Rend la durée du calcul (ms).
+function mtRender(k) {
+    const t0 = performance.now();
+    const r = renderClips(k.clips, mt.sources, k.sampleRate);
+    k.mono = r.mono; k.startSec = r.startSec;
+    return performance.now() - t0;
+}
+// Bout sélectionné : { t, k, c, i, n } ou null (rien de sélectionné, piste ou bout disparu).
+function mtSel() {
+    const t = findTrack(mt.sel.trackId), k = t?.take;
+    if (!k) return null;
+    const clips = takeClips(k), i = clips.findIndex((c) => c.id === mt.sel.clipId);
+    return i < 0 ? null : { t, k, c: clips[i], i, n: clips.length };
+}
+// Prise d'arrivée d'un bout collé ou envoyé : celle de la piste, ou une prise neuve si la piste est vide.
+function mtTakeFor(t, sr, from) {
+    if (t.take) { mtEnsure(t.take); return t.take; }
+    const k = { mono: new Float32Array(0), sampleRate: sr, startSec: 0, note: `montage (bout venu de « ${from} »)`, audioId: mtId('a'), label: 'Montage', clips: [], montage: true };
+    t.takes.push(k); t.take = k; t.status = 'raw';
+    log('info', `« ${t.name} » : prise « Montage » créée pour recevoir un bout venu de « ${from} »`);
+    return k;
+}
+
+// ---- annuler / rétablir : états de structure (listes de bouts, places), jamais de copie de son
+function mtSnap(what) {
+    return { what, sel: { ...mt.sel },
+        tracks: state.tracks.map((t) => ({ t, active: t.take, takes: t.takes.map((k) => ({ k, startSec: k.startSec, clips: k.clips ? cloneClips(k.clips) : null })) })) };
+}
+function mtPushUndo(snap) {
+    mt.undo.push(snap);
+    if (mt.undo.length > MT_UNDO_MAX) mt.undo.shift();
+    mt.redo.length = 0;
+    mtButtons();
+}
+const mtSig = (k) => (k ? (k.clips ? JSON.stringify(k.clips) : `-@${k.startSec}`) : '');
+// Remet les pistes dans l'état gardé ; rend les pistes dont la prise jouée a changé (à retraiter).
+function mtRestore(snap) {
+    const changed = [];
+    for (const s of snap.tracks) {
+        const t = s.t;
+        if (!state.tracks.includes(t)) continue;   // piste supprimée depuis : rien à lui rendre
+        const before = mtSig(t.take), was = t.take, known = s.takes.map((x) => x.k);
+        const extra = t.takes.filter((k) => !known.includes(k) && !k.montage);   // prises enregistrées depuis : gardées
+        for (const x of s.takes) {
+            const k = x.k;
+            if (x.clips) { if (mtSig(k) !== JSON.stringify(x.clips)) { k.clips = cloneClips(x.clips); mtRender(k); } }
+            else {
+                if (k.clips) { delete k.clips; k.mono = mt.sources.get(k.audioId); }   // retour à la prise sans montage : son d'origine
+                k.startSec = x.startSec;
+            }
+        }
+        t.takes = [...known, ...extra];
+        t.take = extra.includes(was) ? was : (s.active || null);
+        if (t.take !== was || mtSig(t.take) !== before) changed.push(t);
+    }
+    return changed;
+}
+function mtUndo(redo = false) {
+    const from = redo ? mt.redo : mt.undo, to = redo ? mt.undo : mt.redo;
+    if (!from.length) { setStatus(redo ? 'Rien à rétablir.' : 'Rien à annuler.'); return; }
+    if (state.rec) { setStatus('Enregistrement en cours : arrête-le avant de monter.'); return; }
+    const snap = from.pop();
+    to.push(mtSnap(snap.what));
+    const changed = mtRestore(snap);
+    mt.sel = { ...snap.sel };
+    log('info', `Montage — ${redo ? 'rétabli' : 'annulé'} : ${snap.what} (${changed.map((t) => `« ${t.name} »`).join(', ') || 'aucune piste changée'}) ; reste ${mt.undo.length} à annuler, ${mt.redo.length} à rétablir`);
+    mtAfter(changed);
+    setStatus(redo ? `Rétabli : ${snap.what}.` : `Annulé : ${snap.what}.`);
+}
+function mtReset() {
+    mt.undo.length = 0; mt.redo.length = 0; mt.clipboard = null; mt.live = null; mt.sel = { trackId: 0, clipId: '' };
+    mt.zoom = 1; mt.start = 0;
+    mtCloseMenu();
+    mtPrune();
+    mtButtons();
+}
+// Mémoire : un son source qui ne sert plus à rien (ni bout en place, ni état gardé pour annuler / rétablir, ni bout
+// copié, ni son d'origine d'une prise encore connue) est libéré — par exemple un bloc fusionné sorti de la pile.
+function mtPrune() {
+    const keep = new Set();
+    const add = (list) => { for (const c of list || []) keep.add(c.src); };
+    for (const t of state.tracks) for (const k of t.takes) { keep.add(k.audioId); add(k.clips); }
+    for (const s of [...mt.undo, ...mt.redo]) for (const tr of s.tracks) for (const x of tr.takes) { keep.add(x.k.audioId); add(x.clips); add(x.k.clips); }
+    if (mt.clipboard) keep.add(mt.clipboard.clip.src);
+    let n = 0;
+    for (const id of [...mt.sources.keys()]) if (!keep.has(id)) { mt.sources.delete(id); ++n; }
+    if (n) log('info', `Montage : ${n} son(s) source libéré(s) (plus aucun bout ni annulation ne s'en sert)`);
+}
+
+// ---- suite commune d'un geste de montage : rendu fait, traitement relancé, équilibre à refaire, projet à sauvegarder
+const MT_REPROCESS_MS = 1200;
+// Traitements différés par le montage : lancés tout de suite (avant un équilibre, un mixage, un export, qui attendent la file).
+function mtFlushPending() {
+    for (const t of state.tracks) if (t.mtTimer) { clearTimeout(t.mtTimer); t.mtTimer = 0; queueProcess(t); }
+}
+function mtAfter(tracks) {
+    for (const t of tracks) {
+        t.processed = null;                        // l'ancien son traité ne correspond plus aux bouts
+        if (t.inspect) t.inspect.stale = true;
+        if (!t.take) t.status = 'vide';
+    }
+    state.balanceDirty = true;
+    state.balanceRaw = null;                       // « Égaliser » : à refaire aussi
+    markDirty();
+    renderTracks();
+    // Effets recalculés sur le nouveau rendu, mais seulement MT_REPROCESS_MS après le DERNIER geste sur la piste : une
+    // série de gestes (couper, supprimer, glisser…) ne lance qu'un traitement au lieu d'un par geste (un traitement
+    // lancé ne s'interrompt pas : 4 s pour 28 s de prise ici, bien plus sur téléphone). En attendant, la piste est
+    // marquée « traitement… » et le mix joue le rendu brut du montage, comme pendant le traitement lui-même.
+    for (const t of tracks) {
+        clearTimeout(t.mtTimer);
+        if (!t.take || t.noFx) { queueProcess(t); continue; }
+        ++t.token; t.status = 'busy'; updateRow(t);
+        t.mtTimer = setTimeout(() => { t.mtTimer = 0; if (findTrack(t.id)) queueProcess(t); }, MT_REPROCESS_MS);
+    }
+    if (state.player && !state.rec && (state.player.mode === 'mix' || state.player.mode === 'raw')) play(state.player.mode, mt.head);   // lecture en cours : elle repart du même endroit avec le nouveau son
+    mtPrune();
+}
+// Fin d'un geste : état d'avant gardé pour « Annuler », rendu recalculé (prise vidée : elle quitte la piste), journal.
+function mtCommit(t, k, snap, text, others = []) {
+    mtPushUndo(snap);
+    let ms = 0;
+    if (k.clips.length) ms = mtRender(k);
+    else {
+        t.takes = t.takes.filter((x) => x !== k);
+        if (t.take === k) t.take = t.takes[t.takes.length - 1] || null;
+    }
+    log('info', `Montage — « ${t.name} » : ${text} · ${k.clips.length} bout(s), rendu en ${Math.round(ms)} ms`);
+    mtAfter([t, ...others]);
+}
+function mtAllowed(t, what) {
+    if (state.rec) { setStatus('Enregistrement en cours : arrête-le avant de monter.'); return false; }
+    if (t.locked) { setStatus(mtLockedText(t)); log('info', `« ${t.name} » : ${what} refusé (piste verrouillée)`); return false; }
+    return true;
+}
+// Un outil sur le bout sélectionné : garde-fous, opération pure (clips.js) par fn(k, id, t, c, others) qui pose la
+// nouvelle liste dans k.clips et rend le texte du journal, puis mtCommit. Geste impossible : message, rien ne change.
+function mtDo(what, fn) {
+    const s = mtSel();
+    if (!s) { setStatus('Touche d\'abord un bout de son sur une piste.'); return false; }
+    const { t, k } = s;
+    if (!mtAllowed(t, what)) { mtButtons(); return false; }   // la barre revient à l'état réel du bout (listes de fondus)
+    const snap = mtSnap(what), had = !!k.clips;
+    mtEnsure(k);
+    const id = had ? s.c.id : k.clips[0].id, c = k.clips.find((x) => x.id === id), others = [];
+    const desc = `bout ${s.i + 1}/${s.n} (${fSec(c.at)} → ${fSec(clipEnd(c, k.sampleRate))})`;
+    mt.sel.clipId = id;
+    let text;
+    try { text = fn(k, id, t, c, others); } catch (err) {
+        if (!had) { delete k.clips; mt.sel.clipId = ''; }
+        if (!err.clip) { log('error', `Montage (${what}) impossible : ${err.message}`); setStatus(`Montage impossible : ${err.message}`); return false; }
+        setStatus(err.message);
+        log('info', `Montage refusé — « ${t.name} » : ${what}, ${desc} : ${err.message}`);
+        mtButtons();
+        return false;
+    }
+    mtCommit(t, k, snap, `${what}, ${desc}${text ? ', ' + text : ''}`, others);
+    return true;
+}
+
+// ---- les outils
+// Couper au curseur de lecture (bouton de la barre) ou à l'endroit du menu : le bout sous cet instant, sur la piste du
+// bout sélectionné, sinon sur la piste sélectionnée. Deux coupes = trois bouts, chacun indépendant.
+function mtCut(at = mt.head) {
+    const s0 = mtSel(), t = s0?.t || findTrack(state.selectedId);
+    if (!t || !t.take) { setStatus('Touche d\'abord le son à couper : le curseur (trait blanc) s\'y place. Puis « ✂ Couper ».'); return; }
+    const hit = clipAt(takeClips(t.take), at, t.take.sampleRate, s0 ? mt.sel.clipId : null);
+    if (!hit) {
+        setStatus('Le curseur (trait blanc) n\'est sur aucun bout de cette piste : touche l\'endroit à couper, puis « ✂ Couper ».');
+        log('info', `Montage refusé — « ${t.name} » : couper à ${fSec(at)}, aucun bout sous le curseur`);
+        return;
+    }
+    mt.sel = { trackId: t.id, clipId: hit.id };
+    if (mtDo('couper', (k, id) => {
+        const r = splitClip(k.clips, id, at, k.sampleRate, mtNew);
+        k.clips = r.clips; mt.sel.clipId = r.right;
+        return `au curseur, à ${fSec(at)}`;
+    })) setStatus(`Coupé à ${fSec(at)} : deux bouts. Celui de droite est sélectionné.`);
+}
+function mtDup() {
+    if (mtDo('dupliquer', (k, id) => {
+        const r = duplicateClip(k.clips, id, k.sampleRate, mtNew);
+        k.clips = r.clips; mt.sel.clipId = r.id;
+        return `copie posée à ${fSec(r.clips[r.clips.length - 1].at)}`;
+    })) setStatus('Bout dupliqué : la copie est posée juste après et sélectionnée. Glisse-la où tu veux.');
+}
+function mtCopy() {
+    const s = mtSel();
+    if (!s) { setStatus('Touche d\'abord un bout de son sur une piste.'); return; }
+    if (!mt.sources.has(s.c.src)) mt.sources.set(s.c.src, s.k.mono);   // prise sans montage : son son est la source
+    mt.clipboard = { clip: { ...s.c }, sampleRate: s.k.sampleRate, from: s.t.name };
+    log('info', `Montage — « ${s.t.name} » : copier, bout ${s.i + 1}/${s.n} (${fSec(s.c.at)} → ${fSec(clipEnd(s.c, s.k.sampleRate))})`);
+    setStatus('Bout copié. Clic droit (ou appui long) sur la piste, à l\'endroit où le poser, puis « 📋 Coller ici ».');
+    mtButtons();
+}
+function mtPaste(at = mt.head, trackId = state.selectedId) {
+    const cb = mt.clipboard;
+    if (!cb) { setStatus('Rien à coller : copie d\'abord un bout.'); return; }
+    const t = findTrack(trackId) || findTrack(mt.sel.trackId);
+    if (!t) { setStatus('Touche d\'abord la piste où coller.'); return; }
+    if (!mtAllowed(t, 'coller')) return;
+    if (t.take && t.take.sampleRate !== cb.sampleRate) { setStatus('Ces deux pistes n\'ont pas la même fréquence de son : collage impossible.'); log('warn', `Montage — coller refusé sur « ${t.name} » : ${t.take.sampleRate} Hz au lieu de ${cb.sampleRate} Hz`); return; }
+    const snap = mtSnap('coller');
+    const k = mtTakeFor(t, cb.sampleRate, cb.from);
+    const r = insertClip(k.clips, cb.clip, at, mtNew);
+    k.clips = r.clips; mt.sel = { trackId: t.id, clipId: r.id };
+    mtCommit(t, k, snap, `coller, bout de ${fDur(cb.clip.len / cb.sampleRate)} venu de « ${cb.from} », posé au curseur à ${fSec(at)}`);
+    setStatus(`Bout collé à ${fSec(at)} sur « ${t.name} ».`);
+}
+// Changer un bout de piste : en le glissant (geste principal ; `at` = instant où il est lâché) ou par le menu
+// « Envoyer vers la piste… » (même instant du morceau).
+function mtSend(toId, at = null) {
+    const t2 = findTrack(Number(toId));
+    if (!t2) return false;
+    let kept = true;
+    const ok = mtDo(at == null ? 'envoyer vers une autre piste' : 'glisser vers une autre piste', (k, id, t, c, others) => {
+        if (t2 === t) throw new ClipError('Le bout est déjà sur cette piste.');
+        if (t2.locked) { log('info', `« ${t2.name} » : arrivée d'un bout refusée (piste verrouillée)`); throw new ClipError(mtLockedText(t2)); }
+        if (t2.take && t2.take.sampleRate !== k.sampleRate) throw new ClipError('Ces deux pistes n\'ont pas la même fréquence de son : envoi impossible.');
+        const k2 = mtTakeFor(t2, k.sampleRate, t.name);
+        const to = at == null ? c.at : at;   // même instant du morceau, sauf si le bout a aussi glissé dans le temps
+        kept = to === c.at;
+        const r = insertClip(k2.clips, c, to, mtNew);
+        k2.clips = r.clips;
+        mtRender(k2);
+        k.clips = removeClip(k.clips, id);
+        mt.sel = { trackId: t2.id, clipId: r.id };
+        others.push(t2);
+        return `vers « ${t2.name} », ${to === c.at ? `même place (${fSec(to)})` : `posé à ${fSec(to)} (il était à ${fSec(c.at)})`}`;
+    });
+    if (ok) setStatus(`Bout posé sur « ${t2.name} »${kept ? ', au même instant du morceau' : ''}.`);
+    return ok;
+}
+// Bout lâché après avoir été glissé hors de sa piste : sur une piste de voix libre, il y va ; ailleurs, il reste chez lui.
+function mtDropOn(t, clipId, t2, at) {
+    if (!t2) {
+        setStatus('Lâché hors des pistes de voix : le bout revient à sa place.');
+        log('info', `Montage refusé — « ${t.name} » : bout lâché hors des pistes de voix, remis à sa place`);
+        return;
+    }
+    const sel = { ...mt.sel };
+    mt.sel = { trackId: t.id, clipId };
+    if (mtSend(t2.id, at)) return;
+    mt.sel = sel;   // refusé (piste d'arrivée verrouillée…) : le message est affiché, rien n'a bougé
+    setStatus(`${ui.status.textContent} Le bout revient à sa place.`);
+    mtButtons(); drawAllLanes();
+}
+function mtMute() {
+    let on = false;
+    if (mtDo('muet', (k, id, t, c) => { on = !c.mute; k.clips = setMute(k.clips, id, on); return on ? 'rendu muet' : 'son rétabli'; }))
+        setStatus(on ? 'Ce bout est muet : le reste de la piste joue toujours.' : 'Ce bout rejoue.');
+}
+function mtRev() {
+    let on = false;
+    if (mtDo('inverser', (k, id, t, c) => { on = !c.rev; k.clips = setRev(k.clips, id, on); return on ? 'lu à l\'envers' : 'remis à l\'endroit'; }))
+        setStatus(on ? 'Ce bout est lu à l\'envers.' : 'Ce bout est remis à l\'endroit.');
+}
+function mtGain(d) {
+    let db = 0;
+    if (mtDo('volume du bout', (k, id, t, c) => {
+        db = Math.min(GAIN_MAX_DB, Math.max(GAIN_MIN_DB, c.gainDb + d));
+        if (db === c.gainDb) throw new ClipError(`Volume du bout déjà au ${d > 0 ? 'maximum (+12 dB)' : 'minimum (−24 dB)'}.`);
+        k.clips = setGain(k.clips, id, db);
+        return `${db > 0 ? '+' : ''}${db} dB`;
+    })) setStatus(`Volume du bout : ${db > 0 ? '+' : ''}${db} dB (avant les effets de la piste).`);
+}
+function mtFade(which, sec) {
+    const name = which === 'in' ? 'fondu d\'entrée' : 'fondu de sortie';
+    let got = 0;
+    if (mtDo(name, (k, id) => {
+        k.clips = setFades(k.clips, id, which === 'in' ? { fadeIn: sec } : { fadeOut: sec }, k.sampleRate);
+        const c = k.clips.find((x) => x.id === id);
+        got = which === 'in' ? c.fadeIn : c.fadeOut;
+        return got ? fDur(got) : 'retiré';
+    })) setStatus(got ? `${name[0].toUpperCase() + name.slice(1)} de ${fDur(got)}.` : `${name[0].toUpperCase() + name.slice(1)} retiré.`);
+}
+function mtXfade() {
+    let sec = 0;
+    if (mtDo('fondu croisé', (k, id) => {
+        const r = crossfade(k.clips, id, k.sampleRate, (src) => mt.sources.get(src)?.length || 0);
+        k.clips = r.clips; sec = r.sec;
+        return `de ${fDur(r.sec)} avec le bout voisin`;
+    })) setStatus(`Fondu croisé de ${fDur(sec)} : un bout s'efface pendant que l'autre arrive.`);
+}
+function mtTrim(edge, d) {
+    mtDo('rogner', (k, id, t, c) => {
+        const from = edge === 'start' ? c.at : clipEnd(c, k.sampleRate);
+        const r = trimClip(k.clips, id, edge, from + d, k.sampleRate, mt.sources.get(c.src).length);
+        if (!r.changed) throw new ClipError((edge === 'start') === (d > 0) ? 'Ce bout ne peut pas être plus court.' : 'Ce bord est déjà au bout du son d\'origine : rien de plus à re-dérouler.');
+        k.clips = r.clips;
+        const n = r.clips.find((x) => x.id === id);
+        setStatus(`${edge === 'start' ? 'Début' : 'Fin'} du bout : ${fSec(edge === 'start' ? n.at : clipEnd(n, k.sampleRate))}.`);
+        return `${edge === 'start' ? 'début' : 'fin'} ${d > 0 ? '+' : '−'}${fDur(Math.abs(d))}`;
+    });
+}
+function mtMerge() {
+    let n = 0;
+    if (mtDo('fusionner', (k) => {
+        n = k.clips.length;
+        const r = mergeClips(k.clips, mt.sources, k.sampleRate, mtId('m'), mtNew);
+        mt.sources.set(r.source.id, r.source.data);
+        k.clips = r.clips; mt.sel.clipId = r.clips[0].id;
+        return `${n} bouts réunis en un bloc de ${fDur(r.source.data.length / k.sampleRate)}`;
+    })) setStatus(`${n} bouts réunis en un seul bloc.`);
+}
+function mtDelete() {
+    if (mtDo('supprimer le bout', (k, id) => { k.clips = removeClip(k.clips, id); mt.sel = { trackId: 0, clipId: '' }; return ''; }))
+        setStatus('Bout supprimé. « ↶ Annuler » le ramène.');
+}
+
+// ---- sélection, piste et bout sous le pointeur, menu du bout
+function mtSelect(t, clipId) {
+    const sel = clipId == null ? { trackId: 0, clipId: '' } : { trackId: t.id, clipId };
+    const same = sel.trackId === mt.sel.trackId && sel.clipId === mt.sel.clipId;
+    mt.sel = sel;
+    if (state.selectedId !== t.id) selectTrack(t.id);
+    if (same) return;
+    mtButtons();
+    drawAllLanes();
+}
+// Bout de la piste t sous l'instant sec : son identifiant, '' pour une prise sans montage (un seul bout), null à côté.
+function mtHit(t, sec) {
+    const k = t.take;
+    if (!k) return null;
+    if (!k.clips) return sec >= k.startSec && sec <= k.startSec + k.mono.length / k.sampleRate ? '' : null;
+    const c = clipAt(k.clips, sec, k.sampleRate, mt.sel.trackId === t.id ? mt.sel.clipId : null);
+    return c ? c.id : null;
+}
+// Piste de voix dont la ligne (en-tête compris) est sous le point (x, y) de l'écran ; null : instru ou hors des pistes.
+function mtRowAt(x, y) {
+    for (const row of ui.tracks.querySelectorAll('.track')) {
+        const r = row.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return findTrack(Number(row.dataset.id));
+    }
+    return null;
+}
+// Pendant qu'un bout glisse vers une autre piste : ligne visée mise en évidence (rouge si verrouillée) et ombre du bout
+// à l'endroit où il tomberait. mtGhost(null) efface tout.
+function mtGhost(t2, at = 0, len = 0, sr = 1) {
+    for (const l of ui.tracks.querySelectorAll('.lane.drop, .lane.nodrop')) l.classList.remove('drop', 'nodrop');
+    const lane = t2 ? rowOf(t2.id)?._lane : null;
+    if (!lane) { mtUi.ghost?.remove(); return; }
+    if (!mtUi.ghost) mtUi.ghost = el('div', { class: 'clipghost' });
+    const W = lane.clientWidth, dur = viewDur();
+    lane.classList.add(t2.locked ? 'nodrop' : 'drop');
+    mtUi.ghost.classList.toggle('bad', !!t2.locked);
+    mtUi.ghost.style.left = `${(at - mt.start) / dur * W}px`;
+    mtUi.ghost.style.width = `${Math.max(4, len / sr / dur * W)}px`;
+    if (mtUi.ghost.parentElement !== lane) lane.append(mtUi.ghost);
+}
+// Menu du bout (clic droit, appui long) : le bout visé est sélectionné, le curseur vient à l'endroit visé (« Couper
+// ici » et « Coller ici » agissent là). À côté d'un bout : seulement « Coller ici », s'il y a un bout copié.
+function mtOpenMenu(t, clipId, sec, x, y, held = false) {
+    mt.sel = clipId == null ? { trackId: 0, clipId: '' } : { trackId: t.id, clipId };
+    if (state.selectedId !== t.id) selectTrack(t.id);
+    mt.menuAt = sec; mt.menuTrack = t.id;
+    if (!state.player) { state.playFromSec = sec; setPlayhead(sec); }
+    drawAllLanes();
+    if (clipId == null && !mt.clipboard) {
+        mtCloseMenu();
+        setStatus('Pas de bout de son ici. Clic droit (ou appui long) sur un bout pour ouvrir son menu ; pour coller, copie d\'abord un bout.');
+        return;
+    }
+    mt.menu = true;
+    mt.menuHold = held;   // ouvert par un appui long : le doigt est encore posé, son relâchement ne doit rien déclencher
+    mtUi.menu.classList.toggle('noclip', clipId == null);
+    mtUi.menu.hidden = false;
+    mtButtons();
+    const w = mtUi.menu.offsetWidth, h = mtUi.menu.offsetHeight, vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    mtUi.menu.style.left = `${Math.max(4, Math.min(x, vw - w - 4))}px`;
+    mtUi.menu.style.top = `${Math.max(4, Math.min(y, vh - h - 4))}px`;
+    log('info', `Menu du bout ouvert sur « ${t.name} » à ${fSec(sec)}${clipId == null ? ' (à côté d\'un bout : coller seulement)' : ''}`);
+}
+function mtCloseMenu() {
+    if (!mt.menu && mtUi.menu.hidden) return;
+    mt.menu = false;
+    mtUi.menu.hidden = true;
+}
+function mtFadeSelect(sel, v) {
+    const near = (x) => Math.abs(x - v) < 1e-4;
+    const list = MT_FADES.some(near) ? MT_FADES : [...MT_FADES, v].sort((a, b) => a - b);
+    sel.replaceChildren(...list.map((x) => el('option', { value: String(x), textContent: x ? fDur(x) : 'aucun' })));
+    sel.value = String(list.find(near));
+}
+function mtButtons() {
+    for (const b of document.querySelectorAll('.mtUndo')) b.disabled = !mt.undo.length;
+    for (const b of document.querySelectorAll('.mtRedo')) b.disabled = !mt.redo.length;
+    mtUi.paste.disabled = !mt.clipboard;
+    mtUi.cutBar.disabled = !state.tracks.some((t) => t.take);
+    mtUi.zoomOut.disabled = mt.zoom <= 1; mtUi.zoomIn.disabled = mt.zoom >= MT_ZOOM_MAX;
+    mtUi.zoomInfo.textContent = mt.zoom <= 1 ? 'vue entière' : `zoom ×${mt.zoom}`;
+    mtUi.viewPos.hidden = mt.zoom <= 1;
+    const total = songSeconds(), room = total - total / mt.zoom;
+    if (mt.zoom > 1 && document.activeElement !== mtUi.viewPos) mtUi.viewPos.value = String(Math.round(mt.start / Math.max(1e-9, room) * 1000));
+    const s = mtSel();
+    if (mt.menu && !s && !mtUi.menu.classList.contains('noclip')) mtCloseMenu();   // le bout du menu n'existe plus
+    if (!s) { if (mt.menu) mtUi.title.textContent = `« ${findTrack(mt.menuTrack)?.name || ''} » · à ${fSec(mt.menuAt)}`; return; }
+    const { t, k, c } = s, sr = k.sampleRate;
+    mtUi.title.textContent = `Bout ${s.i + 1} sur ${s.n} de « ${t.name} » · de ${fSec(c.at)} à ${fSec(clipEnd(c, sr))} (${fDur(c.len / sr)})`
+        + (t.locked ? ' · piste verrouillée 🔒 : montage bloqué' : '');
+    mtUi.mute.classList.toggle('on', c.mute); mtUi.mute.textContent = c.mute ? '🔇 Muet : oui' : '🔇 Muet';
+    mtUi.rev.classList.toggle('on', c.rev); mtUi.rev.textContent = c.rev ? '⇄ Inversé : oui' : '⇄ Inverser';
+    mtUi.gain.textContent = `Volume ${c.gainDb > 0 ? '+' : ''}${c.gainDb} dB`;
+    mtFadeSelect(mtUi.fadeIn, c.fadeIn); mtFadeSelect(mtUi.fadeOut, c.fadeOut);
+    mtUi.send.replaceChildren(el('option', { value: '', textContent: 'Envoyer vers la piste…' }),
+        ...state.tracks.filter((x) => x !== t).map((x) => el('option', { value: String(x.id), textContent: `→ ${x.name}${x.locked ? ' 🔒' : ''}` })));
+    mtUi.send.value = '';
+    mtUi.merge.disabled = s.n < 2;
+}
+// Barre permanente : couper au curseur de lecture. Menu du bout : chaque action simple referme le menu ; volume,
+// fondus et réglage fin le laissent ouvert (on les règle en plusieurs fois) ; ✕, Échap ou un clic ailleurs le ferment.
+mtUi.cutBar.addEventListener('click', () => mtCut(mt.head));
+const mtItem = (b, fn) => b.addEventListener('click', () => { mtCloseMenu(); fn(); });
+mtItem(mtUi.del, mtDelete);
+mtItem(mtUi.cut, () => mtCut(mt.menuAt));
+mtItem(mtUi.dup, mtDup);
+mtItem(mtUi.copy, mtCopy);
+mtItem(mtUi.paste, () => mtPaste(mt.menuAt, mt.menuTrack));
+mtItem(mtUi.mute, mtMute);
+mtItem(mtUi.rev, mtRev);
+mtItem(mtUi.merge, mtMerge);
+mtItem(mtUi.close, () => {});
+mtUi.send.addEventListener('change', () => { const v = mtUi.send.value; mtUi.send.value = ''; if (v) { mtCloseMenu(); mtSend(v); } });
+document.addEventListener('pointerdown', (e) => { if (mt.menu && !mtUi.menu.contains(e.target)) mtCloseMenu(); }, true);
+// Menu ouvert par un appui long : il apparaît sous le doigt. Tant que ce doigt n'est pas relevé (et un court instant
+// après), aucun clic dans le menu ne compte — sinon lâcher le doigt lancerait la commande qui se trouve dessous.
+mtUi.menu.addEventListener('click', (e) => { if (mt.menuHold) { e.stopPropagation(); e.preventDefault(); } }, true);
+for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => { if (mt.menuHold) setTimeout(() => { mt.menuHold = false; }, 120); }, true);
+mtUi.gainDown.addEventListener('click', () => mtGain(-1));
+mtUi.gainUp.addEventListener('click', () => mtGain(1));
+mtUi.fadeIn.addEventListener('change', () => mtFade('in', Number(mtUi.fadeIn.value)));
+mtUi.fadeOut.addEventListener('change', () => mtFade('out', Number(mtUi.fadeOut.value)));
+mtItem(mtUi.xfade, mtXfade);
+$('clipTrimS0').addEventListener('click', () => mtTrim('start', -MT_TRIM_STEP));
+$('clipTrimS1').addEventListener('click', () => mtTrim('start', MT_TRIM_STEP));
+$('clipTrimE0').addEventListener('click', () => mtTrim('end', -MT_TRIM_STEP));
+$('clipTrimE1').addEventListener('click', () => mtTrim('end', MT_TRIM_STEP));
+for (const b of document.querySelectorAll('.mtUndo')) b.addEventListener('click', () => mtUndo(false));
+for (const b of document.querySelectorAll('.mtRedo')) b.addEventListener('click', () => mtUndo(true));
+// Ctrl+Z : annuler ; Ctrl+Maj+Z ou Ctrl+Y : rétablir (hors champ de saisie).
+// Suppr : supprimer le bout sélectionné ; Échap : fermer le menu du bout.
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mt.menu) { mtCloseMenu(); return; }
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.key === 'Delete' && mtSel()) { e.preventDefault(); mtCloseMenu(); mtDelete(); return; }
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' || k === 'y') { e.preventDefault(); mtUndo(k === 'y' || e.shiftKey); }
+});
+
+// ---- dessin des bouts sur la ligne de temps, poignées pour rogner
+function mtDrawClips(g, row, t, w, h) {
+    const k = t.take, here = mt.sel.trackId === t.id;
+    let selClip = null;
+    if (k && (k.clips || here)) {
+        const sr = k.sampleRate, dur = viewDur(), dpr = window.devicePixelRatio || 1, X = (s) => (s - mt.start) / dur * w;
+        for (const c of takeClips(k)) {
+            const x0 = X(c.at), x1 = X(clipEnd(c, sr)), sel = here && c.id === mt.sel.clipId;
+            if (sel) selClip = c;
+            if (x1 < 0 || x0 > w) continue;
+            g.fillStyle = 'rgba(16,19,26,.7)';
+            if (c.mute) g.fillRect(x0, 2, x1 - x0, h - 4);   // bout muet : grisé
+            if (c.fadeIn > 0) { const xf = Math.min(x1, X(c.at + c.fadeIn)); g.beginPath(); g.moveTo(x0, 2); g.lineTo(xf, 2); g.lineTo(x0, h - 2); g.fill(); }
+            if (c.fadeOut > 0) { const xf = Math.max(x0, X(clipEnd(c, sr) - c.fadeOut)); g.beginPath(); g.moveTo(x1, 2); g.lineTo(xf, 2); g.lineTo(x1, h - 2); g.fill(); }
+            const lw = (sel ? 3 : 1) * dpr;
+            g.strokeStyle = sel ? '#ffd24a' : 'rgba(255,255,255,.5)'; g.lineWidth = lw;
+            g.strokeRect(x0 + lw / 2, 2 + lw / 2, Math.max(1, x1 - x0 - lw), h - 4 - lw);
+            const tags = [c.mute ? 'muet' : '', c.rev ? '◀ à l\'envers' : '', c.gainDb ? `${c.gainDb > 0 ? '+' : ''}${c.gainDb} dB` : ''].filter(Boolean).join(' · ');
+            if (tags && x1 - x0 > 36 * dpr) { g.fillStyle = '#fff'; g.font = `${Math.round(11 * dpr)}px system-ui, sans-serif`; g.fillText(tags, Math.max(x0, 0) + 5 * dpr, 15 * dpr, x1 - Math.max(x0, 0) - 8 * dpr); }
+        }
+    }
+    mtHandles(row, t, selClip);
+}
+// Pendant qu'un bout glisse ou se rogne : chaque bout est dessiné depuis sa source (pas de rendu complet à chaque pixel).
+function mtDrawLive(g, t, w, h) {
+    const k = t.take, sr = k.sampleRate, dur = viewDur();
+    for (const c of k.clips) {
+        const src = mt.sources.get(c.src);
+        if (!src) continue;
+        const x0 = (c.at - mt.start) / dur * w, x1 = (clipEnd(c, sr) - mt.start) / dur * w, per = c.len / Math.max(1, x1 - x0), gain = c.mute ? 0 : dbToGain(c.gainDb);
+        g.fillStyle = '#3a9bff22'; g.fillRect(x0, 2, x1 - x0, h - 4);
+        g.fillStyle = '#3a9bff';
+        for (let px = Math.max(0, Math.floor(x0)); px < Math.min(w, x1); ++px) {
+            const a = Math.max(0, Math.floor((px - x0) * per)), b = Math.min(c.len, Math.floor((px + 1 - x0) * per));
+            let mx = 0;
+            for (let i = a; i < b; i += 4) mx = Math.max(mx, Math.abs(src[c.rev ? c.off + c.len - 1 - i : c.off + i]));
+            const hh = Math.max(1, mx * gain * (h / 2 - 3));
+            g.fillRect(px, h / 2 - hh, 1, hh * 2);
+        }
+    }
+}
+// Poignées jaunes aux deux bords du bout sélectionné (32 px de large, toute la hauteur de la piste) : les glisser rogne
+// ou re-déroule le bord. Bout étroit : elles se mettent à l'extérieur pour ne pas se chevaucher.
+function mtHandles(row, t, c) {
+    const lane = row._lane;
+    let hs = lane._trim;
+    if (!c || t.locked) { if (hs && !lane._trimBusy) { hs[0].remove(); hs[1].remove(); lane._trim = null; } return; }
+    if (!hs) {
+        hs = lane._trim = ['start', 'end'].map((edge) => {
+            const d = el('div', { class: `trimh ${edge}`, textContent: '⋮', title: edge === 'start' ? 'Glisse pour rogner ou re-dérouler le début du bout' : 'Glisse pour rogner ou re-dérouler la fin du bout' });
+            mtTrimEvents(d, t, edge, lane);
+            lane.append(d);
+            return d;
+        });
+    }
+    const W = lane.clientWidth, dur = viewDur(), hw = 32;
+    const x0 = (c.at - mt.start) / dur * W, x1 = (clipEnd(c, t.take.sampleRate) - mt.start) / dur * W, inside = x1 - x0 >= 2.5 * hw;
+    const place = (d, x, out) => { d.hidden = out; d.style.left = `${Math.min(Math.max(0, x), Math.max(0, W - hw))}px`; };
+    place(hs[0], inside ? x0 : x0 - hw, x0 < -1 || x0 > W);
+    place(hs[1], inside ? x1 - hw : x1, x1 < 0 || x1 > W + 1);
+}
+function mtTrimEvents(h, t, edge, lane) {
+    let d = null;
+    h.addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); e.preventDefault();
+        const s = mtSel();
+        if (!s || s.t !== t || !mtAllowed(t, 'rognage')) return;
+        const k = s.k, had = !!k.clips, snap = mtSnap('rogner');
+        mtEnsure(k);
+        const id = had ? s.c.id : k.clips[0].id, c = k.clips.find((x) => x.id === id);
+        mt.sel.clipId = id;
+        d = { x: e.clientX, w: lane.clientWidth, dur: viewDur(), snap, had, id, orig: cloneClips(k.clips), changed: false,
+            edge0: edge === 'start' ? c.at : clipEnd(c, k.sampleRate), srcLen: mt.sources.get(c.src).length };
+        lane._trimBusy = true;
+        h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove', (e) => {
+        if (!d) return;
+        const k = t.take, r = trimClip(d.orig, d.id, edge, d.edge0 + (e.clientX - d.x) / d.w * d.dur, k.sampleRate, d.srcLen);
+        k.clips = r.clips; d.changed = r.changed; mt.live = k;
+        drawLane(lane.parentElement, t);
+    });
+    const end = () => {
+        if (!d) return;
+        const x = d, k = t.take;
+        d = null; mt.live = null; lane._trimBusy = false;
+        if (!x.changed) {   // poignée touchée sans bouger : rien ne change
+            if (x.had) k.clips = x.orig; else { delete k.clips; mt.sel.clipId = ''; }
+            drawLane(lane.parentElement, t);
+            return;
+        }
+        const c = k.clips.find((y) => y.id === x.id);
+        mtCommit(t, k, x.snap, `rogner (poignée), ${edge === 'start' ? 'début' : 'fin'} du bout amené à ${fSec(edge === 'start' ? c.at : clipEnd(c, k.sampleRate))}`);
+        setStatus(`${edge === 'start' ? 'Début' : 'Fin'} du bout : ${fSec(edge === 'start' ? c.at : clipEnd(c, k.sampleRate))} (durée ${fDur(c.len / k.sampleRate)}).`);
+    };
+    h.addEventListener('pointerup', end);
+    h.addEventListener('pointercancel', end);
+}
+
+// ---- zoom et défilement de la ligne de temps (communs à toutes les pistes)
+// Place de la tête de lecture dans la partie visible, en % ; hors de la vue : cachée. En lecture, la vue suit la tête.
+function mtHeadPct(sec, total) {
+    mt.head = sec;
+    if (mt.zoom <= 1 || total <= 0) return total > 0 ? (sec / total) * 100 : 0;   // vue entière : comme avant
+    const dur = total / mt.zoom;
+    if (state.player && (sec < mt.start || sec > mt.start + dur)) {
+        mt.start = Math.min(Math.max(0, sec - dur * 0.05), total - dur);
+        drawAllLanes(); mtButtons();
+    }
+    const p = (sec - mt.start) / dur * 100;
+    return p < 0 || p > 100 ? -1000 : p;
+}
+function mtScrollTo(start) {
+    const total = songSeconds();
+    mt.start = Math.min(Math.max(0, start), Math.max(0, total - total / mt.zoom));
+    setPlayhead(mt.head);
+    drawAllLanes();
+    mtButtons();
+}
+function mtZoom(f) {
+    const z = Math.min(MT_ZOOM_MAX, Math.max(1, mt.zoom * f));
+    if (z === mt.zoom) return;
+    mt.zoom = z;
+    mtScrollTo(mt.head - viewDur() / 2);   // centré sur la tête de lecture
+    log('info', `Ligne de temps : zoom ×${z}, de ${fSec(mt.start)} à ${fSec(mt.start + viewDur())}`);
+    setStatus(z <= 1 ? 'Ligne de temps : tout le morceau.' : `Ligne de temps zoomée ×${z} : ${fDur(viewDur())} visibles. Le curseur sous les boutons fait défiler.`);
+}
+mtUi.zoomIn.addEventListener('click', () => mtZoom(2));
+mtUi.zoomOut.addEventListener('click', () => mtZoom(0.5));
+mtUi.viewPos.addEventListener('input', () => { const total = songSeconds(); mtScrollTo(Number(mtUi.viewPos.value) / 1000 * (total - total / mt.zoom)); });
+// Souris : molette horizontale (ou Maj + molette) sur les pistes = défilement de la ligne de temps zoomée.
+ui.tracks.addEventListener('wheel', (e) => {
+    const d = e.shiftKey ? e.deltaY : Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : 0;
+    if (mt.zoom <= 1 || !d) return;
+    e.preventDefault();
+    mtScrollTo(mt.start + d / Math.max(200, ui.tracks.clientWidth) * viewDur());
+}, { passive: false });
+
+// ---- sauvegarde : sons à garder pour une prise, relecture d'une prise montée
+function mtAudioOf(k) {
+    if (!k.clips) return [[k.audioId, k.mono]];
+    const out = [];
+    for (const id of new Set(k.clips.map((c) => c.src))) { const data = mt.sources.get(id); if (data) out.push([id, data]); }
+    return out;
+}
+async function mtRestoreTake(k, get, trackName) {
+    for (const id of new Set(k.clips.map((c) => c?.src))) {
+        if (typeof id !== 'string' || mt.sources.has(id)) continue;
+        const data = await get(id);
+        if (data instanceof Float32Array) { mt.sources.set(id, data); savedAudio.add(id); }
+        else log('warn', `« ${trackName} » : un son source du montage (${k.label}) est introuvable dans la sauvegarde`);
+    }
+    const { clips, dropped } = sanitizeClips(k.clips, (id) => mt.sources.get(id)?.length || 0, k.sampleRate);
+    if (dropped) log('warn', `« ${trackName} » : ${dropped} bout(s) illisible(s) écarté(s) (${k.label})`);
+    if (!clips.length) { log('warn', `« ${trackName} » : ${k.label} sans aucun bout lisible, prise écartée`); return null; }
+    const take = { ...k, clips, mono: null };
+    const ms = mtRender(take);
+    log('info', `« ${trackName} » : ${k.label} remontée (${clips.length} bout(s), rendu en ${Math.round(ms)} ms)`);
+    return take;
+}
+
+// ------------------------------------------------------------------ sauvegarde automatique (navigateur)
+// Le projet (instru, prises, réglages des pistes) est gardé dans IndexedDB : rien n'est perdu si la page se ferme.
+// Les sons sont écrits une seule fois (clé = audioId) ; les réglages à chaque changement (1 s après le dernier).
+const DB_NAME = 'studiovoix', DB_VERSION = 1;
+function openDb() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) { reject(new Error('IndexedDB indisponible')); return; }
+        const rq = indexedDB.open(DB_NAME, DB_VERSION);
+        rq.onupgradeneeded = () => { const db = rq.result; db.createObjectStore('meta'); db.createObjectStore('audio'); };
+        rq.onsuccess = () => resolve(rq.result);
+        rq.onerror = () => reject(rq.error || new Error('ouverture IndexedDB impossible'));
+    });
+}
+function idb(db, store, mode, fn) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, mode);
+        const out = fn(tx.objectStore(store));
+        tx.oncomplete = () => resolve(out && 'result' in out ? out.result : undefined);
+        tx.onerror = () => reject(tx.error || new Error('IndexedDB : écriture refusée'));
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB : transaction annulée (espace plein ?)'));
+    });
+}
+let saveTimer = 0, savedAudio = new Set();
+function markDirty() {
+    if (state.finalMix && !state.finalMix.stale) {
+        state.finalMix.stale = true;
+        ui.finalInfo.classList.add('stale');
+        ui.finalInfo.textContent = '⚠ Le projet a changé depuis le mixage : clique « Mixer la chanson » pour le refaire. ' + ui.finalInfo.textContent;
+    }
+    if (!state.player && !state.restoring) restMeters();   // repères de niveau : effacés si l'équilibre n'est plus à jour
+    if (ui.levelBtn) refreshLevelBtn();                     // « Égalisé ✓ » seulement tant que les pistes n'ont pas changé
+    if (state.restoring) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveProject().catch((err) => {
+        log('warn', 'Sauvegarde automatique impossible : ' + err.message);
+        ui.saveInfo.textContent = '⚠ sauvegarde impossible';
+    }), 1000);
+}
+async function saveProject() {
+    const t0 = performance.now();
+    const db = await openDb();
+    const audio = [];
+    const src = instruSource();   // l'ORIGINAL : la version corrigée n'est jamais sauvegardée (recalculée au rechargement)
+    if (src) audio.push([src.audioId + 'L', src.left], [src.audioId + 'R', src.right]);
+    // Chanson d'avant la séparation (« Rétablir le morceau ») : gardée aussi, sous son identifiant d'origine (déjà écrite
+    // quand elle était l'instru : pas de seconde écriture). Avant le 27/11 elle n'était pas sauvegardée : « Rétablir »
+    // disparaissait au rechargement de la page ou à l'ouverture d'un projet en fichier.
+    const orig = src?.original || null;
+    if (orig) { if (!orig.audioId) orig.audioId = `o${Date.now().toString(36)}`; audio.push([orig.audioId + 'L', orig.left], [orig.audioId + 'R', orig.right]); }
+    // Prise montée : ce sont ses sons source qui sont gardés (jamais modifiés, écrits une seule fois) ; son rendu (mono)
+    // est recalculé au chargement à partir des bouts. Prise sans montage : son son, comme avant.
+    for (const t of state.tracks) for (const k of t.takes) audio.push(...mtAudioOf(k));
+    const fresh = audio.filter(([id], i) => !savedAudio.has(id) && audio.findIndex((a) => a[0] === id) === i);
+    if (fresh.length) await idb(db, 'audio', 'readwrite', (st) => { for (const [id, data] of fresh) st.put(data, id); });
+    for (const [id] of fresh) savedAudio.add(id);
+    const meta = {
+        version: 1, savedAt: Date.now(), nextTrackId: state.nextTrackId, armedId: state.armedId, rawLevelOn: !!state.rawLevelOn,
+        instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name,
+            ...(orig ? { original: { audioId: orig.audioId, name: orig.name } } : {}) } : null,
+        instruTrack: state.instruTrack,
+        roleOffsets: state.roleOffsets,   // écarts de volume par type réglés à la main (absent : valeurs d'origine)
+        instruFix: !!state.instruFix,     // « Instru : corrigée » allumé (absent : telle quelle) ; le son corrigé n'est pas gardé
+        vocalOverInstruLu: state.vocalOverInstruLu,   // voix principale devant l'instru, réglée à la main (absent ou null : valeur du style)
+        tracks: state.tracks.map((t) => ({
+            id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, smooth: !!t.smooth, locked: !!t.locked, fx: t.fx || {},
+            mode: fxKindOf(t),   // 'none' | 'correction' | 'style' ; absent des projets d'avant le mode « Correction »
+            active: t.takes.indexOf(t.take),
+            takes: t.takes.map((k) => ({ audioId: k.audioId, sampleRate: k.sampleRate, startSec: k.startSec, note: k.note || '', label: k.label,
+                ...(k.clips ? { clips: cloneClips(k.clips), montage: !!k.montage } : {}) })),   // prise montée : ses bouts
+        })),
+    };
+    await idb(db, 'meta', 'readwrite', (st) => st.put(meta, 'project'));
+    // Sons qui ne servent plus (piste supprimée, nouvelle instru) : effacés.
+    const keep = new Set(audio.map(([id]) => id));
+    const keys = await idb(db, 'audio', 'readonly', (st) => st.getAllKeys());
+    const stale = (keys || []).filter((k) => !keep.has(k));
+    if (stale.length) { await idb(db, 'audio', 'readwrite', (st) => { for (const k of stale) st.delete(k); }); for (const k of stale) savedAudio.delete(k); }
+    db.close();
+    ui.saveInfo.textContent = `Sauvegardé ${new Date().toLocaleTimeString()}`;
+    log('info', `Projet sauvegardé dans le navigateur (${fresh.length} son(s) écrit(s), ${stale.length} effacé(s)) en ${Math.round(performance.now() - t0)} ms`);
+}
+async function restoreProject() {
+    let db;
+    try { db = await openDb(); } catch (err) { log('warn', 'Pas de sauvegarde possible : ' + err.message); ui.saveInfo.textContent = 'sauvegarde indisponible'; return false; }
+    try {
+        const meta = await idb(db, 'meta', 'readonly', (st) => st.get('project'));
+        if (!meta || meta.version !== 1 || (!meta.instru && !meta.tracks?.some((t) => t.takes.length))) return false;
+        state.restoring = true;
+        const get = (id) => idb(db, 'audio', 'readonly', (st) => st.get(id));
+        setStatus('Reprise du projet gardé dans le navigateur…');
+        state.instruTrack = { ...state.instruTrack, ...meta.instruTrack };
+        state.rawLevelOn = !!meta.rawLevelOn;   // « Égaliser » demandé : les gains sont recalculés à la première lecture brute
+        state.nextTrackId = meta.nextTrackId;
+        await applyRoleOffsets(meta.roleOffsets);
+        // Réglages de l'instru : absents d'un projet d'avant → instru telle quelle, écart du style (comportement d'avant).
+        state.instruFix = meta.instruFix === true;
+        const vox = meta.vocalOverInstruLu;
+        state.vocalOverInstruLu = typeof vox === 'number' && Number.isFinite(vox) ? Math.min(VOX_INSTRU_MAX, Math.max(VOX_INSTRU_MIN, vox)) : null;
+        if (vox != null && state.vocalOverInstruLu !== vox) log('warn', `Écart voix / instru gardé illisible ou hors bornes (${vox}) : ${state.vocalOverInstruLu == null ? 'ignoré, valeur du style' : `ramené à ${fLuS(state.vocalOverInstruLu)}`}`);
+        log('info', `Instru : ${state.instruFix ? 'correction reprise de la sauvegarde (bouton allumé : elle est recalculée)' : meta.instruFix === false ? 'telle quelle (repris de la sauvegarde)' : 'telle quelle (projet d\'avant ce réglage)'} ; voix principale devant l'instru : ${state.vocalOverInstruLu == null ? 'valeur du style' : `${fLuS(state.vocalOverInstruLu)} repris de la sauvegarde`}`);
+        state.tracks = [];
+        for (const m of meta.tracks) {
+            const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, smooth: !!m.smooth, fx: m.fx && typeof m.fx === 'object' ? m.fx : {},   // anciens projets : effets du style, comme avant
+                        locked: m.locked ?? !!m.noFx,   // anciens projets : pistes séparées verrouillées
+                        take: null, takes: [], processed: null, status: 'vide', token: 0 };
+            // Mode gardé ; projet d'avant (pas de mode) : comportement d'avant, Style ou Sans effet — le son ne change pas.
+            t.correction = m.mode === 'correction'; if (m.mode) t.noFx = m.mode === 'none';
+            log('info', `« ${t.name} » : mode ${fxKindOf(t)} ${m.mode ? 'repris de la sauvegarde' : '(projet d\'avant le mode « Correction » : comportement d\'avant gardé)'}`);
+            for (const k of m.takes) {
+                if (Array.isArray(k.clips)) { const take = await mtRestoreTake(k, get, m.name); if (take) t.takes.push(take); continue; }   // prise montée
+                const mono = await get(k.audioId);
+                if (!(mono instanceof Float32Array)) { log('warn', `« ${m.name} » : ${k.label} introuvable dans la sauvegarde`); continue; }
+                t.takes.push({ ...k, mono });
+                savedAudio.add(k.audioId);
+            }
+            t.take = t.takes[m.active] || t.takes[t.takes.length - 1] || null;
+            if (t.take) t.status = 'raw';
+            state.tracks.push(t);
+        }
+        state.armedId = meta.armedId;
+        if (meta.instru) {
+            const L = await get(meta.instru.audioId + 'L'), R = await get(meta.instru.audioId + 'R');
+            if (L instanceof Float32Array && R instanceof Float32Array) {
+                await setInstru(L, R, meta.instru.sampleRate, meta.instru.name);
+                state.instru.audioId = meta.instru.audioId;
+                savedAudio.add(meta.instru.audioId + 'L'); savedAudio.add(meta.instru.audioId + 'R');
+                // Chanson d'avant la séparation : reprise pour « Rétablir le morceau » (absente d'un projet d'avant le 27/11).
+                const mo = meta.instru.original;
+                if (mo && typeof mo.audioId === 'string' && mo.audioId) {
+                    const oL = await get(mo.audioId + 'L'), oR = await get(mo.audioId + 'R');
+                    if (oL instanceof Float32Array && oR instanceof Float32Array && oL.length === oR.length) {
+                        state.instru.original = { left: oL, right: oR, name: typeof mo.name === 'string' && mo.name ? mo.name : 'morceau d\'origine', audioId: mo.audioId };
+                        savedAudio.add(mo.audioId + 'L'); savedAudio.add(mo.audioId + 'R');
+                        log('info', `Chanson d'origine reprise (« ${state.instru.original.name} », ${fmt(oL.length / meta.instru.sampleRate)}) : « Rétablir le morceau » est disponible`);
+                    } else log('warn', 'Chanson d\'origine introuvable ou illisible dans la sauvegarde : « Rétablir le morceau » indisponible');
+                }
+                ensureInstruFix('projet repris');   // bouton allumé dans la sauvegarde : version corrigée recalculée
+            } else log('warn', 'Instru introuvable dans la sauvegarde');
+        }
+        renderRoles();   // ligne « Voix principale devant l'instru » : valeur reprise, style de la voix principale
+        renderTracks();
+        reprocessAll();
+        const n = state.tracks.filter((t) => t.take).length;
+        log('info', `Projet repris : ${meta.instru ? meta.instru.name : 'sans instru'}, ${state.tracks.length} piste(s), ${n} avec prise (sauvegarde du ${new Date(meta.savedAt).toLocaleString()})`);
+        setStatus(`Projet repris (sauvegarde du ${new Date(meta.savedAt).toLocaleString()}) : ${state.tracks.length} piste(s), retraitement des prises…`);
+        ui.saveInfo.textContent = 'Projet repris';
+        return true;
+    } catch (err) {
+        log('error', 'Reprise du projet impossible : ' + err.message);
+        return false;
+    } finally { state.restoring = false; db.close(); }
+}
+ui.newBtn.addEventListener('click', async () => {
+    if (!confirm('Nouveau projet : l\'instru et toutes les pistes du projet actuel seront effacées (exporte d\'abord si besoin). Continuer ?')) return;
+    stopPlayback();
+    state.instru = null;
+    state.instruFix = false; state.vocalOverInstruLu = null;   // réglages de l'instru : retour au défaut (telle quelle, écart du style)
+    state.instruTrack = { volumeDb: 0, mute: false, solo: false };
+    state.tracks = []; state.nextTrackId = 1; state.armedId = 0; state.selectedId = 0;
+    state.balance = null; state.balanceDirty = true; state.playFromSec = 0;
+    if (Object.keys(state.roleOffsets).length) await setRoleOffset('', null, 'nouveau projet');
+    mtReset();   // montage : plus rien à annuler, plus de bout sélectionné ni copié
+    addTrack('lead', 'Voix principale');
+    renderRoles();
+    renderTracks();
+    setPlayhead(0);
+    await saveProject().catch((err) => log('warn', err.message));
+    log('info', 'Nouveau projet');
+    setStatus('Nouveau projet : importe une instru, arme une piste (●) puis REC.');
+});
+
+// ---------------------------------------------------------------- Projet dans un fichier (.studiovoix)
+// Le fichier contient exactement ce que garde la sauvegarde automatique (métadonnées + tous les sons, au bit près) :
+// voir projectfile.js. Enregistrer : la sauvegarde est mise à jour puis relue son par son (un seul son en mémoire à
+// la fois). Ouvrir : le fichier est d'abord contrôlé EN ENTIER sans toucher au projet en cours ; puis ses sons sont
+// écrits à côté de ceux du projet en cours, et l'échange se fait en une seule transaction (tout ou rien) ; la page
+// se recharge alors sur le projet ouvert.
+const projUi = { save: $('projSaveBtn'), open: $('projOpenBtn'), file: $('projFile') };
+const PROJ_TMP = 'imp:';   // préfixe des sons d'un fichier en cours d'ouverture, dans le magasin « audio »
+const projBusy = () => (state.separating || state.isolating || state.busy > 0 || state.recording
+    ? 'un calcul est en cours (séparation, IA ou traitement) : réessaie quand il est fini' : state.projectFileBusy ? 'un fichier de projet est déjà en cours' : '');
+const fmtMo = (bytes) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0).replace('.', ',')} Mo`;
+async function projectFileSave() {
+    const why = projBusy();
+    if (why) { setStatus('Enregistrer le projet : ' + why + '.'); log('warn', 'Projet en fichier non enregistré : ' + why); return null; }
+    state.projectFileBusy = true;
+    const t0 = performance.now();
+    let db = null;
+    try {
+        setStatus('Enregistrement du projet dans un fichier…');
+        clearTimeout(saveTimer);
+        await saveProject();   // le fichier = la sauvegarde automatique, à jour
+        db = await openDb();
+        const meta = await idb(db, 'meta', 'readonly', (st) => st.get('project'));
+        if (!meta) throw new Error('aucun projet sauvegardé à enregistrer');
+        const keys = ((await idb(db, 'audio', 'readonly', (st) => st.getAllKeys())) || []).filter((k) => typeof k === 'string' && !k.startsWith(PROJ_TMP));
+        const table = [], blobs = [];
+        let offset = 0;
+        for (const id of keys) {   // un son à la fois : relu, résumé (somme de contrôle), rangé dans un Blob, puis lâché
+            const a = await idb(db, 'audio', 'readonly', (st) => st.get(id));
+            const d = describeSound(id, a, offset);
+            table.push(d.entry);
+            blobs.push(new Blob([d.bytes]));
+            offset += d.bytes.length;
+        }
+        const h = packHeader(meta, table, { build: ui.version.textContent, tracks: meta.tracks.length });
+        const blob = new Blob([...h.parts, ...blobs], { type: 'application/octet-stream' });
+        // Nom du fichier : celui de l'instru, sans accent ni signe particulier (certains appareils refusent le nom entier sinon).
+        const base = (meta.instru?.name || 'projet').replace(/\.[^.]+$/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 _()-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'projet';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${base} ${new Date().toISOString().slice(0, 10)}${PROJECT_EXT}`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+        const info = { name: a.download, bytes: blob.size, sounds: table.length, tracks: meta.tracks.length };
+        log('info', `Projet enregistré dans le fichier « ${info.name} » : ${info.tracks} piste(s), ${info.sounds} son(s), ${fmtMo(info.bytes)}, en ${Math.round(performance.now() - t0)} ms`);
+        setStatus(`Projet enregistré : « ${info.name} » (${fmtMo(info.bytes)}), dans tes téléchargements. « Ouvrir un projet » pour le reprendre, ici ou sur un autre appareil.`);
+        return info;
+    } catch (err) {
+        log('error', 'Projet en fichier, enregistrement impossible : ' + err.message);
+        setStatus('Enregistrement du projet impossible : ' + err.message);
+        return null;
+    } finally { db?.close(); state.projectFileBusy = false; }
+}
+async function projectFileOpen(file) {
+    const why = projBusy();
+    if (why) { setStatus('Ouvrir un projet : ' + why + '.'); log('warn', 'Projet en fichier non ouvert : ' + why); return false; }
+    state.projectFileBusy = true;
+    const t0 = performance.now();
+    let db = null, switched = false;
+    const part = async (a, b) => new Uint8Array(await file.slice(a, b).arrayBuffer());
+    try {
+        // 1) contrôle complet du fichier, sans toucher au projet en cours
+        setStatus(`Contrôle du fichier « ${file.name} »…`);
+        log('info', `Projet en fichier : ouverture de « ${file.name} » (${fmtMo(file.size)})`);
+        const n = headerLength(await part(0, 12));
+        const { header, dataStart } = parseHeader(await part(0, 12 + n), file.size);
+        const sound = async (s) => unpackAudio(await part(dataStart + s.offset, dataStart + s.offset + 4 * s.length), s);
+        for (const s of header.audio) await sound(s);   // taille, somme de contrôle, valeurs : tout est vérifié avant d'écrire
+        log('info', `Projet en fichier : contrôle réussi — ${header.meta.tracks.length} piste(s), ${header.audio.length} son(s), enregistré le ${String(header.savedAt).slice(0, 16).replace('T', ' à ')} (${header.extra?.build || 'version inconnue'}), ${Math.round(performance.now() - t0)} ms`);
+        // 2) accord de l'utilisateur : le projet en cours est remplacé
+        const names = header.meta.tracks.map((t) => t.name).slice(0, 6).join(', ');
+        if (!confirm(`Ouvrir « ${file.name} » ?\n${header.meta.tracks.length} piste(s)${names ? ' : ' + names : ''}${header.meta.instru ? `\nInstru : ${header.meta.instru.name}` : ''}\n\nLe projet actuel sera remplacé (enregistre-le d'abord dans un fichier si tu veux le garder).`)) {
+            log('info', 'Projet en fichier : ouverture abandonnée à la demande, projet en cours inchangé');
+            setStatus('Ouverture abandonnée : le projet en cours n\'a pas changé.');
+            return false;
+        }
+        // 3) écriture à côté du projet en cours, puis échange en une seule transaction
+        stopPlayback();
+        clearTimeout(saveTimer);
+        state.restoring = true;   // plus de sauvegarde automatique du projet en cours à partir d'ici
+        setStatus('Ouverture du projet : écriture des sons…');
+        db = await openDb();
+        const clearTmp = async () => {
+            const tmp = ((await idb(db, 'audio', 'readonly', (st) => st.getAllKeys())) || []).filter((k) => typeof k === 'string' && k.startsWith(PROJ_TMP));
+            if (tmp.length) await idb(db, 'audio', 'readwrite', (st) => { for (const k of tmp) st.delete(k); });
+            return tmp.length;
+        };
+        await clearTmp();   // restes d'une ouverture interrompue
+        try {
+            for (const s of header.audio) { const a = await sound(s); await idb(db, 'audio', 'readwrite', (st) => st.put(a, PROJ_TMP + s.id)); }
+        } catch (err) {
+            await clearTmp().catch((e) => log('warn', `Projet en fichier : sons provisoires non effacés (${e.message})`));
+            state.restoring = false;
+            throw new Error(`écriture des sons impossible (${err.message}) — espace plein ? Le projet en cours n'a pas changé`);
+        }
+        await new Promise((resolve, reject) => {   // tout ou rien : anciens sons effacés, nouveaux mis à leur nom, métadonnées remplacées
+            const tx = db.transaction(['meta', 'audio'], 'readwrite'), au = tx.objectStore('audio');
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error || new Error('échange refusé'));
+            tx.onabort = () => reject(tx.error || new Error('échange annulé (espace plein ?)'));
+            const all = au.getAllKeys();
+            all.onsuccess = () => {
+                for (const k of all.result) if (!(typeof k === 'string' && k.startsWith(PROJ_TMP))) au.delete(k);
+                for (const s of header.audio) { const rq = au.get(PROJ_TMP + s.id); rq.onsuccess = () => { au.put(rq.result, s.id); au.delete(PROJ_TMP + s.id); }; }
+                tx.objectStore('meta').put(header.meta, 'project');
+            };
+        }).catch(async (err) => {
+            await clearTmp().catch((e) => log('warn', `Projet en fichier : sons provisoires non effacés (${e.message})`));
+            state.restoring = false;
+            throw new Error(`${err.message} — le projet en cours n'a pas changé`);
+        });
+        switched = true;
+        log('info', `Projet en fichier : « ${file.name} » ouvert (${header.meta.tracks.length} piste(s), ${header.audio.length} son(s)) en ${Math.round(performance.now() - t0)} ms ; rechargement de la page`);
+        setStatus('Projet ouvert : rechargement de la page…');
+        db.close(); db = null;
+        location.reload();
+        return true;
+    } catch (err) {
+        const msg = err.message.replace(/^fichier de projet : /, '');
+        log('error', 'Projet en fichier, ouverture impossible : ' + msg);
+        setStatus('Ouverture du projet impossible : ' + msg);
+        alert('Ce fichier ne peut pas être ouvert.\n\n' + msg + '\n\nLe projet en cours n\'a pas changé.');
+        return false;
+    } finally { db?.close(); if (!switched) state.projectFileBusy = false; }
+}
+projUi.save?.addEventListener('click', () => { projectFileSave(); });
+projUi.open?.addEventListener('click', () => projUi.file.click());
+projUi.file?.addEventListener('change', () => { const f = projUi.file.files?.[0]; projUi.file.value = ''; if (f) projectFileOpen(f); });
+
+drawMeter(ui.meterOut, 0, 0);
+setPlayhead(0);
+setStatus('Chargement du moteur…');
+window.__svSep = sepRun;   // tests : état de la séparation (son de veille, tranches)
+window.__studiovoix = state;   // lecture seule par les tests de bout en bout (vérification des prises)
+window.__svRenderPlayed = renderPlayed;   // essai du montage : ce que la page joue, rendu hors ligne
+window.__svInstru = { audio: instruAudio, source: instruSource };   // essai instru-fix : instru jouée / mixée, instru d'origine (séparation, sauvegarde)
+startWorker();
