@@ -401,8 +401,11 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   (20 s, 48 kHz, serveur) : étape voix / instru 21 s contre 1 min 04 s (×0,33), SDR instru 15,6 dB contre 16,3,
   aigus seuls 4,2 dB contre 6,5, 2 chanteurs + backs dans les deux cas. NON VÉRIFIÉ : vrai téléphone (projection
   3 min 35 ≈ 8 à 10 min au lieu de ≈ 30), WebGPU avec ce modèle, « Finition soignée » avec « Très rapide ».
-- ÉTAPE 4 : les quatre points demandés sont faits (projet en fichier, écarts par type, inspection complète,
-  protocole d'écoute). RESTE : l'écoute réelle par Yann et la mesure sur son téléphone.
+- ÉTAPE 4 : projet en fichier, écarts par type, inspection complète, protocole d'écoute faits. RECTIFICATION du
+  27/11 : le « réglage de base de l'instru avant le mixage final » de la note de Yann n'était PAS fait (annoncé à
+  tort comme couvert par les écarts par type). Lancé le 27/11 : A) bouton « Instru : telle quelle / corrigée »
+  (moteur `repairStereo`, éteint par défaut, original jamais modifié) ; B) curseur « Voix principale devant
+  l'instru ». RESTE ensuite : l'écoute réelle par Yann et la mesure sur son téléphone.
 - Build 154 en ligne (26/11, 21:00 UTC), contenu publié contrôlé sur la branche `gh-pages` (modèle léger, `clips.js`,
   `projectfile.js`, boutons). La page `jovenger.github.io` n'est pas joignable depuis l'environnement de travail.
 - 27/11 — ALLÈGEMENTS POUR LE TÉLÉPHONE (risques relevés la veille) :
@@ -413,6 +416,10 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
     (avant : deux copies par canal de chaque piste, toutes en même temps, puis une copie de plus à l'envoi).
   - montage : le retraitement d'une piste part 1,2 s après le DERNIER geste (`MT_REPROCESS_MS`) au lieu de repartir
     à chaque geste ; un équilibre, un mixage ou un export lancent d'abord les traitements en attente.
+  - barre d'état : un message né d'un geste reste 2,5 s, l'avancement d'un traitement en arrière-plan attend son tour.
+  - essais : `e2e.mjs` n'attend plus une sauvegarde en comptant les lignes d'un journal plafonné (`savedSince` lit la
+    date de la sauvegarde) ; reprise en cours d'étape rejouée par l'orchestrateur (chanson de 45 s : 9 morceaux relus
+    sur 11, résultat identique au bit près).
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

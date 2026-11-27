@@ -8,6 +8,19 @@ import { createRequire } from 'node:module';
 const require = createRequire(process.env.PLAYWRIGHT_DIR ? process.env.PLAYWRIGHT_DIR.replace(/\/?$/, '/') : import.meta.url);
 const { chromium } = require('playwright');
 
+// Attend une sauvegarde du projet postérieure à `fromMs` (horloge de la page), lue dans la sauvegarde elle-même (date
+// `savedAt` des métadonnées). Compter les lignes « Projet sauvegardé » du journal ne suffit pas : le journal est
+// plafonné, une ligne ancienne sort quand la nouvelle entre et le compte ne bouge plus (échec vu en CI le 26/11).
+async function savedSince(page, fromMs, timeoutMs = 30000) {
+    const savedAt = () => page.evaluate(() => new Promise((resolve) => {
+        const rq = indexedDB.open('studiovoix', 1);
+        rq.onerror = () => resolve(0);
+        rq.onsuccess = () => { const db = rq.result, g = db.transaction('meta').objectStore('meta').get('project'); g.onsuccess = () => { db.close(); resolve(g.result?.savedAt || 0); }; g.onerror = () => { db.close(); resolve(0); }; };
+    }));
+    for (let waited = 0; waited < timeoutMs; waited += 200) { if ((await savedAt()) >= fromMs) return; await page.waitForTimeout(200); }
+    throw new Error(`aucune sauvegarde du projet dans les ${Math.round(timeoutMs / 1000)} s qui suivent le geste`);
+}
+
 // Sans fichiers (ou « - »), la démo intégrée du moteur sert d'instru et de voix.
 const [url, instruArg, voiceArg, shot] = process.argv.slice(2);
 if (!url) {
@@ -410,11 +423,10 @@ try {
             console.log(stamp(), `référence sans coupure : ${((Date.now() - tRef) / 1000).toFixed(0)} s, ${nSeg} tranche(s), instru ${midRef.instru.length} échantillons`);
             if (nSeg < 2) throw new Error(`reprise en cours d'étape : la chanson ne fait qu'une tranche (${nSeg}) ; il en faut au moins 2 (45 s ou plus)`);
             // Retour à la chanson d'origine, sans la piste de voix créée ; le projet est sauvegardé avant la coupure.
-            const saved = () => page.evaluate(() => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length);
-            const n0 = await saved();
+            const from0 = await page.evaluate(() => Date.now());
             await page.click('.track[data-id="0"] button:has-text("Rétablir le morceau")');
             await page.evaluate(() => { const t = window.__studiovoix.tracks.at(-1); document.querySelector(`.track[data-id="${t.id}"] button.x`).click(); });
-            await page.waitForFunction((n) => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length > n, n0, { timeout: 60000 });
+            await savedSince(page, from0, 60000);
             await page.click('#sepBtn');
             // 2e tranche commencée (la 1re est gardée) et au moins un morceau de cette tranche fini : on coupe.
             await page.waitForFunction(() => { const r = window.__svSep; return r.seg && r.seg.i >= 1 && r.cDone > r.seg.per; }, null, { timeout: 1200000 });
@@ -784,13 +796,12 @@ try {
         // La prise de la dernière piste est décalée de 0,37 s, puis la 1re piste est verrouillée par son bouton (ce clic
         // déclenche la sauvegarde, qui garde aussi le décalage) ; on attend une sauvegarde postérieure au clic.
         const place = () => page.evaluate(() => window.__studiovoix.tracks.map((t) => `${t.name}|${t.locked ? 'verrouillée' : 'libre'}|${t.take ? t.take.startSec.toFixed(3) : '-'}`).join(';'));
-        const saves = () => page.evaluate(() => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length);
         const wasLocked = await page.evaluate(() => !!window.__studiovoix.tracks[0].locked);
         const start0 = await page.evaluate(() => { const k = window.__studiovoix.tracks.at(-1).take; const s = k.startSec; k.startSec = s + 0.37; return s; });
-        const nSaves = await saves();
+        const fromSave = await page.evaluate(() => Date.now());
         if (!wasLocked) await page.locator('#tracks button.tog.lock').nth(0).click();
         else await page.evaluate(() => document.querySelector('#tracks .track input.name').dispatchEvent(new Event('change')));   // déjà verrouillée : simple « projet modifié »
-        await page.waitForFunction((n) => [...document.querySelectorAll('#log div')].filter((d) => /Projet sauvegardé/.test(d.textContent)).length > n, nSaves, { timeout: 30000 });
+        await savedSince(page, fromSave, 30000);
         const placeBefore = await place();
         await page.waitForFunction(() => /Sauvegardé/.test(document.getElementById('saveInfo').textContent), null, { timeout: 30000 });
         await page.reload({ waitUntil: 'load' });
