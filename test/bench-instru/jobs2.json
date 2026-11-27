@@ -1,0 +1,132 @@
+[
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_disco/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_disco.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_fem1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_fem1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_fem2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_fem2.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_pop1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_pop1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_pop2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_pop2.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_rock1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_rock1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/p_parle/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/p_parle.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_fem1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_fem1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_fem2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_fem2.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_pop1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_pop1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_rap1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_rap1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_rap2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_rap2.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_rock1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_rock1.kim.f32",
+  "model": "kim2"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_disco/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_disco.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_fem1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_fem1.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_fem2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_fem2.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_pop1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_pop1.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_pop2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_pop2.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/m_rock1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/m_rock1.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/p_parle/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/p_parle.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_fem1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_fem1.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_fem2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_fem2.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_pop1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_pop1.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_rap1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_rap1.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_rap2/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_rap2.inst4.f32",
+  "model": "insthq4"
+ },
+ {
+  "in": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/items/t_rock1/song.wav",
+  "out": "/tmp/claude-0/-home-user-rebuild-project/954cdb61-bb44-5f2f-8fc3-d4876ade99a0/scratchpad/B/out/t_rock1.inst4.f32",
+  "model": "insthq4"
+ }
+]
