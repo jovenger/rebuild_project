@@ -6,6 +6,7 @@
 #include "Denoiser.h"
 #include "MasterChain.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace sv::dsp
@@ -92,4 +93,81 @@ RepairReport repairStereo (Stereo& audio, double sr, const style::VocalParams& p
     SV_LOG_INFO (kMod, rep.summary().replace ("\n", " | "));
     return rep;
 }
+namespace
+{
+    // Échantillons en plateau au sommet : mêmes conditions que declip (Denoiser.cpp), sans rien modifier.
+    int plateauSamples (const float* x, int n, float threshold)
+    {
+        int count = 0;
+        for (int i = 0; i < n;)
+        {
+            if (std::abs (x[i]) < threshold)
+            {
+                ++i;
+                continue;
+            }
+            int j = i;
+            float lo = std::abs (x[i]), hi = lo;
+            while (j < n && std::abs (x[j]) >= threshold && (x[j] > 0.0f) == (x[i] > 0.0f))
+            {
+                lo = std::min (lo, std::abs (x[j]));
+                hi = std::max (hi, std::abs (x[j]));
+                ++j;
+            }
+            const int len = j - i;
+            if (hi - lo <= 0.005f * threshold && len >= 2 && i >= 2 && j + 1 < n && len < 4096)
+                count += len;
+            i = j;
+        }
+        return count;
+    }
+}
+
+MixBaseReport fixMixBase (Stereo& audio, double sampleRate, float ceilingDb, double minClippedShare)
+{
+    log::ScopedTimer timer (kMod, "réglage de base d'un mix"_u8);
+    MixBaseReport rep;
+    const int n = audio.getNumSamples(), chans = audio.getNumChannels();
+    if (n <= 0 || chans <= 0 || sampleRate <= 0.0)
+        return rep;
+    const float peak = audio.getMagnitude (0, n);
+    rep.peakBeforeDb = rep.peakAfterDb = gainToDb (peak);
+    if (peak < 1.0e-5f)
+    {
+        SV_LOG_INFO (kMod, "Réglage de base : son muet, rien à faire"_u8);
+        return rep;
+    }
+    // 1. Écrêtage : plateaux à moins de 1,5 % du sommet.
+    const float threshold = 0.985f * peak;
+    for (int c = 0; c < chans; ++c)
+        rep.clippedSamples += plateauSamples (audio.getReadPointer (c), n, threshold);
+    rep.clippedShare = static_cast<double> (rep.clippedSamples) / (static_cast<double> (n) * chans);
+    if (rep.clippedShare >= minClippedShare)
+    {
+        for (int c = 0; c < chans; ++c)
+        {
+            Mono m (audio.getReadPointer (c), audio.getReadPointer (c) + n);   // un canal à la fois (mémoire)
+            rep.clippedRepaired += declip (m, threshold);
+            std::copy (m.begin(), m.end(), audio.getWritePointer (c));
+        }
+        rep.changed = rep.clippedRepaired > 0;
+    }
+    // 2. Marge : gain constant, le même sur tous les canaux (image et équilibre inchangés).
+    const float ceiling = dbToGain (ceilingDb), peakNow = audio.getMagnitude (0, n);
+    if (peakNow > ceiling)
+    {
+        const float g = ceiling / peakNow;
+        audio.applyGain (g);
+        rep.gainDb = gainToDb (g);
+        rep.changed = true;
+    }
+    rep.peakAfterDb = gainToDb (audio.getMagnitude (0, n));
+    SV_LOG_INFO (kMod, "Réglage de base : "_u8 + juce::String (rep.clippedSamples) + " échantillons en plateau ("_u8
+                       + juce::String (100.0 * rep.clippedShare, 3) + " %, seuil " + juce::String (100.0 * minClippedShare, 3) + " %) -> "
+                       + juce::String (rep.clippedRepaired) + " reconstruits ; gain "_u8 + juce::String (rep.gainDb, 2) + " dB ; crête "_u8
+                       + juce::String (rep.peakBeforeDb, 1) + " -> " + juce::String (rep.peakAfterDb, 1) + " dBFS"
+                       + (rep.changed ? juce::String() : juce::String (" ; son inchangé"_u8)));
+    return rep;
+}
+
 } // namespace sv::dsp

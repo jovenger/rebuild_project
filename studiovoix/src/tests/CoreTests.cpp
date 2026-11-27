@@ -1857,6 +1857,122 @@ public:
             expect (std::abs (l / std::max (1e-9f, r) - 1.0f / 0.7f) < 0.08f, "image stéréo conservée ("_u8 + juce::String (l / std::max (1e-9f, r), 2) + ")");
         }
 
+        beginTest ("Reglage de base d'un mix entier : ecretage repare, marge rendue, rien d'autre");
+        {
+            // Une instru de synthèse stéréo : accord tenu + basse, plus fort à gauche qu'à droite.
+            const int n = static_cast<int> (4.0 * kSr);
+            auto make = [&] (float level)
+            {
+                Stereo st (2, n);
+                for (int i = 0; i < n; ++i)
+                {
+                    const double t = i / kSr;
+                    const float env = 0.6f + 0.4f * static_cast<float> (std::sin (2.0 * juce::MathConstants<double>::pi * 0.7 * t));
+                    const float v = env * static_cast<float> (0.5 * std::sin (2.0 * juce::MathConstants<double>::pi * 110.0 * t) + 0.3 * std::sin (2.0 * juce::MathConstants<double>::pi * 277.2 * t + 0.4)
+                                                                + 0.2 * std::sin (2.0 * juce::MathConstants<double>::pi * 659.3 * t + 1.1));
+                    st.setSample (0, i, level * v);
+                    st.setSample (1, i, level * 0.7f * v);
+                }
+                return st;
+            };
+            auto maxDiff = [&] (const Stereo& a, const Stereo& b)
+            {
+                float d = 0.0f;
+                for (int c = 0; c < 2; ++c)
+                    for (int i = 0; i < n; ++i)
+                        d = std::max (d, std::abs (a.getSample (c, i) - b.getSample (c, i)));
+                return d;
+            };
+            // 1) Instru propre, crête sous -1 dBFS : identique au bit près.
+            {
+                const auto ref = make (0.6f);
+                auto st = make (0.6f);
+                const auto rep = dsp::fixMixBase (st, kSr);
+                expect (! rep.changed && rep.clippedRepaired == 0 && rep.gainDb == 0.0f && maxDiff (st, ref) == 0.0f,
+                        "instru propre : inchangée au bit près (crête "_u8 + juce::String (rep.peakBeforeDb, 1) + " dBFS, "
+                        + juce::String (rep.clippedSamples) + " échantillons en plateau)"_u8);
+            }
+            // 2) Instru trop forte mais pas écrêtée (crête -0,2 dBFS) : un gain constant, rien d'autre.
+            {
+                auto ref = make (1.0f);
+                ref.applyGain (dbToGain (-0.2f) / ref.getMagnitude (0, n));
+                Stereo st;
+                st.makeCopyOf (ref);
+                const auto rep = dsp::fixMixBase (st, kSr);
+                const float g = dbToGain (rep.gainDb);
+                Stereo want;
+                want.makeCopyOf (ref);
+                want.applyGain (g);
+                expect (rep.changed && rep.clippedRepaired == 0 && std::abs (rep.gainDb + 0.8f) < 0.02f && std::abs (rep.peakAfterDb + 1.0f) < 0.02f
+                        && maxDiff (st, want) < 1.0e-6f,
+                        "instru trop forte : gain constant "_u8 + juce::String (rep.gainDb, 2) + " dB, crête " + juce::String (rep.peakAfterDb, 2)
+                        + " dBFS, écart à « original x gain » "_u8 + juce::String (maxDiff (st, want), 8));
+            }
+            // 3) Instru écrêtée (1,6 fois trop forte, coupée à 1,0) : crêtes reconstruites, crête à -1 dBFS, plus proche de
+            //    l'original non écrêté qu'avant, même rapport gauche / droite.
+            {
+                const auto clean = make (1.6f);
+                Stereo st;
+                st.makeCopyOf (clean);
+                for (int c = 0; c < 2; ++c)
+                    for (int i = 0; i < n; ++i)
+                        st.setSample (c, i, juce::jlimit (-1.0f, 1.0f, st.getSample (c, i)));
+                Stereo clipped;
+                clipped.makeCopyOf (st);
+                const auto rep = dsp::fixMixBase (st, kSr);
+                // Erreur par rapport à l'original non écrêté, à gain égal (le gain constant est retiré).
+                auto errDb = [&] (const Stereo& x, float gain)
+                {
+                    double e = 0.0, r = 0.0;
+                    for (int i = 0; i < n; ++i)
+                    {
+                        const double d = x.getSample (0, i) / gain - clean.getSample (0, i);
+                        e += d * d;
+                        r += static_cast<double> (clean.getSample (0, i)) * clean.getSample (0, i);
+                    }
+                    return 10.0 * std::log10 (e / r + 1.0e-20);
+                };
+                const float g = dbToGain (rep.gainDb);
+                const double before = errDb (clipped, 1.0f), after = errDb (st, g);
+                expect (rep.changed && rep.clippedRepaired > 100 && rep.clippedShare >= dsp::kMixBaseMinClippedShare,
+                        "instru écrêtée : "_u8 + juce::String (rep.clippedSamples) + " échantillons en plateau (" + juce::String (100.0 * rep.clippedShare, 2)
+                        + " %), " + juce::String (rep.clippedRepaired) + " reconstruits"_u8);
+                expect (std::abs (rep.peakAfterDb + 1.0f) < 0.02f && rep.gainDb < 0.0f, "crête ramenée à -1 dBFS par un gain constant ("_u8
+                        + juce::String (rep.gainDb, 2) + " dB)");
+                // Mesuré : -19,4 -> -21,7 dB (2,3 dB de mieux) ; exigé : au moins 1,5 dB de mieux, jamais pire.
+                expect (after < before - 1.5, "plus proche de l'original non écrêté : erreur "_u8 + juce::String (before, 1) + " -> " + juce::String (after, 1) + " dB");
+                // Canal droit non écrêté (0,7 x 1,6 x 0,96 ≈ 1,07 > 1 : écrêté aussi, moins) : on contrôle l'image sur un
+                // passage calme, où aucun canal n'a touché le plafond.
+                int quiet = -1;
+                for (int i = 2000; i + 2000 < n && quiet < 0; i += 500)
+                {
+                    bool ok = true;
+                    for (int k = i; k < i + 2000 && ok; ++k)
+                        ok = std::abs (clean.getSample (0, k)) < 0.9f;
+                    if (ok)
+                        quiet = i;
+                }
+                bool sameImage = quiet >= 0;
+                for (int k = quiet; sameImage && k < quiet + 2000; ++k)
+                    sameImage = std::abs (st.getSample (0, k) - g * clean.getSample (0, k)) < 1.0e-5f && std::abs (st.getSample (1, k) - g * clean.getSample (1, k)) < 1.0e-5f;
+                expect (sameImage, "hors des crêtes : le son est l'original multiplié par le même gain à gauche et à droite"_u8);
+            }
+            // 4) Quelques plateaux isolés (sous le seuil de part) : pas de reconstruction.
+            {
+                auto st = make (0.6f);
+                const float top = st.getMagnitude (0, n);
+                for (int k = 0; k < 3; ++k)
+                    for (int i = 0; i < 3; ++i)
+                        st.setSample (0, 10000 + 40000 * k + i, top);
+                Stereo ref;
+                ref.makeCopyOf (st);
+                const auto rep = dsp::fixMixBase (st, kSr);
+                expect (rep.clippedSamples > 0 && rep.clippedRepaired == 0 && ! rep.changed && maxDiff (st, ref) == 0.0f,
+                        "plateaux isolés ("_u8 + juce::String (rep.clippedSamples) + " échantillons, " + juce::String (100.0 * rep.clippedShare, 4)
+                        + " %) : pas pris pour un écrêtage, son inchangé"_u8);
+            }
+        }
+
         beginTest ("Curseurs de style : positions reelles, differentes par style");
         {
             const auto rapC = style::makeParams (style::Style::RapConscient, style::Role::Lead, {});

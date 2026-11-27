@@ -28,7 +28,7 @@ const ui = {
     sepProg: $('sepProg'), sepStep: $('sepStep'), sepPct: $('sepPct'), sepBar: $('sepBar'), sepTime: $('sepTime'), sepStopBtn: $('sepStopBtn'), sepSub: $('sepSub'), sepEst: $('sepEst'), sepHelp: $('sepHelp'),
     finalMixBtn: $('finalMixBtn'), finalTarget: $('finalTarget'), finalDuck: $('finalDuck'), finalPlayRow: $('finalPlayRow'),
     playFinalBtn: $('playFinalBtn'), playBeforeBtn: $('playBeforeBtn'), exportFinalBtn: $('exportFinalBtn'), finalInfo: $('finalInfo'), stemsBtn: $('stemsBtn'), newBtn: $('newBtn'), saveInfo: $('saveInfo'),
-    correctAllBtn: $('correctAllBtn'), rawAllBtn: $('rawAllBtn'), autoLine: $('autoLine'), fxDone: $('fxDone'), roleBox: $('roleBox'), roleList: $('roleList'), roleResetBtn: $('roleResetBtn'),
+    correctAllBtn: $('correctAllBtn'), rawAllBtn: $('rawAllBtn'), autoLine: $('autoLine'), fxDone: $('fxDone'), roleBox: $('roleBox'), roleList: $('roleList'), roleResetBtn: $('roleResetBtn'), voxInstruRow: $('voxInstruRow'),
 };
 
 const state = {
@@ -37,7 +37,10 @@ const state = {
     styles: [], roles: [],
     roleOffsets: {},       // écarts de volume par type réglés à la main { type: LU } (gardés avec le projet, renvoyés au moteur)
     // Instru : { left, right, sampleRate, seconds, name, analysis } ; réglages de piste à part (existe sans fichier).
+    // left / right = l'instru d'ORIGINE, jamais modifiée ; fixed = sa version corrigée (voir « instru corrigée »).
     instru: null,
+    instruFix: false,          // bouton « Instru : corrigée » (éteint par défaut ; gardé avec le projet, pas le son corrigé)
+    vocalOverInstruLu: null,   // de combien la voix principale passe devant l'instru, réglé à la main (LU) ; null : valeur du style
     instruTrack: { volumeDb: 0, mute: false, solo: false },
     // Pistes voix : { id, name, roleId, styleId, volumeDb, mute, solo, take: { mono, sampleRate, startSec, note } | null,
     //                 takes: [prises de cette piste], processed: { left, right, report, key } | null, status, token }
@@ -417,6 +420,7 @@ function renderTracks() {
     ui.tracks.innerHTML = '';
     ui.tracks.appendChild(instruRow());
     for (const t of state.tracks) ui.tracks.appendChild(trackRow(t));
+    renderVoxInstru();   // « Voix principale devant l'instru » : valeur du style de la voix principale (étape 4)
     mtButtons();   // barre et menu de montage à jour (bout sélectionné, pistes d'arrivée)
     drawAllLanes();
     refreshAudibility();
@@ -461,9 +465,17 @@ function toggles(obj, onChange) {
 function instruRow() {
     const row = el('div', { class: 'track instru', 'data-id': '0' });
     const file = el('input', { type: 'file', accept: 'audio/*', id: 'instruFile', onchange: (e) => loadInstruFile(e.target.files[0]) });
+    const fixed = instruFixDone(), fixWait = state.instruFix && !!state.instru && !fixed;
     const info = state.instru
         ? `${state.instru.name} · ${fmt(state.instru.seconds)}` + (state.instru.analysis ? ` · ${state.instru.analysis.key} · ${state.instru.analysis.bpm.toFixed(0)} BPM` : '')
+            + (fixed ? ` · ${fixed.same ? '' : 'corrigée : '}${instruFixText(fixed.report)}` : fixWait ? (state.separating ? ' · correction refaite après la séparation' : ' · correction de l\'instru en cours…') : '')
         : 'aucune instru';
+    // Bouton à deux états, jamais allumé tout seul : « telle quelle » (défaut) / « corrigée » (réglage de base : écrêtage réparé, niveau trop haut baissé, rien d'autre).
+    const fixBtn = el('button', { id: 'instruFixBtn', class: 'tog fix' + (state.instruFix ? ' on' : ''), disabled: !state.ready || !state.instru,
+        textContent: state.instruFix ? 'Instru : corrigée' : 'Instru : telle quelle',
+        title: state.instruFix ? 'Réglage de base de l\'instru avant le mix : les crêtes écrêtées sont reconstruites et, si l\'instru est trop forte, son niveau est baissé pour rendre de la marge. Rien d\'autre n\'est touché (ni égaliseur, ni compression, ni effet) ; une instru propre reste identique. L\'original est gardé : un appui la remet telle quelle.'
+            : 'Instru jouée telle quelle. Un appui lui applique un réglage de base avant le mix, utile pour un MP3 trop fort ou écrêté : crêtes écrêtées reconstruites, niveau baissé si la crête dépasse −1 dBFS. Rien d\'autre n\'est touché ; l\'original est gardé.',
+        onclick: (e) => { e.stopPropagation(); setInstruFix(!state.instruFix); } });
     const meter = el('canvas', { class: 'meter', width: 300, height: 9 });
     row._meter = meter;
     const head = el('div', { class: 'head' },
@@ -474,7 +486,8 @@ function instruRow() {
             el('button', { id: 'demoBtn', textContent: 'Démo', disabled: !state.ready, title: 'Instru et deux voix de démonstration (La mineur, 100 BPM)', onclick: loadDemo })),
         state.instru?.original ? el('div', { class: 'r' }, el('button', { textContent: '↺ Rétablir le morceau', title: 'Remettre la chanson d\'origine (avant séparation) sur cette piste', onclick: (e) => { e.stopPropagation(); restoreOriginalSong(); } })) : null,
         el('div', { class: 'r' }, ...toggles(state.instruTrack, onMuteSolo)),
-        el('div', { class: 'tinfo', textContent: info, title: 'Jouée telle quelle, jamais modifiée' }));
+        el('div', { class: 'r' }, fixBtn),
+        el('div', { class: 'tinfo', textContent: info, title: fixed ? 'Corrigée avant le mix (écrêtage réparé, niveau trop haut baissé — rien d\'autre) ; l\'original est gardé, jamais modifié' : 'Jouée telle quelle, jamais modifiée' }));
     const lane = el('div', { class: 'lane' }, el('canvas'), state.instru ? null : el('div', { class: 'empty', textContent: 'Importe l\'instru (MP3, WAV…) : elle va seule sur cette piste' }));
     laneEvents(lane, null);
     row.append(head, lane);
@@ -489,12 +502,12 @@ function trackRow(t) {
         onchange: (e) => { t.name = e.target.value.trim() || t.name; log('info', `Piste renommée : « ${t.name} »`); markDirty(); } });
     const role = el('select', { class: 'role', title: 'Type de piste : règle la chaîne (effets) et la place dans le mix' });
     fillRoleSelect(role, t.roleId);
-    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); proposeAddRole('type d\'une piste changé'); markDirty(); queueProcess(t); });
+    role.addEventListener('change', () => { t.roleId = role.value; log('info', `« ${t.name} » : type ${roleLabel(t.roleId)}`); proposeAddRole('type d\'une piste changé'); markDirty(); renderVoxInstru(); queueProcess(t); });
     const style = el('select', { class: 'style' + (t.noFx || t.correction ? ' unused' : ''), title: t.correction && !t.noFx ? 'Style de cette voix : PAS appliqué pour l\'instant (piste en « Correction »). Choisis un style ici pour l\'appliquer.'
         : t.noFx ? 'Style de cette voix : pas appliqué (piste « Sans effet »). Choisis un style ici pour l\'appliquer.' : 'Style de mixage de cette voix' });
     fillStyleSelect(style, t.styleId);
     // Choisir un style à la main fait passer la piste en mode « Style » (rien ne passe en Style tout seul).
-    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); if (t.noFx || t.correction) setFxMode(t, t.smooth ? 'smooth' : 'style', 'style choisi à la main'); else queueProcess(t); });
+    style.addEventListener('change', () => { t.styleId = style.value; log('info', `« ${t.name} » : style ${styleName(t.styleId)}`); markDirty(); renderVoxInstru(); if (t.noFx || t.correction) setFxMode(t, t.smooth ? 'smooth' : 'style', 'style choisi à la main'); else queueProcess(t); });
     const file = el('input', { type: 'file', accept: 'audio/*', class: 'voiceFile', onchange: (e) => importVoice(t, e.target.files[0]) });
     const meter = el('canvas', { class: 'meter', width: 300, height: 9 });
     const badge = el('span', { class: 'badge', textContent: badgeText(t) });
@@ -641,7 +654,7 @@ function drawLane(row, t, force = false) {
         for (let s = first; s < v0 + total; s += bar) if (s >= v0) g.fillRect(Math.round((s - v0) / total * w), 0, 1, h);
     }
     let data = null, sr = 0, start = 0, color = '#3a9bff';
-    if (!t) { if (state.instru) { data = state.instru.left; sr = state.instru.sampleRate; color = '#8a94a8'; } }
+    if (!t) { if (state.instru) { data = instruAudio().left; sr = state.instru.sampleRate; color = '#8a94a8'; } }
     else if (t.take) {
         data = t.processed ? t.processed.left : t.take.mono; sr = t.take.sampleRate; start = t.take.startSec;
         color = t.processed ? (t.smooth ? '#9b7bff' : '#e94e8a') : '#3a9bff';   // bleu : brut ; violet : lissé ; rose : effets du style
@@ -1427,13 +1440,14 @@ async function ensureBalance() {
         return { key: t.id, ...lrCopy(L, R, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 };
     });
     const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
-    const ins = state.instru ? lrCopy(state.instru.left, state.instru.right, xfer) : null;
-    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks }, xfer);
+    const ia = state.instru ? instruAudio() : null, ins = ia ? lrCopy(ia.left, ia.right, xfer) : null;
+    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks, vocalOverInstruLu: voxInstruArg() }, xfer);
     const gains = new Map(), items = new Map();
     for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
     state.balance = { gains, items, report: r.report };
     state.balanceDirty = false;
-    log('info', `Équilibre : voix / instru ${r.report.vocalGainDb.toFixed(1)} dB` + (r.report.report ? ` ; ${r.report.report.replace(/\n/g, ' | ')}` : ''));
+    log('info', `Équilibre : voix / instru ${r.report.vocalGainDb.toFixed(1)} dB` + (state.instru ? ` (voix principale visée ${fLuS(r.report.vocalOverInstruLu)} devant l'instru${instruFixed() ? ' corrigée' : ''}, ${r.report.vocalOverInstruSet ? 'réglée à la main' : 'valeur du style'})` : '')
+        + (r.report.report ? ` ; ${r.report.report.replace(/\n/g, ' | ')}` : ''));
     for (const t of state.tracks) updateRow(t);
     if (!state.player) restMeters();
     return state.balance;
@@ -1444,7 +1458,51 @@ async function ensureBalance() {
 // -24 à 0. L'état vit dans le moteur (commande setRoleOffset) : il est gardé avec le projet (state.roleOffsets) et
 // renvoyé au moteur après un rechargement. Il vaut pour l'équilibre (« ▶ Mix », export) et « Mixer la chanson ».
 const fLu = (v) => `${(+v).toFixed(1).replace('.', ',')} LU`;
+// « Voix principale devant l'instru » (première ligne du bloc) : de combien la voix principale passe devant l'instru
+// (LU). Sans réglage, c'est la valeur du style de la voix principale (0 à +2 LU selon le style) : comportement d'avant.
+// Réglée ici (pas de 0,5 ; bornes du moteur : kVoxInstruMinLu / kVoxInstruMaxLu de api.cpp), elle vaut pour « ▶ Mix »,
+// l'export « Chanson Mix », « ⚖ Égaliser » et « Mixer la chanson » ; elle est gardée avec le projet.
+const VOX_INSTRU_MIN = -4, VOX_INSTRU_MAX = 8;
+const fLuS = (v) => `${+v > 0 ? '+' : ''}${fLu(v)}`;
+const leadStyleId = () => state.tracks.find((t) => t.roleId === 'lead')?.styleId || state.tracks.find((t) => t.take && !t.mute)?.styleId || '';
+function styleVoxInstru() {
+    const all = state.styles.flatMap((g) => g.styles);
+    const st = all.find((x) => x.id === leadStyleId()) || all.find((x) => x.id === 'rap');   // style inconnu : comme le moteur (styleFromId → Rap)
+    return { lu: Number.isFinite(st?.vocalOverInstruLu) ? st.vocalOverInstruLu : 1, name: st?.name || '' };
+}
+const voxInstruArg = () => state.vocalOverInstruLu ?? undefined;   // absent : le moteur prend la valeur du style
+// La ligne est construite une fois puis mise à jour sur place : le curseur n'est jamais remplacé pendant un geste
+// (la valeur du style rappelée suit le style de la voix principale : pistes ajoutées, style ou type changé).
+function renderVoxInstru() {
+    const row = ui.voxInstruRow;
+    if (!row) return;
+    if (!row._inp) {
+        row._val = el('b');
+        row._inp = el('input', { type: 'range', id: 'voxInstru', min: VOX_INSTRU_MIN, max: VOX_INSTRU_MAX, step: 0.5,
+            title: 'De combien la voix principale passe devant l\'instru (0 = au même niveau ; plus haut = la voix plus devant)',
+            oninput: (e) => { row._val.textContent = fLuS(Number(e.target.value)); },
+            onchange: (e) => setVoxInstru(Number(e.target.value)) });
+        row._pre = el('span', { class: 'pre' });
+        row.replaceChildren(el('span', { textContent: 'Voix principale devant l\'instru' }), row._inp, row._val, row._pre);
+    }
+    const st = styleVoxInstru(), set = state.vocalOverInstruLu, cur = set ?? st.lu;
+    if (!row._inp.matches(':active')) { row._inp.value = cur; row._val.textContent = fLuS(cur); }
+    row._pre.textContent = `valeur du style${st.name ? ` (${st.name})` : ''} : ${fLuS(st.lu)}${set != null ? ' — modifié' : ''}`;
+}
+// lu = null : retour à la valeur du style.
+function setVoxInstru(lu, why = 'curseur') {
+    if (lu != null && !Number.isFinite(lu)) { log('error', `Voix principale devant l'instru : valeur invalide (${lu}), ignorée`); renderVoxInstru(); return; }
+    const before = state.vocalOverInstruLu, st = styleVoxInstru();
+    const v = lu == null ? null : Math.min(VOX_INSTRU_MAX, Math.max(VOX_INSTRU_MIN, Math.round(lu * 2) / 2));
+    state.vocalOverInstruLu = v;
+    log('info', `Voix principale devant l'instru (${why}) : ${fLuS(before ?? st.lu)}${before == null ? ' (valeur du style)' : ''} → ${fLuS(v ?? st.lu)}${v == null ? ' (valeur du style)' : ` (style ${st.name} : ${fLuS(st.lu)})`}${v === before ? ' — rien de changé' : ' ; équilibre des volumes à refaire'}`);
+    if (v === before) { renderVoxInstru(); return; }
+    rolesChanged();   // équilibre à refaire (« ⚖ Égaliser » aussi), sauvegarde, chanson mixée à refaire, lecture « Mix » rééquilibrée
+    setStatus(v == null ? `Voix principale devant l'instru : valeur du style (${fLuS(st.lu)}). L'équilibre sera refait à la prochaine lecture « ▶ Mix ».`
+        : `Voix principale réglée à ${fLuS(v)} devant l'instru (style : ${fLuS(st.lu)}). L'équilibre sera refait à la prochaine lecture « ▶ Mix ».`);
+}
 function renderRoles() {
+    renderVoxInstru();
     const adj = state.roles.filter((r) => r.adjustable);
     ui.roleList.replaceChildren(...adj.map((r) => {
         const val = el('b', { textContent: fLu(r.placeLu) });
@@ -1455,7 +1513,7 @@ function renderRoles() {
         return el('div', { class: 'rolerow' }, el('span', { textContent: roleLabel(r.id) }), inp, val,
             el('span', { class: 'pre', textContent: `valeur d'origine : ${fLu(r.defaultPlaceLu)}${r.placeLu !== r.defaultPlaceLu ? ' — modifié' : ''}` }));
     }));
-    ui.roleResetBtn.disabled = !state.ready || !adj.some((r) => r.placeLu !== r.defaultPlaceLu);
+    ui.roleResetBtn.disabled = !state.ready || !(adj.some((r) => r.placeLu !== r.defaultPlaceLu) || state.vocalOverInstruLu != null);
 }
 function rolesChanged() {
     state.roleOffsets = Object.fromEntries(state.roles.filter((x) => x.adjustable && x.placeLu !== x.defaultPlaceLu).map((x) => [x.id, x.placeLu]));
@@ -1495,7 +1553,10 @@ async function applyRoleOffsets(saved) {
     const kept = Object.entries(state.roleOffsets);
     log('info', `Écarts par type repris de la sauvegarde : ${kept.length ? kept.map(([id, lu]) => `${roleLabel(id)} ${fLu(lu)}`).join(', ') : 'valeurs d\'origine'}`);
 }
-ui.roleResetBtn.addEventListener('click', () => setRoleOffset('', null, '« Valeurs d\'origine »'));
+ui.roleResetBtn.addEventListener('click', async () => {
+    await setRoleOffset('', null, '« Valeurs d\'origine »');
+    if (state.vocalOverInstruLu != null) setVoxInstru(null, '« Valeurs d\'origine »');
+});
 
 // ------------------------------------------------------------------ lecture
 const dbg = (db) => Math.pow(10, db / 20);
@@ -1565,8 +1626,10 @@ function play(mode, fromSec = state.playFromSec, { exceptId = 0, startAt = 0 } =
         const tr = key ? state.tracks.find((x) => x.id === key) : null;
         nodes.push({ key, src, gain: g, an, meterEl, hold: 0, holdUntil: 0, mark: tr && mode === 'mix' ? mixLevelDb(tr) : null });
     };
-    if (state.instru && audible(state.instruTrack))
-        addSource(0, state.instru.left, state.instru.right, 0, state.instruTrack.volumeDb, rowOf(0)?._meter);
+    if (state.instru && audible(state.instruTrack)) {
+        const ia = instruAudio();   // corrigée si « Instru : corrigée », sinon d'origine
+        addSource(0, ia.left, ia.right, 0, state.instruTrack.volumeDb, rowOf(0)?._meter);
+    }
     for (const t of state.tracks) {
         if (t.id === exceptId || !audible(t)) continue;
         const a = trackAudio(t, mode);
@@ -1654,7 +1717,7 @@ function listenAll() {
 // les sons. state.rawLevelOn : égalisation demandée (gardée avec le projet) ; state.balanceRaw : gains calculés pour
 // les pistes d'une signature donnée (recalculés si les pistes ont changé).
 const rawLevelOn = () => !!state.rawLevelOn;
-const rawSig = () => state.tracks.filter((t) => t.take && !t.mute).map((t) => `${t.id}:${t.roleId}:${t.take.audioId}:${t.take.startSec.toFixed(3)}`).join('|') + `#${state.instru?.audioId || ''}`;
+const rawSig = () => state.tracks.filter((t) => t.take && !t.mute).map((t) => `${t.id}:${t.roleId}:${t.take.audioId}:${t.take.startSec.toFixed(3)}`).join('|') + `#${state.instru?.audioId || ''}${instruFixed() ? '+corrigée' : ''}`;
 const rawLevelFresh = () => !!state.balanceRaw && state.balanceRaw.sig === rawSig();
 async function ensureRawBalance(onStep = null) {
     const list = state.tracks.filter((t) => t.take && !t.mute);
@@ -1666,8 +1729,8 @@ async function ensureRawBalance(onStep = null) {
     const tracks = list.map((t) => ({ key: t.id, ...lrCopy(t.take.mono, t.take.mono, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 }));
     const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
     onStep?.(`mesure de ${list.length} piste(s)…`);
-    const ins = state.instru ? lrCopy(state.instru.left, state.instru.right, xfer) : null;
-    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks }, xfer);
+    const ia = state.instru ? instruAudio() : null, ins = ia ? lrCopy(ia.left, ia.right, xfer) : null;
+    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks, vocalOverInstruLu: voxInstruArg() }, xfer);
     const gains = new Map(), items = new Map();
     for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
     state.balanceRaw = { gains, items, report: r.report, sig };
@@ -1718,10 +1781,11 @@ async function startPlay(mode) {
         else if (rawLevelOn()) { setStatus('Égalisation des volumes (sans effet)…'); await ensureRawBalance(); refreshLevelBtn(); }
         const p = play(mode);
         const head = p.headDb < -0.05 ? ` Volume général −${(-p.headDb).toFixed(1)} dB pour ne pas saturer (instru intacte).` : '';
+        const fixedOn = !!instruFixed();   // « Instru : corrigée » : dit dans la barre d'état
         setStatus((mode === 'mix'
-            ? 'Lecture du mix : instru d\'origine, intacte + chaque piste traitée (style et type), équilibrées.'
-            : rawLevelOn() ? 'Lecture brute, volumes égalisés : aucune piste n\'est modifiée (aucun effet), seul son volume est réglé selon son type.'
-            : 'Lecture brute : instru d\'origine + prises sans effet, volumes d\'origine. « ⚖ Égaliser » règle les volumes sans ajouter d\'effet.') + head);
+            ? `Lecture du mix : ${fixedOn ? 'instru corrigée (écrêtage réparé, niveau trop haut baissé)' : 'instru d\'origine, intacte'} + chaque piste traitée (style et type), équilibrées.`
+            : rawLevelOn() ? `Lecture brute, volumes égalisés : aucune piste n\'est modifiée (aucun effet), seul son volume est réglé selon son type${fixedOn ? ' ; instru corrigée' : ''}.`
+            : `Lecture brute : ${fixedOn ? 'instru corrigée' : 'instru d\'origine'} + prises sans effet, volumes d\'origine. « ⚖ Égaliser » règle les volumes sans ajouter d\'effet.`) + head);
     } catch (err) { setStatus('Lecture impossible : ' + err.message); log('error', err.message); }
 }
 ui.playBtn.addEventListener('click', () => startPlay('mix'));
@@ -1738,13 +1802,120 @@ function renderPlayed(mode, exceptId, sr) {
         const g = dbg(gainDb), o = Math.round(startSec * sr);
         for (let i = 0; i < left.length && o + i < n; ++i) { L[o + i] += left[i] * g; R[o + i] += right[i] * g; }
     };
-    if (state.instru && audible(state.instruTrack)) add(state.instru.left, state.instru.right, 0, state.instruTrack.volumeDb);
+    if (state.instru && audible(state.instruTrack)) { const ia = instruAudio(); add(ia.left, ia.right, 0, state.instruTrack.volumeDb); }
     for (const t of state.tracks) {
         if (t.id === exceptId || !audible(t)) continue;
         const a = trackAudio(t, mode);
         if (a) add(a.left, a.right, t.take.startSec, trackGainDb(t, mode));
     }
     return { left: L, right: R };
+}
+
+// ------------------------------------------------------------------ instru corrigée (au choix, éteinte par défaut)
+// Bouton « Instru : telle quelle / corrigée » de la piste Instru. Allumé : le moteur applique le réglage de base d'un mix
+// entier (commande fixInstru → sv::dsp::fixMixBase) : crêtes écrêtées reconstruites quand l'écrêtage est net, puis un
+// gain constant si la crête dépasse −1 dBFS — rien d'autre (ni égaliseur, ni débruitage, ni compression, ni limiteur :
+// mesuré, la réparation d'instrument du moteur abîme une instru déjà masterisée). Une instru propre n'est pas touchée et
+// ne coûte aucune mémoire en plus. La version corrigée est gardée À CÔTÉ de l'original
+// (state.instru.fixed) : state.instru.left / right restent l'instru d'origine, jamais modifiée.
+//  - instruAudio() : ce qui est JOUÉ ou MIXÉ (lecture, équilibre, « Égaliser », mixage final, exports, pistes à part,
+//    dessin, musique retirée d'une prise au micro) — la version corrigée si le bouton est allumé et qu'elle est prête ;
+//  - instruSource() : l'ORIGINAL (séparation d'une chanson, « Rétablir le morceau », sauvegarde).
+// Seul l'état du bouton est gardé avec le projet : la version corrigée est recalculée au rechargement, refaite quand
+// l'instru change (nouvelle instru, séparation, « Rétablir »), et retirée de la mémoire quand le bouton est éteint.
+function instruFixDone() {   // réglage de base calculé pour l'instru en place (même s'il n'a rien eu à changer)
+    const i = state.instru, f = i?.fixed;
+    return state.instruFix && f && f.audioId === i.audioId ? f : null;
+}
+function instruFixed() {      // version réellement différente de l'original (null : instru telle quelle ou déjà propre)
+    const f = instruFixDone();
+    return f && !f.same ? f : null;
+}
+function instruAudio() {
+    const f = instruFixed();
+    return f ? { left: f.left, right: f.right } : { left: state.instru.left, right: state.instru.right };
+}
+function instruSource() { return state.instru; }
+// Ce qui a été fait, en une ligne (ligne d'état de la piste Instru, journal). Le réglage de base ne fait que deux choses :
+// reconstruire les crêtes écrêtées quand l'écrêtage est net, et baisser le niveau d'un gain constant si la crête dépasse
+// −1 dBFS. Une instru propre n'est pas touchée.
+function instruFixText(r) {
+    const f1 = (v) => v.toFixed(1).replace('.', ',');
+    if (!r.changed) return `rien à réparer : pas d'écrêtage net (${r.clippedSamples} échantillons au sommet), crête ${f1(r.peakBeforeDb)} dBFS — l'instru est jouée telle quelle`;
+    const parts = [];
+    if (r.clippedRepaired > 0) parts.push(`écrêtage réparé (${r.clippedRepaired} échantillons reconstruits)`);
+    if (r.gainDb < -0.05) parts.push(`niveau baissé de ${f1(-r.gainDb)} dB pour rendre de la marge`);
+    parts.push(`crête ${f1(r.peakBeforeDb)} → ${f1(r.peakAfterDb)} dBFS`);
+    parts.push(`niveau ${f1(r.lufsBefore)} → ${f1(r.lufsAfter)} LUFS`);
+    return parts.join(', ');
+}
+// L'instru entendue a changé (corrigée ↔ d'origine) : équilibre à refaire, « Égaliser » aussi (rawSig), chanson mixée
+// à refaire, état du bouton à sauvegarder, piste redessinée.
+function instruFixChanged() {
+    state.balanceDirty = true;
+    markDirty();
+    renderTracks();
+}
+// Version corrigée d'une instru qui n'est plus la bonne (ou bouton éteint) : retirée de la mémoire.
+function instruFixDrop(why) {
+    const i = state.instru;
+    if (!i?.fixed) return;
+    const mo = i.fixed.same ? 0 : (i.fixed.left.length + i.fixed.right.length) * 4 / 1048576;
+    i.fixed = null;
+    log('info', `Instru : version corrigée retirée de la mémoire (${mo.toFixed(0)} Mo) — ${why}`);
+}
+// Calcule la version corrigée si le bouton est allumé et qu'elle manque (ou n'est plus celle de l'instru en place).
+// Passe par la file des traitements (state.jobs) : l'équilibre et le mixage final, qui l'attendent, prennent la bonne
+// instru ; une seule demande par instru.
+function ensureInstruFix(why = '') {
+    const ins = state.instru;
+    if (ins?.fixed && ins.fixed.audioId !== ins.audioId) instruFixDrop('l\'instru a changé');
+    if (!state.instruFix || !ins || !state.ready || instruFixDone() || ins.fixing === ins.audioId) return state.jobs;
+    const audioId = ins.audioId;
+    const current = () => state.instruFix && state.instru === ins && ins.audioId === audioId;
+    ins.fixing = audioId;   // pas compté dans state.busy : la ligne d'avancement de la correction d'office des voix n'en dépend pas
+    log('info', `Instru : réglage de base demandé${why ? ` (${why})` : ''} — ${ins.name}, ${fmt(ins.seconds)}`);
+    state.jobs = state.jobs.then(async () => {
+        if (!current()) { log('info', 'Instru : correction abandonnée avant le calcul (bouton éteint ou instru changée entre-temps)'); return; }
+        const t0 = performance.now(), xfer = [], c = lrCopy(ins.left, ins.right, xfer);
+        setStatus(`Réglage de base de l'instru (${fmt(ins.seconds)}) : recherche d'écrêtage et de crêtes trop hautes…`, { low: true });
+        const r = await call('fixInstru', { left: c.left, right: c.right, sampleRate: ins.sampleRate }, xfer);
+        const sec = (performance.now() - t0) / 1000;
+        if (!current()) { log('info', `Instru : correction calculée en ${sec.toFixed(1)} s puis abandonnée (bouton éteint ou instru changée entre-temps)`); return; }
+        if (!(r.left instanceof Float32Array) || r.left.length !== ins.left.length) throw new Error(`résultat du moteur inattendu (${r.left?.length} échantillons pour ${ins.left.length})`);
+        const rep = r.report;
+        if (rep.reverbSend > 0 || rep.delaySend > 0 || rep.satMix > 0) throw new Error('le moteur annonce un effet de couleur (réverb, écho ou saturation) : version corrigée refusée');
+        // Instru déjà propre : rien n'a changé, la « version corrigée » EST l'original (aucune mémoire en plus).
+        ins.fixed = rep.changed ? { left: r.left, right: r.right, report: rep, audioId, seconds: sec }
+                                : { left: ins.left, right: ins.right, report: rep, audioId, seconds: sec, same: true };
+        stopPlayback();   // la lecture en cours jouait l'instru d'origine
+        instruFixChanged();
+        const mo = rep.changed ? (r.left.length + r.right.length) * 4 / 1048576 : 0;
+        log('info', `Instru, réglage de base en ${sec.toFixed(1)} s (${fmt(ins.seconds)} de son, ${mo.toFixed(0)} Mo gardés à côté de l'original) : ${instruFixText(rep)}`
+            + ` ; écrêtage : ${rep.clippedSamples} échantillons au sommet, ${rep.clippedSharePct.toFixed(3)} % (réparé à partir de ${rep.clippedMinSharePct.toFixed(3)} %) ; ni égaliseur, ni débruitage, ni compression, ni limiteur, ni réverb, ni écho, ni saturation ; l'original n'est pas modifié`);
+        setStatus(rep.changed ? `Instru corrigée en ${sec.toFixed(1)} s : ${instruFixText(rep)}. L'original est gardé (un appui sur « Instru : corrigée » la remet telle quelle).`
+                              : `Instru : ${instruFixText(rep)}.`);
+    }).catch((err) => {
+        log('error', `Correction de l'instru impossible : ${err.message} — l'instru reste telle quelle`);
+        if (state.instru === ins && ins.audioId === audioId) { state.instruFix = false; ins.fixed = null; instruFixChanged(); }
+        setStatus(`Correction de l'instru impossible : ${err.message}. L'instru reste telle quelle.`);
+    }).finally(() => { if (ins.fixing === audioId) ins.fixing = ''; });
+    renderTracks();   // ligne d'état : « correction de l'instru en cours… »
+    return state.jobs;
+}
+// Appui sur le bouton (ou état repris d'une sauvegarde). Jamais appelé tout seul avec on = true.
+function setInstruFix(on, why = 'bouton') {
+    on = !!on;
+    if (on === state.instruFix) return state.jobs;
+    if (on && !state.instru) { setStatus('Pas d\'instru à corriger : importe d\'abord une instru.'); return state.jobs; }
+    state.instruFix = on;
+    stopPlayback();
+    if (on) { markDirty(); return ensureInstruFix(why); }   // l'état du bouton est gardé tout de suite, même si la page est fermée pendant le calcul
+    instruFixDrop('bouton éteint');
+    log('info', `Instru : telle quelle (${why}) — l'instru d'origine est de nouveau jouée et mixée`);
+    instruFixChanged();
+    setStatus('Instru : telle quelle. Elle est jouée et mixée comme elle a été importée.');
+    return state.jobs;
 }
 
 // ------------------------------------------------------------------ instru, démo
@@ -1769,6 +1940,7 @@ async function setInstru(left, right, sampleRate, name) {
     const secs = (r.sections || []).map((s) => `${s.label} ${fmt(s.start)}–${fmt(s.end)}`).join(' · ');
     log('info', `Instru : ${name} · ${fmt(state.instru.seconds)} · ${r.key} · ${r.bpm.toFixed(1)} BPM · ${r.lufs.toFixed(1)} LUFS · crête ${r.peakDb.toFixed(1)} dBFS` + (secs ? ` · ${secs}` : ''));
     renderTracks();
+    if (!state.restoring) ensureInstruFix('nouvelle instru');   // « Instru : corrigée » allumé : refaite pour cette instru (projet repris : après la reprise de son identifiant)
     reprocessAll();   // la gamme et le tempo de l'instru servent au traitement des voix
 }
 // Démo : instru et voix synthétiques du moteur sur deux pistes (principale + back), pour essayer sans fichier.
@@ -2102,8 +2274,9 @@ async function exportSong(mode) {
         const nTracks = state.tracks.filter((t) => t.take && audible(t)).length;
         const gtxt = r.report.gainDb < -0.05 ? `volume général −${(-r.report.gainDb).toFixed(1)} dB pour ne pas saturer` : 'volume d\'origine';
         const what = mode === 'mix' ? 'mix' : leveled ? 'brut, volumes égalisés, aucun effet' : 'brut, volumes d\'origine, aucun effet';
-        log('info', `Export (${what}) : ${nTracks} piste(s) voix + instru intacte (aucun limiteur), ${(n / sr).toFixed(1)} s, crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
-        setStatus(`${saved.name} exporté (${what} ; ${saved.desc}, ${sr} Hz, ${fmt(n / sr)}) : instru intacte + ${nTracks} piste(s) voix, ${gtxt}.`);
+        const insWord = instruFixed() ? 'instru corrigée (écrêtage réparé, niveau trop haut baissé)' : 'instru intacte';
+        log('info', `Export (${what}) : ${nTracks} piste(s) voix + ${insWord} (aucun limiteur), ${(n / sr).toFixed(1)} s, crête ${(20 * Math.log10(peak + 1e-12)).toFixed(1)} dBFS, ${gtxt}`);
+        setStatus(`${saved.name} exporté (${what} ; ${saved.desc}, ${sr} Hz, ${fmt(n / sr)}) : ${insWord} + ${nTracks} piste(s) voix, ${gtxt}.`);
     } catch (err) { setStatus('Export impossible : ' + err.message); log('error', err.message); }
     refreshButtons();
 }
@@ -2657,6 +2830,9 @@ async function separateSong() {
     const t0 = performance.now();
     stopPlayback();
     ui.sepBtn.disabled = true; state.isolating = true; state.separating = true;
+    // « Instru : corrigée » : la séparation travaille sur l'original ; la version corrigée est retirée de la mémoire
+    // pendant le calcul (téléphone) et refaite à la fin, pour l'instru en place.
+    if (state.instru.fixed) { instruFixDrop('séparation de la chanson : elle travaille sur l\'original, la correction est refaite à la fin'); renderTracks(); }
     sepBegin(steps);
     // Bilan de fin : durée de chaque étape (stepsLog), moteur prévu / utilisé.
     const stepsLog = [];
@@ -2666,7 +2842,7 @@ async function separateSong() {
         return r;
     };
     try {
-        const src = state.instru, sr = src.sampleRate;
+        const src = instruSource(), sr = src.sampleRate;   // l'ORIGINAL, jamais la version corrigée
         const plan = await sepEnginePlan();
         log('info', `Séparation — départ : calcul sur ${plan.text} ; ${steps} étape(s) : ${['voix / instru', ...(doKara ? ['voix principale / backs'] : []), ...(doRev ? ['ambiance'] : []), ...(doSing ? ['chanteurs'] : [])].join(', ')}` +
             ` ; voix / instru : ${sepModelName(fastOn)}${fastOn ? ` (${MDX_MODELS.vocFast.modelFile}, recouvrement ${String(SEP_FAST_OVERLAP).replace('.', ',')})` : ''}` +
@@ -2842,6 +3018,7 @@ async function separateSong() {
         state.isolating = false; state.separating = false; iso.t0 = 0;
         sepEnd();
         refreshButtons();
+        ensureInstruFix('après la séparation');   // « Instru : corrigée » allumé : refaite pour l'instru en place
     }
 }
 ui.sepBtn.addEventListener('click', separateSong);
@@ -2865,6 +3042,7 @@ function restoreOriginalSong() {
     state.instru.audioId = `i${Date.now().toString(36)}`;
     state.balanceDirty = true; markDirty(); renderTracks();
     setStatus('Morceau d\'origine rétabli sur la piste Instru.');
+    ensureInstruFix('morceau rétabli');   // « Instru : corrigée » allumé : refaite pour le morceau d'origine
 }
 
 // ------------------------------------------------------------------ mixage final (« Mixer la chanson »)
@@ -2892,10 +3070,11 @@ ui.finalMixBtn.addEventListener('click', async () => {
         setStatus(`Mixage de la chanson : ${list.length} piste(s) voix + instru, mastering ${ui.finalTarget.selectedOptions[0].textContent}…`);
         const t0 = performance.now();
         const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0]?.styleId || 'rap_conscient';
-        const xfer = [], ins = state.instru && audible(state.instruTrack) ? lrCopy(state.instru.left, state.instru.right, xfer) : null;
+        const insFixed = !!instruFixed(), ia = state.instru && audible(state.instruTrack) ? instruAudio() : null;
+        const xfer = [], ins = ia ? lrCopy(ia.left, ia.right, xfer) : null;
         const r = await call('finalMix', {
             instruL: ins?.left ?? null, instruR: ins?.right ?? null,
-            sampleRate: sr, styleId: leadStyle, targetId: ui.finalTarget.value, duckingDb: ui.finalDuck.checked ? 2.5 : 0,
+            sampleRate: sr, styleId: leadStyle, targetId: ui.finalTarget.value, duckingDb: ui.finalDuck.checked ? 2.5 : 0, vocalOverInstruLu: voxInstruArg(),
             tracks: list.map((t) => {
                 const a = trackAudio(t, 'mix');
                 return { key: t.id, ...lrCopy(a.left, a.right, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: t.volumeDb };
@@ -2912,13 +3091,15 @@ ui.finalMixBtn.addEventListener('click', async () => {
             `Chanson mixée en ${((performance.now() - t0) / 1000).toFixed(1)} s — style ${rep.style}, ${rep.target} :\n` +
             `• Voix : ${lines.join(' · ') || 'aucune'}\n` +
             `• Voix soudées ensemble : compression ${rep.busGrDb.toFixed(1)} dB en moyenne${rep.busGrMaxDb != null ? `, ${rep.busGrMaxDb.toFixed(1)} dB au plus fort` : ''} (rattrapage +${rep.busMakeupDb.toFixed(1)} dB)\n` +
-            `• Instru : ${rep.duckingDb > 0 ? `place faite à la voix (creux jusqu'à ${rep.duckingDb.toFixed(1)} dB vers 2,5 kHz quand la voix chante)` : 'telle quelle'}\n` +
+            (ins && list.length ? `• Voix principale devant l'instru : ${fLuS(rep.vocalOverInstruLu)} (${rep.vocalOverInstruSet ? `réglée à la main ; style ${fLuS(rep.styleVocalOverInstruLu)}` : 'valeur du style'})\n` : '') +
+            `• Instru : ${insFixed && ins ? 'corrigée avant le mix (écrêtage réparé, niveau trop haut baissé) ; ' : ''}${rep.duckingDb > 0 ? `place faite à la voix (creux jusqu'à ${rep.duckingDb.toFixed(1)} dB vers 2,5 kHz quand la voix chante)` : insFixed && ins ? 'sans creux sous la voix' : 'telle quelle'}\n` +
             `• Mastering : couleur du style (graves ${rep.lowShelfDb >= 0 ? '+' : ''}${rep.lowShelfDb} dB, aigus ${rep.highShelfDb >= 0 ? '+' : ''}${rep.highShelfDb} dB), ` +
             `${rep.inputLufs.toFixed(1)} → ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP, limiteur ${rep.limiterGrDb.toFixed(1)} dB` +
             (unprocessed.length ? `\n⚠ Pistes sans traitement (brutes) : ${unprocessed.join(', ')}` : '');
         ui.finalPlayRow.hidden = false;
         ui.exportFinalBtn.disabled = false;
         log('info', `Mixage final : ${rep.inputLufs.toFixed(1)} -> ${rep.outputLufs.toFixed(1)} LUFS, crête ${rep.truePeakDb.toFixed(1)} dBTP`);
+        log('info', `Mixage final : instru ${!ins ? 'absente ou muette' : insFixed ? 'corrigée' : 'telle quelle'} ; voix principale visée ${fLuS(rep.vocalOverInstruLu)} devant l'instru (${rep.vocalOverInstruSet ? 'réglée à la main' : 'valeur du style'}), gain voix ${rep.vocalGainDb.toFixed(1)} dB`);
         playFinal(state.playFromSec, true);
         setStatus('Chanson mixée, lecture en cours : « ▶ Avant mixage » pour comparer, puis « Exporter la chanson mixée ».');
     } catch (err) { setStatus('Mixage impossible : ' + err.message); log('error', 'Mixage final : ' + err.message); }
@@ -2983,7 +3164,7 @@ ui.stemsBtn.addEventListener('click', async () => {
             for (let i = 0; i < left.length && o + i < n; ++i) { L[o + i] = left[i] * g; R[o + i] = right[i] * g; }
             files.push({ name, L, R });
         };
-        if (state.instru && audible(state.instruTrack)) stem('00-Instru', state.instru.left, state.instru.right, 0, state.instruTrack.volumeDb);
+        if (state.instru && audible(state.instruTrack)) { const ia = instruAudio(); stem('00-Instru', ia.left, ia.right, 0, state.instruTrack.volumeDb); }
         state.tracks.forEach((t, i) => {
             const a = audible(t) ? trackAudio(t, 'mix') : null;
             if (a) stem(`${String(i + 1).padStart(2, '0')}-${t.name.replace(/[^\w\u00C0-\u017F-]+/g, '_')}`, a.left, a.right, t.take.startSec, trackGainDb(t, 'mix'));
@@ -3693,7 +3874,8 @@ async function saveProject() {
     const t0 = performance.now();
     const db = await openDb();
     const audio = [];
-    if (state.instru) audio.push([state.instru.audioId + 'L', state.instru.left], [state.instru.audioId + 'R', state.instru.right]);
+    const src = instruSource();   // l'ORIGINAL : la version corrigée n'est jamais sauvegardée (recalculée au rechargement)
+    if (src) audio.push([src.audioId + 'L', src.left], [src.audioId + 'R', src.right]);
     // Prise montée : ce sont ses sons source qui sont gardés (jamais modifiés, écrits une seule fois) ; son rendu (mono)
     // est recalculé au chargement à partir des bouts. Prise sans montage : son son, comme avant.
     for (const t of state.tracks) for (const k of t.takes) audio.push(...mtAudioOf(k));
@@ -3705,6 +3887,8 @@ async function saveProject() {
         instru: state.instru ? { audioId: state.instru.audioId, sampleRate: state.instru.sampleRate, name: state.instru.name } : null,
         instruTrack: state.instruTrack,
         roleOffsets: state.roleOffsets,   // écarts de volume par type réglés à la main (absent : valeurs d'origine)
+        instruFix: !!state.instruFix,     // « Instru : corrigée » allumé (absent : telle quelle) ; le son corrigé n'est pas gardé
+        vocalOverInstruLu: state.vocalOverInstruLu,   // voix principale devant l'instru, réglée à la main (absent ou null : valeur du style)
         tracks: state.tracks.map((t) => ({
             id: t.id, name: t.name, roleId: t.roleId, styleId: t.styleId, volumeDb: t.volumeDb, mute: t.mute, solo: t.solo, noFx: !!t.noFx, smooth: !!t.smooth, locked: !!t.locked, fx: t.fx || {},
             mode: fxKindOf(t),   // 'none' | 'correction' | 'style' ; absent des projets d'avant le mode « Correction »
@@ -3736,6 +3920,12 @@ async function restoreProject() {
         state.rawLevelOn = !!meta.rawLevelOn;   // « Égaliser » demandé : les gains sont recalculés à la première lecture brute
         state.nextTrackId = meta.nextTrackId;
         await applyRoleOffsets(meta.roleOffsets);
+        // Réglages de l'instru : absents d'un projet d'avant → instru telle quelle, écart du style (comportement d'avant).
+        state.instruFix = meta.instruFix === true;
+        const vox = meta.vocalOverInstruLu;
+        state.vocalOverInstruLu = typeof vox === 'number' && Number.isFinite(vox) ? Math.min(VOX_INSTRU_MAX, Math.max(VOX_INSTRU_MIN, vox)) : null;
+        if (vox != null && state.vocalOverInstruLu !== vox) log('warn', `Écart voix / instru gardé illisible ou hors bornes (${vox}) : ${state.vocalOverInstruLu == null ? 'ignoré, valeur du style' : `ramené à ${fLuS(state.vocalOverInstruLu)}`}`);
+        log('info', `Instru : ${state.instruFix ? 'correction reprise de la sauvegarde (bouton allumé : elle est recalculée)' : meta.instruFix === false ? 'telle quelle (repris de la sauvegarde)' : 'telle quelle (projet d\'avant ce réglage)'} ; voix principale devant l'instru : ${state.vocalOverInstruLu == null ? 'valeur du style' : `${fLuS(state.vocalOverInstruLu)} repris de la sauvegarde`}`);
         state.tracks = [];
         for (const m of meta.tracks) {
             const t = { id: m.id, name: m.name, roleId: m.roleId, styleId: m.styleId, volumeDb: m.volumeDb, mute: m.mute, solo: m.solo, noFx: !!m.noFx, smooth: !!m.smooth, fx: m.fx && typeof m.fx === 'object' ? m.fx : {},   // anciens projets : effets du style, comme avant
@@ -3762,8 +3952,10 @@ async function restoreProject() {
                 await setInstru(L, R, meta.instru.sampleRate, meta.instru.name);
                 state.instru.audioId = meta.instru.audioId;
                 savedAudio.add(meta.instru.audioId + 'L'); savedAudio.add(meta.instru.audioId + 'R');
+                ensureInstruFix('projet repris');   // bouton allumé dans la sauvegarde : version corrigée recalculée
             } else log('warn', 'Instru introuvable dans la sauvegarde');
         }
+        renderRoles();   // ligne « Voix principale devant l'instru » : valeur reprise, style de la voix principale
         renderTracks();
         reprocessAll();
         const n = state.tracks.filter((t) => t.take).length;
@@ -3780,12 +3972,14 @@ ui.newBtn.addEventListener('click', async () => {
     if (!confirm('Nouveau projet : l\'instru et toutes les pistes du projet actuel seront effacées (exporte d\'abord si besoin). Continuer ?')) return;
     stopPlayback();
     state.instru = null;
+    state.instruFix = false; state.vocalOverInstruLu = null;   // réglages de l'instru : retour au défaut (telle quelle, écart du style)
     state.instruTrack = { volumeDb: 0, mute: false, solo: false };
     state.tracks = []; state.nextTrackId = 1; state.armedId = 0; state.selectedId = 0;
     state.balance = null; state.balanceDirty = true; state.playFromSec = 0;
     if (Object.keys(state.roleOffsets).length) await setRoleOffset('', null, 'nouveau projet');
     mtReset();   // montage : plus rien à annuler, plus de bout sélectionné ni copié
     addTrack('lead', 'Voix principale');
+    renderRoles();
     renderTracks();
     setPlayhead(0);
     await saveProject().catch((err) => log('warn', err.message));
@@ -3928,4 +4122,5 @@ setStatus('Chargement du moteur…');
 window.__svSep = sepRun;   // tests : état de la séparation (son de veille, tranches)
 window.__studiovoix = state;   // lecture seule par les tests de bout en bout (vérification des prises)
 window.__svRenderPlayed = renderPlayed;   // essai du montage : ce que la page joue, rendu hors ligne
+window.__svInstru = { audio: instruAudio, source: instruSource };   // essai instru-fix : instru jouée / mixée, instru d'origine (séparation, sauvegarde)
 startWorker();

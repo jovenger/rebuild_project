@@ -1,6 +1,7 @@
 // Essai de l'équilibre automatique (moteur WASM, dans la page) : plusieurs pistes « voix principale » enregistrées à des
 // niveaux très différents doivent sortir au même niveau après mixage, qu'il y en ait 2 ou 40 ; les backs entre eux aussi ;
-// une seule voix principale n'est pas touchée ; l'écart de volume d'un type (backs…) se règle et revient à l'origine.
+// une seule voix principale n'est pas touchée ; l'écart de volume d'un type (backs…) se règle et revient à l'origine ;
+// l'écart voix principale / instru se règle aussi (équilibre et mixage final, borné), sans réglage c'est celui du style.
 //   node web/test/balance.mjs <url>
 import { createRequire } from 'node:module';
 const require = createRequire(process.env.PLAYWRIGHT_DIR ? process.env.PLAYWRIGHT_DIR.replace(/\/?$/, '/') : import.meta.url);
@@ -112,6 +113,35 @@ try {
         await engine('setRoleOffset', { roleId: 'double', lu: -3 });
         const all = await engine('setRoleOffset', { reset: true });
         check('retour aux valeurs d\'origine pour tous les types', all.ok && all.roles.every((x) => x.placeLu === x.defaultPlaceLu), all.roles.map((x) => `${x.id} ${x.placeLu}`).join(', '));
+    }
+    // 6) Écart voix principale / instru réglé depuis la page (champ vocalOverInstruLu des commandes balance et finalMix) :
+    //    absent = valeur du style ; réglé = l'écart mesuré vaut la valeur ; hors bornes = ramené à [-4, +8] LU.
+    {
+        const mix = (cmd, extra) => page.evaluate(async ({ cmd, extra }) => {
+            const sr = 44100, st = window.__studiovoix, n = 10 * sr;
+            const instru = new Float32Array(n), voice = new Float32Array(8 * sr);
+            for (let i = 0; i < n; ++i) instru[i] = 0.12 * Math.sin(2 * Math.PI * 110 * i / sr) + 0.05 * Math.sin(2 * Math.PI * 1760 * i / sr);
+            for (let i = 0; i < voice.length; ++i) voice[i] = 0.2 * Math.sin(2 * Math.PI * 220 * i / sr) * (0.55 + 0.45 * Math.sin(2 * Math.PI * 4 * i / sr));
+            const id = 9700000 + Math.floor(Math.random() * 1e6);
+            const r = await new Promise((resolve, reject) => {
+                const on = (e) => { if (e.data?.id !== id) return; st.worker.removeEventListener('message', on); e.data.ok ? resolve(e.data) : reject(new Error(e.data.error)); };
+                st.worker.addEventListener('message', on);
+                st.worker.postMessage({ id, cmd, instruL: instru, instruR: instru.slice(), sampleRate: sr, styleId: 'rap_conscient', targetId: 'spotify', duckingDb: 0,
+                    tracks: [{ key: 1, left: voice, right: voice.slice(), startSec: 0, roleId: 'lead', volumeDb: 0 }], ...extra });
+            });
+            const rep = r.report;
+            return { gain: rep.vocalGainDb, gap: rep.leadLufs + rep.vocalGainDb - rep.instruLufs, over: rep.vocalOverInstruLu, style: rep.styleVocalOverInstruLu, set: rep.vocalOverInstruSet };
+        }, { cmd, extra });
+        const styleLu = await page.evaluate(() => window.__studiovoix.styles.flatMap((g) => g.styles).find((s) => s.id === 'rap_conscient').vocalOverInstruLu);
+        const a = await mix('balance', {});
+        check('voix / instru sans réglage : valeur du style', !a.set && a.over === styleLu && a.style === styleLu && Math.abs(a.gap - styleLu) < 0.1, `visé ${a.over} LU (style ${styleLu}), écart mesuré ${a.gap.toFixed(2)} LU`);
+        const b = await mix('balance', { vocalOverInstruLu: 5 });
+        check('voix / instru réglé à +5 LU : l\'écart mesuré vaut +5 LU', b.set && b.over === 5 && Math.abs(b.gap - 5) < 0.1 && Math.abs((b.gain - a.gain) - (5 - styleLu)) < 0.1, `écart mesuré ${a.gap.toFixed(2)} → ${b.gap.toFixed(2)} LU, gain voix ${a.gain.toFixed(2)} → ${b.gain.toFixed(2)} dB`);
+        const hi = await mix('balance', { vocalOverInstruLu: 20 }), lo = await mix('balance', { vocalOverInstruLu: -30 }), none = await mix('balance', { vocalOverInstruLu: -99 });
+        check('voix / instru borné à [-4, +8] LU ; -99 = valeur du style', hi.over === 8 && lo.over === -4 && !none.set && none.over === styleLu && Math.abs(none.gain - a.gain) < 1e-6, `+20 → ${hi.over} ; -30 → ${lo.over} ; -99 → ${none.over} (style)`);
+        const f0 = await mix('finalMix', {}), f5 = await mix('finalMix', { vocalOverInstruLu: 5 });
+        check('« Mixer la chanson » : même réglage (sans = style, +5 LU = +5 LU)', !f0.set && f0.over === styleLu && f5.set && f5.over === 5 && Math.abs(f5.gap - 5) < 0.1 && Math.abs((f5.gain - f0.gain) - (5 - styleLu)) < 0.1,
+            `sans réglage : écart ${f0.gap.toFixed(2)} LU ; réglé : ${f5.gap.toFixed(2)} LU (gain voix ${f0.gain.toFixed(2)} → ${f5.gain.toFixed(2)} dB)`);
     }
 } catch (err) {
     console.log(stamp(), 'ÉCHEC :', err.message);

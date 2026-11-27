@@ -406,6 +406,22 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   tort comme couvert par les écarts par type). Lancé le 27/11 : A) bouton « Instru : telle quelle / corrigée »
   (moteur `repairStereo`, éteint par défaut, original jamais modifié) ; B) curseur « Voix principale devant
   l'instru ». RESTE ensuite : l'écoute réelle par Yann et la mesure sur son téléphone.
+- RÉGLAGE DE BASE DE L'INSTRU (27/11, fait) :
+  - A) bouton « Instru : telle quelle / corrigée » (éteint par défaut, état gardé avec le projet, version corrigée à
+    côté de l'original, recalculée au rechargement ; `instruAudio()` pour ce qui joue ou mixe, `instruSource()` pour
+    la séparation et la sauvegarde). DÉCISION DE L'ORCHESTRATEUR sur mesure de l'ouvrier : la réparation d'instrument
+    du moteur (`repairStereo` + `correctionParams`) traite un mix entier comme un seul instrument — coupe de 3,5 à
+    5,4 dB à 300 Hz, résonances jusqu'à −9 dB, débruitage jusqu'à 20 dB, limiteur jusqu'à 5,7 dB sur les trois
+    musiques mesurées : elle abîme une instru masterisée, NON LIVRÉE. À la place `sv::dsp::fixMixBase` (moteur,
+    essai natif) : crêtes écrêtées reconstruites si la part d'échantillons en plateau au sommet atteint 0,03 %, puis
+    gain constant si la crête dépasse −1 dBFS ; rien d'autre. Mesuré : vraie chanson masterisée inchangée au bit près
+    (0 plateau, crête −1,0 dBFS, aucune mémoire en plus) ; instru de démo inchangée ; instru fabriquée trop forte et
+    écrêtée : 957 échantillons reconstruits, −5,0 dB, crête −1,0 dBFS.
+  - B) curseur « Voix principale devant l'instru » (−4 à +8 LU, valeur du style par défaut : 0 à +2 LU selon les 33
+    styles), dans « Écarts par type » ; vaut pour ▶ Mix, « Égaliser », l'export et « Mixer la chanson »
+    (`sv_finalmix_end` reçoit l'écart) ; gardé avec le projet.
+  - NON FAIT, à proposer à Yann : des réglages manuels du son de l'instru (graves / aigus) — c'est peut-être ce
+    qu'il entend par « réglage de base » ; un traitement automatique plus poussé d'une instru entière est risqué.
 - Build 154 en ligne (26/11, 21:00 UTC), contenu publié contrôlé sur la branche `gh-pages` (modèle léger, `clips.js`,
   `projectfile.js`, boutons). La page `jovenger.github.io` n'est pas joignable depuis l'environnement de travail.
 - 27/11 — ALLÈGEMENTS POUR LE TÉLÉPHONE (risques relevés la veille) :

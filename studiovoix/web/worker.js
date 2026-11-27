@@ -25,7 +25,8 @@ async function boot() {
         balanceBegin: engine.cwrap('sv_balance_begin', 'string', ['number', 'number', 'number', 'number', 'string']),
         balanceAdd: engine.cwrap('sv_balance_add', 'string', ['number', 'number', 'number', 'number', 'number', 'string', 'number']),
         balanceEnd: engine.cwrap('sv_balance_end', 'string', ['number']),
-        finalMixEnd: engine.cwrap('sv_finalmix_end', 'string', ['string', 'number']),
+        finalMixEnd: engine.cwrap('sv_finalmix_end', 'string', ['string', 'number', 'number']),
+        fixInstru: engine.cwrap('sv_fix_instru', 'string', ['number', 'number', 'number', 'number']),
         limit: engine.cwrap('sv_limit', 'string', ['number', 'number', 'number', 'number', 'number']),
         cleanTake: engine.cwrap('sv_clean_take', 'string', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
         demoInstru: engine.cwrap('sv_demo_instru', 'string', ['number', 'number']),
@@ -94,7 +95,20 @@ const handlers = {
             return { report, left: out.left, right: null, frames: out.frames };
         } finally { api.free(pr); if (il) api.free(il); if (ir) api.free(ir); }
     },
+    // Correction de base de l'instru (bouton « Instru : corrigée ») : mesure puis réparation stéréo liée, aucune couleur.
+    // Le moteur répare sur place dans sa copie des deux canaux (pas de seconde copie stéréo dans sa mémoire : téléphone) ;
+    // la version corrigée est relue au même endroit. Rend { report, left, right } ; les tableaux reçus ne changent pas.
+    fixInstru({ left, right, sampleRate }) {
+        if (!(left instanceof Float32Array) || !(right instanceof Float32Array) || left.length === 0 || right.length !== left.length || !(sampleRate > 0))
+            throw new Error('instru vide, canaux de longueurs différentes ou fréquence invalide');
+        const n = left.length, pl = push(left), pr = push(right);
+        try {
+            const report = parse(api.fixInstru(pl, pr, n, sampleRate));
+            return { report, left: engine.HEAPF32.slice(pl >> 2, (pl >> 2) + n), right: engine.HEAPF32.slice(pr >> 2, (pr >> 2) + n), frames: n };
+        } finally { api.free(pl); api.free(pr); }
+    },
     // Équilibre automatique : instru + pistes [{ key, left, right, startSec, roleId, volumeDb }] → gains par piste.
+    // vocalOverInstruLu : écart voix principale / instru réglé depuis la page (absent : celui du style).
     balance({ instruL, instruR, sampleRate, styleId, tracks, vocalOverInstruLu }) {
         const il = push(instruL), ir = push(instruR);
         try { parse(api.balanceBegin(il, ir, instruL ? instruL.length : 0, sampleRate, styleId || '')); }
@@ -107,7 +121,8 @@ const handlers = {
         return { report: parse(api.balanceEnd(vocalOverInstruLu ?? -99)) };
     },
     // Mixage final : mêmes pistes que balance, puis bus voix, voix / instru avec creux, mastering → chanson stéréo.
-    finalMix({ instruL, instruR, sampleRate, styleId, tracks, targetId, duckingDb }) {
+    // vocalOverInstruLu : comme pour balance (absent : celui du style).
+    finalMix({ instruL, instruR, sampleRate, styleId, tracks, targetId, duckingDb, vocalOverInstruLu }) {
         const il = push(instruL), ir = push(instruR);
         try { parse(api.balanceBegin(il, ir, instruL ? instruL.length : 0, sampleRate, styleId || '')); }
         finally { if (il) api.free(il); if (ir) api.free(ir); }
@@ -116,7 +131,7 @@ const handlers = {
             try { parse(api.balanceAdd(t.key, pl, pr, t.left.length, t.startSec, t.roleId, t.volumeDb)); }
             finally { api.free(pl); if (pr) api.free(pr); }
         }
-        const report = parse(api.finalMixEnd(targetId || 'spotify', duckingDb ?? 2.5));
+        const report = parse(api.finalMixEnd(targetId || 'spotify', duckingDb ?? 2.5, vocalOverInstruLu ?? -99));
         return { report, ...pullOut() };
     },
     // Écart de volume d'un type de piste par rapport à la voix principale (LU, borné à [-24, 0] par le moteur).

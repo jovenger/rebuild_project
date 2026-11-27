@@ -415,6 +415,11 @@ jobs:
           # Studio automatique : toute piste qui arrive est corrigée d'office (« Correction »), le style reste un choix
           # manuel, « Corriger toutes les pistes », écarts de volume par type réglables, modes gardés avec le projet.
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/auto.mjs http://127.0.0.1:8765/index.html
+          # Réglages de base de l'instru : bouton « Instru : corrigée » (éteint par défaut ; ne fait que réparer l'écrêtage
+          # et baisser un niveau trop haut : une instru propre reste identique au bit près ; original jamais modifié) et
+          # curseur « Voix principale devant l'instru » (équilibre et « Mixer la chanson ») ; souris puis doigt.
+          PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/instru-fix.mjs http://127.0.0.1:8765/index.html
+          DEVICE="Pixel 7" PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/instru-fix.mjs http://127.0.0.1:8765/index.html
           # Projet dans un fichier : « Enregistrer le projet » puis « Ouvrir un projet » redonnent le même projet au bit
           # près ; fichier abîmé, tronqué ou étranger refusé sans toucher au projet en cours.
           PLAYWRIGHT_DIR="$PWD/node_modules" node web/test/projectpage.mjs http://127.0.0.1:8765/index.html

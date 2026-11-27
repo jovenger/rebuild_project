@@ -13,6 +13,7 @@
 #include "core/dsp/MasterChain.h"
 #include "core/dsp/Processors.h"
 #include "core/dsp/ProblemAnalyzer.h"
+#include "core/dsp/TrackRepair.h"
 #include "core/dsp/VocalChain.h"
 #include "core/mix/AutoMixer.h"
 #include "core/style/StyleProfiles.h"
@@ -22,6 +23,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <ctime>
 #include <cwchar>
 #include <string>
@@ -127,6 +129,11 @@ namespace
             roleOffsetInit = true;
         }
     }
+    // Écart voix principale / instru réglé depuis la page (sv_balance_end, sv_finalmix_end) : bornes. Les 33 styles
+    // vont de 0 à +2 LU (sv::style::masterTone) ; la plage laisse de la marge des deux côtés. Une valeur <= -50 (ou non
+    // finie) veut dire « pas de réglage » : celle du style.
+    constexpr float kVoxInstruMinLu = -4.0f, kVoxInstruMaxLu = 8.0f;
+
     bool roleOffsetAdjustable (sv::style::Role role)
     {
         return role != sv::style::Role::Lead && role != sv::style::Role::Instru && role != sv::style::Role::Count;
@@ -194,6 +201,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_styles()
             auto* o = new juce::DynamicObject();
             o->setProperty ("id", sv::style::styleId (st));
             o->setProperty ("name", sv::style::styleName (st));
+            o->setProperty ("vocalOverInstruLu", sv::style::masterTone (st).vocalOverInstruLu);   // voix principale devant l'instru (LU)
             styles.add (juce::var (o));
         }
         auto* go = new juce::DynamicObject();
@@ -668,7 +676,9 @@ namespace
         float instruLufs = -120.0f;
         double leadLufs = -120.0;
         int leadCount = 0;
-        float vocalOverInstruLu = 0.0f;
+        float vocalOverInstruLu = 0.0f;    // écart voix principale / instru visé (réglé depuis la page, sinon celui du style)
+        float styleOverInstruLu = 0.0f;    // celui du style
+        bool overInstruSet = false;        // vrai : réglé depuis la page
         juce::Array<juce::var> items;
         juce::StringArray lines;
         sv::Stereo lead, all, instru;   // sur la grille du morceau ; all = voix avec fader + place
@@ -790,9 +800,16 @@ namespace
         if (! lines.isEmpty())
             SV_LOG_INFO (kMod, "Orchestre : "_u8 + lines.joinIntoString (" | "));
 
-        // 2) Toutes les voix ensemble par rapport à l'instru (sonie visée par le style).
+        // 2) Toutes les voix ensemble par rapport à l'instru (sonie visée par le style, ou réglée depuis la page).
         float vocalGainDb = 0.0f;
         float instruLufs = -120.0f;
+        const float styleOverLu = sv::style::masterTone (balance.style).vocalOverInstruLu;
+        const bool overSet = std::isfinite (vocalOverInstruLuOverride) && vocalOverInstruLuOverride > -50.0f;
+        // Entrée externe : valeur réglée bornée.
+        const float overLu = overSet ? juce::jlimit (kVoxInstruMinLu, kVoxInstruMaxLu, vocalOverInstruLuOverride) : styleOverLu;
+        if (overSet && overLu != vocalOverInstruLuOverride)
+            SV_LOG_WARN (kMod, "Voix / instru : écart demandé "_u8 + juce::String (vocalOverInstruLuOverride, 1) + " LU hors bornes, ramené à "_u8
+                               + juce::String (overLu, 1) + " LU");
         if (balance.instru.getNumSamples() > 0 && ! balance.tracks.empty())
         {
             sv::Stereo all = onGrid ({});
@@ -804,14 +821,15 @@ namespace
             }
             sv::mix::AutoMixSettings s;
             s.duckingDb = 0.0f;   // instru jamais modifiée
-            s.vocalOverInstruLu = std::isfinite (vocalOverInstruLuOverride) && vocalOverInstruLuOverride > -50.0f
-                                      ? vocalOverInstruLuOverride : sv::style::masterTone (balance.style).vocalOverInstruLu;
+            s.vocalOverInstruLu = overLu;
             const auto am = sv::mix::autoMix (onGrid (balance.instru), lead, all, sr, s);
             vocalGainDb = am.vocalGainDb;
             instruLufs = am.instruLufs;
             SV_LOG_INFO (kMod, "Voix / instru : gain voix "_u8 + juce::String (vocalGainDb, 1) + " dB (visée "
-                               + juce::String (s.vocalOverInstruLu, 1) + " LU)");
+                               + juce::String (s.vocalOverInstruLu, 1) + " LU"
+                               + (overSet ? ", réglée à la main ; style "_u8 + juce::String (styleOverLu, 1) + " LU" : juce::String (", valeur du style")) + ")");
         }
+        bc.vocalOverInstruLu = overLu; bc.styleOverInstruLu = styleOverLu; bc.overInstruSet = overSet;
         bc.total = total; bc.autoGain = autoGain; bc.vocalGainDb = vocalGainDb; bc.instruLufs = instruLufs;
         bc.leadLufs = leadLufs; bc.leadCount = leadCount; bc.items = items; bc.lines = lines; bc.lead = lead;
         bc.instru = onGrid (balance.instru);
@@ -845,6 +863,9 @@ EMSCRIPTEN_KEEPALIVE const char* sv_balance_end (float vocalOverInstruLuOverride
     o->setProperty ("instruLufs", bc.instruLufs);
     o->setProperty ("leadLufs", bc.leadLufs);
     o->setProperty ("leadCount", bc.leadCount);
+    o->setProperty ("vocalOverInstruLu", bc.vocalOverInstruLu);            // écart visé (LU), en vigueur
+    o->setProperty ("styleVocalOverInstruLu", bc.styleOverInstruLu);       // celui du style
+    o->setProperty ("vocalOverInstruSet", bc.overInstruSet);               // vrai : réglé depuis la page
     o->setProperty ("report", bc.lines.joinIntoString ("\n"));
     balance = {};
     return reply (juce::var (o));
@@ -854,8 +875,10 @@ EMSCRIPTEN_KEEPALIVE const char* sv_balance_end (float vocalOverInstruLuOverride
     1) place de chaque piste selon son type (comme sv_balance_end) ; 2) bus voix : toutes les voix passent ensemble
     dans le compresseur « colle » (BusGlue, rattrapage = réduction moyenne, 0 à 4 dB) ; 3) voix / instru par la sonie,
     avec un creux de l'instru sous la voix (duckingDb, vers 2,5 kHz, seulement quand la voix chante) ; 4) mastering
-    (compression de cohésion, couleur du style, limiteur, sonie de la plateforme visée). Chanson stéréo dans sv_out_*. */
-EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float duckingDb)
+    (compression de cohésion, couleur du style, limiteur, sonie de la plateforme visée). Chanson stéréo dans sv_out_*.
+    vocalOverInstruLuOverride : écart voix principale / instru réglé depuis la page, comme sv_balance_end (<= -50 : celui
+    du style). */
+EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float duckingDb, float vocalOverInstruLuOverride)
 {
     ensureLog();
     if (! balance.open)
@@ -864,7 +887,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
         return reply (errorJson ("Rien à mixer : ni instru ni piste voix"_u8));
     sv::log::ScopedTimer timer (kMod, "mixage final"_u8);
     const double sr = balance.sampleRate;
-    auto bc = runBalance (-99.0f);
+    auto bc = runBalance (vocalOverInstruLuOverride);
 
     // 2) Bus voix : réduction mesurée sur une copie, puis passage réel avec le rattrapage.
     float busGr = 0.0f, makeup = 0.0f, busGrMax = 0.0f;
@@ -887,7 +910,7 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
     // 3) Voix / instru + creux de l'instru sous la voix.
     sv::mix::AutoMixSettings ms;
     ms.duckingDb = juce::jlimit (0.0f, 6.0f, duckingDb);
-    ms.vocalOverInstruLu = sv::style::masterTone (balance.style).vocalOverInstruLu;
+    ms.vocalOverInstruLu = bc.vocalOverInstruLu;   // réglé depuis la page, sinon celui du style (runBalance)
     sv::Stereo mix (2, juce::jmax (1, bc.total));
     mix.clear();
     float vocalGainDb = 0.0f;
@@ -921,7 +944,8 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
     for (size_t i = 0; i < balance.tracks.size(); ++i)
         bc.items.getReference ((int) i).getDynamicObject()->setProperty ("gainDb", balance.tracks[i].volumeDb + bc.autoGain[i] + vocalGainDb);
     const auto ti = sv::dsp::targetInfo (mset.target);
-    SV_LOG_INFO (kMod, "Mixage final : voix "_u8 + juce::String (vocalGainDb, 1) + " dB, bus voix -" + juce::String (busGr, 1)
+    SV_LOG_INFO (kMod, "Mixage final : voix "_u8 + juce::String (vocalGainDb, 1) + " dB (visée "_u8 + juce::String (ms.vocalOverInstruLu, 1)
+                       + " LU devant l'instru, " + (bc.overInstruSet ? "réglée à la main"_u8 : "valeur du style"_u8) + "), bus voix -" + juce::String (busGr, 1)
                        + " dB (rattrapage +" + juce::String (makeup, 1) + "), creux instru " + juce::String (ms.duckingDb, 1)
                        + " dB, mastering " + ti.name + " : " + juce::String (mr.inputLufs, 1) + " -> " + juce::String (mr.outputLufs, 1)
                        + " LUFS, crête " + juce::String (mr.truePeakDb, 1) + " dBTP, limiteur " + juce::String (mr.limiterMaxGrDb, 1) + " dB");
@@ -936,6 +960,9 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
     o->setProperty ("duckingDb", ms.duckingDb);
     o->setProperty ("instruLufs", bc.instruLufs);
     o->setProperty ("leadLufs", bc.leadLufs);
+    o->setProperty ("vocalOverInstruLu", bc.vocalOverInstruLu);
+    o->setProperty ("styleVocalOverInstruLu", bc.styleOverInstruLu);
+    o->setProperty ("vocalOverInstruSet", bc.overInstruSet);
     o->setProperty ("target", ti.name);
     o->setProperty ("targetLufs", ti.lufs);
     o->setProperty ("inputLufs", mr.inputLufs);
@@ -949,6 +976,53 @@ EMSCRIPTEN_KEEPALIVE const char* sv_finalmix_end (const char* targetId, float du
     o->setProperty ("report", bc.lines.joinIntoString ("\n"));
     o->setProperty ("frames", lastOut.getNumSamples());
     balance = {};
+    return reply (juce::var (o));
+}
+
+/** Réglage de base de l'instru (bouton « Instru : corrigée » de la page, éteint par défaut) : sv::dsp::fixMixBase —
+    seulement ce qui ne peut pas abîmer une instru déjà produite : crêtes écrêtées reconstruites quand l'écrêtage est
+    net, puis un gain constant (le même à gauche et à droite) si la crête dépasse -1 dBFS. Ni égaliseur, ni débruitage,
+    ni niveleur, ni compression, ni limiteur, ni réverb, ni écho, ni saturation. Une instru propre ressort identique au
+    bit près (changed = false).
+    Mémoire (téléphone) : le travail se fait SUR PLACE dans les deux tampons fournis (left, right : la copie de travail
+    que la page envoie, jamais son instru d'origine) ; la version corrigée se lit dans ces mêmes tampons au retour
+    (sv_out_* n'est pas utilisé).
+    JSON : ce qui a été trouvé et fait, niveau et crête avant / après. */
+EMSCRIPTEN_KEEPALIVE const char* sv_fix_instru (float* left, float* right, int frames, double sampleRate)
+{
+    ensureLog();
+    if (left == nullptr || right == nullptr || frames <= 0 || sampleRate <= 0.0)
+        return reply (errorJson ("Instru vide"_u8));
+    sv::log::ScopedTimer timer (kMod, "réglage de base de l'instru"_u8);
+    float* chans[2] = { left, right };
+    sv::Stereo st (chans, 2, frames);   // tampon qui pointe sur la mémoire fournie (aucune copie)
+    const double lufsBefore = sv::loudness::integratedLufs (st, sampleRate);
+    const auto rep = sv::dsp::fixMixBase (st, sampleRate);
+    if (st.getNumChannels() != 2 || st.getNumSamples() != frames || st.getReadPointer (0) != left || st.getReadPointer (1) != right)
+        return reply (errorJson ("Réglage de base de l'instru : le son n'est plus dans les tampons fournis"_u8));
+    const double lufsAfter = rep.changed ? sv::loudness::integratedLufs (st, sampleRate) : lufsBefore;
+
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("ok", true);
+    o->setProperty ("frames", frames);
+    o->setProperty ("changed", rep.changed);                       // faux : instru déjà propre, son identique au bit près
+    o->setProperty ("clippedSamples", rep.clippedSamples);         // échantillons en plateau au sommet (les deux canaux)
+    o->setProperty ("clippedSharePct", 100.0 * rep.clippedShare);
+    o->setProperty ("clippedMinSharePct", 100.0 * sv::dsp::kMixBaseMinClippedShare);
+    o->setProperty ("clippedRepaired", rep.clippedRepaired);       // échantillons reconstruits
+    o->setProperty ("gainDb", rep.gainDb);                         // gain constant appliqué (<= 0)
+    o->setProperty ("lufsBefore", lufsBefore);
+    o->setProperty ("lufsAfter", lufsAfter);
+    o->setProperty ("peakBeforeDb", rep.peakBeforeDb);
+    o->setProperty ("peakAfterDb", rep.peakAfterDb);
+    // Contrôle « aucune couleur » côté page : ce réglage n'a ni réverb, ni écho, ni saturation, par construction.
+    o->setProperty ("reverbSend", 0.0f);
+    o->setProperty ("delaySend", 0.0f);
+    o->setProperty ("satMix", 0.0f);
+    SV_LOG_INFO (kMod, "Instru, réglage de base : "_u8 + juce::String (lufsBefore, 1) + " -> " + juce::String (lufsAfter, 1) + " LUFS, crête "_u8
+                       + juce::String (rep.peakBeforeDb, 1) + " -> " + juce::String (rep.peakAfterDb, 1) + " dBFS, "
+                       + juce::String (rep.clippedRepaired) + " échantillons reconstruits, gain "_u8 + juce::String (rep.gainDb, 2) + " dB"
+                       + (rep.changed ? juce::String() : juce::String (" ; instru déjà propre, son inchangé"_u8)));
     return reply (juce::var (o));
 }
 

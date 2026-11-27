@@ -138,6 +138,12 @@ Depuis le cahier des charges du 26/11 (studio automatique) :
   la case sert (SHA-256 vérifié, gardé par le navigateur).
 - **Inspection** : sur toute la durée de la piste (le pire passage est détaillé) ; signale aussi une compression qui
   déforme la voix, avec un bouton « Adoucir la compression ».
+- **Réglage de base de l'instru** : sur la piste Instru, le bouton « Instru : telle quelle / corrigée » (éteint par
+  défaut) répare une instru trop forte ou écrêtée avant le mix — crêtes écrêtées reconstruites, niveau baissé d'un
+  gain constant si la crête dépasse −1 dBFS, rien d'autre (ni égaliseur, ni compression, ni effet) ; une instru
+  propre reste identique au bit près et l'original est toujours gardé. Dans « Écarts par type », le curseur « Voix
+  principale devant l'instru » (−4 à +8 LU, valeur du style par défaut) règle de combien la voix passe devant
+  l'instru pour « ▶ Mix », l'export et « Mixer la chanson ».
 
 Pas dans la version web : VST3, autres outils d'IA (DeepFilterNet, whisper.cpp, Demucs), installateur et bouton
 « Mise à jour » (la page est toujours à jour). Compilation locale : `web/build-wasm.sh <dossier JUCE>` (Emscripten 3.1+), IA : `web/fetch-ia.sh`
