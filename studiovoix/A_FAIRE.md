@@ -403,6 +403,16 @@ on importe ou on sépare, et le programme travaille toutes les pistes proprement
   3 min 35 ≈ 8 à 10 min au lieu de ≈ 30), WebGPU avec ce modèle, « Finition soignée » avec « Très rapide ».
 - ÉTAPE 4 : les quatre points demandés sont faits (projet en fichier, écarts par type, inspection complète,
   protocole d'écoute). RESTE : l'écoute réelle par Yann et la mesure sur son téléphone.
+- Build 154 en ligne (26/11, 21:00 UTC), contenu publié contrôlé sur la branche `gh-pages` (modèle léger, `clips.js`,
+  `projectfile.js`, boutons). La page `jovenger.github.io` n'est pas joignable depuis l'environnement de travail.
+- 27/11 — ALLÈGEMENTS POUR LE TÉLÉPHONE (risques relevés la veille) :
+  - mémoire : en mode Correction la sortie du moteur est identique à gauche et à droite (mesuré : écart nul pour
+    tous les types de piste) → un seul tableau gardé pour les deux canaux du son traité (37 Mo au lieu de 75 pour
+    3 min 30) ; un style qui place la voix en stéréo garde ses deux canaux.
+  - équilibre, « Égaliser », mixage final : une seule copie par son mono (`lrCopy`) et tampons transférés au worker
+    (avant : deux copies par canal de chaque piste, toutes en même temps, puis une copie de plus à l'envoi).
+  - montage : le retraitement d'une piste part 1,2 s après le DERNIER geste (`MT_REPROCESS_MS`) au lieu de repartir
+    à chaque geste ; un équilibre, un mixage ou un export lancent d'abord les traitements en attente.
 
 ## PROJET EN PAUSE à la demande de Yann (17/11, 05:10 UTC) — levée le 26/11
 

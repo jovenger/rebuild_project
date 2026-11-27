@@ -56,7 +56,25 @@ const state = {
 const mt = { sources: new Map(), sel: { trackId: 0, clipId: '' }, undo: [], redo: [], clipboard: null, live: null, zoom: 1, start: 0, head: 0, nextId: 1, menu: false, menuAt: 0, menuTrack: 0 };
 state.montage = mt;
 // ------------------------------------------------------------------ journal et état
-function setStatus(text) { ui.status.textContent = text; }
+// Barre d'état. Un message né d'un geste (refus, résultat) reste lisible STATUS_HOLD_MS : pendant ce temps, un message
+// d'avancement venu de l'arrière-plan (traitement d'une piste, { low: true }) attend son tour au lieu de l'écraser
+// (vu le 27/11 : « piste verrouillée » remplacé aussitôt par « Correction automatique … en cours »).
+const STATUS_HOLD_MS = 2500;
+let statusHold = 0, statusLow = null, statusTimer = 0;
+function setStatus(text, opts) {
+    if (opts?.low) {
+        const wait = statusHold - performance.now();
+        if (wait <= 0) { ui.status.textContent = text; return; }
+        statusLow = text;
+        clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => { if (statusLow !== null) { ui.status.textContent = statusLow; statusLow = null; } }, wait);
+        return;
+    }
+    statusLow = null;
+    clearTimeout(statusTimer);
+    ui.status.textContent = text;
+    statusHold = performance.now() + STATUS_HOLD_MS;
+}
 function log(level, msg) {
     const line = document.createElement('div');
     line.className = 'l-' + level;
@@ -95,6 +113,18 @@ function startWorker() {
         state.pending.delete(m.id);
         m.ok ? p.resolve(m) : p.reject(new Error(m.error));
     };
+}
+// Copie d'une paire gauche / droite pour le moteur. Mémoire (téléphone) : une seule copie quand les deux canaux sont le
+// même tableau (prise brute, piste corrigée : son mono), et son tampon va dans `transfer` : il est remis au worker
+// sans seconde copie à l'envoi. Avant (mesuré par lecture du code) : deux copies par canal pour chaque piste, toutes
+// en même temps, à chaque calcul d'équilibre ou de mixage.
+function lrCopy(left, right, transfer) {
+    const l = left.slice();
+    transfer.push(l.buffer);
+    if (right === left) return { left: l, right: l };
+    const r = right.slice();
+    transfer.push(r.buffer);
+    return { left: l, right: r };
 }
 function call(cmd, payload, transfer = []) {
     return new Promise((resolve, reject) => {
@@ -797,6 +827,7 @@ function setBusy(delta) {
     document.body.dataset.busy = String(state.busy);
 }
 function queueProcess(t) {
+    if (t.mtTimer) { clearTimeout(t.mtTimer); t.mtTimer = 0; }   // traitement différé par le montage : fait maintenant
     if (!t.take) { updateRow(t); return; }
     if (t.noFx) {   // piste « sans effet » (voix séparée d'une chanson déjà produite) : jouée telle quelle
         ++t.token; t.processed = null; t.status = 'raw'; state.balanceDirty = true; updateRow(t);
@@ -819,14 +850,21 @@ async function processTrack(t, token) {
     const key = `${sid}|${t.roleId}|${ui.cleaning.checked}|${ui.useScale.checked}|${t.smooth ? 'lissé' : 'style'}|${fx ? JSON.stringify(fx) : ''}`;
     const t0 = performance.now();
     if (corr) { log('info', `« ${t.name} » : correction automatique lancée (${roleLabel(t.roleId)}, prise de ${fmt(t.take.mono.length / t.take.sampleRate)}${t.smooth ? ', voix lissée' : ''}${fx ? ', réglages à la main : ' + JSON.stringify(fx) : ''})`); autoShow(t); }
-    setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » (${roleLabel(t.roleId)}) en cours…` : `Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`);
+    setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » (${roleLabel(t.roleId)}) en cours…` : `Traitement de « ${t.name} » : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}…`, { low: true });   // avancement en arrière-plan : n'écrase pas le message d'un geste
     try {
+        const mono = t.take.mono.slice();   // copie remise au worker (transférée : pas de seconde copie à l'envoi)
         const r = await call('processVoice', {
-            mono: t.take.mono.slice(), sampleRate: t.take.sampleRate, styleId: sid, roleId: t.roleId,
+            mono, sampleRate: t.take.sampleRate, styleId: sid, roleId: t.roleId,
             cleaning: ui.cleaning.checked, useScale: ui.useScale.checked, startSec: t.take.startSec, fx, gentle: !!t.smooth,
-        });
+        }, [mono.buffer]);
         if (token !== t.token) return;
-        t.processed = { left: r.left, right: r.right, report: r.report, key };
+        // Même son à gauche et à droite (mode Correction ; mesuré : écart nul pour tous les types de piste) : un seul
+        // tableau gardé pour les deux canaux — 37 Mo au lieu de 75 pour une piste de 3 min 30. Un style qui place la
+        // voix en stéréo (réverb, doublage) garde ses deux canaux.
+        let same = r.left.length === r.right.length;
+        for (let i = 0; same && i < r.left.length; ++i) if (r.left[i] !== r.right[i]) same = false;
+        t.processed = { left: r.left, right: same ? r.left : r.right, report: r.report, key };
+        log('info', `« ${t.name} » : son traité gardé en ${same ? 'mono (un seul tableau pour les deux canaux)' : 'stéréo'}, ${((same ? 1 : 2) * r.left.byteLength / 1048576).toFixed(0)} Mo`);
         t.status = 'done';
         if (t.inspect) t.inspect.stale = true;   // réglages changés depuis l'inspection : ses constats ne valent plus
         state.balanceDirty = true;
@@ -836,7 +874,7 @@ async function processTrack(t, token) {
             log('info', `« ${t.name} » : correction automatique finie en ${Math.round(performance.now() - t0)} ms — décisions du moteur : ${(r.report.fitNotes || 'rien à ajuster').replace(/\n/g, ' | ')} ; constats : ${(r.report.found || 'aucun défaut notable').replace(/\n/g, ' | ')}`);
             if (r.report.mode !== 'correction') log('warn', `« ${t.name} » : le moteur a répondu en mode « ${r.report.mode} » au lieu de « correction »`);
         }
-        setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » corrigée (${roleLabel(t.roleId)}, sans couleur de style).` : `Piste « ${t.name} » traitée : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}.`);
+        setStatus(corr ? `${autoRun.head}${autoText()} — « ${t.name} » corrigée (${roleLabel(t.roleId)}, sans couleur de style).` : `Piste « ${t.name} » traitée : ${roleLabel(t.roleId)}, style ${styleName(t.styleId)}.`, { low: true });   // avancement en arrière-plan : n'écrase pas le message d'un geste
     } catch (err) {
         t.status = 'error';
         log('error', `« ${t.name} » : traitement impossible : ${err.message}`);
@@ -1379,19 +1417,18 @@ function swapTrackSource(p, t) {
 // Équilibre automatique (moteur) : gain par piste pour « Mix ». Les faders s'ajoutent ensuite (non comptés ici).
 async function ensureBalance() {
     if (!state.balanceDirty && state.balance) return state.balance;
+    mtFlushPending();
     await state.jobs;
     const list = state.tracks.filter((t) => t.take && !t.mute);
     if (list.length === 0) { state.balance = { gains: new Map(), items: new Map() }; state.balanceDirty = false; return state.balance; }
-    const sr = list[0].take.sampleRate;
+    const sr = list[0].take.sampleRate, xfer = [];
     const tracks = list.map((t) => {
         const L = t.processed ? t.processed.left : t.take.mono, R = t.processed ? t.processed.right : t.take.mono;
-        return { key: t.id, left: L.slice(), right: R.slice(), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 };
+        return { key: t.id, ...lrCopy(L, R, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 };
     });
     const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
-    const r = await call('balance', {
-        instruL: state.instru ? state.instru.left.slice() : null, instruR: state.instru ? state.instru.right.slice() : null,
-        sampleRate: sr, styleId: leadStyle, tracks,
-    });
+    const ins = state.instru ? lrCopy(state.instru.left, state.instru.right, xfer) : null;
+    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks }, xfer);
     const gains = new Map(), items = new Map();
     for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
     state.balance = { gains, items, report: r.report };
@@ -1625,13 +1662,12 @@ async function ensureRawBalance(onStep = null) {
     if (state.balanceRaw && state.balanceRaw.sig === sig) return state.balanceRaw;
     if (list.length === 0) { state.balanceRaw = { gains: new Map(), items: new Map(), sig }; return state.balanceRaw; }
     const sr = list[0].take.sampleRate;
-    const tracks = list.map((t) => ({ key: t.id, left: t.take.mono.slice(), right: t.take.mono.slice(), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 }));
+    const xfer = [];
+    const tracks = list.map((t) => ({ key: t.id, ...lrCopy(t.take.mono, t.take.mono, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: 0 }));
     const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0].styleId;
     onStep?.(`mesure de ${list.length} piste(s)…`);
-    const r = await call('balance', {
-        instruL: state.instru ? state.instru.left.slice() : null, instruR: state.instru ? state.instru.right.slice() : null,
-        sampleRate: sr, styleId: leadStyle, tracks,
-    });
+    const ins = state.instru ? lrCopy(state.instru.left, state.instru.right, xfer) : null;
+    const r = await call('balance', { instruL: ins?.left ?? null, instruR: ins?.right ?? null, sampleRate: sr, styleId: leadStyle, tracks }, xfer);
     const gains = new Map(), items = new Map();
     for (const it of r.report.tracks) { gains.set(it.key, it.gainDb); items.set(it.key, it); }
     state.balanceRaw = { gains, items, report: r.report, sig };
@@ -2840,6 +2876,7 @@ ui.finalMixBtn.addEventListener('click', async () => {
         stopPlayback();
         ui.finalMixBtn.disabled = true;
         setStatus('Mixage de la chanson : attente des traitements en cours…');
+        mtFlushPending();
         await state.jobs;
         // Tout doit être en place : une piste encore brute (jamais traitée, ou réglage changé) est traitée d'abord.
         const pending = state.tracks.filter((t) => t.take && audible(t) && !t.noFx && (!t.processed || t.status === 'busy'));
@@ -2855,15 +2892,15 @@ ui.finalMixBtn.addEventListener('click', async () => {
         setStatus(`Mixage de la chanson : ${list.length} piste(s) voix + instru, mastering ${ui.finalTarget.selectedOptions[0].textContent}…`);
         const t0 = performance.now();
         const leadStyle = state.tracks.find((t) => t.roleId === 'lead')?.styleId || list[0]?.styleId || 'rap_conscient';
+        const xfer = [], ins = state.instru && audible(state.instruTrack) ? lrCopy(state.instru.left, state.instru.right, xfer) : null;
         const r = await call('finalMix', {
-            instruL: state.instru && audible(state.instruTrack) ? state.instru.left.slice() : null,
-            instruR: state.instru && audible(state.instruTrack) ? state.instru.right.slice() : null,
+            instruL: ins?.left ?? null, instruR: ins?.right ?? null,
             sampleRate: sr, styleId: leadStyle, targetId: ui.finalTarget.value, duckingDb: ui.finalDuck.checked ? 2.5 : 0,
             tracks: list.map((t) => {
                 const a = trackAudio(t, 'mix');
-                return { key: t.id, left: a.left.slice(), right: a.right.slice(), startSec: t.take.startSec, roleId: t.roleId, volumeDb: t.volumeDb };
+                return { key: t.id, ...lrCopy(a.left, a.right, xfer), startSec: t.take.startSec, roleId: t.roleId, volumeDb: t.volumeDb };
             }),
-        });
+        }, xfer);
         const rep = r.report;
         state.finalMix = { left: r.left, right: r.right, sampleRate: sr, report: rep, stale: false };
         const lines = rep.tracks.map((x) => {
@@ -3093,6 +3130,11 @@ function mtPrune() {
 }
 
 // ---- suite commune d'un geste de montage : rendu fait, traitement relancé, équilibre à refaire, projet à sauvegarder
+const MT_REPROCESS_MS = 1200;
+// Traitements différés par le montage : lancés tout de suite (avant un équilibre, un mixage, un export, qui attendent la file).
+function mtFlushPending() {
+    for (const t of state.tracks) if (t.mtTimer) { clearTimeout(t.mtTimer); t.mtTimer = 0; queueProcess(t); }
+}
 function mtAfter(tracks) {
     for (const t of tracks) {
         t.processed = null;                        // l'ancien son traité ne correspond plus aux bouts
@@ -3103,7 +3145,16 @@ function mtAfter(tracks) {
     state.balanceRaw = null;                       // « Égaliser » : à refaire aussi
     markDirty();
     renderTracks();
-    for (const t of tracks) queueProcess(t);       // comme après un déplacement : effets recalculés sur le nouveau rendu
+    // Effets recalculés sur le nouveau rendu, mais seulement MT_REPROCESS_MS après le DERNIER geste sur la piste : une
+    // série de gestes (couper, supprimer, glisser…) ne lance qu'un traitement au lieu d'un par geste (un traitement
+    // lancé ne s'interrompt pas : 4 s pour 28 s de prise ici, bien plus sur téléphone). En attendant, la piste est
+    // marquée « traitement… » et le mix joue le rendu brut du montage, comme pendant le traitement lui-même.
+    for (const t of tracks) {
+        clearTimeout(t.mtTimer);
+        if (!t.take || t.noFx) { queueProcess(t); continue; }
+        ++t.token; t.status = 'busy'; updateRow(t);
+        t.mtTimer = setTimeout(() => { t.mtTimer = 0; if (findTrack(t.id)) queueProcess(t); }, MT_REPROCESS_MS);
+    }
     if (state.player && !state.rec && (state.player.mode === 'mix' || state.player.mode === 'raw')) play(state.player.mode, mt.head);   // lecture en cours : elle repart du même endroit avec le nouveau son
     mtPrune();
 }
